@@ -296,14 +296,38 @@ vf-desktop {
   min-width: 0;
 }
 
-/* The criteria "well": a dashed square frame around the
-   attribute/operator/value row. */
+/* The criteria "well": a hairline dotted frame around the
+   attribute/operator/value row — exactly 1px black dots with 1px gaps, square
+   corners. CSS `dotted` draws round dots at browser-chosen spacing, so the
+   frame is drawn as four edge gradients pinned to a 1-on/1-off pixel grid. */
 .find-criteria {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border: 1px dashed var(--vf-black, #000);
+  background-image: repeating-linear-gradient(
+      90deg,
+      var(--vf-black, #000) 0 1px,
+      transparent 1px 2px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--vf-black, #000) 0 1px,
+      transparent 1px 2px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      var(--vf-black, #000) 0 1px,
+      transparent 1px 2px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      var(--vf-black, #000) 0 1px,
+      transparent 1px 2px
+    );
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-size: 100% 1px, 100% 1px, 1px 100%, 1px 100%;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
 }
 .find-attr,
 .find-op {

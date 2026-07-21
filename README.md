@@ -72,6 +72,14 @@ parts.
 
 ### Fonts
 
-The stack prefers a real Chicago-style face if present. For bitmap-crisp
-authenticity, add the public-domain **ChicagoFLF** as a webfont (template in
-`src/styles/vintage.css`).
+Two System 7 bitmap faces ship inside the components and register themselves on
+`document.fonts`, so they render inside every shadow root with no global CSS:
+
+- **ChiKareGo** — the Chicago-style *chrome* face: menu bar, menus, window and
+  dialog titles, buttons, checkboxes, radios, popup menus, and fieldset legends.
+- **FindersKeepers** — the *body* face: editable fields, list rows, and page
+  copy.
+
+Both are crisp at the default 16px (their native 1024-upm pixel grid). Retheme
+with `--vf-font-family-display` (chrome) and `--vf-font-family` (body), plus the
+matching `--vf-font-size-display` / `--vf-font-smoothing-display` tokens.

@@ -1,7 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfDisplay } from '../styles/base.js'
 
 /**
  * The classic black/white caution icon: a triangle with an exclamation mark.
@@ -46,6 +46,7 @@ const cautionIcon = html`
 export class VfAlert extends LitElement {
   static override styles = [
     vfBase,
+    vfDisplay,
     css`
       :host {
         display: contents;

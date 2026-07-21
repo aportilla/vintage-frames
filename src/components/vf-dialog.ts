@@ -1,7 +1,7 @@
 import { html, css, LitElement } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
-import { vfBase, vfStripes } from '../styles/base.js'
+import { vfBase, vfStripes, vfDisplayDecls } from '../styles/base.js'
 
 /**
  * `<vf-dialog>` — the System 7 movable-modal dialog.
@@ -58,6 +58,8 @@ export class VfDialog extends LitElement {
         overflow: hidden;
       }
       .title {
+        /* Chicago-style title (chrome); the dialog body keeps the body face. */
+        ${vfDisplayDecls}
         position: relative;
         z-index: 1;
         padding: 0 8px;

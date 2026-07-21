@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
 
 /**
@@ -26,6 +26,7 @@ export class VfCheckbox extends LitElement {
 
   static override styles = [
     vfBase,
+    vfDisplay,
     css`
       :host {
         display: inline-flex;

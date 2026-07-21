@@ -1,4 +1,12 @@
-import { css } from 'lit'
+import { css, unsafeCSS } from 'lit'
+
+// Register the two System 7 bitmap faces on document.fonts so they apply inside
+// every component's shadow root — an @font-face rule can't cross that boundary
+// (see register-embedded-font.ts). ChiKareGo is the Chicago-style chrome face
+// (see vfDisplay); FindersKeepers is the body face (the --vf-font-family default
+// below). Every component imports this module, so both register once on load.
+import './chikarego-font.js'
+import './finders-keepers-font.js'
 
 /**
  * Shared base styles for every Vintage Frames component.
@@ -9,16 +17,14 @@ export const vfBase = css`
     box-sizing: border-box;
     font-family: var(
       --vf-font-family,
-      'Chicago',
-      'ChicagoFLF',
-      'Charcoal',
+      'FindersKeepers',
       'Geneva',
       'Helvetica Neue',
       Helvetica,
       Arial,
       sans-serif
     );
-    font-size: var(--vf-font-size, 15px);
+    font-size: var(--vf-font-size, 16px);
     font-weight: var(--vf-font-weight, 700);
     line-height: 1.25;
     color: var(--vf-black, #000);
@@ -33,6 +39,44 @@ export const vfBase = css`
   }
   :host([hidden]) {
     display: none !important;
+  }
+`
+
+/**
+ * The three declarations that switch text to the Chicago-style ChiKareGo
+ * display face — the family via --vf-font-family-display, 16px so the 1024-upm
+ * pixel grid lands exactly, and grayscale smoothing off for crisp 1-bit edges.
+ * Each is tokenized for retheming. Compose onto a rule for one chrome element,
+ * or use {@link vfDisplay} to apply to the whole host.
+ */
+export const vfDisplayDecls = unsafeCSS(`
+  font-family: var(
+    --vf-font-family-display,
+    'ChiKareGo',
+    'Chicago',
+    'ChicagoFLF',
+    'Charcoal',
+    'Geneva',
+    'Helvetica Neue',
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  font-size: var(--vf-font-size-display, 16px);
+  -webkit-font-smoothing: var(--vf-font-smoothing-display, none);
+`)
+
+/**
+ * Chicago-style display type applied to the whole host. Compose into any
+ * component whose text is entirely "chrome": buttons, menus, menu items,
+ * checkbox/radio labels, popup menus. Components that mix a chrome title with
+ * body content (windows, dialogs, fieldsets) instead apply {@link vfDisplayDecls}
+ * to just their title/legend element, leaving slotted body copy on the vfBase
+ * FindersKeepers body face.
+ */
+export const vfDisplay = css`
+  :host {
+    ${vfDisplayDecls}
   }
 `
 

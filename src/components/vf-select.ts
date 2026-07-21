@@ -1,7 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js'
-import { vfBase, vfFocus, vfPanel } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 
@@ -41,6 +41,7 @@ export class VfSelect extends LitElement {
 
   static override styles = [
     vfBase,
+    vfDisplay,
     vfPanel,
     vfFocus,
     css`

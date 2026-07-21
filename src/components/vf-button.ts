@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { vfBase, vfFocus } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocus } from '../styles/base.js'
 
 /**
  * The classic System 7 push button ("OK", "Cancel", "Install", …).
@@ -29,6 +29,7 @@ export class VfButton extends LitElement {
 
   static override styles = [
     vfBase,
+    vfDisplay,
     vfFocus,
     css`
       :host {

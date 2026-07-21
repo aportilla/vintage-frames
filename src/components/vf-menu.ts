@@ -5,7 +5,7 @@ import {
   query,
   queryAssignedElements,
 } from 'lit/decorators.js'
-import { vfBase, vfFocus, vfPanel } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
 /**
@@ -25,6 +25,7 @@ import type { VfMenuItem } from './vf-menu-item.js'
 export class VfMenu extends LitElement {
   static override styles = [
     vfBase,
+    vfDisplay,
     vfPanel,
     vfFocus,
     css`

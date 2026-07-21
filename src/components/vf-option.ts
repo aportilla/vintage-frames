@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 
 /**
@@ -20,6 +20,7 @@ import { CHECKMARK, glyphSvg } from '../glyphs.js'
 export class VfOption extends LitElement {
   static override styles = [
     vfBase,
+    vfDisplay,
     css`
       :host {
         position: relative;

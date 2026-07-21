@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfDisplay } from '../styles/base.js'
 import {
   RADIO_DOT,
   RADIO_FACE,
@@ -30,6 +30,7 @@ import {
 export class VfRadio extends LitElement {
   static override styles = [
     vfBase,
+    vfDisplay,
     css`
       :host {
         display: inline-flex;

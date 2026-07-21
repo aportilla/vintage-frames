@@ -4,6 +4,12 @@
   "description": "Lit web components that emulate the look and feel of classic Mac OS System 7",
   "type": "module",
   "license": "MIT",
+  "sideEffects": [
+    "**/*.css",
+    "**/register-embedded-font.*",
+    "**/chikarego-font.*",
+    "**/finders-keepers-font.*"
+  ],
   "main": "./dist/vintage-frames.js",
   "module": "./dist/vintage-frames.js",
   "types": "./dist/index.d.ts",

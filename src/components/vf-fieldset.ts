@@ -1,7 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfDisplayDecls } from '../styles/base.js'
 
 /**
  * `<vf-fieldset>` — the classic "Install Location" group box.
@@ -30,6 +30,8 @@ export class VfFieldset extends LitElement {
         margin-top: 8px;
       }
       .legend {
+        /* Chicago-style legend (chrome); grouped content keeps the body face. */
+        ${vfDisplayDecls}
         position: absolute;
         top: -0.7em;
         left: 8px;

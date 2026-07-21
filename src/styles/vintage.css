@@ -10,10 +10,15 @@
   /*
    * Design tokens — uncomment and tweak to retheme. Defaults shown.
    *
-   * --vf-font-family: 'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva',
-   *   'Helvetica Neue', Helvetica, Arial, sans-serif;
-   * --vf-font-size: 15px;
+   * --vf-font-family: 'FindersKeepers', 'Geneva', 'Helvetica Neue', Helvetica,
+   *   Arial, sans-serif;                       // body / content face
+   * --vf-font-family-display: 'ChiKareGo', 'Chicago', 'ChicagoFLF', 'Charcoal',
+   *   'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif; // chrome face
+   * --vf-font-size: 16px;
+   * --vf-font-size-display: 16px;
    * --vf-font-size-small: 12px;
+   * --vf-font-smoothing-display: none;         // crisp 1-bit chrome edges;
+   *   set to 'antialiased' if you point --vf-font-family-display at a vector face
    * --vf-font-weight: 700;
    * --vf-black: #000000;
    * --vf-white: #ffffff;
@@ -34,14 +39,11 @@
 }
 
 /*
- * For true bitmap-crisp type, drop a Chicago-style webfont (e.g. the
- * public-domain ChicagoFLF) next to your CSS and uncomment:
- *
- * @font-face {
- *   font-family: 'ChicagoFLF';
- *   src: url('./ChicagoFLF.woff2') format('woff2');
- *   font-display: block;
- * }
+ * The System 7 bitmap faces — ChiKareGo (Chicago-style chrome: menus, titles,
+ * buttons, controls) and FindersKeepers (body / content) — ship inside the
+ * components and register themselves on document.fonts, so they render with
+ * zero setup, even inside shadow roots. No @font-face needed. To substitute
+ * your own faces, override --vf-font-family-display and/or --vf-font-family.
  */
 
 html,
@@ -54,16 +56,14 @@ body {
   background: var(--vf-desktop, #808080);
   font-family: var(
     --vf-font-family,
-    'Chicago',
-    'ChicagoFLF',
-    'Charcoal',
+    'FindersKeepers',
     'Geneva',
     'Helvetica Neue',
     Helvetica,
     Arial,
     sans-serif
   );
-  font-size: var(--vf-font-size, 15px);
+  font-size: var(--vf-font-size, 16px);
   font-weight: var(--vf-font-weight, 700);
   color: var(--vf-black, #000);
 }

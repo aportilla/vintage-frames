@@ -1,6 +1,6 @@
 import { html, css, LitElement, nothing } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
-import { vfBase, vfStripes, vfFocus } from '../styles/base.js'
+import { vfBase, vfStripes, vfFocus, vfDisplayDecls } from '../styles/base.js'
 
 interface DragState {
   pointerId: number
@@ -80,6 +80,8 @@ export class VfWindow extends LitElement {
         display: none;
       }
       .title {
+        /* Chicago-style title (chrome); the window body keeps the body face. */
+        ${vfDisplayDecls}
         position: relative;
         z-index: 1;
         padding: 0 8px;

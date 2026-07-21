@@ -6,9 +6,10 @@ import { vfBase } from '../styles/base.js'
  * `<vf-scroll-area>` — a container whose scrollbars look like System 7.
  *
  * White box with a 1px black border and an inner scrolling viewport. WebKit
- * scrollbars are fully skinned: 16px wide, 2px-checker dither track, lavender
- * boxed thumb, and boxed arrow buttons with inline-SVG triangle glyphs (one
- * at each end, classic style). Firefox falls back to `scrollbar-color`.
+ * scrollbars are fully skinned: 16px wide, a black/white 1-bit dither
+ * trough, a white boxed thumb, and boxed arrow buttons with inline-SVG
+ * triangle glyphs (one at each end, classic style). Firefox falls back to
+ * `scrollbar-color`.
  *
  * Size the host (width/height) from the outside; the viewport fills it.
  *
@@ -46,9 +47,9 @@ export class VfScrollArea extends LitElement {
       .viewport::-webkit-scrollbar-track {
         background: repeating-conic-gradient(
           var(--vf-white, #fff) 0% 25%,
-          #aaa 0% 50%
+          var(--vf-black, #000) 0% 50%
         );
-        background-size: 4px 4px;
+        background-size: 2px 2px;
       }
       .viewport::-webkit-scrollbar-track:vertical {
         border-left: 1px solid var(--vf-black, #000);
@@ -57,7 +58,7 @@ export class VfScrollArea extends LitElement {
         border-top: 1px solid var(--vf-black, #000);
       }
       .viewport::-webkit-scrollbar-thumb {
-        background: var(--vf-scrollbar-thumb, #ccccff);
+        background: var(--vf-scrollbar-thumb, #ffffff);
         border: 1px solid var(--vf-black, #000);
       }
       .viewport::-webkit-scrollbar-corner {
@@ -95,7 +96,7 @@ export class VfScrollArea extends LitElement {
       @supports not selector(::-webkit-scrollbar) {
         .viewport {
           scrollbar-width: auto;
-          scrollbar-color: var(--vf-scrollbar-thumb, #ccccff) #aaaaaa;
+          scrollbar-color: var(--vf-scrollbar-thumb, #ffffff) #808080;
         }
       }
     `,

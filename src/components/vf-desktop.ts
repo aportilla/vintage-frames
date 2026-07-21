@@ -11,9 +11,9 @@ import { vfBase } from '../styles/base.js'
  * and makes it the single active window.
  *
  * Custom properties:
- * - `--vf-desktop` — base desktop gray (default `#7d7d7d`).
- * - `--vf-desktop-pattern` — background-image pattern layer (default a subtle
- *   2px checker dither).
+ * - `--vf-desktop` — base desktop gray (default `#808080`).
+ * - `--vf-desktop-pattern` — background-image pattern layer (default a
+ *   black/white 1-bit 50% checker dither).
  *
  * @slot - Default slot: menu bar, windows, anything.
  * @csspart desktop - The full-size desktop surface.
@@ -32,12 +32,15 @@ export class VfDesktop extends LitElement {
         position: relative;
         width: 100%;
         height: 100%;
-        background-color: var(--vf-desktop, #7d7d7d);
+        background-color: var(--vf-desktop, #808080);
         background-image: var(
           --vf-desktop-pattern,
-          repeating-conic-gradient(#787878 0% 25%, #828282 0% 50%)
+          repeating-conic-gradient(
+            var(--vf-black, #000) 0% 25%,
+            var(--vf-white, #fff) 0% 50%
+          )
         );
-        background-size: 4px 4px;
+        background-size: 2px 2px;
       }
       /* Slotted windows need a positioning context so z-index applies.
          (An inline position: absolute set by a movable window wins.) */

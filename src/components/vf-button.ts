@@ -48,6 +48,8 @@ export class VfButton extends LitElement {
         border-radius: calc(var(--vf-radius, 6px) + 4px);
         pointer-events: none;
       }
+      /* Disabled default: the fat outer ring dims to gray; the inner button
+         border stays solid black (see button:disabled). */
       :host([variant='default'][disabled])::before {
         border-color: var(--vf-disabled, #808080);
       }
@@ -74,9 +76,9 @@ export class VfButton extends LitElement {
         background: var(--vf-black, #000);
         color: var(--vf-white, #fff);
       }
+      /* Disabled: only the label dims to gray; the solid black border stays. */
       button:disabled {
         color: var(--vf-disabled, #808080);
-        border-color: var(--vf-disabled, #808080);
       }
     `,
   ]
@@ -87,7 +89,7 @@ export class VfButton extends LitElement {
    */
   @property({ reflect: true }) variant?: 'default'
 
-  /** Disables the button: gray text/border, no interaction. */
+  /** Disables the button: gray label, solid black border stays, no interaction. */
   @property({ type: Boolean, reflect: true }) disabled = false
 
   /**

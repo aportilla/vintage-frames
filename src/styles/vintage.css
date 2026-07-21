@@ -17,20 +17,17 @@
    * --vf-font-weight: 700;
    * --vf-black: #000000;
    * --vf-white: #ffffff;
-   * --vf-chrome: #eeeeee;
-   * --vf-bevel-light: #ffffff;
-   * --vf-bevel-dark: #999999;
    * --vf-disabled: #808080;
-   * --vf-desktop: #7d7d7d;
+   * --vf-desktop: #808080;
    * --vf-shadow-offset: 2px;
    * --vf-radius: 6px;
    * --vf-control-height: 22px;
    * --vf-titlebar-height: 22px;
    * --vf-menubar-height: 24px;
    * --vf-focus-outline: 1px dotted #000;
-   * --vf-progress-fill: #555555;
-   * --vf-progress-track: #ccccff;
-   * --vf-scrollbar-thumb: #ccccff;
+   * --vf-progress-fill: #000000;
+   * --vf-progress-track: #ffffff;
+   * --vf-scrollbar-thumb: #ffffff;
    * --vf-highlight: #000000;
    * --vf-highlight-text: #ffffff;
    */
@@ -54,7 +51,7 @@ body {
 
 body {
   margin: 0;
-  background: var(--vf-desktop, #7d7d7d);
+  background: var(--vf-desktop, #808080);
   font-family: var(
     --vf-font-family,
     'Chicago',

@@ -31,8 +31,8 @@ export class VfList extends LitElement {
         background: var(--vf-white, #fff);
         border: 1px solid var(--vf-black, #000);
       }
+      /* Disabled: the item text dims to gray; the black box border stays. */
       :host([disabled]) {
-        border-color: var(--vf-disabled, #808080);
         color: var(--vf-disabled, #808080);
       }
       .list {
@@ -48,9 +48,9 @@ export class VfList extends LitElement {
       .list::-webkit-scrollbar-track {
         background: repeating-conic-gradient(
           var(--vf-white, #fff) 0% 25%,
-          #aaa 0% 50%
+          var(--vf-black, #000) 0% 50%
         );
-        background-size: 4px 4px;
+        background-size: 2px 2px;
       }
       .list::-webkit-scrollbar-track:vertical {
         border-left: 1px solid var(--vf-black, #000);
@@ -59,7 +59,7 @@ export class VfList extends LitElement {
         border-top: 1px solid var(--vf-black, #000);
       }
       .list::-webkit-scrollbar-thumb {
-        background: var(--vf-scrollbar-thumb, #ccccff);
+        background: var(--vf-scrollbar-thumb, #ffffff);
         border: 1px solid var(--vf-black, #000);
       }
       .list::-webkit-scrollbar-corner {
@@ -96,7 +96,7 @@ export class VfList extends LitElement {
       @supports not selector(::-webkit-scrollbar) {
         .list {
           scrollbar-width: auto;
-          scrollbar-color: var(--vf-scrollbar-thumb, #ccccff) #aaaaaa;
+          scrollbar-color: var(--vf-scrollbar-thumb, #ffffff) #808080;
         }
       }
     `,

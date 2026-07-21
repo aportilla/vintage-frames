@@ -56,8 +56,8 @@ export class VfTextArea extends LitElement {
         font-weight: inherit;
         opacity: 1;
       }
+      /* Disabled: the text dims to gray; the solid black box border stays. */
       textarea:disabled {
-        border-color: var(--vf-disabled, #808080);
         color: var(--vf-disabled, #808080);
         box-shadow: none;
       }
@@ -70,7 +70,7 @@ export class VfTextArea extends LitElement {
   /** Placeholder text shown when the field is empty. */
   @property() placeholder = ''
 
-  /** Disables the field: gray border/text, no interaction, no form value. */
+  /** Disables the field: gray text; the black border stays; no interaction, no form value. */
   @property({ type: Boolean, reflect: true }) disabled = false
 
   /** Makes the field read-only (focusable, not editable). */

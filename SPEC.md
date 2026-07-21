@@ -13,15 +13,18 @@ design and public APIs. Every component MUST follow it.
 
 The System 7 look, distilled:
 
-- **1px solid black borders** on everything. No grays for borders unless dimmed.
+- **1px solid black borders** on everything — even when disabled. Dimming a
+  control greys its label/text only; the border, box and glyph stay solid black
+  (System 7 dims the label, not the control).
 - **Hard offset shadows** — `2px 2px 0 0 #000` for windows/menus/panels,
   `1px 1px 0 0 #000` for small popup controls. Never blurred, never rgba.
-- **Racing-stripe title bars** — 6 horizontal 1px black pinstripes on the light
-  chrome background; the title text and window widgets sit on solid chrome
-  patches that interrupt the stripes.
+- **Racing-stripe title bars** — 6 horizontal 1px black pinstripes on the white
+  title bar; the title text and window widgets sit on solid white patches that
+  interrupt the stripes.
 - **Chicago-style type** — bold, dark, tight. One size for almost everything.
-- **Monochrome-first palette** — black, white, light chrome gray, mid gray for
-  dimmed/disabled. Subtle 1px white/gray bevels inside window frames.
+- **1-bit monochrome palette** — black and white only, plus mid gray (`#808080`)
+  for dimmed/disabled and as the base tone under the 50% dither patterns
+  (desktop, scroll troughs). Surfaces are flat solid white — no bevels.
 - **No gradients, no border-radius except buttons, no CSS transitions** —
   interactions are instant. The single sanctioned animation is the classic
   menu-item "blink" on selection and the indeterminate progress stripes.
@@ -56,8 +59,9 @@ Modern requirements that we deliberately keep (accessibility over purity):
 - Boolean public props reflect: `@property({ type: Boolean, reflect: true })`.
 - Events: `CustomEvent` with `{ bubbles: true, composed: true }` and an object
   `detail`. Names are listed per component (`vf-change`, `vf-close`, …).
-- Disabled pattern: reflected `disabled` attr; visuals go `--vf-disabled` gray;
-  interaction handlers early-return; set `aria-disabled`/`disabled` on internals.
+- Disabled pattern: reflected `disabled` attr; the **label/text** dims to
+  `--vf-disabled` gray while borders, boxes and glyphs stay black; interaction
+  handlers early-return; set `aria-disabled`/`disabled` on internals.
 - Components must render nothing surprising outside their box: no margins on
   `:host` by default.
 - Do NOT run repo-wide `tsc` while building an individual component group —
@@ -65,7 +69,7 @@ Modern requirements that we deliberately keep (accessibility over purity):
 
 ## 3. Design tokens
 
-Use with inline fallback: `var(--vf-chrome, #eeeeee)`. `src/styles/vintage.css`
+Use with inline fallback: `var(--vf-white, #ffffff)`. `src/styles/vintage.css`
 documents the same set for consumers to override at `:root`.
 
 | Token | Default | Used for |
@@ -76,21 +80,18 @@ documents the same set for consumers to override at `:root`.
 | `--vf-font-weight` | `700` | all text (Chicago is inherently bold) |
 | `--vf-black` | `#000000` | borders, text, stripes, selection bg |
 | `--vf-white` | `#ffffff` | content wells, control faces |
-| `--vf-chrome` | `#eeeeee` | window chrome, dialog gray, title bars |
-| `--vf-surface` | *(set by containers)* | bg behind legends/label patches; `vf-window` sets it to chrome, `vf-dialog` to white |
-| `--vf-bevel-light` | `#ffffff` | inner top/left bevel of window frames |
-| `--vf-bevel-dark` | `#999999` | inner bottom/right bevel |
+| `--vf-surface` | *(set by containers)* | bg behind legends/label patches; `vf-window` and `vf-dialog` both set it to white |
 | `--vf-disabled` | `#808080` | dimmed text, borders, glyphs |
-| `--vf-desktop` | `#7d7d7d` | desktop background base gray |
+| `--vf-desktop` | `#808080` | desktop base gray under the 1-bit dither |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-radius` | `6px` | button corner radius (buttons ONLY) |
 | `--vf-control-height` | `22px` | buttons, selects, text fields |
 | `--vf-titlebar-height` | `22px` | window/dialog title bars |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
 | `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
-| `--vf-progress-fill` | `#555555` | determinate progress fill (dark gray, per Controls.png) |
-| `--vf-progress-track` | `#ccccff` | progress track (classic lavender, per Controls.png) |
-| `--vf-scrollbar-thumb` | `#ccccff` | scrollbar thumb face (lavender in color System 7) |
+| `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
+| `--vf-progress-track` | `#ffffff` | progress track (white) |
+| `--vf-scrollbar-thumb` | `#ffffff` | scrollbar thumb/elevator (white) |
 | `--vf-highlight` | `#000000` | selection background |
 | `--vf-highlight-text` | `#ffffff` | selection foreground |
 
@@ -105,13 +106,12 @@ documents the same set for consumers to override at `:root`.
 - `vfPanel` — a `.vf-panel` class for menus/popups:
   white bg, `border: 1px solid var(--vf-black, #000)`,
   `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
-- **Window frame recipe** (windows/dialogs/alerts use inline, not a class):
+- **Window frame recipe** (windows/dialogs use inline, not a class) — identical
+  to `vfPanel`: solid white, 1px black border, hard offset shadow, no bevels:
   ```css
-  background: var(--vf-chrome, #eee);
+  background: var(--vf-white, #fff);
   border: 1px solid var(--vf-black, #000);
   box-shadow:
-    inset 1px 1px 0 var(--vf-bevel-light, #fff),
-    inset -1px -1px 0 var(--vf-bevel-dark, #999),
     var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000);
   ```
 
@@ -124,9 +124,9 @@ Files live in `src/components/`. "Parts" = CSS shadow parts via `part=`.
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
 - **Visual:** `display: block; position: relative; overflow: hidden;`
-  background = 50% dither impression: base `var(--vf-desktop, #7d7d7d)` with a
-  subtle 2px checker pattern (e.g. `repeating-conic-gradient(#787878 0% 25%, #828282 0% 50%)`,
-  `background-size: 4px 4px`), overridable via `--vf-desktop-pattern`.
+  background = classic 50% dither: base `var(--vf-desktop, #808080)` under a
+  black/white 1px checker (e.g. `repeating-conic-gradient(var(--vf-black,#000) 0% 25%, var(--vf-white,#fff) 0% 50%)`,
+  `background-size: 2px 2px`), overridable via `--vf-desktop-pattern`.
 - **Slots:** default (menu bar, windows, anything).
 - **Behavior:** manages stacking of slotted `vf-window` children: `pointerdown`
   on a window brings it to front (incrementing z-index counter) and sets its
@@ -142,15 +142,15 @@ The classic document window (see DragThing screenshot).
   `resizable: boolean` (default false), `flush: boolean` (default false —
   removes body padding).
 - **Visual:** window frame recipe (§4). `display: block`. Sets
-  `--vf-surface: var(--vf-chrome, #eee)` on itself.
-  - Title bar: height `var(--vf-titlebar-height, 22px)`, chrome bg, bottom
+  `--vf-surface: var(--vf-white, #fff)` on itself.
+  - Title bar: height `var(--vf-titlebar-height, 22px)`, white bg, bottom
     `1px solid black`, contains `.vf-stripes` layer (only when `active`).
-  - Title: centered, bold, on a chrome patch (`padding: 0 8px`) above the
+  - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
     stripes. Inactive: no stripes, title color `var(--vf-disabled, #808080)`,
     widgets hidden.
-  - Close box: LEFT side, 13×13px, `1px solid black`, chrome bg, subtle bevel
-    (`box-shadow: inset 1px 1px 0 var(--vf-bevel-light,#fff)`), surrounded by a
-    2px chrome patch interrupting the stripes. `:active` → inverts to black.
+  - Close box: LEFT side, 13×13px, `1px solid black`, white bg, no bevel,
+    surrounded by a 2px white patch interrupting the stripes. `:active` →
+    inverts to black.
   - Zoom box: RIGHT side, same box, plus an inner 7×7 square outline anchored
     top-left inside it.
   - Body: `padding: 12px` (0 if `flush`).
@@ -211,7 +211,9 @@ Classic fixed modal alert: double black frame, no title bar.
   `min-width: 64px`, `padding: 0 14px`, white bg, `1px solid black` border,
   `border-radius: var(--vf-radius, 6px)`, bold black text, font per tokens.
   - `:active` (pressed, not disabled): invert — black bg, white text.
-  - `disabled`: text + border `var(--vf-disabled, #808080)`.
+  - `disabled`: only the label dims to `var(--vf-disabled, #808080)`; the 1px
+    black border stays black. (For `variant="default"`, the fat outer ring
+    dims to `var(--vf-disabled)` while the inner black border stays.)
   - `variant="default"`: an additional ring drawn via absolutely-positioned
     `::before`: `inset: -5px; border: 3px solid var(--vf-black,#000); border-radius: calc(var(--vf-radius, 6px) + 4px);`
     (host needs `position: relative` and 5px of breathing room via margin).
@@ -224,8 +226,9 @@ Classic fixed modal alert: double black frame, no title bar.
 - **Attributes/props:** `checked`, `disabled`, `name`, `value` (default `'on'`).
 - **Visual:** 13×13 white box, `1px solid black`, no radius; checked = classic
   ✕: two crossing diagonal lines corner-to-corner (inline SVG stroke black
-  1.5px). Label (slot) sits right with 6px gap, bold. Disabled: box border,
-  glyph, and label all `var(--vf-disabled, #808080)`. Pressed (`:active` on
+  1.5px). Label (slot) sits right with 6px gap, bold. Disabled: only the label
+  dims to `var(--vf-disabled, #808080)`; the box border and ✕ glyph stay black.
+  Pressed (`:active` on
   box): border thickens to 2px (classic press feedback).
 - **Behavior:** form-associated; toggles on click and Space; `role="checkbox"`,
   `aria-checked`; focusable (tabindex 0 on host or inner wrapper w/ focus ring
@@ -264,7 +267,7 @@ Classic fixed modal alert: double black frame, no title bar.
   height `var(--vf-control-height, 22px)`, `padding: 0 6px`, font tokens but
   `font-weight: var(--vf-font-weight, 700)`. `user-select: text`. Focus: border
   thickens via `box-shadow: 0 0 0 1px var(--vf-black, #000)` (no dotted
-  outline). Disabled: gray border/text.
+  outline). Disabled: the text dims to gray; the black border stays.
 - **Behavior:** form-associated; syncs `value` on input; `formResetCallback`
   restores default.
 - **Parts:** `input`.
@@ -304,9 +307,9 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Attributes/props:** `value: number` (0–100), `max: number` (default 100),
   `indeterminate: boolean`.
 - **Visual:** `display: block; height: 14px;` track
-  `var(--vf-progress-track, #ccccff)` (classic lavender — see Controls.png),
-  `1px solid black`, no radius. Determinate fill:
-  `var(--vf-progress-fill, #555555)` from left, with a 1px black leading edge
+  `var(--vf-progress-track, #ffffff)` (white), `1px solid black`, no radius.
+  Determinate fill: `var(--vf-progress-fill, #000000)` (solid black) from left,
+  with a 1px black leading edge
   line. Indeterminate: full-width animated
   diagonal black/white barber stripes (45°, 8px pitch, `background-position`
   keyframes, ~0.4s linear infinite — chunky and steppy, not smooth: use
@@ -375,11 +378,10 @@ A container whose scrollbars look like System 7.
   `overflow: auto`, `padding: 8px`. Consumer sets width/height on host.
   Scrollbars (WebKit pseudo-elements; add `scrollbar-width/scrollbar-color`
   fallback for Firefox):
-  - width/height 16px; track: 2px checker dither
-    (`repeating-conic-gradient(#fff 0% 25%, #aaa 0% 50%)` at `4px 4px`) with
+  - width/height 16px; trough: black/white 1-bit 50% dither
+    (`repeating-conic-gradient(var(--vf-black,#000) 0% 25%, var(--vf-white,#fff) 0% 50%)` at `2px 2px`) with
     `border-left: 1px solid black` (vertical) etc.;
-  - thumb: `var(--vf-scrollbar-thumb, #ccccff)` bg, `1px solid black`
-    (lavender in color System 7 — see the 8-bit example screen);
+  - thumb (elevator): `var(--vf-scrollbar-thumb, #ffffff)` bg (white), `1px solid black`;
   - arrow buttons: 16×16 white boxes, 1px black border, black triangle glyphs
     via inline SVG data-URI backgrounds (`::-webkit-scrollbar-button` with
     `:vertical:decrement` etc.).
@@ -391,8 +393,8 @@ The "Install Location" group box.
 - **Visual:** `border: 1px solid var(--vf-black, #000)`, no radius,
   `padding: 14px 12px 10px`, `margin-top: 8px` (room for legend). Legend: bold,
   positioned overlapping the top border (absolute, `top: -0.7em; left: 8px;`),
-  `padding: 0 5px`, `background: var(--vf-surface, var(--vf-chrome, #eee))` so
-  it punches out the border on either chrome or white.
+  `padding: 0 5px`, `background: var(--vf-surface, var(--vf-white, #fff))` so
+  it punches out the border to match its surface.
 - **Slots:** default, plus named slot `legend` (overrides attr).
 - **Parts:** `fieldset`, `legend`.
 

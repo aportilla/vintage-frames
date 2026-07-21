@@ -22,7 +22,7 @@ interface ResizeState {
  * `<vf-window>` — the classic System 7 document window.
  *
  * Racing-stripe title bar with close box (left) and optional zoom box
- * (right), beveled chrome frame with a hard offset shadow, and an optional
+ * (right), a solid-white frame with a hard offset shadow, and an optional
  * grow box for resizing. Place inside `<vf-desktop>` to get click-to-front
  * stacking and automatic `active` management.
  *
@@ -48,7 +48,7 @@ export class VfWindow extends LitElement {
       :host {
         display: block;
         position: relative;
-        --vf-surface: var(--vf-chrome, #eeeeee);
+        --vf-surface: var(--vf-white, #ffffff);
       }
       .frame {
         position: relative;
@@ -56,13 +56,10 @@ export class VfWindow extends LitElement {
         flex-direction: column;
         width: 100%;
         height: 100%;
-        background: var(--vf-chrome, #eeeeee);
+        background: var(--vf-white, #ffffff);
         border: 1px solid var(--vf-black, #000000);
-        box-shadow:
-          inset 1px 1px 0 var(--vf-bevel-light, #ffffff),
-          inset -1px -1px 0 var(--vf-bevel-dark, #999999),
-          var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0
-            var(--vf-black, #000000);
+        box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px)
+          0 0 var(--vf-black, #000000);
       }
 
       /* --- Title bar ------------------------------------------------- */
@@ -87,7 +84,7 @@ export class VfWindow extends LitElement {
         z-index: 1;
         padding: 0 8px;
         max-width: calc(100% - 60px);
-        background: var(--vf-chrome, #eeeeee);
+        background: var(--vf-white, #ffffff);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -106,12 +103,10 @@ export class VfWindow extends LitElement {
         padding: 0;
         margin: 0;
         border: 1px solid var(--vf-black, #000000);
-        background: var(--vf-chrome, #eeeeee);
-        /* Inner bevel + a 2px chrome patch ring that interrupts the
-           stripes around the box. */
-        box-shadow:
-          inset 1px 1px 0 var(--vf-bevel-light, #ffffff),
-          0 0 0 2px var(--vf-chrome, #eeeeee);
+        background: var(--vf-white, #ffffff);
+        /* A 2px white patch ring that interrupts the stripes around the
+           box (no bevel — flat 1-bit). */
+        box-shadow: 0 0 0 2px var(--vf-white, #ffffff);
         font: inherit;
         cursor: default;
         -webkit-appearance: none;
@@ -125,7 +120,7 @@ export class VfWindow extends LitElement {
       }
       .box:active {
         background: var(--vf-black, #000000);
-        box-shadow: 0 0 0 2px var(--vf-chrome, #eeeeee);
+        box-shadow: 0 0 0 2px var(--vf-white, #ffffff);
       }
       .zoom::after {
         content: '';

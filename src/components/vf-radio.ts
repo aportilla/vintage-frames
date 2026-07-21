@@ -65,10 +65,8 @@ export class VfRadio extends LitElement {
       :host([checked]) .dot {
         display: block;
       }
-      .circle.dim {
-        border-color: var(--vf-disabled, #808080);
-        color: var(--vf-disabled, #808080);
-      }
+      /* Disabled: the circle and dot stay solid black — System 7 dims the
+         label, not the control. (.dim still suppresses the press feedback.) */
       .label.dim {
         color: var(--vf-disabled, #808080);
       }
@@ -78,7 +76,7 @@ export class VfRadio extends LitElement {
   /** Whether this radio is selected. Managed by the containing group. */
   @property({ type: Boolean, reflect: true }) checked = false
 
-  /** Disables this single radio (dims circle, dot and label). */
+  /** Disables this single radio: the label dims to gray; circle and dot stay black. */
   @property({ type: Boolean, reflect: true }) disabled = false
 
   /** The value the containing `vf-radio-group` reports when selected. */

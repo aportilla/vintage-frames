@@ -8,7 +8,7 @@ import { vfBase } from '../styles/base.js'
  *
  * A 1px black rectangle whose bold legend sits on the top border, punching a
  * gap through it with a `var(--vf-surface, ...)` background patch — so it
- * works on both chrome-gray windows and white dialogs.
+ * matches whatever surface sits behind it.
  *
  * @slot - Group contents.
  * @slot legend - Rich legend content; overrides the `legend` attribute.
@@ -34,8 +34,8 @@ export class VfFieldset extends LitElement {
         top: -0.7em;
         left: 8px;
         padding: 0 5px;
-        /* Punches through the border on chrome or white surfaces alike. */
-        background: var(--vf-surface, var(--vf-chrome, #eee));
+        /* Punches through the border, matching the surface behind it. */
+        background: var(--vf-surface, var(--vf-white, #fff));
         white-space: nowrap;
       }
       .legend.empty {

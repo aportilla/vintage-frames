@@ -6,9 +6,9 @@ import { vfBase } from '../styles/base.js'
 /**
  * `<vf-progress-bar>` — the System 7 progress indicator.
  *
- * A 14px lavender track (`--vf-progress-track`, per Controls.png) with a 1px
- * black border. Determinate mode fills from the
- * left in `--vf-progress-fill` with a 1px black leading edge. Indeterminate
+ * A 14px white track (`--vf-progress-track`) with a 1px black border.
+ * Determinate mode fills from the left in solid black
+ * (`--vf-progress-fill`) with a 1px black leading edge. Indeterminate
  * mode shows chunky, stepped diagonal black/white barber stripes (the classic
  * "busy" bar) animated with `steps()` timing so movement is deliberately
  * steppy, not smooth.
@@ -31,14 +31,14 @@ export class VfProgressBar extends LitElement {
       .track {
         position: relative;
         height: 100%;
-        background: var(--vf-progress-track, #ccccff);
+        background: var(--vf-progress-track, #ffffff);
         border: 1px solid var(--vf-black, #000);
         border-radius: 0;
         overflow: hidden;
       }
       .fill {
         height: 100%;
-        background: var(--vf-progress-fill, #555555);
+        background: var(--vf-progress-fill, #000000);
         /* The classic 1px black leading edge. */
         border-right: 1px solid var(--vf-black, #000);
       }

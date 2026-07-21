@@ -66,10 +66,8 @@ export class VfCheckbox extends LitElement {
       :host([checked]) .check {
         display: block;
       }
-      .box.dim {
-        border-color: var(--vf-disabled, #808080);
-        color: var(--vf-disabled, #808080);
-      }
+      /* Disabled: the box and ✕ glyph stay solid black — System 7 dims the
+         label, not the control. (.dim still suppresses the press feedback.) */
       .label.dim {
         color: var(--vf-disabled, #808080);
       }
@@ -79,7 +77,7 @@ export class VfCheckbox extends LitElement {
   /** Whether the checkbox is checked. */
   @property({ type: Boolean, reflect: true }) checked = false
 
-  /** Disables the checkbox: box, glyph and label dim to gray. */
+  /** Disables the checkbox: the label dims to gray; box and ✕ glyph stay black. */
   @property({ type: Boolean, reflect: true }) disabled = false
 
   /** Form field name used when submitting. */

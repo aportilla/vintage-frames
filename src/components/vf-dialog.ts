@@ -43,13 +43,10 @@ export class VfDialog extends LitElement {
         background: transparent;
       }
       .frame {
-        background: var(--vf-chrome, #eeeeee);
+        background: var(--vf-white, #ffffff);
         border: 1px solid var(--vf-black, #000000);
-        box-shadow:
-          inset 1px 1px 0 var(--vf-bevel-light, #ffffff),
-          inset -1px -1px 0 var(--vf-bevel-dark, #999999),
-          var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0
-            var(--vf-black, #000000);
+        box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px)
+          0 0 var(--vf-black, #000000);
       }
       .title-bar {
         position: relative;
@@ -65,7 +62,7 @@ export class VfDialog extends LitElement {
         z-index: 1;
         padding: 0 8px;
         max-width: calc(100% - 16px);
-        background: var(--vf-chrome, #eeeeee);
+        background: var(--vf-white, #ffffff);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;

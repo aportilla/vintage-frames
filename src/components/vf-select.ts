@@ -75,15 +75,11 @@ export class VfSelect extends LitElement {
         border-right: 5px solid transparent;
         border-top: 6px solid var(--vf-black, #000);
       }
-      :host([disabled]) .control,
-      .control.disabled {
-        border-color: var(--vf-disabled, #808080);
+      /* Disabled: only the value label dims; the box, hard shadow and ▼ arrow
+         stay solid black (System 7 dims the label, not the control). */
+      :host([disabled]) .label,
+      .control.disabled .label {
         color: var(--vf-disabled, #808080);
-        box-shadow: 1px 1px 0 0 var(--vf-disabled, #808080);
-      }
-      :host([disabled]) .arrow,
-      .control.disabled .arrow {
-        border-top-color: var(--vf-disabled, #808080);
       }
       .panel {
         display: none;
@@ -103,7 +99,7 @@ export class VfSelect extends LitElement {
   /** Value of the selected option. Adopts the first enabled option if unset. */
   @property() value = ''
 
-  /** Disables the control: gray border/label/arrow/shadow, no interaction. */
+  /** Disables the control: gray label; box, arrow and shadow stay black; no interaction. */
   @property({ type: Boolean, reflect: true }) disabled = false
 
   /** Form field name used when submitting the associated form. */

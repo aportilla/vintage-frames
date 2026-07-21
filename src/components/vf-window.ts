@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import { vfBase, vfStripes, vfFocus, vfDisplayDecls } from '../styles/base.js'
+import { ScaleController, sys } from '../scale.js'
 
 interface DragState {
   pointerId: number
@@ -57,17 +58,18 @@ export class VfWindow extends LitElement {
         width: 100%;
         height: 100%;
         background: var(--vf-white, #ffffff);
-        border: 1px solid var(--vf-black, #000000);
-        box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px)
-          0 0 var(--vf-black, #000000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
+          calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
+          var(--vf-black, #000000);
       }
 
       /* --- Title bar ------------------------------------------------- */
       .title-bar {
         position: relative;
         flex: none;
-        height: var(--vf-titlebar-height, 22px);
-        border-bottom: 1px solid var(--vf-black, #000000);
+        height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 22px));
+        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -84,8 +86,8 @@ export class VfWindow extends LitElement {
         ${vfDisplayDecls}
         position: relative;
         z-index: 1;
-        padding: 0 8px;
-        max-width: calc(100% - 60px);
+        padding: 0 calc(var(--vf-scale, 1) * 8px);
+        max-width: calc(100% - var(--vf-scale, 1) * 60px);
         background: var(--vf-white, #ffffff);
         white-space: nowrap;
         overflow: hidden;
@@ -98,40 +100,40 @@ export class VfWindow extends LitElement {
       /* --- Window widgets (close / zoom boxes) ----------------------- */
       .box {
         position: absolute;
-        top: 4px;
+        top: calc(var(--vf-scale, 1) * 4px);
         z-index: 1;
-        width: 13px;
-        height: 13px;
+        width: calc(var(--vf-scale, 1) * 13px);
+        height: calc(var(--vf-scale, 1) * 13px);
         padding: 0;
         margin: 0;
-        border: 1px solid var(--vf-black, #000000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         background: var(--vf-white, #ffffff);
         /* A 2px white patch ring that interrupts the stripes around the
            box (no bevel — flat 1-bit). */
-        box-shadow: 0 0 0 2px var(--vf-white, #ffffff);
+        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 2px) var(--vf-white, #ffffff);
         font: inherit;
         cursor: default;
         -webkit-appearance: none;
         appearance: none;
       }
       .close {
-        left: 8px;
+        left: calc(var(--vf-scale, 1) * 8px);
       }
       .zoom {
-        right: 8px;
+        right: calc(var(--vf-scale, 1) * 8px);
       }
       .box:active {
         background: var(--vf-black, #000000);
-        box-shadow: 0 0 0 2px var(--vf-white, #ffffff);
+        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 2px) var(--vf-white, #ffffff);
       }
       .zoom::after {
         content: '';
         position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 7px;
-        height: 7px;
-        border: 1px solid var(--vf-black, #000000);
+        top: calc(var(--vf-scale, 1) * 2px);
+        left: calc(var(--vf-scale, 1) * 2px);
+        width: calc(var(--vf-scale, 1) * 7px);
+        height: calc(var(--vf-scale, 1) * 7px);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
       }
       .zoom:active::after {
         border-color: var(--vf-white, #ffffff);
@@ -144,7 +146,7 @@ export class VfWindow extends LitElement {
       .body {
         flex: 1 1 auto;
         min-height: 0;
-        padding: 12px;
+        padding: calc(var(--vf-scale, 1) * 12px);
       }
       :host([flush]) .body {
         padding: 0;
@@ -156,10 +158,10 @@ export class VfWindow extends LitElement {
         right: 0;
         bottom: 0;
         z-index: 1;
-        width: 15px;
-        height: 15px;
-        border-top: 1px solid var(--vf-black, #000000);
-        border-left: 1px solid var(--vf-black, #000000);
+        width: calc(var(--vf-scale, 1) * 15px);
+        height: calc(var(--vf-scale, 1) * 15px);
+        border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         background: var(--vf-white, #ffffff);
         touch-action: none;
         cursor: default;
@@ -167,20 +169,20 @@ export class VfWindow extends LitElement {
       .grow::before {
         content: '';
         position: absolute;
-        right: 2px;
-        bottom: 2px;
-        width: 9px;
-        height: 9px;
-        border: 1px solid var(--vf-black, #000000);
+        right: calc(var(--vf-scale, 1) * 2px);
+        bottom: calc(var(--vf-scale, 1) * 2px);
+        width: calc(var(--vf-scale, 1) * 9px);
+        height: calc(var(--vf-scale, 1) * 9px);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
       }
       .grow::after {
         content: '';
         position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 7px;
-        height: 7px;
-        border: 1px solid var(--vf-black, #000000);
+        top: calc(var(--vf-scale, 1) * 2px);
+        left: calc(var(--vf-scale, 1) * 2px);
+        width: calc(var(--vf-scale, 1) * 7px);
+        height: calc(var(--vf-scale, 1) * 7px);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         background: var(--vf-white, #ffffff);
       }
     `,
@@ -211,6 +213,9 @@ export class VfWindow extends LitElement {
   @property({ type: Boolean, reflect: true }) flush = false
 
   @query('.title-bar') private _titleBar!: HTMLElement
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   private _dragState: DragState | null = null
   private _resizeState: ResizeState | null = null
@@ -309,9 +314,11 @@ export class VfWindow extends LitElement {
   private _onGrowPointerMove(event: PointerEvent): void {
     const resize = this._resizeState
     if (!resize || event.pointerId !== resize.pointerId) return
-    const width = Math.max(80, resize.baseWidth + (event.clientX - resize.startX))
+    // Minimums are in system px; getBoundingClientRect/clientX are real (scaled)
+    // CSS px, so convert the floors with sys().
+    const width = Math.max(sys(80), resize.baseWidth + (event.clientX - resize.startX))
     const height = Math.max(
-      54,
+      sys(54),
       resize.baseHeight + (event.clientY - resize.startY)
     )
     this.style.width = `${width}px`

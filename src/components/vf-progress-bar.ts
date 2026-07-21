@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-progress-bar>` — the System 7 progress indicator.
@@ -26,13 +27,13 @@ export class VfProgressBar extends LitElement {
     css`
       :host {
         display: block;
-        height: 14px;
+        height: calc(var(--vf-scale, 1) * 14px);
       }
       .track {
         position: relative;
         height: 100%;
         background: var(--vf-progress-track, #ffffff);
-        border: 1px solid var(--vf-black, #000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
         overflow: hidden;
       }
@@ -40,7 +41,7 @@ export class VfProgressBar extends LitElement {
         height: 100%;
         background: var(--vf-progress-fill, #000000);
         /* The classic 1px black leading edge. */
-        border-right: 1px solid var(--vf-black, #000);
+        border-right: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
       }
       .fill.empty {
         border-right: none;
@@ -50,8 +51,8 @@ export class VfProgressBar extends LitElement {
         border-right: none;
         background: repeating-linear-gradient(
           45deg,
-          var(--vf-black, #000) 0 4px,
-          var(--vf-white, #fff) 4px 8px
+          var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 4px),
+          var(--vf-white, #fff) calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 8px)
         );
         /* One stripe period (8px pitch at 45° ≈ 11.31px horizontally) in 4
            chunky steps — steppy, not smooth. */
@@ -62,7 +63,7 @@ export class VfProgressBar extends LitElement {
           background-position: 0 0;
         }
         to {
-          background-position: 11.31px 0;
+          background-position: calc(var(--vf-scale, 1) * 11.31px) 0;
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -72,6 +73,8 @@ export class VfProgressBar extends LitElement {
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** Current progress, from 0 to `max`. Clamped for display and ARIA. */
   @property({ type: Number }) value = 0

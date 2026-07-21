@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * The classic System 7 checkbox: a 13×13 white square with a 1px black
@@ -31,8 +32,11 @@ export class VfCheckbox extends LitElement {
       :host {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: calc(var(--vf-scale, 1) * 6px);
         cursor: default;
+        /* Display scaling: metrics are authored in system px and multiplied by
+           --vf-scale (default 1). See src/scale.ts. Font scales with the box. */
+        font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
       }
       :host(:focus-visible) {
         outline: none;
@@ -40,7 +44,7 @@ export class VfCheckbox extends LitElement {
       /* Focus ring around the box only, not the label. */
       :host(:focus-visible) .box {
         outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: 2px;
+        outline-offset: calc(var(--vf-scale, 1) * 2px);
       }
       .box {
         position: relative;
@@ -48,22 +52,23 @@ export class VfCheckbox extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 13px;
-        height: 13px;
+        width: calc(var(--vf-scale, 1) * 13px);
+        height: calc(var(--vf-scale, 1) * 13px);
         background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         color: var(--vf-black, #000);
       }
       /* Pressed: border thickens to 2px (classic press feedback). */
       :host(:active) .box:not(.dim) {
-        box-shadow: inset 0 0 0 1px var(--vf-black, #000);
+        box-shadow: inset 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
       }
-      /* Native 12×12 (1:1, crisp) — centered in the 13×13 box; the glyph's own
-         1px transparent margin lets it overhang onto the border harmlessly. */
+      /* Native 12×12 sprite — centered in the 13×13 box; the glyph's own 1px
+         transparent margin lets it overhang onto the border harmlessly. Scales
+         with the box; crispEdges keeps it whole-device-pixel at any dpr. */
       .check {
         flex: none;
-        width: 12px;
-        height: 12px;
+        width: calc(var(--vf-scale, 1) * 12px);
+        height: calc(var(--vf-scale, 1) * 12px);
         display: none;
         color: inherit;
       }
@@ -94,6 +99,9 @@ export class VfCheckbox extends LitElement {
   @state() private formDisabled = false
 
   private readonly internals: ElementInternals
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   /** Checked state at first connect, restored on form reset. */
   private defaultChecked: boolean | null = null

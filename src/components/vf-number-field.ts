@@ -4,6 +4,7 @@ import { classMap } from 'lit/directives/class-map.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
 import { STEPPER, STEPPER_DOWN_FILL, STEPPER_UP_FILL } from '../glyphs.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-number-field>` — a System 7 numeric entry field paired with the classic
@@ -38,15 +39,15 @@ export class VfNumberField extends LitElement {
       :host {
         display: inline-flex;
         align-items: stretch;
-        gap: 3px;
+        gap: calc(var(--vf-scale, 1) * 3px);
       }
       input {
         flex: 1 1 auto;
         width: var(--vf-number-field-width, 4em);
         min-width: 2em;
-        padding: 0 6px;
+        padding: 0 calc(var(--vf-scale, 1) * 6px);
         background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
         /* Editable text is set in the Chicago-style display face. */
         ${vfDisplayDecls}
@@ -60,7 +61,7 @@ export class VfNumberField extends LitElement {
       }
       /* Text inputs thicken their border on focus instead of a dotted ring. */
       input:focus {
-        box-shadow: 0 0 0 1px var(--vf-black, #000);
+        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
       }
       input::placeholder {
         color: var(--vf-disabled, #808080);
@@ -77,16 +78,16 @@ export class VfNumberField extends LitElement {
       .stepper {
         position: relative;
         flex: none;
-        width: 15px;
-        height: 25px;
+        width: calc(var(--vf-scale, 1) * 15px);
+        height: calc(var(--vf-scale, 1) * 25px);
         /* Stays solid black even when the field is disabled. */
         color: var(--vf-black, #000);
         cursor: default;
       }
       .stepper svg {
         display: block;
-        width: 15px;
-        height: 25px;
+        width: calc(var(--vf-scale, 1) * 15px);
+        height: calc(var(--vf-scale, 1) * 25px);
       }
       .fill {
         display: none;
@@ -151,6 +152,9 @@ export class VfNumberField extends LitElement {
   @query('input') private input!: HTMLInputElement | null
 
   private readonly internals: ElementInternals = this.attachInternals()
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   private defaultValue = ''
   private defaultCaptured = false

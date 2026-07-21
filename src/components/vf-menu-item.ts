@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
@@ -33,16 +34,17 @@ export class VfMenuItem extends LitElement {
       .item {
         display: flex;
         align-items: center;
-        height: 22px;
-        padding: 0 12px 0 22px;
+        height: calc(var(--vf-scale, 1) * 22px);
+        padding: 0 calc(var(--vf-scale, 1) * 12px) 0
+          calc(var(--vf-scale, 1) * 22px);
         position: relative;
         white-space: nowrap;
       }
       .check {
         position: absolute;
-        left: 6px;
+        left: calc(var(--vf-scale, 1) * 6px);
         top: 0;
-        height: 22px;
+        height: calc(var(--vf-scale, 1) * 22px);
         display: flex;
         align-items: center;
         color: inherit;
@@ -50,14 +52,14 @@ export class VfMenuItem extends LitElement {
       /* Native 9×9 (1:1, crisp). */
       .check svg {
         display: block;
-        width: 9px;
-        height: 9px;
+        width: calc(var(--vf-scale, 1) * 9px);
+        height: calc(var(--vf-scale, 1) * 9px);
       }
       .label {
         flex: 1;
       }
       .shortcut {
-        margin-left: 24px;
+        margin-left: calc(var(--vf-scale, 1) * 24px);
       }
       :host([disabled]) .item {
         color: var(--vf-disabled, #808080);
@@ -78,6 +80,8 @@ export class VfMenuItem extends LitElement {
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** Disables the item: dimmed text, no highlight, no activation. */
   @property({ type: Boolean, reflect: true }) disabled = false

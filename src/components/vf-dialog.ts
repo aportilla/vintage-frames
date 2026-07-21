@@ -2,6 +2,7 @@ import { html, css, LitElement } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfStripes, vfDisplayDecls } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-dialog>` — the System 7 movable-modal dialog.
@@ -44,14 +45,16 @@ export class VfDialog extends LitElement {
       }
       .frame {
         background: var(--vf-white, #ffffff);
-        border: 1px solid var(--vf-black, #000000);
-        box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px)
-          0 0 var(--vf-black, #000000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
+          calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
+          var(--vf-black, #000000);
       }
       .title-bar {
         position: relative;
-        height: var(--vf-titlebar-height, 22px);
-        border-bottom: 1px solid var(--vf-black, #000000);
+        height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 22px));
+        border-bottom: calc(var(--vf-scale, 1) * 1px) solid
+          var(--vf-black, #000000);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -62,8 +65,8 @@ export class VfDialog extends LitElement {
         ${vfDisplayDecls}
         position: relative;
         z-index: 1;
-        padding: 0 8px;
-        max-width: calc(100% - 16px);
+        padding: 0 calc(var(--vf-scale, 1) * 8px);
+        max-width: calc(100% - var(--vf-scale, 1) * 16px);
         background: var(--vf-white, #ffffff);
         white-space: nowrap;
         overflow: hidden;
@@ -72,10 +75,12 @@ export class VfDialog extends LitElement {
       .body {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
-        padding: 16px;
+        padding: calc(var(--vf-scale, 1) * 16px);
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** Whether the dialog is open. Kept in sync with the native `<dialog>`. */
   @property({ type: Boolean, reflect: true }) open = false

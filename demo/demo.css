@@ -7,13 +7,20 @@
  * The two typographic exceptions: the spec-mandated small-font disk caption
  * (SPEC §7.2), and the static field labels below — plain text, not components,
  * so the demo sets their face to match System 7 chrome.
+ *
+ * Display scaling: the components render at true 72dpi size by default (each
+ * system pixel = 3 device pixels; see src/scale.ts), driven by the inherited
+ * --vf-scale custom property (set on <vf-desktop> and every component). This
+ * demo layout is authored in system pixels too and multiplied by --vf-scale in
+ * calc(), so window sizes, positions, gaps and the chrome labels scale in
+ * lockstep with the controls. Default --vf-scale of 1 = the original layout.
  */
 
 /* ------------------------------ Typography ----------------------------- */
 
 /* Field labels ("Name:", "Find items", "Title:") are dialog chrome, so they
    take the Chicago-style display face, crisp (no smoothing) — the same face
-   the components use for buttons, menus and popups. */
+   the components use for buttons, menus and popups — and scale with them. */
 .field-label,
 .group-label,
 .newdoc-label,
@@ -30,6 +37,7 @@
     Arial,
     sans-serif
   );
+  font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
   -webkit-font-smoothing: none;
 }
 
@@ -39,24 +47,25 @@ vf-desktop {
   height: 100%;
 }
 
-/* Window placement — staggered so all three are visible at 1280×900. */
+/* Window placement — staggered (system px × --vf-scale so the whole
+   arrangement scales proportionally at true size). */
 #win-installer {
   position: absolute;
-  left: 40px;
-  top: 60px;
-  width: 560px;
+  left: calc(var(--vf-scale, 1) * 40px);
+  top: calc(var(--vf-scale, 1) * 60px);
+  width: calc(var(--vf-scale, 1) * 560px);
 }
 #win-format {
   position: absolute;
-  left: 380px;
-  top: 440px;
-  width: 470px;
+  left: calc(var(--vf-scale, 1) * 380px);
+  top: calc(var(--vf-scale, 1) * 440px);
+  width: calc(var(--vf-scale, 1) * 470px);
 }
 #win-controls {
   position: absolute;
-  left: 640px;
-  top: 110px;
-  width: 590px;
+  left: calc(var(--vf-scale, 1) * 640px);
+  top: calc(var(--vf-scale, 1) * 110px);
+  width: calc(var(--vf-scale, 1) * 590px);
 }
 
 /* Windows spawned by File → New Window. */
@@ -67,14 +76,14 @@ vf-desktop {
 /* ------------------------- DragThing installer ------------------------- */
 
 .installer-well {
-  height: 190px;
+  height: calc(var(--vf-scale, 1) * 190px);
 }
 .installer-well p,
 .installer-well ul {
-  margin: 0 0 10px;
+  margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
 .installer-well ul {
-  padding-left: 20px;
+  padding-left: calc(var(--vf-scale, 1) * 20px);
 }
 .installer-well :last-child {
   margin-bottom: 0;
@@ -83,41 +92,41 @@ vf-desktop {
 .installer-caption {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 10px 2px;
+  gap: calc(var(--vf-scale, 1) * 2px);
+  margin: calc(var(--vf-scale, 1) * 10px) calc(var(--vf-scale, 1) * 2px);
   /* Spec-mandated fine print (SPEC §7.2 / §3 --vf-font-size-small). */
-  font-size: var(--vf-font-size-small, 12px);
+  font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-small, 12px));
 }
 
 .installer-bottom {
   display: flex;
   align-items: flex-end;
-  gap: 20px;
+  gap: calc(var(--vf-scale, 1) * 20px);
 }
 .installer-location {
   flex: 1;
   min-width: 0;
 }
 .installer-folder {
-  margin: 0 0 8px;
+  margin: 0 0 calc(var(--vf-scale, 1) * 8px);
 }
 .installer-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
+  gap: calc(var(--vf-scale, 1) * 10px);
 }
 
 /* ----------------------------- Format window --------------------------- */
 
 .format-columns {
   display: flex;
-  gap: 32px;
+  gap: calc(var(--vf-scale, 1) * 32px);
 }
 .format-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(var(--vf-scale, 1) * 8px);
 }
 .group-label {
   display: block;
@@ -132,16 +141,16 @@ vf-desktop {
 }
 .key {
   margin-left: auto;
-  padding-left: 16px;
+  padding-left: calc(var(--vf-scale, 1) * 16px);
 }
 .format-selection {
-  margin-top: 12px;
+  margin-top: calc(var(--vf-scale, 1) * 12px);
 }
 .format-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 18px;
+  gap: calc(var(--vf-scale, 1) * 12px);
+  margin-top: calc(var(--vf-scale, 1) * 18px);
 }
 
 /* --------------------------- Controls window --------------------------- */
@@ -149,23 +158,23 @@ vf-desktop {
 .controls-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 16px;
+  gap: calc(var(--vf-scale, 1) * 16px);
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(var(--vf-scale, 1) * 10px);
 }
 
 .field-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(var(--vf-scale, 1) * 8px);
 }
 .field-row .field-label {
   flex: none;
-  min-width: 80px;
+  min-width: calc(var(--vf-scale, 1) * 80px);
 }
 .field-row vf-text-field,
 .field-row vf-text-area {
@@ -177,33 +186,33 @@ vf-desktop {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: calc(var(--vf-scale, 1) * 12px);
 }
 
 .da-list {
-  --vf-list-max-height: 132px;
+  --vf-list-max-height: calc(var(--vf-scale, 1) * 132px);
 }
 
 .scroll-demo {
-  height: 130px;
+  height: calc(var(--vf-scale, 1) * 130px);
 }
 .scroll-demo p {
-  margin: 0 0 10px;
+  margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
 
 /* ----------------------- New HTML Document dialog ---------------------- */
 
 #win-newdoc {
   position: absolute;
-  left: 150px;
-  top: 300px;
-  width: 480px;
+  left: calc(var(--vf-scale, 1) * 150px);
+  top: calc(var(--vf-scale, 1) * 300px);
+  width: calc(var(--vf-scale, 1) * 480px);
 }
 
 .newdoc {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: calc(var(--vf-scale, 1) * 12px);
 }
 
 /* The faint dotted rules that split the dialog into sections — the same
@@ -216,7 +225,7 @@ vf-desktop {
 .newdoc-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(var(--vf-scale, 1) * 10px);
 }
 
 /* Insert DOCTYPE: the popup grows to fill the rest of the row. */
@@ -227,23 +236,23 @@ vf-desktop {
 
 /* HTML / Head / Body sit in a loosely-spaced row. */
 .newdoc-tags {
-  gap: 28px;
+  gap: calc(var(--vf-scale, 1) * 28px);
 }
 
 /* Title / Base / Meta / Link — an aligned label column beside growing fields. */
 .newdoc-fields {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(var(--vf-scale, 1) * 8px);
 }
 .newdoc-field {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(var(--vf-scale, 1) * 8px);
 }
 .newdoc-label {
   flex: none;
-  min-width: 48px;
+  min-width: calc(var(--vf-scale, 1) * 48px);
 }
 .newdoc-field vf-text-field {
   flex: 1;
@@ -252,7 +261,7 @@ vf-desktop {
 /* The Title field yields room for the "Is Index" box to its right. */
 .newdoc-isindex {
   flex: none;
-  margin-left: 12px;
+  margin-left: calc(var(--vf-scale, 1) * 12px);
 }
 
 /* Template popup keeps its intrinsic width; the checkbox stands off to the right. */
@@ -260,35 +269,35 @@ vf-desktop {
   flex: none;
 }
 .newdoc-createwin {
-  margin-left: 24px;
+  margin-left: calc(var(--vf-scale, 1) * 24px);
 }
 
 .newdoc-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 4px;
+  gap: calc(var(--vf-scale, 1) * 12px);
+  margin-top: calc(var(--vf-scale, 1) * 4px);
 }
 
 /* ---------------------------- Find File window ------------------------- */
 
 #win-find {
   position: absolute;
-  left: 150px;
-  top: 720px;
-  width: 440px;
+  left: calc(var(--vf-scale, 1) * 150px);
+  top: calc(var(--vf-scale, 1) * 720px);
+  width: calc(var(--vf-scale, 1) * 440px);
 }
 
 .find {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: calc(var(--vf-scale, 1) * 12px);
 }
 
 .find-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(var(--vf-scale, 1) * 10px);
 }
 /* "Find items [on local disks ▼] whose" — the popup fills the middle. */
 .find-scope-select {
@@ -299,34 +308,37 @@ vf-desktop {
 /* The criteria "well": a hairline dotted frame around the
    attribute/operator/value row — exactly 1px black dots with 1px gaps, square
    corners. CSS `dotted` draws round dots at browser-chosen spacing, so the
-   frame is drawn as four edge gradients pinned to a 1-on/1-off pixel grid. */
+   frame is drawn as four edge gradients pinned to a 1-on/1-off pixel grid
+   (scaled to stay 1 system px on/off). */
 .find-criteria {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: calc(var(--vf-scale, 1) * 10px);
+  padding: calc(var(--vf-scale, 1) * 10px);
   background-image: repeating-linear-gradient(
       90deg,
-      var(--vf-black, #000) 0 1px,
-      transparent 1px 2px
+      var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),
+      transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
     ),
     repeating-linear-gradient(
       90deg,
-      var(--vf-black, #000) 0 1px,
-      transparent 1px 2px
+      var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),
+      transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
     ),
     repeating-linear-gradient(
       180deg,
-      var(--vf-black, #000) 0 1px,
-      transparent 1px 2px
+      var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),
+      transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
     ),
     repeating-linear-gradient(
       180deg,
-      var(--vf-black, #000) 0 1px,
-      transparent 1px 2px
+      var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),
+      transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
     );
   background-position: 0 0, 0 100%, 0 0, 100% 0;
-  background-size: 100% 1px, 100% 1px, 1px 100%, 1px 100%;
+  background-size: 100% calc(var(--vf-scale, 1) * 1px),
+    100% calc(var(--vf-scale, 1) * 1px), calc(var(--vf-scale, 1) * 1px) 100%,
+    calc(var(--vf-scale, 1) * 1px) 100%;
   background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
 }
 .find-attr,
@@ -348,18 +360,18 @@ vf-desktop {
 /* ------------------------- About dialog & alert ------------------------ */
 
 .about-body {
-  max-width: 360px;
+  max-width: calc(var(--vf-scale, 1) * 360px);
 }
 .about-body p {
-  margin: 0 0 10px;
+  margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
 .about-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: calc(var(--vf-scale, 1) * 16px);
 }
 
 .alert-message {
   display: inline-block;
-  max-width: 300px;
+  max-width: calc(var(--vf-scale, 1) * 300px);
 }

@@ -6,6 +6,7 @@ import {
   queryAssignedElements,
 } from 'lit/decorators.js'
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
 /**
@@ -36,8 +37,8 @@ export class VfMenu extends LitElement {
       .label {
         display: flex;
         align-items: center;
-        height: var(--vf-menubar-height, 24px);
-        padding: 0 10px;
+        height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 24px));
+        padding: 0 calc(var(--vf-scale, 1) * 10px);
         white-space: nowrap;
         cursor: default;
       }
@@ -49,8 +50,8 @@ export class VfMenu extends LitElement {
         position: absolute;
         top: 100%;
         left: 0;
-        min-width: 180px;
-        padding: 2px 0;
+        min-width: calc(var(--vf-scale, 1) * 180px);
+        padding: calc(var(--vf-scale, 1) * 2px) 0;
         z-index: 1000;
         /* Slotted vf-separators render as the classic dimmed dotted menu rule. */
         --vf-separator-color: var(--vf-disabled, #808080);
@@ -60,10 +61,12 @@ export class VfMenu extends LitElement {
         display: none;
       }
       .panel ::slotted(vf-separator) {
-        margin: 2px 0;
+        margin: calc(var(--vf-scale, 1) * 2px) 0;
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** The menu title shown in the bar (may contain a glyph, e.g. an apple). */
   @property() label = ''

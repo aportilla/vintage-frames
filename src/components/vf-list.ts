@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property, queryAssignedElements } from 'lit/decorators.js'
 import { vfBase, vfScrollbars } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 import type { VfListItem } from './vf-list-item.js'
 
 const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
@@ -30,18 +31,20 @@ export class VfList extends LitElement {
       :host {
         display: block;
         background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
       }
       /* Disabled: the item text dims to gray; the black box border stays. */
       :host([disabled]) {
         color: var(--vf-disabled, #808080);
       }
       .list {
-        max-height: var(--vf-list-max-height, 200px);
+        max-height: calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px));
         overflow-y: auto;
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** Allows multiple selection (Shift extends, Cmd/Ctrl toggles). */
   @property({ type: Boolean, reflect: true }) multiple = false

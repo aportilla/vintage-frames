@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement } from 'lit/decorators.js'
 import { vfBase, vfScrollbars } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-scroll-area>` — a container whose scrollbars look like System 7.
@@ -17,6 +18,8 @@ import { vfBase, vfScrollbars } from '../styles/base.js'
  */
 @customElement('vf-scroll-area')
 export class VfScrollArea extends LitElement {
+  private readonly scale = new ScaleController(this)
+
   static override styles = [
     vfBase,
     vfScrollbars,
@@ -24,19 +27,19 @@ export class VfScrollArea extends LitElement {
       :host {
         display: block;
         background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         overflow: hidden;
       }
       .viewport {
         width: 100%;
         height: 100%;
         overflow: auto;
-        padding: 8px;
+        padding: calc(var(--vf-scale, 1) * 8px);
       }
       /* Focusable so keyboard users can scroll; inset ring to stay in-box. */
       .viewport:focus-visible {
         outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: -2px;
+        outline-offset: calc(var(--vf-scale, 1) * -2px);
       }
     `,
   ]

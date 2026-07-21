@@ -3,6 +3,7 @@ import type { PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-option>` — a single choice inside a `<vf-select>` popup menu.
@@ -26,8 +27,9 @@ export class VfOption extends LitElement {
         position: relative;
         display: flex;
         align-items: center;
-        height: 22px;
-        padding: 0 20px 0 22px;
+        height: calc(var(--vf-scale, 1) * 22px);
+        padding: 0 calc(var(--vf-scale, 1) * 20px) 0
+          calc(var(--vf-scale, 1) * 22px);
         background: var(--vf-white, #fff);
         color: var(--vf-black, #000);
         white-space: nowrap;
@@ -49,8 +51,8 @@ export class VfOption extends LitElement {
         position: absolute;
         left: 0;
         top: 0;
-        width: 22px;
-        height: 22px;
+        width: calc(var(--vf-scale, 1) * 22px);
+        height: calc(var(--vf-scale, 1) * 22px);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -60,14 +62,16 @@ export class VfOption extends LitElement {
       /* Native 9×9 (1:1, crisp). */
       .check svg {
         display: block;
-        width: 9px;
-        height: 9px;
+        width: calc(var(--vf-scale, 1) * 9px);
+        height: calc(var(--vf-scale, 1) * 9px);
       }
       :host([selected]) .check {
         visibility: visible;
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /**
    * Submitted/compared value of this option. Falls back to the trimmed text

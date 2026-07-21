@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
+import { ScaleController } from '../scale.js'
 import { vfBase } from '../styles/base.js'
 import { VfRadio } from './vf-radio.js'
 
@@ -36,7 +37,7 @@ export class VfRadioGroup extends LitElement {
         display: flex;
       }
       ::slotted(vf-radio:not(:first-child)) {
-        margin-top: 6px;
+        margin-top: calc(var(--vf-scale, 1) * 6px);
       }
     `,
   ]
@@ -55,6 +56,8 @@ export class VfRadioGroup extends LitElement {
 
   /** True while an ancestor `<fieldset disabled>` disables this control. */
   @state() private formDisabled = false
+
+  private readonly scale = new ScaleController(this)
 
   private readonly internals: ElementInternals
 

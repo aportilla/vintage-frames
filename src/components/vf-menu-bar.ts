@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, queryAssignedElements } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 import type { VfMenu } from './vf-menu.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -24,9 +25,9 @@ export class VfMenuBar extends LitElement {
     css`
       :host {
         display: block;
-        height: var(--vf-menubar-height, 24px);
+        height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 24px));
         background: var(--vf-white, #fff);
-        border-bottom: 1px solid var(--vf-black, #000);
+        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         position: relative;
         z-index: 1000;
       }
@@ -37,6 +38,8 @@ export class VfMenuBar extends LitElement {
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   @queryAssignedElements({ selector: 'vf-menu', flatten: true })
   private _menus!: VfMenu[]

@@ -6,6 +6,7 @@
  * from the components; this module is behavior only.
  */
 import { VfWindow } from '../src/index.js'
+import { sys } from '../src/scale.js'
 import type {
   VfAlert,
   VfDesktop,
@@ -81,9 +82,10 @@ function spawnWindow(): void {
   win.movable = true
   const step = (untitledCount - 1) % 7
   win.style.position = 'absolute'
-  win.style.left = `${180 + step * 28}px`
-  win.style.top = `${140 + step * 26}px`
-  win.style.width = '300px'
+  // Positions/size in system px, scaled to the display (matches demo.css).
+  win.style.left = `${sys(180 + step * 28)}px`
+  win.style.top = `${sys(140 + step * 26)}px`
+  win.style.width = `${sys(300)}px`
 
   const note = document.createElement('p')
   note.className = 'untitled-note'

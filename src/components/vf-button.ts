@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { vfBase, vfDisplay, vfFocus } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * The classic System 7 push button ("OK", "Cancel", "Install", …).
@@ -36,17 +37,22 @@ export class VfButton extends LitElement {
         display: inline-flex;
         position: relative;
         cursor: default;
+        /* Display scaling: metrics are authored in *system pixels* and
+           multiplied by --vf-scale (default 1 = today's rendering). Opt a
+           subtree into true 72dpi size via applyScale()/--vf-scale — see
+           src/scale.ts. The chrome font scales with the control. */
+        font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
       }
-      /* Breathing room for the default-button ring drawn at inset -5px. */
+      /* Breathing room for the default-button ring drawn at inset -5 system px. */
       :host([variant='default']) {
-        margin: 5px;
+        margin: calc(var(--vf-scale, 1) * 5px);
       }
       :host([variant='default'])::before {
         content: '';
         position: absolute;
-        inset: -5px;
-        border: 3px solid var(--vf-black, #000);
-        border-radius: calc(var(--vf-radius, 6px) + 4px);
+        inset: calc(var(--vf-scale, 1) * -5px);
+        border: calc(var(--vf-scale, 1) * 3px) solid var(--vf-black, #000);
+        border-radius: calc(var(--vf-scale, 1) * (var(--vf-radius, 6px) + 4px));
         pointer-events: none;
       }
       /* Disabled default: the fat outer ring dims to gray; the inner button
@@ -58,12 +64,12 @@ export class VfButton extends LitElement {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        height: var(--vf-control-height, 22px);
-        min-width: 64px;
-        padding: 0 14px;
+        height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
+        min-width: calc(var(--vf-scale, 1) * 64px);
+        padding: 0 calc(var(--vf-scale, 1) * 14px);
         background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
-        border-radius: var(--vf-radius, 6px);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        border-radius: calc(var(--vf-scale, 1) * var(--vf-radius, 6px));
         color: var(--vf-black, #000);
         font-family: inherit;
         font-size: inherit;
@@ -104,6 +110,9 @@ export class VfButton extends LitElement {
   @state() private formDisabled = false
 
   private readonly internals: ElementInternals
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   constructor() {
     super()

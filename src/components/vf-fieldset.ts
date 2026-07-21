@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-fieldset>` — the classic "Install Location" group box.
@@ -25,17 +26,18 @@ export class VfFieldset extends LitElement {
       }
       .fieldset {
         position: relative;
-        border: 1px solid var(--vf-black, #000);
-        padding: 14px 12px 10px;
-        margin-top: 8px;
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        padding: calc(var(--vf-scale, 1) * 14px) calc(var(--vf-scale, 1) * 12px)
+          calc(var(--vf-scale, 1) * 10px);
+        margin-top: calc(var(--vf-scale, 1) * 8px);
       }
       .legend {
         /* Chicago-style legend (chrome); grouped content keeps the body face. */
         ${vfDisplayDecls}
         position: absolute;
         top: -0.7em;
-        left: 8px;
-        padding: 0 5px;
+        left: calc(var(--vf-scale, 1) * 8px);
+        padding: 0 calc(var(--vf-scale, 1) * 5px);
         /* Punches through the border, matching the surface behind it. */
         background: var(--vf-surface, var(--vf-white, #fff));
         white-space: nowrap;
@@ -45,6 +47,8 @@ export class VfFieldset extends LitElement {
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** Legend text shown on the top border. */
   @property() legend = ''

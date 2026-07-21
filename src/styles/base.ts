@@ -24,7 +24,7 @@ export const vfBase = css`
       Arial,
       sans-serif
     );
-    font-size: var(--vf-font-size, 16px);
+    font-size: calc(var(--vf-scale, 1) * var(--vf-font-size, 16px));
     font-weight: var(--vf-font-weight, 700);
     line-height: 1.25;
     color: var(--vf-black, #000);
@@ -62,7 +62,7 @@ export const vfDisplayDecls = unsafeCSS(`
     Arial,
     sans-serif
   );
-  font-size: var(--vf-font-size-display, 16px);
+  font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
   -webkit-font-smoothing: var(--vf-font-smoothing-display, none);
 `)
 
@@ -87,11 +87,11 @@ export const vfDisplay = css`
 export const vfStripes = css`
   .vf-stripes {
     position: absolute;
-    inset: 5px 2px;
+    inset: calc(var(--vf-scale, 1) * 5px) calc(var(--vf-scale, 1) * 2px);
     background: repeating-linear-gradient(
       to bottom,
-      var(--vf-black, #000) 0 1px,
-      transparent 1px 2px
+      var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),
+      transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
     );
     pointer-events: none;
   }
@@ -104,8 +104,9 @@ export const vfStripes = css`
 export const vfPanel = css`
   .vf-panel {
     background: var(--vf-white, #fff);
-    border: 1px solid var(--vf-black, #000);
-    box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0
+    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
+      calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
       var(--vf-black, #000);
   }
 `
@@ -118,7 +119,7 @@ export const vfPanel = css`
 export const vfFocus = css`
   .vf-focus:focus-visible {
     outline: var(--vf-focus-outline, 1px dotted #000);
-    outline-offset: 2px;
+    outline-offset: calc(var(--vf-scale, 1) * 2px);
   }
 `
 
@@ -137,8 +138,8 @@ export const vfFocus = css`
  */
 export const vfScrollbars = css`
   .vf-scroll::-webkit-scrollbar {
-    width: 16px;
-    height: 16px;
+    width: calc(var(--vf-scale, 1) * 16px);
+    height: calc(var(--vf-scale, 1) * 16px);
   }
   /* Loose 1-bit dither: a 25%-density dot lattice — dotted vertical lines two
      pixels apart, each column phase-shifted by one row. A 4×2 tile with a dot
@@ -147,15 +148,15 @@ export const vfScrollbars = css`
   .vf-scroll::-webkit-scrollbar-track {
     background-color: var(--vf-white, #fff);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='2'%3E%3Crect width='1' height='1'/%3E%3Crect x='2' y='1' width='1' height='1'/%3E%3C/svg%3E");
-    background-size: 4px 2px;
+    background-size: calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 2px);
   }
   /* Interior rail dividing the content from the scrollbar channel. The outer
      edges are left to the host's 1px border (see the border trims below). */
   .vf-scroll::-webkit-scrollbar-track:vertical {
-    border-left: 1px solid var(--vf-black, #000);
+    border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
   .vf-scroll::-webkit-scrollbar-track:horizontal {
-    border-top: 1px solid var(--vf-black, #000);
+    border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
   /* The thumb keeps a full 1px border on every side. System 7 insets the thumb
      one pixel from the channel rails, so each long side reads as a doubled 1px
@@ -165,13 +166,13 @@ export const vfScrollbars = css`
      stays 1px and doubles against the host border just outside the channel. */
   .vf-scroll::-webkit-scrollbar-thumb {
     background: var(--vf-scrollbar-thumb, #ffffff);
-    border: 1px solid var(--vf-black, #000);
+    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
   .vf-scroll::-webkit-scrollbar-thumb:vertical {
-    border-left-width: 2px;
+    border-left-width: calc(var(--vf-scale, 1) * 2px);
   }
   .vf-scroll::-webkit-scrollbar-thumb:horizontal {
-    border-top-width: 2px;
+    border-top-width: calc(var(--vf-scale, 1) * 2px);
   }
   /* The corner only exists when both scrollbars show. It supplies the two
      interior dividers (against the vertical down-arrow above and the horizontal
@@ -179,17 +180,20 @@ export const vfScrollbars = css`
      edges; its right/bottom edges are the host border. */
   .vf-scroll::-webkit-scrollbar-corner {
     background: var(--vf-white, #fff);
-    border-top: 1px solid var(--vf-black, #000);
-    border-left: 1px solid var(--vf-black, #000);
+    border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
   .vf-scroll::-webkit-scrollbar-button {
     display: block;
-    width: 16px;
-    height: 16px;
+    width: calc(var(--vf-scale, 1) * 16px);
+    height: calc(var(--vf-scale, 1) * 16px);
     background-color: var(--vf-white, #fff);
-    border: 1px solid var(--vf-black, #000);
+    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
     background-repeat: no-repeat;
     background-position: center;
+    /* Scale the 16-unit arrow sprite to fill the scaled button (it's drawn via
+       background-image with no intrinsic scale otherwise). */
+    background-size: calc(var(--vf-scale, 1) * 16px) calc(var(--vf-scale, 1) * 16px);
   }
   /* Nest the arrow boxes cleanly inside the host's 1px border: any button edge
      that meets the container is drawn by the host border, not the button, so

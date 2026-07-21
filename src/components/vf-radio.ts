@@ -8,6 +8,7 @@ import {
   RADIO_RING,
   RADIO_RING_PRESSED,
 } from '../glyphs.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * A single System 7 radio button: a 13×13 white circle with the pixel-exact
@@ -35,8 +36,11 @@ export class VfRadio extends LitElement {
       :host {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: calc(var(--vf-scale, 1) * 6px);
         cursor: default;
+        /* Display scaling: metrics are authored in system px and multiplied by
+           --vf-scale (default 1). See src/scale.ts. Font scales with the box. */
+        font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
       }
       :host(:focus-visible) {
         outline: none;
@@ -44,7 +48,7 @@ export class VfRadio extends LitElement {
       /* Focus ring around the circle only, not the label. */
       :host(:focus-visible) .circle {
         outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: 2px;
+        outline-offset: calc(var(--vf-scale, 1) * 2px);
       }
       .circle {
         position: relative;
@@ -52,15 +56,16 @@ export class VfRadio extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 13px;
-        height: 13px;
+        width: calc(var(--vf-scale, 1) * 13px);
+        height: calc(var(--vf-scale, 1) * 13px);
         color: var(--vf-black, #000);
       }
-      /* Native 12×12 (1:1, crisp) centered in the 13×13 focus box. */
+      /* Native 12×12 sprite centered in the 13×13 focus box; scales with the
+         circle, crispEdges keeps it whole-device-pixel at any dpr. */
       .circle svg {
         display: block;
-        width: 12px;
-        height: 12px;
+        width: calc(var(--vf-scale, 1) * 12px);
+        height: calc(var(--vf-scale, 1) * 12px);
       }
       /* White control face, black ring + dot — the ring path covers the
          face's outer edge so no anti-aliasing shows. */
@@ -110,6 +115,9 @@ export class VfRadio extends LitElement {
   @property({ attribute: false }) groupDisabled = false
 
   private readonly internals: ElementInternals
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   constructor() {
     super()

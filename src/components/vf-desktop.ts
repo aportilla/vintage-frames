@@ -1,6 +1,7 @@
 import { html, css, LitElement } from 'lit'
 import { customElement, queryAssignedElements } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-desktop>` — the full-bleed classic desktop container.
@@ -33,14 +34,17 @@ export class VfDesktop extends LitElement {
         width: 100%;
         height: 100%;
         background-color: var(--vf-desktop, #808080);
+        /* Classic 50% checker dither as a crisp 1-bit SVG tile — a 2×2 grid with
+           two black pixels (the other two transparent, so the desktop gray shows
+           through as the "white" of the dither). Scaled with --vf-scale so each
+           system pixel lands on whole device pixels; unlike a conic-gradient
+           (whose hard stops the browser feathers into a blur), the SVG rects are
+           pixel-exact. Override the whole pattern via --vf-desktop-pattern. */
         background-image: var(
           --vf-desktop-pattern,
-          repeating-conic-gradient(
-            var(--vf-black, #000) 0% 25%,
-            var(--vf-white, #fff) 0% 50%
-          )
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23ffffff'/%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
         );
-        background-size: 2px 2px;
+        background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
       }
       /* Slotted windows need a positioning context so z-index applies.
          (An inline position: absolute set by a movable window wins.) */
@@ -53,6 +57,9 @@ export class VfDesktop extends LitElement {
   /** Slotted `vf-window` children (direct children only). */
   @queryAssignedElements({ selector: 'vf-window' })
   private _windows!: HTMLElement[]
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   /** Monotonic z-index counter for window stacking. */
   private _zCounter = 0

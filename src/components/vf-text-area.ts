@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-text-area>` — a System 7 multi-line text entry field.
@@ -33,9 +34,9 @@ export class VfTextArea extends LitElement {
       textarea {
         display: block;
         width: 100%;
-        padding: 3px 6px;
+        padding: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 6px);
         background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
         resize: none;
         /* Editable text is set in the Chicago-style display face. */
@@ -49,7 +50,7 @@ export class VfTextArea extends LitElement {
       }
       /* Text inputs thicken their border on focus instead of a dotted ring. */
       textarea:focus {
-        box-shadow: 0 0 0 1px var(--vf-black, #000);
+        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
       }
       textarea::placeholder {
         color: var(--vf-disabled, #808080);
@@ -84,6 +85,8 @@ export class VfTextArea extends LitElement {
 
   /** True while an ancestor `<fieldset disabled>` disables this control. */
   @state() private formDisabled = false
+
+  private readonly scale = new ScaleController(this)
 
   private readonly internals: ElementInternals = this.attachInternals()
 

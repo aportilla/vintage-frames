@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
+import { ScaleController, sys, toSys } from '../scale.js'
 
 /** Native pixel size of the {@link SLIDER_THUMB} sprite. */
 const THUMB_W = 11
@@ -72,7 +73,7 @@ export class VfSlider extends LitElement {
         /* Padding just leaves room for the thumb's focus ring; the thumb itself
            stays within the rail (its travel is inset by half its width). */
         display: block;
-        padding: 3px 4px;
+        padding: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 4px);
         color: var(--vf-black, #000);
         cursor: default;
         -webkit-tap-highlight-color: transparent;
@@ -80,7 +81,7 @@ export class VfSlider extends LitElement {
       .track {
         position: relative;
         width: 100%;
-        height: ${THUMB_H}px;
+        height: calc(var(--vf-scale, 1) * ${THUMB_H}px);
         touch-action: none;
       }
       /* A slider has no separate label — the fill *is* the value, so the whole
@@ -94,8 +95,8 @@ export class VfSlider extends LitElement {
       .rail {
         position: absolute;
         left: 0;
-        top: ${RAIL_TOP}px;
-        height: ${RAIL_H}px;
+        top: calc(var(--vf-scale, 1) * ${RAIL_TOP}px);
+        height: calc(var(--vf-scale, 1) * ${RAIL_H}px);
         color: inherit;
         pointer-events: none;
       }
@@ -107,15 +108,15 @@ export class VfSlider extends LitElement {
         top: 0;
         /* Above the rail so the opaque handle occludes it. */
         z-index: 1;
-        width: ${THUMB_W}px;
-        height: ${THUMB_H}px;
+        width: calc(var(--vf-scale, 1) * ${THUMB_W}px);
+        height: calc(var(--vf-scale, 1) * ${THUMB_H}px);
         color: inherit;
         pointer-events: none;
       }
       .thumb-glyph {
         display: block;
-        width: ${THUMB_W}px;
-        height: ${THUMB_H}px;
+        width: calc(var(--vf-scale, 1) * ${THUMB_W}px);
+        height: calc(var(--vf-scale, 1) * ${THUMB_H}px);
       }
       /* Solid white fill behind the black outline so the rail passes *behind*
          the handle, not through its interior. */
@@ -133,7 +134,7 @@ export class VfSlider extends LitElement {
       }
       .thumb.focus-ring {
         outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: 2px;
+        outline-offset: calc(var(--vf-scale, 1) * 2px);
       }
     `,
   ]
@@ -165,6 +166,9 @@ export class VfSlider extends LitElement {
   @query('.track') private track!: HTMLElement | null
 
   private readonly internals: ElementInternals
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   private resizeObserver?: ResizeObserver
 
@@ -325,9 +329,11 @@ export class VfSlider extends LitElement {
   #valueFromClientX(clientX: number): number {
     const rect = this.track?.getBoundingClientRect()
     if (!rect) return this.value
-    const usable = rect.width - THUMB_W
+    // rect is real (scaled) CSS px; the thumb constants are system px, so the
+    // half-thumb inset is converted with sys().
+    const usable = rect.width - sys(THUMB_W)
     if (usable <= 0) return this.value
-    const fraction = Math.min(Math.max((clientX - rect.left - THUMB_HALF) / usable, 0), 1)
+    const fraction = Math.min(Math.max((clientX - rect.left - sys(THUMB_HALF)) / usable, 0), 1)
     return this.#snap(this.min + fraction * this.#range)
   }
 
@@ -429,12 +435,15 @@ export class VfSlider extends LitElement {
   }
 
   protected override render() {
-    const w = this.trackWidth
-    // The thumb's left edge travels 0…(w − thumbW), landing on a whole pixel so
-    // the sprite stays crisp and its edges never overhang the rail. The fill ends
-    // at the thumb's centre grip.
-    const thumbLeft = Math.round(this.#fraction * Math.max(0, w - THUMB_W))
-    const pos = thumbLeft + THUMB_CENTER
+    // trackWidth is on-screen (already-scaled) CSS px. Author the rail in system
+    // px and scale it up via the SVG viewBox, so the whole capsule (caps, edges,
+    // fill) scales uniformly. The thumb's left edge travels 0…(sysW − thumbW) in
+    // system px and snaps to the system grid (whole device pixels) so the sprite
+    // stays crisp; the fill ends at the thumb's centre grip.
+    const sysW = toSys(this.trackWidth)
+    const thumbLeftSys = Math.round(this.#fraction * Math.max(0, sysW - THUMB_W))
+    const thumbLeft = sys(thumbLeftSys)
+    const pos = thumbLeftSys + THUMB_CENTER
     return html`
       <div
         class="track ${this.#isDisabled ? 'disabled' : ''}"
@@ -445,17 +454,17 @@ export class VfSlider extends LitElement {
         @pointercancel=${this.#onPointerUp}
         @lostpointercapture=${this.#onPointerUp}
       >
-        ${w >= 2
+        ${sysW >= 2
           ? html`<svg
               class="rail"
               part="rail"
-              width=${w}
-              height=${RAIL_H}
-              viewBox="0 0 ${w} ${RAIL_H}"
+              width=${sys(sysW)}
+              height=${sys(RAIL_H)}
+              viewBox="0 0 ${sysW} ${RAIL_H}"
               shape-rendering="crispEdges"
               aria-hidden="true"
             >
-              <path d=${railPath(w, pos)}></path>
+              <path d=${railPath(sysW, pos)}></path>
             </svg>`
           : null}
         <span

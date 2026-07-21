@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-list-item>` — a row inside a `<vf-list>` list box.
@@ -18,9 +19,9 @@ export class VfListItem extends LitElement {
     css`
       :host {
         display: block;
-        height: 20px;
-        line-height: 20px;
-        padding: 0 6px;
+        height: calc(var(--vf-scale, 1) * 20px);
+        line-height: calc(var(--vf-scale, 1) * 20px);
+        padding: 0 calc(var(--vf-scale, 1) * 6px);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -29,7 +30,7 @@ export class VfListItem extends LitElement {
       }
       :host(:focus-visible) {
         outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: -1px;
+        outline-offset: calc(var(--vf-scale, 1) * -1px);
       }
       :host([selected]) {
         background: var(--vf-highlight, #000);
@@ -40,6 +41,8 @@ export class VfListItem extends LitElement {
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** The value this row contributes to the list's `value`/`values`. */
   @property() value = ''

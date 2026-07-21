@@ -2,6 +2,7 @@ import { html, css, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * `<vf-separator>` — a 1px System 7 rule.
@@ -23,22 +24,26 @@ export class VfSeparator extends LitElement {
     css`
       :host {
         display: block;
-        height: 1px;
+        height: calc(var(--vf-scale, 1) * 1px);
         border: none;
-        border-top: 1px var(--vf-separator-style, solid)
+        border-top: calc(var(--vf-scale, 1) * 1px)
+          var(--vf-separator-style, solid)
           var(--vf-separator-color, var(--vf-black, #000));
       }
       :host([vertical]) {
         display: block;
-        width: 1px;
+        width: calc(var(--vf-scale, 1) * 1px);
         height: auto;
         align-self: stretch;
         border-top: none;
-        border-left: 1px var(--vf-separator-style, solid)
+        border-left: calc(var(--vf-scale, 1) * 1px)
+          var(--vf-separator-style, solid)
           var(--vf-separator-color, var(--vf-black, #000));
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** Render as a vertical rule (1px wide) instead of horizontal. */
   @property({ type: Boolean, reflect: true }) vertical = false

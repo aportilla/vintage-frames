@@ -4,6 +4,7 @@ import { customElement, property, query, queryAssignedElements, state } from 'li
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
+import { ScaleController, sys } from '../scale.js'
 
 /**
  * `<vf-select>` — the classic System 7 popup menu control ("Macintosh HD ▼").
@@ -51,15 +52,16 @@ export class VfSelect extends LitElement {
       .control {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: calc(var(--vf-scale, 1) * 8px);
         width: 100%;
-        min-width: 120px;
-        height: var(--vf-control-height, 22px);
-        padding: 0 8px;
+        min-width: calc(var(--vf-scale, 1) * 120px);
+        height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
+        padding: 0 calc(var(--vf-scale, 1) * 8px);
         background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
-        box-shadow: 1px 1px 0 0 var(--vf-black, #000);
+        box-shadow: calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 1px)
+          0 0 var(--vf-black, #000);
         cursor: default;
       }
       .label {
@@ -78,8 +80,8 @@ export class VfSelect extends LitElement {
       }
       .arrow svg {
         display: block;
-        width: 11px;
-        height: 6px;
+        width: calc(var(--vf-scale, 1) * 11px);
+        height: calc(var(--vf-scale, 1) * 6px);
       }
       /* Disabled: only the value label dims; the box, hard shadow and ▼ arrow
          stay solid black (System 7 dims the label, not the control). */
@@ -93,7 +95,7 @@ export class VfSelect extends LitElement {
         z-index: 10000;
         margin: 0;
         padding: 0;
-        min-width: 120px;
+        min-width: calc(var(--vf-scale, 1) * 120px);
         overflow-y: auto;
       }
       .panel.open {
@@ -131,6 +133,9 @@ export class VfSelect extends LitElement {
   private assignedOptions!: VfOption[]
 
   private readonly internals: ElementInternals = this.attachInternals()
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
 
   /** Index of the highlighted option while the panel is open. */
   private activeIndex = -1
@@ -254,14 +259,16 @@ export class VfSelect extends LitElement {
     const panel = this.panelEl
     if (!control || !panel) return
     const rect = control.getBoundingClientRect()
-    panel.style.minWidth = `${Math.max(rect.width, 120)}px`
-    panel.style.maxHeight = `${window.innerHeight - 8}px`
+    // getBoundingClientRect is in real (already-scaled) CSS px, so the system-px
+    // constants (item height, borders, viewport margins) are converted with sys().
+    panel.style.minWidth = `${Math.max(rect.width, sys(120))}px`
+    panel.style.maxHeight = `${window.innerHeight - sys(8)}px`
     const panelRect = panel.getBoundingClientRect()
-    // 1px = the panel border above the first item.
-    let top = rect.top - 1 - selectedIndex * VfSelect.ITEM_HEIGHT
-    top = Math.max(4, Math.min(top, window.innerHeight - panelRect.height - 4))
+    // sys(1) = the panel border above the first item.
+    let top = rect.top - sys(1) - selectedIndex * sys(VfSelect.ITEM_HEIGHT)
+    top = Math.max(sys(4), Math.min(top, window.innerHeight - panelRect.height - sys(4)))
     let left = rect.left
-    left = Math.max(4, Math.min(left, window.innerWidth - panelRect.width - 4))
+    left = Math.max(sys(4), Math.min(left, window.innerWidth - panelRect.width - sys(4)))
     panel.style.top = `${top}px`
     panel.style.left = `${left}px`
   }

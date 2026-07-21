@@ -2,6 +2,7 @@ import { html, css, LitElement, nothing } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfDisplay } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
 
 /**
  * The classic black/white caution icon: a triangle with an exclamation mark.
@@ -66,23 +67,24 @@ export class VfAlert extends LitElement {
       .frame {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
-        border: 2px solid var(--vf-black, #000000);
-        box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px)
-          0 0 var(--vf-black, #000000);
+        border: calc(var(--vf-scale, 1) * 2px) solid var(--vf-black, #000000);
+        box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
+          calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
+          var(--vf-black, #000000);
       }
       .inner {
-        margin: 2px;
-        border: 1px solid var(--vf-black, #000000);
+        margin: calc(var(--vf-scale, 1) * 2px);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
       }
       .content {
         display: grid;
-        grid-template-columns: 32px 1fr;
+        grid-template-columns: calc(var(--vf-scale, 1) * 32px) 1fr;
         grid-template-areas:
           'icon message'
           'buttons buttons';
-        column-gap: 16px;
-        row-gap: 16px;
-        padding: 16px 20px;
+        column-gap: calc(var(--vf-scale, 1) * 16px);
+        row-gap: calc(var(--vf-scale, 1) * 16px);
+        padding: calc(var(--vf-scale, 1) * 16px) calc(var(--vf-scale, 1) * 20px);
       }
       .content.no-icon {
         grid-template-columns: 1fr;
@@ -92,7 +94,7 @@ export class VfAlert extends LitElement {
       }
       .icon {
         grid-area: icon;
-        width: 32px;
+        width: calc(var(--vf-scale, 1) * 32px);
       }
       .content.no-icon .icon {
         display: none;
@@ -113,10 +115,12 @@ export class VfAlert extends LitElement {
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        gap: 12px;
+        gap: calc(var(--vf-scale, 1) * 12px);
       }
     `,
   ]
+
+  private readonly scale = new ScaleController(this)
 
   /** Whether the alert is open. Kept in sync with the native `<dialog>`. */
   @property({ type: Boolean, reflect: true }) open = false

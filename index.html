@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vintage Frames — System 7 UI kit demo</title>
+    <script type="module" src="/demo/demo.ts"></script>
+  </head>
+  <body>
+    <vf-desktop id="desktop">
+      <!-- ============================== Menu bar ======================== -->
+      <vf-menu-bar>
+        <!-- U+F8FF: the Apple logo glyph (renders on Apple platforms). -->
+        <vf-menu id="menu-apple" label="&#xf8ff;">
+          <vf-menu-item value="about">About This Macintosh…</vf-menu-item>
+        </vf-menu>
+        <vf-menu id="menu-file" label="File">
+          <vf-menu-item value="new-window" shortcut="⌘N">New Window</vf-menu-item>
+          <vf-menu-item value="open" shortcut="⌘O">Open…</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item value="close" shortcut="⌘W">Close</vf-menu-item>
+          <vf-menu-item disabled shortcut="⌘P">Print</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item value="quit" shortcut="⌘Q">Quit</vf-menu-item>
+        </vf-menu>
+        <vf-menu id="menu-edit" label="Edit">
+          <vf-menu-item shortcut="⌘Z">Undo</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item shortcut="⌘X">Cut</vf-menu-item>
+          <vf-menu-item shortcut="⌘C">Copy</vf-menu-item>
+          <vf-menu-item shortcut="⌘V">Paste</vf-menu-item>
+        </vf-menu>
+        <vf-menu id="menu-view" label="View">
+          <vf-menu-item checked value="by-icon">by Icon</vf-menu-item>
+          <vf-menu-item value="by-name">by Name</vf-menu-item>
+        </vf-menu>
+        <vf-menu id="menu-special" label="Special">
+          <vf-menu-item value="restart">Restart</vf-menu-item>
+          <vf-menu-item value="shut-down">Shut Down</vf-menu-item>
+          <vf-menu-item value="erase-disk">Erase Disk…</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item value="show-all">Show All Windows</vf-menu-item>
+        </vf-menu>
+      </vf-menu-bar>
+
+      <!-- =================== "Format" dialog-style window =============== -->
+      <!-- Always-open movable-modal lookalike; demo.ts sets closable=false. -->
+      <vf-window id="win-format" heading="Format" movable>
+        <div class="format-columns">
+          <div class="format-group">
+            <span class="group-label" id="format-mode-label">Mode</span>
+            <vf-radio-group
+              value="hierarchical"
+              name="mode"
+              aria-labelledby="format-mode-label"
+            >
+              <vf-radio value="hierarchical"
+                >Hierarchical<span class="key">⌘H</span></vf-radio
+              >
+              <vf-radio value="by-level"
+                >By Level<span class="key">⌘L</span></vf-radio
+              >
+              <vf-radio value="source-profile" disabled
+                >Source Format Profile</vf-radio
+              >
+              <vf-radio value="dont-reorganize"
+                >Don’t Reorganize<span class="key">⌘R</span></vf-radio
+              >
+            </vf-radio-group>
+            <vf-checkbox disabled class="format-selection"
+              >Selection Only</vf-checkbox
+            >
+          </div>
+          <div class="format-group">
+            <span class="group-label">Options</span>
+            <div class="stack">
+              <vf-checkbox checked>Include Styles</vf-checkbox>
+              <vf-checkbox checked>Include Rulers</vf-checkbox>
+              <vf-checkbox checked>Preserve Line Breaks</vf-checkbox>
+            </div>
+          </div>
+        </div>
+        <div class="format-actions">
+          <vf-button>Cancel ⌘.</vf-button>
+          <vf-button variant="default">Format</vf-button>
+        </div>
+      </vf-window>
+
+      <!-- ================= "Controls" kitchen-sink window =============== -->
+      <vf-window id="win-controls" heading="Controls" movable resizable>
+        <div class="controls-grid">
+          <div class="stack">
+            <vf-fieldset legend="Text">
+              <div class="stack">
+                <div class="field-row">
+                  <span class="field-label">Name:</span>
+                  <vf-text-field
+                    name="name"
+                    value="Macintosh HD"
+                    placeholder="Untitled"
+                  ></vf-text-field>
+                </div>
+                <div class="field-row">
+                  <span class="field-label">Password:</span>
+                  <vf-text-field
+                    type="password"
+                    name="password"
+                    value="hunter2"
+                  ></vf-text-field>
+                </div>
+                <div class="field-row">
+                  <span class="field-label">Notes:</span>
+                  <vf-text-area
+                    rows="3"
+                    name="notes"
+                    value="The city in the middle of the water."
+                  ></vf-text-area>
+                </div>
+              </div>
+            </vf-fieldset>
+            <vf-fieldset legend="Progress">
+              <div class="stack">
+                <vf-progress-bar
+                  id="progress-demo"
+                  value="0"
+                  max="100"
+                ></vf-progress-bar>
+                <vf-progress-bar indeterminate></vf-progress-bar>
+              </div>
+            </vf-fieldset>
+            <vf-separator></vf-separator>
+            <div class="button-row">
+              <vf-button>Button</vf-button>
+              <vf-button variant="default">Default</vf-button>
+              <vf-button disabled>Disabled</vf-button>
+            </div>
+          </div>
+          <vf-separator vertical></vf-separator>
+          <div class="stack">
+            <vf-fieldset legend="Desk Accessories">
+              <vf-list multiple class="da-list" aria-label="Desk accessories">
+                <vf-list-item value="alarm-clock" selected
+                  >Alarm Clock</vf-list-item
+                >
+                <vf-list-item value="battery" disabled>Battery</vf-list-item>
+                <vf-list-item value="calculator" selected
+                  >Calculator</vf-list-item
+                >
+                <vf-list-item value="chooser">Chooser</vf-list-item>
+                <vf-list-item value="control-panels"
+                  >Control Panels</vf-list-item
+                >
+                <vf-list-item value="key-caps">Key Caps</vf-list-item>
+                <vf-list-item value="note-pad">Note Pad</vf-list-item>
+                <vf-list-item value="puzzle">Puzzle</vf-list-item>
+                <vf-list-item value="scrapbook">Scrapbook</vf-list-item>
+              </vf-list>
+            </vf-fieldset>
+            <vf-fieldset legend="Scroll Area">
+              <vf-scroll-area class="scroll-demo">
+                <p>
+                  There is a special kind of quiet in a freshly formatted hard
+                  disk: 58,616K of nothing at all, waiting for a System Folder.
+                </p>
+                <p>
+                  Drag the thumb, press the arrows, or click in the dithered
+                  track — the scrollbar is the whole show here. In 1991 this
+                  was the state of the art, and honestly it still holds up.
+                </p>
+                <p>
+                  Remember to rebuild your desktop file once in a while, keep a
+                  spare startup floppy in the drawer, and never, ever unplug a
+                  SCSI chain while the machine is on.
+                </p>
+                <p>
+                  If you can read this line without scrolling, your window has
+                  been zoomed generously. Well done.
+                </p>
+              </vf-scroll-area>
+            </vf-fieldset>
+            <vf-fieldset legend="Disabled">
+              <div class="stack">
+                <vf-checkbox disabled checked>Checked but dimmed</vf-checkbox>
+                <vf-text-field
+                  disabled
+                  value="Can’t touch this"
+                ></vf-text-field>
+                <vf-select disabled value="Geneva">
+                  <vf-option>Geneva</vf-option>
+                  <vf-option>Chicago</vf-option>
+                  <vf-option>Monaco</vf-option>
+                </vf-select>
+              </div>
+            </vf-fieldset>
+          </div>
+        </div>
+      </vf-window>
+
+      <!-- ================ "DragThing 2.9 Installer" window ============== -->
+      <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable>
+        <vf-scroll-area class="installer-well">
+          <p>Welcome to the installer for DragThing 2.9!</p>
+          <p>
+            DragThing is the original dock: it tidies the icons on your desktop
+            into tabbed, floating palettes.
+          </p>
+          <ul>
+            <li>Requires System 7.0 or later.</li>
+            <li>Native on both 68K and Power Macintosh.</li>
+            <li>Registration is US$25 — see the enclosed Read Me.</li>
+          </ul>
+          <p>
+            Click Install to place DragThing, its documentation, and some
+            sample docks on your hard disk.
+          </p>
+        </vf-scroll-area>
+        <div class="installer-caption">
+          <span>Disk space available: 58,616K</span>
+          <span>Approximate disk space needed: 4,584K</span>
+        </div>
+        <div class="installer-bottom">
+          <vf-fieldset legend="Install Location" class="installer-location">
+            <p class="installer-folder">
+              Items will be installed in the folder “DragThing 2.9” on the disk
+            </p>
+            <vf-select name="disk" value="Macintosh HD">
+              <vf-option>Macintosh HD</vf-option>
+              <vf-option>External HD</vf-option>
+              <vf-option disabled>Locked Floppy</vf-option>
+              <vf-option>Select Folder…</vf-option>
+            </vf-select>
+          </vf-fieldset>
+          <div class="installer-actions">
+            <vf-button id="btn-quit">Quit</vf-button>
+            <vf-button id="btn-install" variant="default">Install</vf-button>
+          </div>
+        </div>
+      </vf-window>
+
+      <!-- ===================== About dialog (modal) ===================== -->
+      <vf-dialog id="dlg-about" heading="About This Macintosh">
+        <div class="about-body">
+          <p>Vintage Frames — a System 7 UI kit built with Lit 3.</p>
+          <p>
+            System Software 7.5.5 · Total Memory: 8,192K · Largest Unused
+            Block: 7,168K
+          </p>
+          <div class="about-actions">
+            <vf-button id="btn-about-ok" variant="default">OK</vf-button>
+          </div>
+        </div>
+      </vf-dialog>
+
+      <!-- ===================== Erase Disk alert (modal) ================= -->
+      <vf-alert id="alert-erase" variant="caution">
+        <span class="alert-message"
+          >Completely erase the disk named “Macintosh HD”?</span
+        >
+        <vf-button id="btn-erase-cancel" slot="buttons">Cancel</vf-button>
+        <vf-button id="btn-erase-confirm" slot="buttons" variant="default"
+          >Erase</vf-button
+        >
+      </vf-alert>
+    </vf-desktop>
+  </body>
+</html>

@@ -1,0 +1,77 @@
+/*
+ * Vintage Frames — optional global stylesheet.
+ *
+ * Components work with ZERO global CSS (every token has an inlined fallback).
+ * This file provides sensible page defaults for a full System 7 experience
+ * and documents the tokens you can override.
+ */
+
+:root {
+  /*
+   * Design tokens — uncomment and tweak to retheme. Defaults shown.
+   *
+   * --vf-font-family: 'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva',
+   *   'Helvetica Neue', Helvetica, Arial, sans-serif;
+   * --vf-font-size: 15px;
+   * --vf-font-size-small: 12px;
+   * --vf-font-weight: 700;
+   * --vf-black: #000000;
+   * --vf-white: #ffffff;
+   * --vf-chrome: #eeeeee;
+   * --vf-bevel-light: #ffffff;
+   * --vf-bevel-dark: #999999;
+   * --vf-disabled: #808080;
+   * --vf-desktop: #7d7d7d;
+   * --vf-shadow-offset: 2px;
+   * --vf-radius: 6px;
+   * --vf-control-height: 22px;
+   * --vf-titlebar-height: 22px;
+   * --vf-menubar-height: 24px;
+   * --vf-focus-outline: 1px dotted #000;
+   * --vf-progress-fill: #555555;
+   * --vf-progress-track: #ccccff;
+   * --vf-scrollbar-thumb: #ccccff;
+   * --vf-highlight: #000000;
+   * --vf-highlight-text: #ffffff;
+   */
+}
+
+/*
+ * For true bitmap-crisp type, drop a Chicago-style webfont (e.g. the
+ * public-domain ChicagoFLF) next to your CSS and uncomment:
+ *
+ * @font-face {
+ *   font-family: 'ChicagoFLF';
+ *   src: url('./ChicagoFLF.woff2') format('woff2');
+ *   font-display: block;
+ * }
+ */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--vf-desktop, #7d7d7d);
+  font-family: var(
+    --vf-font-family,
+    'Chicago',
+    'ChicagoFLF',
+    'Charcoal',
+    'Geneva',
+    'Helvetica Neue',
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  font-size: var(--vf-font-size, 15px);
+  font-weight: var(--vf-font-weight, 700);
+  color: var(--vf-black, #000);
+}
+
+::selection {
+  background: var(--vf-highlight, #000);
+  color: var(--vf-highlight-text, #fff);
+}

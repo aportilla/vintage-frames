@@ -30,8 +30,9 @@ The System 7 look, distilled:
   interrupt the stripes.
 - **Chicago-style type** — bold, dark, tight. One size for almost everything.
 - **1-bit monochrome palette** — black and white only, plus mid gray (`#808080`)
-  for dimmed/disabled and as the base tone under the 50% dither patterns
-  (desktop, scroll troughs). Surfaces are flat solid white — no bevels.
+  for dimmed/disabled and as the base tone under the desktop's 50% dither.
+  Scroll troughs use a looser 25% black-on-white dot dither. Surfaces are flat
+  solid white — no bevels.
 - **No gradients, no border-radius except buttons, no CSS transitions** —
   interactions are instant. The single sanctioned animation is the classic
   menu-item "blink" on selection and the indeterminate progress stripes.
@@ -425,8 +426,9 @@ Classic list box.
   props `value`, `selected` (reflect), `disabled`; height 20px,
   `padding: 0 6px`; selected = inverted row (full width).
 - **Visual (list):** white bg, `1px solid black`, `overflow-y: auto` with the
-  scrollbar styling from vf-scroll-area's recipe (duplicate the CSS — small),
-  default `max-height: 200px` overridable via `--vf-list-max-height`.
+  shared System 7 scrollbar recipe (`vfScrollbars` from base.ts — add the
+  `vf-scroll` class to the scrolling element), default `max-height: 200px`
+  overridable via `--vf-list-max-height`.
 - **Behavior:** `role="listbox"` (+`aria-multiselectable`), items
   `role="option"`. Click selects (Shift/Cmd extend when `multiple`). Roving
   tabindex, Arrow keys move selection, Space toggles in multiple mode.
@@ -436,17 +438,25 @@ Classic list box.
 A container whose scrollbars look like System 7.
 - **Visual:** `display: block`, white bg, `1px solid black`, inner viewport
   `overflow: auto`, `padding: 8px`. Consumer sets width/height on host.
-  Scrollbars (WebKit pseudo-elements; add `scrollbar-width/scrollbar-color`
-  fallback for Firefox):
-  - width/height 16px; trough: black/white 1-bit 50% dither
-    (`repeating-conic-gradient(var(--vf-black,#000) 0% 25%, var(--vf-white,#fff) 0% 50%)` at `2px 2px`) with
-    `border-left: 1px solid black` (vertical) etc.;
+  Scrollbars come from the shared `vfScrollbars` recipe in base.ts (add the
+  `vf-scroll` class to the scrolling element; WebKit pseudo-elements, with a
+  `scrollbar-width/scrollbar-color` fallback for Firefox):
+  - width/height 16px; trough: looser 25%-density dot dither, a white base with
+    black 1px dots traced from the UI kit's "Scroll bg" sprite (a 4×2 SVG tile
+    with dots at (0,0) and (2,1) — dotted vertical lines two pixels apart, each
+    column phase-shifted by a row); an interior rail (`border-left`/`border-top`)
+    divides the content from the scrollbar channel;
   - thumb (elevator): `var(--vf-scrollbar-thumb, #ffffff)` bg (white), `1px solid black`;
   - arrow buttons: 16×16 white boxes, 1px black border, the authentic System 7
     scroll-arrow glyph (triangle head + rectangular stem, from the sprite sheet)
     via inline SVG data-URI backgrounds (`::-webkit-scrollbar-button` with
     `:vertical:decrement` etc.) — hollow outline at rest, filled solid black on
-    `:active` (pressed).
+    `:active` (pressed);
+  - **nested-border rule:** the scrollbar assumes it sits inside a 1px-bordered
+    host. Every element (arrow boxes, thumb) omits its border on the edge that
+    coincides with that host border so the two never stack into a 2px line; when
+    both scrollbars show, the corner supplies the interior dividers the buttons
+    drop.
 - **Slots:** default. **Parts:** `viewport`.
 
 #### `vf-fieldset` (`VfFieldset`, vf-fieldset.ts)

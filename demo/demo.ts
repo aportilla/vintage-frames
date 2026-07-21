@@ -38,6 +38,7 @@ function menuDetail(event: Event): MenuSelectDetail {
 const desktop = $<VfDesktop>('#desktop')
 const installerWindow = $<VfWindow>('#win-installer')
 const formatWindow = $<VfWindow>('#win-format')
+const newDocWindow = $<VfWindow>('#win-newdoc')
 const aboutDialog = $<VfDialog>('#dlg-about')
 const eraseAlert = $<VfAlert>('#alert-erase')
 
@@ -49,6 +50,9 @@ const eraseAlert = $<VfAlert>('#alert-erase')
 // (`closable` defaults to true and, being a reflected boolean, can only be
 // turned off from script.)
 formatWindow.closable = false
+
+// The BBEdit "New HTML Document" window is the same movable-modal lookalike.
+newDocWindow.closable = false
 
 // A window's close box fires `vf-close` on the window itself; hide it.
 // (Dialog/alert `vf-close` events have a non-window target and pass through.)

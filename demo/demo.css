@@ -166,6 +166,85 @@ vf-desktop {
   margin: 0 0 10px;
 }
 
+/* ----------------------- New HTML Document dialog ---------------------- */
+
+#win-newdoc {
+  position: absolute;
+  left: 150px;
+  top: 300px;
+  width: 480px;
+}
+
+.newdoc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The faint dotted rules that split the dialog into sections — the same
+   dimmed-dotted recipe vf-menu uses for its separators. */
+.newdoc-rule {
+  --vf-separator-style: dotted;
+  --vf-separator-color: var(--vf-disabled, #808080);
+}
+
+.newdoc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Insert DOCTYPE: the popup grows to fill the rest of the row. */
+.newdoc-doctype-select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* HTML / Head / Body sit in a loosely-spaced row. */
+.newdoc-tags {
+  gap: 28px;
+}
+
+/* Title / Base / Meta / Link — an aligned label column beside growing fields. */
+.newdoc-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.newdoc-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.newdoc-label {
+  flex: none;
+  min-width: 48px;
+}
+.newdoc-field vf-text-field {
+  flex: 1;
+  min-width: 0;
+}
+/* The Title field yields room for the "Is Index" box to its right. */
+.newdoc-isindex {
+  flex: none;
+  margin-left: 12px;
+}
+
+/* Template popup keeps its intrinsic width; the checkbox stands off to the right. */
+.newdoc-template-select {
+  flex: none;
+}
+.newdoc-createwin {
+  margin-left: 24px;
+}
+
+.newdoc-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
+
 /* ------------------------- About dialog & alert ------------------------ */
 
 .about-body {

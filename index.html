@@ -264,6 +264,81 @@
         </div>
       </vf-window>
 
+      <!-- ============= "New HTML Document" modal dialog (BBEdit) ========= -->
+      <!-- Movable modal lookalike; demo.ts sets closable=false (no close box). -->
+      <vf-window id="win-newdoc" heading="New HTML Document" movable>
+        <div class="newdoc">
+          <div class="newdoc-row">
+            <vf-checkbox checked>Insert DOCTYPE</vf-checkbox>
+            <vf-select
+              class="newdoc-doctype-select"
+              value="HTML 3.2"
+              label="DOCTYPE"
+            >
+              <vf-option>HTML 2.0</vf-option>
+              <vf-option>HTML 3.2</vf-option>
+              <vf-option>HTML 4.0</vf-option>
+              <vf-option>HTML 4.0 Transitional</vf-option>
+            </vf-select>
+          </div>
+
+          <vf-separator class="newdoc-rule"></vf-separator>
+
+          <div class="newdoc-row newdoc-tags">
+            <vf-checkbox checked>HTML</vf-checkbox>
+            <vf-checkbox checked>Head</vf-checkbox>
+            <vf-checkbox checked>Body</vf-checkbox>
+          </div>
+          <div class="newdoc-row">
+            <vf-checkbox checked>Give BBEdit Credit</vf-checkbox>
+          </div>
+
+          <vf-separator class="newdoc-rule"></vf-separator>
+
+          <div class="newdoc-fields">
+            <div class="newdoc-field">
+              <span class="newdoc-label">Title:</span>
+              <vf-text-field value="Untitled" label="Title"></vf-text-field>
+              <vf-checkbox class="newdoc-isindex">Is Index</vf-checkbox>
+            </div>
+            <div class="newdoc-field">
+              <span class="newdoc-label">Base:</span>
+              <vf-text-field label="Base"></vf-text-field>
+            </div>
+            <div class="newdoc-field">
+              <span class="newdoc-label">Meta:</span>
+              <vf-text-field label="Meta"></vf-text-field>
+            </div>
+            <div class="newdoc-field">
+              <span class="newdoc-label">Link:</span>
+              <vf-text-field label="Link"></vf-text-field>
+            </div>
+          </div>
+
+          <vf-separator class="newdoc-rule"></vf-separator>
+
+          <div class="newdoc-row">
+            <span class="newdoc-label">Template:</span>
+            <vf-select
+              class="newdoc-template-select"
+              value="Default"
+              label="Template"
+            >
+              <vf-option>Default</vf-option>
+              <vf-option>(None)</vf-option>
+            </vf-select>
+            <vf-checkbox checked class="newdoc-createwin"
+              >Create New Window</vf-checkbox
+            >
+          </div>
+
+          <div class="newdoc-actions">
+            <vf-button>Cancel</vf-button>
+            <vf-button variant="default">OK</vf-button>
+          </div>
+        </div>
+      </vf-window>
+
       <!-- ===================== About dialog (modal) ===================== -->
       <vf-dialog id="dlg-about" heading="About This Macintosh">
         <div class="about-body">

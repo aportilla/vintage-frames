@@ -353,6 +353,31 @@ The classic popup menu control ("Macintosh HD ▼").
   when indeterminate).
 - **Parts:** `track`, `fill`.
 
+#### `vf-slider` (`VfSlider`, vf-slider.ts)
+- **Attributes/props:** `value: number`, `min: number` (default 0), `max: number`
+  (default 100), `step: number` (default 1), `disabled: boolean`, `name: string`,
+  `label: string`.
+- **Visual:** not a historical System 7 control — a 1-bit reverse-adaptation of
+  the later Mac OS slider. A 4px-tall rounded capsule rail (2px tapered caps)
+  fills **solid black** from the left up to the shield-shaped drag handle (the
+  11×12 `SLIDER_THUMB` sprite, three grip strokes, pointed bottom) and runs
+  **hollow** (1px top/bottom edge) after it — the classic filled/unfilled track.
+  The rail is a whole-pixel `<svg>` regenerated on resize (so it stays crisp at
+  any width); the thumb snaps to integer pixels. Disabled dims the whole control
+  to `var(--vf-disabled, #808080)` (the fill *is* the value — there is no label
+  to dim instead). No hover/active state on the handle (static sprite).
+- **Behavior:** form-associated; `role="slider"` with
+  `aria-valuemin/max/now/valuetext` + `aria-orientation="horizontal"`. Click or
+  drag the track to set the value (the thumb's travel is inset by half its width
+  so its edges stay flush within the rail, never overhanging). Focusable
+  (self-managed `tabindex`, dotted ring on the thumb): Arrow keys step by `step`,
+  PageUp/PageDown by `max(step, range/10)`, Home/End jump to min/max.
+  `formResetCallback` restores the initial value.
+- **Events:** `vf-input` detail `{ value: number }` on every drag move / key
+  change; `vf-change` detail `{ value: number }` on commit (pointer release or
+  key change).
+- **Parts:** `track`, `rail`, `thumb`.
+
 ### Group D — menus, lists, containers
 
 #### `vf-menu-bar` (`VfMenuBar`, vf-menu-bar.ts)

@@ -59,6 +59,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-number-field` | Numeric field with the classic "little arrows" stepper |
 | `vf-select`, `vf-option` | Popup menu control ("Macintosh HD ▼") |
 | `vf-progress-bar` | Determinate fill or indeterminate barber stripes |
+| `vf-slider` | Horizontal 1-bit slider: solid-black fill up to a shield-shaped drag handle |
 | `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts and selection blink |
 | `vf-list`, `vf-list-item` | List box with inverted selection |
 | `vf-scroll-area` | Container with System 7 scrollbars |

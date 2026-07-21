@@ -25,6 +25,7 @@ export { VfNumberField } from './components/vf-number-field.js'
 export { VfSelect } from './components/vf-select.js'
 export { VfOption } from './components/vf-option.js'
 export { VfProgressBar } from './components/vf-progress-bar.js'
+export { VfSlider } from './components/vf-slider.js'
 
 // Menus, lists, containers
 export { VfMenuBar } from './components/vf-menu-bar.js'

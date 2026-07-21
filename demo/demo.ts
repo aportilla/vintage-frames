@@ -154,3 +154,12 @@ window.setInterval(() => {
   progressValue = progressValue >= 112 ? 0 : progressValue + 2
   progress.value = Math.min(progressValue, 100)
 }, 80)
+
+/* ------------------------------------------------------------------ *
+ * Slider: mirror the live value into a readout as it is dragged.
+ * ------------------------------------------------------------------ */
+
+const sliderReadout = $<HTMLElement>('#slider-readout')
+$<HTMLElement>('#slider-demo').addEventListener('vf-input', (event) => {
+  sliderReadout.textContent = String((event as CustomEvent<{ value: number }>).detail.value)
+})

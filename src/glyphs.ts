@@ -87,6 +87,31 @@ export const STEPPER: Glyph = {
 }
 
 /**
+ * The horizontal slider thumb — a shield-shaped handle with three vertical grip
+ * lines and a pointed bottom (`Slider Handle.png`), used by `vf-slider`. Traced
+ * pixel-exact from the sprite: an 11×12 hollow 1-bit frame (flat top, tapering
+ * to a point) enclosing the three grip strokes. The grip lines sit at columns
+ * 3/5/7 so the middle stroke (x5) marks the thumb's value point.
+ */
+export const SLIDER_THUMB: Glyph = {
+  w: 11,
+  h: 12,
+  d: 'M1 0h9v1h-9zM0 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM3 3h1v1h-1zM5 3h1v1h-1zM7 3h1v1h-1zM10 3h1v1h-1zM0 4h1v1h-1zM3 4h1v1h-1zM5 4h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM0 5h1v1h-1zM3 5h1v1h-1zM5 5h1v1h-1zM7 5h1v1h-1zM10 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM5 6h1v1h-1zM7 6h1v1h-1zM10 6h1v1h-1zM0 7h1v1h-1zM3 7h1v1h-1zM5 7h1v1h-1zM7 7h1v1h-1zM10 7h1v1h-1zM1 8h1v1h-1zM9 8h1v1h-1zM2 9h1v1h-1zM8 9h1v1h-1zM3 10h1v1h-1zM7 10h1v1h-1zM4 11h3v1h-3z',
+}
+
+/**
+ * Solid white face for the slider thumb — the filled shield silhouette drawn
+ * *behind* {@link SLIDER_THUMB} so the handle is opaque (the rail passes behind
+ * it, not through it). Same 11×12 grid, flood-filled to the outline's extent on
+ * each row. Analogous to {@link RADIO_FACE} under the radio ring.
+ */
+export const SLIDER_THUMB_FACE: Glyph = {
+  w: 11,
+  h: 12,
+  d: 'M1 0h9v1h-9zM0 1h11v1h-11zM0 2h11v1h-11zM0 3h11v1h-11zM0 4h11v1h-11zM0 5h11v1h-11zM0 6h11v1h-11zM0 7h11v1h-11zM1 8h9v1h-9zM2 9h7v1h-7zM3 10h5v1h-5zM4 11h3v1h-3z',
+}
+
+/**
  * Solid up-arrow fill for the pressed state — overlaid on {@link STEPPER} while
  * the up arrow is held. Synthesized from the rest sprite (the only reference we
  * have) by filling the hollow arrow solid, matching the kit's scroll-arrow

@@ -8,6 +8,13 @@ design and public APIs. Every component MUST follow it.
 > repo root contains authoritative pixel references (`Windows.png`,
 > `Controls.png`, `Menus.png`, `Icons & symbols.png`, example screens). When
 > this spec is ambiguous, the reference images win.
+>
+> **Glyph sprites:** `Classic Macintosh UI Kit Reference/ui-sprites/` holds the
+> individual 1-bit control glyphs (checkbox ✕, radio ring/dot, menu ✓, popup ▼,
+> scroll arrows). Each is reconstructed pixel-for-pixel as an inline-SVG fill
+> path in `src/glyphs.ts` (shared, `currentColor`-themeable, zero raster assets)
+> and consumed by the components below — the authoritative source for these
+> marks.
 
 ## 1. Design principles
 
@@ -225,11 +232,12 @@ Classic fixed modal alert: double black frame, no title bar.
 #### `vf-checkbox` (`VfCheckbox`, vf-checkbox.ts)
 - **Attributes/props:** `checked`, `disabled`, `name`, `value` (default `'on'`).
 - **Visual:** 13×13 white box, `1px solid black`, no radius; checked = classic
-  ✕: two crossing diagonal lines corner-to-corner (inline SVG stroke black
-  1.5px). Label (slot) sits right with 6px gap, bold. Disabled: only the label
-  dims to `var(--vf-disabled, #808080)`; the box border and ✕ glyph stay black.
-  Pressed (`:active` on
-  box): border thickens to 2px (classic press feedback).
+  ✕: the pixel-exact corner-to-corner cross from the sprite sheet, rendered as
+  the `CHECKBOX_X` inline-SVG fill path (`shape-rendering: crispEdges`,
+  `fill: currentColor`) — no anti-aliased strokes. Label (slot) sits right with
+  6px gap, bold. Disabled: only the label dims to `var(--vf-disabled, #808080)`;
+  the box border and ✕ glyph stay black. Pressed (`:active` on box): border
+  thickens to 2px (classic press feedback).
 - **Behavior:** form-associated; toggles on click and Space; `role="checkbox"`,
   `aria-checked`; focusable (tabindex 0 on host or inner wrapper w/ focus ring
   around the box only).
@@ -238,9 +246,11 @@ Classic fixed modal alert: double black frame, no title bar.
 
 #### `vf-radio` (`VfRadio`, vf-radio.ts)
 - **Attributes/props:** `checked`, `disabled`, `value: string`.
-- **Visual:** 13×13 circle (`border-radius: 50%`), white, 1px black border;
-  checked = centered 5px black dot (own `border-radius: 50%` div). Label right,
-  6px gap. Disabled dims like checkbox.
+- **Visual:** 13×13 pixel circle drawn as inline SVG — the hand-tuned 1-bit
+  `RADIO_RING` outline over a white `RADIO_FACE` disc (not `border-radius`, which
+  anti-aliases); checked = the centered `RADIO_DOT` pixel disc. Pressed
+  (`:active`): the ring swaps to `RADIO_RING_PRESSED` (2px-thick). Label right,
+  6px gap. Disabled dims like checkbox (label only; ring + dot stay black).
 - **Behavior:** `role="radio"`, `aria-checked`. Click → asks parent group to
   select it (dispatch internal event or parent listens). NOT itself
   form-associated — the group is. Focus managed by group (roving tabindex).
@@ -279,6 +289,30 @@ Same as vf-text-field but wrapping `<textarea>`; extra prop `rows: number`
 (default 4). No resize grip (`resize: none`) — System 7 fields don't resize.
 Parts: `textarea`. Events: `vf-input`, `vf-change`.
 
+#### `vf-number-field` (`VfNumberField`, vf-number-field.ts)
+A numeric text field paired with the classic "little arrows" stepper.
+- **Attributes/props:** `value: string`, `min?: number`, `max?: number`,
+  `step: number` (default 1; also sets the value's decimal precision),
+  `placeholder`, `disabled`, `readonly`, `name`, `label`.
+- **Visual:** a form-associated `<input>` (white well, 1px black border, focus
+  thickens the border like `vf-text-field`, value right-aligned) with a 3px gap
+  to the little-arrows stepper. The stepper is the `STEPPER` glyph (rounded
+  1-bit frame + hollow up/down arrows from `Little arrows.png`), rendered inline
+  at its **native 15×25** so it stays pixel-crisp — the field takes the
+  stepper's height. Holding an arrow overlays its solid fill (`STEPPER_UP_FILL`
+  / `STEPPER_DOWN_FILL`, synthesized to match the kit's hollow→filled press
+  convention). Disabled: the value dims to gray; the box and stepper stay black.
+- **Behavior:** `role="spinbutton"` on the input with `aria-valuenow/min/max`.
+  Clicking an arrow steps by `step`, clamped to `min`/`max`, rounded to `step`'s
+  precision; press-and-hold autorepeats (300ms delay, then ~60ms). Keyboard:
+  ArrowUp/ArrowDown step, Home/End jump to min/max. Typing is free-form; the
+  value normalizes (clamp + round) on commit (native `change`). Form-associated
+  (submits `value`; `formResetCallback` restores the default). `readonly` blocks
+  stepping and editing.
+- **Parts:** `input`, `stepper`.
+- **Events:** `vf-input` detail `{ value, valueAsNumber }` on every keystroke;
+  `vf-change` detail `{ value, valueAsNumber }` on commit or step.
+
 #### `vf-select` (`VfSelect`, vf-option.ts children) (vf-select.ts)
 The classic popup menu control ("Macintosh HD ▼").
 - **Attributes/props:** `value: string`, `disabled`, `name`.
@@ -288,8 +322,9 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Visual (closed control):** height `var(--vf-control-height, 22px)`, white
   bg, `1px solid black`, NO radius, `box-shadow: 1px 1px 0 0 var(--vf-black, #000)`
   (the small hard shadow visible in the screenshot), `padding: 0 8px`, bold
-  label left, black ▼ triangle (inline SVG or CSS border triangle) right with
-  8px gap, min-width 120px.
+  label left, the black `CARET_DOWN` ▼ pixel glyph (inline SVG) right with
+  8px gap, min-width 120px. The ▼ stays black even when the control is disabled
+  (only the label dims).
 - **Visual (open):** panel uses `.vf-panel` recipe; items height 22px,
   `padding: 0 20px 0 22px`; the currently-selected item shows a ✓ checkmark in
   the left 22px gutter; hovered/active item inverts (black bg, white text);
@@ -382,9 +417,11 @@ A container whose scrollbars look like System 7.
     (`repeating-conic-gradient(var(--vf-black,#000) 0% 25%, var(--vf-white,#fff) 0% 50%)` at `2px 2px`) with
     `border-left: 1px solid black` (vertical) etc.;
   - thumb (elevator): `var(--vf-scrollbar-thumb, #ffffff)` bg (white), `1px solid black`;
-  - arrow buttons: 16×16 white boxes, 1px black border, black triangle glyphs
+  - arrow buttons: 16×16 white boxes, 1px black border, the authentic System 7
+    scroll-arrow glyph (triangle head + rectangular stem, from the sprite sheet)
     via inline SVG data-URI backgrounds (`::-webkit-scrollbar-button` with
-    `:vertical:decrement` etc.).
+    `:vertical:decrement` etc.) — hollow outline at rest, filled solid black on
+    `:active` (pressed).
 - **Slots:** default. **Parts:** `viewport`.
 
 #### `vf-fieldset` (`VfFieldset`, vf-fieldset.ts)

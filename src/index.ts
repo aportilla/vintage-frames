@@ -21,6 +21,7 @@ export { VfRadioGroup } from './components/vf-radio-group.js'
 // Text & value inputs
 export { VfTextField } from './components/vf-text-field.js'
 export { VfTextArea } from './components/vf-text-area.js'
+export { VfNumberField } from './components/vf-number-field.js'
 export { VfSelect } from './components/vf-select.js'
 export { VfOption } from './components/vf-option.js'
 export { VfProgressBar } from './components/vf-progress-bar.js'

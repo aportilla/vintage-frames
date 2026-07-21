@@ -2,10 +2,18 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase } from '../styles/base.js'
+import {
+  RADIO_DOT,
+  RADIO_FACE,
+  RADIO_RING,
+  RADIO_RING_PRESSED,
+} from '../glyphs.js'
 
 /**
- * A single System 7 radio button: a 13×13 white circle with a 1px black
- * border and a centered 5px black dot when selected.
+ * A single System 7 radio button: a 13×13 white circle with the pixel-exact
+ * 1-bit ring and centered dot traced from the Classic Macintosh UI Kit sprite
+ * (replacing the anti-aliased `border-radius` rendering). The ring thickens
+ * while pressed, exactly like the original control.
  *
  * Radios are meant to live inside a `vf-radio-group`, which owns selection
  * state, the form value and the roving tabindex. A `vf-radio` is NOT itself
@@ -40,30 +48,42 @@ export class VfRadio extends LitElement {
       .circle {
         position: relative;
         flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 13px;
         height: 13px;
-        background: var(--vf-white, #fff);
-        border: 1px solid var(--vf-black, #000);
-        border-radius: 50%;
         color: var(--vf-black, #000);
       }
-      /* Pressed: border thickens (classic press feedback). */
-      :host(:active) .circle:not(.dim) {
-        box-shadow: inset 0 0 0 1px var(--vf-black, #000);
+      /* Native 12×12 (1:1, crisp) centered in the 13×13 focus box. */
+      .circle svg {
+        display: block;
+        width: 12px;
+        height: 12px;
       }
+      /* White control face, black ring + dot — the ring path covers the
+         face's outer edge so no anti-aliasing shows. */
+      .face {
+        fill: var(--vf-white, #fff);
+      }
+      .ring,
+      .ring-pressed,
+      .dot {
+        fill: currentColor;
+      }
+      .ring-pressed,
       .dot {
         display: none;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 5px;
-        height: 5px;
-        margin: -2.5px 0 0 -2.5px;
-        border-radius: 50%;
-        background: currentColor;
       }
       :host([checked]) .dot {
-        display: block;
+        display: inline;
+      }
+      /* Pressed: swap to the 2px-thick ring (classic press feedback). */
+      :host(:active) .circle:not(.dim) .ring {
+        display: none;
+      }
+      :host(:active) .circle:not(.dim) .ring-pressed {
+        display: inline;
       }
       /* Disabled: the circle and dot stay solid black — System 7 dims the
          label, not the control. (.dim still suppresses the press feedback.) */
@@ -106,7 +126,12 @@ export class VfRadio extends LitElement {
         part="circle"
         aria-hidden="true"
       >
-        <span class="dot"></span>
+        <svg viewBox="0 0 12 12" shape-rendering="crispEdges">
+          <path class="face" d=${RADIO_FACE.d}></path>
+          <path class="ring" d=${RADIO_RING.d}></path>
+          <path class="ring-pressed" d=${RADIO_RING_PRESSED.d}></path>
+          <path class="dot" d=${RADIO_DOT.d}></path>
+        </svg>
       </span>
       <span class=${classMap({ label: true, dim })} part="label">
         <slot></slot>

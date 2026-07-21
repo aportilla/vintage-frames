@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js'
 import { vfBase, vfFocus, vfPanel } from '../styles/base.js'
+import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 
 /**
@@ -69,11 +70,15 @@ export class VfSelect extends LitElement {
       }
       .arrow {
         flex: none;
-        width: 0;
-        height: 0;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 6px solid var(--vf-black, #000);
+        display: flex;
+        align-items: center;
+        /* Stays solid black even when disabled — only the label dims. */
+        color: var(--vf-black, #000);
+      }
+      .arrow svg {
+        display: block;
+        width: 11px;
+        height: 6px;
       }
       /* Disabled: only the value label dims; the box, hard shadow and ▼ arrow
          stay solid black (System 7 dims the label, not the control). */
@@ -488,7 +493,9 @@ export class VfSelect extends LitElement {
         tabindex=${disabled ? '-1' : '0'}
       >
         <span class="label" part="label">${selectedLabel}</span>
-        <span class="arrow" part="arrow" aria-hidden="true"></span>
+        <span class="arrow" part="arrow" aria-hidden="true"
+          >${glyphSvg(CARET_DOWN, 'caret')}</span
+        >
       </div>
       <div
         id="listbox"

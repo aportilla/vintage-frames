@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
+import { CHECKMARK, glyphSvg } from '../glyphs.js'
 
 /**
  * `<vf-option>` — a single choice inside a `<vf-select>` popup menu.
@@ -46,9 +47,20 @@ export class VfOption extends LitElement {
       .check {
         position: absolute;
         left: 0;
+        top: 0;
         width: 22px;
-        text-align: center;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         visibility: hidden;
+        color: inherit;
+      }
+      /* Native 9×9 (1:1, crisp). */
+      .check svg {
+        display: block;
+        width: 9px;
+        height: 9px;
       }
       :host([selected]) .check {
         visibility: visible;
@@ -97,7 +109,9 @@ export class VfOption extends LitElement {
 
   protected override render() {
     return html`
-      <span class="check" part="check" aria-hidden="true">✓</span>
+      <span class="check" part="check" aria-hidden="true"
+        >${glyphSvg(CHECKMARK, 'checkmark')}</span
+      >
       <slot></slot>
     `
   }

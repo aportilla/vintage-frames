@@ -2,11 +2,13 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase } from '../styles/base.js'
+import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
 
 /**
  * The classic System 7 checkbox: a 13×13 white square with a 1px black
- * border whose checked state is the corner-to-corner ✕ glyph. The border
- * "thickens" while pressed, exactly like the original control.
+ * border whose checked state is the corner-to-corner ✕ glyph — the pixel-exact
+ * cross traced from the Classic Macintosh UI Kit sprite. The border "thickens"
+ * while pressed, exactly like the original control.
  *
  * Form-associated: submits `value` under `name` when checked (like a native
  * checkbox) and restores its initial checked state on form reset. Toggles on
@@ -42,6 +44,9 @@ export class VfCheckbox extends LitElement {
       .box {
         position: relative;
         flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 13px;
         height: 13px;
         background: var(--vf-white, #fff);
@@ -52,16 +57,14 @@ export class VfCheckbox extends LitElement {
       :host(:active) .box:not(.dim) {
         box-shadow: inset 0 0 0 1px var(--vf-black, #000);
       }
+      /* Native 12×12 (1:1, crisp) — centered in the 13×13 box; the glyph's own
+         1px transparent margin lets it overhang onto the border harmlessly. */
       .check {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
+        flex: none;
+        width: 12px;
+        height: 12px;
         display: none;
-      }
-      .check line {
-        stroke: currentColor;
-        stroke-width: 1.5;
+        color: inherit;
       }
       :host([checked]) .check {
         display: block;
@@ -122,10 +125,7 @@ export class VfCheckbox extends LitElement {
     const dim = this.isDisabled
     return html`
       <span class=${classMap({ box: true, dim })} part="box" aria-hidden="true">
-        <svg class="check" viewBox="0 0 11 11">
-          <line x1="0" y1="0" x2="11" y2="11"></line>
-          <line x1="11" y1="0" x2="0" y2="11"></line>
-        </svg>
+        ${glyphSvg(CHECKBOX_X, 'check')}
       </span>
       <span class=${classMap({ label: true, dim })} part="label">
         <slot></slot>

@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase } from '../styles/base.js'
+import { CHECKMARK, glyphSvg } from '../glyphs.js'
 
 /**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
@@ -38,9 +39,18 @@ export class VfMenuItem extends LitElement {
       }
       .check {
         position: absolute;
-        left: 5px;
+        left: 6px;
         top: 0;
-        line-height: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        color: inherit;
+      }
+      /* Native 9×9 (1:1, crisp). */
+      .check svg {
+        display: block;
+        width: 9px;
+        height: 9px;
       }
       .label {
         flex: 1;
@@ -132,7 +142,9 @@ export class VfMenuItem extends LitElement {
         @click=${this.#onClick}
       >
         ${this.checked
-          ? html`<span class="check" part="check" aria-hidden="true">✓</span>`
+          ? html`<span class="check" part="check" aria-hidden="true"
+              >${glyphSvg(CHECKMARK, 'checkmark')}</span
+            >`
           : nothing}
         <span class="label" part="label"><slot></slot></span>
         ${this.shortcut

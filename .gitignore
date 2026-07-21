@@ -2,3 +2,6 @@ node_modules/
 dist/
 *.local
 .DS_Store
+
+# Local design-reference material (not distributed with the library)
+Classic Macintosh UI Kit Reference/

@@ -56,6 +56,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-checkbox` | Checkbox with the classic ✕ mark |
 | `vf-radio`, `vf-radio-group` | Radio buttons with form-associated group |
 | `vf-text-field`, `vf-text-area` | Bordered text inputs |
+| `vf-number-field` | Numeric field with the classic "little arrows" stepper |
 | `vf-select`, `vf-option` | Popup menu control ("Macintosh HD ▼") |
 | `vf-progress-bar` | Determinate fill or indeterminate barber stripes |
 | `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts and selection blink |

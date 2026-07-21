@@ -1,7 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { live } from 'lit/directives/live.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfDisplayDecls } from '../styles/base.js'
 
 /**
  * `<vf-text-field>` — a System 7 single-line text entry field.
@@ -39,8 +39,8 @@ export class VfTextField extends LitElement {
         background: var(--vf-white, #fff);
         border: 1px solid var(--vf-black, #000);
         border-radius: 0;
-        font-family: inherit;
-        font-size: inherit;
+        /* Editable text is set in the Chicago-style display face. */
+        ${vfDisplayDecls}
         font-weight: var(--vf-font-weight, 700);
         line-height: inherit;
         color: var(--vf-black, #000);

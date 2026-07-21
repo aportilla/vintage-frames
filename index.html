@@ -339,6 +339,52 @@
         </div>
       </vf-window>
 
+      <!-- ==================== "Find File" document window =============== -->
+      <vf-window id="win-find" heading="Find File" movable>
+        <div class="find">
+          <div class="find-row">
+            <span class="find-label">Find items</span>
+            <vf-select
+              class="find-scope-select"
+              value="on local disks"
+              label="Find items"
+            >
+              <vf-option>on all disks</vf-option>
+              <vf-option>on local disks</vf-option>
+              <vf-option>on the desktop</vf-option>
+            </vf-select>
+            <span class="find-label">whose</span>
+          </div>
+
+          <div class="find-criteria">
+            <vf-select class="find-attr" value="name" label="Attribute">
+              <vf-option>name</vf-option>
+              <vf-option>size</vf-option>
+              <vf-option>kind</vf-option>
+              <vf-option>date modified</vf-option>
+              <vf-option>label</vf-option>
+            </vf-select>
+            <vf-select class="find-op" value="contains" label="Comparison">
+              <vf-option>contains</vf-option>
+              <vf-option>starts with</vf-option>
+              <vf-option>ends with</vf-option>
+              <vf-option>is</vf-option>
+              <vf-option>is not</vf-option>
+            </vf-select>
+            <vf-text-field
+              class="find-value"
+              value="hello"
+              label="Value"
+            ></vf-text-field>
+          </div>
+
+          <div class="find-actions">
+            <vf-button>More Choices</vf-button>
+            <vf-button variant="default">Find</vf-button>
+          </div>
+        </div>
+      </vf-window>
+
       <!-- ===================== About dialog (modal) ===================== -->
       <vf-dialog id="dlg-about" heading="About This Macintosh">
         <div class="about-body">

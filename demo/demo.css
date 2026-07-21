@@ -4,9 +4,34 @@
  * This file positions and sizes things on the desktop (window placement,
  * flex/grid flow, gaps, margins, scroll heights). All aesthetics — colors,
  * borders, shadows, stripes, type — come from the components themselves.
- * The single typographic rule here is the spec-mandated small-font disk
- * caption (SPEC §7.2), which uses the --vf-font-size-small token.
+ * The two typographic exceptions: the spec-mandated small-font disk caption
+ * (SPEC §7.2), and the static field labels below — plain text, not components,
+ * so the demo sets their face to match System 7 chrome.
  */
+
+/* ------------------------------ Typography ----------------------------- */
+
+/* Field labels ("Name:", "Find items", "Title:") are dialog chrome, so they
+   take the Chicago-style display face, crisp (no smoothing) — the same face
+   the components use for buttons, menus and popups. */
+.field-label,
+.group-label,
+.newdoc-label,
+.find-label {
+  font-family: var(
+    --vf-font-family-display,
+    'ChiKareGo',
+    'Chicago',
+    'ChicagoFLF',
+    'Charcoal',
+    'Geneva',
+    'Helvetica Neue',
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  -webkit-font-smoothing: none;
+}
 
 /* ------------------------------- Desktop ------------------------------- */
 
@@ -243,6 +268,57 @@ vf-desktop {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 4px;
+}
+
+/* ---------------------------- Find File window ------------------------- */
+
+#win-find {
+  position: absolute;
+  left: 150px;
+  top: 720px;
+  width: 440px;
+}
+
+.find {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* "Find items [on local disks ▼] whose" — the popup fills the middle. */
+.find-scope-select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The criteria "well": a dashed square frame around the
+   attribute/operator/value row. */
+.find-criteria {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed var(--vf-black, #000);
+}
+.find-attr,
+.find-op {
+  flex: none;
+}
+.find-value {
+  flex: 1;
+  min-width: 0;
+}
+
+/* More Choices on the left, the default Find button on the right. */
+.find-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* ------------------------- About dialog & alert ------------------------ */

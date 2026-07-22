@@ -80,10 +80,16 @@ Modern requirements that we deliberately keep (accessibility over purity):
 Use with inline fallback: `var(--vf-white, #ffffff)`. `src/styles/vintage.css`
 documents the same set for consumers to override at `:root`.
 
+Every length in this doc is a **system pixel** value; components multiply it by
+`--vf-scale` in `calc()` (see the note after the table).
+
 | Token | Default | Used for |
 | --- | --- | --- |
-| `--vf-font-family` | `'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | all text |
-| `--vf-font-size` | `15px` | all text (menus, buttons, labels) |
+| `--vf-scale` | *(display factor, `3 / dpr`)* | multiplies every length token below (see note) |
+| `--vf-font-family` | `'FindersKeepers', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | body text (list rows, page copy) |
+| `--vf-font-family-display` | `'ChiKareGo', 'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
+| `--vf-font-size` | `16px` | body face size |
+| `--vf-font-size-display` | `16px` | chrome face size |
 | `--vf-font-size-small` | `12px` | fine print (e.g. disk-space captions) |
 | `--vf-font-weight` | `700` | all text (Chicago is inherently bold) |
 | `--vf-black` | `#000000` | borders, text, stripes, selection bg |
@@ -102,6 +108,16 @@ documents the same set for consumers to override at `:root`.
 | `--vf-scrollbar-thumb` | `#ffffff` | scrollbar thumb/elevator (white) |
 | `--vf-highlight` | `#000000` | selection background |
 | `--vf-highlight-text` | `#ffffff` | selection foreground |
+
+**`--vf-scale` (display scaling).** Every length above is authored in *system
+pixels* and multiplied by `--vf-scale`. It defaults to the true-size factor for
+the current display — `3 / devicePixelRatio`, so one system pixel maps to exactly
+3 device pixels and the 1-bit art stays crisp at any dpr — applied per component
+by a `ScaleController` (`src/scale.ts`), which re-adapts on dpr changes. A
+consumer or ancestor `--vf-scale` always wins (set it to `1` to pin the fixed
+authored sizes), and because it is a plain inherited multiplier, nesting never
+compounds. JS-driven geometry (slider rail/thumb, select panel, window resize)
+converts between system and CSS px with the `sys()` / `toSys()` helpers.
 
 ## 4. Shared recipes (in `src/styles/base.ts`)
 
@@ -132,9 +148,11 @@ Files live in `src/components/`. "Parts" = CSS shadow parts via `part=`.
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
 - **Visual:** `display: block; position: relative; overflow: hidden;`
-  background = classic 50% dither: base `var(--vf-desktop, #808080)` under a
-  black/white 1px checker (e.g. `repeating-conic-gradient(var(--vf-black,#000) 0% 25%, var(--vf-white,#fff) 0% 50%)`,
-  `background-size: 2px 2px`), overridable via `--vf-desktop-pattern`.
+  background = classic 50% dither: base `var(--vf-desktop, #808080)` under a 1-bit
+  black/white checker drawn as a crisp SVG tile (a 2×2 grid with two black
+  pixels), `background-size: 2px 2px` scaled by `--vf-scale`, overridable via
+  `--vf-desktop-pattern`. (A `repeating-conic-gradient` feathers its hard stops
+  at scale; the SVG rects stay pixel-exact.)
 - **Slots:** default (menu bar, windows, anything).
 - **Behavior:** manages stacking of slotted `vf-window` children: `pointerdown`
   on a window brings it to front (incrementing z-index counter) and sets its

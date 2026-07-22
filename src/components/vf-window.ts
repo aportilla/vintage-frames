@@ -116,22 +116,40 @@ export class VfWindow extends LitElement {
       .zoom {
         right: calc(var(--vf-scale, 1) * 8px);
       }
+      /* Pressed box (close AND zoom): the interior fills with the classic
+         radiating "go-away" sunburst — black 1-bit spokes on the white face
+         (4 orthogonal 3px spokes + 4 diagonal 2px ones around an empty center),
+         traced pixel-for-pixel from the UI kit's close-button-active-state
+         sprite. Both widgets flash the identical graphic while pressed. That
+         sprite is the whole 11×11 box; its outer ring is this element's own 1px
+         border, so the SVG draws just the 9×9 interior into the padding box. */
       .box:active {
-        background: var(--vf-black, #000000);
-        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 2px) var(--vf-white, #ffffff);
+        background-color: var(--vf-white, #ffffff);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM0 4h3v1h-3zM6 4h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM4 8h1v1h-1z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: calc(var(--vf-scale, 1) * 9px) calc(var(--vf-scale, 1) * 9px);
       }
       .zoom::after {
         content: '';
         position: absolute;
-        /* Inner detail square, centered in the 11px box (2px inset all round). */
-        top: calc(var(--vf-scale, 1) * 2px);
-        left: calc(var(--vf-scale, 1) * 2px);
-        width: calc(var(--vf-scale, 1) * 5px);
-        height: calc(var(--vf-scale, 1) * 5px);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        /* A small box nested in the TOP-LEFT corner of the widget (classic
+           System 7 zoom box). It shares the widget's own top and left border, so
+           only its right and bottom edges are drawn: a 6×6 box anchored at the
+           padding-box origin whose 1px right/bottom borders land the vertical at
+           sprite col 6 and the horizontal at row 6. Traced from the UI kit
+           zoom-button rest sprite. */
+        top: 0;
+        left: 0;
+        width: calc(var(--vf-scale, 1) * 6px);
+        height: calc(var(--vf-scale, 1) * 6px);
+        border-right: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
       }
+      /* While pressed the zoom box shows the same sunburst as the close box, so
+         its inner detail square gives way to it. */
       .zoom:active::after {
-        border-color: var(--vf-white, #ffffff);
+        display: none;
       }
       :host(:not([active])) .box {
         display: none;

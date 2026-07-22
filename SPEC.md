@@ -184,10 +184,15 @@ The classic document window (see DragThing screenshot).
     black (System 7 never grayed the window title).
   - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of
     clear white above and below it, `1px solid black`, white bg, no bevel,
-    surrounded by a 2px white patch interrupting the stripes. `:active` →
-    inverts to black.
-  - Zoom box: RIGHT side, same box, plus an inner 5×5 square outline centered
-    inside it.
+    surrounded by a 2px white patch interrupting the stripes. `:active`
+    (pressed) → the interior fills with the classic radiating "go-away"
+    sunburst: black 1-bit spokes on the white face (four orthogonal 3px spokes
+    plus four diagonal 2px ones around an empty center), traced pixel-for-pixel
+    from the UI kit's close-button-active-state sprite.
+  - Zoom box: RIGHT side, same box, plus a small box nested in its top-left
+    corner (sharing the widget's own top/left border; only the right and bottom
+    edges are drawn). `:active` (pressed) → shows the identical sunburst as the
+    close box; the nested box gives way to it.
   - Body: `padding: 12px` (0 if `flush`).
   - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black
     top/left borders, containing two overlapping small square outlines.

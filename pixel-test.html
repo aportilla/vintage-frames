@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Pixel-verification page for the button's stepped clip-path silhouettes.
+    Pins scale to 1 so one CSS px = one system px; screenshot at
+    deviceScaleFactor 1 and diff with scripts/verify-button-screenshot.py
+    (`npm run shot:verify`). Magenta background makes silhouette/transparency
+    edges unambiguous (it appears nowhere in the kit palette).
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --vf-scale: 1;
+      }
+      body {
+        margin: 0;
+        background: #f0f;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 8px;
+      }
+    </style>
+    <script type="module" src="/src/index.ts"></script>
+  </head>
+  <body>
+    <vf-button id="plain">Button</vf-button>
+    <vf-button id="default" variant="default">Button</vf-button>
+    <vf-button id="disabled" disabled>Button</vf-button>
+    <vf-button id="focused">Button</vf-button>
+    <vf-button id="small" size="small">Button</vf-button>
+    <script type="module">
+      // Give the fourth button keyboard focus so the screenshot captures the
+      // dotted :focus-visible outline (proves clip-path doesn't swallow it).
+      await customElements.whenDefined('vf-button')
+      const btn = document.getElementById('focused')
+      btn.querySelector === undefined // noop
+      // focus({focusVisible}) keeps the outline for programmatic focus where
+      // supported; keyboard-simulated focus in the harness also works.
+      btn.focus({ focusVisible: true })
+    </script>
+  </body>
+</html>

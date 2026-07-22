@@ -89,7 +89,7 @@ export class VfSlider extends LitElement {
          Keyed off the resolved state (covers both the attribute and an ancestor
          <fieldset disabled>), which .rail/.thumb inherit via currentColor. */
       .track.disabled {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
         pointer-events: none;
       }
       .rail {

@@ -29,13 +29,17 @@ The System 7 look, distilled:
   title bar; the title text and window widgets sit on solid white patches that
   interrupt the stripes.
 - **Chicago-style type** — bold, dark, tight. One size for almost everything.
-- **1-bit monochrome palette** — black and white only, plus mid gray (`#808080`)
-  for dimmed/disabled and as the base tone under the desktop's 50% dither.
+- **1-bit monochrome palette** — black and white only, plus two grays: light
+  gray (`#C0C0C0`, the kit's dim tone) for dimmed/disabled chrome, and mid gray
+  (`#808080`) as the base tone under the desktop's 50% dither.
   Scroll troughs use a looser 25% black-on-white dot dither. Surfaces are flat
   solid white — no bevels.
-- **No gradients, no border-radius except buttons, no CSS transitions** —
-  interactions are instant. The single sanctioned animation is the classic
-  menu-item "blink" on selection and the indeterminate progress stripes.
+- **No gradients, no border-radius, no CSS transitions** — interactions are
+  instant. The single sanctioned animation is the classic menu-item "blink" on
+  selection and the indeterminate progress stripes. Even the button's rounded
+  corners are not `border-radius` arcs: they are stepped `clip-path`
+  silhouettes traced pixel-for-pixel from the reference sheet
+  (`src/pixel-frame.ts`), so the 1-bit staircase renders with no antialiasing.
 - **Selection inverts** — selected/active states are white-on-black inversion,
   not tinted highlights.
 
@@ -95,11 +99,11 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-black` | `#000000` | borders, text, stripes, selection bg |
 | `--vf-white` | `#ffffff` | content wells, control faces |
 | `--vf-surface` | *(set by containers)* | bg behind legends/label patches; `vf-window` and `vf-dialog` both set it to white |
-| `--vf-disabled` | `#808080` | dimmed text, borders, glyphs |
+| `--vf-disabled` | `#C0C0C0` | dimmed text, borders, glyphs (the kit's dim gray) |
 | `--vf-desktop` | `#808080` | desktop base gray under the 1-bit dither |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
-| `--vf-radius` | `6px` | button corner radius (buttons ONLY) |
 | `--vf-control-height` | `22px` | buttons, selects, text fields |
+| `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-titlebar-height` | `22px` | window/dialog title bars |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
 | `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
@@ -172,7 +176,7 @@ The classic document window (see DragThing screenshot).
   - Title bar: height `var(--vf-titlebar-height, 22px)`, white bg, bottom
     `1px solid black`, contains `.vf-stripes` layer (only when `active`).
   - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
-    stripes. Inactive: no stripes, title color `var(--vf-disabled, #808080)`,
+    stripes. Inactive: no stripes, title color `var(--vf-disabled, #c0c0c0)`,
     widgets hidden.
   - Close box: LEFT side, 13×13px, `1px solid black`, white bg, no bevel,
     surrounded by a 2px white patch interrupting the stripes. `:active` →
@@ -225,24 +229,42 @@ Classic fixed modal alert: double black frame, no title bar.
   When used inside menus it should render as the classic dimmed **dotted**
   rule spanning the full panel width (see Menus.png) — implement via
   `--vf-separator-color` + `--vf-separator-style` custom props (menu panel sets
-  them to `#808080` / `dotted`, with 3px vertical margins). `role="separator"`.
+  them to `#C0C0C0` / `dotted`, with 3px vertical margins). `role="separator"`.
 
 ### Group B — buttons & toggles
 
 #### `vf-button` (`VfButton`, vf-button.ts)
 - **Attributes/props:** `variant?: 'default'` (the double-ring default button,
-  e.g. "Install"), `disabled`, `type: 'button' | 'submit' | 'reset'` (default
-  `'button'`).
+  e.g. "Install"), `size?: 'small'` (the compact 16px button from the
+  reference's third row: height `var(--vf-control-height-small, 16px)`,
+  `min-width: 48px`, `padding: 0 10px`, label in the body face at
+  `var(--vf-font-size, 16px)` — same traced corners), `disabled`,
+  `type: 'button' | 'submit' | 'reset'` (default `'button'`).
 - **Visual:** inner `<button>`: height `var(--vf-control-height, 22px)`,
-  `min-width: 64px`, `padding: 0 14px`, white bg, `1px solid black` border,
-  `border-radius: var(--vf-radius, 6px)`, bold black text, font per tokens.
-  - `:active` (pressed, not disabled): invert — black bg, white text.
-  - `disabled`: only the label dims to `var(--vf-disabled, #808080)`; the 1px
+  `min-width: 64px`, `padding: 0 14px`, bold black text, font per tokens.
+  The rounded rect is NOT `border-radius` (which antialiases): the button
+  paints no box of its own; two pseudo-element layers carry stepped
+  `clip-path` silhouettes traced from the reference sheet (`src/pixel-frame.ts`,
+  data from `Buttons Exact 1x pixel Refrence.png` via
+  `scripts/extract-button-pixels.py`, machine-diffed by
+  `npm run verify:buttons`): `::before` fills `var(--vf-black)` clipped to the
+  outer silhouette (corner insets `[3,1,1]`, then straight), `::after` fills
+  `var(--vf-white)` clipped to the face (row 1 corner insets `[3,2]`, then 1px
+  inside) — the 1px frame, corner steps included, is the QuickDraw-style
+  difference of the two. Clip-paths stay off the `<button>` so `:focus-visible`
+  outlines aren't clipped. All coordinates are `calc(var(--vf-scale,1) * Npx)`
+  system pixels, so edges land on whole device pixels and never antialias.
+  - `:active` (pressed, not disabled): invert — the `::after` face flips to
+    black, white text.
+  - `disabled`: only the label dims to `var(--vf-disabled, #c0c0c0)`; the 1px
     black border stays black. (For `variant="default"`, the fat outer ring
     dims to `var(--vf-disabled)` while the inner black border stays.)
-  - `variant="default"`: an additional ring drawn via absolutely-positioned
-    `::before`: `inset: -5px; border: 3px solid var(--vf-black,#000); border-radius: calc(var(--vf-radius, 6px) + 4px);`
-    (host needs `position: relative` and 5px of breathing room via margin).
+  - `variant="default"`: the ring is a host `::before` at
+    `inset: -4px` — `background: var(--vf-black)` clipped by an `evenodd`
+    donut polygon (outer corner insets `[5,3,2,1,1]`; hole opens at row 3 with
+    insets `[6,4,4]`, then 3px inside). The band is 3px thick with a 1px
+    fully transparent gap to the button, per the reference's alpha-0 gap
+    pixels (host needs `position: relative` and 4px breathing room via margin).
 - **Behavior:** form-associated. `type="submit"` → `this.internals.form?.requestSubmit()`;
   `reset` → `form?.reset()`. Enter/Space work natively via inner button.
 - **Slots:** default (label). **Parts:** `button`.
@@ -254,7 +276,7 @@ Classic fixed modal alert: double black frame, no title bar.
   ✕: the pixel-exact corner-to-corner cross from the sprite sheet, rendered as
   the `CHECKBOX_X` inline-SVG fill path (`shape-rendering: crispEdges`,
   `fill: currentColor`) — no anti-aliased strokes. Label (slot) sits right with
-  6px gap, bold. Disabled: only the label dims to `var(--vf-disabled, #808080)`;
+  6px gap, bold. Disabled: only the label dims to `var(--vf-disabled, #c0c0c0)`;
   the box border and ✕ glyph stay black. Pressed (`:active` on box): border
   thickens to 2px (classic press feedback).
 - **Behavior:** form-associated; toggles on click and Space; `role="checkbox"`,
@@ -383,7 +405,7 @@ The classic popup menu control ("Macintosh HD ▼").
   **hollow** (1px top/bottom edge) after it — the classic filled/unfilled track.
   The rail is a whole-pixel `<svg>` regenerated on resize (so it stays crisp at
   any width); the thumb snaps to integer pixels. Disabled dims the whole control
-  to `var(--vf-disabled, #808080)` (the fill *is* the value — there is no label
+  to `var(--vf-disabled, #c0c0c0)` (the fill *is* the value — there is no label
   to dim instead). No hover/active state on the handle (static sprite).
 - **Behavior:** form-associated; `role="slider"` with
   `aria-valuemin/max/now/valuetext` + `aria-orientation="horizontal"`. Click or
@@ -419,7 +441,7 @@ The classic popup menu control ("Macintosh HD ▼").
   `role="menu"`.
 - **Behavior:** clicking the label toggles; delegates open-state coordination
   to parent `vf-menu-bar` when present (only one open at a time). Sets
-  `--vf-separator-color: var(--vf-disabled, #808080)` on its panel so slotted
+  `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so slotted
   `vf-separator`s render dimmed with 2px vertical margin.
 - **Slots:** default (vf-menu-item / vf-separator). **Parts:** `label`, `panel`.
 

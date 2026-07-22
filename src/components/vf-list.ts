@@ -35,7 +35,7 @@ export class VfList extends LitElement {
       }
       /* Disabled: the item text dims to gray; the black box border stays. */
       :host([disabled]) {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
       .list {
         max-height: calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px));

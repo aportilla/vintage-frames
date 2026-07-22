@@ -94,7 +94,7 @@ export class VfRadio extends LitElement {
       /* Disabled: the circle and dot stay solid black — System 7 dims the
          label, not the control. (.dim still suppresses the press feedback.) */
       .label.dim {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
     `,
   ]

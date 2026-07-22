@@ -70,7 +70,34 @@ fallbacks — components need **no global CSS**, and everything is themeable.
 See [SPEC.md](./SPEC.md) for the full design spec, tokens, events, slots, and
 parts.
 
-### Fonts
+## Display scaling — true classic size, crisp on any screen
+
+Every component is authored in *system pixels* (the 1-bit art grid) and renders
+each one as exactly **3 device pixels**, so the UI reads at its original ~72 dpi
+physical size and stays pixel-crisp at any `devicePixelRatio`:
+
+| Display | CSS scale (`3 / dpr`) |
+| --- | --- |
+| 1× standard | 3.0 |
+| 2× retina | 1.5 |
+| 3× hi-dpi | 1.0 |
+
+This is **on by default** — a lone `<vf-button>` renders at true size with no
+wrapper or setup, it re-adapts when the window moves to a different-density
+monitor, and nested components compose without ever double-scaling.
+
+Override it with the inherited `--vf-scale` custom property — set it on `:root`,
+a subtree, or a single element:
+
+```css
+:root { --vf-scale: 1; }     /* pin to the fixed authored size (no scaling) */
+.dense { --vf-scale: 1.25; } /* …or any factor */
+```
+
+Every metric multiplies by `--vf-scale` in `calc()`, so borders, type, glyphs,
+the desktop dither and spacing all scale together and stay 1-bit crisp.
+
+## Fonts
 
 Two System 7 bitmap faces ship inside the components and register themselves on
 `document.fonts`, so they render inside every shadow root with no global CSS:
@@ -80,6 +107,8 @@ Two System 7 bitmap faces ship inside the components and register themselves on
   editable text/number fields (System 7 typed its dialog fields in Chicago).
 - **FindersKeepers** — the *body* face: list rows and page copy.
 
-Both are crisp at the default 16px (their native 1024-upm pixel grid). Retheme
-with `--vf-font-family-display` (chrome) and `--vf-font-family` (body), plus the
-matching `--vf-font-size-display` / `--vf-font-smoothing-display` tokens.
+Both render on their native 1024-upm pixel grid (one design pixel = one system
+pixel) and scale with `--vf-scale` (see [Display scaling](#display-scaling--true-classic-size-crisp-on-any-screen)),
+staying pixel-crisp. Retheme with `--vf-font-family-display` (chrome) and
+`--vf-font-family` (body), plus the matching `--vf-font-size-display` /
+`--vf-font-smoothing-display` tokens.

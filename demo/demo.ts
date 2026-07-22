@@ -40,6 +40,7 @@ const desktop = $<VfDesktop>('#desktop')
 const installerWindow = $<VfWindow>('#win-installer')
 const formatWindow = $<VfWindow>('#win-format')
 const newDocWindow = $<VfWindow>('#win-newdoc')
+const newImageWindow = $<VfWindow>('#win-newimage')
 const aboutDialog = $<VfDialog>('#dlg-about')
 const eraseAlert = $<VfAlert>('#alert-erase')
 
@@ -54,6 +55,9 @@ formatWindow.closable = false
 
 // The BBEdit "New HTML Document" window is the same movable-modal lookalike.
 newDocWindow.closable = false
+
+// The Photoshop "New" image dialog is another always-open movable modal.
+newImageWindow.closable = false
 
 // A window's close box fires `vf-close` on the window itself; hide it.
 // (Dialog/alert `vf-close` events have a non-window target and pass through.)

@@ -58,9 +58,14 @@ export class VfButton extends LitElement {
            src/scale.ts. The chrome font scales with the control. */
         font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
       }
-      /* Breathing room for the default-button ring drawn at inset -4 system px. */
+      /* Breathing room for the default-button ring drawn at inset -4 system px.
+         A vf-button-group zeroes this (via --vf-button-ring-margin) and reserves
+         the ring space itself, so grouped button *faces* align instead of their
+         margin boxes — see src/components/vf-button-group.ts. */
       :host([variant='default']) {
-        margin: calc(var(--vf-scale, 1) * ${RING_INSET}px);
+        margin: calc(
+          var(--vf-scale, 1) * var(--vf-button-ring-margin, ${RING_INSET}px)
+        );
       }
       /* The default ring: a 3px stepped band with a transparent 1px gap to the
          button, clipped as an evenodd donut so the gap shows the surface
@@ -92,6 +97,9 @@ export class VfButton extends LitElement {
         justify-content: center;
         height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
         min-width: calc(var(--vf-scale, 1) * 64px);
+        /* Fill the host so a vf-button-group can stretch this face to the
+           shared column width. Standalone (shrink-wrapped host) it's a no-op. */
+        flex: var(--vf-button-flex, 0 1 auto);
         padding: 0 calc(var(--vf-scale, 1) * 14px);
         background: none;
         border: none;
@@ -149,7 +157,7 @@ export class VfButton extends LitElement {
       :host([size='small']) button {
         height: calc(var(--vf-scale, 1) * var(--vf-control-height-small, 16px));
         min-width: calc(var(--vf-scale, 1) * 48px);
-        padding: 0 calc(var(--vf-scale, 1) * 10px);
+        padding: 0 calc(var(--vf-scale, 1) * 14px);
       }
       /* Disabled: only the label dims to gray; the solid black border stays. */
       button:disabled {

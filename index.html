@@ -81,8 +81,10 @@
           </div>
         </div>
         <div class="format-actions">
-          <vf-button>Cancel ⌘.</vf-button>
-          <vf-button variant="default">Format</vf-button>
+          <vf-button-group>
+            <vf-button>Cancel ⌘.</vf-button>
+            <vf-button variant="default">Format</vf-button>
+          </vf-button-group>
         </div>
       </vf-window>
 
@@ -156,12 +158,12 @@
               </div>
             </vf-fieldset>
             <vf-separator></vf-separator>
-            <div class="button-row">
+            <vf-button-group natural class="button-row">
               <vf-button>Button</vf-button>
               <vf-button variant="default">Default</vf-button>
               <vf-button disabled>Disabled</vf-button>
               <vf-button size="small">Small</vf-button>
-            </div>
+            </vf-button-group>
           </div>
           <vf-separator vertical></vf-separator>
           <div class="stack">
@@ -334,8 +336,10 @@
           </div>
 
           <div class="newdoc-actions">
-            <vf-button>Cancel</vf-button>
-            <vf-button variant="default">OK</vf-button>
+            <vf-button-group>
+              <vf-button>Cancel</vf-button>
+              <vf-button variant="default">OK</vf-button>
+            </vf-button-group>
           </div>
         </div>
       </vf-window>
@@ -386,6 +390,112 @@
         </div>
       </vf-window>
 
+      <!-- =============== Photoshop "New" document dialog =============== -->
+      <vf-window id="win-newimage" heading="New" movable>
+        <div class="newimage">
+          <div class="newimage-main">
+            <div class="newimage-field">
+              <span class="newimage-label">Name:</span>
+              <vf-text-field
+                class="newimage-name"
+                value="Untitled-1"
+                label="Name"
+              ></vf-text-field>
+            </div>
+
+            <vf-fieldset legend="Image Size: 532K">
+              <div class="newimage-sizes">
+                <div class="newimage-field">
+                  <span class="newimage-label size">Width:</span>
+                  <vf-text-field
+                    class="newimage-num"
+                    value="7"
+                    label="Width"
+                  ></vf-text-field>
+                  <vf-select
+                    class="newimage-unit"
+                    value="inches"
+                    label="Width units"
+                  >
+                    <vf-option>pixels</vf-option>
+                    <vf-option>inches</vf-option>
+                    <vf-option>cm</vf-option>
+                    <vf-option>points</vf-option>
+                    <vf-option>picas</vf-option>
+                  </vf-select>
+                </div>
+                <div class="newimage-field">
+                  <span class="newimage-label size">Height:</span>
+                  <vf-text-field
+                    class="newimage-num"
+                    value="5"
+                    label="Height"
+                  ></vf-text-field>
+                  <vf-select
+                    class="newimage-unit"
+                    value="inches"
+                    label="Height units"
+                  >
+                    <vf-option>pixels</vf-option>
+                    <vf-option>inches</vf-option>
+                    <vf-option>cm</vf-option>
+                    <vf-option>points</vf-option>
+                    <vf-option>picas</vf-option>
+                  </vf-select>
+                </div>
+                <div class="newimage-field">
+                  <span class="newimage-label size">Resolution:</span>
+                  <vf-text-field
+                    class="newimage-num"
+                    value="72"
+                    label="Resolution"
+                  ></vf-text-field>
+                  <vf-select
+                    class="newimage-unit"
+                    value="pixels/inch"
+                    label="Resolution units"
+                  >
+                    <vf-option>pixels/inch</vf-option>
+                    <vf-option>pixels/cm</vf-option>
+                  </vf-select>
+                </div>
+                <div class="newimage-field">
+                  <span class="newimage-label size">Mode:</span>
+                  <vf-select
+                    class="newimage-mode"
+                    value="RGB Color"
+                    label="Mode"
+                  >
+                    <vf-option>Bitmap</vf-option>
+                    <vf-option>Grayscale</vf-option>
+                    <vf-option>RGB Color</vf-option>
+                    <vf-option>CMYK Color</vf-option>
+                    <vf-option>Lab Color</vf-option>
+                  </vf-select>
+                </div>
+              </div>
+            </vf-fieldset>
+
+            <vf-fieldset legend="Contents">
+              <vf-radio-group
+                class="newimage-contents"
+                value="white"
+                name="contents"
+              >
+                <vf-radio value="white">White</vf-radio>
+                <vf-radio value="background">Background Color</vf-radio>
+                <vf-radio value="transparent">Transparent</vf-radio>
+              </vf-radio-group>
+            </vf-fieldset>
+          </div>
+
+          <vf-button-group vertical class="newimage-actions">
+            <vf-button variant="default">OK</vf-button>
+            <vf-button>Cancel</vf-button>
+          </vf-button-group>
+        </div>
+      </vf-window>
+
       <!-- ===================== About dialog (modal) ===================== -->
       <vf-dialog id="dlg-about" heading="About This Macintosh">
         <div class="about-body">
@@ -394,10 +504,10 @@
             System Software 7.5.5 · Total Memory: 8,192K · Largest Unused
             Block: 7,168K
           </p>
-          <div class="about-actions">
-            <vf-button id="btn-about-ok" variant="default">OK</vf-button>
-          </div>
         </div>
+        <vf-button id="btn-about-ok" slot="buttons" variant="default"
+          >OK</vf-button
+        >
       </vf-dialog>
 
       <!-- ===================== Erase Disk alert (modal) ================= -->

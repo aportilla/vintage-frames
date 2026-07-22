@@ -3,22 +3,33 @@ import { customElement, property, query, state } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { ScaleController, snapDialogToGrid, unsnapDialog } from '../scale.js'
+import './vf-button-group.js'
 
 /**
- * The classic black/white caution icon: a triangle with an exclamation mark.
- * Colors are themeable from CSS (`.caution-tri`, `.caution-mark`).
+ * The classic black/white caution icon — a triangle enclosing an exclamation
+ * mark, authored as a self-contained 1-bit inline SVG in the spirit of the
+ * sprite glyphs in glyphs.ts: integer-coordinate *filled* geometry (a white
+ * face under a black border, like the radio/slider handle) rendered with
+ * `shape-rendering: crispEdges`, so its edges stay hard 1-bit steps and it
+ * scales as whole pixels with `--vf-scale` instead of the old anti-aliased 2px
+ * stroke. Sized in CSS off `--vf-scale` (see `.caution`); colors are themeable
+ * via `.caution-face`, `.caution-tri` (border) and `.caution-mark`.
  */
 const cautionIcon = html`
   <svg
     class="caution"
     viewBox="0 0 32 32"
-    width="32"
-    height="32"
+    shape-rendering="crispEdges"
     aria-hidden="true"
   >
-    <path class="caution-tri" d="M16 2 L31 29 H1 Z" stroke-width="2" />
-    <rect class="caution-mark" x="14.5" y="11" width="3" height="9" />
-    <rect class="caution-mark" x="14.5" y="23" width="3" height="3" />
+    <path class="caution-face" d="M16 3 29 28 3 28Z" />
+    <path
+      class="caution-tri"
+      fill-rule="evenodd"
+      d="M16 3 29 28 3 28Z M16 10 24 25 8 25Z"
+    />
+    <rect class="caution-mark" x="15" y="12" width="3" height="8" />
+    <rect class="caution-mark" x="15" y="22" width="3" height="3" />
   </svg>
 `
 
@@ -36,11 +47,12 @@ const cautionIcon = html`
  *
  * @slot - Default slot: the alert message.
  * @slot icon - Custom icon (overrides the `variant` icon).
- * @slot buttons - Action buttons, laid out bottom-right with a 12px gap.
+ * @slot buttons - Action buttons, laid out bottom-right in a `vf-button-group`
+ *   (equal-width, faces aligned; classic 12px gap).
  * @csspart frame - The outer double-rule frame.
  * @csspart icon - The 32px icon column.
  * @csspart message - The message area.
- * @csspart buttons - The button row.
+ * @csspart buttons - The button group.
  * @fires vf-close - Alert closed. Detail `{ reason: 'escape' | 'close' }`.
  */
 @customElement('vf-alert')
@@ -99,9 +111,18 @@ export class VfAlert extends LitElement {
       .content.no-icon .icon {
         display: none;
       }
-      .caution-tri {
+      /* Sized off --vf-scale so the icon scales with the rest of the chrome
+         (its 32px grid = the grid column width), staying whole-pixel crisp. */
+      .caution {
+        display: block;
+        width: calc(var(--vf-scale, 1) * 32px);
+        height: calc(var(--vf-scale, 1) * 32px);
+      }
+      .caution-face {
         fill: var(--vf-white, #ffffff);
-        stroke: var(--vf-black, #000000);
+      }
+      .caution-tri {
+        fill: var(--vf-black, #000000);
       }
       .caution-mark {
         fill: var(--vf-black, #000000);
@@ -110,12 +131,12 @@ export class VfAlert extends LitElement {
         grid-area: message;
         align-self: center;
       }
+      /* The action row is a vf-button-group: it equalizes the button widths and
+         aligns their faces. It shrink-wraps, so justify-self pins it to the
+         right of the full-width buttons area (classic bottom-right actions). */
       .buttons {
         grid-area: buttons;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: calc(var(--vf-scale, 1) * 12px);
+        justify-self: end;
       }
     `,
   ]
@@ -225,9 +246,9 @@ export class VfAlert extends LitElement {
               <div class="message" part="message" id="message">
                 <slot></slot>
               </div>
-              <div class="buttons" part="buttons">
+              <vf-button-group class="buttons" part="buttons">
                 <slot name="buttons"></slot>
-              </div>
+              </vf-button-group>
             </div>
           </div>
         </div>

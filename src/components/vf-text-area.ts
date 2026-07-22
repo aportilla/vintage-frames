@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
@@ -30,6 +30,10 @@ export class VfTextArea extends LitElement {
     css`
       :host {
         display: inline-block;
+        /* A sensible default width (authored system px, scaled) so a bare field
+           doesn't collapse; the inner control fills it. Override with a width
+           on the host or the --vf-field-width token. */
+        width: calc(var(--vf-scale, 1) * var(--vf-field-width, 180px));
       }
       textarea {
         display: block;
@@ -79,6 +83,13 @@ export class VfTextArea extends LitElement {
 
   /** Number of visible text rows (native `rows`). Default 4. */
   @property({ type: Number }) rows = 4
+
+  /**
+   * Accessible name for the field, rendered as `aria-label` on the inner native
+   * textarea (which is what receives focus and is announced — an `aria-label`
+   * on the host does not reach into the shadow DOM). Mirrors `vf-text-field`.
+   */
+  @property() label = ''
 
   /** Form field name used when submitting the associated form. */
   @property({ reflect: true }) name = ''
@@ -144,6 +155,7 @@ export class VfTextArea extends LitElement {
       <textarea
         part="textarea"
         rows=${this.rows}
+        aria-label=${this.label || nothing}
         .value=${live(this.value)}
         placeholder=${this.placeholder}
         ?disabled=${this.disabled || this.formDisabled}

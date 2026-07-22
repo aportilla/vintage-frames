@@ -425,10 +425,16 @@ The classic popup menu control ("Macintosh HD ▼").
   `var(--vf-progress-track, #ffffff)` (white), `1px solid black`, no radius.
   Determinate fill: `var(--vf-progress-fill, #000000)` (solid black) from left,
   with a 1px black leading edge
-  line. Indeterminate: full-width animated
-  diagonal black/white barber stripes (45°, 8px pitch, `background-position`
-  keyframes, ~0.4s linear infinite — chunky and steppy, not smooth: use
-  `steps()` timing).
+  line. Indeterminate: full-width animated diagonal black/white barber stripes
+  (45°, drawn as a crisp 1-bit `crispEdges` SVG tile — a 12px `\` cell whose
+  bands are a *staircase of axis-aligned 1px rects*, not diagonal polygons and
+  not a `repeating-linear-gradient`; a diagonal edge only rasterizes crisply at
+  the SVG's own resolution and then blurs to a gray fringe when the background is
+  scaled up, whereas axis-aligned rects stay pixel-exact at any scale). Animated
+  via `background-position` keyframes
+  that advance exactly one whole 12px cell per cycle so the loop wraps
+  seamlessly (no phase-jump seam), ~0.4s `steps(4, end)` infinite — chunky and
+  steppy, not smooth. Override the tile via `--vf-progress-stripes`.
 - **Behavior:** `role="progressbar"` + `aria-valuenow/min/max` (omit valuenow
   when indeterminate).
 - **Parts:** `track`, `fill`.

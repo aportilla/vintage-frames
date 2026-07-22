@@ -49,13 +49,26 @@ export class VfProgressBar extends LitElement {
       .fill.stripes {
         width: 100%;
         border-right: none;
-        background: repeating-linear-gradient(
-          45deg,
-          var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 4px),
-          var(--vf-white, #fff) calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 8px)
+        /* Chunky 45° barber stripes as a crisp 1-bit SVG tile: a 12×12
+           system-px cell whose two black \ bands are drawn as a staircase of
+           axis-aligned 1px rects (genuine pixel art) over a themeable white
+           ground, meeting seamlessly when tiled. Every edge is horizontal or
+           vertical — a *diagonal* polygon edge only rasterizes crisply at the
+           SVG's own resolution and then blurs to a gray fringe when the
+           background is scaled up, whereas these rects stay pixel-exact at any
+           scale (same reason the desktop dither uses rects). --vf-scale maps
+           each system pixel to whole device pixels; each staircase step is one
+           whole system pixel. Override the whole pattern via
+           --vf-progress-stripes. */
+        background-color: var(--vf-white, #fff);
+        background-image: var(
+          --vf-progress-stripes,
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' shape-rendering='crispEdges'%3E%3Crect x='0' y='0' width='6' height='1'/%3E%3Crect x='1' y='1' width='6' height='1'/%3E%3Crect x='2' y='2' width='6' height='1'/%3E%3Crect x='3' y='3' width='6' height='1'/%3E%3Crect x='4' y='4' width='6' height='1'/%3E%3Crect x='5' y='5' width='6' height='1'/%3E%3Crect x='6' y='6' width='6' height='1'/%3E%3Crect x='0' y='7' width='1' height='1'/%3E%3Crect x='7' y='7' width='5' height='1'/%3E%3Crect x='0' y='8' width='2' height='1'/%3E%3Crect x='8' y='8' width='4' height='1'/%3E%3Crect x='0' y='9' width='3' height='1'/%3E%3Crect x='9' y='9' width='3' height='1'/%3E%3Crect x='0' y='10' width='4' height='1'/%3E%3Crect x='10' y='10' width='2' height='1'/%3E%3Crect x='0' y='11' width='5' height='1'/%3E%3Crect x='11' y='11' width='1' height='1'/%3E%3C/svg%3E")
         );
-        /* One stripe period (8px pitch at 45° ≈ 11.31px horizontally) in 4
-           chunky steps — steppy, not smooth. */
+        background-size: calc(var(--vf-scale, 1) * 12px) calc(var(--vf-scale, 1) * 12px);
+        /* Advance exactly one whole cell (12px) per cycle so the loop wraps
+           with zero phase jump (no seam), in 4 chunky steps — steppy, not
+           smooth. */
         animation: vf-barber 0.4s steps(4, end) infinite;
       }
       @keyframes vf-barber {
@@ -63,7 +76,7 @@ export class VfProgressBar extends LitElement {
           background-position: 0 0;
         }
         to {
-          background-position: calc(var(--vf-scale, 1) * 11.31px) 0;
+          background-position: calc(var(--vf-scale, 1) * 12px) 0;
         }
       }
       @media (prefers-reduced-motion: reduce) {

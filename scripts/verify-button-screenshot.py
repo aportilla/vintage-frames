@@ -162,6 +162,11 @@ def main():
         if not expect_focus_ring:
             check(f"{name}: corner notches transparent", not bad_outside, str(bad_outside[:5]))
 
+    # The dragged test window lives right of x=250; the button column left of
+    # it. Split before ordering.
+    window_islands = [i for i in islands if i[1] >= 250]
+    islands = [i for i in islands if i[1] < 250]
+
     # The focus outline may render as one connected ring island whose bbox
     # contains the focused button's — pull it out before ordering buttons.
     # The default-button ring ALSO contains its inner button, but at exactly
@@ -261,6 +266,35 @@ def main():
     (y0, x0, x1, y1) = islands[4]
     check("small: height 16", y1 - y0 + 1 == 16, f"got {y1 - y0 + 1}")
     check_button(x0, y0, x1, y1, "small")
+
+    # dragged window: after fractional-position + fractional-drag repro, the
+    # snapped window must rasterize entirely in pure black/white (its border,
+    # stripes, ChiKareGo title, shadow, and the button inside) — a single
+    # off-grid coordinate would fringe hundreds of pixels gray.
+    check("window: dragged test window present", len(window_islands) == 1,
+          f"got {len(window_islands)}")
+    if window_islands:
+        (y0, x0, x1, y1) = window_islands[0]
+        impure = [
+            (x, y, px[y][x])
+            for y in range(y0, y1 + 1)
+            for x in range(x0, x1 + 1)
+            if not (
+                is_bg(px[y][x])
+                or (px[y][x][0], px[y][x][1], px[y][x][2]) in ((0, 0, 0), (255, 255, 255))
+            )
+        ]
+        check("window: zero fringing (pure black/white only)", not impure,
+              f"{len(impure)} impure, first 10: {impure[:10]}")
+
+    # the page script turns the marker lime only when the window's inline
+    # top/left landed on whole device pixels
+    marker = px[18][width - 18]
+    check(
+        "window: JS coordinates snapped to device grid (marker lime)",
+        marker[0] < 64 and marker[1] > 192 and marker[2] < 64,
+        f"marker pixel = {marker}",
+    )
 
     print("\nALL SCREENSHOT CHECKS PASSED" if ok else "\nFAILURES — see above")
     sys.exit(0 if ok else 1)

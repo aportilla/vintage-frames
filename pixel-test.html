@@ -31,15 +31,60 @@
     <vf-button id="disabled" disabled>Button</vf-button>
     <vf-button id="focused">Button</vf-button>
     <vf-button id="small" size="small">Button</vf-button>
+
+    <!-- Fringe repro: a movable window at a deliberately fractional
+         stylesheet position, dragged by fractional pointer deltas. After the
+         device-grid snapping in vf-window the whole island must rasterize in
+         pure black/white — scripts/verify-button-screenshot.py asserts it. -->
+    <vf-window
+      id="win"
+      heading="Drag"
+      movable
+      style="position: absolute; top: 130.467px; left: 300.333px; width: 150px"
+    >
+      <vf-button>Button</vf-button>
+    </vf-window>
+    <!-- Turns lime when the dragged window's inline top/left land on whole
+         device pixels; stays red otherwise. -->
+    <div
+      id="marker"
+      style="position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; background: red"
+    ></div>
+
     <script type="module">
       // Give the fourth button keyboard focus so the screenshot captures the
       // dotted :focus-visible outline (proves clip-path doesn't swallow it).
       await customElements.whenDefined('vf-button')
       const btn = document.getElementById('focused')
-      btn.querySelector === undefined // noop
       // focus({focusVisible}) keeps the outline for programmatic focus where
       // supported; keyboard-simulated focus in the harness also works.
       btn.focus({ focusVisible: true })
+
+      // Simulate a title-bar drag with fractional deltas (trackpads report
+      // fractional clientX/Y). setPointerCapture throws on synthetic pointer
+      // ids inside the handler — harmless, the drag state is already seeded.
+      await customElements.whenDefined('vf-window')
+      const win = document.getElementById('win')
+      await win.updateComplete
+      const bar = win.shadowRoot.querySelector('.title-bar')
+      const rect = bar.getBoundingClientRect()
+      const opts = { bubbles: true, composed: true, pointerId: 7, button: 0 }
+      const at = (dx, dy) => ({
+        ...opts,
+        clientX: rect.left + 20.3 + dx,
+        clientY: rect.top + 5.7 + dy,
+      })
+      bar.dispatchEvent(new PointerEvent('pointerdown', at(0, 0)))
+      bar.dispatchEvent(new PointerEvent('pointermove', at(13.6, 11.5)))
+      bar.dispatchEvent(new PointerEvent('pointerup', at(13.6, 11.5)))
+
+      const dpr = window.devicePixelRatio || 1
+      const toDevice = (v) => parseFloat(v) * dpr
+      const onGrid = ['top', 'left'].every((side) => {
+        const device = toDevice(win.style[side])
+        return Number.isFinite(device) && Math.abs(device - Math.round(device)) < 1e-6
+      })
+      document.getElementById('marker').style.background = onGrid ? '#0f0' : 'red'
     </script>
   </body>
 </html>

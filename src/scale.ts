@@ -46,6 +46,45 @@ export function toSys(value: number): number {
 }
 
 /**
+ * Snap a CSS-px coordinate onto the device-pixel grid.
+ *
+ * The 1-bit art is only crisp when its container's origin sits on a whole
+ * device pixel: at a fractional origin every edge inside — clip-path
+ * staircases, 1px borders, stripes, dithers, bitmap glyphs — rasterizes with
+ * fractional coverage and grows a gray antialiasing fringe. Positions
+ * declared in CSS as `calc(var(--vf-scale) * Npx)` land on the grid by
+ * construction (N system px = 3N device px), but positions written from JS
+ * (pointer drags report fractional clientX/Y on trackpads, computed styles
+ * resolve percentages fractionally) must round through this before being
+ * applied.
+ */
+export function snapToDevicePx(value: number): number {
+  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+  return Math.round(value * dpr) / dpr
+}
+
+/**
+ * Pin a native `<dialog>`'s auto-centered position onto the device-pixel
+ * grid. The UA centers `margin: auto` dialogs at half-pixel offsets whenever
+ * viewport minus dialog size is odd, putting all the chrome inside off-grid.
+ * Call after `showModal()` (layout is forced synchronously); the snapped
+ * offsets are pinned as inline margins, so clear them on close to let the
+ * next open re-center. The dialog stays put if the viewport resizes while
+ * open — System 7 modals didn't chase the screen either.
+ */
+export function snapDialogToGrid(dialog: HTMLDialogElement): void {
+  const rect = dialog.getBoundingClientRect()
+  dialog.style.marginLeft = `${snapToDevicePx(rect.left)}px`
+  dialog.style.marginTop = `${snapToDevicePx(rect.top)}px`
+}
+
+/** Undo {@link snapDialogToGrid} so the next open re-centers. */
+export function unsnapDialog(dialog: HTMLDialogElement): void {
+  dialog.style.marginLeft = ''
+  dialog.style.marginTop = ''
+}
+
+/**
  * Watch for `devicePixelRatio` changes — the window moving to a monitor with a
  * different density, or the user changing browser zoom — and invoke `callback`
  * with the new scale. Returns a cleanup function.

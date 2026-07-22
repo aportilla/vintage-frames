@@ -2,7 +2,7 @@ import { html, css, LitElement } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfStripes, vfDisplayDecls } from '../styles/base.js'
-import { ScaleController } from '../scale.js'
+import { ScaleController, snapDialogToGrid, unsnapDialog } from '../scale.js'
 
 /**
  * `<vf-dialog>` — the System 7 movable-modal dialog.
@@ -96,13 +96,21 @@ export class VfDialog extends LitElement {
   /** Open the dialog modally (native `showModal()`). */
   show(): void {
     this.open = true
-    if (this.hasUpdated && !this._dialog.open) this._dialog.showModal()
+    if (this.hasUpdated && !this._dialog.open) {
+      this._dialog.showModal()
+      // Pin the UA's auto-centering onto the device-pixel grid — half-pixel
+      // centering offsets fringe all the 1-bit chrome inside (see scale.ts).
+      snapDialogToGrid(this._dialog)
+    }
   }
 
   /** Close the dialog. Fires `vf-close` with `{ reason: 'close' }`. */
   close(): void {
     this.open = false
-    if (this.hasUpdated && this._dialog.open) this._dialog.close()
+    if (this.hasUpdated && this._dialog.open) {
+      this._dialog.close()
+      unsnapDialog(this._dialog)
+    }
   }
 
   protected override updated(changed: PropertyValues<this>): void {
@@ -110,8 +118,10 @@ export class VfDialog extends LitElement {
       const dialog = this._dialog
       if (this.open && !dialog.open) {
         dialog.showModal()
+        snapDialogToGrid(dialog)
       } else if (!this.open && dialog.open) {
         dialog.close()
+        unsnapDialog(dialog)
       }
     }
   }

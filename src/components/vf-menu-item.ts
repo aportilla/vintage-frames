@@ -62,7 +62,7 @@ export class VfMenuItem extends LitElement {
         margin-left: calc(var(--vf-scale, 1) * 24px);
       }
       :host([disabled]) .item {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
       /* Highlight = full-width inversion (hover, keyboard focus, blink "on"). */
       :host(:not([disabled])) .item:hover,

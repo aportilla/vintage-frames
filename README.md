@@ -52,7 +52,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-dialog` | Movable-modal dialog (native `<dialog>` under the hood) |
 | `vf-alert` | Classic double-framed modal alert |
 | `vf-separator` | 1px rule (horizontal/vertical; dims inside menus) |
-| `vf-button` | Push button; `variant="default"` renders the double-ring default button |
+| `vf-button` | Push button with pixel-stepped corners (no antialiased `border-radius`); `variant="default"` renders the double-ring default button, `size="small"` the compact 16px one |
 | `vf-checkbox` | Checkbox with the classic ✕ mark |
 | `vf-radio`, `vf-radio-group` | Radio buttons with form-associated group |
 | `vf-text-field`, `vf-text-area` | Bordered text inputs |

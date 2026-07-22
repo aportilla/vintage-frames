@@ -45,7 +45,7 @@ export class VfOption extends LitElement {
       }
       :host([disabled]) {
         background: var(--vf-white, #fff);
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
       .check {
         position: absolute;

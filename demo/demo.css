@@ -219,7 +219,7 @@ vf-desktop {
    dimmed-dotted recipe vf-menu uses for its separators. */
 .newdoc-rule {
   --vf-separator-style: dotted;
-  --vf-separator-color: var(--vf-disabled, #808080);
+  --vf-separator-color: var(--vf-disabled, #c0c0c0);
 }
 
 .newdoc-row {

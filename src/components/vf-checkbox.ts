@@ -78,7 +78,7 @@ export class VfCheckbox extends LitElement {
       /* Disabled: the box and ✕ glyph stay solid black — System 7 dims the
          label, not the control. (.dim still suppresses the press feedback.) */
       .label.dim {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
     `,
   ]

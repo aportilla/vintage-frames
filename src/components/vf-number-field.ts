@@ -64,13 +64,13 @@ export class VfNumberField extends LitElement {
         box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
       }
       input::placeholder {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
         font-weight: inherit;
         opacity: 1;
       }
       /* Disabled: the value dims to gray; the black box + stepper stay black. */
       input:disabled {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
         box-shadow: none;
       }
 

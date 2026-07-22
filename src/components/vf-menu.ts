@@ -54,7 +54,7 @@ export class VfMenu extends LitElement {
         padding: calc(var(--vf-scale, 1) * 2px) 0;
         z-index: 1000;
         /* Slotted vf-separators render as the classic dimmed dotted menu rule. */
-        --vf-separator-color: var(--vf-disabled, #808080);
+        --vf-separator-color: var(--vf-disabled, #c0c0c0);
         --vf-separator-style: dotted;
       }
       :host(:not([open])) .panel {

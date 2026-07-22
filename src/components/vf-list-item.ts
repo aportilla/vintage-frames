@@ -37,7 +37,7 @@ export class VfListItem extends LitElement {
         color: var(--vf-highlight-text, #fff);
       }
       :host([disabled]) {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
     `,
   ]

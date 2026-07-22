@@ -54,13 +54,13 @@ export class VfTextField extends LitElement {
         box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
       }
       input::placeholder {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
         font-weight: inherit;
         opacity: 1;
       }
       /* Disabled: the text dims to gray; the solid black box border stays. */
       input:disabled {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
         box-shadow: none;
       }
     `,

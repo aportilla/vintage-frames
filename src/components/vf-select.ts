@@ -87,7 +87,7 @@ export class VfSelect extends LitElement {
          stay solid black (System 7 dims the label, not the control). */
       :host([disabled]) .label,
       .control.disabled .label {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
       .panel {
         display: none;

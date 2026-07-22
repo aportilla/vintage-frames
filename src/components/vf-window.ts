@@ -94,7 +94,7 @@ export class VfWindow extends LitElement {
         text-overflow: ellipsis;
       }
       :host(:not([active])) .title {
-        color: var(--vf-disabled, #808080);
+        color: var(--vf-disabled, #c0c0c0);
       }
 
       /* --- Window widgets (close / zoom boxes) ----------------------- */

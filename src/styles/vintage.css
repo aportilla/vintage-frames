@@ -22,11 +22,11 @@
    * --vf-font-weight: 700;
    * --vf-black: #000000;
    * --vf-white: #ffffff;
-   * --vf-disabled: #808080;
+   * --vf-disabled: #c0c0c0;
    * --vf-desktop: #808080;
    * --vf-shadow-offset: 2px;
-   * --vf-radius: 6px;
    * --vf-control-height: 22px;
+   * --vf-control-height-small: 16px;
    * --vf-titlebar-height: 22px;
    * --vf-menubar-height: 24px;
    * --vf-focus-outline: 1px dotted #000;

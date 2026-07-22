@@ -1,15 +1,8 @@
 import { html, css, LitElement, nothing } from 'lit'
-import { customElement, property, query } from 'lit/decorators.js'
+import { customElement, property } from 'lit/decorators.js'
 import { vfBase, vfStripes, vfFocus, vfDisplayDecls } from '../styles/base.js'
 import { ScaleController, snapToDevicePx, sys } from '../scale.js'
-
-interface DragState {
-  pointerId: number
-  startX: number
-  startY: number
-  baseLeft: number
-  baseTop: number
-}
+import { DragController } from '../drag.js'
 
 interface ResizeState {
   pointerId: number
@@ -68,7 +61,7 @@ export class VfWindow extends LitElement {
       .title-bar {
         position: relative;
         flex: none;
-        height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 22px));
+        height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 18px));
         border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         display: flex;
         align-items: center;
@@ -100,10 +93,12 @@ export class VfWindow extends LitElement {
       /* --- Window widgets (close / zoom boxes) ----------------------- */
       .box {
         position: absolute;
-        top: calc(var(--vf-scale, 1) * 4px);
+        /* 11×11 box with 3px of clear white above and below it (title-bar
+           interior is 17px: 3 + 11 + 3). See SPEC §5 vf-window. */
+        top: calc(var(--vf-scale, 1) * 3px);
         z-index: 1;
-        width: calc(var(--vf-scale, 1) * 13px);
-        height: calc(var(--vf-scale, 1) * 13px);
+        width: calc(var(--vf-scale, 1) * 11px);
+        height: calc(var(--vf-scale, 1) * 11px);
         padding: 0;
         margin: 0;
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
@@ -129,10 +124,11 @@ export class VfWindow extends LitElement {
       .zoom::after {
         content: '';
         position: absolute;
+        /* Inner detail square, centered in the 11px box (2px inset all round). */
         top: calc(var(--vf-scale, 1) * 2px);
         left: calc(var(--vf-scale, 1) * 2px);
-        width: calc(var(--vf-scale, 1) * 7px);
-        height: calc(var(--vf-scale, 1) * 7px);
+        width: calc(var(--vf-scale, 1) * 5px);
+        height: calc(var(--vf-scale, 1) * 5px);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
       }
       .zoom:active::after {
@@ -212,12 +208,67 @@ export class VfWindow extends LitElement {
   /** Remove the default 12px body padding. */
   @property({ type: Boolean, reflect: true }) flush = false
 
-  @query('.title-bar') private _titleBar!: HTMLElement
-
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
-  private _dragState: DragState | null = null
+  /**
+   * Title-bar drag-to-move (shared with `vf-dialog` via {@link DragController}).
+   * The delegate seeds absolute positioning on the first drag and writes the
+   * snapped `left`/`top` back; the controller owns the pointer bookkeeping.
+   */
+  private readonly _drag = new DragController(this, {
+    onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
+      if (!this.movable || event.button !== 0) return null
+      // Ignore drags that start on the close/zoom widgets.
+      if (
+        event
+          .composedPath()
+          .some(
+            (node) =>
+              node instanceof HTMLElement && node.classList.contains('box')
+          )
+      ) {
+        return null
+      }
+      // Seed absolute positioning from the current in-flow offset the first
+      // time the window is dragged. Every coordinate is snapped: at a
+      // fractional origin all the 1-bit art inside grows a fringe (scale.ts).
+      const computed = getComputedStyle(this)
+      if (computed.position !== 'absolute') {
+        const left = snapToDevicePx(this.offsetLeft)
+        const top = snapToDevicePx(this.offsetTop)
+        this.style.position = 'absolute'
+        this.style.left = `${left}px`
+        this.style.top = `${top}px`
+        this.style.margin = '0'
+      } else if (this.style.left === '' || this.style.top === '') {
+        // Already absolute via a stylesheet but with no inline coordinates yet:
+        // seed them from the computed position so the drag math has a base
+        // (otherwise the first drag would jump the window to 0,0).
+        this.style.left = `${snapToDevicePx(parseFloat(computed.left) || 0)}px`
+        this.style.top = `${snapToDevicePx(parseFloat(computed.top) || 0)}px`
+      }
+      return {
+        x: parseFloat(this.style.left) || 0,
+        y: parseFloat(this.style.top) || 0,
+      }
+    },
+    onDrag: (x: number, y: number): void => {
+      // Keep a grabbable strip on-screen: clamp the origin against the
+      // positioning parent (the desktop, usually) so the window can't be
+      // dragged fully past an edge and lost. Re-snap after clamping so the
+      // clamped edge still lands on the device grid.
+      const parent = this.offsetParent as HTMLElement | null
+      const pw = parent?.clientWidth ?? window.innerWidth
+      const ph = parent?.clientHeight ?? window.innerHeight
+      const keep = sys(24) // px of the window that must stay reachable
+      const nx = Math.min(Math.max(x, keep - this.offsetWidth), pw - keep)
+      const ny = Math.min(Math.max(y, 0), Math.max(0, ph - keep))
+      this.style.left = `${snapToDevicePx(nx)}px`
+      this.style.top = `${snapToDevicePx(ny)}px`
+    },
+  })
+
   private _resizeState: ResizeState | null = null
 
   /** Dispatch a `vf-*` CustomEvent that bubbles and crosses shadow roots. */
@@ -233,70 +284,6 @@ export class VfWindow extends LitElement {
 
   private _onZoomClick(): void {
     this._emit('vf-zoom')
-  }
-
-  /* --- Title-bar dragging (movable) --------------------------------- */
-
-  private _onTitlePointerDown(event: PointerEvent): void {
-    if (!this.movable || event.button !== 0) return
-    // Ignore drags that start on the close/zoom widgets.
-    if (
-      event
-        .composedPath()
-        .some(
-          (node) =>
-            node instanceof HTMLElement && node.classList.contains('box')
-        )
-    ) {
-      return
-    }
-    // Seed absolute positioning from the current in-flow offset the first
-    // time the window is dragged. Every JS-written coordinate goes through
-    // snapToDevicePx: at a fractional origin all the 1-bit art inside the
-    // window grows an antialiasing fringe (see scale.ts).
-    const computed = getComputedStyle(this)
-    if (computed.position !== 'absolute') {
-      const left = snapToDevicePx(this.offsetLeft)
-      const top = snapToDevicePx(this.offsetTop)
-      this.style.position = 'absolute'
-      this.style.left = `${left}px`
-      this.style.top = `${top}px`
-      this.style.margin = '0'
-    } else if (this.style.left === '' || this.style.top === '') {
-      // Already absolute via a stylesheet but with no inline coordinates yet:
-      // seed them from the computed position so the drag math has a base
-      // (otherwise the first drag would jump the window to 0,0). Computed
-      // values resolve percentages etc. to fractional px — snap them.
-      this.style.left = `${snapToDevicePx(parseFloat(computed.left) || 0)}px`
-      this.style.top = `${snapToDevicePx(parseFloat(computed.top) || 0)}px`
-    }
-    this._dragState = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      baseLeft: parseFloat(this.style.left) || 0,
-      baseTop: parseFloat(this.style.top) || 0,
-    }
-    this._titleBar.setPointerCapture(event.pointerId)
-    event.preventDefault()
-  }
-
-  private _onTitlePointerMove(event: PointerEvent): void {
-    const drag = this._dragState
-    if (!drag || event.pointerId !== drag.pointerId) return
-    // Trackpads report fractional clientX/Y — snap every step of the drag so
-    // the window (and all the pixel art inside it) stays on the device grid.
-    this.style.left = `${snapToDevicePx(drag.baseLeft + (event.clientX - drag.startX))}px`
-    this.style.top = `${snapToDevicePx(drag.baseTop + (event.clientY - drag.startY))}px`
-  }
-
-  private _onTitlePointerEnd(event: PointerEvent): void {
-    const drag = this._dragState
-    if (!drag || event.pointerId !== drag.pointerId) return
-    this._dragState = null
-    if (this._titleBar.hasPointerCapture(event.pointerId)) {
-      this._titleBar.releasePointerCapture(event.pointerId)
-    }
   }
 
   /* --- Grow-box resizing (resizable) -------------------------------- */
@@ -347,10 +334,10 @@ export class VfWindow extends LitElement {
         <header
           class="title-bar"
           part="title-bar"
-          @pointerdown=${this._onTitlePointerDown}
-          @pointermove=${this._onTitlePointerMove}
-          @pointerup=${this._onTitlePointerEnd}
-          @pointercancel=${this._onTitlePointerEnd}
+          @pointerdown=${this._drag.onPointerDown}
+          @pointermove=${this._drag.onPointerMove}
+          @pointerup=${this._drag.onPointerUp}
+          @pointercancel=${this._drag.onPointerUp}
         >
           <div class="vf-stripes"></div>
           ${this.closable

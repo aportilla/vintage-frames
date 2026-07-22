@@ -4,6 +4,7 @@ import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
+import { prefersReducedMotion } from '../motion.js'
 
 /**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
@@ -104,6 +105,13 @@ export class VfMenuItem extends LitElement {
   #blinkTimer: number | undefined
   #blinking = false
 
+  /**
+   * Latches true once the item is ever `checked`, marking it a *checkable*
+   * item: it then carries `role="menuitemcheckbox"` with `aria-checked` kept in
+   * sync. Plain command items (never checked) stay `role="menuitem"`.
+   */
+  #checkable = false
+
   constructor() {
     super()
     // Bound on the host: keydown targets the focused host element and never
@@ -131,6 +139,15 @@ export class VfMenuItem extends LitElement {
     if (changed.has('disabled')) {
       if (this.disabled) this.setAttribute('aria-disabled', 'true')
       else this.removeAttribute('aria-disabled')
+    }
+    if (changed.has('checked')) {
+      // A checkable item announces its on/off state; promote the role and keep
+      // aria-checked in sync (aria-checked is only valid on the checkbox role).
+      if (this.checked) this.#checkable = true
+      if (this.#checkable) {
+        this.setAttribute('role', 'menuitemcheckbox')
+        this.setAttribute('aria-checked', this.checked ? 'true' : 'false')
+      }
     }
   }
 
@@ -177,6 +194,11 @@ export class VfMenuItem extends LitElement {
    */
   #activate(): void {
     if (this.disabled || this.#blinking) return
+    // Reduced motion: skip the ~250ms blink and select immediately.
+    if (prefersReducedMotion()) {
+      this.#dispatchSelect()
+      return
+    }
     this.#blinking = true
     // 6 phase flips = 3 full off/on blinks over ~250ms.
     let flips = 0

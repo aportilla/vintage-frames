@@ -53,6 +53,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-alert` | Classic double-framed modal alert |
 | `vf-separator` | 1px rule (horizontal/vertical; dims inside menus) |
 | `vf-button` | Push button with pixel-stepped corners (no antialiased `border-radius`); `variant="default"` renders the double-ring default button, `size="small"` the compact 16px one |
+| `vf-button-group` | Arranges buttons in a row (or `vertical` column), sizing them all to the widest — the classic System 7 shared width — unless `natural`; aligns their faces so a `variant="default"` button lines up with its neighbors |
 | `vf-checkbox` | Checkbox with the classic ✕ mark |
 | `vf-radio`, `vf-radio-group` | Radio buttons with form-associated group |
 | `vf-text-field`, `vf-text-area` | Bordered text inputs |

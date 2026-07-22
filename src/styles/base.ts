@@ -82,12 +82,14 @@ export const vfDisplay = css`
 
 /**
  * Racing stripes for title bars. Apply the class to an absolutely-positioned
- * layer inset 5px (top/bottom) and 2px (left/right) within the title bar.
+ * layer inset 3px (top/bottom) and 2px (left/right) within the title bar. At
+ * the 18px bar height this yields exactly six 1px stripes spanning the close
+ * box's top and bottom edges (title-bar interior 17px, stripes 11px tall).
  */
 export const vfStripes = css`
   .vf-stripes {
     position: absolute;
-    inset: calc(var(--vf-scale, 1) * 5px) calc(var(--vf-scale, 1) * 2px);
+    inset: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 2px);
     background: repeating-linear-gradient(
       to bottom,
       var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),

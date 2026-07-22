@@ -1,8 +1,8 @@
 import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement, property, query, state } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
-import { ScaleController } from '../scale.js'
+import { ScaleController, sys, toSys } from '../scale.js'
 
 /**
  * `<vf-progress-bar>` — the System 7 progress indicator.
@@ -85,10 +85,39 @@ export class VfProgressBar extends LitElement {
   /** Barber-pole "busy" mode; ignores `value` and omits `aria-valuenow`. */
   @property({ type: Boolean, reflect: true }) indeterminate = false
 
+  @query('.track') private track!: HTMLElement | null
+
+  /** Measured content width of the track, in px (from a ResizeObserver). */
+  @state() private trackWidth = 0
+
+  private resizeObserver?: ResizeObserver
+
   override connectedCallback(): void {
     super.connectedCallback()
     this.setAttribute('role', 'progressbar')
     this.setAttribute('aria-valuemin', '0')
+    this.observeTrack()
+  }
+
+  protected override firstUpdated(): void {
+    this.observeTrack()
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    this.resizeObserver?.disconnect()
+  }
+
+  /** Track the fill area's width so the determinate fill can snap to it. */
+  private observeTrack(): void {
+    if (!this.track) return
+    if (!this.resizeObserver) {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0]
+        if (entry) this.trackWidth = Math.floor(entry.contentRect.width)
+      })
+    }
+    this.resizeObserver.observe(this.track)
   }
 
   /** `value` clamped to `[0, max]` (with a non-positive `max` treated as 100). */
@@ -119,13 +148,19 @@ export class VfProgressBar extends LitElement {
       `
     }
     const max = this.max > 0 ? this.max : 100
-    const pct = (this.clampedValue / max) * 100
+    const fraction = this.clampedValue / max
+    // Snap the fill to whole system px so its 1px leading edge lands on the
+    // device grid (no antialiased fringe), the way the slider snaps its fill.
+    // Until the track is measured, fall back to a raw % so the bar still paints.
+    const sysW = toSys(this.trackWidth)
+    const width =
+      sysW > 0 ? `${sys(Math.round(fraction * sysW))}px` : `${fraction * 100}%`
     return html`
       <div class="track" part="track">
         <div
-          class="fill ${pct <= 0 ? 'empty' : ''}"
+          class="fill ${fraction <= 0 ? 'empty' : ''}"
           part="fill"
-          style="width: ${pct}%"
+          style="width: ${width}"
         ></div>
       </div>
     `

@@ -24,6 +24,7 @@
 .field-label,
 .group-label,
 .newdoc-label,
+.newimage-label,
 .find-label {
   font-family: var(
     --vf-font-family-display,
@@ -182,11 +183,10 @@ vf-desktop {
   min-width: 0;
 }
 
+/* The button showcase is a natural-width vf-button-group; only add wrapping so
+   it reflows on a narrow panel (the group supplies display, gap and alignment). */
 .button-row {
-  display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: calc(var(--vf-scale, 1) * 12px);
 }
 
 .da-list {
@@ -365,13 +365,66 @@ vf-desktop {
 .about-body p {
   margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
-.about-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: calc(var(--vf-scale, 1) * 16px);
-}
 
 .alert-message {
   display: inline-block;
   max-width: calc(var(--vf-scale, 1) * 300px);
+}
+
+/* --------------------- Photoshop "New" image dialog -------------------- */
+
+#win-newimage {
+  position: absolute;
+  left: calc(var(--vf-scale, 1) * 700px);
+  top: calc(var(--vf-scale, 1) * 540px);
+  width: calc(var(--vf-scale, 1) * 470px);
+}
+
+/* The form on the left, the stacked OK / Cancel group pinned top-right. */
+.newimage {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--vf-scale, 1) * 16px);
+}
+.newimage-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--vf-scale, 1) * 12px);
+}
+.newimage-actions {
+  flex: none;
+  /* Tighter than the 12px dialog default — Photoshop stacked OK/Cancel close.
+     Unscaled: the group multiplies it by --vf-scale internally. */
+  --vf-button-group-gap: 6px;
+}
+
+/* A label beside its control(s). */
+.newimage-field {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--vf-scale, 1) * 8px);
+}
+.newimage-label {
+  flex: none;
+}
+/* The Name field grows to fill its row. */
+.newimage-name {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Image Size rows share a fixed label column so every field lands on one x. */
+.newimage-sizes {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--vf-scale, 1) * 8px);
+}
+.newimage-label.size {
+  min-width: calc(var(--vf-scale, 1) * 92px);
+}
+.newimage-num {
+  flex: none;
+  width: calc(var(--vf-scale, 1) * 52px);
 }

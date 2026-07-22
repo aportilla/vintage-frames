@@ -36,7 +36,9 @@ The System 7 look, distilled:
   solid white — no bevels.
 - **No gradients, no border-radius, no CSS transitions** — interactions are
   instant. The single sanctioned animation is the classic menu-item "blink" on
-  selection and the indeterminate progress stripes. Even the button's rounded
+  selection and the indeterminate progress stripes — both suppressed under
+  `prefers-reduced-motion: reduce` (the blink selects immediately). Even the
+  button's rounded
   corners are not `border-radius` arcs: they are stepped `clip-path`
   silhouettes traced pixel-for-pixel from the reference sheet
   (`src/pixel-frame.ts`), so the 1-bit staircase renders with no antialiasing.
@@ -104,7 +106,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-control-height` | `22px` | buttons, selects, text fields |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
-| `--vf-titlebar-height` | `22px` | window/dialog title bars |
+| `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
+| `--vf-titlebar-height` | `18px` | window/dialog title bars |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
 | `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
@@ -129,8 +132,9 @@ converts between system and CSS px with the `sys()` / `toSys()` helpers.
   (text inputs re-enable), `:host([hidden]) { display: none !important }`.
 - `vfStripes` — a `.vf-stripes` class:
   `background: repeating-linear-gradient(to bottom, var(--vf-black, #000) 0 1px, transparent 1px 2px);`
-  Position it absolutely inside the title bar, inset `5px 2px` (top/bottom 5px,
-  left/right 2px) so ~6 stripes show at a 22px bar height.
+  Position it absolutely inside the title bar, inset `3px 2px` (top/bottom 3px,
+  left/right 2px) so exactly six 1px stripes show at the 18px bar height, their
+  top and bottom edges aligned with the close box's.
 - `vfPanel` — a `.vf-panel` class for menus/popups:
   white bg, `border: 1px solid var(--vf-black, #000)`,
   `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
@@ -173,16 +177,17 @@ The classic document window (see DragThing screenshot).
   removes body padding).
 - **Visual:** window frame recipe (§4). `display: block`. Sets
   `--vf-surface: var(--vf-white, #fff)` on itself.
-  - Title bar: height `var(--vf-titlebar-height, 22px)`, white bg, bottom
+  - Title bar: height `var(--vf-titlebar-height, 18px)`, white bg, bottom
     `1px solid black`, contains `.vf-stripes` layer (only when `active`).
   - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
     stripes. Inactive: no stripes, title color `var(--vf-disabled, #c0c0c0)`,
     widgets hidden.
-  - Close box: LEFT side, 13×13px, `1px solid black`, white bg, no bevel,
+  - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of
+    clear white above and below it, `1px solid black`, white bg, no bevel,
     surrounded by a 2px white patch interrupting the stripes. `:active` →
     inverts to black.
-  - Zoom box: RIGHT side, same box, plus an inner 7×7 square outline anchored
-    top-left inside it.
+  - Zoom box: RIGHT side, same box, plus an inner 5×5 square outline centered
+    inside it.
   - Body: `padding: 12px` (0 if `flush`).
   - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black
     top/left borders, containing two overlapping small square outlines.
@@ -201,13 +206,18 @@ widgets, white body.
 - **Attributes/props:** `open: boolean` (reflect), `heading: string`.
 - **Implementation:** wraps a native `<dialog>` (for top-layer + focus trap).
   `show()` → `showModal()`; `close()` closes. Keep `open` attr in sync both
-  directions. Escape → close + `vf-close` detail `{ reason: 'escape' }`;
+  directions. Drag the title bar to move it (shared `DragController` with
+  `vf-window`), rewriting the grid-pinned centering margins. Escape → close +
+  `vf-close` detail `{ reason: 'escape' }`;
   programmatic/close() → `{ reason: 'close' }`. No backdrop dimming:
   `::backdrop { background: transparent; }`.
 - **Visual:** frame recipe (§4); title bar identical to `vf-window` (stripes +
   centered title, no boxes); body is WHITE (`--vf-surface: #fff`), separated
-  from title bar by 1px black line, `padding: 16px`.
-- **Slots:** default. **Parts:** `frame`, `title-bar`, `title`, `body`.
+  from title bar by 1px black line, `padding: 16px`. An optional `buttons` slot
+  renders a bottom-right `vf-button-group` footer that only takes space when
+  populated (equal-width, faces aligned).
+- **Slots:** default, `buttons`.
+- **Parts:** `frame`, `title-bar`, `title`, `body`, `footer`, `buttons`.
 - **Events:** `vf-close`.
 
 #### `vf-alert` (`VfAlert`, vf-alert.ts)
@@ -218,7 +228,8 @@ Classic fixed modal alert: double black frame, no title bar.
 - **Visual:** outer `border: 2px solid black`; inner frame: a wrapper with
   `margin: 2px; border: 1px solid black;` (classic double-rule). Body white,
   `padding: 16px 20px`, drop shadow `2px 2px 0 0 black`. Layout: icon column
-  (32px) left, message right; buttons row bottom-right with 12px gap.
+  (32px) left, message right; the `buttons` slot is a bottom-right
+  `vf-button-group` (equal-width, faces aligned; classic 12px gap).
 - **Slots:** `icon`, default (message), `buttons`.
 - **Parts:** `frame`, `icon`, `message`, `buttons`.
 - **Events:** `vf-close` (detail `{ reason }`).
@@ -264,11 +275,39 @@ Classic fixed modal alert: double black frame, no title bar.
     donut polygon (outer corner insets `[5,3,2,1,1]`; hole opens at row 3 with
     insets `[6,4,4]`, then 3px inside). The band is 3px thick with a 1px
     fully transparent gap to the button, per the reference's alpha-0 gap
-    pixels (host needs `position: relative` and 4px breathing room via margin).
+    pixels (host needs `position: relative` and 4px breathing room via margin,
+    tokenized `--vf-button-ring-margin` so `vf-button-group` can zero it).
+- **Group hooks:** the ring margin reads `--vf-button-ring-margin` (default
+  `4px`) and the inner button's flex reads `--vf-button-flex` (default
+  `0 1 auto`); `vf-button-group` sets these to `0` and `1 1 auto` so grouped
+  faces align and stretch to a shared width. Standalone, both defaults are inert.
 - **Behavior:** form-associated. `type="submit"` → `this.internals.form?.requestSubmit()`;
   `reset` → `form?.reset()`. Enter/Space work natively via inner button.
 - **Slots:** default (label). **Parts:** `button`.
 - **Events:** none custom (native `click` suffices).
+
+#### `vf-button-group` (`VfButtonGroup`, vf-button-group.ts)
+- **Attributes/props:** `vertical` (stack in a column instead of a row),
+  `natural` (let each button keep its own content width; off by default, so
+  grouped buttons are uniform width — the classic System 7 dialog behavior).
+- **Visual:** `display: inline-grid`, shrink-wrapped to its buttons. Uniform
+  (default): one auto column per button, all `grid-auto-columns: 1fr`, so under
+  the shrink-wrapped grid they equalize to the widest button's intrinsic width;
+  `align-items: center` puts every face on one baseline (a `size="small"` button
+  still shares the row). Gap is `--vf-button-group-gap` (default 12px).
+  `vertical` switches to `grid-auto-flow: row` (a single column sized to the
+  widest, each button stretched to it). `natural` falls back to `inline-flex`
+  so the columns don't equalize.
+- **Face alignment (the point):** a `variant="default"` button reserves its ring
+  with a 4px `--vf-button-ring-margin` margin, so an ad-hoc flex row lines up the
+  *ring*, not the button. The group sets that margin to `0` and reserves the
+  ring space itself as 4px (`RING_INSET`) padding, then centers the cross axis —
+  so button *faces* align and equalize, not margin boxes. Buttons fill their
+  column via the inherited `--vf-button-flex`. Pure CSS; no measurement.
+- **Layout-neutral:** shrink-wraps to its buttons; the parent positions it (e.g.
+  `justify-self: end` for a bottom-right action row). `vf-alert` and `vf-dialog`
+  wrap their `buttons` slots in one.
+- **Slots:** default (vf-button elements). **Parts:** none. **Events:** none.
 
 #### `vf-checkbox` (`VfCheckbox`, vf-checkbox.ts)
 - **Attributes/props:** `checked`, `disabled`, `name`, `value` (default `'on'`).
@@ -452,8 +491,10 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Visual:** height 22px, `padding: 0 12px 0 22px` (left gutter for ✓),
   shortcut right-aligned with 24px min gap, `color: var(--vf-disabled)` when
   disabled. Hover (not disabled): full-width inversion.
-- **Behavior:** `role="menuitem"`. On click: classic **blink** (invert toggles
-  3 times over ~250ms via timer), then dispatch `vf-select` detail
+- **Behavior:** `role="menuitem"` — or `role="menuitemcheckbox"` with
+  `aria-checked` once the item is (or has been) `checked`. On click: classic
+  **blink** (invert toggles 3 times over ~250ms via timer; skipped under
+  `prefers-reduced-motion`, selecting at once), then dispatch `vf-select` detail
   `{ value, item }` and signal ancestors to close the menu.
 - **Slots:** default (label). **Parts:** `item`, `check`, `label`, `shortcut`.
 - **Events:** `vf-select`.

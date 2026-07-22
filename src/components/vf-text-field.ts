@@ -31,6 +31,10 @@ export class VfTextField extends LitElement {
     css`
       :host {
         display: inline-block;
+        /* A sensible default width (authored system px, scaled) so a bare field
+           doesn't collapse; the inner control fills it. Override with a width
+           on the host or the --vf-field-width token. */
+        width: calc(var(--vf-scale, 1) * var(--vf-field-width, 180px));
       }
       input {
         display: block;

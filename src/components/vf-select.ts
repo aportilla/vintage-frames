@@ -5,6 +5,7 @@ import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, snapToDevicePx, sys } from '../scale.js'
+import { prefersReducedMotion } from '../motion.js'
 
 /**
  * `<vf-select>` — the classic System 7 popup menu control ("Macintosh HD ▼").
@@ -241,6 +242,7 @@ export class VfSelect extends LitElement {
     this.open = true
     document.addEventListener('pointerdown', this.handleDocumentPointerDown, true)
     window.addEventListener('scroll', this.handleWindowScroll, true)
+    window.addEventListener('resize', this.handleWindowResize)
     await this.updateComplete
     const options = this.optionItems
     let index = options.findIndex((o) => o.selected && !o.disabled)
@@ -287,6 +289,7 @@ export class VfSelect extends LitElement {
   private removeDocumentListeners(): void {
     document.removeEventListener('pointerdown', this.handleDocumentPointerDown, true)
     window.removeEventListener('scroll', this.handleWindowScroll, true)
+    window.removeEventListener('resize', this.handleWindowResize)
   }
 
   // ------------------------------------------------------------- highlight
@@ -347,6 +350,11 @@ export class VfSelect extends LitElement {
     this.optionItems.forEach((o, i) => {
       o.active = i === index
     })
+    // Reduced motion: skip the ~250ms blink and commit immediately.
+    if (prefersReducedMotion()) {
+      this.commit(option)
+      return
+    }
     this.blinking = true
     let ticks = 0
     this.blinkTimer = window.setInterval(() => {
@@ -484,10 +492,22 @@ export class VfSelect extends LitElement {
     this.closePanel(false)
   }
 
+  /** Close on viewport resize: the fixed panel was placed from the control's
+   *  rect when it opened and would otherwise drift out of alignment. */
+  private handleWindowResize = (): void => {
+    if (this.blinking) return
+    this.closePanel(false)
+  }
+
   // ---------------------------------------------------------------- render
 
   protected override render() {
-    const selected = this.optionItems.find((o) => o.selected)
+    // Derive the label from `value` (the reactive source of truth), not from
+    // each option's `selected` flag. Those flags are refreshed by
+    // applySelection() in updated(), which runs *after* render(), so reading
+    // them here paints the previously-selected label for a cycle — and because
+    // flipping a child's flag doesn't re-render this host, it stays stale.
+    const selected = this.optionItems.find((o) => this.optionValue(o) === this.value)
     const selectedLabel = selected ? (selected.textContent ?? '').trim() : ''
     const disabled = this.isDisabled
     return html`

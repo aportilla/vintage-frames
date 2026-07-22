@@ -180,8 +180,8 @@ The classic document window (see DragThing screenshot).
   - Title bar: height `var(--vf-titlebar-height, 18px)`, white bg, bottom
     `1px solid black`, contains `.vf-stripes` layer (only when `active`).
   - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
-    stripes. Inactive: no stripes, title color `var(--vf-disabled, #c0c0c0)`,
-    widgets hidden.
+    stripes. Inactive: no stripes and widgets hidden, but the title text stays
+    black (System 7 never grayed the window title).
   - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of
     clear white above and below it, `1px solid black`, white bg, no bevel,
     surrounded by a 2px white patch interrupting the stripes. `:active` →

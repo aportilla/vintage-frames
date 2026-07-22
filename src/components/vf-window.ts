@@ -86,9 +86,8 @@ export class VfWindow extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      :host(:not([active])) .title {
-        color: var(--vf-disabled, #c0c0c0);
-      }
+      /* Inactive window: stripes and widgets go away, but the title text
+         stays black — classic System 7 never grayed the title. */
 
       /* --- Window widgets (close / zoom boxes) ----------------------- */
       .box {

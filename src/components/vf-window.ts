@@ -1,7 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import { vfBase, vfStripes, vfFocus, vfDisplayDecls } from '../styles/base.js'
-import { ScaleController, sys } from '../scale.js'
+import { ScaleController, snapToDevicePx, sys } from '../scale.js'
 
 interface DragState {
   pointerId: number
@@ -251,11 +251,13 @@ export class VfWindow extends LitElement {
       return
     }
     // Seed absolute positioning from the current in-flow offset the first
-    // time the window is dragged.
+    // time the window is dragged. Every JS-written coordinate goes through
+    // snapToDevicePx: at a fractional origin all the 1-bit art inside the
+    // window grows an antialiasing fringe (see scale.ts).
     const computed = getComputedStyle(this)
     if (computed.position !== 'absolute') {
-      const left = this.offsetLeft
-      const top = this.offsetTop
+      const left = snapToDevicePx(this.offsetLeft)
+      const top = snapToDevicePx(this.offsetTop)
       this.style.position = 'absolute'
       this.style.left = `${left}px`
       this.style.top = `${top}px`
@@ -263,9 +265,10 @@ export class VfWindow extends LitElement {
     } else if (this.style.left === '' || this.style.top === '') {
       // Already absolute via a stylesheet but with no inline coordinates yet:
       // seed them from the computed position so the drag math has a base
-      // (otherwise the first drag would jump the window to 0,0).
-      this.style.left = computed.left
-      this.style.top = computed.top
+      // (otherwise the first drag would jump the window to 0,0). Computed
+      // values resolve percentages etc. to fractional px — snap them.
+      this.style.left = `${snapToDevicePx(parseFloat(computed.left) || 0)}px`
+      this.style.top = `${snapToDevicePx(parseFloat(computed.top) || 0)}px`
     }
     this._dragState = {
       pointerId: event.pointerId,
@@ -281,8 +284,10 @@ export class VfWindow extends LitElement {
   private _onTitlePointerMove(event: PointerEvent): void {
     const drag = this._dragState
     if (!drag || event.pointerId !== drag.pointerId) return
-    this.style.left = `${drag.baseLeft + (event.clientX - drag.startX)}px`
-    this.style.top = `${drag.baseTop + (event.clientY - drag.startY)}px`
+    // Trackpads report fractional clientX/Y — snap every step of the drag so
+    // the window (and all the pixel art inside it) stays on the device grid.
+    this.style.left = `${snapToDevicePx(drag.baseLeft + (event.clientX - drag.startX))}px`
+    this.style.top = `${snapToDevicePx(drag.baseTop + (event.clientY - drag.startY))}px`
   }
 
   private _onTitlePointerEnd(event: PointerEvent): void {
@@ -315,14 +320,15 @@ export class VfWindow extends LitElement {
     const resize = this._resizeState
     if (!resize || event.pointerId !== resize.pointerId) return
     // Minimums are in system px; getBoundingClientRect/clientX are real (scaled)
-    // CSS px, so convert the floors with sys().
+    // CSS px, so convert the floors with sys(). Snapped so the right/bottom
+    // borders land on the device grid like the (snapped) left/top edges.
     const width = Math.max(sys(80), resize.baseWidth + (event.clientX - resize.startX))
     const height = Math.max(
       sys(54),
       resize.baseHeight + (event.clientY - resize.startY)
     )
-    this.style.width = `${width}px`
-    this.style.height = `${height}px`
+    this.style.width = `${snapToDevicePx(width)}px`
+    this.style.height = `${snapToDevicePx(height)}px`
   }
 
   private _onGrowPointerEnd(event: PointerEvent): void {

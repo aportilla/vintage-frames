@@ -4,7 +4,7 @@ import { customElement, property, query, queryAssignedElements, state } from 'li
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
-import { ScaleController, sys } from '../scale.js'
+import { ScaleController, snapToDevicePx, sys } from '../scale.js'
 
 /**
  * `<vf-select>` — the classic System 7 popup menu control ("Macintosh HD ▼").
@@ -269,8 +269,10 @@ export class VfSelect extends LitElement {
     top = Math.max(sys(4), Math.min(top, window.innerHeight - panelRect.height - sys(4)))
     let left = rect.left
     left = Math.max(sys(4), Math.min(left, window.innerWidth - panelRect.width - sys(4)))
-    panel.style.top = `${top}px`
-    panel.style.left = `${left}px`
+    // The control's rect is wherever layout put it — snap the fixed panel
+    // onto the device grid so its 1px chrome stays fringe-free (scale.ts).
+    panel.style.top = `${snapToDevicePx(top)}px`
+    panel.style.left = `${snapToDevicePx(left)}px`
   }
 
   private closePanel(refocusControl: boolean): void {

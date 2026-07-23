@@ -106,6 +106,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-control-height` | `22px` | buttons, selects, text fields |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
+| `--vf-select-gutter` | `22px` | `vf-select` left inset / `vf-option` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
@@ -406,14 +407,28 @@ The classic popup menu control ("Macintosh HD ▼").
   `selected` (managed by parent); renders its slot; `role="option"`.
 - **Visual (closed control):** height `var(--vf-control-height, 22px)`, white
   bg, `1px solid black`, NO radius, `box-shadow: 1px 1px 0 0 var(--vf-black, #000)`
-  (the small hard shadow visible in the screenshot), `padding: 0 8px`, bold
-  label left, the black `CARET_DOWN` ▼ pixel glyph (inline SVG) right with
-  8px gap, min-width 120px. The ▼ stays black even when the control is disabled
-  (only the label dims).
-- **Visual (open):** panel uses `.vf-panel` recipe; items height 22px,
-  `padding: 0 20px 0 22px`; the currently-selected item shows a ✓ checkmark in
-  the left 22px gutter; hovered/active item inverts (black bg, white text);
-  disabled options gray.
+  (the small hard shadow visible in the screenshot), `padding: 0 8px 0
+  var(--vf-select-gutter, 22px)` — the left inset equals the option checkmark
+  gutter so the selected label sits at the same x closed or open — bold label
+  left, the black `CARET_DOWN` ▼ pixel glyph (inline SVG) right with 8px gap. The
+  ▼ stays black even when the control is disabled (only the label dims).
+  **Width:** the control hugs the *widest* option — no intrinsic min-width — via
+  an invisible, height-collapsed stack of every option's text sharing the label's
+  grid cell; so the closed pill and the open panel are always exactly the same
+  width and the value never shifts as the selection changes. Authors wanting a
+  floor set `min-width` on the host (or grow it in their layout, e.g. `flex: 1`).
+- **Visual (open):** panel uses the `.vf-panel` recipe but overrides
+  `--vf-shadow-offset: 1px` so its hard shadow matches the pill's (not the 2px
+  menu shadow). Positioned `position: fixed` to the control's exact width and
+  left (unsnapped, so the panel's left/right edges and shadow coincide with the
+  pill's). Item rows are height 20px — the pill's *content* height (`--vf-control-height`
+  minus its two 1px borders) — `padding: 0 20px 0 var(--vf-select-gutter, 22px)`;
+  the panel opens with the selected row's cell laid directly over the closed
+  pill (its top border on the pill's top border, extending downward), so the
+  selected label's position and surrounding whitespace are identical closed and
+  open. The currently-selected item shows a ✓ checkmark in the left
+  `--vf-select-gutter` column; hovered/active item inverts (black bg, white
+  text); disabled options gray.
 - **Behavior:** form-associated. Opens on click/Space/Enter/ArrowDown. Panel is
   positioned `position: fixed` from `getBoundingClientRect()` so it escapes
   clipping containers; closes on outside pointerdown, Escape, blur, scroll.

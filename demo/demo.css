@@ -228,10 +228,9 @@ vf-desktop {
   gap: calc(var(--vf-scale, 1) * 10px);
 }
 
-/* Insert DOCTYPE: the popup grows to fill the rest of the row. */
+/* Insert DOCTYPE: the popup hugs its widest option ("HTML 4.0 Transitional"). */
 .newdoc-doctype-select {
-  flex: 1;
-  min-width: 0;
+  flex: none;
 }
 
 /* HTML / Head / Body sit in a loosely-spaced row. */
@@ -299,10 +298,9 @@ vf-desktop {
   align-items: center;
   gap: calc(var(--vf-scale, 1) * 10px);
 }
-/* "Find items [on local disks ▼] whose" — the popup fills the middle. */
+/* "Find items [on local disks ▼] whose" — the popup hugs its widest option. */
 .find-scope-select {
-  flex: 1;
-  min-width: 0;
+  flex: none;
 }
 
 /* The criteria "well": a hairline dotted frame around the

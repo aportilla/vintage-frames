@@ -22,13 +22,14 @@ generated — never hand-edit them. Edit `add-glyphs.py` and re-run.
 
 ## Why we modify the fonts
 
-Both upstream faces are **Basic-Latin only**. UI text uses a few characters
-they lack — `⌘` (U+2318) in menu shortcuts, `…` (U+2026) in "Open…", and curly
-quotes `‘ ’ “ ”` in copy like "Don't" / "DragThing 2.9". Without them the
-browser silently falls back *per glyph* to the system font, so a smooth `⌘`
-renders beside the pixel label. `add-glyphs.py` draws those glyphs as pixels and
-injects them into each face so everything renders in one consistent bitmap
-style. (The `✓`, `▼` and scroll arrows are handled differently — as inline SVG
+Both upstream faces cover Basic Latin (FindersKeepers also ships much of
+Latin-1), but the UI and body copy use punctuation they lack — `⌘` (U+2318) in
+menu shortcuts, `…` (U+2026) in "Open…", curly quotes `‘ ’ “ ”`, the em/en
+dashes `— –` (U+2014/U+2013), the bullet `•` (U+2022) and `×` (U+00D7). Without
+them the browser silently falls back *per glyph* to the system font, so a smooth
+glyph renders beside the pixel label — the em dash in "US$25 — see the Read Me"
+was the giveaway. `add-glyphs.py` draws those glyphs as pixels and injects them
+into each face so everything renders in one consistent bitmap style. (The `✓`, `▼` and scroll arrows are handled differently — as inline SVG
 sprites in [`../src/glyphs.ts`](../src/glyphs.ts) and `base.ts`. Prefer a font
 glyph when the character appears in freeform/slotted text like a shortcut
 string; prefer a sprite when the component controls the exact markup.)

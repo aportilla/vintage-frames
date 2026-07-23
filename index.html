@@ -496,6 +496,39 @@
         </div>
       </vf-window>
 
+      <!-- ================ "Character Set" specimen window =============== -->
+      <!-- Full glyph coverage of each embedded face, rendered in the face
+           itself with smoothing off — every character here is a real pixel
+           glyph, never a system-font fallback. -->
+      <vf-window id="win-charset" heading="Character Set" movable zoomable>
+        <div class="charset-panels">
+          <vf-fieldset legend="ChiKareGo — chrome face" class="charset-panel">
+            <div class="charset charset--chrome">
+              <p class="charset-line">
+                !"#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+              </p>
+              <p class="charset-line">¡¢£¤¥¦§¨©×</p>
+              <p class="charset-line">–—‘’“”•…€⌘</p>
+            </div>
+            <p class="charset-count">114 glyphs</p>
+          </vf-fieldset>
+          <vf-fieldset legend="FindersKeepers — body face" class="charset-panel">
+            <div class="charset charset--body">
+              <p class="charset-line">
+                !"#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+              </p>
+              <p class="charset-line">¡¢£¤¥¦§¨©ª«¬®°±´µ¶·»¿ÅÆÇ×ØßåæçŒœŸ</p>
+              <p class="charset-line">–—‘’“”•…€⌘</p>
+            </div>
+            <p class="charset-count">137 glyphs</p>
+          </vf-fieldset>
+        </div>
+        <p class="charset-note">
+          Newly patched in: – — • × — before this they rendered as a smooth
+          system-font fallback beside the pixels.
+        </p>
+      </vf-window>
+
       <!-- ===================== About dialog (modal) ===================== -->
       <vf-dialog id="dlg-about" heading="About This Macintosh">
         <div class="about-body">

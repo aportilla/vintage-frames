@@ -74,6 +74,45 @@ vf-desktop {
   margin: 0;
 }
 
+/* ------------------------- Character Set specimen ---------------------- */
+/* Full glyph coverage of each embedded face, drawn in the face itself at true
+   16px (on the 1024-upm grid) with smoothing off — every glyph is a real pixel,
+   never a system fallback. Authored in system px × --vf-scale like the rest. */
+#win-charset {
+  position: absolute;
+  left: calc(var(--vf-scale, 1) * 120px);
+  top: calc(var(--vf-scale, 1) * 1000px);
+  width: calc(var(--vf-scale, 1) * 700px);
+}
+.charset-panels {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--vf-scale, 1) * 14px);
+}
+.charset {
+  font-size: calc(var(--vf-scale, 1) * 16px);
+  line-height: 1.5;
+  -webkit-font-smoothing: none;
+  word-break: break-all;
+}
+.charset--chrome {
+  font-family: 'ChiKareGo', sans-serif;
+}
+.charset--body {
+  font-family: 'FindersKeepers', sans-serif;
+}
+.charset-line {
+  margin: calc(var(--vf-scale, 1) * 3px) 0;
+}
+.charset-count {
+  margin: calc(var(--vf-scale, 1) * 6px) 0 0;
+  text-align: right;
+  opacity: 0.55;
+}
+.charset-note {
+  margin: calc(var(--vf-scale, 1) * 12px) 0 0;
+}
+
 /* ------------------------- DragThing installer ------------------------- */
 
 .installer-well {

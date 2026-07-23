@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Extend the System 7 bitmap faces with glyphs they ship without.
 
-ChiKareGo (Chicago-style chrome face) and FindersKeepers (body face) are
-Basic-Latin only, so `⌘`, `…` and curly quotes used in the UI fell back to the
-system font — a smooth glyph beside the pixel labels. This script draws those
+ChiKareGo (Chicago-style chrome face) and FindersKeepers (body face) ship
+without a few punctuation glyphs the UI types — `⌘`, `…`, curly quotes, the
+em/en dashes, the bullet and `×` — so those fell back to the system font, a
+smooth glyph beside the pixel labels. This script draws those
 glyphs as pixels, injects them into each WOFF2, and re-embeds the base64 into
 the `src/styles/*-font.ts` modules that register the faces at runtime.
 
@@ -73,6 +74,22 @@ CMD_BODY = [  # 9x9, smaller diamond loops for the body face
     ".#.....#.",
 ]
 
+# Dashes, bullet and multiplication sign — punctuation the UI copy types that
+# neither face shipped, so each fell back to a smooth system glyph beside the
+# pixels (the em dash in "US$25 — see the Read Me" was the giveaway). The en/em
+# dashes reuse each face's own hyphen stroke — same band, same weight, just
+# longer — so hyphen/en/em read as one family (ChiKareGo: a 2px bar in the 3-5px
+# band; FindersKeepers: a 1px bar in the 3-4px band). The bullet is a round dot
+# centred on the x-height; the × an X on the math axis (aligned with '+').
+# X_MULT is shared: a 5x5 saltire, sized identically in both faces.
+X_MULT = [
+    "#...#",
+    ".#.#.",
+    "..#..",
+    ".#.#.",
+    "#...#",
+]
+
 
 def bmp(bitmap, x0, y0, advance):
     """Rasterise a bitmap to (Glyph, advance) — one CW rect per horizontal run."""
@@ -109,6 +126,10 @@ FONTS = {
             ("quoteleft", 0x2018, ["##", "##", ".#"], 0, 384, 192),
             ("quotedblright", 0x201D, ["##.##", "##.##", "#..#."], 0, 384, 384),
             ("quotedblleft", 0x201C, ["##.##", "##.##", ".#..#"], 0, 384, 384),
+            ("endash", 0x2013, ["#######", "#######"], 0, 192, 512),
+            ("emdash", 0x2014, ["##########", "##########"], 0, 192, 704),
+            ("bullet", 0x2022, [".##.", "####", "####", ".##."], 128, 128, 512),
+            ("multiply", 0x00D7, X_MULT, 64, 128, 448),
         ],
     },
     "FindersKeepers": {  # 7px cap, 1px dots, quotes in the 5-7px band
@@ -120,6 +141,10 @@ FONTS = {
             ("quoteleft", 0x2018, ["##", ".#"], 0, 320, 192),
             ("quotedblright", 0x201D, ["##.##", "#..#."], 0, 320, 384),
             ("quotedblleft", 0x201C, ["##.##", ".#..#"], 0, 320, 384),
+            ("endash", 0x2013, ["#####"], 0, 192, 384),
+            ("emdash", 0x2014, ["########"], 0, 192, 576),
+            ("bullet", 0x2022, ["###", "###", "###"], 64, 64, 320),
+            ("multiply", 0x00D7, X_MULT, 0, 64, 384),
         ],
     },
 }

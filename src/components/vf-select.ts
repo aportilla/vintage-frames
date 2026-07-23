@@ -4,7 +4,7 @@ import { customElement, property, query, queryAssignedElements, state } from 'li
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
-import { ScaleController, snapToDevicePx, sys } from '../scale.js'
+import { ScaleController, sys } from '../scale.js'
 import { prefersReducedMotion } from '../motion.js'
 
 /**
@@ -38,8 +38,12 @@ export class VfSelect extends LitElement {
   /** Participate in native forms via ElementInternals. */
   static formAssociated = true
 
-  /** Height of one option row, used to align the popup over the control. */
-  private static readonly ITEM_HEIGHT = 22
+  /**
+   * Height of one option row — the pill's *content* height (`--vf-control-height`
+   * 22px minus its two 1px borders). Used to overlay the selected row's white
+   * cell exactly on the closed pill. Must match `vf-option`'s row height.
+   */
+  private static readonly ITEM_HEIGHT = 20
 
   static override styles = [
     vfBase,
@@ -48,16 +52,28 @@ export class VfSelect extends LitElement {
     vfFocus,
     css`
       :host {
+        /* A popup menu is sized to its widest option — never stretched to fill
+           its container. fit-content holds that intrinsic width even inside a
+           stretching flex/grid parent (align-items / justify-items: stretch act
+           only on auto sizes), while still shrinking if the container is genuinely
+           too narrow. Authors opt into filling via flex:1 / width / align-self. */
         display: inline-block;
+        width: fit-content;
       }
       .control {
         display: flex;
         align-items: center;
         gap: calc(var(--vf-scale, 1) * 8px);
+        /* No intrinsic min-width: the control hugs the WIDEST option (via the
+           label sizer below). Authors wanting a floor set min-width on the host,
+           or grow it in their own layout (e.g. flex: 1). */
         width: 100%;
-        min-width: calc(var(--vf-scale, 1) * 120px);
         height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
-        padding: 0 calc(var(--vf-scale, 1) * 8px);
+        /* Left inset = the checkmark gutter (--vf-select-gutter), so the selected
+           label sits at the SAME x it will occupy in the open list (where the ✓
+           fills that gutter). The right inset stays the small 8px. */
+        padding: 0 calc(var(--vf-scale, 1) * 8px) 0
+          calc(var(--vf-scale, 1) * var(--vf-select-gutter, 22px));
         background: var(--vf-white, #fff);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
@@ -65,12 +81,36 @@ export class VfSelect extends LitElement {
           0 0 var(--vf-black, #000);
         cursor: default;
       }
+      /* The label is a 1×1 grid: the visible value and an invisible stack of
+         every option's text share the one cell, so the cell — and thus the
+         control and the open panel — is sized to the WIDEST option. The closed
+         pill and the open list are therefore always exactly the same width, and
+         the value never shifts as the selection changes. */
       .label {
         flex: 1 1 auto;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
+        display: grid;
+        min-width: 0;
         text-align: left;
+      }
+      .label > .value,
+      .label > .sizer {
+        grid-area: 1 / 1;
+        min-width: 0;
+        white-space: nowrap;
+      }
+      .value {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* Sizer contributes width only: collapsed to zero height and clipped so it
+         never adds a row, but its widest line still drives the grid cell width. */
+      .sizer {
+        display: flex;
+        flex-direction: column;
+        height: 0;
+        overflow: hidden;
+        visibility: hidden;
+        pointer-events: none;
       }
       .arrow {
         flex: none;
@@ -96,7 +136,10 @@ export class VfSelect extends LitElement {
         z-index: 10000;
         margin: 0;
         padding: 0;
-        min-width: calc(var(--vf-scale, 1) * 120px);
+        /* Match the closed pill's 1px hard shadow — the shared .vf-panel recipe
+           defaults to the 2px menu shadow, which would overhang the pill's shadow
+           by 1px on the right and bottom. */
+        --vf-shadow-offset: 1px;
         overflow-y: auto;
       }
       .panel.open {
@@ -263,18 +306,27 @@ export class VfSelect extends LitElement {
     const rect = control.getBoundingClientRect()
     // getBoundingClientRect is in real (already-scaled) CSS px, so the system-px
     // constants (item height, borders, viewport margins) are converted with sys().
-    panel.style.minWidth = `${Math.max(rect.width, sys(120))}px`
+    // The panel is exactly the control's width — which already hugs the widest
+    // option — so the open list lines up with the closed pill.
+    panel.style.minWidth = `${rect.width}px`
     panel.style.maxHeight = `${window.innerHeight - sys(8)}px`
     const panelRect = panel.getBoundingClientRect()
-    // sys(1) = the panel border above the first item.
-    let top = rect.top - sys(1) - selectedIndex * sys(VfSelect.ITEM_HEIGHT)
+    // Overlay the selected row's white cell directly on the pill's white content,
+    // so its text and whitespace match the closed pill and the list grows down.
+    // With the row height = the pill's content height, the panel's own top border
+    // then lands exactly on the pill's top border (no ±1px compensation needed).
+    let top = rect.top - selectedIndex * sys(VfSelect.ITEM_HEIGHT)
     top = Math.max(sys(4), Math.min(top, window.innerHeight - panelRect.height - sys(4)))
     let left = rect.left
     left = Math.max(sys(4), Math.min(left, window.innerWidth - panelRect.width - sys(4)))
-    // The control's rect is wherever layout put it — snap the fixed panel
-    // onto the device grid so its 1px chrome stays fringe-free (scale.ts).
-    panel.style.top = `${snapToDevicePx(top)}px`
-    panel.style.left = `${snapToDevicePx(left)}px`
+    // Both coordinates come straight from the control's rect (unsnapped): the
+    // panel is the pill's own width and overlays it, so it must share the pill's
+    // exact edges and its selected row must sit exactly on the pill's label.
+    // Snapping to the device grid here would translate the panel off the pill
+    // whenever it sits at a fractional position (it follows variable-width content
+    // in a flex row) — the panel instead inherits the pill's own pixel phase.
+    panel.style.top = `${top}px`
+    panel.style.left = `${left}px`
   }
 
   private closePanel(refocusControl: boolean): void {
@@ -522,7 +574,14 @@ export class VfSelect extends LitElement {
         aria-label=${this.label || nothing}
         tabindex=${disabled ? '-1' : '0'}
       >
-        <span class="label" part="label">${selectedLabel}</span>
+        <span class="label" part="label">
+          <span class="value">${selectedLabel}</span>
+          <span class="sizer" aria-hidden="true">
+            ${this.optionItems.map(
+              (o) => html`<span>${(o.textContent ?? '').trim()}</span>`
+            )}
+          </span>
+        </span>
         <span class="arrow" part="arrow" aria-hidden="true"
           >${glyphSvg(CARET_DOWN, 'caret')}</span
         >

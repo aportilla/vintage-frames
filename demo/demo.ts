@@ -87,9 +87,10 @@ function spawnWindow(): void {
   const step = (untitledCount - 1) % 7
   win.style.position = 'absolute'
   // Positions/size in system px, scaled to the display (matches demo.css).
-  win.style.left = `${sys(180 + step * 28)}px`
-  win.style.top = `${sys(140 + step * 26)}px`
-  win.style.width = `${sys(300)}px`
+  // Scale off the desktop (where --vf-scale is set), the window's scope once slotted.
+  win.style.left = `${sys(180 + step * 28, desktop)}px`
+  win.style.top = `${sys(140 + step * 26, desktop)}px`
+  win.style.width = `${sys(300, desktop)}px`
 
   const note = document.createElement('p')
   note.className = 'untitled-note'

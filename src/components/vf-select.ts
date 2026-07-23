@@ -1,4 +1,4 @@
-import { css, html, LitElement, nothing } from 'lit'
+import { css, html, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js'
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
@@ -6,6 +6,7 @@ import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
 import { prefersReducedMotion } from '../motion.js'
+import { VfFormControl } from '../form-control.js'
 
 /**
  * `<vf-select>` — the classic System 7 popup menu control ("Macintosh HD ▼").
@@ -34,10 +35,7 @@ import { prefersReducedMotion } from '../motion.js'
  * @csspart panel - The popup panel (listbox).
  */
 @customElement('vf-select')
-export class VfSelect extends LitElement {
-  /** Participate in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfSelect extends VfFormControl {
   /**
    * Height of one option row — the pill's *content* height (`--vf-control-height`
    * 22px minus its two 1px borders). Used to overlay the selected row's white
@@ -151,9 +149,6 @@ export class VfSelect extends LitElement {
   /** Value of the selected option. Adopts the first enabled option if unset. */
   @property() value = ''
 
-  /** Disables the control: gray label; box, arrow and shadow stay black; no interaction. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
   /** Form field name used when submitting the associated form. */
   @property({ reflect: true }) name = ''
 
@@ -166,17 +161,12 @@ export class VfSelect extends LitElement {
   /** Whether the popup panel is open. */
   @state() private open = false
 
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
-
   @query('.control') private controlEl!: HTMLDivElement | null
 
   @query('.panel') private panelEl!: HTMLDivElement | null
 
   @queryAssignedElements({ selector: 'vf-option' })
   private assignedOptions!: VfOption[]
-
-  private readonly internals: ElementInternals = this.attachInternals()
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -218,27 +208,21 @@ export class VfSelect extends LitElement {
       this.applySelection()
     }
     if (changed.has('value') || changed.has('disabled')) {
-      this.internals.setFormValue(this.isDisabled ? null : this.value)
+      this.syncFormValue(this.value)
     }
     if (changed.has('disabled') && this.disabled && this.open) {
       this.closePanel(false)
     }
   }
 
-  /** Effective disabled state: the `disabled` prop or fieldset disabling. */
-  private get isDisabled(): boolean {
-    return this.disabled || this.formDisabled
-  }
-
   /**
-   * Form-associated lifecycle: called when an ancestor (e.g.
-   * `<fieldset disabled>`) disables or re-enables this control. Tracked
-   * separately from the public `disabled` prop so re-enabling the fieldset
-   * restores the control instead of leaving its own attribute stamped.
+   * Form-associated lifecycle: also re-syncs the form value immediately (the
+   * gated `updated()` doesn't run on a `formDisabled` change) and closes an open
+   * panel when an ancestor `<fieldset disabled>` disables us.
    */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
-    this.internals.setFormValue(this.isDisabled ? null : this.value)
+  override formDisabledCallback(disabled: boolean): void {
+    super.formDisabledCallback(disabled)
+    this.syncFormValue(this.value)
     if (disabled && this.open) this.closePanel(false)
   }
 
@@ -309,16 +293,16 @@ export class VfSelect extends LitElement {
     // The panel is exactly the control's width — which already hugs the widest
     // option — so the open list lines up with the closed pill.
     panel.style.minWidth = `${rect.width}px`
-    panel.style.maxHeight = `${window.innerHeight - sys(8)}px`
+    panel.style.maxHeight = `${window.innerHeight - sys(8, this)}px`
     const panelRect = panel.getBoundingClientRect()
     // Overlay the selected row's white cell directly on the pill's white content,
     // so its text and whitespace match the closed pill and the list grows down.
     // With the row height = the pill's content height, the panel's own top border
     // then lands exactly on the pill's top border (no ±1px compensation needed).
-    let top = rect.top - selectedIndex * sys(VfSelect.ITEM_HEIGHT)
-    top = Math.max(sys(4), Math.min(top, window.innerHeight - panelRect.height - sys(4)))
+    let top = rect.top - selectedIndex * sys(VfSelect.ITEM_HEIGHT, this)
+    top = Math.max(sys(4, this), Math.min(top, window.innerHeight - panelRect.height - sys(4, this)))
     let left = rect.left
-    left = Math.max(sys(4), Math.min(left, window.innerWidth - panelRect.width - sys(4)))
+    left = Math.max(sys(4, this), Math.min(left, window.innerWidth - panelRect.width - sys(4, this)))
     // Both coordinates come straight from the control's rect (unsnapped): the
     // panel is the pill's own width and overlays it, so it must share the pill's
     // exact edges and its selected row must sit exactly on the pill's label.
@@ -591,6 +575,7 @@ export class VfSelect extends LitElement {
         class="panel vf-panel ${this.open ? 'open' : ''}"
         part="panel"
         role="listbox"
+        aria-label=${this.label || nothing}
         aria-hidden=${this.open ? 'false' : 'true'}
       >
         <slot @slotchange=${this.handleSlotChange}></slot>

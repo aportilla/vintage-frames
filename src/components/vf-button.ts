@@ -1,7 +1,8 @@
-import { css, html, LitElement, unsafeCSS } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { css, html, unsafeCSS } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
 import { vfBase, vfDisplay, vfFocus } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { VfFormControl } from '../form-control.js'
 import {
   BUTTON_FACE,
   BUTTON_FRAME,
@@ -27,19 +28,16 @@ import {
  * exact 1-bit staircase with no antialiasing.
  *
  * Form-associated: place it inside a `<form>` and `type="submit"` submits the
- * form, `type="reset"` resets it — just like a native `<button>`. Enter and
- * Space activate it via the inner native button.
+ * form (contributing its `name`/`value` to the submission), `type="reset"`
+ * resets it. Enter and Space activate it via the inner native button.
  *
  * @slot - The button label.
  * @csspart button - The inner native `<button>` element.
  */
 @customElement('vf-button')
-export class VfButton extends LitElement {
-  /** Participates in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfButton extends VfFormControl {
   static override shadowRootOptions: ShadowRootInit = {
-    ...LitElement.shadowRootOptions,
+    ...VfFormControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -178,9 +176,6 @@ export class VfButton extends LitElement {
    */
   @property({ reflect: true }) size?: 'small'
 
-  /** Disables the button: gray label, solid black border stays, no interaction. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
   /**
    * Activation behavior, mirroring native `<button type>`:
    * `'submit'` submits the associated form, `'reset'` resets it and
@@ -188,18 +183,14 @@ export class VfButton extends LitElement {
    */
   @property() type: 'button' | 'submit' | 'reset' = 'button'
 
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
+  /** Form field name; submitted as `name=value` when `type="submit"`. */
+  @property({ reflect: true }) name = ''
 
-  private readonly internals: ElementInternals
+  /** Value submitted under `name` when `type="submit"`. */
+  @property({ reflect: true }) value = ''
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
-
-  constructor() {
-    super()
-    this.internals = this.attachInternals()
-  }
 
   override render() {
     return html`
@@ -207,7 +198,7 @@ export class VfButton extends LitElement {
         part="button"
         class="vf-focus"
         type="button"
-        ?disabled=${this.disabled || this.formDisabled}
+        ?disabled=${this.isDisabled}
         @click=${this.handleClick}
       >
         <slot></slot>
@@ -215,27 +206,31 @@ export class VfButton extends LitElement {
     `
   }
 
-  /**
-   * Form-associated lifecycle: called by the browser when the element is
-   * disabled or re-enabled by an ancestor (e.g. `<fieldset disabled>`).
-   */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
-  }
-
-  /**
-   * Form-associated lifecycle: buttons carry no submission state, so there
-   * is nothing to restore when the form resets.
-   */
-  formResetCallback(): void {}
-
-  private handleClick = (): void => {
-    if (this.disabled || this.formDisabled) return
-    if (this.type === 'submit') {
-      this.internals.form?.requestSubmit()
-    } else if (this.type === 'reset') {
-      this.internals.form?.reset()
+  private handleClick = (event: MouseEvent): void => {
+    if (this.isDisabled || this.type === 'button') return
+    // Respect a click whose default was already prevented (e.g. cancelled in
+    // the capture phase) before emulating the native submit/reset action.
+    if (event.defaultPrevented) return
+    const form = this.internals.form
+    if (!form) return
+    // A form-associated custom element can't be a form's native submitter, so
+    // briefly insert a real native button, activate it — carrying submitter
+    // identity and this button's name/value into the submission — then remove
+    // it (the standard technique for a shadow-DOM form button).
+    const proxy = document.createElement('button')
+    proxy.type = this.type
+    proxy.style.position = 'absolute'
+    proxy.style.width = '0'
+    proxy.style.height = '0'
+    proxy.style.overflow = 'hidden'
+    proxy.style.clipPath = 'inset(50%)'
+    if (this.type === 'submit' && this.name) {
+      proxy.name = this.name
+      proxy.value = this.value
     }
+    form.append(proxy)
+    proxy.click()
+    proxy.remove()
   }
 }
 

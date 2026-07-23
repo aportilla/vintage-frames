@@ -1,7 +1,8 @@
-import { css, html, LitElement } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { css, html } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
 import { ScaleController } from '../scale.js'
 import { vfBase } from '../styles/base.js'
+import { VfFormControl } from '../form-control.js'
 import { VfRadio } from './vf-radio.js'
 
 /**
@@ -23,10 +24,7 @@ import { VfRadio } from './vf-radio.js'
  * @fires vf-change - When the selection changes via user interaction. `detail: { value: string }`.
  */
 @customElement('vf-radio-group')
-export class VfRadioGroup extends LitElement {
-  /** Participates in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfRadioGroup extends VfFormControl {
   static override styles = [
     vfBase,
     css`
@@ -51,22 +49,13 @@ export class VfRadioGroup extends LitElement {
   /** Form field name used when submitting. */
   @property({ reflect: true }) name = ''
 
-  /** Disables the whole group: all radios dim and become non-interactive. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
-
   private readonly scale = new ScaleController(this)
-
-  private readonly internals: ElementInternals
 
   /** Value at first connect, restored on form reset. */
   private defaultValue: string | null = null
 
   constructor() {
     super()
-    this.internals = this.attachInternals()
     this.internals.role = 'radiogroup'
     this.addEventListener('keydown', this.handleKeydown)
     this.addEventListener('vf-change', this.handleRadioChange)
@@ -82,26 +71,14 @@ export class VfRadioGroup extends LitElement {
   }
 
   protected override updated(): void {
-    this.internals.setFormValue(this.value === '' ? null : this.value)
+    this.syncFormValue(this.value === '' ? null : this.value)
     this.internals.ariaDisabled = this.isDisabled ? 'true' : 'false'
     this.syncRadios()
-  }
-
-  /**
-   * Form-associated lifecycle: called by the browser when the element is
-   * disabled or re-enabled by an ancestor (e.g. `<fieldset disabled>`).
-   */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
   }
 
   /** Form-associated lifecycle: restores the initial value. */
   formResetCallback(): void {
     this.value = this.defaultValue ?? ''
-  }
-
-  private get isDisabled(): boolean {
-    return this.disabled || this.formDisabled
   }
 
   /** All descendant radios belonging to this group (nested groups excluded). */

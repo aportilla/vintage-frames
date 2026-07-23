@@ -13,3 +13,4 @@ fonts/*.ext.woff2
 scripts/.tmp/
 shots/
 __pycache__/
+hit-list.md

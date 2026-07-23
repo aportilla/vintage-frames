@@ -28,7 +28,8 @@ interface ResizeState {
  * @csspart zoom-box - The zoom widget (right).
  * @csspart body - The content area.
  * @csspart grow-box - The resize widget (bottom-right, when `resizable`).
- * @fires vf-close - Close box clicked. Detail `{}`. The window does NOT
+ * @fires vf-close - Close box clicked. Detail `{ reason: 'close' }` (shape-
+ *   compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT
  *   remove itself; the consumer decides what closing means.
  * @fires vf-zoom - Zoom box clicked. Detail `{}`.
  */
@@ -278,7 +279,7 @@ export class VfWindow extends LitElement {
       const parent = this.offsetParent as HTMLElement | null
       const pw = parent?.clientWidth ?? window.innerWidth
       const ph = parent?.clientHeight ?? window.innerHeight
-      const keep = sys(24) // px of the window that must stay reachable
+      const keep = sys(24, this) // px of the window that must stay reachable
       const nx = Math.min(Math.max(x, keep - this.offsetWidth), pw - keep)
       const ny = Math.min(Math.max(y, 0), Math.max(0, ph - keep))
       this.style.left = `${snapToDevicePx(nx)}px`
@@ -296,7 +297,7 @@ export class VfWindow extends LitElement {
   }
 
   private _onCloseClick(): void {
-    this._emit('vf-close')
+    this._emit('vf-close', { reason: 'close' })
   }
 
   private _onZoomClick(): void {
@@ -326,9 +327,9 @@ export class VfWindow extends LitElement {
     // Minimums are in system px; getBoundingClientRect/clientX are real (scaled)
     // CSS px, so convert the floors with sys(). Snapped so the right/bottom
     // borders land on the device grid like the (snapped) left/top edges.
-    const width = Math.max(sys(80), resize.baseWidth + (event.clientX - resize.startX))
+    const width = Math.max(sys(80, this), resize.baseWidth + (event.clientX - resize.startX))
     const height = Math.max(
-      sys(54),
+      sys(54, this),
       resize.baseHeight + (event.clientY - resize.startY)
     )
     this.style.width = `${snapToDevicePx(width)}px`

@@ -1,8 +1,7 @@
-import { html, css, LitElement, nothing } from 'lit'
-import { customElement, property, query, state } from 'lit/decorators.js'
-import type { PropertyValues } from 'lit'
+import { html, css, nothing } from 'lit'
+import { customElement, property, state } from 'lit/decorators.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
-import { ScaleController, snapDialogToGrid, unsnapDialog } from '../scale.js'
+import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
 /**
@@ -56,25 +55,14 @@ const cautionIcon = html`
  * @fires vf-close - Alert closed. Detail `{ reason: 'escape' | 'close' }`.
  */
 @customElement('vf-alert')
-export class VfAlert extends LitElement {
+export class VfAlert extends VfModalDialog {
   static override styles = [
     vfBase,
     vfDisplay,
+    modalDialogStyles,
     css`
       :host {
         display: contents;
-      }
-      dialog {
-        padding: 0;
-        margin: auto;
-        border: none;
-        background: transparent;
-        overflow: visible;
-        color: inherit;
-        font: inherit;
-      }
-      dialog::backdrop {
-        background: transparent;
       }
       .frame {
         --vf-surface: var(--vf-white, #ffffff);
@@ -141,11 +129,6 @@ export class VfAlert extends LitElement {
     `,
   ]
 
-  private readonly scale = new ScaleController(this)
-
-  /** Whether the alert is open. Kept in sync with the native `<dialog>`. */
-  @property({ type: Boolean, reflect: true }) open = false
-
   /**
    * Built-in icon variant. `'caution'` renders the classic black/white
    * triangle-with-! icon. Omit for no icon (or slot your own via `icon`).
@@ -159,65 +142,8 @@ export class VfAlert extends LitElement {
    */
   @property() label = ''
 
-  @query('dialog') private _dialog!: HTMLDialogElement
-
   /** True when the consumer slotted custom icon content. */
   @state() private _hasSlottedIcon = false
-
-  /** Close reason pending for the next native `close` event. */
-  private _closeReason: 'escape' | 'close' | null = null
-
-  /** Open the alert modally (native `showModal()`). */
-  show(): void {
-    this.open = true
-    if (this.hasUpdated && !this._dialog.open) {
-      this._dialog.showModal()
-      // Pin the UA's auto-centering onto the device-pixel grid — half-pixel
-      // centering offsets fringe all the 1-bit chrome inside (see scale.ts).
-      snapDialogToGrid(this._dialog)
-    }
-  }
-
-  /** Close the alert. Fires `vf-close` with `{ reason: 'close' }`. */
-  close(): void {
-    this.open = false
-    if (this.hasUpdated && this._dialog.open) {
-      this._dialog.close()
-      unsnapDialog(this._dialog)
-    }
-  }
-
-  protected override updated(changed: PropertyValues<this>): void {
-    if (changed.has('open')) {
-      const dialog = this._dialog
-      if (this.open && !dialog.open) {
-        dialog.showModal()
-        snapDialogToGrid(dialog)
-      } else if (!this.open && dialog.open) {
-        dialog.close()
-        unsnapDialog(dialog)
-      }
-    }
-  }
-
-  /** Native `cancel` (Escape): remember the reason; `close` follows. */
-  private _onNativeCancel(): void {
-    this._closeReason = 'escape'
-  }
-
-  /** Native `close`: sync `open` and fire `vf-close` with the reason. */
-  private _onNativeClose(): void {
-    const reason = this._closeReason ?? 'close'
-    this._closeReason = null
-    this.open = false
-    this.dispatchEvent(
-      new CustomEvent('vf-close', {
-        detail: { reason },
-        bubbles: true,
-        composed: true,
-      })
-    )
-  }
 
   private _onIconSlotChange(event: Event): void {
     const slot = event.target as HTMLSlotElement

@@ -35,14 +35,30 @@ export function getScale(): number {
   return DEVICE_PX_PER_SYSTEM_PX / dpr
 }
 
-/** Convert system (art) units to display (CSS) pixels. */
-export function sys(value: number): number {
-  return value * getScale()
+/**
+ * The effective `--vf-scale` in force at `el` — the resolved custom property
+ * CSS multiplies every metric by. Reading the computed value keeps JS geometry
+ * in the SAME coordinate system as CSS: a consumer/ancestor override
+ * (`:root{--vf-scale:1}`, `.dense{--vf-scale:1.25}`) wins for both, so
+ * JS-written positions (drag origins, slider fill, panel placement, resize
+ * floors) never drift off the device grid the way a hardcoded `3/dpr` would.
+ * Falls back to the display scale when no property is in scope (before connect /
+ * SSR), matching {@link ScaleController}'s own default.
+ */
+export function effectiveScale(el: Element): number {
+  return (
+    parseFloat(getComputedStyle(el).getPropertyValue('--vf-scale')) || getScale()
+  )
 }
 
-/** Convert display (CSS) pixels to whole system (art) units. */
-export function toSys(value: number): number {
-  return Math.round(value / getScale())
+/** Convert system (art) units to display (CSS) px, honoring `--vf-scale` at `el`. */
+export function sys(value: number, el: Element): number {
+  return value * effectiveScale(el)
+}
+
+/** Convert display (CSS) px to whole system (art) units, honoring `--vf-scale` at `el`. */
+export function toSys(value: number, el: Element): number {
+  return Math.round(value / effectiveScale(el))
 }
 
 /**

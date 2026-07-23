@@ -47,6 +47,12 @@ export class VfMenuBar extends LitElement {
   /** The currently-open slotted menu, if any. */
   #openMenu: VfMenu | null = null
 
+  /**
+   * The menu that currently holds the bar's single Tab stop (roving
+   * tabindex). Falls back to the first menu when unset.
+   */
+  #rovingMenu: VfMenu | null = null
+
   #docListenersAttached = false
 
   override connectedCallback(): void {
@@ -55,6 +61,7 @@ export class VfMenuBar extends LitElement {
     this.addEventListener('vf-menu-toggle-request', this.#onToggleRequest)
     this.addEventListener('vf-menu-hover', this.#onMenuHover)
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
+    this.addEventListener('keydown', this.#onBarKeydown)
   }
 
   override disconnectedCallback(): void {
@@ -62,8 +69,10 @@ export class VfMenuBar extends LitElement {
     this.removeEventListener('vf-menu-toggle-request', this.#onToggleRequest)
     this.removeEventListener('vf-menu-hover', this.#onMenuHover)
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
+    this.removeEventListener('keydown', this.#onBarKeydown)
     this.#removeDocListeners()
     this.#openMenu = null
+    this.#rovingMenu = null
   }
 
   protected override render() {
@@ -79,6 +88,31 @@ export class VfMenuBar extends LitElement {
     if (this.#openMenu && !this._menus.includes(this.#openMenu)) {
       this.#closeAll()
     }
+    // Drop a stale roving reference before re-syncing the Tab stop.
+    if (this.#rovingMenu && !this._menus.includes(this.#rovingMenu)) {
+      this.#rovingMenu = null
+    }
+    this.#syncMenus()
+  }
+
+  /**
+   * Push a roving tabindex down to the slotted menus so the whole bar is a
+   * single Tab stop: the active menu's label gets tabindex 0, the rest -1.
+   * The active menu is the open one, else the roving one, else the first.
+   * Mirrors `vf-radio-group.syncRadios()`.
+   */
+  #syncMenus(): void {
+    const menus = this._menus
+    const active = this.#openMenu ?? this.#rovingMenu ?? menus[0]
+    for (const menu of menus) {
+      menu.barTabIndex = menu === active ? 0 : -1
+    }
+  }
+
+  /** Moves the roving Tab stop to `menu` and re-syncs tabindices. */
+  #setRovingMenu(menu: VfMenu): void {
+    this.#rovingMenu = menu
+    this.#syncMenus()
   }
 
   #onToggleRequest = (event: Event): void => {
@@ -110,6 +144,8 @@ export class VfMenuBar extends LitElement {
     }
     menu.open = true
     this.#openMenu = menu
+    this.#rovingMenu = menu
+    this.#syncMenus()
     this.#addDocListeners()
   }
 
@@ -117,6 +153,8 @@ export class VfMenuBar extends LitElement {
     for (const menu of this._menus) menu.open = false
     this.#openMenu = null
     this.#removeDocListeners()
+    // Keep the Tab stop on the last-active menu so re-tabbing lands there.
+    this.#syncMenus()
   }
 
   #onDocPointerDown = (event: PointerEvent): void => {
@@ -144,6 +182,45 @@ export class VfMenuBar extends LitElement {
         this.#moveItemFocus(event.key === 'ArrowDown' ? 1 : -1)
         break
       }
+    }
+  }
+
+  /**
+   * Roving-focus navigation while the bar has focus but no menu is open.
+   * ArrowLeft/Right (and Home/End) move the single Tab stop between labels
+   * and follow it with DOM focus. While a menu IS open, ArrowLeft/Right is
+   * handled by `#onDocKeydown`/`#switchMenu` instead, so bail out here.
+   */
+  #onBarKeydown = (event: KeyboardEvent): void => {
+    if (this.#openMenu) return
+    const menus = this._menus
+    if (menus.length === 0) return
+    const current = event.target
+    if (!(current instanceof HTMLElement)) return
+    const from = menus.find((menu) => menu.contains(current))
+    if (!from) return
+    let target: VfMenu | undefined
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'ArrowRight': {
+        const index = menus.indexOf(from)
+        const dir = event.key === 'ArrowRight' ? 1 : -1
+        target = menus[(index + dir + menus.length) % menus.length]
+        break
+      }
+      case 'Home':
+        target = menus[0]
+        break
+      case 'End':
+        target = menus[menus.length - 1]
+        break
+      default:
+        return
+    }
+    event.preventDefault()
+    if (target) {
+      this.#setRovingMenu(target)
+      target.focusLabel()
     }
   }
 

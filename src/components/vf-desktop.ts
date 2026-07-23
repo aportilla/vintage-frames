@@ -88,7 +88,12 @@ export class VfDesktop extends LitElement {
   /** Delegated pointerdown: activate the window the event originated in. */
   private _onPointerDown = (event: PointerEvent): void => {
     const win = this._windowFromEvent(event)
-    if (win) this.bringToFront(win)
+    if (!win) return
+    // Skip the restack/activation churn when the click is inside the window
+    // that's already active and on top: otherwise every click there would
+    // bump _zCounter and re-run the whole-fleet activation loop for nothing.
+    if (win.hasAttribute('active') && Number(win.style.zIndex) === this._zCounter) return
+    this.bringToFront(win)
   }
 
   /**
@@ -141,8 +146,9 @@ export class VfDesktop extends LitElement {
    */
   private _setWindowActive(win: HTMLElement, value: boolean): void {
     if ('active' in win) {
-      ;(win as HTMLElement & { active: boolean }).active = value
-    } else {
+      const upgraded = win as HTMLElement & { active: boolean }
+      if (upgraded.active !== value) upgraded.active = value
+    } else if (win.hasAttribute('active') !== value) {
       win.toggleAttribute('active', value)
     }
   }

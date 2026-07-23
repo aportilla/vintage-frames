@@ -77,6 +77,14 @@ export class VfMenu extends LitElement {
    */
   @property({ type: Boolean, reflect: true }) open = false
 
+  /**
+   * The bar label's tabindex. A parent `vf-menu-bar` owns a roving tabindex
+   * across its menus and sets this to 0 on the active menu, -1 on the rest,
+   * so the whole bar is a single Tab stop. Defaults to 0 so a standalone
+   * menu is Tab-focusable on its own.
+   */
+  @property({ type: Number, attribute: false }) barTabIndex = 0
+
   @query('.label') private _labelEl!: HTMLElement
 
   @queryAssignedElements({ selector: 'vf-menu-item', flatten: true })
@@ -163,7 +171,7 @@ export class VfMenu extends LitElement {
         class="label vf-focus"
         part="label"
         role="menuitem"
-        tabindex="0"
+        tabindex=${this.barTabIndex}
         aria-haspopup="menu"
         aria-expanded=${this.open ? 'true' : 'false'}
         @click=${this.#onLabelClick}

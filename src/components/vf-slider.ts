@@ -1,8 +1,9 @@
-import { css, html, LitElement } from 'lit'
+import { css, html } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
+import { VfFormControl } from '../form-control.js'
 
 /** Native pixel size of the {@link SLIDER_THUMB} sprite. */
 const THUMB_W = 11
@@ -62,10 +63,7 @@ function railPath(w: number, pos: number): string {
  * @csspart thumb - The shield-shaped drag handle.
  */
 @customElement('vf-slider')
-export class VfSlider extends LitElement {
-  /** Participates in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfSlider extends VfFormControl {
   static override styles = [
     vfBase,
     css`
@@ -151,9 +149,6 @@ export class VfSlider extends LitElement {
   /** Increment the value snaps to (also sets its display precision). */
   @property({ type: Number }) step = 1
 
-  /** Disables the slider: it dims to gray and stops responding. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
   /** Form field name used when submitting the associated form. */
   @property({ reflect: true }) name = ''
 
@@ -165,8 +160,6 @@ export class VfSlider extends LitElement {
 
   @query('.track') private track!: HTMLElement | null
 
-  private readonly internals: ElementInternals
-
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
@@ -177,9 +170,6 @@ export class VfSlider extends LitElement {
 
   /** True when this component owns the host `tabindex`. */
   private selfManagedTabIndex = false
-
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
 
   /** Whether to show the dotted focus ring — true only for keyboard focus. */
   @state() private focusRing = false
@@ -196,7 +186,6 @@ export class VfSlider extends LitElement {
 
   constructor() {
     super()
-    this.internals = this.attachInternals()
     this.internals.role = 'slider'
   }
 
@@ -205,7 +194,7 @@ export class VfSlider extends LitElement {
     if (this.defaultValue === null) this.defaultValue = this.value
     if (!this.hasAttribute('tabindex')) {
       this.selfManagedTabIndex = true
-      this.tabIndex = this.#isDisabled ? -1 : 0
+      this.tabIndex = this.isDisabled ? -1 : 0
     }
     this.addEventListener('keydown', this.#onKeydown)
     this.addEventListener('focus', this.#onFocus)
@@ -251,18 +240,9 @@ export class VfSlider extends LitElement {
     this.resizeObserver.observe(this.track)
   }
 
-  /** Called by the form owner when an ancestor enables/disables this control. */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
-  }
-
   /** Restores the initial value when the associated form resets. */
   formResetCallback(): void {
     this.value = this.defaultValue ?? 0
-  }
-
-  get #isDisabled(): boolean {
-    return this.disabled || this.formDisabled
   }
 
   // ------------------------------------------------------------- value math
@@ -331,14 +311,14 @@ export class VfSlider extends LitElement {
     if (!rect) return this.value
     // rect is real (scaled) CSS px; the thumb constants are system px, so the
     // half-thumb inset is converted with sys().
-    const usable = rect.width - sys(THUMB_W)
+    const usable = rect.width - sys(THUMB_W, this)
     if (usable <= 0) return this.value
-    const fraction = Math.min(Math.max((clientX - rect.left - sys(THUMB_HALF)) / usable, 0), 1)
+    const fraction = Math.min(Math.max((clientX - rect.left - sys(THUMB_HALF, this)) / usable, 0), 1)
     return this.#snap(this.min + fraction * this.#range)
   }
 
   #onPointerDown = (event: PointerEvent): void => {
-    if (this.#isDisabled || event.button !== 0) return
+    if (this.isDisabled || event.button !== 0) return
     event.preventDefault()
     // We preventDefault (to suppress text selection), which also cancels the
     // native focus, so focus() manually — but flag it as pointer-originated so
@@ -382,7 +362,7 @@ export class VfSlider extends LitElement {
   // -------------------------------------------------------------- keyboard
 
   #onKeydown = (event: KeyboardEvent): void => {
-    if (this.#isDisabled) return
+    if (this.isDisabled) return
     const step = this.#step
     const big = Math.max(step, this.#range / 10)
     let next = this.value
@@ -424,14 +404,14 @@ export class VfSlider extends LitElement {
 
   protected override updated(): void {
     const value = this.#clampedValue
-    this.internals.setFormValue(this.#isDisabled ? null : String(value))
+    this.syncFormValue(String(value))
     this.internals.ariaValueMin = String(this.min)
     this.internals.ariaValueMax = String(this.max)
     this.internals.ariaValueNow = String(value)
     this.internals.ariaOrientation = 'horizontal'
     this.internals.ariaLabel = this.label || null
-    this.internals.ariaDisabled = this.#isDisabled ? 'true' : 'false'
-    if (this.selfManagedTabIndex) this.tabIndex = this.#isDisabled ? -1 : 0
+    this.internals.ariaDisabled = this.isDisabled ? 'true' : 'false'
+    if (this.selfManagedTabIndex) this.tabIndex = this.isDisabled ? -1 : 0
   }
 
   protected override render() {
@@ -440,13 +420,13 @@ export class VfSlider extends LitElement {
     // fill) scales uniformly. The thumb's left edge travels 0…(sysW − thumbW) in
     // system px and snaps to the system grid (whole device pixels) so the sprite
     // stays crisp; the fill ends at the thumb's centre grip.
-    const sysW = toSys(this.trackWidth)
+    const sysW = toSys(this.trackWidth, this)
     const thumbLeftSys = Math.round(this.#fraction * Math.max(0, sysW - THUMB_W))
-    const thumbLeft = sys(thumbLeftSys)
+    const thumbLeft = sys(thumbLeftSys, this)
     const pos = thumbLeftSys + THUMB_CENTER
     return html`
       <div
-        class="track ${this.#isDisabled ? 'disabled' : ''}"
+        class="track ${this.isDisabled ? 'disabled' : ''}"
         part="track"
         @pointerdown=${this.#onPointerDown}
         @pointermove=${this.#onPointerMove}
@@ -458,8 +438,8 @@ export class VfSlider extends LitElement {
           ? html`<svg
               class="rail"
               part="rail"
-              width=${sys(sysW)}
-              height=${sys(RAIL_H)}
+              width=${sys(sysW, this)}
+              height=${sys(RAIL_H, this)}
               viewBox="0 0 ${sysW} ${RAIL_H}"
               shape-rendering="crispEdges"
               aria-hidden="true"

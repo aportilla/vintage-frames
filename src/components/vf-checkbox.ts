@@ -1,9 +1,10 @@
-import { css, html, LitElement } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { css, html } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
+import { VfFormControl } from '../form-control.js'
 
 /**
  * The classic System 7 checkbox: a 13×13 white square with a 1px black
@@ -21,10 +22,7 @@ import { ScaleController } from '../scale.js'
  * @fires vf-change - When toggled by user interaction. `detail: { checked: boolean }`.
  */
 @customElement('vf-checkbox')
-export class VfCheckbox extends LitElement {
-  /** Participates in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfCheckbox extends VfFormControl {
   static override styles = [
     vfBase,
     vfDisplay,
@@ -86,19 +84,11 @@ export class VfCheckbox extends LitElement {
   /** Whether the checkbox is checked. */
   @property({ type: Boolean, reflect: true }) checked = false
 
-  /** Disables the checkbox: the label dims to gray; box and ✕ glyph stay black. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
   /** Form field name used when submitting. */
   @property({ reflect: true }) name = ''
 
   /** Value submitted with the form while checked. */
   @property() value = 'on'
-
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
-
-  private readonly internals: ElementInternals
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -115,7 +105,6 @@ export class VfCheckbox extends LitElement {
 
   constructor() {
     super()
-    this.internals = this.attachInternals()
     this.internals.role = 'checkbox'
     this.addEventListener('click', this.handleClick)
     this.addEventListener('keydown', this.handleKeydown)
@@ -143,28 +132,16 @@ export class VfCheckbox extends LitElement {
   }
 
   protected override updated(): void {
-    this.internals.setFormValue(this.checked ? this.value : null)
+    this.syncFormValue(this.checked ? this.value : null)
     this.internals.ariaChecked = this.checked ? 'true' : 'false'
     const disabled = this.isDisabled
     this.internals.ariaDisabled = disabled ? 'true' : 'false'
     if (this.selfManagedTabIndex) this.tabIndex = disabled ? -1 : 0
   }
 
-  /**
-   * Form-associated lifecycle: called by the browser when the element is
-   * disabled or re-enabled by an ancestor (e.g. `<fieldset disabled>`).
-   */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
-  }
-
   /** Form-associated lifecycle: restores the initial checked state. */
   formResetCallback(): void {
     this.checked = this.defaultChecked ?? false
-  }
-
-  private get isDisabled(): boolean {
-    return this.disabled || this.formDisabled
   }
 
   private toggle(): void {

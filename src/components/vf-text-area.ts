@@ -1,8 +1,9 @@
-import { css, html, LitElement, nothing } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { css, html, nothing } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { VfFormControl } from '../form-control.js'
 
 /**
  * `<vf-text-area>` — a System 7 multi-line text entry field.
@@ -16,12 +17,9 @@ import { ScaleController } from '../scale.js'
  * @csspart textarea - The inner native `<textarea>` element.
  */
 @customElement('vf-text-area')
-export class VfTextArea extends LitElement {
-  /** Participate in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfTextArea extends VfFormControl {
   static override shadowRootOptions: ShadowRootInit = {
-    ...LitElement.shadowRootOptions,
+    ...VfFormControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -75,9 +73,6 @@ export class VfTextArea extends LitElement {
   /** Placeholder text shown when the field is empty. */
   @property() placeholder = ''
 
-  /** Disables the field: gray text; the black border stays; no interaction, no form value. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
   /** Makes the field read-only (focusable, not editable). */
   @property({ type: Boolean, reflect: true }) readonly = false
 
@@ -94,12 +89,7 @@ export class VfTextArea extends LitElement {
   /** Form field name used when submitting the associated form. */
   @property({ reflect: true }) name = ''
 
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
-
   private readonly scale = new ScaleController(this)
-
-  private readonly internals: ElementInternals = this.attachInternals()
 
   /** Value restored by `formResetCallback`; captured on first connect. */
   private defaultValue = ''
@@ -114,13 +104,7 @@ export class VfTextArea extends LitElement {
   }
 
   protected override updated(): void {
-    const disabled = this.disabled || this.formDisabled
-    this.internals.setFormValue(disabled ? null : this.value)
-  }
-
-  /** Called by the form owner when the element's disabled state changes. */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
+    this.syncFormValue(this.value)
   }
 
   /** Restores the initial value when the associated form resets. */
@@ -158,7 +142,7 @@ export class VfTextArea extends LitElement {
         aria-label=${this.label || nothing}
         .value=${live(this.value)}
         placeholder=${this.placeholder}
-        ?disabled=${this.disabled || this.formDisabled}
+        ?disabled=${this.isDisabled}
         ?readonly=${this.readonly}
         @input=${this.handleInput}
         @change=${this.handleChange}

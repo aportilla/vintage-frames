@@ -1,10 +1,11 @@
-import { css, html, LitElement, nothing } from 'lit'
+import { css, html, nothing } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
 import { STEPPER, STEPPER_DOWN_FILL, STEPPER_UP_FILL } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
+import { VfFormControl } from '../form-control.js'
 
 /**
  * `<vf-number-field>` — a System 7 numeric entry field paired with the classic
@@ -24,12 +25,9 @@ import { ScaleController } from '../scale.js'
  * @csspart stepper - The little-arrows control.
  */
 @customElement('vf-number-field')
-export class VfNumberField extends LitElement {
-  /** Participate in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfNumberField extends VfFormControl {
   static override shadowRootOptions: ShadowRootInit = {
-    ...LitElement.shadowRootOptions,
+    ...VfFormControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -131,9 +129,6 @@ export class VfNumberField extends LitElement {
   /** Placeholder text shown when the field is empty. */
   @property() placeholder = ''
 
-  /** Disables the field: gray value; black box + stepper stay; no interaction. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
   /** Read-only: focusable and editable-looking, but the value cannot change. */
   @property({ type: Boolean, reflect: true }) readonly = false
 
@@ -146,12 +141,7 @@ export class VfNumberField extends LitElement {
   /** Which arrow is currently held (drives the solid pressed glyph). */
   @state() private pressed: 'up' | 'down' | null = null
 
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
-
   @query('input') private input!: HTMLInputElement | null
-
-  private readonly internals: ElementInternals = this.attachInternals()
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -176,21 +166,12 @@ export class VfNumberField extends LitElement {
   }
 
   protected override updated(): void {
-    this.internals.setFormValue(this.#isDisabled ? null : this.value)
-  }
-
-  /** Called by the form owner when the element's disabled state changes. */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
+    this.syncFormValue(this.value)
   }
 
   /** Restores the initial value when the associated form resets. */
   formResetCallback(): void {
     this.value = this.defaultValue
-  }
-
-  get #isDisabled(): boolean {
-    return this.disabled || this.formDisabled
   }
 
   // ------------------------------------------------------------ value math
@@ -211,15 +192,19 @@ export class VfNumberField extends LitElement {
     return n
   }
 
-  /** Clamp + round to the step's precision, store, and announce a change. */
+  /** Clamp + round to the step's precision, store, and announce a change — but
+   * only when the value actually changes, so autorepeat held against a bound
+   * (or a keyboard step already at min/max) doesn't fire a redundant
+   * `vf-change` on every 60ms tick. */
   #commit(n: number): void {
-    const rounded = Number(this.#clamp(n).toFixed(this.#decimals()))
-    this.value = String(rounded)
+    const next = String(Number(this.#clamp(n).toFixed(this.#decimals())))
+    if (next === this.value) return
+    this.value = next
     this.#emit('vf-change')
   }
 
   #stepBy(dir: 1 | -1): void {
-    if (this.#isDisabled || this.readonly) return
+    if (this.isDisabled || this.readonly) return
     const cur = this.#parse()
     const next = Number.isNaN(cur) ? (this.min ?? 0) : cur + dir * this.step
     this.#commit(next)
@@ -254,7 +239,7 @@ export class VfNumberField extends LitElement {
   // ------------------------------------------------------------------ events
 
   #onArrowDown = (event: PointerEvent): void => {
-    if (this.#isDisabled || this.readonly) return
+    if (this.isDisabled || this.readonly) return
     const dir: 1 | -1 = (event.currentTarget as HTMLElement).classList.contains('up') ? 1 : -1
     // Keep focus (and the text caret) on the input, and suppress text selection.
     event.preventDefault()
@@ -276,7 +261,18 @@ export class VfNumberField extends LitElement {
   }
 
   #onKeydown = (event: KeyboardEvent): void => {
-    if (this.#isDisabled || this.readonly) return
+    if (
+      event.key === 'Enter' &&
+      !event.isComposing &&
+      !event.shiftKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      this.internals.form?.requestSubmit()
+      return
+    }
+    if (this.isDisabled || this.readonly) return
     switch (event.key) {
       case 'ArrowUp':
         event.preventDefault()
@@ -319,7 +315,7 @@ export class VfNumberField extends LitElement {
   }
 
   protected override render() {
-    const disabled = this.#isDisabled
+    const disabled = this.isDisabled
     const current = this.#parse()
     return html`
       <input

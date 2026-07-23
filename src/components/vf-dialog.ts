@@ -1,14 +1,9 @@
-import { html, css, LitElement } from 'lit'
-import { customElement, property, query, state } from 'lit/decorators.js'
-import type { PropertyValues } from 'lit'
+import { html, css } from 'lit'
+import { customElement, property, state } from 'lit/decorators.js'
 import { vfBase, vfStripes, vfDisplayDecls } from '../styles/base.js'
-import {
-  ScaleController,
-  snapDialogToGrid,
-  snapToDevicePx,
-  unsnapDialog,
-} from '../scale.js'
+import { snapToDevicePx } from '../scale.js'
 import { DragController } from '../drag.js'
+import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
 /**
@@ -36,25 +31,14 @@ import './vf-button-group.js'
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' }`.
  */
 @customElement('vf-dialog')
-export class VfDialog extends LitElement {
+export class VfDialog extends VfModalDialog {
   static override styles = [
     vfBase,
     vfStripes,
+    modalDialogStyles,
     css`
       :host {
         display: contents;
-      }
-      dialog {
-        padding: 0;
-        margin: auto;
-        border: none;
-        background: transparent;
-        overflow: visible;
-        color: inherit;
-        font: inherit;
-      }
-      dialog::backdrop {
-        background: transparent;
       }
       .frame {
         background: var(--vf-white, #ffffff);
@@ -105,8 +89,6 @@ export class VfDialog extends LitElement {
     `,
   ]
 
-  private readonly scale = new ScaleController(this)
-
   /**
    * Title-bar drag-to-move (shared with `vf-window` via {@link DragController}).
    * The dialog is a centered top-layer `<dialog>` pinned onto the device grid
@@ -138,71 +120,11 @@ export class VfDialog extends LitElement {
     },
   })
 
-  /** Whether the dialog is open. Kept in sync with the native `<dialog>`. */
-  @property({ type: Boolean, reflect: true }) open = false
-
   /** Title text shown centered in the title bar. */
   @property() heading = ''
 
   /** Whether the `buttons` slot has assigned content (drives the footer). */
   @state() private _hasButtons = false
-
-  @query('dialog') private _dialog!: HTMLDialogElement
-
-  /** Close reason pending for the next native `close` event. */
-  private _closeReason: 'escape' | 'close' | null = null
-
-  /** Open the dialog modally (native `showModal()`). */
-  show(): void {
-    this.open = true
-    if (this.hasUpdated && !this._dialog.open) {
-      this._dialog.showModal()
-      // Pin the UA's auto-centering onto the device-pixel grid — half-pixel
-      // centering offsets fringe all the 1-bit chrome inside (see scale.ts).
-      snapDialogToGrid(this._dialog)
-    }
-  }
-
-  /** Close the dialog. Fires `vf-close` with `{ reason: 'close' }`. */
-  close(): void {
-    this.open = false
-    if (this.hasUpdated && this._dialog.open) {
-      this._dialog.close()
-      unsnapDialog(this._dialog)
-    }
-  }
-
-  protected override updated(changed: PropertyValues<this>): void {
-    if (changed.has('open')) {
-      const dialog = this._dialog
-      if (this.open && !dialog.open) {
-        dialog.showModal()
-        snapDialogToGrid(dialog)
-      } else if (!this.open && dialog.open) {
-        dialog.close()
-        unsnapDialog(dialog)
-      }
-    }
-  }
-
-  /** Native `cancel` (Escape): remember the reason; `close` follows. */
-  private _onNativeCancel(): void {
-    this._closeReason = 'escape'
-  }
-
-  /** Native `close`: sync `open` and fire `vf-close` with the reason. */
-  private _onNativeClose(): void {
-    const reason = this._closeReason ?? 'close'
-    this._closeReason = null
-    this.open = false
-    this.dispatchEvent(
-      new CustomEvent('vf-close', {
-        detail: { reason },
-        bubbles: true,
-        composed: true,
-      })
-    )
-  }
 
   protected override render(): unknown {
     return html`
@@ -241,7 +163,7 @@ export class VfDialog extends LitElement {
 
   private _onButtonsSlotChange(event: Event): void {
     const slot = event.target as HTMLSlotElement
-    this._hasButtons = slot.assignedNodes({ flatten: true }).length > 0
+    this._hasButtons = slot.assignedElements().length > 0
   }
 }
 

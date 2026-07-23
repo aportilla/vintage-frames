@@ -165,9 +165,9 @@ export class VfProgressBar extends LitElement {
     // Snap the fill to whole system px so its 1px leading edge lands on the
     // device grid (no antialiased fringe), the way the slider snaps its fill.
     // Until the track is measured, fall back to a raw % so the bar still paints.
-    const sysW = toSys(this.trackWidth)
+    const sysW = toSys(this.trackWidth, this)
     const width =
-      sysW > 0 ? `${sys(Math.round(fraction * sysW))}px` : `${fraction * 100}%`
+      sysW > 0 ? `${sys(Math.round(fraction * sysW), this)}px` : `${fraction * 100}%`
     return html`
       <div class="track" part="track">
         <div

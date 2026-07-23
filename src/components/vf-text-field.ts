@@ -1,8 +1,9 @@
-import { css, html, LitElement, nothing } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { css, html, nothing } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { VfFormControl } from '../form-control.js'
 
 /**
  * `<vf-text-field>` — a System 7 single-line text entry field.
@@ -17,12 +18,9 @@ import { ScaleController } from '../scale.js'
  * @csspart input - The inner native `<input>` element.
  */
 @customElement('vf-text-field')
-export class VfTextField extends LitElement {
-  /** Participate in native forms via ElementInternals. */
-  static formAssociated = true
-
+export class VfTextField extends VfFormControl {
   static override shadowRootOptions: ShadowRootInit = {
-    ...LitElement.shadowRootOptions,
+    ...VfFormControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -76,9 +74,6 @@ export class VfTextField extends LitElement {
   /** Placeholder text shown when the field is empty. */
   @property() placeholder = ''
 
-  /** Disables the field: gray text; the black border stays; no interaction, no form value. */
-  @property({ type: Boolean, reflect: true }) disabled = false
-
   /** Makes the field read-only (focusable, not editable). */
   @property({ type: Boolean, reflect: true }) readonly = false
 
@@ -95,11 +90,6 @@ export class VfTextField extends LitElement {
    */
   @property() label = ''
 
-  /** True while an ancestor `<fieldset disabled>` disables this control. */
-  @state() private formDisabled = false
-
-  private readonly internals: ElementInternals = this.attachInternals()
-
   private readonly scale = new ScaleController(this)
 
   /** Value restored by `formResetCallback`; captured on first connect. */
@@ -115,18 +105,30 @@ export class VfTextField extends LitElement {
   }
 
   protected override updated(): void {
-    const disabled = this.disabled || this.formDisabled
-    this.internals.setFormValue(disabled ? null : this.value)
-  }
-
-  /** Called by the form owner when the element's disabled state changes. */
-  formDisabledCallback(disabled: boolean): void {
-    this.formDisabled = disabled
+    this.syncFormValue(this.value)
   }
 
   /** Restores the initial value when the associated form resets. */
   formResetCallback(): void {
     this.value = this.defaultValue
+  }
+
+  /**
+   * Enter in a single-line field triggers the associated form's implicit
+   * submission. The native `<input>` is shadow-encapsulated, so its form owner
+   * is null and the browser won't do this itself.
+   */
+  private handleKeydown(event: KeyboardEvent): void {
+    if (
+      event.key === 'Enter' &&
+      !event.isComposing &&
+      !event.shiftKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      this.internals.form?.requestSubmit()
+    }
   }
 
   private handleInput(event: Event): void {
@@ -159,8 +161,9 @@ export class VfTextField extends LitElement {
         aria-label=${this.label || nothing}
         .value=${live(this.value)}
         placeholder=${this.placeholder}
-        ?disabled=${this.disabled || this.formDisabled}
+        ?disabled=${this.isDisabled}
         ?readonly=${this.readonly}
+        @keydown=${this.handleKeydown}
         @input=${this.handleInput}
         @change=${this.handleChange}
       />

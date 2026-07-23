@@ -19,6 +19,19 @@ import { VfFormControl } from '../form-control.js'
  * clipping containers; when possible the currently-selected item opens
  * directly over the control, like the real popup menu.
  *
+ * Pointer — two interaction styles are supported and disambiguated by the
+ * gesture itself, resolved at the first pointer release:
+ *   - System 7 press-drag-release: press the pill (the list appears under the
+ *     pointer), drag onto an item, release over it to pick — one continuous
+ *     press. Releasing over the current item or off the list closes with no
+ *     change.
+ *   - Modern click-to-open: a quick in-place click (no drag, released within
+ *     {@link PRESS_HOLD_MS}) leaves the list open; a second, independent click
+ *     then picks an item.
+ * The two share one opening trigger (pointerdown) and diverge only on how the
+ * press ends — whether the pointer travelled to another item, and (for an
+ * in-place release) whether it was a quick tap or a held press.
+ *
  * Keyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the
  * highlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an
  * item plays the classic inversion blink (~250 ms) before closing.
@@ -42,6 +55,15 @@ export class VfSelect extends VfFormControl {
    * cell exactly on the closed pill. Must match `vf-option`'s row height.
    */
   private static readonly ITEM_HEIGHT = 20
+
+  /**
+   * In-place press+release shorter than this (ms) reads as a modern
+   * click-to-open — the list stays open for a second click; a longer in-place
+   * hold-then-release reads as a completed System 7 press and closes. Only the
+   * *in-place* case consults time: any press that travels to another item is a
+   * drag-pick regardless of duration.
+   */
+  private static readonly PRESS_HOLD_MS = 200
 
   static override styles = [
     vfBase,
@@ -77,6 +99,10 @@ export class VfSelect extends VfFormControl {
         border-radius: 0;
         box-shadow: calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 1px)
           0 0 var(--vf-black, #000);
+        /* The press-drag gesture owns pointer moves while the button is held;
+           suppress the browser's own touch panning/scrolling so a touch drag
+           tracks the list instead of scrolling the page. */
+        touch-action: none;
         cursor: default;
       }
       /* The label is a 1×1 grid: the visible value and an invisible stack of
@@ -174,6 +200,30 @@ export class VfSelect extends VfFormControl {
   /** Index of the highlighted option while the panel is open. */
   private activeIndex = -1
 
+  /**
+   * Pointer press-gesture state. A press starts on `pointerdown` and is
+   * resolved on the matching `pointerup`/`pointercancel`; see the class doc.
+   */
+  private pressing = false
+  /** True when *this* press is the one that opened the panel. */
+  private pressOpenedPanel = false
+  /** Set once the pointer leaves the option it pressed on (a drag-pick). */
+  private pressMoved = false
+  /** The option the press started over — origin for {@link pressMoved}. */
+  private pressStartOption: VfOption | null = null
+  /** `event.timeStamp` of the opening pointerdown (for the hold threshold). */
+  private pressDownTime = 0
+  private pressDownX = 0
+  private pressDownY = 0
+  /**
+   * Swallows the one `click` the browser synthesises after a pointer press
+   * (pointerdown+pointerup), so the pointer handlers — not
+   * {@link handleHostClick} — own mouse/touch input. A `click` with no
+   * preceding pointerdown (keyboard / assistive-tech activation) still reaches
+   * the click handler.
+   */
+  private swallowClick = false
+
   /** True while the classic selection blink is playing (input is ignored). */
   private blinking = false
 
@@ -185,6 +235,7 @@ export class VfSelect extends VfFormControl {
 
   constructor() {
     super()
+    this.addEventListener('pointerdown', this.handleHostPointerDown)
     this.addEventListener('click', this.handleHostClick)
     this.addEventListener('keydown', this.handleHostKeyDown)
     this.addEventListener('pointerover', this.handleHostPointerOver)
@@ -194,6 +245,7 @@ export class VfSelect extends VfFormControl {
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.cancelBlink()
+    this.endPress()
     this.open = false
     this.removeDocumentListeners()
   }
@@ -317,6 +369,7 @@ export class VfSelect extends VfFormControl {
     if (!this.open) return
     this.open = false
     this.cancelBlink()
+    this.endPress()
     this.clearActive()
     this.removeDocumentListeners()
     if (refocusControl) this.controlEl?.focus()
@@ -430,8 +483,19 @@ export class VfSelect extends VfFormControl {
     return event.composedPath().find((n): n is VfOption => n instanceof VfOption)
   }
 
+  /**
+   * `click` handler for *synthesised* activation — keyboard/assistive-tech
+   * clicks that arrive with no preceding pointerdown. Real mouse/touch clicks
+   * are swallowed here (their {@link swallowClick} flag was set on pointerdown)
+   * because the pointer handlers already resolved the gesture.
+   */
   private handleHostClick = (event: MouseEvent): void => {
-    if (this.isDisabled || this.blinking) return
+    if (this.isDisabled) return
+    if (this.swallowClick) {
+      this.swallowClick = false
+      return
+    }
+    if (this.blinking) return
     const option = this.optionFromEvent(event)
     if (option) {
       if (this.open) this.selectOption(option)
@@ -443,6 +507,127 @@ export class VfSelect extends VfFormControl {
       this.controlEl?.focus()
       void this.openPanel()
     }
+  }
+
+  // ------------------------------------------------------- pointer gesture
+
+  /**
+   * Starts a press: opens the list if closed, then tracks the press to its
+   * release. Both interaction styles begin here; the gesture is classified in
+   * {@link handlePressPointerUp}.
+   */
+  private handleHostPointerDown = (event: PointerEvent): void => {
+    if (this.isDisabled || this.blinking) return
+    // Primary button / single touch / pen only — ignore right/middle and extra
+    // touch points so a secondary press can't hijack an in-flight gesture.
+    if (event.button > 0 || !event.isPrimary) return
+    // The pointer handlers own this gesture; neutralise the trailing click.
+    this.swallowClick = true
+    this.pressing = true
+    this.pressMoved = false
+    this.pressStartOption = null
+    this.pressDownTime = event.timeStamp
+    this.pressDownX = event.clientX
+    this.pressDownY = event.clientY
+    this.pressOpenedPanel = !this.open
+    // We drive focus and highlight ourselves; block the browser's text-range
+    // selection / default focus so a drag doesn't select the labels.
+    event.preventDefault()
+    document.addEventListener('pointermove', this.handlePressPointerMove, true)
+    document.addEventListener('pointerup', this.handlePressPointerUp, true)
+    document.addEventListener('pointercancel', this.handlePressCancel, true)
+    if (this.pressOpenedPanel) {
+      this.controlEl?.focus()
+      // openPanel lays the selected row over the pill; capture the row actually
+      // under the pointer once it has, so a viewport-clamped panel (whose
+      // selected row is NOT under the pointer) still measures movement from the
+      // true origin.
+      void this.openPanel().then(() => {
+        if (this.pressing && this.pressStartOption === null) {
+          this.pressStartOption = this.optionAtPoint(this.pressDownX, this.pressDownY)
+        }
+      })
+    } else {
+      this.pressStartOption = this.optionAtPoint(event.clientX, event.clientY)
+    }
+  }
+
+  private handlePressPointerMove = (event: PointerEvent): void => {
+    if (!this.pressing) return
+    event.preventDefault()
+    const option = this.optionAtPoint(event.clientX, event.clientY)
+    if (this.pressStartOption === null) {
+      // Opening not settled yet (see handleHostPointerDown): adopt the first
+      // resolved row as the origin rather than counting it as movement.
+      this.pressStartOption = option
+    } else if (!this.pressMoved && option !== this.pressStartOption) {
+      this.pressMoved = true
+    }
+    this.trackHighlight(option)
+  }
+
+  private handlePressPointerUp = (event: PointerEvent): void => {
+    if (!this.pressing) return
+    const option = this.optionAtPoint(event.clientX, event.clientY)
+    const openedByThisPress = this.pressOpenedPanel
+    const inPlace = !this.pressMoved
+    const quick = event.timeStamp - this.pressDownTime < VfSelect.PRESS_HOLD_MS
+    this.endPress()
+    // Modern click-to-open: a quick in-place tap on the closed pill leaves the
+    // list open for a second, independent click.
+    if (openedByThisPress && inPlace && quick) return
+    // Otherwise it's a completed pick/dismiss — a drag onto an item, a held
+    // in-place press, or a press on the already-open list.
+    this.resolveRelease(option)
+  }
+
+  private handlePressCancel = (): void => {
+    // Pointer interrupted (e.g. a cancelled touch). Stop tracking but leave the
+    // list as-is — the click-to-open state; the user can retry or dismiss it.
+    this.endPress()
+  }
+
+  private endPress(): void {
+    if (!this.pressing) return
+    this.pressing = false
+    this.pressStartOption = null
+    document.removeEventListener('pointermove', this.handlePressPointerMove, true)
+    document.removeEventListener('pointerup', this.handlePressPointerUp, true)
+    document.removeEventListener('pointercancel', this.handlePressCancel, true)
+  }
+
+  /** The option whose row currently contains the viewport point, if any. */
+  private optionAtPoint(x: number, y: number): VfOption | null {
+    if (!this.open) return null
+    for (const option of this.optionItems) {
+      const r = option.getBoundingClientRect()
+      if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return option
+    }
+    return null
+  }
+
+  /** Live highlight during a press-drag; never moves DOM focus off the control. */
+  private trackHighlight(option: VfOption | null): void {
+    if (option && !option.disabled) {
+      const index = this.optionItems.indexOf(option)
+      if (index !== -1 && index !== this.activeIndex) this.setActive(index, false)
+    } else if (this.activeIndex !== -1) {
+      this.clearActive()
+    }
+  }
+
+  /**
+   * Resolves a press that ended as a pick/dismiss (not a click-to-open): commit
+   * a different, enabled option (with the blink); otherwise close with no change
+   * — released on the current item, a disabled item, or off the list (the
+   * classic "release outside" cancel).
+   */
+  private resolveRelease(option: VfOption | null): void {
+    if (!option || option.disabled || this.optionValue(option) === this.value) {
+      this.closePanel(true)
+      return
+    }
+    this.selectOption(option)
   }
 
   private handleHostKeyDown = (event: KeyboardEvent): void => {
@@ -500,7 +685,10 @@ export class VfSelect extends VfFormControl {
   }
 
   private handleHostPointerOver = (event: PointerEvent): void => {
-    if (!this.open || this.blinking) return
+    // While a press is in flight, handlePressPointerMove owns the highlight
+    // (coordinate hit-testing that also works under touch's implicit capture);
+    // this hover tracker only runs for a mouse hovering the already-open list.
+    if (!this.open || this.blinking || this.pressing) return
     const option = this.optionFromEvent(event)
     if (option && !option.disabled) {
       const index = this.optionItems.indexOf(option)

@@ -429,7 +429,17 @@ The classic popup menu control ("Macintosh HD ▼").
   open. The currently-selected item shows a ✓ checkmark in the left
   `--vf-select-gutter` column; hovered/active item inverts (black bg, white
   text); disabled options gray.
-- **Behavior:** form-associated. Opens on click/Space/Enter/ArrowDown. Panel is
+- **Behavior:** form-associated. Opens on pointerdown (mouse/touch),
+  Space/Enter/ArrowDown, or a synthesised click (assistive tech). Two pointer
+  styles coexist, disambiguated by the gesture and resolved at the first
+  release: **System 7 press-drag-release** (press the pill, drag onto an item,
+  release to pick — releasing on the current item or off the list cancels) and
+  **modern click-to-open** (a quick in-place click leaves the list open for a
+  second click). The only timed distinction is an in-place release — a tap
+  (<200ms) keeps the list open, a held press closes it; any press that travels
+  to another item is a drag-pick regardless of duration. Highlight tracking
+  during a press hit-tests by coordinates (so it works under touch's implicit
+  pointer capture) and never moves DOM focus off the control. Panel is
   positioned `position: fixed` from `getBoundingClientRect()` so it escapes
   clipping containers; closes on outside pointerdown, Escape, blur, scroll.
   Keyboard while open: arrows move active item, Enter/Space select, Escape

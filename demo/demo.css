@@ -151,10 +151,14 @@ vf-desktop {
   margin: 0 0 calc(var(--vf-scale, 1) * 8px);
 }
 .installer-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: calc(var(--vf-scale, 1) * 10px);
+  /* A vf-button-group vertical: it equalizes the button faces and centers
+     them, treating the default button's ring as an overhang that doesn't
+     count. Keep the shrink-wrapped group at its intrinsic size, bottom-aligned
+     in the .installer-bottom row. */
+  flex: none;
+  /* 14px face-to-face keeps the classic ~10px visible gap once the Install
+     button's ring reaches 4px up into it. */
+  --vf-button-group-gap: 14px;
 }
 
 /* ----------------------------- Format window --------------------------- */

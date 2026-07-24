@@ -54,6 +54,13 @@ export class VfRadioGroup extends VfFormControl {
   /** Value at first connect, restored on form reset. */
   private defaultValue: string | null = null
 
+  /**
+   * Re-syncs the group when its radios change structurally or by value —
+   * covers radios added/removed inside arbitrary wrapper markup (no top-level
+   * slotchange fires) and a child radio's value/disabled changing at runtime.
+   */
+  private mutationObserver: MutationObserver | null = null
+
   constructor() {
     super()
     this.internals.role = 'radiogroup'
@@ -64,6 +71,20 @@ export class VfRadioGroup extends VfFormControl {
   override connectedCallback(): void {
     super.connectedCallback()
     if (this.defaultValue === null) this.defaultValue = this.value
+    // Filtered to value/disabled so syncRadios()'s own checked/tabindex
+    // writes on the children can't re-trigger the observer (no feedback loop).
+    this.mutationObserver ??= new MutationObserver(() => this.syncRadios())
+    this.mutationObserver.observe(this, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['value', 'disabled'],
+    })
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    this.mutationObserver?.disconnect()
   }
 
   override render() {

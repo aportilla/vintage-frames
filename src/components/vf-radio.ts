@@ -119,12 +119,32 @@ export class VfRadio extends LitElement {
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
+  /**
+   * True when this radio owns its host tabindex — it's standalone (no
+   * enclosing vf-radio-group to run the roving tabindex) and the consumer
+   * set no explicit `tabindex`. Guards `updated()` so a group-managed or
+   * consumer-set tabindex is never clobbered. Mirrors vf-checkbox.
+   */
+  private selfManagedTabIndex = false
+
   constructor() {
     super()
     this.internals = this.attachInternals()
     this.internals.role = 'radio'
     this.addEventListener('click', this.handleClick)
     this.addEventListener('keydown', this.handleKeydown)
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback()
+    // Inside a group the group drives the roving tabindex; only self-manage
+    // when standalone so a bare radio stays keyboard-reachable (its Space
+    // handler is otherwise unreachable). A consumer-set `tabindex` wins.
+    this.selfManagedTabIndex =
+      !this.closest('vf-radio-group') && !this.hasAttribute('tabindex')
+    if (this.selfManagedTabIndex) {
+      this.tabIndex = this.disabled ? -1 : 0
+    }
   }
 
   override render() {
@@ -150,14 +170,18 @@ export class VfRadio extends LitElement {
 
   protected override updated(): void {
     this.internals.ariaChecked = this.checked ? 'true' : 'false'
-    this.internals.ariaDisabled =
-      this.disabled || this.groupDisabled ? 'true' : 'false'
+    const disabled = this.disabled || this.groupDisabled
+    this.internals.ariaDisabled = disabled ? 'true' : 'false'
+    if (this.selfManagedTabIndex) this.tabIndex = disabled ? -1 : 0
   }
 
   /** Select this radio in response to user interaction. */
   private interact(): void {
     if (this.disabled || this.groupDisabled || this.checked) return
-    this.checked = true
+    // Inside a group the group is the single source of truth: it flips
+    // `checked` and unchecks siblings in response to vf-change. Only self-set
+    // when standalone, so a lone radio still toggles visually.
+    if (!this.closest('vf-radio-group')) this.checked = true
     this.focus()
     this.dispatchEvent(
       new CustomEvent<{ value: string }>('vf-change', {

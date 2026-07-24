@@ -7,6 +7,7 @@ import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
+import { emit } from '../events.js'
 
 /**
  * `<vf-select>` — the classic System 7 popup menu control ("Macintosh HD ▼").
@@ -464,13 +465,7 @@ export class VfSelect extends VfFormControl {
     this.closePanel(true)
     const value = this.optionValue(option)
     this.value = value
-    this.dispatchEvent(
-      new CustomEvent('vf-change', {
-        detail: { value },
-        bubbles: true,
-        composed: true,
-      })
-    )
+    emit(this, 'vf-change', { value })
   }
 
   // ---------------------------------------------------------------- events

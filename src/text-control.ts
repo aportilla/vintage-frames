@@ -1,6 +1,7 @@
 import { property } from 'lit/decorators.js'
 import { ScaleController } from './scale.js'
 import { VfFormControl } from './form-control.js'
+import { emit } from './events.js'
 
 /**
  * Shared base for the kit's editable text fields — `vf-text-field`,
@@ -92,9 +93,7 @@ export class VfTextControlBase extends VfFormControl {
     type: 'vf-input' | 'vf-change',
     detail: Record<string, unknown> = { value: this.value }
   ): void {
-    this.dispatchEvent(
-      new CustomEvent(type, { detail, bubbles: true, composed: true })
-    )
+    emit(this, type, detail)
   }
 
   /** Mirror the native control's value into `value` and announce a keystroke. */

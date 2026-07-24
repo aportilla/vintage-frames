@@ -1,9 +1,10 @@
 import { css, html } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfFocusRing } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
 import { VfFormControl } from '../form-control.js'
+import { emit } from '../events.js'
 
 /** Native pixel size of the {@link SLIDER_THUMB} sprite. */
 const THUMB_W = 11
@@ -131,8 +132,7 @@ export class VfSlider extends VfFormControl {
         outline: none;
       }
       .thumb.focus-ring {
-        outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: calc(var(--vf-scale, 1) * 2px);
+        ${vfFocusRing}
       }
     `,
   ]
@@ -292,13 +292,7 @@ export class VfSlider extends VfFormControl {
   }
 
   #emit(type: 'vf-input' | 'vf-change'): void {
-    this.dispatchEvent(
-      new CustomEvent(type, {
-        detail: { value: this.value },
-        bubbles: true,
-        composed: true,
-      })
-    )
+    emit(this, type, { value: this.value })
   }
 
   // -------------------------------------------------------------- pointer

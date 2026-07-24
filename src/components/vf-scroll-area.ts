@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit'
 import { customElement } from 'lit/decorators.js'
-import { vfBase, vfScrollbars } from '../styles/base.js'
+import { vfBase, vfScrollbars, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 
 /**
@@ -38,8 +38,8 @@ export class VfScrollArea extends LitElement {
       }
       /* Focusable so keyboard users can scroll; inset ring to stay in-box. */
       .viewport:focus-visible {
-        outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: calc(var(--vf-scale, 1) * -2px);
+        --vf-focus-offset: -2px;
+        ${vfFocusRing}
       }
     `,
   ]

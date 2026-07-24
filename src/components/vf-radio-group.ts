@@ -3,6 +3,7 @@ import { customElement, property } from 'lit/decorators.js'
 import { ScaleController } from '../scale.js'
 import { vfBase } from '../styles/base.js'
 import { VfFormControl } from '../form-control.js'
+import { emit } from '../events.js'
 import { VfRadio } from './vf-radio.js'
 
 /**
@@ -136,15 +137,7 @@ export class VfRadioGroup extends VfFormControl {
     this.value = radio.value
     this.syncRadios()
     if (focus) radio.focus()
-    if (changed) {
-      this.dispatchEvent(
-        new CustomEvent<{ value: string }>('vf-change', {
-          detail: { value: this.value },
-          bubbles: true,
-          composed: true,
-        })
-      )
-    }
+    if (changed) emit(this, 'vf-change', { value: this.value })
   }
 
   /** A child radio was clicked or Space-selected: adopt it. */

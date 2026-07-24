@@ -1,10 +1,11 @@
 import { css, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplay } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocusRing, vfToggle } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
 import { VfFormControl } from '../form-control.js'
+import { emit } from '../events.js'
 
 /**
  * The classic System 7 checkbox: a 13×13 white square with a 1px black
@@ -26,23 +27,11 @@ export class VfCheckbox extends VfFormControl {
   static override styles = [
     vfBase,
     vfDisplay,
+    vfToggle,
     css`
-      :host {
-        display: inline-flex;
-        align-items: center;
-        gap: calc(var(--vf-scale, 1) * 6px);
-        cursor: default;
-        /* Display scaling: metrics are authored in system px and multiplied by
-           --vf-scale (default 1). See src/scale.ts. Font scales with the box. */
-        font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
-      }
-      :host(:focus-visible) {
-        outline: none;
-      }
       /* Focus ring around the box only, not the label. */
       :host(:focus-visible) .box {
-        outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: calc(var(--vf-scale, 1) * 2px);
+        ${vfFocusRing}
       }
       .box {
         position: relative;
@@ -72,11 +61,6 @@ export class VfCheckbox extends VfFormControl {
       }
       :host([checked]) .check {
         display: block;
-      }
-      /* Disabled: the box and ✕ glyph stay solid black — System 7 dims the
-         label, not the control. (.dim still suppresses the press feedback.) */
-      .label.dim {
-        color: var(--vf-disabled, #c0c0c0);
       }
     `,
   ]
@@ -148,13 +132,7 @@ export class VfCheckbox extends VfFormControl {
     if (this.isDisabled) return
     this.checked = !this.checked
     this.focus()
-    this.dispatchEvent(
-      new CustomEvent<{ checked: boolean }>('vf-change', {
-        detail: { checked: this.checked },
-        bubbles: true,
-        composed: true,
-      })
-    )
+    emit(this, 'vf-change', { checked: this.checked })
   }
 
   private handleClick = (): void => {
@@ -164,6 +142,8 @@ export class VfCheckbox extends VfFormControl {
   private handleKeydown = (event: KeyboardEvent): void => {
     if (event.key === ' ') {
       event.preventDefault()
+      // Ignore auto-repeat: holding Space must not toggle on every tick.
+      if (event.repeat) return
       this.toggle()
     }
   }

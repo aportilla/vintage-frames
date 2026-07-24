@@ -2,6 +2,7 @@ import { css, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { ScaleController, snapDialogToGrid, unsnapDialog } from './scale.js'
+import { emit } from './events.js'
 
 /** Reason a modal closed, carried by the `vf-close` event's detail. */
 export type VfCloseReason = 'escape' | 'close'
@@ -103,12 +104,6 @@ export class VfModalDialog extends LitElement {
     this.#closeReason = null
     this.open = false
     unsnapDialog(this._dialog)
-    this.dispatchEvent(
-      new CustomEvent<{ reason: VfCloseReason }>('vf-close', {
-        detail: { reason },
-        bubbles: true,
-        composed: true,
-      })
-    )
+    emit(this, 'vf-close', { reason })
   }
 }

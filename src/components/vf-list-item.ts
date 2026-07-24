@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 
 /**
@@ -29,8 +29,8 @@ export class VfListItem extends LitElement {
         background: transparent;
       }
       :host(:focus-visible) {
-        outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: calc(var(--vf-scale, 1) * -1px);
+        --vf-focus-offset: -1px;
+        ${vfFocusRing}
       }
       :host([selected]) {
         background: var(--vf-highlight, #000);

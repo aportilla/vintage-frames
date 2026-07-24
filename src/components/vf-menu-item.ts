@@ -5,6 +5,7 @@ import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
+import { emit } from '../events.js'
 
 /**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
@@ -212,21 +213,9 @@ export class VfMenuItem extends LitElement {
 
   #dispatchSelect(): void {
     const value = this.value ?? (this.textContent ?? '').trim()
-    this.dispatchEvent(
-      new CustomEvent('vf-select', {
-        bubbles: true,
-        composed: true,
-        detail: { value, item: this },
-      })
-    )
+    emit(this, 'vf-select', { value, item: this })
     // Internal coordination event: `vf-menu` / `vf-menu-bar` listen and close.
-    this.dispatchEvent(
-      new CustomEvent('vf-menu-close-request', {
-        bubbles: true,
-        composed: true,
-        detail: { item: this },
-      })
-    )
+    emit(this, 'vf-menu-close-request', { item: this })
   }
 }
 

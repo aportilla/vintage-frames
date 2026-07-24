@@ -3,6 +3,7 @@ import { customElement, property } from 'lit/decorators.js'
 import { vfBase, vfStripes, vfFocus, vfDisplayDecls } from '../styles/base.js'
 import { ScaleController, snapToDevicePx, sys } from '../scale.js'
 import { DragController } from '../drag.js'
+import { emit } from '../events.js'
 
 interface ResizeState {
   pointerId: number
@@ -289,19 +290,15 @@ export class VfWindow extends LitElement {
 
   private _resizeState: ResizeState | null = null
 
-  /** Dispatch a `vf-*` CustomEvent that bubbles and crosses shadow roots. */
-  private _emit(name: string, detail: Record<string, unknown> = {}): void {
-    this.dispatchEvent(
-      new CustomEvent(name, { detail, bubbles: true, composed: true })
-    )
-  }
-
   private _onCloseClick(): void {
-    this._emit('vf-close', { reason: 'close' })
+    emit(this, 'vf-close', { reason: 'close' })
   }
 
   private _onZoomClick(): void {
-    this._emit('vf-zoom')
+    // Empty `{}` detail (not null) preserved intentionally — see the vf-close
+    // detail-shape note; vf-zoom keeps `{}` for consistency with vf-window's
+    // other widget events.
+    emit(this, 'vf-zoom', {})
   }
 
   /* --- Grow-box resizing (resizable) -------------------------------- */

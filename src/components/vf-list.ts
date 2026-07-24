@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property, queryAssignedElements } from 'lit/decorators.js'
 import { vfBase, vfScrollbars } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { emit } from '../events.js'
 import type { VfListItem } from './vf-list-item.js'
 
 const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
@@ -143,13 +144,7 @@ export class VfList extends LitElement {
     if (!sameValues(this.values, selected)) this.values = selected
     this.#syncTabIndexes()
     if (notify && !sameValues(before, selected)) {
-      this.dispatchEvent(
-        new CustomEvent('vf-change', {
-          bubbles: true,
-          composed: true,
-          detail: { value: this.value, values: [...selected] },
-        })
-      )
+      emit(this, 'vf-change', { value: this.value, values: [...selected] })
     }
   }
 

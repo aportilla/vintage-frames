@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplay } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocusRing, vfToggle } from '../styles/base.js'
 import {
   RADIO_DOT,
   RADIO_FACE,
@@ -9,6 +9,7 @@ import {
   RADIO_RING_PRESSED,
 } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
+import { emit } from '../events.js'
 
 /**
  * A single System 7 radio button: a 13×13 white circle with the pixel-exact
@@ -32,23 +33,11 @@ export class VfRadio extends LitElement {
   static override styles = [
     vfBase,
     vfDisplay,
+    vfToggle,
     css`
-      :host {
-        display: inline-flex;
-        align-items: center;
-        gap: calc(var(--vf-scale, 1) * 6px);
-        cursor: default;
-        /* Display scaling: metrics are authored in system px and multiplied by
-           --vf-scale (default 1). See src/scale.ts. Font scales with the box. */
-        font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
-      }
-      :host(:focus-visible) {
-        outline: none;
-      }
       /* Focus ring around the circle only, not the label. */
       :host(:focus-visible) .circle {
-        outline: var(--vf-focus-outline, 1px dotted #000);
-        outline-offset: calc(var(--vf-scale, 1) * 2px);
+        ${vfFocusRing}
       }
       .circle {
         position: relative;
@@ -90,11 +79,6 @@ export class VfRadio extends LitElement {
       }
       :host(:active) .circle:not(.dim) .ring-pressed {
         display: inline;
-      }
-      /* Disabled: the circle and dot stay solid black — System 7 dims the
-         label, not the control. (.dim still suppresses the press feedback.) */
-      .label.dim {
-        color: var(--vf-disabled, #c0c0c0);
       }
     `,
   ]
@@ -183,13 +167,7 @@ export class VfRadio extends LitElement {
     // when standalone, so a lone radio still toggles visually.
     if (!this.closest('vf-radio-group')) this.checked = true
     this.focus()
-    this.dispatchEvent(
-      new CustomEvent<{ value: string }>('vf-change', {
-        detail: { value: this.value },
-        bubbles: true,
-        composed: true,
-      })
-    )
+    emit(this, 'vf-change', { value: this.value })
   }
 
   private handleClick = (): void => {
@@ -199,6 +177,9 @@ export class VfRadio extends LitElement {
   private handleKeydown = (event: KeyboardEvent): void => {
     if (event.key === ' ') {
       event.preventDefault()
+      // Ignore auto-repeat for parity with vf-checkbox (interact() is a no-op
+      // once checked, so this is belt-and-suspenders for the standalone path).
+      if (event.repeat) return
       this.interact()
     }
   }

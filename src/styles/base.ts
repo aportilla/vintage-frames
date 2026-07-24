@@ -114,14 +114,55 @@ export const vfPanel = css`
 `
 
 /**
- * Focus ring for non-text controls. Apply to the focusable element:
+ * The dotted focus outline's two declarations, for composing inside any focus
+ * selector whose shape (`:host(:focus-visible) .box`, `.viewport:focus-visible`,
+ * a JS-toggled `.focus-ring`, …) is too varied to share a whole rule. Interpolate
+ * it into the component's own selector: `.box { ${vfFocusRing} }`.
+ *
+ * The offset defaults to +2px (ring sits just outside the box); set
+ * `--vf-focus-offset` in the same rule to inset it (negative, to stay in-box) or
+ * widen it. Keeps the outline default (`--vf-focus-outline`) authoritative in one
+ * place so a ring-style change is a single edit.
+ */
+export const vfFocusRing = css`
+  outline: var(--vf-focus-outline, 1px dotted #000);
+  outline-offset: calc(var(--vf-scale, 1) * var(--vf-focus-offset, 2px));
+`
+
+/**
+ * Focus ring for non-text controls where focus and ring share one element.
+ * Apply to the focusable element:
  *   .control:focus-visible { ... }
  * or compose this class name onto it.
  */
 export const vfFocus = css`
   .vf-focus:focus-visible {
-    outline: var(--vf-focus-outline, 1px dotted #000);
-    outline-offset: calc(var(--vf-scale, 1) * 2px);
+    ${vfFocusRing}
+  }
+`
+
+/**
+ * Shared layout for the two toggle controls (vf-checkbox, vf-radio): the
+ * box-and-label row, the host focus suppressed (the ring is drawn on the
+ * box/circle instead), and the classic "dim the label, not the control"
+ * disabled treatment. The Chicago display face comes from {@link vfDisplay}
+ * (both controls compose it), so no font is set here. Each component adds only
+ * its own well (`.box`/`.circle`), glyphs and press feedback.
+ */
+export const vfToggle = css`
+  :host {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--vf-scale, 1) * 6px);
+    cursor: default;
+  }
+  /* The focus ring is drawn on the box/circle, not the host. */
+  :host(:focus-visible) {
+    outline: none;
+  }
+  /* Disabled dims the label only; the box/circle glyphs stay solid black. */
+  .label.dim {
+    color: var(--vf-disabled, #c0c0c0);
   }
 `
 

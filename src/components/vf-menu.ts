@@ -7,6 +7,7 @@ import {
 } from 'lit/decorators.js'
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
 /**
@@ -192,14 +193,7 @@ export class VfMenu extends LitElement {
    * toggles itself.
    */
   #requestToggle(): void {
-    const proceed = this.dispatchEvent(
-      new CustomEvent('vf-menu-toggle-request', {
-        bubbles: true,
-        composed: true,
-        cancelable: true,
-        detail: { menu: this },
-      })
-    )
+    const proceed = emit(this, 'vf-menu-toggle-request', { menu: this }, { cancelable: true })
     if (proceed) this.open = !this.open
   }
 
@@ -209,13 +203,7 @@ export class VfMenu extends LitElement {
 
   #onLabelEnter(): void {
     // Internal event: while a sibling menu is open, the bar switches to us.
-    this.dispatchEvent(
-      new CustomEvent('vf-menu-hover', {
-        bubbles: true,
-        composed: true,
-        detail: { menu: this },
-      })
-    )
+    emit(this, 'vf-menu-hover', { menu: this })
   }
 
   #onLabelKeydown(event: KeyboardEvent): void {

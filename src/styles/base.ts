@@ -202,6 +202,13 @@ export const vfField = css`
     color: var(--vf-disabled, #c0c0c0);
     box-shadow: none;
   }
+  /* Selected text inverts to solid black-on-white — the 1-bit System 7
+     selection, not the browser's translucent blue. Reuses the list's highlight
+     tokens so every selection in the kit shares one color. */
+  .vf-field::selection {
+    background-color: var(--vf-highlight, #000);
+    color: var(--vf-highlight-text, #fff);
+  }
 `
 
 /**
@@ -221,6 +228,16 @@ export const vfScrollbars = css`
   .vf-scroll::-webkit-scrollbar {
     width: calc(var(--vf-scale, 1) * 16px);
     height: calc(var(--vf-scale, 1) * 16px);
+  }
+  /* The rail always uses the default arrow pointer, never the host's cursor —
+     otherwise a textarea's text I-beam bleeds over the reserved scroll rail.
+     Custom (styled) scrollbars honor the cursor property; native ones ignore it. */
+  .vf-scroll::-webkit-scrollbar,
+  .vf-scroll::-webkit-scrollbar-track,
+  .vf-scroll::-webkit-scrollbar-thumb,
+  .vf-scroll::-webkit-scrollbar-button,
+  .vf-scroll::-webkit-scrollbar-corner {
+    cursor: default;
   }
   /* Loose 1-bit dither: a 25%-density dot lattice — dotted vertical lines two
      pixels apart, each column phase-shifted by one row. A 4×2 tile with a dot
@@ -339,6 +356,44 @@ export const vfScrollbars = css`
   .vf-scroll::-webkit-scrollbar-button:horizontal:increment:active {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M7 2h1v1h-1zM7 3h2v1h-2zM7 4h3v1h-3zM3 5h8v1h-8zM3 6h9v1h-9zM3 7h10v1h-10zM3 8h10v1h-10zM3 9h9v1h-9zM3 10h8v1h-8zM7 11h3v1h-3zM7 12h2v1h-2zM7 13h1v1h-1z'/%3E%3C/svg%3E");
   }
+  /* ── Always-a-rail behavior (driven by ScrollStateController) ─────────────
+     A scrollable frame keeps its scroll rail as a permanent placeholder: the
+     component reserves the channel per axis (overflow-y/-x: scroll) so an empty
+     white rail sits in the gutter even with nothing to scroll, and the bar only
+     fills in — dither track, thumb, arrow buttons — once that axis overflows.
+
+     ScrollStateController writes data-overflow-{x,y}="true|false" on the scroll
+     element; "false" selects the idle rail below. A plain .vf-scroll used
+     WITHOUT the controller carries no such attribute, so none of these rules
+     match and its scrollbar behaves exactly as the recipe above — the managed
+     behavior is strictly opt-in and can't silently swallow a consumer's bar.
+
+     FUTURE: when @container scroll-state(scrollable) container queries reach
+     baseline support, slotted-content components (vf-scroll-area, vf-list) could
+     drop the JS controller and gate these same rules with an @container query
+     instead; a native textarea's own scrollbar would still need the JS path.
+     See the matching note in src/scroll-state.ts. */
+
+  /* Idle track: a plain white channel — the dither returns only on overflow.
+     The rail divider (the track's border, above) stays, so the empty gutter
+     still reads as a scroll rail. */
+  .vf-scroll[data-overflow-y='false']::-webkit-scrollbar-track:vertical,
+  .vf-scroll[data-overflow-x='false']::-webkit-scrollbar-track:horizontal {
+    background-image: none;
+  }
+  /* Idle: no thumb (the full-height thumb overflow:scroll would otherwise draw
+     goes invisible; its box still reserves the channel, so no layout shift). */
+  .vf-scroll[data-overflow-y='false']::-webkit-scrollbar-thumb:vertical,
+  .vf-scroll[data-overflow-x='false']::-webkit-scrollbar-thumb:horizontal {
+    background: transparent;
+    border: 0;
+  }
+  /* Idle: no arrow buttons — they reappear (single arrow per end) on overflow. */
+  .vf-scroll[data-overflow-y='false']::-webkit-scrollbar-button:vertical,
+  .vf-scroll[data-overflow-x='false']::-webkit-scrollbar-button:horizontal {
+    display: none;
+  }
+
   /* Firefox (no ::-webkit-scrollbar): approximate with scrollbar-color. */
   @supports not selector(::-webkit-scrollbar) {
     .vf-scroll {

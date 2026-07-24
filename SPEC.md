@@ -363,7 +363,10 @@ Classic fixed modal alert: double black frame, no title bar.
   height `var(--vf-control-height, 22px)`, `padding: 0 6px`, font tokens but
   `font-weight: var(--vf-font-weight, 700)`. `user-select: text`. Focus: border
   thickens via `box-shadow: 0 0 0 1px var(--vf-black, #000)` (no dotted
-  outline). Disabled: the text dims to gray; the black border stays.
+  outline). Disabled: the text dims to gray; the black border stays. Selected
+  text inverts to solid black-on-white (`.vf-field::selection`, using
+  `--vf-highlight`/`--vf-highlight-text`) — the 1-bit System 7 selection, shared
+  by all three editable fields via the `vfField` skin.
 - **Behavior:** form-associated; syncs `value` on input; `formResetCallback`
   restores default.
 - **Parts:** `input`.
@@ -373,6 +376,11 @@ Classic fixed modal alert: double black frame, no title bar.
 #### `vf-text-area` (`VfTextArea`, vf-text-area.ts)
 Same as vf-text-field but wrapping `<textarea>`; extra prop `rows: number`
 (default 4). No resize grip (`resize: none`) — System 7 fields don't resize.
+Reserves a permanent System 7 vertical scroll rail (the shared "always-a-rail"
+behavior — see vf-scroll-area): an empty white channel until the text overflows,
+then the dither/thumb/arrows fill in. The `<textarea>` carries the `vf-scroll`
+class + `vfScrollbars` skin, and `ScrollStateController` re-measures on each
+keystroke (a textarea's scrollHeight grows without a box resize).
 Parts: `textarea`. Events: `vf-input`, `vf-change`.
 
 #### `vf-number-field` (`VfNumberField`, vf-number-field.ts)
@@ -545,10 +553,12 @@ Classic list box.
 - **Children:** `<vf-list-item value="...">` (`VfListItem`, vf-list-item.ts):
   props `value`, `selected` (reflect), `disabled`; height 20px,
   `padding: 0 6px`; selected = inverted row (full width).
-- **Visual (list):** white bg, `1px solid black`, `overflow-y: auto` with the
+- **Visual (list):** white bg, `1px solid black`, `overflow-y: scroll` with the
   shared System 7 scrollbar recipe (`vfScrollbars` from base.ts — add the
   `vf-scroll` class to the scrolling element), default `max-height: 200px`
-  overridable via `--vf-list-max-height`.
+  overridable via `--vf-list-max-height`. Reserves a permanent vertical scroll
+  rail (the "always-a-rail" behavior — see vf-scroll-area): an empty white
+  channel until the rows overflow.
 - **Behavior:** `role="listbox"` (+`aria-multiselectable`), items
   `role="option"`. Click selects (Shift/Cmd extend when `multiple`). Roving
   tabindex, Arrow keys move selection, Space toggles in multiple mode.
@@ -556,8 +566,11 @@ Classic list box.
 
 #### `vf-scroll-area` (`VfScrollArea`, vf-scroll-area.ts)
 A container whose scrollbars look like System 7.
+- **Attributes/props:** `axis: 'vertical' | 'horizontal' | 'both'` (default
+  `'vertical'`, reflected) — which scroll rails to reserve as permanent
+  placeholders (see "always-a-rail" below).
 - **Visual:** `display: block`, white bg, `1px solid black`, inner viewport
-  `overflow: auto`, `padding: 8px`. Consumer sets width/height on host.
+  `padding: 8px`. Consumer sets width/height on host.
   Scrollbars come from the shared `vfScrollbars` recipe in base.ts (add the
   `vf-scroll` class to the scrolling element; WebKit pseudo-elements, with a
   `scrollbar-width/scrollbar-color` fallback for Firefox):
@@ -572,11 +585,28 @@ A container whose scrollbars look like System 7.
     via inline SVG data-URI backgrounds (`::-webkit-scrollbar-button` with
     `:vertical:decrement` etc.) — hollow outline at rest, filled solid black on
     `:active` (pressed);
+  - the rail always uses the default arrow cursor, never the host's — a styled
+    (custom) scrollbar otherwise inherits e.g. a `<textarea>`'s text I-beam over
+    the reserved rail;
   - **nested-border rule:** the scrollbar assumes it sits inside a 1px-bordered
     host. Every element (arrow boxes, thumb) omits its border on the edge that
     coincides with that host border so the two never stack into a 2px line; when
     both scrollbars show, the corner supplies the interior dividers the buttons
     drop.
+- **Always-a-rail behavior:** each *reserved* axis (per `axis`) is
+  `overflow: scroll` + `scrollbar-gutter: stable`, so its rail is a permanent
+  placeholder — an empty white channel (dither off, no thumb/arrows) — until the
+  content overflows that axis, when the dither/thumb/arrows fill in.
+  `ScrollStateController` (`src/scroll-state.ts`) measures both axes and writes
+  `data-overflow-x` / `data-overflow-y` (`"true"` / `"false"`) on the scroll
+  element; the recipe keys the dither/thumb/arrows off those attributes. The
+  unreserved axis stays `overflow: auto` (on-demand). `scrollbar-gutter` reserves
+  only the vertical channel (modern Chromium draws a zero-width overlay bar for a
+  styled `::-webkit-scrollbar`, so `overflow: scroll` alone reserves nothing), so
+  a reserved *horizontal* rail additionally needs classic (non-overlay)
+  scrollbars. Shared by vf-list and vf-text-area; a future
+  `@container scroll-state(scrollable)` query could replace the JS for
+  slotted-content components.
 - **Slots:** default. **Parts:** `viewport`.
 
 #### `vf-fieldset` (`VfFieldset`, vf-fieldset.ts)

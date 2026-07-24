@@ -56,14 +56,14 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-button-group` | Arranges buttons in a row (or `vertical` column), sizing them all to the widest — the classic System 7 shared width — unless `natural`; aligns their faces so a `variant="default"` button lines up with its neighbors |
 | `vf-checkbox` | Checkbox with the classic ✕ mark |
 | `vf-radio`, `vf-radio-group` | Radio buttons with form-associated group |
-| `vf-text-field`, `vf-text-area` | Bordered text inputs |
+| `vf-text-field`, `vf-text-area` | Bordered text inputs; `vf-text-area` keeps a permanent System 7 scroll rail |
 | `vf-number-field` | Numeric field with the classic "little arrows" stepper |
 | `vf-select`, `vf-option` | Popup menu control ("Macintosh HD ▼") |
 | `vf-progress-bar` | Determinate fill or indeterminate barber stripes |
 | `vf-slider` | Horizontal 1-bit slider: solid-black fill up to a shield-shaped drag handle |
 | `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts and selection blink |
-| `vf-list`, `vf-list-item` | List box with inverted selection |
-| `vf-scroll-area` | Container with System 7 scrollbars |
+| `vf-list`, `vf-list-item` | List box with inverted selection and a permanent scroll rail |
+| `vf-scroll-area` | Container with System 7 scrollbars; reserves the scroll rail as a placeholder (per-axis via `axis`), filling in only on overflow |
 | `vf-fieldset` | Group box with legend punching through the border |
 
 All visual constants are CSS custom properties (`--vf-*`) with inlined

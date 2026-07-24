@@ -1,7 +1,13 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property, queryAssignedElements } from 'lit/decorators.js'
+import {
+  customElement,
+  property,
+  query,
+  queryAssignedElements,
+} from 'lit/decorators.js'
 import { vfBase, vfScrollbars } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { ScrollStateController } from '../scroll-state.js'
 import { emit } from '../events.js'
 import type { VfListItem } from './vf-list-item.js'
 
@@ -12,9 +18,11 @@ const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
  * `<vf-list>` — the classic System 7 list box.
  *
  * A white, black-bordered scrolling box of `<vf-list-item>` rows with
- * System 7-styled scrollbars (dither track, boxed arrow buttons). Selection
- * inverts rows. Supports single and multiple selection, roving tabindex, and
- * arrow-key navigation.
+ * System 7-styled scrollbars (dither track, boxed arrow buttons). The vertical
+ * rail is a permanent placeholder — an empty white channel when the rows fit,
+ * filling in with dither/thumb/arrows only on overflow (driven by
+ * {@link ScrollStateController}). Selection inverts rows. Supports single and
+ * multiple selection, roving tabindex, and arrow-key navigation.
  *
  * Max height defaults to 200px; override with `--vf-list-max-height`.
  *
@@ -40,12 +48,28 @@ export class VfList extends LitElement {
       }
       .list {
         max-height: calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px));
-        overflow-y: auto;
+        /* Reserve the vertical rail always. overflow-y: scroll keeps the styled
+           track painted; scrollbar-gutter: stable reserves the 16px channel
+           (modern Chromium draws a zero-width overlay bar otherwise, so overflow
+           alone reserves nothing). ScrollStateController toggles data-overflow-y
+           so it reads as a bare white rail until the rows overflow. */
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
       }
     `,
   ]
 
   private readonly scale = new ScaleController(this)
+
+  @query('.list') private viewport!: HTMLElement | null
+  @query('.list-content') private content!: HTMLElement | null
+
+  /** Reserves the vertical rail and toggles it active on overflow. */
+  private readonly scrollState = new ScrollStateController(
+    this,
+    () => this.viewport,
+    () => this.content
+  )
 
   /** Allows multiple selection (Shift extends, Cmd/Ctrl toggles). */
   @property({ type: Boolean, reflect: true }) multiple = false
@@ -108,7 +132,9 @@ export class VfList extends LitElement {
   protected override render() {
     return html`
       <div class="list vf-scroll" part="list">
-        <slot @slotchange=${this.#onSlotChange}></slot>
+        <div class="list-content">
+          <slot @slotchange=${this.#onSlotChange}></slot>
+        </div>
       </div>
     `
   }

@@ -126,6 +126,44 @@ export const vfFocus = css`
 `
 
 /**
+ * The System 7 editable-field skin (SPEC §1/§5): a white well with a 1px black
+ * border, no corner radius, Chicago-style display type, and the "focus thickens
+ * the border" box-shadow (no dotted ring). Add the `vf-field` class to the inner
+ * native `<input>`/`<textarea>`; the host supplies layout (width, height,
+ * padding) around it. Shared by vf-text-field, vf-text-area and vf-number-field
+ * so the well, focus and disabled treatment stay identical across all three.
+ */
+export const vfField = css`
+  .vf-field {
+    background: var(--vf-white, #fff);
+    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    border-radius: 0;
+    /* Editable text is set in the Chicago-style display face. */
+    ${vfDisplayDecls}
+    font-weight: var(--vf-font-weight, 700);
+    line-height: inherit;
+    color: var(--vf-black, #000);
+    user-select: text;
+    -webkit-user-select: text;
+    outline: none;
+  }
+  /* Fields thicken their border on focus instead of a dotted ring. */
+  .vf-field:focus {
+    box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
+  }
+  .vf-field::placeholder {
+    color: var(--vf-disabled, #c0c0c0);
+    font-weight: inherit;
+    opacity: 1;
+  }
+  /* Disabled: the text dims to gray; the solid black box border stays. */
+  .vf-field:disabled {
+    color: var(--vf-disabled, #c0c0c0);
+    box-shadow: none;
+  }
+`
+
+/**
  * System 7 scrollbars. Add the `vf-scroll` class to any element with
  * `overflow: auto`/`scroll` that lives inside a 1px-bordered host (the recipe
  * assumes the host border supplies the scrollbar's outer frame).

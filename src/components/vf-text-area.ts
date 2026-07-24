@@ -1,15 +1,16 @@
 import { css, html, nothing } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { live } from 'lit/directives/live.js'
-import { vfBase, vfDisplayDecls } from '../styles/base.js'
-import { ScaleController } from '../scale.js'
-import { VfFormControl } from '../form-control.js'
+import { vfBase, vfField } from '../styles/base.js'
+import { VfTextControlBase } from '../text-control.js'
 
 /**
  * `<vf-text-area>` — a System 7 multi-line text entry field.
  *
  * Identical styling to `<vf-text-field>` but wrapping a native `<textarea>`.
- * No resize grip (`resize: none`) — System 7 fields don't resize.
+ * No resize grip (`resize: none`) — System 7 fields don't resize. The shared
+ * field skin lives in `vfField`; the value/form scaffolding in
+ * {@link VfTextControlBase}.
  *
  * @fires vf-input - On every keystroke. `detail: { value: string }`.
  * @fires vf-change - On commit (native `change`). `detail: { value: string }`.
@@ -17,14 +18,10 @@ import { VfFormControl } from '../form-control.js'
  * @csspart textarea - The inner native `<textarea>` element.
  */
 @customElement('vf-text-area')
-export class VfTextArea extends VfFormControl {
-  static override shadowRootOptions: ShadowRootInit = {
-    ...VfFormControl.shadowRootOptions,
-    delegatesFocus: true,
-  }
-
+export class VfTextArea extends VfTextControlBase {
   static override styles = [
     vfBase,
+    vfField,
     css`
       :host {
         display: inline-block;
@@ -37,107 +34,19 @@ export class VfTextArea extends VfFormControl {
         display: block;
         width: 100%;
         padding: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 6px);
-        background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-        border-radius: 0;
         resize: none;
-        /* Editable text is set in the Chicago-style display face. */
-        ${vfDisplayDecls}
-        font-weight: var(--vf-font-weight, 700);
-        line-height: inherit;
-        color: var(--vf-black, #000);
-        user-select: text;
-        -webkit-user-select: text;
-        outline: none;
-      }
-      /* Text inputs thicken their border on focus instead of a dotted ring. */
-      textarea:focus {
-        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
-      }
-      textarea::placeholder {
-        color: var(--vf-disabled, #c0c0c0);
-        font-weight: inherit;
-        opacity: 1;
-      }
-      /* Disabled: the text dims to gray; the solid black box border stays. */
-      textarea:disabled {
-        color: var(--vf-disabled, #c0c0c0);
-        box-shadow: none;
       }
     `,
   ]
 
-  /** Current text value. Synced on every keystroke and submitted with forms. */
-  @property() value = ''
-
-  /** Placeholder text shown when the field is empty. */
-  @property() placeholder = ''
-
-  /** Makes the field read-only (focusable, not editable). */
-  @property({ type: Boolean, reflect: true }) readonly = false
-
   /** Number of visible text rows (native `rows`). Default 4. */
   @property({ type: Number }) rows = 4
-
-  /**
-   * Accessible name for the field, rendered as `aria-label` on the inner native
-   * textarea (which is what receives focus and is announced — an `aria-label`
-   * on the host does not reach into the shadow DOM). Mirrors `vf-text-field`.
-   */
-  @property() label = ''
-
-  /** Form field name used when submitting the associated form. */
-  @property({ reflect: true }) name = ''
-
-  private readonly scale = new ScaleController(this)
-
-  /** Value restored by `formResetCallback`; captured on first connect. */
-  private defaultValue = ''
-  private defaultCaptured = false
-
-  override connectedCallback(): void {
-    super.connectedCallback()
-    if (!this.defaultCaptured) {
-      this.defaultCaptured = true
-      this.defaultValue = this.value
-    }
-  }
-
-  protected override updated(): void {
-    this.syncFormValue(this.value)
-  }
-
-  /** Restores the initial value when the associated form resets. */
-  formResetCallback(): void {
-    this.value = this.defaultValue
-  }
-
-  private handleInput(event: Event): void {
-    this.value = (event.target as HTMLTextAreaElement).value
-    this.dispatchEvent(
-      new CustomEvent('vf-input', {
-        detail: { value: this.value },
-        bubbles: true,
-        composed: true,
-      })
-    )
-  }
-
-  private handleChange(event: Event): void {
-    this.value = (event.target as HTMLTextAreaElement).value
-    this.dispatchEvent(
-      new CustomEvent('vf-change', {
-        detail: { value: this.value },
-        bubbles: true,
-        composed: true,
-      })
-    )
-  }
 
   protected override render() {
     return html`
       <textarea
         part="textarea"
+        class="vf-field"
         rows=${this.rows}
         aria-label=${this.label || nothing}
         .value=${live(this.value)}

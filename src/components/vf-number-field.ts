@@ -2,10 +2,9 @@ import { css, html, nothing } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { live } from 'lit/directives/live.js'
-import { vfBase, vfDisplayDecls } from '../styles/base.js'
+import { vfBase, vfField } from '../styles/base.js'
 import { STEPPER, STEPPER_DOWN_FILL, STEPPER_UP_FILL } from '../glyphs.js'
-import { ScaleController } from '../scale.js'
-import { VfFormControl } from '../form-control.js'
+import { VfTextControlBase } from '../text-control.js'
 
 /**
  * `<vf-number-field>` — a System 7 numeric entry field paired with the classic
@@ -16,7 +15,9 @@ import { VfFormControl } from '../form-control.js'
  * UI Kit sprite. Clicking (or press-and-holding, with autorepeat) an arrow
  * steps the value by `step`, clamped to `min`/`max`; the held arrow fills solid
  * black, matching the kit's hollow→filled press convention. The field is a
- * `spinbutton`: ArrowUp/ArrowDown step, Home/End jump to min/max.
+ * `spinbutton`: ArrowUp/ArrowDown step, Home/End jump to min/max. The shared
+ * field skin lives in `vfField`; the value/form scaffolding in
+ * {@link VfTextControlBase}.
  *
  * @fires vf-input - On every keystroke. `detail: { value, valueAsNumber }`.
  * @fires vf-change - On commit or step. `detail: { value, valueAsNumber }`.
@@ -25,14 +26,10 @@ import { VfFormControl } from '../form-control.js'
  * @csspart stepper - The little-arrows control.
  */
 @customElement('vf-number-field')
-export class VfNumberField extends VfFormControl {
-  static override shadowRootOptions: ShadowRootInit = {
-    ...VfFormControl.shadowRootOptions,
-    delegatesFocus: true,
-  }
-
+export class VfNumberField extends VfTextControlBase {
   static override styles = [
     vfBase,
+    vfField,
     css`
       :host {
         display: inline-flex;
@@ -44,32 +41,7 @@ export class VfNumberField extends VfFormControl {
         width: var(--vf-number-field-width, 4em);
         min-width: 2em;
         padding: 0 calc(var(--vf-scale, 1) * 6px);
-        background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-        border-radius: 0;
-        /* Editable text is set in the Chicago-style display face. */
-        ${vfDisplayDecls}
-        font-weight: var(--vf-font-weight, 700);
-        line-height: inherit;
-        color: var(--vf-black, #000);
         text-align: right;
-        user-select: text;
-        -webkit-user-select: text;
-        outline: none;
-      }
-      /* Text inputs thicken their border on focus instead of a dotted ring. */
-      input:focus {
-        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
-      }
-      input::placeholder {
-        color: var(--vf-disabled, #c0c0c0);
-        font-weight: inherit;
-        opacity: 1;
-      }
-      /* Disabled: the value dims to gray; the black box + stepper stay black. */
-      input:disabled {
-        color: var(--vf-disabled, #c0c0c0);
-        box-shadow: none;
       }
 
       /* The little-arrows stepper, drawn at its native 15×25 (1:1, crisp). */
@@ -114,9 +86,6 @@ export class VfNumberField extends VfFormControl {
     `,
   ]
 
-  /** Current value as a string (submitted with forms). */
-  @property() value = ''
-
   /** Minimum allowed value (inclusive). Omit for no lower bound. */
   @property({ type: Number }) min?: number
 
@@ -126,52 +95,17 @@ export class VfNumberField extends VfFormControl {
   /** Increment applied per step / arrow press. Also sets the value's precision. */
   @property({ type: Number }) step = 1
 
-  /** Placeholder text shown when the field is empty. */
-  @property() placeholder = ''
-
-  /** Read-only: focusable and editable-looking, but the value cannot change. */
-  @property({ type: Boolean, reflect: true }) readonly = false
-
-  /** Form field name used when submitting the associated form. */
-  @property({ reflect: true }) name = ''
-
-  /** Accessible name, applied as `aria-label` on the inner input. */
-  @property() label = ''
-
   /** Which arrow is currently held (drives the solid pressed glyph). */
   @state() private pressed: 'up' | 'down' | null = null
 
   @query('input') private input!: HTMLInputElement | null
 
-  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
-  private readonly scale = new ScaleController(this)
-
-  private defaultValue = ''
-  private defaultCaptured = false
-
   #delayTimer?: number
   #repeatTimer?: number
-
-  override connectedCallback(): void {
-    super.connectedCallback()
-    if (!this.defaultCaptured) {
-      this.defaultCaptured = true
-      this.defaultValue = this.value
-    }
-  }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.#stopRepeat()
-  }
-
-  protected override updated(): void {
-    this.syncFormValue(this.value)
-  }
-
-  /** Restores the initial value when the associated form resets. */
-  formResetCallback(): void {
-    this.value = this.defaultValue
   }
 
   // ------------------------------------------------------------ value math
@@ -211,13 +145,7 @@ export class VfNumberField extends VfFormControl {
   }
 
   #emit(type: 'vf-input' | 'vf-change'): void {
-    this.dispatchEvent(
-      new CustomEvent(type, {
-        detail: { value: this.value, valueAsNumber: this.#parse() },
-        bubbles: true,
-        composed: true,
-      })
-    )
+    this.emitValue(type, { value: this.value, valueAsNumber: this.#parse() })
   }
 
   // -------------------------------------------------------------- autorepeat
@@ -261,14 +189,7 @@ export class VfNumberField extends VfFormControl {
   }
 
   #onKeydown = (event: KeyboardEvent): void => {
-    if (
-      event.key === 'Enter' &&
-      !event.isComposing &&
-      !event.shiftKey &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.altKey
-    ) {
+    if (this.isSubmitEnter(event)) {
       this.internals.form?.requestSubmit()
       return
     }
@@ -320,6 +241,7 @@ export class VfNumberField extends VfFormControl {
     return html`
       <input
         part="input"
+        class="vf-field"
         type="text"
         inputmode="decimal"
         role="spinbutton"

@@ -4,7 +4,7 @@ import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
-import { prefersReducedMotion } from '../motion.js'
+import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 
 /**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
@@ -102,7 +102,7 @@ export class VfMenuItem extends LitElement {
   /** `'on' | 'off'` while the selection blink runs, otherwise `null`. */
   @state() private _blinkPhase: 'on' | 'off' | null = null
 
-  #blinkTimer: number | undefined
+  #blinkHandle: BlinkHandle | undefined
   #blinking = false
 
   /**
@@ -127,10 +127,8 @@ export class VfMenuItem extends LitElement {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
-    if (this.#blinkTimer !== undefined) {
-      clearInterval(this.#blinkTimer)
-      this.#blinkTimer = undefined
-    }
+    this.#blinkHandle?.cancel()
+    this.#blinkHandle = undefined
     this.#blinking = false
     this._blinkPhase = null
   }
@@ -194,27 +192,22 @@ export class VfMenuItem extends LitElement {
    */
   #activate(): void {
     if (this.disabled || this.#blinking) return
-    // Reduced motion: skip the ~250ms blink and select immediately.
-    if (prefersReducedMotion()) {
-      this.#dispatchSelect()
-      return
-    }
     this.#blinking = true
-    // 6 phase flips = 3 full off/on blinks over ~250ms.
-    let flips = 0
-    this._blinkPhase = 'off'
-    this.#blinkTimer = window.setInterval(() => {
-      flips += 1
-      if (flips >= 6) {
-        clearInterval(this.#blinkTimer)
-        this.#blinkTimer = undefined
+    // Shared primitive owns the timing + reduced-motion short-circuit; under
+    // reduced motion it runs `onDone` synchronously (no blink), clearing the
+    // flag before we retain the handle.
+    const handle = runSelectionBlink(
+      (on) => {
+        this._blinkPhase = on ? 'on' : 'off'
+      },
+      () => {
         this._blinkPhase = null
         this.#blinking = false
+        this.#blinkHandle = undefined
         this.#dispatchSelect()
-        return
       }
-      this._blinkPhase = this._blinkPhase === 'on' ? 'off' : 'on'
-    }, 42)
+    )
+    if (this.#blinking) this.#blinkHandle = handle
   }
 
   #dispatchSelect(): void {

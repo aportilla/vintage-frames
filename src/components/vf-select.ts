@@ -5,7 +5,7 @@ import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
-import { prefersReducedMotion } from '../motion.js'
+import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
 
 /**
@@ -227,7 +227,7 @@ export class VfSelect extends VfFormControl {
   /** True while the classic selection blink is playing (input is ignored). */
   private blinking = false
 
-  private blinkTimer: number | undefined
+  private blinkHandle: BlinkHandle | undefined
 
   /** Value restored by `formResetCallback`; captured on first slot change. */
   private defaultValue = ''
@@ -439,28 +439,24 @@ export class VfSelect extends VfFormControl {
     this.optionItems.forEach((o, i) => {
       o.active = i === index
     })
-    // Reduced motion: skip the ~250ms blink and commit immediately.
-    if (prefersReducedMotion()) {
-      this.commit(option)
-      return
-    }
     this.blinking = true
-    let ticks = 0
-    this.blinkTimer = window.setInterval(() => {
-      ticks += 1
-      option.active = ticks % 2 === 0
-      if (ticks >= 6) {
-        this.cancelBlink()
+    // Shared primitive owns the timing + reduced-motion short-circuit; under
+    // reduced motion it commits synchronously (no blink), clearing the flag
+    // before we retain the handle.
+    const handle = runSelectionBlink(
+      (on) => {
+        option.active = on
+      },
+      () => {
         this.commit(option)
       }
-    }, 42)
+    )
+    if (this.blinking) this.blinkHandle = handle
   }
 
   private cancelBlink(): void {
-    if (this.blinkTimer !== undefined) {
-      window.clearInterval(this.blinkTimer)
-      this.blinkTimer = undefined
-    }
+    this.blinkHandle?.cancel()
+    this.blinkHandle = undefined
     this.blinking = false
   }
 

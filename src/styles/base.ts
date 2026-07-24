@@ -275,6 +275,13 @@ export const vfScrollbars = css`
     /* Scale the 16-unit arrow sprite to fill the scaled button (it's drawn via
        background-image with no intrinsic scale otherwise). */
     background-size: calc(var(--vf-scale, 1) * 16px) calc(var(--vf-scale, 1) * 16px);
+    /* The sprite is the whole 16-unit cell (frame margin included), so its
+       positioning box must be the fixed 16·scale border-box — not the default
+       padding-box, which the per-variant dropped borders (see the trims below)
+       grow asymmetrically to 15·scale, landing the centered sprite on a
+       half-pixel offset that antialiases the arrow. border-box keeps every
+       state on the device grid and crisply centered. */
+    background-origin: border-box;
   }
   /* Nest the arrow boxes cleanly inside the host's 1px border: any button edge
      that meets the container is drawn by the host border, not the button, so

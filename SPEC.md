@@ -428,7 +428,10 @@ The classic popup menu control ("Macintosh HD ▼").
   selected label's position and surrounding whitespace are identical closed and
   open. The currently-selected item shows a ✓ checkmark in the left
   `--vf-select-gutter` column; hovered/active item inverts (black bg, white
-  text); disabled options gray.
+  text); disabled options gray. A list taller than the viewport scrolls with the
+  shared System 7 scrollbar recipe (`vfScrollbars` from base.ts — the panel
+  carries the `vf-scroll` class), clamped to the viewport height, rather than the
+  native OS scrollbar.
 - **Behavior:** form-associated. Opens on pointerdown (mouse/touch),
   Space/Enter/ArrowDown, or a synthesised click (assistive tech). Two pointer
   styles coexist, disambiguated by the gesture and resolved at the first

@@ -1,7 +1,7 @@
 import { css, html, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js'
-import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocus, vfPanel, vfScrollbars } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
@@ -71,6 +71,7 @@ export class VfSelect extends VfFormControl {
     vfDisplay,
     vfPanel,
     vfFocus,
+    vfScrollbars,
     css`
       :host {
         /* A popup menu is sized to its widest option — never stretched to fill
@@ -195,6 +196,14 @@ export class VfSelect extends VfFormControl {
   @queryAssignedElements({ selector: 'vf-option' })
   private assignedOptions!: VfOption[]
 
+  /**
+   * Assigned options, cached from the last slotchange. `render()` reads this
+   * reactive state (via {@link optionItems}) instead of the live query above,
+   * which is empty on the first paint — the source of the empty-label /
+   * zero-width-sizer flash.
+   */
+  @state() private cachedOptions: VfOption[] = []
+
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
@@ -246,6 +255,10 @@ export class VfSelect extends VfFormControl {
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.cancelBlink()
+    // Clear any stamped `active` flags on the options: a select disconnected
+    // mid-open/mid-blink otherwise keeps an inverted highlight row when
+    // reconnected (closePanel's clearActive() only runs on a normal close).
+    this.clearActive()
     this.endPress()
     this.open = false
     this.removeDocumentListeners()
@@ -285,7 +298,7 @@ export class VfSelect extends VfFormControl {
   }
 
   private get optionItems(): VfOption[] {
-    return this.assignedOptions ?? []
+    return this.cachedOptions
   }
 
   /** Resolved value of an option (falls back to its text, like `<option>`). */
@@ -301,18 +314,25 @@ export class VfSelect extends VfFormControl {
   }
 
   private handleSlotChange = (): void => {
+    // Cache the assigned options so render() reads reactive @state rather than
+    // the live query (empty on first paint). Reassigning the array drives the
+    // update — the closed-control label mirrors option content — so no explicit
+    // requestUpdate() is needed.
+    this.cachedOptions = this.assignedOptions ?? []
     // Adopt the first enabled option when no value was authored, like a
     // native <select>.
     if (this.value === '') {
       const first = this.optionItems.find((o) => !o.disabled)
       if (first) this.value = this.optionValue(first)
     }
-    if (!this.defaultCaptured) {
+    // Latch the reset default only once options actually exist, so an
+    // async-populated menu doesn't capture the empty pre-population value and
+    // then reset to '' instead of the first-option default.
+    if (!this.defaultCaptured && this.optionItems.length) {
       this.defaultCaptured = true
       this.defaultValue = this.value
     }
     this.applySelection()
-    this.requestUpdate() // the closed-control label mirrors option content
   }
 
   // ---------------------------------------------------------------- opening
@@ -340,28 +360,35 @@ export class VfSelect extends VfFormControl {
     const control = this.controlEl
     const panel = this.panelEl
     if (!control || !panel) return
-    const rect = control.getBoundingClientRect()
+    // Batch both reads before any style writes: a write between the two rect
+    // reads would invalidate layout and force the second read to reflow. The
+    // panel is display:block by now (openPanel awaited updateComplete) and its
+    // width already hugs the same widest option as the control, so we measure it
+    // once and clamp horizontally with the control's own width.
     // getBoundingClientRect is in real (already-scaled) CSS px, so the system-px
     // constants (item height, borders, viewport margins) are converted with sys().
-    // The panel is exactly the control's width — which already hugs the widest
-    // option — so the open list lines up with the closed pill.
-    panel.style.minWidth = `${rect.width}px`
-    panel.style.maxHeight = `${window.innerHeight - sys(8, this)}px`
+    const rect = control.getBoundingClientRect()
     const panelRect = panel.getBoundingClientRect()
+    const maxHeight = window.innerHeight - sys(8, this)
+    // Natural panel height, capped to the maxHeight we're about to apply (read
+    // before that write, so account for the clamp here rather than re-measuring).
+    const panelHeight = Math.min(panelRect.height, maxHeight)
     // Overlay the selected row's white cell directly on the pill's white content,
     // so its text and whitespace match the closed pill and the list grows down.
     // With the row height = the pill's content height, the panel's own top border
     // then lands exactly on the pill's top border (no ±1px compensation needed).
     let top = rect.top - selectedIndex * sys(VfSelect.ITEM_HEIGHT, this)
-    top = Math.max(sys(4, this), Math.min(top, window.innerHeight - panelRect.height - sys(4, this)))
+    top = Math.max(sys(4, this), Math.min(top, window.innerHeight - panelHeight - sys(4, this)))
     let left = rect.left
-    left = Math.max(sys(4, this), Math.min(left, window.innerWidth - panelRect.width - sys(4, this)))
+    left = Math.max(sys(4, this), Math.min(left, window.innerWidth - rect.width - sys(4, this)))
     // Both coordinates come straight from the control's rect (unsnapped): the
     // panel is the pill's own width and overlays it, so it must share the pill's
     // exact edges and its selected row must sit exactly on the pill's label.
     // Snapping to the device grid here would translate the panel off the pill
     // whenever it sits at a fractional position (it follows variable-width content
     // in a flex row) — the panel instead inherits the pill's own pixel phase.
+    panel.style.minWidth = `${rect.width}px`
+    panel.style.maxHeight = `${maxHeight}px`
     panel.style.top = `${top}px`
     panel.style.left = `${left}px`
   }
@@ -436,10 +463,9 @@ export class VfSelect extends VfFormControl {
   private selectOption(option: VfOption): void {
     if (option.disabled || this.blinking) return
     const index = this.optionItems.indexOf(option)
-    this.activeIndex = index
-    this.optionItems.forEach((o, i) => {
-      o.active = i === index
-    })
+    // Highlight without moving focus — the same activation setActive() applies
+    // (blink keeps focus on the control), so reuse it instead of re-looping.
+    this.setActive(index, false)
     this.blinking = true
     // Shared primitive owns the timing + reduced-motion short-circuit; under
     // reduced motion it commits synchronously (no blink), clearing the flag
@@ -751,7 +777,7 @@ export class VfSelect extends VfFormControl {
       </div>
       <div
         id="listbox"
-        class="panel vf-panel ${this.open ? 'open' : ''}"
+        class="panel vf-panel vf-scroll ${this.open ? 'open' : ''}"
         part="panel"
         role="listbox"
         aria-label=${this.label || nothing}

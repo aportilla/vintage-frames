@@ -51,11 +51,14 @@ import { emit } from '../events.js'
 @customElement('vf-select')
 export class VfSelect extends VfFormControl {
   /**
-   * Height of one option row — the pill's *content* height (`--vf-control-height`
-   * 22px minus its two 1px borders). Used to overlay the selected row's white
-   * cell exactly on the closed pill. Must match `vf-option`'s row height.
+   * Fallback height of one option row — the pill's *content* height
+   * (`--vf-popup-height` 18px minus its two 1px borders). Used to overlay the
+   * selected row's white cell exactly on the closed pill. `positionPanel`
+   * prefers the row's *rendered* height so a re-themed `--vf-popup-height`
+   * keeps the overlay aligned; this is the no-options fallback and must match
+   * `vf-option`'s default row height.
    */
-  private static readonly ITEM_HEIGHT = 20
+  private static readonly ITEM_HEIGHT = 16
 
   /**
    * In-place press+release shorter than this (ms) reads as a modern
@@ -90,7 +93,9 @@ export class VfSelect extends VfFormControl {
            label sizer below). Authors wanting a floor set min-width on the host,
            or grow it in their own layout (e.g. flex: 1). */
         width: 100%;
-        height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
+        /* 18px, not the 22px fields: the reference pill measures 156×18 plus
+           its 1px hard shadow (the 157×19 ink box on the sheet). */
+        height: calc(var(--vf-scale, 1) * var(--vf-popup-height, 18px));
         /* Left inset = the checkmark gutter (--vf-select-gutter), so the selected
            label sits at the SAME x it will occupy in the open list (where the ✓
            fills that gutter). The right inset stays the small 8px. */
@@ -369,6 +374,11 @@ export class VfSelect extends VfFormControl {
     // constants (item height, borders, viewport margins) are converted with sys().
     const rect = control.getBoundingClientRect()
     const panelRect = panel.getBoundingClientRect()
+    // Third read, still before any write (consecutive reads don't re-reflow):
+    // the row's rendered height, so a consumer who re-themes --vf-popup-height
+    // keeps the selected-row overlay aligned instead of drifting by index.
+    const rowRect = this.optionItems[0]?.getBoundingClientRect()
+    const rowHeight = rowRect?.height || sys(VfSelect.ITEM_HEIGHT, this)
     const maxHeight = window.innerHeight - sys(8, this)
     // Natural panel height, capped to the maxHeight we're about to apply (read
     // before that write, so account for the clamp here rather than re-measuring).
@@ -377,7 +387,7 @@ export class VfSelect extends VfFormControl {
     // so its text and whitespace match the closed pill and the list grows down.
     // With the row height = the pill's content height, the panel's own top border
     // then lands exactly on the pill's top border (no ±1px compensation needed).
-    let top = rect.top - selectedIndex * sys(VfSelect.ITEM_HEIGHT, this)
+    let top = rect.top - selectedIndex * rowHeight
     top = Math.max(sys(4, this), Math.min(top, window.innerHeight - panelHeight - sys(4, this)))
     let left = rect.left
     left = Math.max(sys(4, this), Math.min(left, window.innerWidth - rect.width - sys(4, this)))

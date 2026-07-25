@@ -25,7 +25,9 @@
    * --vf-disabled: #c0c0c0;
    * --vf-desktop: #808080;
    * --vf-shadow-offset: 2px;
-   * --vf-control-height: 22px;
+   * --vf-control-height: 22px;              // text fields
+   * --vf-button-height: 20px;                // vf-button face
+   * --vf-popup-height: 18px;                 // vf-select pill (border box)
    * --vf-control-height-small: 16px;
    * --vf-titlebar-height: 18px;
    * --vf-menubar-height: 24px;

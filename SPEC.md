@@ -104,7 +104,9 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-disabled` | `#C0C0C0` | dimmed text, borders, glyphs (the kit's dim gray) |
 | `--vf-desktop` | `#808080` | base color under the desktop dither — occluded by the default (opaque) tile, so it only shows through a custom `--vf-desktop-pattern` |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
-| `--vf-control-height` | `22px` | buttons, selects, text fields (incl. the `vf-number-field` well) |
+| `--vf-control-height` | `22px` | text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well |
+| `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
+| `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `22px` | `vf-select` left inset / `vf-option` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
@@ -263,8 +265,11 @@ Classic fixed modal alert: double black frame, no title bar.
   `min-width: 48px`, `padding: 0 10px`, label in the body face at
   `var(--vf-font-size, 16px)` — same traced corners), `disabled`,
   `type: 'button' | 'submit' | 'reset'` (default `'button'`).
-- **Visual:** inner `<button>`: height `var(--vf-control-height, 22px)`,
+- **Visual:** inner `<button>`: height `var(--vf-button-height, 20px)`,
   `min-width: 64px`, `padding: 0 14px`, bold black text, font per tokens.
+  The button is 20px, not the fields' 22px: both 1x sheets measure the face at
+  80×20, and the default ring's *inner* box is exactly that, so the ring traces
+  assume a 20px face.
   The rounded rect is NOT `border-radius` (which antialiases): the button
   paints no box of its own; two pseudo-element layers carry stepped
   `clip-path` silhouettes traced from the reference sheet (`src/pixel-frame.ts`,
@@ -425,7 +430,7 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Children:** `<vf-option value="...">Label</vf-option>` elements (default
   slot). `vf-option` (`VfOption`, vf-option.ts): props `value`, `disabled`,
   `selected` (managed by parent); renders its slot; `role="option"`.
-- **Visual (closed control):** height `var(--vf-control-height, 22px)`, white
+- **Visual (closed control):** height `var(--vf-popup-height, 18px)`, white
   bg, `1px solid black`, NO radius, `box-shadow: 1px 1px 0 0 var(--vf-black, #000)`
   (the small hard shadow visible in the screenshot), `padding: 0 8px 0
   var(--vf-select-gutter, 22px)` — the left inset equals the option checkmark
@@ -441,8 +446,9 @@ The classic popup menu control ("Macintosh HD ▼").
   `--vf-shadow-offset: 1px` so its hard shadow matches the pill's (not the 2px
   menu shadow). Positioned `position: fixed` to the control's exact width and
   left (unsnapped, so the panel's left/right edges and shadow coincide with the
-  pill's). Item rows are height 20px — the pill's *content* height (`--vf-control-height`
-  minus its two 1px borders) — `padding: 0 20px 0 var(--vf-select-gutter, 22px)`;
+  pill's). Item rows are height 16px — the pill's *content* height, derived as
+  `calc(var(--vf-popup-height, 18px) - 2px)` so a re-themed pill moves its rows
+  with it — `padding: 0 20px 0 var(--vf-select-gutter, 22px)`;
   the panel opens with the selected row's cell laid directly over the closed
   pill (its top border on the pill's top border, extending downward), so the
   selected label's position and surrounding whitespace are identical closed and

@@ -36,6 +36,12 @@ RING_FRAME = ([5, 3, 2, 1, 1], 0, 0)
 RING_HOLE = ([6, 4, 4], 3, 3)
 RING_INSET = 4
 
+# Rendered heights, in system px (pixel-test.html pins --vf-scale: 1).
+# --vf-button-height, measured off both 1x sheets as an 80×20 face — the
+# default ring's inner box is exactly that. --vf-control-height-small stays 16.
+BUTTON_H = 20
+SMALL_H = 16
+
 
 def inset_at(profile, row, h):
     corner, edge, start = profile
@@ -200,14 +206,22 @@ def main():
         sys.exit(f"expected 5 button islands, found {len(islands)}: {islands}")
 
     (y0, x0, x1, y1) = islands[0]
-    check("plain: height 22", y1 - y0 + 1 == 22, f"got {y1 - y0 + 1}")
+    check(
+        f"plain: height {BUTTON_H}",
+        y1 - y0 + 1 == BUTTON_H,
+        f"got {y1 - y0 + 1}",
+    )
     check_button(x0, y0, x1, y1, "plain")
 
     (ry0, rx0, rx1, ry1) = islands[1]
     # ring island: outer box; inner button at +RING_INSET
     rw = rx1 - rx0 + 1
     rh = ry1 - ry0 + 1
-    check("default: height 22 + 2*ring inset", rh == 22 + 2 * RING_INSET, f"got {rh}")
+    check(
+        f"default: height {BUTTON_H} + 2*ring inset",
+        rh == BUTTON_H + 2 * RING_INSET,
+        f"got {rh}",
+    )
     ring_outer = mask(RING_FRAME, rw, rh)
     ring_hole = mask(RING_HOLE, rw, rh)
     bad_ring = []
@@ -264,7 +278,7 @@ def main():
 
     # small variant: 16px tall, same traced corners
     (y0, x0, x1, y1) = islands[4]
-    check("small: height 16", y1 - y0 + 1 == 16, f"got {y1 - y0 + 1}")
+    check(f"small: height {SMALL_H}", y1 - y0 + 1 == SMALL_H, f"got {y1 - y0 + 1}")
     check_button(x0, y0, x1, y1, "small")
 
     # dragged window: after fractional-position + fractional-drag repro, the

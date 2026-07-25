@@ -93,7 +93,11 @@ export class VfButton extends VfFormControl {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
+        /* 20px, not the 22px fields: the reference sheets put the button face
+           at 80×20 (and the default ring's inner box at exactly that), so the
+           ring traces were authored against a 20px face. --vf-control-height
+           stays the *field* height — see SPEC §3. */
+        height: calc(var(--vf-scale, 1) * var(--vf-button-height, 20px));
         min-width: calc(var(--vf-scale, 1) * 64px);
         /* Fill the host so a vf-button-group can stretch this face to the
            shared column width. Standalone (shrink-wrapped host) it's a no-op. */

@@ -9,7 +9,7 @@ import { ScaleController } from '../scale.js'
  * `<vf-option>` — a single choice inside a `<vf-select>` popup menu.
  *
  * A light-DOM child of `<vf-select>` (slotted into the popup panel). Renders
- * its slotted label at menu-item metrics (20px row — the pill's content height,
+ * its slotted label at menu-item metrics (16px row — the pill's content height,
  * so a selected option overlays the closed pill exactly; the left checkmark gutter is
  * `--vf-select-gutter`, shared with the closed control's left inset so the value
  * doesn't shift on open). The parent select manages `selected` and the transient
@@ -29,10 +29,11 @@ export class VfOption extends LitElement {
         position: relative;
         display: flex;
         align-items: center;
-        /* Row height = the pill's CONTENT height (--vf-control-height 22px minus
+        /* Row height = the pill's CONTENT height (--vf-popup-height 18px minus
            its two 1px borders), so the selected row's text and whitespace match
-           the closed pill exactly when the open list overlays it. */
-        height: calc(var(--vf-scale, 1) * 20px);
+           the closed pill exactly when the open list overlays it. Derived, not
+           a literal, so re-theming the pill height moves the rows with it. */
+        height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 18px) - 2px));
         /* Left gutter (--vf-select-gutter) holds the ✓ and matches the closed
            vf-select control's left inset, so a selected option's text lands at
            the same x whether the popup is closed or open. */
@@ -60,7 +61,7 @@ export class VfOption extends LitElement {
         left: 0;
         top: 0;
         width: calc(var(--vf-scale, 1) * var(--vf-select-gutter, 22px));
-        height: calc(var(--vf-scale, 1) * 20px);
+        height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 18px) - 2px));
         display: flex;
         align-items: center;
         justify-content: center;

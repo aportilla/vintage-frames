@@ -4,7 +4,6 @@ import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
-import { GridSnapController } from '../grid-snap.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { emit } from '../events.js'
 
@@ -122,8 +121,8 @@ export class VfMenuItem extends LitElement {
 
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
-  private readonly gridSnap = new GridSnapController(this)
+  // No GridSnapController: an item lives inside its vf-menu's panel, which
+  // rides the menu's snap offset (see src/grid-snap.ts).
 
   /** Disables the item: dimmed text, no highlight, no activation. */
   @property({ type: Boolean, reflect: true }) disabled = false

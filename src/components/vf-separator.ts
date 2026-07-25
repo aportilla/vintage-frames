@@ -26,16 +26,22 @@ export class VfSeparator extends LitElement {
       :host {
         display: block;
         height: calc(var(--vf-scale, 1) * 1px);
-        border: none;
+      }
+      :host([vertical]) {
+        width: calc(var(--vf-scale, 1) * 1px);
+        height: auto;
+        align-self: stretch;
+      }
+      /* The rule ink lives on an inner element rather than a host border so it
+         can ride the snap offset (see .vf-snap in base.ts). */
+      .rule {
+        width: 100%;
+        height: 100%;
         border-top: calc(var(--vf-scale, 1) * 1px)
           var(--vf-separator-style, solid)
           var(--vf-separator-color, var(--vf-black, #000));
       }
-      :host([vertical]) {
-        display: block;
-        width: calc(var(--vf-scale, 1) * 1px);
-        height: auto;
-        align-self: stretch;
+      :host([vertical]) .rule {
         border-top: none;
         border-left: calc(var(--vf-scale, 1) * 1px)
           var(--vf-separator-style, solid)
@@ -65,7 +71,7 @@ export class VfSeparator extends LitElement {
   }
 
   protected override render(): unknown {
-    return html``
+    return html`<div class="rule vf-snap"></div>`
   }
 }
 

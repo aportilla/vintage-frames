@@ -155,7 +155,7 @@ export class VfProgressBar extends LitElement {
   protected override render() {
     if (this.indeterminate) {
       return html`
-        <div class="track" part="track">
+        <div class="track vf-snap" part="track">
           <div class="fill stripes" part="fill"></div>
         </div>
       `
@@ -168,7 +168,7 @@ export class VfProgressBar extends LitElement {
     const width =
       sysW > 0 ? `${sys(Math.round(fraction * sysW), this)}px` : `${fraction * 100}%`
     return html`
-      <div class="track" part="track">
+      <div class="track vf-snap" part="track">
         <div
           class="fill ${fraction <= 0 ? 'empty' : ''}"
           part="fill"

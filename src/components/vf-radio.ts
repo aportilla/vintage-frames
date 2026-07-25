@@ -134,7 +134,7 @@ export class VfRadio extends VfToggleControl(LitElement) {
     const dim = this.toggleDisabled
     return html`
       <span
-        class=${classMap({ circle: true, dim })}
+        class=${classMap({ circle: true, dim, 'vf-snap': true })}
         part="circle"
         aria-hidden="true"
       >

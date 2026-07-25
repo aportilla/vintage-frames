@@ -64,7 +64,7 @@ export class VfFieldset extends LitElement {
     const empty = !this.legend && !this._hasSlottedLegend
     return html`
       <div
-        class="fieldset"
+        class="fieldset vf-snap"
         part="fieldset"
         role="group"
         aria-labelledby=${empty ? nothing : 'legend'}

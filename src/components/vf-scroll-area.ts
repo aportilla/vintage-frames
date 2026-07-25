@@ -65,11 +65,14 @@ export class VfScrollArea extends LitElement {
     css`
       :host {
         display: block;
-        background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-        overflow: hidden;
       }
       .viewport {
+        /* Background and border live here rather than on the host so they ride
+           the snap offset (see .vf-snap in base.ts); border-box sizing keeps
+           the geometry. The host no longer clips — the shifted viewport may
+           paint up to half a device pixel outside it. */
+        background: var(--vf-white, #fff);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         width: 100%;
         height: 100%;
         padding: calc(var(--vf-scale, 1) * 8px);
@@ -113,7 +116,7 @@ export class VfScrollArea extends LitElement {
   protected override render() {
     return html`
       <div
-        class="viewport vf-scroll"
+        class="viewport vf-scroll vf-snap"
         part="viewport"
         tabindex="0"
         role=${this.label ? 'region' : nothing}

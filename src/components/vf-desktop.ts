@@ -31,10 +31,12 @@ export class VfDesktop extends LitElement {
       :host {
         display: block;
         position: relative;
-        overflow: hidden;
       }
       .desktop {
         position: relative;
+        /* Clip here rather than on the host so dragged windows crop at this
+           box's corrected edge, not the host's possibly-fractional one. */
+        overflow: hidden;
         width: 100%;
         height: 100%;
         background-color: var(--vf-desktop, #808080);
@@ -208,7 +210,7 @@ export class VfDesktop extends LitElement {
 
   protected override render(): unknown {
     return html`
-      <div class="desktop" part="desktop">
+      <div class="desktop vf-snap" part="desktop">
         <slot @slotchange=${this._onSlotChange}></slot>
       </div>
     `

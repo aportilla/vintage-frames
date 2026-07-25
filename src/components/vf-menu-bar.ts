@@ -27,12 +27,14 @@ export class VfMenuBar extends LitElement {
       :host {
         display: block;
         height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 24px));
-        background: var(--vf-white, #fff);
-        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         position: relative;
         z-index: 1000;
       }
       .bar {
+        /* Paint lives here rather than on the host so it rides the snap offset
+           (see .vf-snap in base.ts); border-box sizing keeps the geometry. */
+        background: var(--vf-white, #fff);
+        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         display: flex;
         align-items: stretch;
         height: 100%;
@@ -81,7 +83,7 @@ export class VfMenuBar extends LitElement {
 
   protected override render() {
     return html`
-      <div class="bar" part="bar">
+      <div class="bar vf-snap" part="bar">
         <slot @slotchange=${this.#onSlotChange}></slot>
       </div>
     `

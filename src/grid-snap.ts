@@ -2,7 +2,7 @@ import type { ReactiveController, ReactiveControllerHost } from 'lit'
 import { onScaleChange } from './scale.js'
 
 /**
- * Device-pixel grid snapping — hold a component's own origin on whole device
+ * Device-pixel grid snapping — hold a component's painted box on whole device
  * pixels wherever the host page's layout puts it.
  *
  * A component is built entirely from whole system pixels, so every edge inside
@@ -15,11 +15,33 @@ import { onScaleChange } from './scale.js'
  * `edge − width` from a text-derived width — and until now the only fix was for
  * the page to follow the contract.
  *
- * This controller closes that hole from inside the component: it measures the
- * host's real position each frame it might have moved, and cancels the
- * fractional remainder with an equal and opposite offset. The correction is
- * always under half a device pixel, so nothing visibly moves; what changes is
- * that the interior rasterizes on the grid again.
+ * This controller closes that hole from inside the component: it measures its
+ * host box each frame it might have moved, and cancels the fractional
+ * remainder with an equal and opposite offset on its painted elements. The correction is always under
+ * half a device pixel, so nothing visibly moves; what changes is that the
+ * interior rasterizes on the grid again.
+ *
+ * ## Where the correction lands
+ *
+ * Not on the host. The controller writes the offset as two reserved custom
+ * properties on the host's inline style — `--vf-snap-dx` / `--vf-snap-dy` —
+ * and the component's own stylesheet applies them inside the shadow root:
+ * the `.vf-snap` class (in `vfBase`) puts them on the top-level painted
+ * element(s), and absolutely positioned satellites that anchor to the host
+ * (vf-menu's panel, the default button's ring) compose the same variables into
+ * their insets. Because the host's `position`/`left`/`top`/`margin` are never
+ * written, the correction cannot collide with a consumer's positioning or with
+ * vf-window's own drag coordinates, and turning it off is deleting two
+ * variables. Components whose chrome is painted by a container carry no target
+ * and simply ride it: list rows sit inside vf-list's corrected scroller, menu
+ * items inside vf-menu's offset-composed panel, options inside vf-select's
+ * JS-positioned panel; vf-button-group and vf-radio-group paint nothing and
+ * their slotted children correct themselves.
+ *
+ * To snap a custom component, add the class to its top-level painted element
+ * and the controller line from {@link GridSnapController}. The measured
+ * element must be in-flow (static or relative) — the correction is expressed
+ * through `left`/`top` on a relatively positioned box.
  *
  * ## Why an offset and not a transform
  *
@@ -36,7 +58,7 @@ import { onScaleChange } from './scale.js'
  * transforms are not inherently soft — but a *fractional* one leaves a fringe,
  * because the subtree rasterizes at its layout position and is shifted at
  * composite time. A `left`/`top` offset goes through layout, so the interior
- * re-rasterizes on the grid. Transforms also make the host a containing block
+ * re-rasterizes on the grid. Transforms also make the box a containing block
  * for `position: fixed` descendants, which drifted vf-select's popup panel off
  * its control by half a pixel.
  *
@@ -73,31 +95,6 @@ const DEADBAND_DEVICE_PX = 0.05
  */
 const LAYOUT_UNIT_CSS_PX = 1 / 64
 
-/**
- * The two ways to move a box without disturbing anything else, and the CSS
- * properties each one writes.
- *
- * `offset` (`left`/`top` on a relatively positioned host) is the default: for
- * an in-flow box it is purely a paint-time shift — no sibling moves, no line
- * re-wraps, no intrinsic size changes.
- *
- * `margin` is for boxes where that isn't true. On an out-of-flow box
- * (`absolute`/`fixed`) margins are inert in exactly the same way, and unlike
- * `left`/`top` they don't collide with the coordinates the box is positioned
- * by — vf-window writes its own inline `left`/`top` on every drag frame. A
- * `sticky` box gets margins too, because there `left`/`top` are the stickiness
- * constraint rather than an offset, and writing them would change when the box
- * sticks.
- */
-interface Mechanism {
-  readonly kind: 'offset' | 'margin'
-  readonly x: string
-  readonly y: string
-}
-
-const OFFSET: Mechanism = { kind: 'offset', x: 'left', y: 'top' }
-const MARGIN: Mechanism = { kind: 'margin', x: 'margin-left', y: 'margin-top' }
-
 const currentDpr = (): number =>
   (typeof window !== 'undefined' && window.devicePixelRatio) || 1
 
@@ -121,9 +118,9 @@ const quantize = (css: number): number =>
  * Order matters: hosts are swept outermost-first, so a nested component
  * measures a position its ancestor has already corrected and finds nothing left
  * to do. That is the common case, not an optimization — a component's interior
- * is whole system pixels, so snapping the outermost host puts everything below
- * it on the grid. On the showcase, one correction on `vf-desktop` lands all 111
- * hosts.
+ * is whole system pixels, so snapping the outermost paint puts everything below
+ * it on the grid. On the showcase, one correction on `vf-desktop` lands every
+ * host.
  */
 class GridSnapScheduler {
   private readonly controllers = new Set<GridSnapController>()
@@ -257,28 +254,28 @@ class GridSnapScheduler {
 const scheduler = new GridSnapScheduler()
 
 /**
- * Snap this component's origin to the device-pixel grid. One line per
+ * Snap this component's paint to the device-pixel grid. One line per
  * component, alongside `ScaleController`:
  *
  * ```ts
  * private readonly gridSnap = new GridSnapController(this)
  * ```
  *
- * Dormant until the app calls {@link applyGridSnap}, and skipped per-element by
- * a `nosnap` attribute.
+ * The component's template must put the `vf-snap` class (see `vfBase`) on its
+ * top-level painted element(s); the host box is what gets measured, so an
+ * authored offset inside it (a toggle's centered box) stays put. Dormant
+ * until the app calls {@link applyGridSnap}, and skipped per-element by a
+ * `nosnap` attribute on the host.
  */
 export class GridSnapController implements ReactiveController {
   /** vf-* ancestors above this host; the sweep runs in ascending order. */
   depth = 0
 
-  private mechanism: Mechanism | null = null
-  /** Our own contribution, in CSS px — never the whole property value. */
+  /** Our current correction, in CSS px. */
   private applied = { x: 0, y: 0 }
-  /** The value the component or the consumer had; we add our offset to it. */
-  private base = { x: 0, y: 0 }
-  /** Exactly what we last wrote, so we can tell our value from someone else's. */
+  /** Exactly what we last wrote, so an externally rewritten style attribute
+   *  (a consumer framework re-templating `style`) is detected and rebased. */
   private written = { x: '', y: '' }
-  private positioned = false
 
   constructor(readonly host: ReactiveControllerHost & HTMLElement) {
     host.addController(this)
@@ -301,17 +298,23 @@ export class GridSnapController implements ReactiveController {
   /**
    * Measure and correct. Runs from the shared sweep only.
    *
-   * The correction is a *delta* against what we already applied, and the rect
-   * we measure already includes it — so this is self-correcting: an offset that
-   * lands short converges on the next sweep instead of accumulating.
+   * The HOST is what gets measured: its origin is the page's contribution,
+   * and the page's fraction is the whole fault being canceled. The paint
+   * roots consuming the variables sit at *authored* offsets inside the host —
+   * including deliberate half-pixel ones like a toggle's centered box — and
+   * measuring one of them would make the controller "correct" the component's
+   * own design. Because the host never moves from its own correction, the
+   * applied offset is folded into the error arithmetically rather than being
+   * expected in the measured rect; an ancestor's correction, which does move
+   * this host, is picked up the normal way.
    */
   correct(dpr: number): void {
     const host = this.host
-    // Opting out mid-life gives the host its own styles back, rather than
+    // Opting out mid-life gives the host its variables back, rather than
     // freezing whatever correction happened to be applied when the attribute
     // arrived.
     if (host.hasAttribute('nosnap')) {
-      if (this.mechanism) this.reset()
+      if (this.written.x || this.written.y) this.reset()
       return
     }
 
@@ -321,25 +324,27 @@ export class GridSnapController implements ReactiveController {
     // is snapped by snapDialogToGrid instead.
     if (!rect.width && !rect.height) return
 
-    const errorX = gridError(rect.left, dpr)
-    const errorY = gridError(rect.top, dpr)
+    // If something rewrote the host's style attribute, the variables are gone
+    // and the bookkeeping with them. Start over from what is really there.
+    const style = host.style
+    if (
+      style.getPropertyValue('--vf-snap-dx') !== this.written.x ||
+      style.getPropertyValue('--vf-snap-dy') !== this.written.y
+    ) {
+      this.applied = { x: 0, y: 0 }
+      this.written = { x: '', y: '' }
+    }
+
+    // Residual error of the *corrected* paint position: host origin plus the
+    // offset the variables currently apply inside it.
+    const errorX = gridError(rect.left + this.applied.x, dpr)
+    const errorY = gridError(rect.top + this.applied.y, dpr)
     if (
       Math.abs(errorX) <= DEADBAND_DEVICE_PX &&
       Math.abs(errorY) <= DEADBAND_DEVICE_PX
     ) {
       return
     }
-
-    // Only now is a computed style worth its cost — the common case above is a
-    // single rect read and nothing else.
-    const computed = getComputedStyle(host)
-    const position = computed.position
-    const mechanism =
-      position === 'absolute' || position === 'fixed' || position === 'sticky'
-        ? MARGIN
-        : OFFSET
-    if (this.mechanism && this.mechanism !== mechanism) this.reset()
-    this.rebaseIfForeign(mechanism, computed)
 
     const next = {
       x: quantize(this.applied.x - errorX / dpr),
@@ -348,72 +353,17 @@ export class GridSnapController implements ReactiveController {
     // Already as close as the layout engine can be asked to get.
     if (next.x === this.applied.x && next.y === this.applied.y) return
     this.applied = next
-
-    if (mechanism === OFFSET && position === 'static') {
-      host.style.position = 'relative'
-      this.positioned = true
-    }
-    this.writeAxis(mechanism.x, this.base.x + next.x, 'x')
-    this.writeAxis(mechanism.y, this.base.y + next.y, 'y')
+    this.written = { x: `${next.x}px`, y: `${next.y}px` }
+    style.setProperty('--vf-snap-dx', this.written.x)
+    style.setProperty('--vf-snap-dy', this.written.y)
   }
 
-  /** Drop every correction and put the host's own styles back. */
+  /** Drop the correction: delete the two variables and forget everything. */
   reset(): void {
-    const mechanism = this.mechanism
-    if (mechanism) {
-      const style = this.host.style
-      if (style.getPropertyValue(mechanism.x) === this.written.x) {
-        style.removeProperty(mechanism.x)
-      }
-      if (style.getPropertyValue(mechanism.y) === this.written.y) {
-        style.removeProperty(mechanism.y)
-      }
-    }
-    if (this.positioned) {
-      // Same ownership rule as the offsets: take back only the 'relative' we
-      // wrote. A consumer may have repositioned the host since, and deleting
-      // their inline 'absolute' would throw it back into flow.
-      if (this.host.style.position === 'relative') {
-        this.host.style.removeProperty('position')
-      }
-      this.positioned = false
-    }
-    this.mechanism = null
+    this.host.style.removeProperty('--vf-snap-dx')
+    this.host.style.removeProperty('--vf-snap-dy')
     this.applied = { x: 0, y: 0 }
-    this.base = { x: 0, y: 0 }
     this.written = { x: '', y: '' }
-  }
-
-  /**
-   * Re-read the baseline whenever the properties we write are not the ones we
-   * last wrote — the component itself may own them (vf-window re-seeds inline
-   * `left`/`top` and clears `margin` when a drag starts), or a consumer may.
-   * Adopting their value rather than fighting for the property means the
-   * correction rides on top of whatever they set, and a component that rewrites
-   * its position every frame still ends up on the grid.
-   */
-  private rebaseIfForeign(mechanism: Mechanism, computed: CSSStyleDeclaration): void {
-    const style = this.host.style
-    if (
-      this.mechanism === mechanism &&
-      style.getPropertyValue(mechanism.x) === this.written.x &&
-      style.getPropertyValue(mechanism.y) === this.written.y
-    ) {
-      return
-    }
-    this.mechanism = mechanism
-    this.base = {
-      x: parseFloat(computed.getPropertyValue(mechanism.x)) || 0,
-      y: parseFloat(computed.getPropertyValue(mechanism.y)) || 0,
-    }
-    this.applied = { x: 0, y: 0 }
-  }
-
-  private writeAxis(property: string, value: number, axis: 'x' | 'y'): void {
-    const text = `${value}px`
-    if (this.written[axis] === text) return
-    this.host.style.setProperty(property, text)
-    this.written[axis] = text
   }
 }
 
@@ -433,29 +383,28 @@ const nestingDepth = (el: Element): number => {
   return depth
 }
 
+let holds = 0
+
 /**
  * Opt the page into automatic device-pixel-grid snapping: every mounted
- * component (and every one mounted afterwards) holds its origin on whole device
- * pixels, whatever the surrounding layout does. Returns a cleanup function that
- * turns it back off and restores the hosts' own styles. Calls share one
- * switch: snapping stays on until every caller's cleanup has run, and running
- * a cleanup twice releases only once — so two widgets on one page can each
- * opt in and out without turning the other's snapping off.
+ * component (and every one mounted afterwards) holds its paint on whole device
+ * pixels, whatever the surrounding layout does. Returns a cleanup function
+ * that turns it back off. Calls share one switch: snapping stays on until
+ * every caller's cleanup has run, and running a cleanup twice releases only
+ * once — so two widgets on one page can each opt in and out without turning
+ * the other's snapping off.
  *
  * ```ts
  * import { applyGridSnap } from 'vintage-frames'
  * applyGridSnap()
  * ```
  *
- * Strictly opt-in, unlike display scaling: this one writes inline styles on the
- * host elements, so it asks first. Two consequences worth knowing — a component
- * that was `position: static` becomes `position: relative` (it paints above
- * non-positioned siblings it overlaps, and becomes the containing block for any
- * absolutely positioned descendant), and a host's painted box can sit up to half
- * a device pixel outside its layout box.
+ * The whole footprint on your DOM is two reserved custom properties
+ * (`--vf-snap-dx`/`--vf-snap-dy`) on each corrected host's inline style; the
+ * offset they drive is applied inside the component's own shadow root. Worth
+ * knowing: a component's painted box can sit up to half a device pixel outside
+ * its layout box while corrected.
  */
-let holds = 0
-
 export function applyGridSnap(): () => void {
   holds++
   scheduler.enable()

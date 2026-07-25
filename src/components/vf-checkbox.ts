@@ -100,10 +100,14 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
   override render() {
     const dim = this.isDisabled
     return html`
-      <span class=${classMap({ box: true, dim })} part="box" aria-hidden="true">
+      <span
+        class=${classMap({ box: true, dim, 'vf-snap': true })}
+        part="box"
+        aria-hidden="true"
+      >
         ${glyphSvg(CHECKBOX_X, 'check')}
       </span>
-      <span class=${classMap({ label: true, dim })} part="label">
+      <span class=${classMap({ label: true, dim, 'vf-snap': true })} part="label">
         <slot></slot>
       </span>
     `

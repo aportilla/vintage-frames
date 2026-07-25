@@ -419,7 +419,7 @@ export class VfSlider extends VfFormControl {
     const pos = thumbLeftSys + THUMB_CENTER
     return html`
       <div
-        class="track ${this.isDisabled ? 'disabled' : ''}"
+        class="track vf-snap ${this.isDisabled ? 'disabled' : ''}"
         part="track"
         @pointerdown=${this.#onPointerDown}
         @pointermove=${this.#onPointerMove}

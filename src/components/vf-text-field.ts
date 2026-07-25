@@ -55,7 +55,7 @@ export class VfTextField extends VfTextControlBase {
     return html`
       <input
         part="input"
-        class="vf-field"
+        class="vf-field vf-snap"
         type=${this.type}
         aria-label=${this.label || nothing}
         .value=${live(this.value)}

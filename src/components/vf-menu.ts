@@ -50,8 +50,10 @@ export class VfMenu extends LitElement {
       }
       .panel {
         position: absolute;
-        top: 100%;
-        left: 0;
+        /* The panel anchors to the host, not the corrected label, so it
+           composes the snap offset (see grid-snap.ts) to ride along. */
+        top: calc(100% + var(--vf-snap-dy, 0px));
+        left: var(--vf-snap-dx, 0px);
         min-width: calc(var(--vf-scale, 1) * 180px);
         /* No vertical inset: every panel in Menus.png — both pulldowns, the
            open popup and the closed pill — puts its first row's ink at +4 from
@@ -179,7 +181,7 @@ export class VfMenu extends LitElement {
   protected override render() {
     return html`
       <div
-        class="label vf-focus"
+        class="label vf-focus vf-snap"
         part="label"
         role="menuitem"
         tabindex=${this.barTabIndex}

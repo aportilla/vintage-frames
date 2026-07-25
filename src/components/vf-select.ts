@@ -774,7 +774,7 @@ export class VfSelect extends VfFormControl {
     const disabled = this.isDisabled
     return html`
       <div
-        class="control vf-focus ${disabled ? 'disabled' : ''}"
+        class="control vf-focus vf-snap ${disabled ? 'disabled' : ''}"
         part="control"
         role="combobox"
         aria-haspopup="listbox"

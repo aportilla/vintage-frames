@@ -72,7 +72,12 @@ export class VfButton extends VfFormControl {
       :host([variant='default'])::before {
         content: '';
         position: absolute;
-        inset: calc(var(--vf-scale, 1) * -${RING_INSET}px);
+        /* The ring anchors to the host, not the corrected button, so each
+           inset composes the snap offset (see grid-snap.ts) to ride along. */
+        top: calc(var(--vf-scale, 1) * -${RING_INSET}px + var(--vf-snap-dy, 0px));
+        left: calc(var(--vf-scale, 1) * -${RING_INSET}px + var(--vf-snap-dx, 0px));
+        bottom: calc(var(--vf-scale, 1) * -${RING_INSET}px - var(--vf-snap-dy, 0px));
+        right: calc(var(--vf-scale, 1) * -${RING_INSET}px - var(--vf-snap-dx, 0px));
         background: var(--vf-black, #000);
         clip-path: ${unsafeCSS(steppedRingClip(RING_FRAME, RING_HOLE))};
         pointer-events: none;
@@ -204,7 +209,7 @@ export class VfButton extends VfFormControl {
     return html`
       <button
         part="button"
-        class="vf-focus"
+        class="vf-focus vf-snap"
         type="button"
         ?disabled=${this.isDisabled}
         @click=${this.handleClick}

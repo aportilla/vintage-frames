@@ -363,7 +363,7 @@ export class VfWindow extends LitElement {
 
   protected override render(): unknown {
     return html`
-      <div class="vf-frame" part="frame">
+      <div class="vf-frame vf-snap" part="frame">
         ${chromeTitleBar(
           this._drag,
           html`

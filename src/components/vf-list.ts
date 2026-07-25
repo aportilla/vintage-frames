@@ -47,15 +47,20 @@ export class VfList extends LitElement {
     css`
       :host {
         display: block;
-        background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
       }
       /* Disabled: the item text dims to gray; the black box border stays. */
       :host([disabled]) {
         color: var(--vf-disabled, #c0c0c0);
       }
       .list {
-        max-height: calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px));
+        /* Background and border live on the scroller rather than the host so
+           they ride the snap offset (see .vf-snap in base.ts); +2px keeps the
+           clamped total the height it was when the host carried the border. */
+        background: var(--vf-white, #fff);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        max-height: calc(
+          var(--vf-scale, 1) * (var(--vf-list-max-height, 200px) + 2px)
+        );
         /* Reserve the vertical rail always. overflow-y: scroll keeps the styled
            track painted; scrollbar-gutter: stable reserves the 16px channel
            (modern Chromium draws a zero-width overlay bar otherwise, so overflow
@@ -184,7 +189,7 @@ export class VfList extends LitElement {
 
   protected override render() {
     return html`
-      <div class="list vf-scroll" part="list">
+      <div class="list vf-scroll vf-snap" part="list">
         <div class="list-content">
           <slot @slotchange=${this.#onSlotChange}></slot>
         </div>

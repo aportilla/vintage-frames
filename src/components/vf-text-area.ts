@@ -70,7 +70,7 @@ export class VfTextArea extends VfTextControlBase {
     return html`
       <textarea
         part="textarea"
-        class="vf-field vf-scroll"
+        class="vf-field vf-scroll vf-snap"
         rows=${this.rows}
         aria-label=${this.label || nothing}
         .value=${live(this.value)}

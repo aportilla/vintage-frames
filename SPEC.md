@@ -135,19 +135,28 @@ converts between system and CSS px with the `sys()` / `toSys()` helpers.
 *relative to the component's own origin*; a page that lands that origin on a
 fractional device pixel smears the whole 1-bit interior. `applyGridSnap()`
 (`src/grid-snap.ts`) opts a page into having every component measure its own
-position and cancel the fractional remainder, so the origin is the component's
+paint and cancel the fractional remainder, so the origin is the component's
 responsibility rather than the page's. The correction is a `left`/`top` offset
-on a relatively positioned host — a *layout*-stage shift, because a
-compositing-stage `transform` leaves the subtree rastered at its old position
-and only removes ~80% of the fringe — or a margin where `left`/`top` are already
-spoken for (`position: absolute`/`fixed`, which is how `vf-window` positions
-itself while dragging, and `sticky`, where they are the stickiness constraint).
-It corrects the origin only: a fractional *size*, and a `--vf-scale ×
-devicePixelRatio` that isn't whole, are still the page's to get right.
+on the component's own paint root — the shadow element carrying the `.vf-snap`
+class (`vfBase`), relatively positioned, driven by two reserved custom
+properties (`--vf-snap-dx`/`-dy`) the controller writes on the host. A
+*layout*-stage shift, because a compositing-stage `transform` leaves the
+subtree rastered at its old position and only removes ~80% of the fringe.
+Nothing outside the shadow root is written but those two properties, so the
+correction cannot collide with a consumer's positioning or with `vf-window`'s
+drag coordinates. Absolutely positioned satellites that anchor to the host
+(`vf-menu`'s panel, the default button's ring) compose the same properties
+into their insets; rows and options inside a corrected container
+(`vf-list-item`, `vf-menu-item`, `vf-option`) and layout-only hosts
+(`vf-button-group`, `vf-radio-group`) carry no target and ride their
+surroundings. It corrects the origin only: a fractional *size*, and a
+`--vf-scale × devicePixelRatio` that isn't whole, are still the page's to get
+right.
 
 ## 4. Shared recipes (in `src/styles/base.ts`)
 
-- `vfBase` — host font, `box-sizing: border-box` everywhere, `user-select: none`
+- `vfBase` — host font, `box-sizing: border-box` everywhere, the `.vf-snap`
+  grid-correction hook (see Grid snapping above), `user-select: none`
   (text inputs re-enable), `:host([hidden]) { display: none !important }`.
 - `vfStripes` — a `.vf-stripes` class:
   `background: repeating-linear-gradient(to bottom, var(--vf-black, #000) 0 1px, transparent 1px 2px);`

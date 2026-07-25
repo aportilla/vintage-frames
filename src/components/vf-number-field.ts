@@ -247,7 +247,7 @@ export class VfNumberField extends VfTextControlBase {
     return html`
       <input
         part="input"
-        class="vf-field"
+        class="vf-field vf-snap"
         type="text"
         inputmode="decimal"
         role="spinbutton"
@@ -264,7 +264,7 @@ export class VfNumberField extends VfTextControlBase {
         @change=${this.#onChange}
         @keydown=${this.#onKeydown}
       />
-      <span class="stepper" part="stepper">
+      <span class="stepper vf-snap" part="stepper">
         <svg viewBox="0 0 15 25" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">
           <path d=${STEPPER.d}></path>
           <path class=${classMap({ fill: true, on: this.pressed === 'up' })} d=${STEPPER_UP_FILL.d}></path>

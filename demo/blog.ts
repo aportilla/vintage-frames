@@ -98,17 +98,28 @@ function reportScale(): void {
   const dpr = window.devicePixelRatio
   const height = subscribeButton.getBoundingClientRect().height
   if (height === 0) return // not laid out yet; the observer will call again
-  // Count what is actually off the grid right now, the same way verify:grid
-  // does — with snapping on this should read 0 whether or not ?offgrid is set.
+  // Count what is actually off the grid right now — with snapping on this
+  // should read 0 whether or not ?offgrid is set. Measured as the host origin
+  // plus the offset its snap variables apply to the `.vf-snap` paint roots
+  // inside it (their own authored offsets are design, not faults); hosts
+  // without a target (the radio group, rows and options that ride a corrected
+  // container) are skipped.
   let off = 0
   let hosts = 0
   for (const host of document.querySelectorAll('*')) {
+    if (!(host instanceof HTMLElement)) continue
     if (!host.tagName.toLowerCase().startsWith('vf-')) continue
+    const target = host.shadowRoot
+      ? [...host.shadowRoot.children].find((c) => c.classList.contains('vf-snap'))
+      : undefined
+    if (!target) continue
     const rect = host.getBoundingClientRect()
     if (!rect.width && !rect.height) continue
     hosts++
+    const dx = parseFloat(host.style.getPropertyValue('--vf-snap-dx')) || 0
+    const dy = parseFloat(host.style.getPropertyValue('--vf-snap-dy')) || 0
     const err = (v: number): number => Math.abs(v * dpr - Math.round(v * dpr))
-    if (Math.max(err(rect.left), err(rect.top)) > 0.05) off++
+    if (Math.max(err(rect.left + dx), err(rect.top + dy)) > 0.05) off++
   }
   scaleReadout.textContent =
     `Components self-scaled to --vf-scale ${scale} on this ${dpr}× display ` +

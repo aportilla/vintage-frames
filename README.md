@@ -42,12 +42,14 @@ the page on purpose:
 | URL | What it shows |
 | --- | --- |
 | [`/blog.html`](http://localhost:5173/blog.html) | The page as authored — it already follows the layout contract, so snapping has nothing to correct |
-| [`/blog.html?offgrid`](http://localhost:5173/blog.html?offgrid) | A ratio leading and a fractional document offset put every component off the grid; snapping recovers all 45 |
+| [`/blog.html?offgrid`](http://localhost:5173/blog.html?offgrid) | A ratio leading and a fractional document offset put every component off the grid; snapping recovers all 38 measured |
 | [`/blog.html?offgrid&nosnap`](http://localhost:5173/blog.html?offgrid&nosnap) | The same broken page with snapping off — the comparison |
 
 The harness line at the top of the page reports how many components are off the
-grid right now, so the three read 0, 0 and 45. A/B the last two at 100% zoom:
-the stepped button corners, hairline borders and glyph stems are the tell.
+grid right now — counting the 38 that carry their own correction; rows, options
+and the two groups ride their containers — so the three read 0, 0 and 38. A/B
+the last two at 100% zoom: the stepped button corners, hairline borders and
+glyph stems are the tell.
 
 The page also shows where a normal page must meet the kit halfway — the
 [device-pixel grid rules](#staying-on-the-device-pixel-grid--the-layout-contract),
@@ -195,12 +197,14 @@ import { applyGridSnap } from 'vintage-frames'
 applyGridSnap() // → returns a cleanup function that turns it back off
 ```
 
-It is opt-in rather than default-on, because unlike `--vf-scale` it writes
-inline styles on the host elements. Two things follow from that: a component
-that was `position: static` becomes `position: relative` (so it paints above
-non-positioned siblings it overlaps, and becomes the containing block for any
-absolutely positioned descendant), and a host's painted box can sit up to half a
-device pixel outside its layout box. Opt a single element out with `nosnap`.
+The correction is applied inside each component's shadow root — the host's own
+`position`, `left`/`top` and `margin` are never touched, so it cannot collide
+with your positioning (or `vf-window`'s drag coordinates). Its whole footprint
+on your DOM is two reserved custom properties (`--vf-snap-dx`/`--vf-snap-dy`)
+on each corrected host's inline style, and a component's painted box can sit up
+to half a device pixel outside its layout box while corrected. It stays opt-in
+for now while that behavior soaks on real integrations. Opt a single element
+out with `nosnap`.
 
 The corrections re-apply on their own when the viewport resizes or scrolls
 (`position: sticky` contents sit at a different fractional position stuck than
@@ -313,7 +317,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | Export | What it's for |
 | --- | --- |
 | `applyScale`, `ScaleController`, `onScaleChange` | Opt a subtree (or your own component) into true-size rendering |
-| `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Opt the page into automatic device-pixel-grid snapping; add it to your own component with one line |
+| `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Opt the page into automatic device-pixel-grid snapping; add it to your own component with one controller line plus the `vf-snap` class on its painted root |
 | `sys`, `toSys`, `effectiveScale`, `getScale`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; snap coordinates to the device grid |
 | `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |

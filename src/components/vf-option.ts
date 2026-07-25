@@ -4,7 +4,6 @@ import { customElement, property } from 'lit/decorators.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
-import { GridSnapController } from '../grid-snap.js'
 
 /**
  * `<vf-option>` — a single choice inside a `<vf-select>` popup menu.
@@ -94,8 +93,8 @@ export class VfOption extends LitElement {
 
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
-  private readonly gridSnap = new GridSnapController(this)
+  // No GridSnapController: an option lives inside vf-select's panel, which is
+  // JS-positioned on the device grid already (see src/grid-snap.ts).
 
   /**
    * Submitted/compared value of this option. Falls back to the trimmed text

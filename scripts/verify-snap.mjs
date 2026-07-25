@@ -47,7 +47,14 @@ const check = (ok, label, detail = '') => {
   return ok
 }
 
-/** Worst origin error over every vf-* host, in device px. */
+/**
+ * Worst corrected-paint error over every vf-* host, in device px: the host
+ * origin plus the offset its snap variables apply inside it. The paint roots
+ * themselves may sit at *authored* fractional offsets (a toggle's centered
+ * box), which are the component's design, not a fault. Hosts without a
+ * `.vf-snap` target (vf-button-group, vf-radio-group, rows and options that
+ * ride a corrected container) are skipped.
+ */
 const worstOrigin = (page) =>
   page.evaluate(() => {
     const dpr = window.devicePixelRatio
@@ -57,10 +64,16 @@ const worstOrigin = (page) =>
     let hosts = 0
     for (const host of document.querySelectorAll('*')) {
       if (!host.tagName.toLowerCase().startsWith('vf-')) continue
+      const target =
+        host.shadowRoot &&
+        [...host.shadowRoot.children].find((c) => c.classList.contains('vf-snap'))
+      if (!target) continue
       const rect = host.getBoundingClientRect()
       if (!rect.width && !rect.height) continue
       hosts++
-      const e = Math.max(err(rect.left), err(rect.top))
+      const dx = parseFloat(host.style.getPropertyValue('--vf-snap-dx')) || 0
+      const dy = parseFloat(host.style.getPropertyValue('--vf-snap-dy')) || 0
+      const e = Math.max(err(rect.left + dx), err(rect.top + dy))
       if (e > worst) {
         worst = e
         tag = host.tagName.toLowerCase()
@@ -210,15 +223,18 @@ for (const path of PAGES) {
     // nosnap opts a single element out — and gives it its own styles back,
     // rather than freezing whatever correction was applied when it arrived.
     const optOut = await page.evaluate(async () => {
+      const vars = (el) => [
+        el.style.getPropertyValue('--vf-snap-dx'),
+        el.style.getPropertyValue('--vf-snap-dy'),
+      ]
       const corrected = [...document.querySelectorAll('*')]
         .filter((el) => el.tagName.toLowerCase().startsWith('vf-'))
-        .find((el) => el.style.left || el.style.top || el.style.marginLeft || el.style.marginTop)
+        .find((el) => vars(el).some(Boolean))
       if (!corrected) return null
       const before = corrected.getAttribute('style')
       corrected.setAttribute('nosnap', '')
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
-      const s = corrected.style
-      const remaining = [s.left, s.top, s.marginLeft, s.marginTop].filter(Boolean)
+      const remaining = vars(corrected).filter(Boolean)
       corrected.removeAttribute('nosnap')
       return { tag: corrected.tagName.toLowerCase(), before, remaining }
     })
@@ -234,26 +250,26 @@ for (const path of PAGES) {
     const restored = await page.evaluate(() =>
       [...document.querySelectorAll('*')]
         .filter((el) => el.tagName.toLowerCase().startsWith('vf-'))
-        .filter((el) => {
-          const s = el.style
-          return s.left || s.top || s.marginLeft || s.marginTop
-        }).length
+        .filter(
+          (el) =>
+            el.style.getPropertyValue('--vf-snap-dx') ||
+            el.style.getPropertyValue('--vf-snap-dy')
+        ).length
     )
-    check(restored === 0, 'cleanup restores every host', `${restored} left with inline offsets`)
+    check(restored === 0, 'cleanup restores every host', `${restored} left with snap variables`)
 
     await page.close()
   }
 }
 
 /*
- * vf-window is the only component that writes its own inline coordinates, and
- * it does so on every frame of a drag. Worse, the first drag *switches the
- * mechanism out from under the controller*: an in-flow window is corrected with
- * `left`/`top`, and `onDragStart` then makes it `position: absolute`, seeds its
- * own `left`/`top` from the current offset and clears `margin` — at which point
- * the controller has to notice the properties are no longer its own, hand them
- * back, and re-apply the correction as margins instead. This drives that whole
- * sequence on a page small enough that the drag can't land on the wrong window.
+ * vf-window writes its own inline `position`/`left`/`top` on every frame of a
+ * drag — the one component whose host coordinates are actively owned by its
+ * own code. The correction lives on the frame inside the shadow root (driven
+ * by host variables), so the two must never collide: the drag keeps working
+ * untouched, and the frame stays on the grid before, during and after the
+ * position flip the first drag performs (in-flow → absolute). Driven on a
+ * page small enough that the drag can't land on the wrong window.
  */
 {
   const page = await browser.newPage({
@@ -290,14 +306,17 @@ for (const path of PAGES) {
     page.evaluate(() => {
       const dpr = window.devicePixelRatio
       const el = document.getElementById('win')
-      const rect = el.getBoundingClientRect()
+      const frame = el.shadowRoot.querySelector('.vf-snap')
+      const rect = frame.getBoundingClientRect()
       const err = (v) => Math.abs(v * dpr - Math.round(v * dpr))
       return {
         worst: +Math.max(err(rect.left), err(rect.top)).toFixed(6),
-        left: +rect.left.toFixed(3),
+        left: +el.getBoundingClientRect().left.toFixed(3),
         position: getComputedStyle(el).position,
         offset: `${el.style.left || '—'},${el.style.top || '—'}`,
-        margin: `${el.style.marginLeft || '—'},${el.style.marginTop || '—'}`,
+        vars: `${el.style.getPropertyValue('--vf-snap-dx') || '—'},${
+          el.style.getPropertyValue('--vf-snap-dy') || '—'
+        }`,
       }
     })
 
@@ -308,8 +327,8 @@ for (const path of PAGES) {
   const on = await state()
   check(
     on.worst <= DEADBAND,
-    'in-flow window corrects with left/top',
-    `worst ${on.worst}, position ${on.position}, left/top ${on.offset}`
+    'in-flow window corrects via its frame',
+    `worst ${on.worst}, vars ${on.vars}, host left/top ${on.offset}`
   )
 
   const bar = await page.evaluate(() => {
@@ -337,7 +356,7 @@ for (const path of PAGES) {
   check(
     dragged.worst <= DEADBAND,
     'the dragged window lands on the grid',
-    `worst ${dragged.worst} device px, margin ${dragged.margin}, left/top ${dragged.offset}`
+    `worst ${dragged.worst} device px, vars ${dragged.vars}, left/top ${dragged.offset}`
   )
 
   await disableSnap(page)

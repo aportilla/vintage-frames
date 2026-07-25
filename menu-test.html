@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Pixel-verification page for the horizontal menu/popup metrics — the
+    companion to pixel-test.html, which covers the button silhouettes.
+
+    Pins scale to 1 so one CSS px = one system px; screenshot at
+    deviceScaleFactor 1 and measure with scripts/measure-menu-render.py
+    (`npm run shot:menus` then `npm run measure:menus`). Every specimen uses
+    the label "Menu item" so the leading glyph matches the reference sheets'
+    pill and menu rows exactly, making the ink offsets directly comparable to
+    `npm run extract:menus`.
+
+    Magenta background: it appears nowhere in the kit palette.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --vf-scale: 1;
+      }
+      body {
+        margin: 0;
+        background: #f0f;
+      }
+      /* Absolute placement with wide gaps so each specimen rasterizes as its
+         own island and the open panels can't overlap a neighbor. */
+      .spec {
+        position: absolute;
+      }
+      #pill {
+        top: 20px;
+        left: 20px;
+      }
+      #menu {
+        top: 80px;
+        left: 20px;
+      }
+      #popup {
+        top: 20px;
+        left: 320px;
+      }
+    </style>
+    <script type="module" src="/src/index.ts"></script>
+  </head>
+  <body>
+    <!-- Closed popup pill. Reference: border box 156×18, label ink at +16. -->
+    <div class="spec" id="pill">
+      <vf-select id="sel" value="a">
+        <vf-option value="a">Menu item</vf-option>
+      </vf-select>
+    </div>
+
+    <!-- Open pulldown with a checked row. Reference: ✓ ink at +4..12,
+         label ink at +17, row pitch 16.
+
+         The inline `--vf-scale: 1` is a WORKAROUND, not part of the fixture:
+         a parse-time-connected vf-menu-item ignores the inherited
+         `:root { --vf-scale: 1 }` and its ScaleController takes over at the
+         3/dpr default, so the rows would render at 3x and be unmeasurable
+         here. An inline value on the host keeps the controller dormant.
+         Runtime-created items don't have the problem -- see
+         `npm run probe:menus`. Drop these once that bug is fixed. -->
+    <div class="spec" id="menu">
+      <vf-menu label="File" open>
+        <vf-menu-item checked style="--vf-scale: 1">Menu item</vf-menu-item>
+        <vf-menu-item style="--vf-scale: 1">Menu item</vf-menu-item>
+      </vf-menu>
+    </div>
+
+    <!-- The same popup, opened, so vf-option rows can be measured. -->
+    <div class="spec" id="popup">
+      <vf-select id="sel2" value="a">
+        <vf-option value="a">Menu item</vf-option>
+        <vf-option value="b">Menu item</vf-option>
+      </vf-select>
+    </div>
+
+    <script type="module">
+      await customElements.whenDefined('vf-select')
+      await customElements.whenDefined('vf-menu')
+      await customElements.whenDefined('vf-option')
+      await document.fonts.ready
+
+      // vf-select.open is private @state, so the panel is opened the way a
+      // user would rather than by poking the property.
+      const sel2 = document.getElementById('sel2')
+      await sel2.updateComplete
+      sel2.shadowRoot.querySelector('.control').click()
+      await sel2.updateComplete
+    </script>
+  </body>
+</html>

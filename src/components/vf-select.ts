@@ -100,7 +100,7 @@ export class VfSelect extends VfFormControl {
            label sits at the SAME x it will occupy in the open list (where the ✓
            fills that gutter). The right inset stays the small 8px. */
         padding: 0 calc(var(--vf-scale, 1) * 8px) 0
-          calc(var(--vf-scale, 1) * var(--vf-select-gutter, 22px));
+          calc(var(--vf-scale, 1) * var(--vf-select-gutter, 16px));
         background: var(--vf-white, #fff);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
@@ -389,8 +389,15 @@ export class VfSelect extends VfFormControl {
     // then lands exactly on the pill's top border (no ±1px compensation needed).
     let top = rect.top - selectedIndex * rowHeight
     top = Math.max(sys(4, this), Math.min(top, window.innerHeight - panelHeight - sys(4, this)))
-    let left = rect.left
-    left = Math.max(sys(4, this), Math.min(left, window.innerWidth - rect.width - sys(4, this)))
+    // NO horizontal clamp: the panel is the pill's own width, positioned at the
+    // pill's own left, so it is on-screen exactly when the pill is — a viewport
+    // margin here can only ever break the closed↔open alignment, never rescue
+    // it. The old `Math.max(sys(4), …)` fired for any pill within 4 system px
+    // (12 CSS px at the default 3×) of the left edge and shoved the panel right,
+    // so the label jumped on open — the exact thing the shared gutter exists to
+    // prevent. If the pill itself is off-screen the panel follows it off-screen,
+    // which is correct: the panel tracks its pill.
+    const left = rect.left
     // Both coordinates come straight from the control's rect (unsnapped): the
     // panel is the pill's own width and overlays it, so it must share the pill's
     // exact edges and its selected row must sit exactly on the pill's label.

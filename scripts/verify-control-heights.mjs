@@ -68,6 +68,18 @@ const MARKUP = `
   <div style="height: 160px"></div>
   <vf-select id="pop" value="b">${OPTIONS}</vf-select>
   <vf-select id="pop-themed" value="c" style="--vf-popup-height: 26px">${OPTIONS}</vf-select>
+
+  <div style="height: 40px"></div>
+  <vf-menu id="menu" label="File" open>
+    <vf-menu-item id="mi" checked>Alpha</vf-menu-item>
+  </vf-menu>
+
+  <div id="gscope" style="--vf-select-gutter: 30px">
+    <vf-select id="pop-gutter" value="a">${OPTIONS}</vf-select>
+    <vf-menu id="menu-gutter" label="Edit" open>
+      <vf-menu-item id="mi-gutter" checked>Alpha</vf-menu-item>
+    </vf-menu>
+  </div>
 `
 
 const results = []
@@ -88,15 +100,18 @@ await page.setContent(MARKUP)
 await page.evaluate(() => import('/src/index.js'))
 await page.evaluate(() =>
   Promise.all(
-    ['vf-number-field', 'vf-button', 'vf-select', 'vf-option'].map((t) =>
-      customElements.whenDefined(t)
+    ['vf-number-field', 'vf-button', 'vf-select', 'vf-option', 'vf-menu', 'vf-menu-item'].map(
+      (t) => customElements.whenDefined(t)
     )
   )
 )
 await page.evaluate(() =>
   Promise.all(
-    [...document.querySelectorAll('vf-text-field, vf-number-field, vf-button, vf-select, vf-option')]
-      .map((e) => e.updateComplete)
+    [
+      ...document.querySelectorAll(
+        'vf-text-field, vf-number-field, vf-button, vf-select, vf-option, vf-menu, vf-menu-item'
+      ),
+    ].map((e) => e.updateComplete)
   )
 )
 
@@ -269,9 +284,16 @@ const popup = (id) =>
     const host = document.getElementById(elId)
     const control = host.shadowRoot.querySelector('.control')
     const option = host.querySelector('vf-option')
+    const panel = host.shadowRoot.querySelector('.panel')
     return {
       pill: control.getBoundingClientRect().height,
       row: option.getBoundingClientRect().height,
+      // A popup this short must never scroll. The row height and the inherited
+      // line-height are set independently, so a row shorter than its own line
+      // box spills — invisibly per row, but the LAST row's spill overflows the
+      // panel and skins a scrollbar onto every popup in the kit.
+      panelOverflow: panel.scrollHeight - panel.clientHeight,
+      rowOverflow: option.scrollHeight - Math.round(option.getBoundingClientRect().height),
     }
   }, id)
 
@@ -329,6 +351,21 @@ check(
   popThemed.row === 24 * s,
   `row=${popThemed.row} expected=${24 * s}`
 )
+// Regression guard: the control-height split took the option row 20 → 16 but
+// left the inherited 1.25 line-height at 20px, so every row's text spilled and
+// the last row's spill scrolled the panel — a System 7 scrollbar on a 4-item
+// popup. The row's line-height is now derived from the same expression as its
+// height, so this must hold for a re-themed pill too.
+check(
+  'a short popup does not scroll (row line box fits the row box)',
+  pop.panelOverflow === 0 && pop.rowOverflow === 0,
+  `panelOverflow=${pop.panelOverflow} rowOverflow=${pop.rowOverflow}`
+)
+check(
+  'a re-themed popup still does not scroll',
+  popThemed.panelOverflow === 0 && popThemed.rowOverflow === 0,
+  `panelOverflow=${popThemed.panelOverflow} rowOverflow=${popThemed.rowOverflow}`
+)
 
 // ── The overlay invariant the row height exists to serve ──
 // The panel lays the SELECTED row's white cell directly over the pill's white
@@ -352,6 +389,147 @@ check(
   Math.abs(themedOverlay.rowTop - (themedBox.top + s)) < 0.5,
   `row=${themedOverlay.rowTop} pillContent=${themedBox.top + s} ` +
     `(a constant row height would miss by ${themedOverlay.index * (24 - OPTION_H) * s})`
+)
+
+// ── Horizontal sibling: the checkmark gutter ──
+// The vertical half above asserts the selected row lands on the pill's content
+// TOP. This is the same invariant on the other axis: the label must not shift
+// horizontally when the list opens either. Reference (`npm run extract:menus`,
+// three pill instances + four menu panels): an open menu's label ink sits 17px
+// from the panel's border box and its ✓ ink at +4..12. One shared gutter of 16
+// (+1px border) reproduces both.
+const GUTTER = 16
+/** ✓ ink inset from the row's own left edge, per Menus.png. */
+const CHECK_INSET = 3
+
+/** Content-box left edges of a select's closed label and its open rows. */
+const gutterOf = (id) =>
+  page.evaluate((elId) => {
+    const host = document.getElementById(elId)
+    const control = host.shadowRoot.querySelector('.control')
+    const label = host.shadowRoot.querySelector('.label')
+    const option = host.querySelector('vf-option')
+    const cs = getComputedStyle(option)
+    const panel = host.shadowRoot.querySelector('.panel')
+    return {
+      controlLeft: control.getBoundingClientRect().left,
+      labelLeft: label.getBoundingClientRect().left,
+      optionLeft: option.getBoundingClientRect().left,
+      optionPad: parseFloat(cs.paddingLeft),
+      borderLeft: parseFloat(getComputedStyle(control).borderLeftWidth),
+      panelLeft: panel.getBoundingClientRect().left,
+      panelBorder: parseFloat(getComputedStyle(panel).borderLeftWidth),
+      panelPad: parseFloat(getComputedStyle(panel).paddingLeft),
+    }
+  }, id)
+
+// A standalone open vf-menu closes itself on any outside pointerdown (and on
+// Escape), so it must be re-opened right before measuring — opening a select
+// in this same suite is exactly such a pointerdown.
+const reopenMenu = (id) =>
+  page.evaluate(async (elId) => {
+    const menu = document.getElementById(elId)
+    menu.open = true
+    await menu.updateComplete
+  }, id)
+
+const menuOf = (id, itemId) =>
+  page.evaluate(
+    ({ elId, iId }) => {
+      const panel = document.getElementById(elId).shadowRoot.querySelector('.panel')
+      const item = document.getElementById(iId)
+      const row = item.shadowRoot.querySelector('.item')
+      const label = item.shadowRoot.querySelector('.label')
+      const check = item.shadowRoot.querySelector('.check')
+      return {
+        panelLeft: panel.getBoundingClientRect().left,
+        panelBorder: parseFloat(getComputedStyle(panel).borderLeftWidth),
+        rowLeft: row.getBoundingClientRect().left,
+        labelLeft: label.getBoundingClientRect().left,
+        checkLeft: check ? check.getBoundingClientRect().left : null,
+      }
+    },
+    { elId: id, iId: itemId }
+  )
+
+// The rows only have real rects with the panel open, so re-open it: the
+// vertical section above closed both popups with Escape.
+await openSelect('pop')
+const gut = await gutterOf('pop')
+await reopenMenu('menu')
+const menu = await menuOf('menu', 'mi')
+
+check(
+  'the closed pill insets its label by the gutter (16), not the old 22',
+  Math.abs(gut.labelLeft - (gut.controlLeft + gut.borderLeft + GUTTER * s)) < 0.5,
+  `label=${gut.labelLeft} expected=${gut.controlLeft + gut.borderLeft + GUTTER * s} ` +
+    `(the old 22 would be ${gut.controlLeft + gut.borderLeft + 22 * s})`
+)
+check(
+  'the open option row uses the same gutter as the closed pill',
+  Math.abs(gut.optionPad - GUTTER * s) < 0.5,
+  `optionPad=${gut.optionPad} expected=${GUTTER * s}`
+)
+// THE invariant the shared gutter exists for, on the horizontal axis.
+check(
+  'the selected label sits at the same x closed and open',
+  Math.abs(gut.labelLeft - (gut.optionLeft + gut.optionPad)) < 0.5,
+  `closed=${gut.labelLeft} open=${gut.optionLeft + gut.optionPad} ` +
+    `[control=${gut.controlLeft} panel=${gut.panelLeft} ` +
+    `panelBorder=${gut.panelBorder} panelPad=${gut.panelPad} option=${gut.optionLeft}]`
+)
+check(
+  'a menu row uses the same gutter as the popup (shared token, not a literal 22)',
+  Math.abs(menu.labelLeft - (menu.rowLeft + GUTTER * s)) < 0.5,
+  `label=${menu.labelLeft} expected=${menu.rowLeft + GUTTER * s} ` +
+    `(the old hardcoded 22 would be ${menu.rowLeft + 22 * s})`
+)
+check(
+  'the menu ✓ sits 3px inside the row, matching Menus.png (+4 from the border)',
+  menu.checkLeft !== null &&
+    Math.abs(menu.checkLeft - (menu.rowLeft + CHECK_INSET * s)) < 0.5,
+  `check=${menu.checkLeft} expected=${menu.rowLeft + CHECK_INSET * s}`
+)
+check(
+  'the ✓ inset lands on whole device pixels (centring it would be a half px)',
+  Number.isInteger(CHECK_INSET * s * num.dpr),
+  `${CHECK_INSET * s * num.dpr}device (centring 9 in ${GUTTER} would be ${
+    ((GUTTER - 9) / 2) * s * num.dpr
+  })`
+)
+check(
+  'the gutter lands on whole device pixels',
+  Number.isInteger(GUTTER * s * num.dpr),
+  `${GUTTER * s * num.dpr}device`
+)
+
+// Re-theming must carry the pill, its rows AND the menu rows together — the
+// whole point of the three sharing one token rather than three literals.
+await page.keyboard.press('Escape')
+await openSelect('pop-gutter')
+const gutThemed = await gutterOf('pop-gutter')
+await reopenMenu('menu-gutter')
+const menuThemed = await menuOf('menu-gutter', 'mi-gutter')
+
+check(
+  'retheming --vf-select-gutter moves the closed pill label',
+  Math.abs(gutThemed.labelLeft - (gutThemed.controlLeft + gutThemed.borderLeft + 30 * s)) < 0.5,
+  `label=${gutThemed.labelLeft} expected=${gutThemed.controlLeft + gutThemed.borderLeft + 30 * s}`
+)
+check(
+  'retheming --vf-select-gutter carries the option rows with it',
+  Math.abs(gutThemed.optionPad - 30 * s) < 0.5,
+  `optionPad=${gutThemed.optionPad} expected=${30 * s}`
+)
+check(
+  'retheming --vf-select-gutter carries the MENU rows with it',
+  Math.abs(menuThemed.labelLeft - (menuThemed.rowLeft + 30 * s)) < 0.5,
+  `label=${menuThemed.labelLeft} expected=${menuThemed.rowLeft + 30 * s}`
+)
+check(
+  'the closed↔open invariant still holds under a re-themed gutter',
+  Math.abs(gutThemed.labelLeft - (gutThemed.optionLeft + gutThemed.optionPad)) < 0.5,
+  `closed=${gutThemed.labelLeft} open=${gutThemed.optionLeft + gutThemed.optionPad}`
 )
 
 await browser.close()

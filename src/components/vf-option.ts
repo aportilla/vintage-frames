@@ -34,11 +34,20 @@ export class VfOption extends LitElement {
            the closed pill exactly when the open list overlays it. Derived, not
            a literal, so re-theming the pill height moves the rows with it. */
         height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 18px) - 2px));
+        /* Lock the line box to the row box. vfDisplay's 1.25 line-height is
+           taller than a 16px row (20px), and align-items:center splits the
+           excess above AND below — so every row's text spilled 2px past its
+           own box and the LAST row's spill pushed the panel into overflow,
+           putting a scrollbar on every popup that should never have one. The
+           ink doesn't move: a 16px line box centred in a 16px row has the same
+           centre as a 20px one. Derived from the same expression as the height
+           above so a re-themed pill can't reintroduce the mismatch. */
+        line-height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 18px) - 2px));
         /* Left gutter (--vf-select-gutter) holds the ✓ and matches the closed
            vf-select control's left inset, so a selected option's text lands at
            the same x whether the popup is closed or open. */
         padding: 0 calc(var(--vf-scale, 1) * 20px) 0
-          calc(var(--vf-scale, 1) * var(--vf-select-gutter, 22px));
+          calc(var(--vf-scale, 1) * var(--vf-select-gutter, 16px));
         background: var(--vf-white, #fff);
         color: var(--vf-black, #000);
         white-space: nowrap;
@@ -56,15 +65,17 @@ export class VfOption extends LitElement {
         background: var(--vf-white, #fff);
         color: var(--vf-disabled, #c0c0c0);
       }
+      /* The ✓ is pinned a whole 3px in from the row's left and top rather than
+         centred in the gutter. Centring a 9px glyph in the 16px column (and in
+         the 16px row) lands it on a half pixel — 3.5 authored px, i.e. 10.5
+         device px at the default 3× — which fringes at every scale. Menus.png
+         biases it up-left exactly this way: ink 3px inside the row on both
+         axes, leaving the wider gap on the right/bottom. */
       .check {
         position: absolute;
-        left: 0;
-        top: 0;
-        width: calc(var(--vf-scale, 1) * var(--vf-select-gutter, 22px));
-        height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 18px) - 2px));
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        left: calc(var(--vf-scale, 1) * 3px);
+        top: calc(var(--vf-scale, 1) * 3px);
+        display: block;
         visibility: hidden;
         color: inherit;
       }

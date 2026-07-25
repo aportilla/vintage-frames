@@ -108,7 +108,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
-| `--vf-select-gutter` | `22px` | `vf-select` left inset / `vf-option` ✓ column (shared so the value doesn't shift on open) |
+| `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
@@ -433,8 +433,14 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Visual (closed control):** height `var(--vf-popup-height, 18px)`, white
   bg, `1px solid black`, NO radius, `box-shadow: 1px 1px 0 0 var(--vf-black, #000)`
   (the small hard shadow visible in the screenshot), `padding: 0 8px 0
-  var(--vf-select-gutter, 22px)` — the left inset equals the option checkmark
-  gutter so the selected label sits at the same x closed or open — bold label
+  var(--vf-select-gutter, 16px)` — the left inset equals the option checkmark
+  gutter so the selected label sits at the same x closed or open. *One
+  documented 1px deviation:* the reference sheets put a closed pill's label ink
+  16px from its border box but an open menu's at 17 (three pill instances and
+  four menu panels, all consistent — `npm run extract:menus`). System 7
+  reconciled that by drawing the open panel 1px left of the pill; the kit
+  instead uses one shared gutter with no panel offset, which keeps the
+  closed↔open alignment exact and puts the closed pill's ink at 17. Bold label
   left, the black `CARET_DOWN` ▼ pixel glyph (inline SVG) right with 8px gap. The
   ▼ stays black even when the control is disabled (only the label dims).
   **Width:** the control hugs the *widest* option — no intrinsic min-width — via
@@ -448,7 +454,7 @@ The classic popup menu control ("Macintosh HD ▼").
   left (unsnapped, so the panel's left/right edges and shadow coincide with the
   pill's). Item rows are height 16px — the pill's *content* height, derived as
   `calc(var(--vf-popup-height, 18px) - 2px)` so a re-themed pill moves its rows
-  with it — `padding: 0 20px 0 var(--vf-select-gutter, 22px)`;
+  with it — `padding: 0 20px 0 var(--vf-select-gutter, 16px)`;
   the panel opens with the selected row's cell laid directly over the closed
   pill (its top border on the pill's top border, extending downward), so the
   selected label's position and surrounding whitespace are identical closed and
@@ -556,8 +562,10 @@ The classic popup menu control ("Macintosh HD ▼").
   `checkable` (declares a toggle up front — see Behavior),
   `shortcut: string` (e.g. `"⌘H"`, right-aligned), `value?: string` (defaults
   to text content).
-- **Visual:** height 22px, `padding: 0 12px 0 22px` (left gutter for ✓),
-  shortcut right-aligned with 24px min gap, `color: var(--vf-disabled)` when
+- **Visual:** height 22px, `padding: 0 12px 0 var(--vf-select-gutter, 16px)`
+  (left gutter for ✓, shared with `vf-select`/`vf-option` — `Menus.png` puts a
+  pulldown's label ink at the same inset as a popup's), shortcut right-aligned
+  with 24px min gap, `color: var(--vf-disabled)` when
   disabled. Hover (not disabled): full-width inversion. A disabled row dims its
   ✓ along with the label — a **documented deviation** from the §1 "dim the label,
   chrome glyphs stay black" rule, because authentic System 7 greyed the whole

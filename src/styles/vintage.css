@@ -29,6 +29,7 @@
    * --vf-button-height: 20px;                // vf-button face
    * --vf-popup-height: 18px;                 // vf-select pill (border box)
    * --vf-control-height-small: 16px;
+   * --vf-select-gutter: 16px;                 // ✓ column: select / option / menu-item
    * --vf-titlebar-height: 18px;
    * --vf-menubar-height: 24px;
    * --vf-focus-outline: 1px dotted #000;

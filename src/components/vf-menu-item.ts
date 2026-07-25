@@ -10,8 +10,9 @@ import { emit } from '../events.js'
 /**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
  *
- * Renders the classic System 7 menu row: optional ✓ check in a 22px left
- * gutter, label, and a right-aligned keyboard shortcut. On activation the item
+ * Renders the classic System 7 menu row: optional ✓ check in the
+ * `--vf-select-gutter` left column (16px, shared with vf-select/vf-option),
+ * label, and a right-aligned keyboard shortcut. On activation the item
  * performs the classic 3-blink inversion (~250ms), then dispatches
  * `vf-menu-select` and asks its ancestors to close the menu.
  *
@@ -40,8 +41,12 @@ export class VfMenuItem extends LitElement {
         display: flex;
         align-items: center;
         height: calc(var(--vf-scale, 1) * 22px);
+        /* Shares --vf-select-gutter with vf-select/vf-option: Menus.png puts a
+           pulldown's label ink at the same inset as a popup's, and both hold
+           the same 9px ✓. (The token name says "select" for historical
+           reasons; it is the checkmark column for every menu surface.) */
         padding: 0 calc(var(--vf-scale, 1) * 12px) 0
-          calc(var(--vf-scale, 1) * 22px);
+          calc(var(--vf-scale, 1) * var(--vf-select-gutter, 16px));
         position: relative;
         white-space: nowrap;
       }
@@ -50,13 +55,16 @@ export class VfMenuItem extends LitElement {
          glyphs stay black, but authentic System 7 greyed the whole disabled
          row, check included — and reference behavior wins over the rule of
          thumb. Documented deviation, not an oversight. */
+      /* 3px in from the row's left edge, matching Menus.png (✓ ink at +4 from
+         the panel border, i.e. 3 inside it) and vf-option's identical rule.
+         Biased up a whole pixel rather than centred vertically for the same
+         reason: the row is 22 and the glyph 9, so centring lands on 6.5
+         authored px (19.5 device px at the default 3×) and fringes. */
       .check {
         position: absolute;
-        left: calc(var(--vf-scale, 1) * 6px);
-        top: 0;
-        height: calc(var(--vf-scale, 1) * 22px);
-        display: flex;
-        align-items: center;
+        left: calc(var(--vf-scale, 1) * 3px);
+        top: calc(var(--vf-scale, 1) * 6px);
+        display: block;
         color: inherit;
       }
       /* Native 9×9 (1:1, crisp). */

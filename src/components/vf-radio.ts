@@ -8,7 +8,7 @@ import {
   RADIO_RING,
   RADIO_RING_PRESSED,
 } from '../glyphs.js'
-import { ScaleController } from '../scale.js'
+import { VfToggleControl } from '../toggle-control.js'
 import { emit } from '../events.js'
 
 /**
@@ -29,7 +29,7 @@ import { emit } from '../events.js'
  * @fires vf-change - When selected by user interaction. `detail: { value: string }`.
  */
 @customElement('vf-radio')
-export class VfRadio extends LitElement {
+export class VfRadio extends VfToggleControl(LitElement) {
   static override styles = [
     vfBase,
     vfDisplay,
@@ -84,7 +84,7 @@ export class VfRadio extends LitElement {
   ]
 
   /** Whether this radio is selected. Managed by the containing group. */
-  @property({ type: Boolean, reflect: true }) checked = false
+  @property({ type: Boolean, reflect: true }) override checked = false
 
   /** Disables this single radio: the label dims to gray; circle and dot stay black. */
   @property({ type: Boolean, reflect: true }) disabled = false
@@ -100,39 +100,38 @@ export class VfRadio extends LitElement {
 
   private readonly internals: ElementInternals
 
-  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
-  private readonly scale = new ScaleController(this)
-
-  /**
-   * True when this radio owns its host tabindex — it's standalone (no
-   * enclosing vf-radio-group to run the roving tabindex) and the consumer
-   * set no explicit `tabindex`. Guards `updated()` so a group-managed or
-   * consumer-set tabindex is never clobbered. Mirrors vf-checkbox.
-   */
-  private selfManagedTabIndex = false
-
   constructor() {
     super()
     this.internals = this.attachInternals()
     this.internals.role = 'radio'
-    this.addEventListener('click', this.handleClick)
-    this.addEventListener('keydown', this.handleKeydown)
   }
 
-  override connectedCallback(): void {
-    super.connectedCallback()
-    // Inside a group the group drives the roving tabindex; only self-manage
-    // when standalone so a bare radio stays keyboard-reachable (its Space
-    // handler is otherwise unreachable). A consumer-set `tabindex` wins.
-    this.selfManagedTabIndex =
-      !this.closest('vf-radio-group') && !this.hasAttribute('tabindex')
-    if (this.selfManagedTabIndex) {
-      this.tabIndex = this.disabled ? -1 : 0
-    }
+  /**
+   * A radio attaches its own internals: it is deliberately NOT form-associated
+   * (the enclosing `vf-radio-group` is the form surface), so there is no
+   * `VfFormControl` handle to inherit.
+   */
+  protected override get toggleInternals(): ElementInternals {
+    return this.internals
+  }
+
+  /** This radio's own `disabled`, or its group's. */
+  protected override get toggleDisabled(): boolean {
+    return this.disabled || this.groupDisabled
+  }
+
+  /**
+   * Inside a `vf-radio-group` the group is the single source of truth: it runs
+   * the roving tabindex and flips `checked` on the whole set. Standalone, this
+   * radio owns both — otherwise a bare radio would be keyboard-dead (its Space
+   * handler unreachable) and would never visibly toggle.
+   */
+  protected override get externallyCoordinated(): boolean {
+    return !!this.closest('vf-radio-group')
   }
 
   override render() {
-    const dim = this.disabled || this.groupDisabled
+    const dim = this.toggleDisabled
     return html`
       <span
         class=${classMap({ circle: true, dim })}
@@ -152,36 +151,14 @@ export class VfRadio extends LitElement {
     `
   }
 
-  protected override updated(): void {
-    this.internals.ariaChecked = this.checked ? 'true' : 'false'
-    const disabled = this.disabled || this.groupDisabled
-    this.internals.ariaDisabled = disabled ? 'true' : 'false'
-    if (this.selfManagedTabIndex) this.tabIndex = disabled ? -1 : 0
-  }
-
-  /** Select this radio in response to user interaction. */
-  private interact(): void {
-    if (this.disabled || this.groupDisabled || this.checked) return
-    // Inside a group the group is the single source of truth: it flips
-    // `checked` and unchecks siblings in response to vf-change. Only self-set
-    // when standalone, so a lone radio still toggles visually.
-    if (!this.closest('vf-radio-group')) this.checked = true
+  /** Click/Space on an enabled, unselected radio selects it. */
+  protected override activate(): void {
+    if (this.checked) return
+    // In a group, the group flips `checked` and unchecks siblings in response
+    // to vf-change; self-setting here would give the set two sources of truth.
+    if (!this.externallyCoordinated) this.checked = true
     this.focus()
     emit(this, 'vf-change', { value: this.value })
-  }
-
-  private handleClick = (): void => {
-    this.interact()
-  }
-
-  private handleKeydown = (event: KeyboardEvent): void => {
-    if (event.key === ' ') {
-      event.preventDefault()
-      // Ignore auto-repeat for parity with vf-checkbox (interact() is a no-op
-      // once checked, so this is belt-and-suspenders for the standalone path).
-      if (event.repeat) return
-      this.interact()
-    }
   }
 }
 

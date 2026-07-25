@@ -387,7 +387,12 @@ Classic fixed modal alert: double black frame, no title bar.
   6px gap. Disabled dims like checkbox (label only; ring + dot stay black).
 - **Behavior:** `role="radio"`, `aria-checked`. Click → asks parent group to
   select it (dispatch internal event or parent listens). NOT itself
-  form-associated — the group is. Focus managed by group (roving tabindex).
+  form-associated — the group is. Focus: inside a `vf-radio-group` the group
+  owns the roving tabindex and is the single source of truth for `checked`;
+  standalone, the radio self-manages its own tabindex (otherwise it would be
+  keyboard-dead) and self-checks on activation. A consumer-authored `tabindex`
+  always wins, and that ownership is latched on first connect so a reconnect
+  can't mistake our own write for the consumer's.
 - **Slots:** default (label). **Parts:** `circle`, `label`.
 - **Events:** `vf-change` detail `{ value }` (fired by user interaction only).
 

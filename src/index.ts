@@ -132,6 +132,8 @@ export type { BlinkHandle } from './motion.js'
 /** Base classes — extend these to author a custom `vf-*` control. */
 export { VfFormControl } from './form-control.js'
 export { VfTextControlBase } from './text-control.js'
+export { VfToggleControl } from './toggle-control.js'
+export type { VfToggleControlInterface } from './toggle-control.js'
 export { VfModalDialog, modalDialogStyles } from './modal-dialog.js'
 export type { VfCloseReason } from './modal-dialog.js'
 

@@ -143,5 +143,30 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `steppedRectClip`, `steppedRingClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`) |
 | `DragController`, `ScrollStateController` | Pointer-drag wiring; per-axis overflow reporting for the always-a-rail scrollbars |
 | `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink |
-| `VfFormControl`, `VfTextControlBase`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the native-`<dialog>` lifecycle |
+| `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), the native-`<dialog>` lifecycle |
 | `registerEmbeddedFont`, `registerChiKareGo`, `registerFindersKeepers`, `CHIKAREGO_FAMILY`, `FINDERS_KEEPERS_FAMILY` | Register the bitmap faces on `document.fonts` yourself |
+
+`VfToggleControl` is a **mixin** rather than a plain base class, because the
+kit's two toggles sit on different bases and have to stay there: `vf-checkbox`
+extends `VfFormControl` (it submits a value under a name), while `vf-radio` is
+deliberately not form-associated — its enclosing `vf-radio-group` is the form
+surface. Apply it over whichever base your control needs, and supply `checked`,
+the control's `ElementInternals`, its effective disabled rule, and what a click
+or Space should do:
+
+```ts
+class MyToggle extends VfToggleControl(VfFormControl) {
+  @property({ type: Boolean, reflect: true }) override checked = false
+  protected override get toggleInternals() { return this.internals }
+  protected override get toggleDisabled() { return this.isDisabled }
+  protected override activate() {
+    this.checked = !this.checked
+    this.focus()
+    emit(this, 'vf-change', { checked: this.checked })
+  }
+}
+```
+
+You get the click/Space wiring (including the held-Space auto-repeat guard),
+one disabled gate every activation passes through, `aria-checked`/`aria-disabled`
+mirroring, and a self-managed host tabindex that never clobbers a consumer's own.

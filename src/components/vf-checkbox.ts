@@ -1,10 +1,10 @@
-import { css, html } from 'lit'
+import { css, html, type PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay, vfFocusRing, vfToggle } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
-import { ScaleController } from '../scale.js'
 import { VfFormControl } from '../form-control.js'
+import { VfToggleControl } from '../toggle-control.js'
 import { emit } from '../events.js'
 
 /**
@@ -23,7 +23,7 @@ import { emit } from '../events.js'
  * @fires vf-change - When toggled by user interaction. `detail: { checked: boolean }`.
  */
 @customElement('vf-checkbox')
-export class VfCheckbox extends VfFormControl {
+export class VfCheckbox extends VfToggleControl(VfFormControl) {
   static override styles = [
     vfBase,
     vfDisplay,
@@ -66,7 +66,7 @@ export class VfCheckbox extends VfFormControl {
   ]
 
   /** Whether the checkbox is checked. */
-  @property({ type: Boolean, reflect: true }) checked = false
+  @property({ type: Boolean, reflect: true }) override checked = false
 
   /** Form field name used when submitting. */
   @property({ reflect: true }) name = ''
@@ -74,33 +74,27 @@ export class VfCheckbox extends VfFormControl {
   /** Value submitted with the form while checked. */
   @property() value = 'on'
 
-  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
-  private readonly scale = new ScaleController(this)
-
   /** Checked state at first connect, restored on form reset. */
   private defaultChecked: boolean | null = null
-
-  /**
-   * True when the component owns the host tabindex (no consumer-authored
-   * `tabindex` attribute at connect). Guards `updated()` so a consumer-set
-   * tabindex (e.g. `tabindex="-1"`) is never clobbered.
-   */
-  private selfManagedTabIndex = false
 
   constructor() {
     super()
     this.internals.role = 'checkbox'
-    this.addEventListener('click', this.handleClick)
-    this.addEventListener('keydown', this.handleKeydown)
   }
 
   override connectedCallback(): void {
     super.connectedCallback()
     if (this.defaultChecked === null) this.defaultChecked = this.checked
-    if (!this.hasAttribute('tabindex')) {
-      this.selfManagedTabIndex = true
-      this.tabIndex = this.isDisabled ? -1 : 0
-    }
+  }
+
+  /** The handle {@link VfFormControl} already attached. */
+  protected override get toggleInternals(): ElementInternals {
+    return this.internals
+  }
+
+  /** `disabled`, or an ancestor `<fieldset disabled>`. */
+  protected override get toggleDisabled(): boolean {
+    return this.isDisabled
   }
 
   override render() {
@@ -115,12 +109,10 @@ export class VfCheckbox extends VfFormControl {
     `
   }
 
-  protected override updated(): void {
+  protected override updated(changed: PropertyValues): void {
+    // ARIA + tabindex mirroring comes from VfToggleControl.
+    super.updated(changed)
     this.syncFormValue(this.checked ? this.value : null)
-    this.internals.ariaChecked = this.checked ? 'true' : 'false'
-    const disabled = this.isDisabled
-    this.internals.ariaDisabled = disabled ? 'true' : 'false'
-    if (this.selfManagedTabIndex) this.tabIndex = disabled ? -1 : 0
   }
 
   /** Form-associated lifecycle: restores the initial checked state. */
@@ -128,24 +120,11 @@ export class VfCheckbox extends VfFormControl {
     this.checked = this.defaultChecked ?? false
   }
 
-  private toggle(): void {
-    if (this.isDisabled) return
+  /** Click/Space on an enabled checkbox flips it. */
+  protected override activate(): void {
     this.checked = !this.checked
     this.focus()
     emit(this, 'vf-change', { checked: this.checked })
-  }
-
-  private handleClick = (): void => {
-    this.toggle()
-  }
-
-  private handleKeydown = (event: KeyboardEvent): void => {
-    if (event.key === ' ') {
-      event.preventDefault()
-      // Ignore auto-repeat: holding Space must not toggle on every tick.
-      if (event.repeat) return
-      this.toggle()
-    }
   }
 }
 

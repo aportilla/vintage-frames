@@ -49,7 +49,8 @@
     "verify:menu-select": "node scripts/verify-menu-select.mjs",
     "verify:low-sweep": "node scripts/verify-low-sweep.mjs",
     "verify:scale": "node scripts/verify-scale.mjs",
-    "verify:chrome": "node scripts/verify-chrome.mjs"
+    "verify:chrome": "node scripts/verify-chrome.mjs",
+    "verify:toggle": "node scripts/verify-toggle.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"

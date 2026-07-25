@@ -33,15 +33,26 @@ export class VfNumberField extends VfTextControlBase {
     css`
       :host {
         display: inline-flex;
-        align-items: stretch;
+        /* NOT stretch: that sized the well to the stepper's 25px, making this
+           the one field that ignored --vf-control-height (see the input rule). */
+        align-items: flex-start;
         gap: calc(var(--vf-scale, 1) * 3px);
       }
       input {
         flex: 1 1 auto;
         width: var(--vf-number-field-width, 4em);
         min-width: 2em;
+        /* The reference sheets measure text fields at 22px and the little-arrows
+           sprite at 15×25 — the well and the stepper are authentically different
+           heights, so the well is pinned to the shared control token and the
+           sprite keeps its native 1:1 size (the host ends up stepper-tall). */
+        height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
         padding: 0 calc(var(--vf-scale, 1) * 6px);
         text-align: right;
+        /* The 3px difference is odd, so centering the well would land it on a
+           half pixel and fringe at every scale. Bias it one whole pixel down
+           (1 above / 2 below) — optically centered, still on the device grid. */
+        margin-top: calc(var(--vf-scale, 1) * 1px);
       }
 
       /* The little-arrows stepper, drawn at its native 15×25 (1:1, crisp). */

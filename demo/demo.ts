@@ -18,7 +18,7 @@ import type {
 import '../src/styles/vintage.css'
 import './demo.css'
 
-/** Detail dispatched by `vf-menu-item`'s `vf-select` event. */
+/** Detail dispatched by `vf-menu-item`'s `vf-menu-select` event. */
 interface MenuSelectDetail {
   value: string
   item: VfMenuItem
@@ -31,7 +31,7 @@ function $<T extends Element>(selector: string): T {
   return el
 }
 
-/** Typed reader for the `vf-select` menu event. */
+/** Typed reader for the `vf-menu-select` menu event. */
 function menuDetail(event: Event): MenuSelectDetail {
   return (event as CustomEvent<MenuSelectDetail>).detail
 }
@@ -107,24 +107,24 @@ function spawnWindow(): void {
  * Menus.
  * ------------------------------------------------------------------ */
 
-$<VfMenu>('#menu-apple').addEventListener('vf-select', (event) => {
+$<VfMenu>('#menu-apple').addEventListener('vf-menu-select', (event) => {
   if (menuDetail(event).value === 'about') aboutDialog.show()
 })
 
-$<VfMenu>('#menu-file').addEventListener('vf-select', (event) => {
+$<VfMenu>('#menu-file').addEventListener('vf-menu-select', (event) => {
   if (menuDetail(event).value === 'new-window') spawnWindow()
 })
 
 // View: exclusive check between "by Icon" and "by Name".
 const viewMenu = $<VfMenu>('#menu-view')
-viewMenu.addEventListener('vf-select', (event) => {
+viewMenu.addEventListener('vf-menu-select', (event) => {
   const { item } = menuDetail(event)
   for (const entry of viewMenu.querySelectorAll('vf-menu-item')) {
     entry.checked = entry === item
   }
 })
 
-$<VfMenu>('#menu-special').addEventListener('vf-select', (event) => {
+$<VfMenu>('#menu-special').addEventListener('vf-menu-select', (event) => {
   switch (menuDetail(event).value) {
     case 'erase-disk':
       eraseAlert.show()

@@ -12,15 +12,18 @@ import { emit } from '../events.js'
  *
  * Renders the classic System 7 menu row: optional ✓ check in a 22px left
  * gutter, label, and a right-aligned keyboard shortcut. On activation the item
- * performs the classic 3-blink inversion (~250ms), then dispatches `vf-select`
- * and asks its ancestors to close the menu.
+ * performs the classic 3-blink inversion (~250ms), then dispatches
+ * `vf-menu-select` and asks its ancestors to close the menu.
  *
  * @slot - The item label.
  * @csspart item - The row container.
  * @csspart check - The ✓ checkmark glyph (rendered when `checked`).
  * @csspart label - The label wrapper around the default slot.
  * @csspart shortcut - The right-aligned shortcut text.
- * @fires vf-select - After the blink completes. `detail: { value, item }`.
+ * @fires vf-menu-select - After the blink completes. `detail: { value, item }`.
+ *   Named for the menu rather than plain `vf-select`, which would collide with
+ *   the `<vf-select>` popup on any delegated ancestor listener (that component
+ *   commits with `vf-change`).
  */
 @customElement('vf-menu-item')
 export class VfMenuItem extends LitElement {
@@ -95,7 +98,7 @@ export class VfMenuItem extends LitElement {
   @property() shortcut = ''
 
   /**
-   * Value reported in the `vf-select` event detail. Defaults to the item's
+   * Value reported in the `vf-menu-select` event detail. Defaults to the item's
    * trimmed text content when unset.
    */
   @property() value?: string
@@ -188,7 +191,7 @@ export class VfMenuItem extends LitElement {
   }
 
   /**
-   * Runs the classic 3-blink inversion, then dispatches `vf-select` and an
+   * Runs the classic 3-blink inversion, then dispatches `vf-menu-select` and an
    * internal `vf-menu-close-request` so ancestor menu/menu-bar close.
    */
   #activate(): void {
@@ -213,7 +216,7 @@ export class VfMenuItem extends LitElement {
 
   #dispatchSelect(): void {
     const value = this.value ?? (this.textContent ?? '').trim()
-    emit(this, 'vf-select', { value, item: this })
+    emit(this, 'vf-menu-select', { value, item: this })
     // Internal coordination event: `vf-menu` / `vf-menu-bar` listen and close.
     emit(this, 'vf-menu-close-request', { item: this })
   }

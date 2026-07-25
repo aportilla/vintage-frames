@@ -104,7 +104,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-disabled` | `#C0C0C0` | dimmed text, borders, glyphs (the kit's dim gray) |
 | `--vf-desktop` | `#808080` | base color under the desktop dither — occluded by the default (opaque) tile, so it only shows through a custom `--vf-desktop-pattern` |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
-| `--vf-control-height` | `22px` | buttons, selects, text fields |
+| `--vf-control-height` | `22px` | buttons, selects, text fields (incl. the `vf-number-field` well) |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `22px` | `vf-select` left inset / `vf-option` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
@@ -398,8 +398,13 @@ A numeric text field paired with the classic "little arrows" stepper.
   thickens the border like `vf-text-field`, value right-aligned) with a 3px gap
   to the little-arrows stepper. The stepper is the `STEPPER` glyph (rounded
   1-bit frame + hollow up/down arrows from `Little arrows.png`), rendered inline
-  at its **native 15×25** so it stays pixel-crisp — the field takes the
-  stepper's height. Holding an arrow overlays its solid fill (`STEPPER_UP_FILL`
+  at its **native 15×25** so it stays pixel-crisp. The well and the sprite are
+  authentically different heights (the reference sheets measure fields at 22 and
+  the arrows at 25), so the well keeps `var(--vf-control-height, 22px)` — lining
+  up with every sibling control — and the taller sprite sets the host's height.
+  The odd 3px remainder is biased a whole pixel (1 above the well, 2 below)
+  rather than centered, which would place it on a half pixel and fringe at every
+  scale. Holding an arrow overlays its solid fill (`STEPPER_UP_FILL`
   / `STEPPER_DOWN_FILL`, synthesized to match the kit's hollow→filled press
   convention). Disabled: the value dims to gray; the box and stepper stay black.
 - **Behavior:** `role="spinbutton"` on the input with `aria-valuenow/min/max`.
@@ -549,10 +554,13 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Behavior:** `role="menuitem"` — or `role="menuitemcheckbox"` with
   `aria-checked` once the item is (or has been) `checked`. On click: classic
   **blink** (invert toggles 3 times over ~250ms via timer; skipped under
-  `prefers-reduced-motion`, selecting at once), then dispatch `vf-select` detail
-  `{ value, item }` and signal ancestors to close the menu.
+  `prefers-reduced-motion`, selecting at once), then dispatch `vf-menu-select`
+  detail `{ value, item }` and signal ancestors to close the menu.
 - **Slots:** default (label). **Parts:** `item`, `check`, `label`, `shortcut`.
-- **Events:** `vf-select`.
+- **Events:** `vf-menu-select` — menu-specific by design. A plain `vf-select`
+  would collide with the `<vf-select>` popup on any delegated ancestor listener,
+  since both bubble and compose while `<vf-select>` itself commits with
+  `vf-change`. Parallels the existing `vf-menu-*` coordination names.
 
 #### `vf-list` (`VfList`, vf-list-item children) (vf-list.ts)
 Classic list box.
@@ -571,7 +579,12 @@ Classic list box.
 - **Behavior:** `role="listbox"` (+`aria-multiselectable`, + `aria-label` from
   `label`), items `role="option"`. Click selects (Shift/Cmd extend when
   `multiple`). Roving tabindex, Arrow keys move selection, Space toggles in
-  multiple mode.
+  multiple mode. Printable keys drive classic Finder **first-letter type-ahead**:
+  keystrokes accumulate into a prefix matched against each row's text, jumping to
+  (and selecting) the next match, wrapping and skipping disabled rows. The prefix
+  resets after 1s of silence; repeating a single character cycles the rows
+  starting with it. Modified keys are left to the consumer, and Space stays the
+  multiple-mode toggle, so neither joins the prefix.
 - **Parts:** `list`. **Events:** `vf-change` detail `{ value, values }`.
 
 #### `vf-scroll-area` (`VfScrollArea`, vf-scroll-area.ts)

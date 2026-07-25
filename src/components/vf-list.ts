@@ -15,6 +15,12 @@ const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((v, i) => v === b[i])
 
 /**
+ * How long a first-letter type-ahead prefix stays open before the buffer
+ * resets, so the next keystroke starts a fresh search.
+ */
+const TYPEAHEAD_TIMEOUT_MS = 1000
+
+/**
  * `<vf-list>` — the classic System 7 list box.
  *
  * A white, black-bordered scrolling box of `<vf-list-item>` rows with
@@ -22,7 +28,8 @@ const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
  * rail is a permanent placeholder — an empty white channel when the rows fit,
  * filling in with dither/thumb/arrows only on overflow (driven by
  * {@link ScrollStateController}). Selection inverts rows. Supports single and
- * multiple selection, roving tabindex, and arrow-key navigation.
+ * multiple selection, roving tabindex, arrow-key navigation, and classic Finder
+ * first-letter type-ahead.
  *
  * Max height defaults to 200px; override with `--vf-list-max-height`.
  *
@@ -100,6 +107,10 @@ export class VfList extends LitElement {
   /** Index the next Shift+click extends from. */
   #anchorIndex = -1
 
+  /** Accumulated first-letter type-ahead prefix (lowercased). */
+  #typeAhead = ''
+  #typeAheadTimer?: number
+
   constructor() {
     super()
     this.addEventListener('click', this.#onClick)
@@ -109,6 +120,11 @@ export class VfList extends LitElement {
   override connectedCallback(): void {
     super.connectedCallback()
     this.setAttribute('role', 'listbox')
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    this.#resetTypeAhead()
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
@@ -314,7 +330,74 @@ export class VfList extends LitElement {
         }
         break
       }
+      default: {
+        // Printable keys drive first-letter type-ahead. Modified keys are the
+        // consumer's shortcuts, and Space is the selection toggle handled above,
+        // so neither ever joins the prefix.
+        if (
+          event.key.length !== 1 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey
+        ) {
+          break
+        }
+        // Consumed either way, so a stray letter can't trigger the browser's
+        // own quick-find while the list has focus.
+        event.preventDefault()
+        this.#typeAheadTo(event.key, current)
+        break
+      }
     }
+  }
+
+  /**
+   * Classic Finder first-letter type-ahead. Keystrokes accumulate into a prefix
+   * that jumps to the next row whose text starts with it; the prefix resets
+   * after {@link TYPEAHEAD_TIMEOUT_MS} of silence. The search wraps, skips
+   * disabled rows, and selects the row it lands on (as Finder does), so a
+   * following Shift+Arrow extends from there.
+   */
+  #typeAheadTo(key: string, current: number): void {
+    const items = this._items
+    if (items.length === 0) return
+
+    this.#typeAhead += key.toLowerCase()
+    if (this.#typeAheadTimer !== undefined) {
+      window.clearTimeout(this.#typeAheadTimer)
+    }
+    this.#typeAheadTimer = window.setTimeout(
+      () => this.#resetTypeAhead(),
+      TYPEAHEAD_TIMEOUT_MS
+    )
+
+    const prefix = this.#typeAhead
+    // Repeating one character cycles the rows starting with it, rather than
+    // hunting for a literal "aaa" that no label has.
+    const cycling =
+      prefix.length > 1 && [...prefix].every((c) => c === prefix[0])
+    const needle = cycling ? (prefix[0] as string) : prefix
+    // A fresh prefix (or a cycle step) looks past the cursor; a growing prefix
+    // re-tests the current row so it can keep matching as the user types.
+    const from = prefix.length === 1 || cycling ? current + 1 : current
+
+    for (let i = 0; i < items.length; i++) {
+      const index = (from + i) % items.length
+      const item = items[index]
+      if (!item || item.disabled) continue
+      if ((item.textContent ?? '').trim().toLowerCase().startsWith(needle)) {
+        this.#moveTo(index)
+        return
+      }
+    }
+  }
+
+  #resetTypeAhead(): void {
+    if (this.#typeAheadTimer !== undefined) {
+      window.clearTimeout(this.#typeAheadTimer)
+    }
+    this.#typeAheadTimer = undefined
+    this.#typeAhead = ''
   }
 
   /** Next enabled index from `from` in `dir`, without wrapping. */

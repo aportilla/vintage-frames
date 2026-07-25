@@ -62,7 +62,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-progress-bar` | Determinate fill or indeterminate barber stripes |
 | `vf-slider` | Horizontal 1-bit slider: solid-black fill up to a shield-shaped drag handle |
 | `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts and selection blink |
-| `vf-list`, `vf-list-item` | List box with inverted selection and a permanent scroll rail |
+| `vf-list`, `vf-list-item` | List box with inverted selection, a permanent scroll rail, and Finder first-letter type-ahead |
 | `vf-scroll-area` | Container with System 7 scrollbars; reserves the scroll rail as a placeholder (per-axis via `axis`), filling in only on overflow |
 | `vf-fieldset` | Group box with legend punching through the border |
 

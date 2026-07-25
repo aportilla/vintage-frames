@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Low Memory — a Vintage Frames integration example</title>
+
+    <!--
+      INTEGRATION EXAMPLE — the counterpart to index.html.
+
+      index.html is the faux desktop: a <vf-desktop> filling the viewport with
+      windows floating on it. This page is the opposite case, and the one most
+      consumers actually have: an ordinary blog — normal system-font copy,
+      normal document flow, normal page background — with <vf-*> controls
+      dropped into the header, sidebar and forms. It exists to check that the
+      kit's sizing and interaction mechanics survive contact with a real page.
+
+      The controls are in their DEFAULT state throughout. The page sets no
+      --vf-scale anywhere, so each component sizes itself to 3 device px per
+      system px (`3 / devicePixelRatio`) — true ~72dpi physical size, the same
+      thing a lone <vf-button> dropped on a blank page would do. That means the
+      controls render markedly larger on a 1× monitor than on a retina laptop
+      while the page's own 17px copy does not move at all; the readout in the
+      bar above states what this display resolved to.
+
+      Two deliberate choices worth copying:
+
+      1. There is no `vintage.css` import. That file paints the gray desktop
+         background and forces the FindersKeepers bitmap face at weight 700 on
+         <body> — correct for a faux OS, wrong for a blog. Leaving it out is the
+         proof that components need zero global CSS: the bitmap faces register
+         themselves on document.fonts and are only referenced inside shadow
+         roots, so the page copy below stays in Georgia and Helvetica.
+
+      2. Every line-height, padding, margin and gap in blog.css is a whole
+         number of pixels. That is the layout contract (README, "Staying on the
+         device-pixel grid"): a component is built from whole system px, so a
+         fractional origin — and `17px × 1.65 = 28.05px` line boxes are the
+         usual source — smears its 1-bit interior. `npm run verify:grid`
+         checks it.
+    -->
+    <link rel="stylesheet" href="/demo/blog.css" />
+    <script type="module" src="/demo/blog.ts"></script>
+  </head>
+
+  <body>
+    <!-- ==================================================================
+         Demo harness — not part of the "blog". The scale switcher is the
+         point of the page: flip it to see how the controls sit against
+         16px body copy at each --vf-scale.
+         ================================================================== -->
+    <div class="harness">
+      <p class="harness__note">
+        <strong>Vintage Frames integration example.</strong> An ordinary blog
+        page using <code>&lt;vf-*&gt;</code> controls in its header, sidebar and
+        forms — no <code>&lt;vf-desktop&gt;</code>, no windows, no
+        <code>vintage.css</code>, and no <code>--vf-scale</code>: the controls
+        are in their default self-scaling state.
+      </p>
+      <!-- Read-only: the page sets no --vf-scale, so this reports what the
+           components chose for themselves on this display. -->
+      <p class="harness__readout" id="scale-readout"></p>
+    </div>
+
+    <!-- ==================================================================
+         Site header — brand in page type, controls from the kit.
+         ================================================================== -->
+    <header class="site-header">
+      <div class="site-header__bar">
+        <a class="brand" href="#top">
+          <span class="brand__name">Low Memory</span>
+          <span class="brand__tagline">field notes on small software</span>
+        </a>
+
+        <div class="site-header__actions">
+          <!-- vf-text-field has a fixed default width (--vf-field-width, 180
+               system px). The page overrides it in CSS to fill the slot. -->
+          <vf-text-field
+            id="search"
+            class="search-field"
+            placeholder="Search posts"
+            label="Search posts"
+          ></vf-text-field>
+          <vf-button id="search-go" size="small">Search</vf-button>
+          <vf-button id="subscribe" variant="default">Subscribe</vf-button>
+        </div>
+      </div>
+
+      <!-- vf-menu-bar is display:block with no fixed/absolute positioning, so
+           it drops into normal flow as a site nav. Its dropdown panels are
+           absolutely positioned inside each vf-menu, so nothing on the way up
+           may have overflow:hidden. -->
+      <vf-menu-bar id="nav">
+        <vf-menu id="menu-archive" label="Archive">
+          <vf-menu-item value="year-2026">2026</vf-menu-item>
+          <vf-menu-item value="year-2025">2025</vf-menu-item>
+          <vf-menu-item value="year-2024">2024</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item value="all-posts">All posts</vf-menu-item>
+        </vf-menu>
+
+        <!-- These mirror the sidebar checkboxes both ways — two components with
+             no knowledge of each other, kept in sync by the page. -->
+        <vf-menu id="menu-topics" label="Topics">
+          <vf-menu-item checkable value="craft">Craft</vf-menu-item>
+          <vf-menu-item checkable value="engineering">Engineering</vf-menu-item>
+          <vf-menu-item checkable value="design">Design</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item value="clear-topics">Show everything</vf-menu-item>
+        </vf-menu>
+
+        <vf-menu id="menu-about" label="About">
+          <vf-menu-item value="about">About this blog…</vf-menu-item>
+          <vf-menu-item value="colophon">Colophon…</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item disabled shortcut="⌘R">Subscribe by RSS</vf-menu-item>
+        </vf-menu>
+      </vf-menu-bar>
+    </header>
+
+    <!-- ==================================================================
+         Body — article column + sidebar.
+         ================================================================== -->
+    <div class="layout" id="top">
+      <main class="posts" id="posts">
+        <p class="posts__status" id="status" role="status"></p>
+
+        <!-- Filtering and sorting rebuild this list in place, reusing the
+             vf-separators as a pool and creating more when needed — so the
+             page also exercises components constructed at runtime. -->
+        <div class="posts__list" id="post-list">
+        <article class="post" id="post-scope" data-topic="craft" data-date="2026-06-18" data-minutes="7">
+          <h2 class="post__title">What 512K taught me about scope</h2>
+          <p class="post__meta">18 June 2026 · Craft · 7 min read</p>
+          <p>
+            The original Macintosh shipped with 128 kilobytes of RAM and no hard
+            disk. Everything an application did had to fit in the space left
+            over after the system claimed its share, which was not much. That
+            constraint produced a particular kind of software: programs that did
+            one job, opened instantly, and had a manual you could finish in an
+            afternoon.
+          </p>
+          <p>
+            I keep coming back to it because the constraint is gone but the
+            lesson isn't. Nobody is short on memory now. We are short on the
+            thing memory used to force: a decision about what the program is
+            <em>for</em>. When you can add anything, "should we" stops being a
+            technical question and becomes a taste question, and taste is much
+            harder to delegate.
+          </p>
+          <p>
+            The useful move, I think, is to invent the budget you no longer
+            have. Pick a number — screens, dependencies, settings, whatever the
+            unit of bloat is in your domain — and treat it as fixed. The number
+            itself barely matters. What matters is that adding now costs
+            something, so the argument happens before the code does.
+          </p>
+          <footer class="post__footer">
+            <vf-button size="small" data-action="save" data-post="post-scope">Save</vf-button>
+            <vf-button size="small" data-action="share" data-post="post-scope">Share</vf-button>
+            <span class="post__saved" data-saved-for="post-scope" hidden>Saved</span>
+          </footer>
+        </article>
+
+        <vf-separator class="post-rule"></vf-separator>
+
+        <article class="post" id="post-boring" data-topic="engineering" data-date="2026-05-02" data-minutes="5">
+          <h2 class="post__title">The case for the boring stack</h2>
+          <p class="post__meta">2 May 2026 · Engineering · 5 min read</p>
+          <p>
+            Every interesting technical decision I have regretted was
+            interesting. Every boring one I have regretted was boring for the
+            wrong reason — chosen out of inertia rather than judgment. The
+            difference is worth naming, because "use boring technology" gets
+            repeated as though inertia and judgment were the same thing.
+          </p>
+          <p>
+            A boring choice made well is one where you have already read the
+            failure modes and decided you can live with them. You know how it
+            behaves at 3am. You know which of your colleagues has debugged it
+            before. That knowledge is the actual asset, and it is not
+            transferable to the exciting thing no matter how good the exciting
+            thing's documentation is.
+          </p>
+          <footer class="post__footer">
+            <vf-button size="small" data-action="save" data-post="post-boring">Save</vf-button>
+            <vf-button size="small" data-action="share" data-post="post-boring">Share</vf-button>
+            <span class="post__saved" data-saved-for="post-boring" hidden>Saved</span>
+          </footer>
+        </article>
+
+        <vf-separator class="post-rule"></vf-separator>
+
+        <article class="post" id="post-bitmap" data-topic="design" data-date="2026-03-27" data-minutes="4">
+          <h2 class="post__title">Bitmap fonts are having a moment</h2>
+          <p class="post__meta">27 March 2026 · Design · 4 min read</p>
+          <p>
+            A bitmap face has no opinion about sub-pixel positioning because it
+            cannot have one. Every stem is on the grid or it is wrong. That
+            rigidity used to be a limitation you worked around; on a high-density
+            display it reads as confidence, which is a strange thing for a
+            technical constraint to become.
+          </p>
+          <p>
+            The catch is that they only work at their design size and integer
+            multiples of it. Set a 16-pixel face at 21 pixels and you get mush.
+            Any interface built on one inherits that rule, which means the
+            interface has to know what its own scale factor is — a question most
+            design systems never have to ask.
+          </p>
+          <footer class="post__footer">
+            <vf-button size="small" data-action="save" data-post="post-bitmap">Save</vf-button>
+            <vf-button size="small" data-action="share" data-post="post-bitmap">Share</vf-button>
+            <span class="post__saved" data-saved-for="post-bitmap" hidden>Saved</span>
+          </footer>
+        </article>
+
+        <vf-separator class="post-rule"></vf-separator>
+
+        <article class="post" id="post-manual" data-topic="craft" data-date="2026-02-11" data-minutes="6" data-extra>
+          <h2 class="post__title">Reading the manual, again</h2>
+          <p class="post__meta">11 February 2026 · Craft · 6 min read</p>
+          <p>
+            I reread the <em>Human Interface Guidelines</em> most years. Not for
+            the specifics — half of them describe hardware nobody has owned in
+            three decades — but for the tone. It is a document written by people
+            who believed that being consistent was a kindness to the user rather
+            than a constraint on the designer.
+          </p>
+          <p>
+            The section on feedback still holds up completely. If the machine is
+            doing something, say so. If it will take a while, say how long. If
+            the user did something that cannot be undone, make them confirm it,
+            and make the confirmation specific enough that reading it is
+            actually useful.
+          </p>
+          <footer class="post__footer">
+            <vf-button size="small" data-action="save" data-post="post-manual">Save</vf-button>
+            <vf-button size="small" data-action="share" data-post="post-manual">Share</vf-button>
+            <span class="post__saved" data-saved-for="post-manual" hidden>Saved</span>
+          </footer>
+        </article>
+
+        <vf-separator class="post-rule"></vf-separator>
+
+        <article class="post" id="post-undo" data-topic="design" data-date="2025-11-30" data-minutes="3" data-extra>
+          <h2 class="post__title">Undo is a feature, not a safety net</h2>
+          <p class="post__meta">30 November 2025 · Design · 3 min read</p>
+          <p>
+            Treating undo as damage control gets you one level of it, bolted on
+            late, that covers the operations someone remembered to wire up.
+            Treating it as a feature gets you a model of what a change even
+            <em>is</em> in your application — which turns out to be the same
+            model you need for collaboration, for audit logs, and for explaining
+            the app to a new user.
+          </p>
+          <footer class="post__footer">
+            <vf-button size="small" data-action="save" data-post="post-undo">Save</vf-button>
+            <vf-button size="small" data-action="share" data-post="post-undo">Share</vf-button>
+            <span class="post__saved" data-saved-for="post-undo" hidden>Saved</span>
+          </footer>
+        </article>
+        </div>
+
+        <div class="posts__more">
+          <vf-button id="load-more">Load older posts</vf-button>
+        </div>
+
+        <!-- A real <form>: vf-text-field, vf-text-area, vf-checkbox and
+             vf-select are form-associated, so FormData picks them up by name
+             with no page glue. -->
+        <form class="comments" id="comment-form" novalidate>
+          <vf-fieldset legend="Leave a note">
+            <div class="field">
+              <label class="field__label" for="note-name">Name</label>
+              <vf-text-field id="note-name" name="name" label="Name"></vf-text-field>
+            </div>
+            <div class="field">
+              <label class="field__label" for="note-email">Email</label>
+              <vf-text-field id="note-email" name="email" type="email" label="Email"></vf-text-field>
+            </div>
+            <div class="field">
+              <label class="field__label" for="note-body">Note</label>
+              <vf-text-area id="note-body" name="note" rows="4" label="Note"></vf-text-area>
+            </div>
+            <vf-checkbox class="field__check" name="notify" value="yes">
+              Email me when someone replies
+            </vf-checkbox>
+            <div class="comments__actions">
+              <vf-button type="reset">Clear</vf-button>
+              <vf-button type="submit" variant="default">Post note</vf-button>
+            </div>
+          </vf-fieldset>
+        </form>
+
+        <ul class="notes" id="notes"></ul>
+      </main>
+
+      <!-- ================================================================
+           Sidebar. --vf-surface is set on .sidebar in blog.css: vf-fieldset
+           paints its legend patch with that token (defaulting to white) to
+           punch through the group border, so on a tinted background it has to
+           be told what the background is.
+           ================================================================ -->
+      <aside class="sidebar">
+        <section class="sidebar__block">
+          <vf-fieldset legend="Topics">
+            <vf-checkbox class="filter" value="craft">Craft</vf-checkbox>
+            <vf-checkbox class="filter" value="engineering">Engineering</vf-checkbox>
+            <vf-checkbox class="filter" value="design">Design</vf-checkbox>
+          </vf-fieldset>
+        </section>
+
+        <section class="sidebar__block">
+          <vf-fieldset legend="Sort by">
+            <vf-radio-group id="sort" value="newest" label="Sort posts by">
+              <vf-radio value="newest">Newest first</vf-radio>
+              <vf-radio value="oldest">Oldest first</vf-radio>
+              <vf-radio value="shortest">Shortest read</vf-radio>
+            </vf-radio-group>
+          </vf-fieldset>
+        </section>
+
+        <section class="sidebar__block">
+          <vf-fieldset legend="Jump to">
+            <vf-list id="archive" label="Jump to a post">
+              <vf-list-item value="post-scope">What 512K taught me</vf-list-item>
+              <vf-list-item value="post-boring">The boring stack</vf-list-item>
+              <vf-list-item value="post-bitmap">Bitmap fonts</vf-list-item>
+              <vf-list-item value="post-manual">Reading the manual</vf-list-item>
+              <vf-list-item value="post-undo">Undo is a feature</vf-list-item>
+            </vf-list>
+          </vf-fieldset>
+        </section>
+
+        <section class="sidebar__block">
+          <vf-fieldset legend="Reading">
+            <p class="sidebar__row">
+              <span class="sidebar__caption">Text size</span>
+              <span class="sidebar__value" id="text-size-readout">17px</span>
+            </p>
+            <vf-slider
+              id="text-size"
+              min="15"
+              max="22"
+              step="1"
+              value="17"
+              label="Article text size"
+            ></vf-slider>
+
+            <p class="sidebar__row">
+              <span class="sidebar__caption">Progress</span>
+              <span class="sidebar__value" id="progress-readout">0%</span>
+            </p>
+            <vf-progress-bar id="progress" value="0" label="Reading progress"></vf-progress-bar>
+          </vf-fieldset>
+        </section>
+
+        <section class="sidebar__block">
+          <!-- vf-button-group sizes every button to the widest — the classic
+               shared width — which is exactly what a stacked sidebar wants. -->
+          <vf-button-group vertical class="sidebar__buttons">
+            <vf-button id="random">Random post</vf-button>
+            <vf-button id="top-of-page">Back to top</vf-button>
+          </vf-button-group>
+        </section>
+      </aside>
+    </div>
+
+    <footer class="site-footer">
+      <p>
+        <em>Low Memory</em> is a fictional blog written to exercise
+        <a href="/">Vintage Frames</a>. The prose is filler; the controls are
+        real.
+      </p>
+    </footer>
+
+    <!-- ==================================================================
+         Modals. Host is display:contents and the real box goes to the top
+         layer, so DOM placement here is irrelevant.
+         ================================================================== -->
+    <vf-dialog id="dlg-subscribe" heading="Subscribe">
+      <p class="dialog__copy">
+        One email per post. No tracking pixels, no “we've updated our privacy
+        policy”.
+      </p>
+      <div class="field">
+        <label class="field__label" for="sub-email">Email</label>
+        <vf-text-field id="sub-email" name="email" type="email" label="Email address"></vf-text-field>
+      </div>
+      <vf-button slot="buttons" id="sub-cancel">Cancel</vf-button>
+      <vf-button slot="buttons" id="sub-confirm" variant="default">Subscribe</vf-button>
+    </vf-dialog>
+
+    <vf-dialog id="dlg-about" heading="About This Blog">
+      <p class="dialog__copy">
+        Notes on small software, written since 2024. Built with
+        <strong>Vintage Frames</strong> — Lit web components in the style of
+        classic Mac OS System 7.
+      </p>
+      <p class="dialog__copy" id="about-scale"></p>
+      <vf-button slot="buttons" id="about-ok" variant="default">OK</vf-button>
+    </vf-dialog>
+
+    <vf-alert id="alert-note" variant="caution">
+      <span id="alert-message">A note needs some text before you can post it.</span>
+      <vf-button slot="buttons" id="alert-ok" variant="default">OK</vf-button>
+    </vf-alert>
+  </body>
+</html>

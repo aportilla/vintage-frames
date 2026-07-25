@@ -8,9 +8,46 @@ Chicago-style bold type.
 
 ```sh
 npm install
-npm run dev      # demo/showcase at http://localhost:5173
+npm run dev      # dev server on http://localhost:5173
 npm run build    # library build to dist/
 npm run typecheck
+```
+
+`npm run dev` serves two demo pages:
+
+| Page | What it is |
+| --- | --- |
+| [`/`](http://localhost:5173/) | **The showcase** — a full `vf-desktop` with menu bar, movable windows, dialogs, alerts and every control ([`index.html`](./index.html) + [`demo/`](./demo)) |
+| [`/blog.html`](http://localhost:5173/blog.html) | **The integration example** — an ordinary blog page (system-font copy, normal document flow, no `vintage.css`) using the controls in its header, sidebar and comment form ([`blog.html`](./blog.html) + [`demo/blog.*`](./demo)) |
+
+The second one is the more useful reference if you're dropping these components
+into an existing site. Everything on it is in its **default state** — the page
+sets no `--vf-scale` at all, so each component self-scales to true ~72dpi size
+the way a lone `<vf-button>` on a blank page would. `npm run shot:blog`
+captures it at 1× / 2× / 3× so you can see what that default actually costs:
+
+| Display | self-chosen `--vf-scale` | Subscribe button | body copy |
+| --- | --- | --- | --- |
+| 1× | 3 | **60px** tall | 17px |
+| 2× retina | 1.5 | 30px tall | 17px |
+| 3× | 1 | 20px tall | 17px |
+
+Physically identical on all three, but the *relationship* to the page's own
+type is not — the page's 17px never moves. That is the main thing a host page
+has to decide about (see [Display scaling](#display-scaling--true-classic-size-crisp-on-any-screen)).
+
+The page also shows where a normal page must meet the kit halfway — the
+[device-pixel grid rules](#staying-on-the-device-pixel-grid--the-layout-contract),
+setting `--vf-surface` behind a `vf-fieldset` legend on a tinted background,
+letting an `auto` grid column size a sidebar rather than fixing it in CSS px,
+and styling `vf-menu-bar::part(bar)` to align a full-bleed nav with a centered
+content column. Each is marked `vf hook` in [`demo/blog.css`](./demo/blog.css).
+
+```sh
+npm run dev
+npm run verify:blog   # the page's interactions, outside a vf-desktop
+npm run verify:grid   # every vf-* host against the device-pixel grid
+npm run shot:blog     # shots/blog-dpr{1,2,3}.png
 ```
 
 ## Usage in your project
@@ -91,9 +128,26 @@ Override it with the inherited `--vf-scale` custom property — set it on `:root
 a subtree, or a single element:
 
 ```css
-:root { --vf-scale: 1; }     /* pin to the fixed authored size (no scaling) */
-.dense { --vf-scale: 1.25; } /* …or any factor */
+:root { --vf-scale: 1; }  /* pin to the fixed authored size (no scaling) */
+.dense { --vf-scale: 2; } /* …or any factor that keeps scale × dpr whole */
 ```
+
+**Decide early whether an embedded page wants this default.** Reproducing true
+72dpi size means the CSS size changes with the display: the same push button is
+60px tall on a 1× monitor and 20px on a 3× one, while the page's own 17px copy
+is 17px on both. For a full-screen faux desktop that is exactly right — the
+whole surface is the emulated machine and there is no competing typography. For
+controls sitting next to prose it means the chrome-to-copy relationship is set
+by whatever display the reader happens to have, and on a 1× monitor the chrome
+dominates. [`blog.html`](./blog.html) is left on the default so you can judge
+that for yourself; `npm run shot:blog` renders it at all three densities.
+
+Pinning trades physical fidelity for a fixed relationship to the page.
+`--vf-scale: 1` renders a 20px button with a 16px label, which sits naturally
+beside 16–17px body text at any density. Declare it in a stylesheet the page
+loads **before** the components upgrade — a value in scope always beats the
+per-component default, but a component that has already claimed its own scale
+keeps it — and keep it a whole number (see the grid contract below).
 
 Every metric multiplies by `--vf-scale` in `calc()`, so borders, type, glyphs,
 the desktop dither and spacing all scale together and stay 1-bit crisp.
@@ -107,6 +161,78 @@ import { applyScale } from 'vintage-frames'
 
 applyScale() // → returns a cleanup function that stops watching
 ```
+
+## Staying on the device-pixel grid — the layout contract
+
+This is the one thing a host page has to get right, and the components cannot
+do it for you.
+
+A component is built entirely from whole system pixels, so every edge inside it
+sits on the grid — but only *relative to its own origin*. Land that origin, or
+its size, on a fractional device pixel and the whole 1-bit interior rasterizes
+wrong: pixel-stepped corners staircase asymmetrically, hairline borders and
+bitmap glyph stems smear across two device rows and go gray. It is the usual
+cause of an integration that looks almost right but muddy.
+
+Three rules. They are about CSS only — there is nothing to call.
+
+**1. Keep `--vf-scale × devicePixelRatio` a whole number.** One system pixel
+occupies exactly that many device pixels, and it has to be countable. This is
+why the default is `3 / dpr` — the product is always 3. A hand-picked scale is
+your responsibility:
+
+| `--vf-scale` | 1× display | 2× retina | 3× hi-dpi |
+| --- | --- | --- | --- |
+| `1`, `2`, `3` … | ✓ | ✓ | ✓ |
+| `1.5` | ✗ 1.5 | ✓ 3 | ✗ 4.5 |
+| `1.25` | ✗ 1.25 | ✗ 2.5 | ✗ 3.75 |
+
+Whole numbers are safe everywhere. Fractions are safe only where they happen to
+divide into the density, so unless you are pinning a known display, use an
+integer. Break this one and no amount of careful layout helps — the component's
+own metrics are already fractional.
+
+**2. State every `line-height` in whole pixels, and keep `padding`, `margin` and
+`gap` on integers.** Line boxes are overwhelmingly the biggest offender, because
+a ratio resolves to whatever it resolves to: `1.65 × 17px` is `28.05px`, and
+every line of prose nudges everything after it further off the grid. Auditing
+the blog example before this rule was applied, **46 of 46 components had a
+fractional origin and every one traced back to a ratio line-height** — while all
+46 had a perfect size. Layout was the only fault, and whole-pixel line boxes
+alone fixed 45 of them.
+
+```css
+/* ✗ */ p { font-size: 17px; line-height: 1.65; }  /* → 28.05px */
+/* ✓ */ p { font-size: 17px; line-height: 28px; }
+```
+
+**3. Position a box that contains components from its start edge — or give it a
+whole-pixel size.** Normal flow accumulates whole offsets by itself. Anything
+right-aligned, centered, or sharing `space-between` free space computes its
+origin as `edge − width`, so a width derived from a text run lands it off the
+grid. That was the 46th component: two text-sized `<span>`s made their flex row
+`568.484px` wide, and the `vf-select` between them inherited the fraction.
+
+```css
+/* ✗ */ .toolbar__label { /* width from its text */ }
+/* ✓ */ .toolbar__label { width: 84px; }
+```
+
+The same trap catches any label whose glyphs come from a fallback face — the
+showcase's Apple menu (`U+F8FF`, which the bitmap face doesn't carry) measured
+`32.641` system px and pushed all five menu titles off-grid until it was given a
+whole width.
+
+### Checking a page
+
+```sh
+npm run dev
+npm run verify:grid   # every vf-* host, at dpr 1 / 2 / 3
+```
+
+It reports each fault as `ORIGIN` (rule 2 or 3) or `SIZE` (rule 1), so the
+output points at which rule was broken. Point it at your own pages with
+`VF_ORIGIN` and `VF_GRID_PAGES`.
 
 ## Fonts
 

@@ -40,6 +40,7 @@
     "shot:buttons": "npx playwright screenshot --wait-for-timeout=2000 http://localhost:5173/pixel-test.html shots/buttons.png",
     "shot:verify": "python3 scripts/verify-button-screenshot.py shots/buttons.png",
     "shot:menus": "npx playwright screenshot --wait-for-timeout=2000 http://localhost:5173/menu-test.html shots/menus.png",
+    "shot:blog": "node scripts/shot-blog.mjs",
     "measure:menus": "python3 scripts/measure-menu-render.py shots/menus.png",
     "probe:menus": "node scripts/probe-menu-scale.mjs",
     "verify:desktop": "node scripts/verify-desktop-upgrade.mjs",
@@ -51,7 +52,9 @@
     "verify:scale": "node scripts/verify-scale.mjs",
     "verify:chrome": "node scripts/verify-chrome.mjs",
     "verify:toggle": "node scripts/verify-toggle.mjs",
-    "verify:updates": "node scripts/verify-updates.mjs"
+    "verify:updates": "node scripts/verify-updates.mjs",
+    "verify:grid": "node scripts/verify-grid.mjs",
+    "verify:blog": "node scripts/verify-blog.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"

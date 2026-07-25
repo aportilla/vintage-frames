@@ -33,6 +33,7 @@
    * --vf-progress-fill: #000000;
    * --vf-progress-track: #ffffff;
    * --vf-scrollbar-thumb: #ffffff;
+   * --vf-scrollbar-track: #c0c0c0;   (Firefox scrollbar-color fallback only)
    * --vf-highlight: #000000;
    * --vf-highlight-text: #ffffff;
    */

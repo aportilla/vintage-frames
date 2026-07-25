@@ -394,11 +394,19 @@ export const vfScrollbars = css`
     display: none;
   }
 
-  /* Firefox (no ::-webkit-scrollbar): approximate with scrollbar-color. */
+  /* Firefox (no ::-webkit-scrollbar): approximate with scrollbar-color, which
+     takes two flat colors — no dither tile, no thumb border. The track default
+     is the dither's own average tone: the tile is 2 black cells in 8, so 25%
+     black over white ≈ #c0c0c0 (the gray already in the palette as
+     --vf-disabled). That reads as the trough does in WebKit while keeping the
+     white thumb legible against it — a white track would render the white thumb
+     invisible, and the previous bare #808080 was both twice as dark as the
+     dither and the one un-tokenized color literal in this file. */
   @supports not selector(::-webkit-scrollbar) {
     .vf-scroll {
       scrollbar-width: auto;
-      scrollbar-color: var(--vf-scrollbar-thumb, #ffffff) #808080;
+      scrollbar-color: var(--vf-scrollbar-thumb, #ffffff)
+        var(--vf-scrollbar-track, #c0c0c0);
     }
   }
 `

@@ -114,6 +114,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
 | `--vf-progress-track` | `#ffffff` | progress track (white) |
 | `--vf-scrollbar-thumb` | `#ffffff` | scrollbar thumb/elevator (white) |
+| `--vf-scrollbar-track` | `#c0c0c0` | scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average |
 | `--vf-highlight` | `#000000` | selection background |
 | `--vf-highlight-text` | `#ffffff` | selection foreground |
 
@@ -546,16 +547,26 @@ The classic popup menu control ("Macintosh HD ▼").
 
 #### `vf-menu-item` (`VfMenuItem`, vf-menu-item.ts)
 - **Attributes/props:** `disabled`, `checked` (shows ✓ in left gutter),
+  `checkable` (declares a toggle up front — see Behavior),
   `shortcut: string` (e.g. `"⌘H"`, right-aligned), `value?: string` (defaults
   to text content).
 - **Visual:** height 22px, `padding: 0 12px 0 22px` (left gutter for ✓),
   shortcut right-aligned with 24px min gap, `color: var(--vf-disabled)` when
-  disabled. Hover (not disabled): full-width inversion.
+  disabled. Hover (not disabled): full-width inversion. A disabled row dims its
+  ✓ along with the label — a **documented deviation** from the §1 "dim the label,
+  chrome glyphs stay black" rule, because authentic System 7 greyed the whole
+  disabled row.
 - **Behavior:** `role="menuitem"` — or `role="menuitemcheckbox"` with
-  `aria-checked` once the item is (or has been) `checked`. On click: classic
-  **blink** (invert toggles 3 times over ~250ms via timer; skipped under
+  `aria-checked` when the item is *checkable*: either `checkable` is set, or the
+  item has ever been `checked`. Set `checkable` on a toggle that starts **off**,
+  which would otherwise announce as a plain command until its first flip (a
+  boolean `checked` attribute can't express "checkable but off"). The role is
+  re-derived on every connect, so re-parenting a checkable item keeps it; an
+  author-supplied `role` is left alone. On click: classic **blink** (invert
+  toggles 3 times over ~250ms via timer; skipped under
   `prefers-reduced-motion`, selecting at once), then dispatch `vf-menu-select`
-  detail `{ value, item }` and signal ancestors to close the menu.
+  detail `{ value, item }` and signal ancestors to close the menu. Disabling an
+  item mid-blink cancels it and drops the pending `vf-menu-select`.
 - **Slots:** default (label). **Parts:** `item`, `check`, `label`, `shortcut`.
 - **Events:** `vf-menu-select` — menu-specific by design. A plain `vf-select`
   would collide with the `<vf-select>` popup on any delegated ancestor listener,
@@ -577,8 +588,11 @@ Classic list box.
   rail (the "always-a-rail" behavior — see vf-scroll-area): an empty white
   channel until the rows overflow.
 - **Behavior:** `role="listbox"` (+`aria-multiselectable`, + `aria-label` from
-  `label`), items `role="option"`. Click selects (Shift/Cmd extend when
-  `multiple`). Roving tabindex, Arrow keys move selection, Space toggles in
+  `label`), items `role="option"`. A disabled list pushes `aria-disabled` down
+  onto every row (as `vf-radio-group` does), so AT is never shown enabled-looking
+  options inside a disabled listbox; the flag is tracked separately from each
+  row's own `disabled`, so re-enabling the list leaves individually disabled rows
+  disabled. Click selects (Shift/Cmd extend when `multiple`). Roving tabindex, Arrow keys move selection, Space toggles in
   multiple mode. Printable keys drive classic Finder **first-letter type-ahead**:
   keystrokes accumulate into a prefix matched against each row's text, jumping to
   (and selecting) the next match, wrapping and skipping disabled rows. The prefix
@@ -607,6 +621,11 @@ A container whose scrollbars look like System 7.
     column phase-shifted by a row); an interior rail (`border-left`/`border-top`)
     divides the content from the scrollbar channel;
   - thumb (elevator): `var(--vf-scrollbar-thumb, #ffffff)` bg (white), `1px solid black`;
+  - **Firefox fallback:** `scrollbar-color` takes two flat colors — no dither
+    tile, no thumb border — so the trough falls back to
+    `var(--vf-scrollbar-track, #c0c0c0)`, the dither's own average tone (2 black
+    cells in 8 = 25% black over white). A white trough would render the white
+    thumb invisible;
   - arrow buttons: 16×16 white boxes, 1px black border, the authentic System 7
     scroll-arrow glyph (triangle head + rectangular stem, from the sprite sheet)
     via inline SVG data-URI backgrounds (`::-webkit-scrollbar-button` with

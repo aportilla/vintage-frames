@@ -135,7 +135,7 @@ export class VfList extends LitElement {
     if (changed.has('disabled')) {
       if (this.disabled) this.setAttribute('aria-disabled', 'true')
       else this.removeAttribute('aria-disabled')
-      this.#syncTabIndexes()
+      this.#syncItems()
     }
     // Only clear the attribute when a non-empty label is emptied — on the first
     // update `changed` carries the class-field default (old value `undefined`),
@@ -199,14 +199,21 @@ export class VfList extends LitElement {
     const nextValue = selected[0] ?? ''
     if (this.value !== nextValue) this.value = nextValue
     if (!sameValues(this.values, selected)) this.values = selected
-    this.#syncTabIndexes()
+    this.#syncItems()
     if (notify && !sameValues(before, selected)) {
       emit(this, 'vf-change', { value: this.value, values: [...selected] })
     }
   }
 
-  /** Roving tabindex: the active (or first selected/enabled) item gets 0. */
-  #syncTabIndexes(): void {
+  /**
+   * Pushes list state down to the rows: the roving tabindex (the active — or
+   * first selected/enabled — row gets 0) and the list-level disabled flag, so a
+   * disabled listbox doesn't present enabled-looking options to a screen reader.
+   * `listDisabled` stays separate from each row's own `disabled`, so
+   * re-enabling the list doesn't un-disable individually disabled rows.
+   * Mirrors `vf-radio-group.syncRadios()`.
+   */
+  #syncItems(): void {
     const items = this._items
     if (!items) return
     let active: VfListItem | undefined
@@ -217,6 +224,7 @@ export class VfList extends LitElement {
         items.find((i) => !i.disabled)
     }
     for (const item of items) {
+      item.listDisabled = this.disabled
       item.tabIndex = item === active && !item.disabled ? 0 : -1
     }
   }
@@ -293,7 +301,7 @@ export class VfList extends LitElement {
         } else if (this.multiple && (event.metaKey || event.ctrlKey)) {
           // Move the cursor without touching the selection (Space toggles).
           this.#activeIndex = this.#step(current, dir)
-          this.#syncTabIndexes()
+          this.#syncItems()
           this.#focusTo(this.#activeIndex)
         } else {
           const anySelected = items.some((i) => i.selected)
@@ -420,7 +428,16 @@ export class VfList extends LitElement {
     this.#focusTo(index)
   }
 
-  /** Focuses and scrolls to the item at `index` without selecting it. */
+  /**
+   * Focuses and scrolls to the item at `index` without selecting it.
+   *
+   * `block: 'nearest'` is the conventional minimal-scroll listbox pattern and is
+   * kept deliberately, with one known consequence: scrollIntoView walks the
+   * whole scrollable-ancestor chain, so a list sitting near a viewport edge can
+   * nudge the page as well as its own `.list` viewport. Reviewed and accepted —
+   * replacing it with hand-computed `scrollTop` math against the internal
+   * viewport would trade a well-understood primitive for bespoke geometry.
+   */
   #focusTo(index: number): void {
     const item = this._items[index]
     if (!item || item.disabled) return

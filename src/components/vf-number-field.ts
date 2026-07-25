@@ -5,6 +5,7 @@ import { live } from 'lit/directives/live.js'
 import { vfBase, vfField } from '../styles/base.js'
 import { STEPPER, STEPPER_DOWN_FILL, STEPPER_UP_FILL } from '../glyphs.js'
 import { VfTextControlBase } from '../text-control.js'
+import { decimalsOf } from '../number.js'
 
 /**
  * `<vf-number-field>` — a System 7 numeric entry field paired with the classic
@@ -125,12 +126,6 @@ export class VfNumberField extends VfTextControlBase {
     return parseFloat(this.value)
   }
 
-  #decimals(): number {
-    const s = String(this.step)
-    const dot = s.indexOf('.')
-    return dot < 0 ? 0 : s.length - dot - 1
-  }
-
   #clamp(n: number): number {
     if (this.min != null && n < this.min) return this.min
     if (this.max != null && n > this.max) return this.max
@@ -142,7 +137,7 @@ export class VfNumberField extends VfTextControlBase {
    * (or a keyboard step already at min/max) doesn't fire a redundant
    * `vf-change` on every 60ms tick. */
   #commit(n: number): void {
-    const next = String(Number(this.#clamp(n).toFixed(this.#decimals())))
+    const next = String(Number(this.#clamp(n).toFixed(decimalsOf(this.step))))
     if (next === this.value) return
     this.value = next
     this.#emit('vf-change')
@@ -242,7 +237,7 @@ export class VfNumberField extends VfTextControlBase {
     // Normalize (clamp + round) on commit when numeric; otherwise keep as typed.
     this.value = Number.isNaN(parsed)
       ? raw
-      : String(Number(this.#clamp(parsed).toFixed(this.#decimals())))
+      : String(Number(this.#clamp(parsed).toFixed(decimalsOf(this.step))))
     this.#emit('vf-change')
   }
 

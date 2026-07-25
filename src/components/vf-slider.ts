@@ -5,6 +5,7 @@ import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
 import { VfFormControl } from '../form-control.js'
 import { emit } from '../events.js'
+import { decimalsOf } from '../number.js'
 
 /** Native pixel size of the {@link SLIDER_THUMB} sprite. */
 const THUMB_W = 11
@@ -256,12 +257,6 @@ export class VfSlider extends VfFormControl {
     return this.step > 0 ? this.step : 1
   }
 
-  #decimals(): number {
-    const s = String(this.#step)
-    const dot = s.indexOf('.')
-    return dot < 0 ? 0 : s.length - dot - 1
-  }
-
   #clamp(n: number): number {
     return Math.min(Math.max(n, this.min), this.max)
   }
@@ -271,12 +266,19 @@ export class VfSlider extends VfFormControl {
     const step = this.#step
     const steps = Math.round((n - this.min) / step)
     const snapped = this.#clamp(this.min + steps * step)
-    return Number(snapped.toFixed(this.#decimals()))
+    return Number(snapped.toFixed(decimalsOf(step)))
   }
 
   /** `value` clamped to `[min, max]` for display/ARIA (unsnapped). */
   get #clampedValue(): number {
-    return this.#clamp(this.value)
+    // A non-finite `value` (NaN/±Infinity written by a consumer) would survive
+    // #clamp and reach the DOM as `left: NaNpx` — silently rejected, mislaying
+    // the thumb — and as ariaValueNow="NaN". Fall back to `min`, matching the
+    // number field's guarded parse path. Every geometry/ARIA read funnels
+    // through here, so this one guard covers the fill, the thumb and the
+    // keyboard steps.
+    const value = Number.isFinite(this.value) ? this.value : this.min
+    return this.#clamp(value)
   }
 
   /** Fraction 0–1 of the current value across the range. */

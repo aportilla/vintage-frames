@@ -61,6 +61,16 @@ export class VfListItem extends LitElement {
   /** Disables the row: dimmed text, not selectable or focusable. */
   @property({ type: Boolean, reflect: true }) disabled = false
 
+  /**
+   * True while the containing `<vf-list>` is disabled. Managed by the list —
+   * not intended to be set by consumers. Kept distinct from `disabled` so
+   * re-enabling the list doesn't clear rows that are disabled in their own
+   * right. (The dimming already arrives by inheritance: the list host sets
+   * `color: var(--vf-disabled)` and rows inherit it.) Mirrors
+   * `vf-radio.groupDisabled`.
+   */
+  @property({ attribute: false }) listDisabled = false
+
   override connectedCallback(): void {
     super.connectedCallback()
     this.setAttribute('role', 'option')
@@ -71,9 +81,10 @@ export class VfListItem extends LitElement {
     if (changed.has('selected')) {
       this.setAttribute('aria-selected', this.selected ? 'true' : 'false')
     }
-    if (changed.has('disabled')) {
-      if (this.disabled) this.setAttribute('aria-disabled', 'true')
-      else this.removeAttribute('aria-disabled')
+    if (changed.has('disabled') || changed.has('listDisabled')) {
+      if (this.disabled || this.listDisabled) {
+        this.setAttribute('aria-disabled', 'true')
+      } else this.removeAttribute('aria-disabled')
     }
   }
 

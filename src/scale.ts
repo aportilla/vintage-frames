@@ -146,19 +146,35 @@ export function applyScale(
 export class ScaleController implements ReactiveController {
   private stop?: () => void
 
+  /**
+   * True once THIS controller has written the inline `--vf-scale`, so a
+   * reconnect resumes syncing the value it already owns.
+   *
+   * Ownership cannot be sniffed from the inline property merely being present:
+   * on a *first* connect that value is the consumer's own
+   * (`<vf-window style="--vf-scale:1">`), and treating it as ours overwrote
+   * exactly the override the contract promises always wins.
+   */
+  private owns = false
+
   constructor(private readonly host: ReactiveControllerHost & HTMLElement) {
     host.addController(this)
   }
 
   hostConnected(): void {
     if (typeof window === 'undefined') return
-    const set = (): void =>
+    const set = (): void => {
+      this.owns = true
       this.host.style.setProperty('--vf-scale', String(getScale()))
-    // Own the value when we set it before (reconnect) or nothing is inherited.
-    const ownsInline = this.host.style.getPropertyValue('--vf-scale') !== ''
+    }
+    // A consumer/ancestor value always wins: an inline value we did not write,
+    // or any value inherited from a rule, leaves the controller dormant. Only
+    // take over when the property is genuinely unset — or when it is already
+    // ours from a previous connect.
+    const inline = this.host.style.getPropertyValue('--vf-scale') !== ''
     const inherited =
       getComputedStyle(this.host).getPropertyValue('--vf-scale').trim() !== ''
-    if (ownsInline || !inherited) {
+    if (this.owns || (!inline && !inherited)) {
       set()
       this.stop = onScaleChange(set)
     }

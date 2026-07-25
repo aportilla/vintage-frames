@@ -290,6 +290,14 @@ export class VfWindow extends LitElement {
 
   private _resizeState: ResizeState | null = null
 
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    // Drop any in-flight resize: the grow box goes away with the shadow tree, so
+    // its pointerup/lostpointercapture never arrives. Matches DragController's
+    // and vf-slider's teardown.
+    this._resizeState = null
+  }
+
   private _onCloseClick(): void {
     emit(this, 'vf-close', { reason: 'close' })
   }
@@ -333,6 +341,11 @@ export class VfWindow extends LitElement {
     this.style.height = `${snapToDevicePx(height)}px`
   }
 
+  /**
+   * Ends a grow-box resize on pointerup / pointercancel / lostpointercapture.
+   * Idempotent — releasing the capture below re-enters here, and by then
+   * `_resizeState` is already null.
+   */
   private _onGrowPointerEnd(event: PointerEvent): void {
     const resize = this._resizeState
     if (!resize || event.pointerId !== resize.pointerId) return
@@ -389,6 +402,7 @@ export class VfWindow extends LitElement {
                 @pointermove=${this._onGrowPointerMove}
                 @pointerup=${this._onGrowPointerEnd}
                 @pointercancel=${this._onGrowPointerEnd}
+                @lostpointercapture=${this._onGrowPointerEnd}
               ></div>
             `
           : nothing}

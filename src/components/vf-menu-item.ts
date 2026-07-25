@@ -45,6 +45,11 @@ export class VfMenuItem extends LitElement {
         position: relative;
         white-space: nowrap;
       }
+      /* The inherited color deliberately lets a disabled row dim its ✓ along
+         with the label. Brief §1 says dimming greys the label only while chrome
+         glyphs stay black, but authentic System 7 greyed the whole disabled
+         row, check included — and reference behavior wins over the rule of
+         thumb. Documented deviation, not an oversight. */
       .check {
         position: absolute;
         left: calc(var(--vf-scale, 1) * 6px);
@@ -69,10 +74,13 @@ export class VfMenuItem extends LitElement {
       :host([disabled]) .item {
         color: var(--vf-disabled, #c0c0c0);
       }
-      /* Highlight = full-width inversion (hover, keyboard focus, blink "on"). */
+      /* Highlight = full-width inversion (hover, keyboard focus, blink "on").
+         blink-on is scoped to the enabled host like its siblings: an item
+         disabled mid-blink has its timer cancelled (see updated()), and this
+         keeps it from flashing even for the frame before that lands. */
       :host(:not([disabled])) .item:hover,
       :host(:not([disabled]):focus) .item,
-      .item.blink-on {
+      :host(:not([disabled])) .item.blink-on {
         background: var(--vf-highlight, #000);
         color: var(--vf-highlight-text, #fff);
       }
@@ -94,6 +102,16 @@ export class VfMenuItem extends LitElement {
   /** Shows the classic ✓ checkmark in the left gutter. */
   @property({ type: Boolean, reflect: true }) checked = false
 
+  /**
+   * Declares the item a *checkable* toggle up front, so it carries
+   * `role="menuitemcheckbox"` and `aria-checked="false"` from the first render
+   * rather than only once it has been checked. Set this on a toggle that starts
+   * **off** — otherwise it announces as a plain command until the first flip
+   * (the `checked` attribute can't express "checkable but off": for a boolean
+   * attribute, presence *is* true).
+   */
+  @property({ type: Boolean, reflect: true }) checkable = false
+
   /** Right-aligned keyboard shortcut text, e.g. `"⌘H"`. Display only. */
   @property() shortcut = ''
 
@@ -110,11 +128,20 @@ export class VfMenuItem extends LitElement {
   #blinking = false
 
   /**
-   * Latches true once the item is ever `checked`, marking it a *checkable*
-   * item: it then carries `role="menuitemcheckbox"` with `aria-checked` kept in
-   * sync. Plain command items (never checked) stay `role="menuitem"`.
+   * Latches true once the item has ever been `checked`, so an item that only
+   * ever sets `checked` — without declaring {@link checkable} — is still
+   * promoted to a toggle. Folded together with the public prop by
+   * {@link #isCheckable}.
    */
-  #checkable = false
+  #everChecked = false
+
+  /**
+   * Whether this component owns the host `role`. Decided on the FIRST connect
+   * only: our own `role` write persists on the element, so re-testing
+   * `hasAttribute('role')` on a reconnect would read that write back as
+   * consumer-supplied and freeze the role wherever it happened to be.
+   */
+  #ownsRole: boolean | undefined
 
   constructor() {
     super()
@@ -123,33 +150,54 @@ export class VfMenuItem extends LitElement {
     this.addEventListener('keydown', this.#onKeydown)
   }
 
+  /** True when the item should announce as a toggle, not a plain command. */
+  get #isCheckable(): boolean {
+    return this.checkable || this.#everChecked
+  }
+
   override connectedCallback(): void {
     super.connectedCallback()
-    this.setAttribute('role', 'menuitem')
+    this.#ownsRole ??= !this.hasAttribute('role')
+    // Re-derived (not blindly reset) so re-parenting a checkable item keeps its
+    // menuitemcheckbox role and aria-checked — updated() does not re-fire on a
+    // reconnect, so an unconditional write here stranded it as a plain command.
+    this.#syncRole()
     if (!this.hasAttribute('tabindex')) this.tabIndex = -1
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
-    this.#blinkHandle?.cancel()
-    this.#blinkHandle = undefined
-    this.#blinking = false
-    this._blinkPhase = null
+    this.#cancelBlink()
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     if (changed.has('disabled')) {
-      if (this.disabled) this.setAttribute('aria-disabled', 'true')
-      else this.removeAttribute('aria-disabled')
+      if (this.disabled) {
+        this.setAttribute('aria-disabled', 'true')
+        // Disabled mid-blink: drop the pending activation. #activate only
+        // checked `disabled` on entry, so the timer would otherwise run to
+        // completion and dispatch vf-menu-select for a now-disabled item.
+        this.#cancelBlink()
+      } else this.removeAttribute('aria-disabled')
     }
-    if (changed.has('checked')) {
-      // A checkable item announces its on/off state; promote the role and keep
-      // aria-checked in sync (aria-checked is only valid on the checkbox role).
-      if (this.checked) this.#checkable = true
-      if (this.#checkable) {
-        this.setAttribute('role', 'menuitemcheckbox')
-        this.setAttribute('aria-checked', this.checked ? 'true' : 'false')
-      }
+    if (changed.has('checked') && this.checked) this.#everChecked = true
+    if (changed.has('checked') || changed.has('checkable')) this.#syncRole()
+  }
+
+  /**
+   * Writes the ARIA role and `aria-checked` for the current state. A checkable
+   * item announces its on/off state (`aria-checked` is only valid on the
+   * checkbox role); a plain command stays `role="menuitem"`. Skipped entirely
+   * when the consumer supplied their own role.
+   */
+  #syncRole(): void {
+    if (!this.#ownsRole) return
+    if (this.#isCheckable) {
+      this.setAttribute('role', 'menuitemcheckbox')
+      this.setAttribute('aria-checked', this.checked ? 'true' : 'false')
+    } else {
+      this.setAttribute('role', 'menuitem')
+      this.removeAttribute('aria-checked')
     }
   }
 
@@ -212,6 +260,18 @@ export class VfMenuItem extends LitElement {
       }
     )
     if (this.#blinking) this.#blinkHandle = handle
+  }
+
+  /**
+   * Aborts an in-flight selection blink *without* dispatching — the item is
+   * being disabled or torn down, so the pending `vf-menu-select` is dropped.
+   */
+  #cancelBlink(): void {
+    if (!this.#blinking) return
+    this.#blinkHandle?.cancel()
+    this.#blinkHandle = undefined
+    this.#blinking = false
+    this._blinkPhase = null
   }
 
   #dispatchSelect(): void {

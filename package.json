@@ -42,7 +42,8 @@
     "verify:list-focus": "node scripts/verify-list-focus.mjs",
     "verify:control-heights": "node scripts/verify-control-heights.mjs",
     "verify:list-typeahead": "node scripts/verify-list-typeahead.mjs",
-    "verify:menu-select": "node scripts/verify-menu-select.mjs"
+    "verify:menu-select": "node scripts/verify-menu-select.mjs",
+    "verify:low-sweep": "node scripts/verify-low-sweep.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"

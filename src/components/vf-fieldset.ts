@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 
 /**
  * `<vf-fieldset>` — the classic "Install Location" group box.
@@ -49,6 +50,9 @@ export class VfFieldset extends LitElement {
   ]
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** Legend text shown on the top border. */
   @property() legend = ''

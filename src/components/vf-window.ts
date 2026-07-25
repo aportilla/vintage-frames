@@ -8,6 +8,7 @@ import {
   vfTitleBar,
 } from '../styles/base.js'
 import { ScaleController, snapToDevicePx, sys } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar } from '../chrome.js'
 import { emit } from '../events.js'
@@ -221,6 +222,9 @@ export class VfWindow extends LitElement {
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /**
    * Title-bar drag-to-move (shared with `vf-dialog` via {@link DragController}).

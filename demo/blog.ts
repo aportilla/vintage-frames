@@ -13,7 +13,7 @@
  * `:root { --vf-scale: 1 }` is in scope before the components upgrade. See the
  * comment at the top of blog.html.
  */
-import { effectiveScale } from '../src/index.js'
+import { applyGridSnap, effectiveScale } from '../src/index.js'
 import type {
   VfAlert,
   VfCheckbox,
@@ -48,6 +48,39 @@ function menuDetail(event: Event): MenuSelectDetail {
 const root = document.documentElement
 
 /* ------------------------------------------------------------------ *
+ * Device-pixel grid snapping — on, with the switches to see it work.
+ *
+ * This page follows the layout contract to the letter (every line-height in
+ * whole px, the header label given a fixed width), so with a clean load
+ * applyGridSnap() has nothing to correct — verify:grid scores it 45/45 either
+ * way. To see the thing actually working you have to break the page first:
+ *
+ *   ?offgrid          reintroduce the faults the contract exists to prevent —
+ *                     a ratio leading, and a fractional offset on the whole
+ *                     document. Every component lands off the grid.
+ *   ?offgrid&nosnap   the same page with snapping off. This is the comparison:
+ *                     A/B these two at 100% zoom and the stepped button
+ *                     corners, hairline borders and glyph stems are the tell.
+ *
+ * Zoom the browser to sweep dpr through fractional values while you look; the
+ * corrections re-apply on every density change.
+ * ------------------------------------------------------------------ */
+
+const params = new URLSearchParams(location.search)
+const snapping = !params.has('nosnap')
+
+if (params.has('offgrid')) {
+  const style = document.createElement('style')
+  style.textContent = `
+    :root { --article-leading: 1.65; }   /* 17px × 1.65 = 28.05px */
+    body { padding-left: .4px; padding-top: .4px; }
+  `
+  document.head.append(style)
+}
+
+if (snapping) applyGridSnap()
+
+/* ------------------------------------------------------------------ *
  * Display scale — reported, never set.
  *
  * The page declares no --vf-scale, so every component's ScaleController takes
@@ -65,10 +98,24 @@ function reportScale(): void {
   const dpr = window.devicePixelRatio
   const height = subscribeButton.getBoundingClientRect().height
   if (height === 0) return // not laid out yet; the observer will call again
+  // Count what is actually off the grid right now, the same way verify:grid
+  // does — with snapping on this should read 0 whether or not ?offgrid is set.
+  let off = 0
+  let hosts = 0
+  for (const host of document.querySelectorAll('*')) {
+    if (!host.tagName.toLowerCase().startsWith('vf-')) continue
+    const rect = host.getBoundingClientRect()
+    if (!rect.width && !rect.height) continue
+    hosts++
+    const err = (v: number): number => Math.abs(v * dpr - Math.round(v * dpr))
+    if (Math.max(err(rect.left), err(rect.top)) > 0.05) off++
+  }
   scaleReadout.textContent =
     `Components self-scaled to --vf-scale ${scale} on this ${dpr}× display ` +
     `(${Math.round(scale * dpr)} device px per system px). ` +
-    `The Subscribe button is ${Math.round(height)}px tall next to 17px body copy.`
+    `The Subscribe button is ${Math.round(height)}px tall next to 17px body copy. ` +
+    `Grid snapping ${snapping ? 'ON' : 'OFF'}${params.has('offgrid') ? ', page deliberately off-grid' : ''} — ` +
+    `${off} of ${hosts} components off the device-pixel grid.`
 }
 
 // Observing the button covers both moments that matter: its first layout, and
@@ -76,6 +123,15 @@ function reportScale(): void {
 // re-scale themselves, and the readout follows the size they land on.
 new ResizeObserver(reportScale).observe(subscribeButton)
 reportScale()
+
+// The off-grid count above needs one more nudge than the scale does: a snap
+// correction moves components without resizing anything, so nothing the
+// ResizeObserver watches changes. Re-read after the sweep has landed, and
+// whenever the viewport (and therefore every origin) moves.
+requestAnimationFrame(() => requestAnimationFrame(reportScale))
+window.addEventListener('resize', () =>
+  requestAnimationFrame(() => requestAnimationFrame(reportScale))
+)
 
 /* ------------------------------------------------------------------ *
  * Sticky offsets.

@@ -3,6 +3,7 @@ import type { PropertyValues } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sys, toSys } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { TrackWidthController } from '../track-width.js'
 
 /**
@@ -89,6 +90,9 @@ export class VfProgressBar extends LitElement {
   ]
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** Current progress, from 0 to `max`. Clamped for display and ARIA. */
   @property({ type: Number }) value = 0

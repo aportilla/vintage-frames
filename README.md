@@ -36,6 +36,19 @@ Physically identical on all three, but the *relationship* to the page's own
 type is not — the page's 17px never moves. That is the main thing a host page
 has to decide about (see [Display scaling](#display-scaling--true-classic-size-crisp-on-any-screen)).
 
+It also has `applyGridSnap()` switched on, which you can see working by breaking
+the page on purpose:
+
+| URL | What it shows |
+| --- | --- |
+| [`/blog.html`](http://localhost:5173/blog.html) | The page as authored — it already follows the layout contract, so snapping has nothing to correct |
+| [`/blog.html?offgrid`](http://localhost:5173/blog.html?offgrid) | A ratio leading and a fractional document offset put every component off the grid; snapping recovers all 45 |
+| [`/blog.html?offgrid&nosnap`](http://localhost:5173/blog.html?offgrid&nosnap) | The same broken page with snapping off — the comparison |
+
+The harness line at the top of the page reports how many components are off the
+grid right now, so the three read 0, 0 and 45. A/B the last two at 100% zoom:
+the stepped button corners, hairline borders and glyph stems are the tell.
+
 The page also shows where a normal page must meet the kit halfway — the
 [device-pixel grid rules](#staying-on-the-device-pixel-grid--the-layout-contract),
 setting `--vf-surface` behind a `vf-fieldset` legend on a tinted background,
@@ -47,6 +60,7 @@ content column. Each is marked `vf hook` in [`demo/blog.css`](./demo/blog.css).
 npm run dev
 npm run verify:blog   # the page's interactions, outside a vf-desktop
 npm run verify:grid   # every vf-* host against the device-pixel grid
+npm run verify:snap   # …and that applyGridSnap() recovers a page knocked off it
 npm run shot:blog     # shots/blog-dpr{1,2,3}.png
 ```
 
@@ -164,9 +178,6 @@ applyScale() // → returns a cleanup function that stops watching
 
 ## Staying on the device-pixel grid — the layout contract
 
-This is the one thing a host page has to get right, and the components cannot
-do it for you.
-
 A component is built entirely from whole system pixels, so every edge inside it
 sits on the grid — but only *relative to its own origin*. Land that origin, or
 its size, on a fractional device pixel and the whole 1-bit interior rasterizes
@@ -174,7 +185,30 @@ wrong: pixel-stepped corners staircase asymmetrically, hairline borders and
 bitmap glyph stems smear across two device rows and go gray. It is the usual
 cause of an integration that looks almost right but muddy.
 
-Three rules. They are about CSS only — there is nothing to call.
+**One call takes the origin half of this off your hands.** `applyGridSnap()`
+has every component measure its own position and cancel the fractional
+remainder itself, so rule 2 below stops being your problem:
+
+```ts
+import { applyGridSnap } from 'vintage-frames'
+
+applyGridSnap() // → returns a cleanup function that turns it back off
+```
+
+It is opt-in rather than default-on, because unlike `--vf-scale` it writes
+inline styles on the host elements. Two things follow from that: a component
+that was `position: static` becomes `position: relative` (so it paints above
+non-positioned siblings it overlaps, and becomes the containing block for any
+absolutely positioned descendant), and a host's painted box can sit up to half a
+device pixel outside its layout box. Opt a single element out with `nosnap`.
+
+The corrections re-apply on their own when the viewport resizes or scrolls
+(`position: sticky` contents sit at a different fractional position stuck than
+in flow), a webfont lands, the host resizes or the display density changes.
+Nothing in the platform reports a *pure* position change, though — if you move
+components in a way that resizes nothing, call `requestGridSnap()`.
+
+So: three rules, of which snapping covers the second.
 
 **1. Keep `--vf-scale × devicePixelRatio` a whole number.** One system pixel
 occupies exactly that many device pixels, and it has to be countable. This is
@@ -193,13 +227,18 @@ integer. Break this one and no amount of careful layout helps — the component'
 own metrics are already fractional.
 
 **2. State every `line-height` in whole pixels, and keep `padding`, `margin` and
-`gap` on integers.** Line boxes are overwhelmingly the biggest offender, because
-a ratio resolves to whatever it resolves to: `1.65 × 17px` is `28.05px`, and
-every line of prose nudges everything after it further off the grid. Auditing
-the blog example before this rule was applied, **46 of 46 components had a
-fractional origin and every one traced back to a ratio line-height** — while all
-46 had a perfect size. Layout was the only fault, and whole-pixel line boxes
-alone fixed 45 of them.
+`gap` on integers — or call `applyGridSnap()` and forget it.** Line boxes are
+overwhelmingly the biggest offender, because a ratio resolves to whatever it
+resolves to: `1.65 × 17px` is `28.05px`, and every line of prose nudges
+everything after it further off the grid. Auditing the blog example before this
+rule was applied, **46 of 46 components had a fractional origin and every one
+traced back to a ratio line-height** — while all 46 had a perfect size. Layout
+was the only fault, and whole-pixel line boxes alone fixed 45 of them.
+
+This is the rule snapping exists for: it is the one a page breaks by accident,
+and the correction is entirely inside the component. With `applyGridSnap()` on,
+a page perturbed onto fractional device pixels renders bit-identically to a
+clean one (`npm run verify:snap` asserts exactly that, at dpr 1/2/3).
 
 ```css
 /* ✗ */ p { font-size: 17px; line-height: 1.65; }  /* → 28.05px */
@@ -223,16 +262,28 @@ showcase's Apple menu (`U+F8FF`, which the bitmap face doesn't carry) measured
 `32.641` system px and pushed all five menu titles off-grid until it was given a
 whole width.
 
+Snapping covers the origin half of this rule but not the size half: a
+block-level component stretched by a fractional-width parent still *measures*
+fractionally, and no amount of moving it fixes that. Give the container a
+whole-pixel width, or let an `auto` grid column size it.
+
 ### Checking a page
 
 ```sh
 npm run dev
 npm run verify:grid   # every vf-* host, at dpr 1 / 2 / 3
+npm run verify:snap   # …and that they get back on it by themselves
 ```
 
-It reports each fault as `ORIGIN` (rule 2 or 3) or `SIZE` (rule 1), so the
-output points at which rule was broken. Point it at your own pages with
-`VF_ORIGIN` and `VF_GRID_PAGES`.
+`verify:grid` reports each fault as `ORIGIN` (rule 2 or 3) or `SIZE` (rule 1),
+so the output points at which rule was broken. Point it at your own pages with
+`VF_ORIGIN` and `VF_GRID_PAGES`. `verify:snap` knocks a page off the grid on
+purpose and checks that `applyGridSnap()` recovers it — both the geometry and
+the rendered pixels — through a reflow, a window drag, the `nosnap` opt-out and
+the cleanup function; its pages come from `VF_SNAP_PAGES` / `VF_SNAP_DPR`, and
+both scripts need a page that doesn't call `applyGridSnap()` itself (that's why
+their blog default carries `?nosnap` — a page that self-snaps would hide the
+broken state each script exists to observe).
 
 ## Fonts
 
@@ -262,6 +313,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | Export | What it's for |
 | --- | --- |
 | `applyScale`, `ScaleController`, `onScaleChange` | Opt a subtree (or your own component) into true-size rendering |
+| `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Opt the page into automatic device-pixel-grid snapping; add it to your own component with one line |
 | `sys`, `toSys`, `effectiveScale`, `getScale`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; snap coordinates to the device grid |
 | `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |

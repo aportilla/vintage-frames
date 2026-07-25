@@ -131,6 +131,20 @@ authored sizes), and because it is a plain inherited multiplier, nesting never
 compounds. JS-driven geometry (slider rail/thumb, select panel, window resize)
 converts between system and CSS px with the `sys()` / `toSys()` helpers.
 
+**Grid snapping.** Whole system pixels only put an edge on the device grid
+*relative to the component's own origin*; a page that lands that origin on a
+fractional device pixel smears the whole 1-bit interior. `applyGridSnap()`
+(`src/grid-snap.ts`) opts a page into having every component measure its own
+position and cancel the fractional remainder, so the origin is the component's
+responsibility rather than the page's. The correction is a `left`/`top` offset
+on a relatively positioned host — a *layout*-stage shift, because a
+compositing-stage `transform` leaves the subtree rastered at its old position
+and only removes ~80% of the fringe — or a margin where `left`/`top` are already
+spoken for (`position: absolute`/`fixed`, which is how `vf-window` positions
+itself while dragging, and `sticky`, where they are the stickiness constraint).
+It corrects the origin only: a fractional *size*, and a `--vf-scale ×
+devicePixelRatio` that isn't whole, are still the page's to get right.
+
 ## 4. Shared recipes (in `src/styles/base.ts`)
 
 - `vfBase` — host font, `box-sizing: border-box` everywhere, `user-select: none`

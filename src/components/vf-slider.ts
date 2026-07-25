@@ -4,6 +4,7 @@ import { customElement, property, query, state } from 'lit/decorators.js'
 import { vfBase, vfFocusRing } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { TrackWidthController } from '../track-width.js'
 import { VfFormControl } from '../form-control.js'
 import { emit } from '../events.js'
@@ -166,6 +167,9 @@ export class VfSlider extends VfFormControl {
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** Value at first connect, restored on form reset. */
   private defaultValue: number | null = null

@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { vfBase, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 
 /**
  * `<vf-list-item>` — a row inside a `<vf-list>` list box.
@@ -51,6 +52,9 @@ export class VfListItem extends LitElement {
   ]
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** The value this row contributes to the list's `value`/`values`. */
   @property() value = ''

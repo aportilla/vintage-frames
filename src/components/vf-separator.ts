@@ -3,6 +3,7 @@ import { customElement, property } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 
 /**
  * `<vf-separator>` — a 1px System 7 rule.
@@ -44,6 +45,9 @@ export class VfSeparator extends LitElement {
   ]
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** Render as a vertical rule (1px wide) instead of horizontal. */
   @property({ type: Boolean, reflect: true }) vertical = false

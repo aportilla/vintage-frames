@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, queryAssignedElements } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import type { VfMenu } from './vf-menu.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -40,6 +41,9 @@ export class VfMenuBar extends LitElement {
   ]
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   @queryAssignedElements({ selector: 'vf-menu', flatten: true })
   private _menus!: VfMenu[]

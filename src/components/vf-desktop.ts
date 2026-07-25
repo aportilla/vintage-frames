@@ -2,6 +2,7 @@ import { html, css, LitElement } from 'lit'
 import { customElement, queryAssignedElements } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 
 /**
  * `<vf-desktop>` — the full-bleed classic desktop container.
@@ -65,6 +66,9 @@ export class VfDesktop extends LitElement {
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** Monotonic z-index counter for window stacking. */
   private _zCounter = 0

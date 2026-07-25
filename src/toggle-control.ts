@@ -1,5 +1,6 @@
 import { LitElement, type PropertyValues } from 'lit'
 import { ScaleController } from './scale.js'
+import { GridSnapController } from './grid-snap.js'
 
 type Constructor<T = object> = new (...args: any[]) => T
 type AbstractConstructor<T = object> = abstract new (...args: any[]) => T
@@ -104,6 +105,9 @@ export const VfToggleControl = <T extends Constructor<LitElement>>(Base: T) => {
 
     /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
     private readonly scale = new ScaleController(this)
+
+    /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+    private readonly gridSnap = new GridSnapController(this)
 
     /**
      * Whether the *consumer* authored a `tabindex`, latched on the *first*

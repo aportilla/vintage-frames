@@ -2,6 +2,7 @@ import { css, html } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { vfBase } from '../styles/base.js'
 import { VfFormControl } from '../form-control.js'
 import { emit } from '../events.js'
@@ -58,6 +59,9 @@ export class VfRadioGroup extends VfFormControl {
   @property() label = ''
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** Value at first connect, restored on form reset. */
   private defaultValue: string | null = null

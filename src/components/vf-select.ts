@@ -5,6 +5,7 @@ import { vfBase, vfDisplay, vfFocus, vfPanel, vfScrollbars } from '../styles/bas
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
 import { emit } from '../events.js'
@@ -211,6 +212,9 @@ export class VfSelect extends VfFormControl {
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** Index of the highlighted option while the panel is open. */
   private activeIndex = -1

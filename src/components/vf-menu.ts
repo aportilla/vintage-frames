@@ -7,6 +7,7 @@ import {
 } from 'lit/decorators.js'
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -74,6 +75,9 @@ export class VfMenu extends LitElement {
   ]
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /** The menu title shown in the bar (may contain a glyph, e.g. an apple). */
   @property() label = ''

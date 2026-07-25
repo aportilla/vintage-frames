@@ -7,6 +7,7 @@ import {
 } from 'lit/decorators.js'
 import { vfBase, vfScrollbars } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { ScrollStateController } from '../scroll-state.js'
 import { emit } from '../events.js'
 import type { VfListItem } from './vf-list-item.js'
@@ -67,6 +68,9 @@ export class VfList extends LitElement {
   ]
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   @query('.list') private viewport!: HTMLElement | null
   @query('.list-content') private content!: HTMLElement | null

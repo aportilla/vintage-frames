@@ -29,7 +29,9 @@
 import { chromium } from 'playwright'
 
 const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
-const PAGES = (process.env.VF_GRID_PAGES ?? '/,/blog.html').split(',')
+// ?nosnap: blog.html turns applyGridSnap() on itself, which would quietly
+// paper over exactly the ORIGIN faults this script exists to catch.
+const PAGES = (process.env.VF_GRID_PAGES ?? '/,/blog.html?nosnap').split(',')
 const DENSITIES = (process.env.VF_GRID_DPR ?? '1,2,3').split(',').map(Number)
 
 /** Sub-device-pixel error we treat as noise rather than a fault. */

@@ -1,6 +1,7 @@
 import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { ScaleController } from './scale.js'
+import { GridSnapController } from './grid-snap.js'
 import { VfFormControl } from './form-control.js'
 import { emit } from './events.js'
 
@@ -46,6 +47,9 @@ export class VfTextControlBase extends VfFormControl {
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   protected readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  protected readonly gridSnap = new GridSnapController(this)
 
   /** Value restored by `formResetCallback`; captured on first connect. */
   private defaultValue = ''

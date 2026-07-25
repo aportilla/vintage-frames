@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import { vfBase, vfScrollbars, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { ScrollStateController } from '../scroll-state.js'
 
 /**
@@ -26,6 +27,9 @@ import { ScrollStateController } from '../scroll-state.js'
 @customElement('vf-scroll-area')
 export class VfScrollArea extends LitElement {
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   /**
    * Which scroll rails to reserve as permanent placeholders: `vertical`

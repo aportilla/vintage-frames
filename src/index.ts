@@ -66,6 +66,18 @@ export {
 } from './scale.js'
 
 /**
+ * Automatic device-pixel-grid snapping. `applyGridSnap()` is the one call an
+ * app makes to have every component hold its own origin on whole device pixels
+ * whatever the surrounding layout does — the half of the layout contract the
+ * components can keep for you.
+ */
+export {
+  applyGridSnap,
+  requestGridSnap,
+  GridSnapController,
+} from './grid-snap.js'
+
+/**
  * The 1-bit style recipes. Compose them into a custom element's
  * `static styles` to inherit the kit's type, panel frame, window chrome, focus
  * ring, field well and System 7 scrollbar skin.

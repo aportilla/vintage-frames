@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { RING_INSET } from '../pixel-frame.js'
 
 /**
@@ -85,6 +86,9 @@ export class VfButtonGroup extends LitElement {
   @property({ type: Boolean, reflect: true }) natural = false
 
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   private readonly internals: ElementInternals
 

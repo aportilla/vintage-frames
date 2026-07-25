@@ -2,6 +2,7 @@ import { css, html, unsafeCSS } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { vfBase, vfDisplay, vfFocus } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 import { VfFormControl } from '../form-control.js'
 import {
   BUTTON_FACE,
@@ -195,6 +196,9 @@ export class VfButton extends VfFormControl {
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
 
   override render() {
     return html`

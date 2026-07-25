@@ -140,17 +140,33 @@ converts between system and CSS px with the `sys()` / `toSys()` helpers.
   Position it absolutely inside the title bar, inset `3px 2px` (top/bottom 3px,
   left/right 2px) so exactly six 1px stripes show at the 18px bar height, their
   top and bottom edges aligned with the close box's.
-- `vfPanel` — a `.vf-panel` class for menus/popups:
-  white bg, `border: 1px solid var(--vf-black, #000)`,
+- `vfHardShadowDecls` — the hard 1-bit drop shadow on its own, for composing
+  into a surface that supplies its own border:
   `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
-- **Window frame recipe** (windows/dialogs use inline, not a class) — identical
-  to `vfPanel`: solid white, 1px black border, hard offset shadow, no bevels:
-  ```css
-  background: var(--vf-white, #fff);
-  border: 1px solid var(--vf-black, #000);
-  box-shadow:
-    var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000);
-  ```
+  No blur, no spread — System 7's only depth cue. Every raised surface in the kit
+  composes this one declaration (`vfPanel`, `vfChromeFrame`, and vf-alert, which
+  supplies its own heavier 2px rule).
+- `vfPanel` — a `.vf-panel` class for menus/popups:
+  white bg, `border: 1px solid var(--vf-black, #000)`, `vfHardShadowDecls`.
+- `vfChromeFrame` — a `.vf-frame` class for the framed containers (`vf-window`,
+  `vf-dialog`): the same white face, 1px black border and hard offset shadow as
+  `vfPanel`, no bevels. Skin only — each component supplies its own layout,
+  since a window frame is a full-size flex column while a dialog's is a block the
+  native `<dialog>` shrink-wraps.
+- `vfTitleBar` — the striped title bar shared by `vf-window` and `vf-dialog`:
+  a `.vf-title-bar` row (`height: var(--vf-titlebar-height, 18px)`, 1px bottom
+  rule, flex-centered, `overflow: hidden`) and the `.vf-title` patch inside it
+  (display face, white bg, `padding: 0 8px`, `z-index: 1` over the stripes,
+  `nowrap` + ellipsis). Put a `.vf-stripes` layer in as the bar's first child.
+  - The title's clearance for anything else in the bar is `--vf-title-inset`
+    (default 16px); `vf-window` sets 60px so an ellipsized title can't run under
+    its close/zoom widgets.
+  - `touch-action` is deliberately NOT in the recipe: `vf-dialog`'s bar is always
+    a drag handle, `vf-window`'s only when `[movable]`, and suppressing touch
+    scrolling on a bar that can't be dragged would be a behavior change.
+  - The markup and the four DragController pointer bindings that go with it are
+    `chromeTitleBar()` in `src/chrome.ts` (internal — it bakes in the kit's own
+    `part` names, so it is not part of the public toolkit).
 
 ## 5. Component specifications
 
@@ -185,13 +201,16 @@ The classic document window (see DragThing screenshot).
   `zoomable: boolean` (default false), `movable: boolean` (default false),
   `resizable: boolean` (default false), `flush: boolean` (default false —
   removes body padding).
-- **Visual:** window frame recipe (§4). `display: block`. Sets
+- **Visual:** `vfChromeFrame` + `vfTitleBar` (§4), plus a full-size flex-column
+  layout on the frame. `display: block`. Sets
   `--vf-surface: var(--vf-white, #fff)` on itself.
-  - Title bar: height `var(--vf-titlebar-height, 18px)`, white bg, bottom
-    `1px solid black`, contains `.vf-stripes` layer (only when `active`).
+  - Title bar: from `vfTitleBar` — height `var(--vf-titlebar-height, 18px)`,
+    white bg, bottom `1px solid black`, contains `.vf-stripes` layer (only when
+    `active`). `touch-action: none` only when `[movable]`.
   - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
-    stripes. Inactive: no stripes and widgets hidden, but the title text stays
-    black (System 7 never grayed the window title).
+    stripes, with `--vf-title-inset: 60px` of clearance so it ellipsizes before
+    reaching the widgets. Inactive: no stripes and widgets hidden, but the title
+    text stays black (System 7 never grayed the window title).
   - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of
     clear white above and below it, `1px solid black`, white bg, no bevel,
     surrounded by a 2px white patch interrupting the stripes. `:active`
@@ -206,6 +225,12 @@ The classic document window (see DragThing screenshot).
   - Body: `padding: 12px` (0 if `flush`).
   - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black
     top/left borders, containing two overlapping small square outlines.
+- **A11y:** the close/zoom `aria-label`s are qualified by the title when there is
+  one (`Close ${heading}` / `Zoom ${heading}`, falling back to bare `Close` /
+  `Zoom`) — several windows are open at once by design, so a bare repeated
+  "Close" gives an AT user no way to tell which window a widget belongs to. An
+  inactive window's widgets are `display: none`, so they leave the tab order with
+  the stripes.
 - **Behavior:** close box click → `vf-close` (does NOT remove itself; consumer
   decides). Zoom box click → `vf-zoom`. If `movable`: dragging the title bar
   moves the window — on drag start, ensure `position: absolute` seeded from
@@ -218,7 +243,8 @@ The classic document window (see DragThing screenshot).
 #### `vf-dialog` (`VfDialog`, vf-dialog.ts)
 Movable-modal dialog (see "Format" screenshot): striped title bar, NO window
 widgets, white body.
-- **Attributes/props:** `open: boolean` (reflect), `heading: string`.
+- **Attributes/props:** `open: boolean` (reflect), `heading: string`,
+  `label: string` (accessible name for a dialog with no `heading`).
 - **Implementation:** wraps a native `<dialog>` (for top-layer + focus trap).
   `show()` → `showModal()`; `close()` closes. Keep `open` attr in sync both
   directions. Drag the title bar to move it (shared `DragController` with
@@ -226,11 +252,21 @@ widgets, white body.
   `vf-close` detail `{ reason: 'escape' }`;
   programmatic/close() → `{ reason: 'close' }`. No backdrop dimming:
   `::backdrop { background: transparent; }`.
-- **Visual:** frame recipe (§4); title bar identical to `vf-window` (stripes +
-  centered title, no boxes); body is WHITE (`--vf-surface: #fff`), separated
-  from title bar by 1px black line, `padding: 16px`. An optional `buttons` slot
-  renders a bottom-right `vf-button-group` footer that only takes space when
-  populated (equal-width, faces aligned).
+- **Visual:** `vfChromeFrame` + `vfTitleBar` (§4) — literally the same two
+  recipes `vf-window` uses, so the bar is identical by construction (stripes +
+  centered title, no boxes) rather than by matching copies. It takes the default
+  `--vf-title-inset` (16px, nothing else is in the bar) and sets
+  `touch-action: none` unconditionally, having no immovable state. Body is WHITE
+  (`--vf-surface: #fff`), separated from title bar by 1px black line,
+  `padding: 16px`. An optional `buttons` slot renders a bottom-right
+  `vf-button-group` footer that only takes space when populated (equal-width,
+  faces aligned).
+- **A11y:** named by its own title patch (`aria-labelledby`) when `heading` is
+  set. With no heading there is nothing to point at — `aria-labelledby` would
+  resolve to an empty node and leave the dialog unnamed — so it falls back to
+  `aria-label`, taking `label` if given and otherwise `'Dialog'`. An explicit
+  `label` wins over `heading`. Mirrors how `vf-alert` (which never has a title
+  bar) names itself.
 - **Slots:** default, `buttons`.
 - **Parts:** `frame`, `title-bar`, `title`, `body`, `footer`, `buttons`.
 - **Events:** `vf-close`.

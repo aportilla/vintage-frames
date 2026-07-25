@@ -1,8 +1,9 @@
-import { html, css } from 'lit'
+import { html, css, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { vfBase, vfStripes, vfDisplayDecls } from '../styles/base.js'
+import { vfBase, vfStripes, vfChromeFrame, vfTitleBar } from '../styles/base.js'
 import { snapToDevicePx } from '../scale.js'
 import { DragController } from '../drag.js'
+import { chromeTitleBar } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
@@ -35,41 +36,18 @@ export class VfDialog extends VfModalDialog {
   static override styles = [
     vfBase,
     vfStripes,
+    vfChromeFrame,
+    vfTitleBar,
     modalDialogStyles,
     css`
       :host {
         display: contents;
       }
-      .frame {
-        background: var(--vf-white, #ffffff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
-        box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
-          calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
-          var(--vf-black, #000000);
-      }
-      .title-bar {
-        position: relative;
-        height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 18px));
-        border-bottom: calc(var(--vf-scale, 1) * 1px) solid
-          var(--vf-black, #000000);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        /* Draggable handle (see _drag); keep touch gestures from scrolling. */
+      /* The bar is always a drag handle here (a movable modal has no immovable
+         state, unlike vf-window's [movable]); keep touch gestures from
+         scrolling the page instead of moving the dialog. */
+      .vf-title-bar {
         touch-action: none;
-      }
-      .title {
-        /* Chicago-style title (chrome); the dialog body keeps the body face. */
-        ${vfDisplayDecls}
-        position: relative;
-        z-index: 1;
-        padding: 0 calc(var(--vf-scale, 1) * 8px);
-        max-width: calc(100% - var(--vf-scale, 1) * 16px);
-        background: var(--vf-white, #ffffff);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
       .body {
         --vf-surface: var(--vf-white, #ffffff);
@@ -123,28 +101,37 @@ export class VfDialog extends VfModalDialog {
   /** Title text shown centered in the title bar. */
   @property() heading = ''
 
+  /**
+   * Accessible name for the dialog (`aria-label`), for a dialog with no
+   * `heading` — an untitled title bar has no text to be named by. Ignored when
+   * empty and a `heading` is set (the title patch names the dialog then);
+   * defaults to `'Dialog'` when neither is given. Mirrors vf-alert's `label`.
+   */
+  @property() label = ''
+
   /** Whether the `buttons` slot has assigned content (drives the footer). */
   @state() private _hasButtons = false
 
   protected override render(): unknown {
+    // A titled dialog is named by its own title patch. An untitled one has
+    // nothing to point at — aria-labelledby would resolve to an empty node and
+    // leave the dialog with no accessible name at all — so it names itself with
+    // aria-label instead, the way vf-alert (which never has a title bar) does.
+    const titled = !this.label && this.heading !== ''
     return html`
       <dialog
-        aria-labelledby="title"
+        aria-labelledby=${titled ? 'title' : nothing}
+        aria-label=${titled ? nothing : this.label || 'Dialog'}
         @cancel=${this._onNativeCancel}
         @close=${this._onNativeClose}
       >
-        <div class="frame" part="frame">
-          <header
-            class="title-bar"
-            part="title-bar"
-            @pointerdown=${this._drag.onPointerDown}
-            @pointermove=${this._drag.onPointerMove}
-            @pointerup=${this._drag.onPointerUp}
-            @pointercancel=${this._drag.onPointerUp}
-          >
-            <div class="vf-stripes"></div>
-            <span class="title" part="title" id="title">${this.heading}</span>
-          </header>
+        <div class="vf-frame" part="frame">
+          ${chromeTitleBar(
+            this._drag,
+            html`<span class="vf-title" part="title" id="title"
+              >${this.heading}</span
+            >`
+          )}
           <div class="body" part="body">
             <slot></slot>
             <div class="footer ${this._hasButtons ? '' : 'empty'}" part="footer">

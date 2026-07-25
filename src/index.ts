@@ -67,14 +67,17 @@ export {
 
 /**
  * The 1-bit style recipes. Compose them into a custom element's
- * `static styles` to inherit the kit's type, panel frame, focus ring, field
- * well and System 7 scrollbar skin.
+ * `static styles` to inherit the kit's type, panel frame, window chrome, focus
+ * ring, field well and System 7 scrollbar skin.
  */
 export {
   vfBase,
   vfDisplay,
   vfDisplayDecls,
   vfPanel,
+  vfChromeFrame,
+  vfTitleBar,
+  vfHardShadowDecls,
   vfStripes,
   vfFocus,
   vfFocusRing,

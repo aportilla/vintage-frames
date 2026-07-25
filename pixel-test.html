@@ -66,7 +66,10 @@
       await customElements.whenDefined('vf-window')
       const win = document.getElementById('win')
       await win.updateComplete
-      const bar = win.shadowRoot.querySelector('.title-bar')
+      // By part, not by class: the class is a private detail of vf-window's
+      // shadow tree (it moved to .vf-title-bar when the bar was hoisted into
+      // the shared vfTitleBar recipe), while `part` is the supported surface.
+      const bar = win.shadowRoot.querySelector('[part=title-bar]')
       const rect = bar.getBoundingClientRect()
       const opts = { bubbles: true, composed: true, pointerId: 7, button: 0 }
       const at = (dx, dy) => ({

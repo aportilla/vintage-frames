@@ -1,6 +1,6 @@
 import { html, css, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { vfBase, vfDisplay } from '../styles/base.js'
+import { vfBase, vfDisplay, vfHardShadowDecls } from '../styles/base.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
@@ -64,13 +64,13 @@ export class VfAlert extends VfModalDialog {
       :host {
         display: contents;
       }
+      /* Not vfChromeFrame: the alert's outer rule is 2px, the double-frame's
+         heavier outer stroke. Only the shadow is shared. */
       .frame {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
         border: calc(var(--vf-scale, 1) * 2px) solid var(--vf-black, #000000);
-        box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
-          calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
-          var(--vf-black, #000000);
+        ${vfHardShadowDecls}
       }
       .inner {
         margin: calc(var(--vf-scale, 1) * 2px);

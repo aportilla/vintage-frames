@@ -100,16 +100,102 @@ export const vfStripes = css`
 `
 
 /**
+ * The hard 1-bit drop shadow — a solid black copy of the box offset down-right
+ * with no blur and no spread, System 7's only depth cue. The offset is
+ * tokenized via `--vf-shadow-offset` and scales with `--vf-scale`.
+ *
+ * Compose it into any raised surface. Every raised surface in the kit does:
+ * {@link vfPanel} (menus, popups), {@link vfChromeFrame} (window and dialog
+ * frames) and vf-alert's double-ruled frame, which supplies its own 2px border
+ * but the same shadow. One declaration, so the kit can't grow two shadows.
+ */
+export const vfHardShadowDecls = unsafeCSS(`
+  box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
+    calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
+    var(--vf-black, #000);
+`)
+
+/**
+ * The raised white surface shared by panels and chrome frames: white face, 1px
+ * black border, hard offset shadow. Kept as a private fragment behind the two
+ * public classes below — a menu panel and a window frame are different things
+ * in the art that currently happen to share a skin, so each keeps its own class
+ * name and a future divergence is a one-line edit rather than an unpick.
+ */
+const raisedSurfaceDecls = unsafeCSS(`
+  background: var(--vf-white, #fff);
+  border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+  ${vfHardShadowDecls}
+`)
+
+/**
  * Panel recipe for menus and popups: white face, 1px black border, hard
  * offset shadow.
  */
 export const vfPanel = css`
   .vf-panel {
+    ${raisedSurfaceDecls}
+  }
+`
+
+/**
+ * Chrome-frame recipe for the two framed containers (vf-window, vf-dialog):
+ * the same white face, 1px black border and hard offset shadow as
+ * {@link vfPanel}. Apply `.vf-frame` to the outer frame element.
+ *
+ * Skin only — each component adds its own layout, because they size very
+ * differently: vf-window's frame is a full-size flex column (the body flexes,
+ * the title bar and grow box don't), while vf-dialog's is a plain block that
+ * the native `<dialog>` shrink-wraps.
+ */
+export const vfChromeFrame = css`
+  .vf-frame {
+    ${raisedSurfaceDecls}
+  }
+`
+
+/**
+ * The striped title bar shared by vf-window and vf-dialog: a fixed-height row
+ * with a 1px bottom rule, and a centered white title patch that interrupts the
+ * racing stripes running behind it.
+ *
+ * Apply `.vf-title-bar` to the bar and `.vf-title` to the title element, and
+ * place a `.vf-stripes` layer (see {@link vfStripes}) as the bar's first child.
+ *
+ * The title's clearance for whatever else shares the bar is set per component
+ * with `--vf-title-inset`: vf-dialog takes the 16px default (nothing but the
+ * title is in there), vf-window sets 60px so an ellipsized title can't run
+ * under its close/zoom widgets.
+ *
+ * `touch-action` is deliberately NOT declared here. vf-dialog's bar is always a
+ * drag handle, vf-window's only when `[movable]` — suppressing touch scrolling
+ * on a bar that can't be dragged would be a real behavior change, so each
+ * component keeps that one declaration under its own selector.
+ */
+export const vfTitleBar = css`
+  .vf-title-bar {
+    position: relative;
+    /* Inert unless the frame is a flex column (vf-window); on vf-dialog's plain
+       block frame the shorthand simply doesn't apply. */
+    flex: none;
+    height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 18px));
+    border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .vf-title {
+    /* Chicago-style title (chrome); slotted body copy keeps the body face. */
+    ${vfDisplayDecls}
+    position: relative;
+    z-index: 1;
+    padding: 0 calc(var(--vf-scale, 1) * 8px);
+    max-width: calc(100% - var(--vf-scale, 1) * var(--vf-title-inset, 16px));
     background: var(--vf-white, #fff);
-    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-    box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
-      calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
-      var(--vf-black, #000);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `
 

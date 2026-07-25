@@ -1,8 +1,15 @@
 import { html, css, LitElement, nothing } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import { vfBase, vfStripes, vfFocus, vfDisplayDecls } from '../styles/base.js'
+import {
+  vfBase,
+  vfStripes,
+  vfFocus,
+  vfChromeFrame,
+  vfTitleBar,
+} from '../styles/base.js'
 import { ScaleController, snapToDevicePx, sys } from '../scale.js'
 import { DragController } from '../drag.js'
+import { chromeTitleBar } from '../chrome.js'
 import { emit } from '../events.js'
 
 interface ResizeState {
@@ -40,53 +47,38 @@ export class VfWindow extends LitElement {
     vfBase,
     vfStripes,
     vfFocus,
+    vfChromeFrame,
+    vfTitleBar,
     css`
       :host {
         display: block;
         position: relative;
         --vf-surface: var(--vf-white, #ffffff);
       }
-      .frame {
+      /* Skin from vfChromeFrame; the layout is the window's own — a full-size
+         flex column so the body takes the slack the title bar and grow box
+         don't. */
+      .vf-frame {
         position: relative;
         display: flex;
         flex-direction: column;
         width: 100%;
         height: 100%;
-        background: var(--vf-white, #ffffff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
-        box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))
-          calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px)) 0 0
-          var(--vf-black, #000000);
       }
 
       /* --- Title bar ------------------------------------------------- */
-      .title-bar {
-        position: relative;
-        flex: none;
-        height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 18px));
-        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
+      /* Clearance for the close/zoom widgets either side of the title patch:
+         8px offset + an 11px box + its 2px white patch ring, doubled, rounded
+         up to the classic 30-per-side. Not a theming knob — it's the widgets'
+         own geometry — so it's set on the element, like --vf-focus-offset. */
+      .vf-title {
+        --vf-title-inset: 60px;
       }
-      :host([movable]) .title-bar {
+      :host([movable]) .vf-title-bar {
         touch-action: none;
       }
       :host(:not([active])) .vf-stripes {
         display: none;
-      }
-      .title {
-        /* Chicago-style title (chrome); the window body keeps the body face. */
-        ${vfDisplayDecls}
-        position: relative;
-        z-index: 1;
-        padding: 0 calc(var(--vf-scale, 1) * 8px);
-        max-width: calc(100% - var(--vf-scale, 1) * 60px);
-        background: var(--vf-white, #ffffff);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
       /* Inactive window: stripes and widgets go away, but the title text
          stays black — classic System 7 never grayed the title. */
@@ -356,42 +348,46 @@ export class VfWindow extends LitElement {
     }
   }
 
+  /**
+   * Widget label, qualified by the window title when there is one — several
+   * windows are open at once by design, so a bare "Close" repeated across the
+   * desktop leaves an AT user no way to tell which window a button belongs to.
+   */
+  private _widgetLabel(action: string): string {
+    return this.heading ? `${action} ${this.heading}` : action
+  }
+
   protected override render(): unknown {
     return html`
-      <div class="frame" part="frame">
-        <header
-          class="title-bar"
-          part="title-bar"
-          @pointerdown=${this._drag.onPointerDown}
-          @pointermove=${this._drag.onPointerMove}
-          @pointerup=${this._drag.onPointerUp}
-          @pointercancel=${this._drag.onPointerUp}
-        >
-          <div class="vf-stripes"></div>
-          ${this.closable
-            ? html`
-                <button
-                  type="button"
-                  class="box close vf-focus"
-                  part="close-box"
-                  aria-label="Close"
-                  @click=${this._onCloseClick}
-                ></button>
-              `
-            : nothing}
-          <span class="title" part="title">${this.heading}</span>
-          ${this.zoomable
-            ? html`
-                <button
-                  type="button"
-                  class="box zoom vf-focus"
-                  part="zoom-box"
-                  aria-label="Zoom"
-                  @click=${this._onZoomClick}
-                ></button>
-              `
-            : nothing}
-        </header>
+      <div class="vf-frame" part="frame">
+        ${chromeTitleBar(
+          this._drag,
+          html`
+            ${this.closable
+              ? html`
+                  <button
+                    type="button"
+                    class="box close vf-focus"
+                    part="close-box"
+                    aria-label=${this._widgetLabel('Close')}
+                    @click=${this._onCloseClick}
+                  ></button>
+                `
+              : nothing}
+            <span class="vf-title" part="title">${this.heading}</span>
+            ${this.zoomable
+              ? html`
+                  <button
+                    type="button"
+                    class="box zoom vf-focus"
+                    part="zoom-box"
+                    aria-label=${this._widgetLabel('Zoom')}
+                    @click=${this._onZoomClick}
+                  ></button>
+                `
+              : nothing}
+          `
+        )}
         <div class="body" part="body"><slot></slot></div>
         ${this.resizable
           ? html`

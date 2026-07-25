@@ -28,6 +28,7 @@
    * --vf-control-height: 22px;              // text fields
    * --vf-button-height: 20px;                // vf-button face
    * --vf-popup-height: 18px;                 // vf-select pill (border box)
+   * --vf-menu-row-height: 16px;              // vf-menu-item row pitch
    * --vf-control-height-small: 16px;
    * --vf-select-gutter: 16px;                 // ✓ column: select / option / menu-item
    * --vf-titlebar-height: 18px;

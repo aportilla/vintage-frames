@@ -72,12 +72,29 @@ const MARKUP = `
   <div style="height: 40px"></div>
   <vf-menu id="menu" label="File" open>
     <vf-menu-item id="mi" checked>Alpha</vf-menu-item>
+    <vf-menu-item id="mi2">Bravo</vf-menu-item>
   </vf-menu>
 
   <div id="gscope" style="--vf-select-gutter: 30px">
     <vf-select id="pop-gutter" value="a">${OPTIONS}</vf-select>
     <vf-menu id="menu-gutter" label="Edit" open>
       <vf-menu-item id="mi-gutter" checked>Alpha</vf-menu-item>
+    </vf-menu>
+  </div>
+
+  <!-- Last, and closed: an open panel is absolutely positioned at z-index 1000,
+       so a menu left open here would cover the controls the blocks above click. -->
+  <div id="mscope" style="--vf-menu-row-height: 24px">
+    <vf-menu id="menu-themed" label="View">
+      <vf-menu-item id="mi-themed" checked>Alpha</vf-menu-item>
+      <vf-menu-item id="mi-themed2">Bravo</vf-menu-item>
+    </vf-menu>
+  </div>
+
+  <div id="pscope" style="--vf-popup-height: 26px">
+    <vf-menu id="menu-in-popup-scope" label="Special">
+      <vf-menu-item id="mi-ps">Alpha</vf-menu-item>
+      <vf-menu-item id="mi-ps2">Bravo</vf-menu-item>
     </vf-menu>
   </div>
 `
@@ -530,6 +547,125 @@ check(
   'the closed↔open invariant still holds under a re-themed gutter',
   Math.abs(gutThemed.labelLeft - (gutThemed.optionLeft + gutThemed.optionPad)) < 0.5,
   `closed=${gutThemed.labelLeft} open=${gutThemed.optionLeft + gutThemed.optionPad}`
+)
+
+// ── Vertical: the menu row pitch ──
+// Menus.png puts every menu row on a 16px pitch — the New Folder / Open / Print
+// pulldown's nine inter-band gaps are all multiples of 16 — and every panel in
+// the sheet puts its first row's ink at +4 from the border box, i.e. the 1px
+// border plus the row's own 3px ✓ bias, with no panel inset. Ours was a 22px
+// row inside a 2px-padded panel.
+const MENU_ROW_H = 16
+
+const menuRowsOf = (id, itemIds) =>
+  page.evaluate(
+    ({ elId, ids }) => {
+      const panel = document.getElementById(elId).shadowRoot.querySelector('.panel')
+      const pcs = getComputedStyle(panel)
+      const rowOf = (i) => document.getElementById(i).shadowRoot.querySelector('.item')
+      const first = rowOf(ids[0])
+      const check = document.getElementById(ids[0]).shadowRoot.querySelector('.check')
+      return {
+        panelTop: panel.getBoundingClientRect().top,
+        panelHeight: panel.getBoundingClientRect().height,
+        panelBorderTop: parseFloat(pcs.borderTopWidth),
+        panelBorderBottom: parseFloat(pcs.borderBottomWidth),
+        panelPadTop: parseFloat(pcs.paddingTop),
+        rowTops: ids.map((i) => rowOf(i).getBoundingClientRect().top),
+        rowHeights: ids.map((i) => rowOf(i).getBoundingClientRect().height),
+        lineHeight: parseFloat(getComputedStyle(first).lineHeight),
+        checkTop: check ? check.getBoundingClientRect().top : null,
+      }
+    },
+    { elId: id, ids: itemIds }
+  )
+
+await page.keyboard.press('Escape')
+await reopenMenu('menu')
+const rows = await menuRowsOf('menu', ['mi', 'mi2'])
+
+check(
+  `a menu row is ${MENU_ROW_H}px, not the old 22`,
+  Math.abs(rows.rowHeights[0] - MENU_ROW_H * s) < 0.5,
+  `row=${rows.rowHeights[0]} expected=${MENU_ROW_H * s} (the old 22 would be ${22 * s})`
+)
+check(
+  `menu rows are on a ${MENU_ROW_H}px pitch`,
+  Math.abs(rows.rowTops[1] - rows.rowTops[0] - MENU_ROW_H * s) < 0.5,
+  `pitch=${rows.rowTops[1] - rows.rowTops[0]} expected=${MENU_ROW_H * s}`
+)
+// The art has the panel's border sit directly on the first row.
+check(
+  'the panel adds no vertical inset above the first row',
+  rows.panelPadTop === 0 &&
+    Math.abs(rows.rowTops[0] - (rows.panelTop + rows.panelBorderTop)) < 0.5,
+  `rowTop=${rows.rowTops[0]} panelContentTop=${rows.panelTop + rows.panelBorderTop} pad=${rows.panelPadTop}`
+)
+// Reference ✓ ink at +4 from the border box = 1px border + 3px into the row.
+check(
+  'the ✓ sits 3px into the row vertically (Menus.png +4 from the border)',
+  rows.checkTop !== null && Math.abs(rows.checkTop - (rows.rowTops[0] + 3 * s)) < 0.5,
+  `check=${rows.checkTop} expected=${rows.rowTops[0] + 3 * s}`
+)
+check(
+  'the 16px row less the 9px ✓ is biased 3/4, never centred on a half pixel',
+  Number.isInteger(3 * s * num.dpr) && !Number.isInteger(((MENU_ROW_H - 9) / 2) * s * num.dpr),
+  `bias=${3 * s * num.dpr}device, centring would be ${((MENU_ROW_H - 9) / 2) * s * num.dpr}`
+)
+// The vf-option regression in miniature: vfDisplay's 1.25 line-height resolves
+// taller than a 16px row, and the spill overflowed the panel into a scrollbar.
+// That bug PASSED the re-themed check (a 24px row clears a 20px line box), so
+// this has to be asserted at the default size too.
+check(
+  'the line box never exceeds the row box',
+  rows.lineHeight <= rows.rowHeights[0] + 0.5,
+  `lineHeight=${rows.lineHeight} row=${rows.rowHeights[0]}`
+)
+check(
+  'the panel is exactly its rows plus its borders (nothing overflows)',
+  Math.abs(
+    rows.panelHeight -
+      (rows.panelBorderTop + rows.panelBorderBottom + 2 * MENU_ROW_H * s)
+  ) < 0.5,
+  `panel=${rows.panelHeight} expected=${
+    rows.panelBorderTop + rows.panelBorderBottom + 2 * MENU_ROW_H * s
+  }`
+)
+check(
+  'the menu row pitch lands on whole device pixels',
+  Number.isInteger(MENU_ROW_H * s * num.dpr),
+  `${MENU_ROW_H * s * num.dpr}device`
+)
+// The art has a pulldown row and a popup row identical; the kit was internally
+// inconsistent (popup 16, pulldown 22) between the token split and this pass.
+check(
+  'a menu row and a popup option row are the same height, as the art has them',
+  MENU_ROW_H === OPTION_H,
+  `menu=${MENU_ROW_H} option=${OPTION_H}`
+)
+
+await reopenMenu('menu-themed')
+const rowsThemed = await menuRowsOf('menu-themed', ['mi-themed', 'mi-themed2'])
+check(
+  'retheming --vf-menu-row-height moves the rows',
+  Math.abs(rowsThemed.rowHeights[0] - 24 * s) < 0.5 &&
+    Math.abs(rowsThemed.rowTops[1] - rowsThemed.rowTops[0] - 24 * s) < 0.5,
+  `row=${rowsThemed.rowHeights[0]} pitch=${rowsThemed.rowTops[1] - rowsThemed.rowTops[0]} expected=${24 * s}`
+)
+check(
+  'a re-themed row still holds its line box',
+  rowsThemed.lineHeight <= rowsThemed.rowHeights[0] + 0.5,
+  `lineHeight=${rowsThemed.lineHeight} row=${rowsThemed.rowHeights[0]}`
+)
+// Independence is why this is its own token rather than a share of the popup's:
+// re-theming the select PILL must not move pulldown rows.
+await reopenMenu('menu-in-popup-scope')
+const rowsPopupScope = await menuRowsOf('menu-in-popup-scope', ['mi-ps', 'mi-ps2'])
+check(
+  'retheming --vf-popup-height does NOT move menu rows',
+  Math.abs(rowsPopupScope.rowHeights[0] - MENU_ROW_H * s) < 0.5,
+  `row=${rowsPopupScope.rowHeights[0]} expected=${MENU_ROW_H * s} ` +
+    `(deriving from the pill would give ${(26 - 2) * s})`
 )
 
 await browser.close()

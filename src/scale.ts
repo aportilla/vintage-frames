@@ -161,27 +161,89 @@ export class ScaleController implements ReactiveController {
     host.addController(this)
   }
 
+  /**
+   * True while the connect-time read was not yet trustworthy, so the decision
+   * is waiting for the host to be rendered (see {@link decide}).
+   */
+  private pending = false
+
   hostConnected(): void {
     if (typeof window === 'undefined') return
-    const set = (): void => {
-      this.owns = true
-      this.host.style.setProperty('--vf-scale', String(getScale()))
-    }
-    // A consumer/ancestor value always wins: an inline value we did not write,
-    // or any value inherited from a rule, leaves the controller dormant. Only
-    // take over when the property is genuinely unset — or when it is already
-    // ours from a previous connect.
-    const inline = this.host.style.getPropertyValue('--vf-scale') !== ''
-    const inherited =
-      getComputedStyle(this.host).getPropertyValue('--vf-scale').trim() !== ''
-    if (this.owns || (!inline && !inherited)) {
-      set()
-      this.stop = onScaleChange(set)
-    }
+    this.decide(true)
+  }
+
+  /**
+   * Re-decide once the host has rendered. Controllers' `hostUpdated` runs
+   * before the component's own `firstUpdated`/`updated` and before paint, so a
+   * deferred takeover still lands in the first frame and ahead of any JS
+   * geometry the component derives from {@link sys}.
+   */
+  hostUpdated(): void {
+    if (this.pending) this.decide(false)
   }
 
   hostDisconnected(): void {
     this.stop?.()
     this.stop = undefined
+  }
+
+  /**
+   * A consumer/ancestor value always wins: an inline value we did not write, or
+   * any value inherited from a rule, leaves the controller dormant. Only take
+   * over when the property is genuinely unset — or when it is already ours from
+   * a previous connect.
+   *
+   * `deferrable` marks the connect-time call, whose inherited read can be a
+   * false negative: Lit attaches a shadow root synchronously on connect but
+   * renders its `<slot>`s on the first update, so during the
+   * `customElements.define` sweep a light-DOM child whose parent upgraded first
+   * is assigned to no slot. Such an element sits outside the flat tree — it
+   * still reports a computed style, because its own rules apply, but it
+   * inherits nothing, so `--vf-scale` reads back empty whether or not the page
+   * set one. Taking over on that read is how three components ended up pinned
+   * at 3× inside a `:root { --vf-scale: 1 }` page; which components were hit
+   * was pure module-evaluation order.
+   */
+  private decide(deferrable: boolean): void {
+    const set = (): void => {
+      this.owns = true
+      this.host.style.setProperty('--vf-scale', String(getScale()))
+    }
+    const take = (): void => {
+      this.pending = false
+      set()
+      this.stop = onScaleChange(set)
+    }
+    if (this.owns) return take()
+    // Reading our own inline style needs no layout, so it is always decisive.
+    if (this.host.style.getPropertyValue('--vf-scale') !== '') {
+      this.pending = false
+      return
+    }
+    if (getComputedStyle(this.host).getPropertyValue('--vf-scale').trim() !== '') {
+      this.pending = false
+      return
+    }
+    // Empty — either nothing is in scope, or nothing can resolve yet. Wait for
+    // the host to render rather than guess; an unrendered host paints nothing in
+    // the meantime, so deferring costs no frame.
+    if (deferrable || !this.inFlatTree()) {
+      this.pending = true
+      return
+    }
+    take()
+  }
+
+  /**
+   * Whether inherited properties can resolve on the host at all: every shadow
+   * host between it and the document must have assigned it (or its ancestor) to
+   * a slot. Keeps a host whose parent renders its slot late — or never — from
+   * being decided on an unresolvable read.
+   */
+  private inFlatTree(): boolean {
+    for (let el: Element | null = this.host; el; el = el.parentElement) {
+      if (el.parentElement?.shadowRoot && !el.assignedSlot) return false
+    }
+    return true
   }
 }

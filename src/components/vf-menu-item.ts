@@ -40,7 +40,23 @@ export class VfMenuItem extends LitElement {
       .item {
         display: flex;
         align-items: center;
-        height: calc(var(--vf-scale, 1) * 22px);
+        /* Menus.png puts every menu row on a 16px pitch: the New Folder / Open
+           / Print pulldown's nine inter-band gaps are all exact multiples of 16
+           (48, 32, 16, 16, 16, 48, 16, 32, 16 — the 32s and 48s are separator
+           groups). A row is 3px above + the 9px glyph + 4px below.
+
+           Its own token rather than a share of --vf-popup-height: the art has
+           pulldown and popup rows identical, but tying them would make
+           re-theming the popup *pill* move every pulldown row, which is
+           semantically wrong. --vf-control-height is scoped to fields (22). */
+        height: calc(var(--vf-scale, 1) * var(--vf-menu-row-height, 16px));
+        /* Lock the line box to the row box, as vf-option does. vfDisplay's 1.25
+           line-height resolves taller than a 16px row, and with align-items:
+           center the excess spills equally above and below — invisible per row,
+           but it overflowed the panel and summoned a scrollbar the last time a
+           row shrank under an inherited line-height. Derived from the same
+           expression as the height so a re-theme can't reintroduce the gap. */
+        line-height: calc(var(--vf-scale, 1) * var(--vf-menu-row-height, 16px));
         /* Shares --vf-select-gutter with vf-select/vf-option: Menus.png puts a
            pulldown's label ink at the same inset as a popup's, and both hold
            the same 9px ✓. (The token name says "select" for historical
@@ -55,15 +71,16 @@ export class VfMenuItem extends LitElement {
          glyphs stay black, but authentic System 7 greyed the whole disabled
          row, check included — and reference behavior wins over the rule of
          thumb. Documented deviation, not an oversight. */
-      /* 3px in from the row's left edge, matching Menus.png (✓ ink at +4 from
-         the panel border, i.e. 3 inside it) and vf-option's identical rule.
-         Biased up a whole pixel rather than centred vertically for the same
-         reason: the row is 22 and the glyph 9, so centring lands on 6.5
-         authored px (19.5 device px at the default 3×) and fringes. */
+      /* 3px in from the row's left edge on both axes, matching Menus.png (✓ ink
+         at +4 from the panel border, i.e. 3 inside it) and vf-option's
+         identical rule. The 16px row less the 9px glyph leaves 7 — an odd
+         remainder, so it is biased 3 above / 4 below exactly as the art has it
+         rather than centred on 3.5 authored px (10.5 device px at the default
+         3×), which would fringe at every scale. */
       .check {
         position: absolute;
         left: calc(var(--vf-scale, 1) * 3px);
-        top: calc(var(--vf-scale, 1) * 6px);
+        top: calc(var(--vf-scale, 1) * 3px);
         display: block;
         color: inherit;
       }

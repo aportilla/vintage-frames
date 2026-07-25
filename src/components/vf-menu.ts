@@ -52,7 +52,13 @@ export class VfMenu extends LitElement {
         top: 100%;
         left: 0;
         min-width: calc(var(--vf-scale, 1) * 180px);
-        padding: calc(var(--vf-scale, 1) * 2px) 0;
+        /* No vertical inset: every panel in Menus.png — both pulldowns, the
+           open popup and the closed pill — puts its first row's ink at +4 from
+           the border box, which is the 1px border plus the row's own 3px ✓
+           bias. The bottom border likewise sits immediately after the last row.
+           A 2px inset here displaced every row by 2px against the art; it was
+           invisible while the rows themselves were 6px too tall. */
+        padding: 0;
         z-index: 1000;
         /* Slotted vf-separators render as the classic dimmed dotted menu rule. */
         --vf-separator-color: var(--vf-disabled, #c0c0c0);

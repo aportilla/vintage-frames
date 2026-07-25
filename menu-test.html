@@ -52,19 +52,13 @@
     </div>
 
     <!-- Open pulldown with a checked row. Reference: ✓ ink at +4..12,
-         label ink at +17, row pitch 16.
-
-         The inline `--vf-scale: 1` is a WORKAROUND, not part of the fixture:
-         a parse-time-connected vf-menu-item ignores the inherited
-         `:root { --vf-scale: 1 }` and its ScaleController takes over at the
-         3/dpr default, so the rows would render at 3x and be unmeasurable
-         here. An inline value on the host keeps the controller dormant.
-         Runtime-created items don't have the problem -- see
-         `npm run probe:menus`. Drop these once that bug is fixed. -->
+         label ink at +17, row pitch 16. These rows inherit the page's
+         `:root { --vf-scale: 1 }`, which is the whole point of the fixture —
+         see `npm run verify:scale`. -->
     <div class="spec" id="menu">
       <vf-menu label="File" open>
-        <vf-menu-item checked style="--vf-scale: 1">Menu item</vf-menu-item>
-        <vf-menu-item style="--vf-scale: 1">Menu item</vf-menu-item>
+        <vf-menu-item checked>Menu item</vf-menu-item>
+        <vf-menu-item>Menu item</vf-menu-item>
       </vf-menu>
     </div>
 

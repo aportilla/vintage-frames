@@ -107,6 +107,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-control-height` | `22px` | text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well |
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
+| `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
@@ -562,7 +563,11 @@ The classic popup menu control ("Macintosh HD ▼").
   `checkable` (declares a toggle up front — see Behavior),
   `shortcut: string` (e.g. `"⌘H"`, right-aligned), `value?: string` (defaults
   to text content).
-- **Visual:** height 22px, `padding: 0 12px 0 var(--vf-select-gutter, 16px)`
+- **Visual:** height `var(--vf-menu-row-height, 16px)` — `Menus.png` puts every
+  menu row on a 16px pitch (3px above + the 9px glyph + 4px below), so a
+  pulldown row matches a popup row exactly; the line box is locked to the same
+  expression so an inherited line-height can never overflow the panel.
+  `padding: 0 12px 0 var(--vf-select-gutter, 16px)`
   (left gutter for ✓, shared with `vf-select`/`vf-option` — `Menus.png` puts a
   pulldown's label ink at the same inset as a popup's), shortcut right-aligned
   with 24px min gap, `color: var(--vf-disabled)` when

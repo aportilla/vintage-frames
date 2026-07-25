@@ -1,3 +1,4 @@
+import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { ScaleController } from './scale.js'
 import { VfFormControl } from './form-control.js'
@@ -58,8 +59,17 @@ export class VfTextControlBase extends VfFormControl {
     }
   }
 
-  protected override updated(): void {
-    this.syncFormValue(this.value)
+  /**
+   * Re-submit the value only when it (or the disabled state gating it) actually
+   * changed. Unrelated re-renders would otherwise re-run this — `vf-number-field`
+   * re-renders on every stepper press and release for its `pressed` state alone.
+   * On the first update `value` is in `changed` (class-field defaults are, with
+   * `undefined` as the old value), so the initial form value is still set.
+   */
+  protected override updated(changed: PropertyValues<this>): void {
+    if (changed.has('value') || this.disabledChanged(changed)) {
+      this.syncFormValue(this.value)
+    }
   }
 
   /** Restores the initial value when the associated form resets. */

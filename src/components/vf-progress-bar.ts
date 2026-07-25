@@ -1,8 +1,9 @@
 import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property, query, state } from 'lit/decorators.js'
+import { customElement, property, query } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sys, toSys } from '../scale.js'
+import { TrackWidthController } from '../track-width.js'
 
 /**
  * `<vf-progress-bar>` — the System 7 progress indicator.
@@ -108,43 +109,23 @@ export class VfProgressBar extends LitElement {
 
   @query('.track') private track!: HTMLElement | null
 
-  /** Measured content width of the track, in px (from a ResizeObserver). */
-  @state() private trackWidth = 0
-
-  private resizeObserver?: ResizeObserver
+  /** Track the fill area's width so the determinate fill can snap to it. */
+  private readonly trackSize = new TrackWidthController(this, () => this.track)
 
   override connectedCallback(): void {
     super.connectedCallback()
     this.setAttribute('role', 'progressbar')
     this.setAttribute('aria-valuemin', '0')
-    this.observeTrack()
   }
 
-  protected override firstUpdated(): void {
-    this.observeTrack()
+  /** Effective maximum: a non-positive `max` is treated as the default 100. */
+  private get effectiveMax(): number {
+    return this.max > 0 ? this.max : 100
   }
 
-  override disconnectedCallback(): void {
-    super.disconnectedCallback()
-    this.resizeObserver?.disconnect()
-  }
-
-  /** Track the fill area's width so the determinate fill can snap to it. */
-  private observeTrack(): void {
-    if (!this.track) return
-    if (!this.resizeObserver) {
-      this.resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0]
-        if (entry) this.trackWidth = Math.floor(entry.contentRect.width)
-      })
-    }
-    this.resizeObserver.observe(this.track)
-  }
-
-  /** `value` clamped to `[0, max]` (with a non-positive `max` treated as 100). */
+  /** `value` clamped to `[0, effectiveMax]`. */
   private get clampedValue(): number {
-    const max = this.max > 0 ? this.max : 100
-    return Math.min(Math.max(this.value, 0), max)
+    return Math.min(Math.max(this.value, 0), this.effectiveMax)
   }
 
   protected override updated(changed: PropertyValues<this>): void {
@@ -156,7 +137,7 @@ export class VfProgressBar extends LitElement {
       else if (changed.get('label')) this.removeAttribute('aria-label')
     }
     if (changed.has('max')) {
-      this.setAttribute('aria-valuemax', String(this.max > 0 ? this.max : 100))
+      this.setAttribute('aria-valuemax', String(this.effectiveMax))
     }
     if (changed.has('value') || changed.has('max') || changed.has('indeterminate')) {
       if (this.indeterminate) {
@@ -175,12 +156,11 @@ export class VfProgressBar extends LitElement {
         </div>
       `
     }
-    const max = this.max > 0 ? this.max : 100
-    const fraction = this.clampedValue / max
+    const fraction = this.clampedValue / this.effectiveMax
     // Snap the fill to whole system px so its 1px leading edge lands on the
     // device grid (no antialiased fringe), the way the slider snaps its fill.
     // Until the track is measured, fall back to a raw % so the bar still paints.
-    const sysW = toSys(this.trackWidth, this)
+    const sysW = toSys(this.trackSize.width, this)
     const width =
       sysW > 0 ? `${sys(Math.round(fraction * sysW), this)}px` : `${fraction * 100}%`
     return html`

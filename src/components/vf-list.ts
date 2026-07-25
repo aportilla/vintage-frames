@@ -111,6 +111,9 @@ export class VfList extends LitElement {
   #typeAhead = ''
   #typeAheadTimer?: number
 
+  /** The selection last pushed onto the rows; see {@link #applyIfStale}. */
+  #appliedValues: string[] = []
+
   constructor() {
     super()
     this.addEventListener('click', this.#onClick)
@@ -151,13 +154,28 @@ export class VfList extends LitElement {
     // markup `selected` attributes for #onSlotChange to adopt.
     if (changed.has('values')) {
       if (changed.get('values') !== undefined || this.values.length > 0) {
-        this.#applySelection(this.values, false)
+        this.#applyIfStale(this.values)
       }
     } else if (changed.has('value')) {
       if (changed.get('value') !== undefined || this.value !== '') {
-        this.#applySelection(this.value ? [this.value] : [], false)
+        this.#applyIfStale(this.value ? [this.value] : [])
       }
     }
+  }
+
+  /**
+   * Push `vals` onto the rows unless they already carry exactly that
+   * selection.
+   *
+   * Every interactive path applies the selection synchronously and *then*
+   * writes `value`/`values`, which re-enters `updated()` above — so without
+   * this gate each click, arrow key and type-ahead jump ran a second,
+   * byte-identical pass over every row. External writes still land: they reach
+   * here with a selection the rows don't have yet.
+   */
+  #applyIfStale(vals: string[]): void {
+    if (sameValues(vals, this.#appliedValues)) return
+    this.#applySelection(vals, false)
   }
 
   protected override render() {
@@ -196,6 +214,7 @@ export class VfList extends LitElement {
       item.selected = wanted.includes(item.value) && !item.disabled
     }
     const selected = items.filter((i) => i.selected).map((i) => i.value)
+    this.#appliedValues = [...selected]
     const nextValue = selected[0] ?? ''
     if (this.value !== nextValue) this.value = nextValue
     if (!sameValues(this.values, selected)) this.values = selected

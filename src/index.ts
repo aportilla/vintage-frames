@@ -120,6 +120,7 @@ export type { SteppedProfile } from './pixel-frame.js'
 export { DragController } from './drag.js'
 export type { DragTarget } from './drag.js'
 export { ScrollStateController } from './scroll-state.js'
+export { TrackWidthController } from './track-width.js'
 export { emit } from './events.js'
 export {
   prefersReducedMotion,

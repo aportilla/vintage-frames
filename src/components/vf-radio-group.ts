@@ -1,4 +1,5 @@
 import { css, html } from 'lit'
+import type { PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { ScaleController } from '../scale.js'
 import { vfBase } from '../styles/base.js'
@@ -80,7 +81,15 @@ export class VfRadioGroup extends VfFormControl {
     if (this.defaultValue === null) this.defaultValue = this.value
     // Filtered to value/disabled so syncRadios()'s own checked/tabindex
     // writes on the children can't re-trigger the observer (no feedback loop).
-    this.mutationObserver ??= new MutationObserver(() => this.syncRadios())
+    // A subtree observer also reports the *host's* own attributes, and both
+    // filtered names are reflected on the group itself — so its own `disabled`
+    // (or a `value` attribute write) arrives here as well, after `updated()`
+    // has already synced for exactly that change. Only child mutations need a
+    // pass of their own.
+    this.mutationObserver ??= new MutationObserver((records) => {
+      if (records.every((r) => r.type === 'attributes' && r.target === this)) return
+      this.syncRadios()
+    })
     this.mutationObserver.observe(this, {
       childList: true,
       subtree: true,
@@ -98,11 +107,17 @@ export class VfRadioGroup extends VfFormControl {
     return html`<slot @slotchange=${this.handleSlotChange}></slot>`
   }
 
-  protected override updated(): void {
-    this.syncFormValue(this.value === '' ? null : this.value)
-    this.internals.ariaLabel = this.label || null
-    this.internals.ariaDisabled = this.isDisabled ? 'true' : 'false'
-    this.syncRadios()
+  protected override updated(changed: PropertyValues<this>): void {
+    const disabled = this.disabledChanged(changed)
+    if (changed.has('value') || disabled) {
+      this.syncFormValue(this.value === '' ? null : this.value)
+    }
+    if (changed.has('label')) this.internals.ariaLabel = this.label || null
+    if (disabled) this.internals.ariaDisabled = this.isDisabled ? 'true' : 'false'
+    // Skip the child loop when the children already carry this exact state —
+    // an interactive selection synced them synchronously (see selectRadio), so
+    // running it again here would push down an identical result.
+    if (this.syncedKey !== this.syncKey) this.syncRadios()
   }
 
   /** Form-associated lifecycle: restores the initial value. */
@@ -118,6 +133,21 @@ export class VfRadioGroup extends VfFormControl {
   }
 
   /**
+   * Identity of the state {@link syncRadios} pushes down, and the value it
+   * last pushed. Everything the children receive derives from these two, so
+   * comparing them tells `updated()` whether a sync would be a no-op.
+   *
+   * It intentionally doesn't track the children themselves: a structural or
+   * value/disabled change reaches `syncRadios()` directly (via the mutation
+   * observer or slotchange), never through this gate.
+   */
+  private get syncKey(): string {
+    return `${this.isDisabled ? 'd' : 'e'}:${this.value}`
+  }
+
+  private syncedKey: string | null = null
+
+  /**
    * Push group state down to the children: checked flags, group-disabled
    * dimming, and the roving tabindex (the checked radio is the tab stop;
    * with no selection, the first enabled radio is).
@@ -125,6 +155,7 @@ export class VfRadioGroup extends VfFormControl {
   private syncRadios(): void {
     const radios = this.radios
     const disabled = this.isDisabled
+    this.syncedKey = this.syncKey
     const checked =
       this.value === ''
         ? undefined
@@ -138,7 +169,13 @@ export class VfRadioGroup extends VfFormControl {
     }
   }
 
-  /** Select a radio, sync everything, and fire `vf-change` if value changed. */
+  /**
+   * Select a radio, sync everything, and fire `vf-change` if value changed.
+   *
+   * The sync stays synchronous — a `vf-change` listener must see the children
+   * already carrying the new selection, not the state of a pending update —
+   * and `updated()` then skips its own pass via the sync key.
+   */
   private selectRadio(radio: VfRadio, focus: boolean): void {
     const changed = this.value !== radio.value
     this.value = radio.value

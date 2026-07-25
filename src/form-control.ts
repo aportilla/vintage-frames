@@ -1,4 +1,4 @@
-import { LitElement } from 'lit'
+import { LitElement, type PropertyValues } from 'lit'
 import { property, state } from 'lit/decorators.js'
 
 /**
@@ -51,5 +51,21 @@ export class VfFormControl extends LitElement {
    */
   protected syncFormValue(value: string | File | FormData | null): void {
     this.internals.setFormValue(this.isDisabled ? null : value)
+  }
+
+  /**
+   * True when this update changed the *resolved* disabled state — the gate a
+   * subclass's `updated()` should use before re-running its form value, ARIA
+   * or tab-stop writes.
+   *
+   * It exists because {@link formDisabled} is protected, so `keyof this` can't
+   * name it and a `PropertyValues<this>` gate silently can't test for it: a
+   * `changed.has('disabled')` check compiles, reads as complete, and misses
+   * every ancestor `<fieldset disabled>` — which is the path that must clear a
+   * control's submitted value. One named predicate keeps that trap in one
+   * place instead of in each subclass's gate.
+   */
+  protected disabledChanged(changed: PropertyValues): boolean {
+    return changed.has('disabled') || changed.has('formDisabled')
   }
 }

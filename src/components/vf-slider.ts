@@ -1,8 +1,10 @@
 import { css, html } from 'lit'
+import type { PropertyValues } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 import { vfBase, vfFocusRing } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
+import { TrackWidthController } from '../track-width.js'
 import { VfFormControl } from '../form-control.js'
 import { emit } from '../events.js'
 import { decimalsOf } from '../number.js'
@@ -156,15 +158,14 @@ export class VfSlider extends VfFormControl {
   /** Accessible name, exposed as the control's `aria-label`. */
   @property() label = ''
 
-  /** Measured content width of the rail, in px (from a ResizeObserver). */
-  @state() private trackWidth = 0
-
   @query('.track') private track!: HTMLElement | null
+
+  /** Measured content width of the rail, in px — the rail SVG is regenerated
+   * from it so every edge stays on the device grid. */
+  private readonly trackSize = new TrackWidthController(this, () => this.track)
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
-
-  private resizeObserver?: ResizeObserver
 
   /** Value at first connect, restored on form reset. */
   private defaultValue: number | null = null
@@ -188,6 +189,9 @@ export class VfSlider extends VfFormControl {
   constructor() {
     super()
     this.internals.role = 'slider'
+    // Constant for the life of the control — set once rather than rewritten on
+    // every update alongside the values that actually change.
+    this.internals.ariaOrientation = 'horizontal'
   }
 
   override connectedCallback(): void {
@@ -200,18 +204,10 @@ export class VfSlider extends VfFormControl {
     this.addEventListener('keydown', this.#onKeydown)
     this.addEventListener('focus', this.#onFocus)
     this.addEventListener('blur', this.#onBlur)
-    // Re-attach the size observer when re-connected (the track already exists on
-    // reconnect; on first connect it is null and firstUpdated wires it instead).
-    this.#observeTrack()
-  }
-
-  protected override firstUpdated(): void {
-    this.#observeTrack()
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
-    this.resizeObserver?.disconnect()
     this.removeEventListener('keydown', this.#onKeydown)
     this.removeEventListener('focus', this.#onFocus)
     this.removeEventListener('blur', this.#onBlur)
@@ -227,18 +223,6 @@ export class VfSlider extends VfFormControl {
   #onBlur = (): void => {
     this.focusRing = false
     this.#pointerFocus = false
-  }
-
-  /** Lazily create the ResizeObserver and (re-)observe the rail track. */
-  #observeTrack(): void {
-    if (!this.track) return
-    if (!this.resizeObserver) {
-      this.resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0]
-        if (entry) this.trackWidth = Math.floor(entry.contentRect.width)
-      })
-    }
-    this.resizeObserver.observe(this.track)
   }
 
   /** Restores the initial value when the associated form resets. */
@@ -398,16 +382,25 @@ export class VfSlider extends VfFormControl {
 
   // -------------------------------------------------------------- lifecycle
 
-  protected override updated(): void {
-    const value = this.#clampedValue
-    this.syncFormValue(String(value))
-    this.internals.ariaValueMin = String(this.min)
-    this.internals.ariaValueMax = String(this.max)
-    this.internals.ariaValueNow = String(value)
-    this.internals.ariaOrientation = 'horizontal'
-    this.internals.ariaLabel = this.label || null
-    this.internals.ariaDisabled = this.isDisabled ? 'true' : 'false'
-    if (this.selfManagedTabIndex) this.tabIndex = this.isDisabled ? -1 : 0
+  /**
+   * Mirror state into the form value, ARIA and the tab stop — each write gated
+   * on the properties it derives from, so the re-renders driven by unrelated
+   * state (the focus ring, a rail resize tick) don't re-run all of it. On the
+   * first update every reactive property is in `changed` (class-field defaults,
+   * with `undefined` as the old value), so the initial writes all still happen.
+   */
+  protected override updated(changed: PropertyValues<this>): void {
+    const disabled = this.disabledChanged(changed)
+    const range = changed.has('value') || changed.has('min') || changed.has('max')
+    if (range || disabled) this.syncFormValue(String(this.#clampedValue))
+    if (changed.has('min')) this.internals.ariaValueMin = String(this.min)
+    if (changed.has('max')) this.internals.ariaValueMax = String(this.max)
+    if (range) this.internals.ariaValueNow = String(this.#clampedValue)
+    if (changed.has('label')) this.internals.ariaLabel = this.label || null
+    if (disabled) {
+      this.internals.ariaDisabled = this.isDisabled ? 'true' : 'false'
+      if (this.selfManagedTabIndex) this.tabIndex = this.isDisabled ? -1 : 0
+    }
   }
 
   protected override render() {
@@ -416,7 +409,7 @@ export class VfSlider extends VfFormControl {
     // fill) scales uniformly. The thumb's left edge travels 0…(sysW − thumbW) in
     // system px and snaps to the system grid (whole device pixels) so the sprite
     // stays crisp; the fill ends at the thumb's centre grip.
-    const sysW = toSys(this.trackWidth, this)
+    const sysW = toSys(this.trackSize.width, this)
     const thumbLeftSys = Math.round(this.#fraction * Math.max(0, sysW - THUMB_W))
     const thumbLeft = sys(thumbLeftSys, this)
     const pos = thumbLeftSys + THUMB_CENTER

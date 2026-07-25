@@ -102,7 +102,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-white` | `#ffffff` | content wells, control faces |
 | `--vf-surface` | *(set by containers)* | bg behind legends/label patches; `vf-window` and `vf-dialog` both set it to white |
 | `--vf-disabled` | `#C0C0C0` | dimmed text, borders, glyphs (the kit's dim gray) |
-| `--vf-desktop` | `#808080` | desktop base gray under the 1-bit dither |
+| `--vf-desktop` | `#808080` | base color under the desktop dither — occluded by the default (opaque) tile, so it only shows through a custom `--vf-desktop-pattern` |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-control-height` | `22px` | buttons, selects, text fields |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
@@ -157,16 +157,21 @@ Files live in `src/components/`. "Parts" = CSS shadow parts via `part=`.
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
 - **Visual:** `display: block; position: relative; overflow: hidden;`
-  background = classic 50% dither: base `var(--vf-desktop, #808080)` under a 1-bit
-  black/white checker drawn as a crisp SVG tile (a 2×2 grid with two black
-  pixels), `background-size: 2px 2px` scaled by `--vf-scale`, overridable via
-  `--vf-desktop-pattern`. (A `repeating-conic-gradient` feathers its hard stops
-  at scale; the SVG rects stay pixel-exact.)
+  background = classic 50% dither, drawn as a crisp SVG tile: a 2×2 grid with an
+  opaque white base and two black pixels on the diagonal, `background-size: 2px
+  2px` scaled by `--vf-scale`, overridable via `--vf-desktop-pattern`. (A
+  `repeating-conic-gradient` feathers its hard stops at scale; the SVG rects stay
+  pixel-exact.) The tile is opaque black-on-white — the authentic System 7
+  dither — so it covers `var(--vf-desktop, #808080)` beneath it; that base color
+  shows only under a custom pattern with transparent cells (or `none`).
 - **Slots:** default (menu bar, windows, anything).
 - **Behavior:** manages stacking of slotted `vf-window` children: `pointerdown`
   on a window brings it to front (incrementing z-index counter) and sets its
   `active` attribute, clearing `active` on the others. Listens via a delegated
-  pointerdown listener + `slotchange`.
+  pointerdown listener + `slotchange`. Windows slotted before `vf-window` is
+  defined are re-normalized once `customElements.whenDefined('vf-window')`
+  settles, since the upgrade reflects each window's `active = true` default back
+  out and upgrading a slotted node doesn't re-fire `slotchange`.
 - **Parts:** `desktop`.
 
 #### `vf-window` (`VfWindow`, vf-window.ts)

@@ -37,7 +37,8 @@
     "probe:buttons": "python3 scripts/probe-button-colors.py",
     "verify:buttons": "tsc src/pixel-frame.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/emit-clips.mjs && python3 scripts/verify-button-clips.py",
     "shot:buttons": "npx playwright screenshot --wait-for-timeout=2000 http://localhost:5173/pixel-test.html shots/buttons.png",
-    "shot:verify": "python3 scripts/verify-button-screenshot.py shots/buttons.png"
+    "shot:verify": "python3 scripts/verify-button-screenshot.py shots/buttons.png",
+    "verify:desktop": "node scripts/verify-desktop-upgrade.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"

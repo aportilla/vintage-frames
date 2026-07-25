@@ -12,9 +12,12 @@ import { ScaleController } from '../scale.js'
  * and makes it the single active window.
  *
  * Custom properties:
- * - `--vf-desktop` — base desktop gray (default `#808080`).
- * - `--vf-desktop-pattern` — background-image pattern layer (default a
- *   black/white 1-bit 50% checker dither).
+ * - `--vf-desktop-pattern` — the background-image pattern layer (default a
+ *   1-bit 50% checker dither, drawn as opaque black-on-white).
+ * - `--vf-desktop` — base color painted *under* the pattern layer (default
+ *   `#808080`). The default tile is opaque, so this only becomes visible when
+ *   `--vf-desktop-pattern` is overridden with a tile that has transparent
+ *   cells (or with `none`).
  *
  * @slot - Default slot: menu bar, windows, anything.
  * @csspart desktop - The full-size desktop surface.
@@ -34,9 +37,11 @@ export class VfDesktop extends LitElement {
         width: 100%;
         height: 100%;
         background-color: var(--vf-desktop, #808080);
-        /* Classic 50% checker dither as a crisp 1-bit SVG tile — a 2×2 grid with
-           two black pixels (the other two transparent, so the desktop gray shows
-           through as the "white" of the dither). Scaled with --vf-scale so each
+        /* Classic 50% checker dither as a crisp 1-bit SVG tile — a 2×2 grid
+           painting an opaque white base with two black pixels on the diagonal.
+           Black-on-white is the authentic System 7 dither, so the tile is
+           deliberately opaque and covers the background-color above (see the
+           --vf-desktop note in the class doc). Scaled with --vf-scale so each
            system pixel lands on whole device pixels; unlike a conic-gradient
            (whose hard stops the browser feathers into a blur), the SVG rects are
            pixel-exact. Override the whole pattern via --vf-desktop-pattern. */
@@ -63,6 +68,9 @@ export class VfDesktop extends LitElement {
 
   /** Monotonic z-index counter for window stacking. */
   private _zCounter = 0
+
+  /** Whether a one-shot post-upgrade re-normalization is already pending. */
+  private _awaitingUpgrade = false
 
   override connectedCallback(): void {
     super.connectedCallback()
@@ -129,6 +137,33 @@ export class VfDesktop extends LitElement {
     }
     const top = newest ?? this._topmost(windows)
     if (top) this._setActive(top)
+    // Windows slotted before vf-window is defined are plain unknown elements,
+    // so _setWindowActive can only *clear their attribute* — and on upgrade
+    // vf-window's reflected `active = true` default puts it straight back,
+    // flipping every background window active at once. Upgrading a slotted
+    // node doesn't re-fire slotchange, so re-assert once the definition lands.
+    if (!customElements.get('vf-window')) this._normalizeAfterUpgrade()
+  }
+
+  /**
+   * Re-assert the single-active-window state after slotted `<vf-window>`
+   * elements upgrade. One-shot: the flag collapses repeat slotchanges into a
+   * single wait, and once the definition is registered `_onSlotChange` stops
+   * calling this at all. If a consumer never imports vf-window the promise
+   * simply never settles — those elements render nothing either way.
+   */
+  private _normalizeAfterUpgrade(): void {
+    if (this._awaitingUpgrade) return
+    this._awaitingUpgrade = true
+    void customElements.whenDefined('vf-window').then(() => {
+      this._awaitingUpgrade = false
+      if (!this.isConnected) return
+      // Every window now exposes the property, so _setWindowActive takes the
+      // authoritative property path; z-indices were already seeded above, so
+      // the topmost window is the one that should be active.
+      const top = this._topmost(this._windows)
+      if (top) this._setActive(top)
+    })
   }
 
   /** Set `active` on `win` only, clearing it on every other window. */

@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, nothing } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 import { vfBase, vfScrollbars, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -34,6 +34,16 @@ export class VfScrollArea extends LitElement {
    */
   @property({ reflect: true }) axis: 'vertical' | 'horizontal' | 'both' =
     'vertical'
+
+  /**
+   * Accessible name for the scrolling viewport, applied as its `aria-label`
+   * (an `aria-label` on the host would not reach into the shadow DOM). The
+   * viewport is keyboard-focusable, so without a name it is announced only as
+   * an anonymous scrollable group; setting `label` also promotes it to a named
+   * `role="region"` landmark. The role is omitted while `label` is empty,
+   * since an unnamed region is inert.
+   */
+  @property() label = ''
 
   @query('.viewport') private viewport!: HTMLElement | null
   @query('.content') private content!: HTMLElement | null
@@ -98,7 +108,13 @@ export class VfScrollArea extends LitElement {
 
   protected override render() {
     return html`
-      <div class="viewport vf-scroll" part="viewport" tabindex="0">
+      <div
+        class="viewport vf-scroll"
+        part="viewport"
+        tabindex="0"
+        role=${this.label ? 'region' : nothing}
+        aria-label=${this.label || nothing}
+      >
         <div class="content"><slot></slot></div>
       </div>
     `

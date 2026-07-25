@@ -98,6 +98,16 @@ a subtree, or a single element:
 Every metric multiplies by `--vf-scale` in `calc()`, so borders, type, glyphs,
 the desktop dither and spacing all scale together and stay 1-bit crisp.
 
+To put *your own* markup on the same grid — page copy, custom controls, layout
+gaps — call `applyScale()` once. It sets `--vf-scale` on the document root (or
+any element you pass) and keeps it synced as the display changes:
+
+```ts
+import { applyScale } from 'vintage-frames'
+
+applyScale() // → returns a cleanup function that stops watching
+```
+
 ## Fonts
 
 Two System 7 bitmap faces ship inside the components and register themselves on
@@ -113,3 +123,25 @@ pixel) and scale with `--vf-scale` (see [Display scaling](#display-scaling--true
 staying pixel-crisp. Retheme with `--vf-font-family-display` (chrome) and
 `--vf-font-family` (body), plus the matching `--vf-font-size-display` /
 `--vf-font-smoothing-display` tokens.
+
+## Utilities & style toolkit
+
+The shared toolkit the components are built from is exported from the package
+root, so you can author a custom control that matches the kit pixel-for-pixel:
+
+```ts
+import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
+```
+
+| Export | What it's for |
+| --- | --- |
+| `applyScale`, `ScaleController`, `onScaleChange` | Opt a subtree (or your own component) into true-size rendering |
+| `sys`, `toSys`, `effectiveScale`, `getScale`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; snap coordinates to the device grid |
+| `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |
+| `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfPanel`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
+| `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
+| `steppedRectClip`, `steppedRingClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`) |
+| `DragController`, `ScrollStateController` | Pointer-drag wiring; per-axis overflow reporting for the always-a-rail scrollbars |
+| `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink |
+| `VfFormControl`, `VfTextControlBase`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the native-`<dialog>` lifecycle |
+| `registerEmbeddedFont`, `registerChiKareGo`, `registerFindersKeepers`, `CHIKAREGO_FAMILY`, `FINDERS_KEEPERS_FAMILY` | Register the bitmap faces on `document.fonts` yourself |

@@ -50,6 +50,12 @@ export class VfRadioGroup extends VfFormControl {
   /** Form field name used when submitting. */
   @property({ reflect: true }) name = ''
 
+  /**
+   * Accessible name for the group, exposed as the `radiogroup`'s `aria-label`.
+   * Without it a caption-less group is announced anonymously.
+   */
+  @property() label = ''
+
   private readonly scale = new ScaleController(this)
 
   /** Value at first connect, restored on form reset. */
@@ -94,6 +100,7 @@ export class VfRadioGroup extends VfFormControl {
 
   protected override updated(): void {
     this.syncFormValue(this.value === '' ? null : this.value)
+    this.internals.ariaLabel = this.label || null
     this.internals.ariaDisabled = this.isDisabled ? 'true' : 'false'
     this.syncRadios()
   }

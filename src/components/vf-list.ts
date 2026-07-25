@@ -83,6 +83,14 @@ export class VfList extends LitElement {
   /** Disables the whole list: dimmed, no interaction. */
   @property({ type: Boolean, reflect: true }) disabled = false
 
+  /**
+   * Accessible name for the list, applied as `aria-label` on the host (which
+   * carries `role="listbox"`). Without it a caption-less list is announced
+   * anonymously. A consumer-supplied `aria-label`/`aria-labelledby` attribute
+   * is left alone.
+   */
+  @property() label = ''
+
   @queryAssignedElements({ selector: 'vf-list-item', flatten: true })
   private _items!: VfListItem[]
 
@@ -112,6 +120,13 @@ export class VfList extends LitElement {
       if (this.disabled) this.setAttribute('aria-disabled', 'true')
       else this.removeAttribute('aria-disabled')
       this.#syncTabIndexes()
+    }
+    // Only clear the attribute when a non-empty label is emptied — on the first
+    // update `changed` carries the class-field default (old value `undefined`),
+    // and blowing away a consumer's own aria-label there would be wrong.
+    if (changed.has('label')) {
+      if (this.label) this.setAttribute('aria-label', this.label)
+      else if (changed.get('label')) this.removeAttribute('aria-label')
     }
     // Programmatic value/values writes: push down into the items. On the
     // first update the class-field defaults themselves are recorded in

@@ -344,7 +344,8 @@ Classic fixed modal alert: double black frame, no title bar.
 - **Events:** `vf-change` detail `{ value }` (fired by user interaction only).
 
 #### `vf-radio-group` (`VfRadioGroup`, vf-radio-group.ts)
-- **Attributes/props:** `value: string`, `name`, `disabled`.
+- **Attributes/props:** `value: string`, `name`, `disabled`, `label: string`
+  (accessible name → `internals.ariaLabel`).
 - **Visual:** `display: block`; slotted radios stack with 6px vertical gap
   (consumer can override with own layout). No chrome of its own.
 - **Behavior:** form-associated (form value = `value`). `role="radiogroup"`.
@@ -461,7 +462,9 @@ The classic popup menu control ("Macintosh HD ▼").
 
 #### `vf-progress-bar` (`VfProgressBar`, vf-progress-bar.ts)
 - **Attributes/props:** `value: number` (0–100), `max: number` (default 100),
-  `indeterminate: boolean`.
+  `indeterminate: boolean`, `label: string` (accessible name → host
+  `aria-label`; the only way to name an indeterminate bar, which has no
+  `aria-valuenow`).
 - **Visual:** `display: block; height: 14px;` track
   `var(--vf-progress-track, #ffffff)` (white), `1px solid black`, no radius.
   Determinate fill: `var(--vf-progress-fill, #000000)` (solid black) from left,
@@ -477,7 +480,7 @@ The classic popup menu control ("Macintosh HD ▼").
   seamlessly (no phase-jump seam), ~0.4s `steps(4, end)` infinite — chunky and
   steppy, not smooth. Override the tile via `--vf-progress-stripes`.
 - **Behavior:** `role="progressbar"` + `aria-valuenow/min/max` (omit valuenow
-  when indeterminate).
+  when indeterminate); `label` → host `aria-label`.
 - **Parts:** `track`, `fill`.
 
 #### `vf-slider` (`VfSlider`, vf-slider.ts)
@@ -549,7 +552,8 @@ The classic popup menu control ("Macintosh HD ▼").
 #### `vf-list` (`VfList`, vf-list-item children) (vf-list.ts)
 Classic list box.
 - **Attributes/props:** `multiple: boolean`, `value: string` /
-  `values: string[]` (multiple), `disabled`.
+  `values: string[]` (multiple), `disabled`, `label: string` (accessible name →
+  host `aria-label`).
 - **Children:** `<vf-list-item value="...">` (`VfListItem`, vf-list-item.ts):
   props `value`, `selected` (reflect), `disabled`; height 20px,
   `padding: 0 6px`; selected = inverted row (full width).
@@ -559,16 +563,21 @@ Classic list box.
   overridable via `--vf-list-max-height`. Reserves a permanent vertical scroll
   rail (the "always-a-rail" behavior — see vf-scroll-area): an empty white
   channel until the rows overflow.
-- **Behavior:** `role="listbox"` (+`aria-multiselectable`), items
-  `role="option"`. Click selects (Shift/Cmd extend when `multiple`). Roving
-  tabindex, Arrow keys move selection, Space toggles in multiple mode.
+- **Behavior:** `role="listbox"` (+`aria-multiselectable`, + `aria-label` from
+  `label`), items `role="option"`. Click selects (Shift/Cmd extend when
+  `multiple`). Roving tabindex, Arrow keys move selection, Space toggles in
+  multiple mode.
 - **Parts:** `list`. **Events:** `vf-change` detail `{ value, values }`.
 
 #### `vf-scroll-area` (`VfScrollArea`, vf-scroll-area.ts)
 A container whose scrollbars look like System 7.
 - **Attributes/props:** `axis: 'vertical' | 'horizontal' | 'both'` (default
   `'vertical'`, reflected) — which scroll rails to reserve as permanent
-  placeholders (see "always-a-rail" below).
+  placeholders (see "always-a-rail" below); `label: string` — accessible name
+  for the keyboard-focusable viewport (`aria-label` on the viewport, since an
+  `aria-label` on the host cannot reach into the shadow DOM). A non-empty
+  `label` also promotes the viewport to `role="region"`; the role is omitted
+  while it is empty, because an unnamed region is inert.
 - **Visual:** `display: block`, white bg, `1px solid black`, inner viewport
   `padding: 8px`. Consumer sets width/height on host.
   Scrollbars come from the shared `vfScrollbars` recipe in base.ts (add the

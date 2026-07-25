@@ -98,6 +98,14 @@ export class VfProgressBar extends LitElement {
   /** Barber-pole "busy" mode; ignores `value` and omits `aria-valuenow`. */
   @property({ type: Boolean, reflect: true }) indeterminate = false
 
+  /**
+   * Accessible name for the bar, applied as `aria-label` on the host (which
+   * carries `role="progressbar"`). Especially useful in `indeterminate` mode,
+   * where there is no `aria-valuenow` to describe the bar. A consumer-supplied
+   * `aria-label`/`aria-labelledby` attribute is left alone.
+   */
+  @property() label = ''
+
   @query('.track') private track!: HTMLElement | null
 
   /** Measured content width of the track, in px (from a ResizeObserver). */
@@ -140,6 +148,13 @@ export class VfProgressBar extends LitElement {
   }
 
   protected override updated(changed: PropertyValues<this>): void {
+    // Only clear the attribute when a non-empty label is emptied — on the first
+    // update `changed` carries the class-field default (old value `undefined`),
+    // and blowing away a consumer's own aria-label there would be wrong.
+    if (changed.has('label')) {
+      if (this.label) this.setAttribute('aria-label', this.label)
+      else if (changed.get('label')) this.removeAttribute('aria-label')
+    }
     if (changed.has('max')) {
       this.setAttribute('aria-valuemax', String(this.max > 0 ? this.max : 100))
     }

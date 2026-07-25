@@ -28,7 +28,15 @@ export class VfListItem extends LitElement {
         cursor: default;
         background: transparent;
       }
-      :host(:focus-visible) {
+      /* Plain :focus, not :focus-visible — vf-list drives a roving tabindex and
+         moves the cursor with item.focus(), and programmatic focus that isn't
+         preceded by a keyboard event doesn't match :focus-visible, so a
+         mouse-clicked cursor row would show no ring until the next Arrow key.
+         The roving tabindex guarantees only the cursor row is focusable, so
+         :focus is exactly the cursor. Matches sibling vf-menu-item. (On a
+         *selected* row the ring lands on the inverted black fill and reads as
+         absent — correct: there the inversion is itself the indicator.) */
+      :host(:focus) {
         --vf-focus-offset: -1px;
         ${vfFocusRing}
       }

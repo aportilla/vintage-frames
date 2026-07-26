@@ -301,9 +301,13 @@ Two System 7 bitmap faces ship inside the components and register themselves on
 
 Both render on their native 1024-upm pixel grid (one design pixel = one system
 pixel) and scale with `--vf-scale` (see [Display scaling](#display-scaling--true-classic-size-crisp-on-any-screen)),
-staying pixel-crisp. Retheme with `--vf-font-family-display` (chrome) and
-`--vf-font-family` (body), plus the matching `--vf-font-size-display` /
-`--vf-font-smoothing-display` tokens.
+staying pixel-crisp. Both are registered with `ascent-override: 75%` /
+`descent-override: 25%` / `line-gap-override: 0%` — the classic Chicago 12/4
+em on the 16-px design grid — because the WOFF2s' own hhea metrics are off
+that grid and would set every baseline one device pixel high
+(`npm run verify:baseline` asserts the rendered ink). Retheme with
+`--vf-font-family-display` (chrome) and `--vf-font-family` (body), plus the
+matching `--vf-font-size-display` / `--vf-font-smoothing-display` tokens.
 
 ## Utilities & style toolkit
 

@@ -8,7 +8,7 @@
  * Import for the side effect (it self-registers on first import), or call
  * `registerChiKareGo()` explicitly.
  */
-import { registerEmbeddedFont } from './register-embedded-font.js'
+import { PIXEL_GRID_METRICS, registerEmbeddedFont } from './register-embedded-font.js'
 
 /** The CSS `font-family` name the face is registered under. */
 export const CHIKAREGO_FAMILY = 'ChiKareGo'
@@ -19,7 +19,9 @@ const FONT_WOFF2_BASE64 =
 
 /** Register the ChiKareGo face on the document once (idempotent). */
 export function registerChiKareGo(): void {
-  registerEmbeddedFont(CHIKAREGO_FAMILY, FONT_WOFF2_BASE64)
+  // PIXEL_GRID_METRICS pins the baseline to the face's 12/4 design-pixel em —
+  // the shipped hhea metrics are off the pixel grid (see register-embedded-font).
+  registerEmbeddedFont(CHIKAREGO_FAMILY, FONT_WOFF2_BASE64, PIXEL_GRID_METRICS)
 }
 
 registerChiKareGo()

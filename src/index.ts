@@ -153,7 +153,8 @@ export { VfModalDialog, modalDialogStyles } from './modal-dialog.js'
 export type { VfCloseReason } from './modal-dialog.js'
 
 /** The embedded System 7 bitmap faces and the registration helper. */
-export { registerEmbeddedFont } from './styles/register-embedded-font.js'
+export { registerEmbeddedFont, PIXEL_GRID_METRICS } from './styles/register-embedded-font.js'
+export type { EmbeddedFontMetrics } from './styles/register-embedded-font.js'
 export { registerChiKareGo, CHIKAREGO_FAMILY } from './styles/chikarego-font.js'
 export {
   registerFindersKeepers,

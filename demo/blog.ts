@@ -51,9 +51,10 @@ const root = document.documentElement
  * Device-pixel grid snapping — on, with the switches to see it work.
  *
  * This page follows the layout contract to the letter (every line-height in
- * whole px, the header label given a fixed width), so with a clean load
- * applyGridSnap() has nothing to correct — verify:grid scores it 45/45 either
- * way. To see the thing actually working you have to break the page first:
+ * whole px, the caption column sized by an `auto` grid track), so with a clean
+ * load applyGridSnap() has nothing to correct — verify:grid scores it 54/54
+ * either way. To see the thing actually working you have to break the page
+ * first:
  *
  *   ?offgrid          reintroduce the faults the contract exists to prevent —
  *                     a ratio leading, and a fractional offset on the whole

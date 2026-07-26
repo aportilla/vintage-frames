@@ -23,7 +23,7 @@
       while the page's own 17px copy does not move at all; the readout in the
       bar above states what this display resolved to.
 
-      Two deliberate choices worth copying:
+      Three deliberate choices worth copying:
 
       1. There is no `vintage.css` import. That file paints the gray desktop
          background and forces the FindersKeepers bitmap face at weight 700 on
@@ -38,6 +38,17 @@
          fractional origin — and `17px × 1.65 = 28.05px` line boxes are the
          usual source — smears its 1-bit interior. `npm run verify:grid`
          checks it.
+
+      3. The line between page type and kit type is drawn by *what the text
+         belongs to*, not by where it sits. The article prose, headings, meta
+         lines, brand and footer are the page's own voice and stay in Georgia
+         and system UI type — that is choice 1, and the size slider proves it
+         (a bitmap face could not honor 15–22px). Text that captions a control
+         or lives inside one is chrome, and takes the kit's faces via
+         <vf-label> and <vf-paragraph>: the form and sidebar captions, the
+         readouts, and the dialog and alert copy. Both components state their
+         line box in whole system px, so they also satisfy choice 2 by
+         construction rather than by the page remembering to.
     -->
     <link rel="stylesheet" href="/demo/blog.css" />
     <script type="module" src="/demo/blog.ts"></script>
@@ -81,8 +92,17 @@
             placeholder="Search posts"
             label="Search posts"
           ></vf-text-field>
-          <vf-button id="search-go" size="small">Search</vf-button>
-          <vf-button id="subscribe" variant="default">Subscribe</vf-button>
+          <!-- Two buttons of different sizes, one of them variant="default":
+               exactly the row an ad-hoc flex row gets subtly wrong, because the
+               default button reserves its ring with a 4-system-px margin and so
+               lines up its *ring* with the other button's *face*. The group
+               zeroes that margin, reserves the ring space itself, and centers
+               the cross axis. `natural` keeps each button its own width — the
+               uniform-width default is a dialog convention, not a header one. -->
+          <vf-button-group natural>
+            <vf-button id="search-go" size="small">Search</vf-button>
+            <vf-button id="subscribe" variant="default">Subscribe</vf-button>
+          </vf-button-group>
         </div>
       </div>
 
@@ -158,7 +178,7 @@
           <footer class="post__footer">
             <vf-button size="small" data-action="save" data-post="post-scope">Save</vf-button>
             <vf-button size="small" data-action="share" data-post="post-scope">Share</vf-button>
-            <span class="post__saved" data-saved-for="post-scope" hidden>Saved</span>
+            <vf-label class="post__saved" data-saved-for="post-scope" hidden>Saved</vf-label>
           </footer>
         </article>
 
@@ -185,7 +205,7 @@
           <footer class="post__footer">
             <vf-button size="small" data-action="save" data-post="post-boring">Save</vf-button>
             <vf-button size="small" data-action="share" data-post="post-boring">Share</vf-button>
-            <span class="post__saved" data-saved-for="post-boring" hidden>Saved</span>
+            <vf-label class="post__saved" data-saved-for="post-boring" hidden>Saved</vf-label>
           </footer>
         </article>
 
@@ -211,7 +231,7 @@
           <footer class="post__footer">
             <vf-button size="small" data-action="save" data-post="post-bitmap">Save</vf-button>
             <vf-button size="small" data-action="share" data-post="post-bitmap">Share</vf-button>
-            <span class="post__saved" data-saved-for="post-bitmap" hidden>Saved</span>
+            <vf-label class="post__saved" data-saved-for="post-bitmap" hidden>Saved</vf-label>
           </footer>
         </article>
 
@@ -237,7 +257,7 @@
           <footer class="post__footer">
             <vf-button size="small" data-action="save" data-post="post-manual">Save</vf-button>
             <vf-button size="small" data-action="share" data-post="post-manual">Share</vf-button>
-            <span class="post__saved" data-saved-for="post-manual" hidden>Saved</span>
+            <vf-label class="post__saved" data-saved-for="post-manual" hidden>Saved</vf-label>
           </footer>
         </article>
 
@@ -257,7 +277,7 @@
           <footer class="post__footer">
             <vf-button size="small" data-action="save" data-post="post-undo">Save</vf-button>
             <vf-button size="small" data-action="share" data-post="post-undo">Share</vf-button>
-            <span class="post__saved" data-saved-for="post-undo" hidden>Saved</span>
+            <vf-label class="post__saved" data-saved-for="post-undo" hidden>Saved</vf-label>
           </footer>
         </article>
         </div>
@@ -271,24 +291,42 @@
              with no page glue. -->
         <form class="comments" id="comment-form" novalidate>
           <vf-fieldset legend="Leave a note">
+            <!-- vf-label instead of a native <label for>. A native label's
+                 `for` cannot reach the <input> inside a component's shadow
+                 root, which is why these fields used to repeat their caption in
+                 a `label` attribute; vf-label lands the text on the control's
+                 `label` property instead, so the caption is written once. It
+                 also matches the face of the control it names — the fieldset
+                 legend beside it was already the kit's chrome type.
+
+                 All three rows share one grid, so the captions share a column
+                 and the fields line up. The column is `auto`: it sizes itself
+                 to the widest caption, which is how a page gives a box holding
+                 components a whole-pixel width without hard-coding one. -->
             <div class="field">
-              <label class="field__label" for="note-name">Name</label>
-              <vf-text-field id="note-name" name="name" label="Name"></vf-text-field>
-            </div>
-            <div class="field">
-              <label class="field__label" for="note-email">Email</label>
-              <vf-text-field id="note-email" name="email" type="email" label="Email"></vf-text-field>
-            </div>
-            <div class="field">
-              <label class="field__label" for="note-body">Note</label>
-              <vf-text-area id="note-body" name="note" rows="4" label="Note"></vf-text-area>
+              <vf-label for="note-name">Name</vf-label>
+              <vf-text-field id="note-name" name="name"></vf-text-field>
+
+              <vf-label for="note-email">Email</vf-label>
+              <vf-text-field id="note-email" name="email" type="email"></vf-text-field>
+
+              <vf-label for="note-body">Note</vf-label>
+              <vf-text-area id="note-body" name="note" rows="4"></vf-text-area>
             </div>
             <vf-checkbox class="field__check" name="notify" value="yes">
               Email me when someone replies
             </vf-checkbox>
+            <!-- vf-button-group, not a flex row: "Post note" is
+                 variant="default", so its 4-system-px ring margin would push
+                 its face out of line with Clear's. The group also gives them
+                 the shared width a System 7 dialog would. Both buttons stay
+                 light-DOM descendants of the <form>, so type="submit" and
+                 type="reset" still drive it natively. -->
             <div class="comments__actions">
-              <vf-button type="reset">Clear</vf-button>
-              <vf-button type="submit" variant="default">Post note</vf-button>
+              <vf-button-group>
+                <vf-button type="reset">Clear</vf-button>
+                <vf-button type="submit" variant="default">Post note</vf-button>
+              </vf-button-group>
             </div>
           </vf-fieldset>
         </form>
@@ -335,10 +373,14 @@
 
         <section class="sidebar__block">
           <vf-fieldset legend="Reading">
-            <p class="sidebar__row">
-              <span class="sidebar__caption">Text size</span>
-              <span class="sidebar__value" id="text-size-readout">17px</span>
-            </p>
+            <!-- A caption and a readout attached to a control: vf-label's case.
+                 `for` adds click-to-focus on the slider; the slider already
+                 carries its own `label`, and vf-label never overwrites a name
+                 the page set. -->
+            <div class="sidebar__row">
+              <vf-label class="sidebar__caption" for="text-size">Text size</vf-label>
+              <vf-label class="sidebar__value" id="text-size-readout">17px</vf-label>
+            </div>
             <vf-slider
               id="text-size"
               min="15"
@@ -348,10 +390,11 @@
               label="Article text size"
             ></vf-slider>
 
-            <p class="sidebar__row">
-              <span class="sidebar__caption">Progress</span>
-              <span class="sidebar__value" id="progress-readout">0%</span>
-            </p>
+            <!-- No `for` here: a progress bar isn't focusable. -->
+            <div class="sidebar__row">
+              <vf-label class="sidebar__caption">Progress</vf-label>
+              <vf-label class="sidebar__value" id="progress-readout">0%</vf-label>
+            </div>
             <vf-progress-bar id="progress" value="0" label="Reading progress"></vf-progress-bar>
           </vf-fieldset>
         </section>
@@ -379,31 +422,39 @@
          Modals. Host is display:contents and the real box goes to the top
          layer, so DOM placement here is irrelevant.
          ================================================================== -->
+    <!-- A dialog is the kit all the way down — striped title bar, System 7
+         buttons — so its copy belongs on the kit's faces rather than the page's
+         Georgia. vf-paragraph carries the body face on a 20-system-px line box;
+         the article prose above stays exactly as it was. -->
     <vf-dialog id="dlg-subscribe" heading="Subscribe">
-      <p class="dialog__copy">
+      <vf-paragraph class="dialog__copy">
         One email per post. No tracking pixels, no “we've updated our privacy
         policy”.
-      </p>
+      </vf-paragraph>
       <div class="field">
-        <label class="field__label" for="sub-email">Email</label>
-        <vf-text-field id="sub-email" name="email" type="email" label="Email address"></vf-text-field>
+        <vf-label for="sub-email">Email</vf-label>
+        <vf-text-field id="sub-email" name="email" type="email"></vf-text-field>
       </div>
       <vf-button slot="buttons" id="sub-cancel">Cancel</vf-button>
       <vf-button slot="buttons" id="sub-confirm" variant="default">Subscribe</vf-button>
     </vf-dialog>
 
     <vf-dialog id="dlg-about" heading="About This Blog">
-      <p class="dialog__copy">
+      <vf-paragraph class="dialog__copy">
         Notes on small software, written since 2024. Built with
         <strong>Vintage Frames</strong> — Lit web components in the style of
         classic Mac OS System 7.
-      </p>
-      <p class="dialog__copy" id="about-scale"></p>
+      </vf-paragraph>
+      <vf-paragraph class="dialog__copy" id="about-scale"></vf-paragraph>
       <vf-button slot="buttons" id="about-ok" variant="default">OK</vf-button>
     </vf-dialog>
 
+    <!-- An alert speaks in chrome type, so this one takes face="display"
+         rather than vf-paragraph's body default. -->
     <vf-alert id="alert-note" variant="caution">
-      <span id="alert-message">A note needs some text before you can post it.</span>
+      <vf-paragraph id="alert-message" face="display"
+        >A note needs some text before you can post it.</vf-paragraph
+      >
       <vf-button slot="buttons" id="alert-ok" variant="default">OK</vf-button>
     </vf-alert>
   </body>

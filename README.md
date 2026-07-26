@@ -18,7 +18,7 @@ npm run typecheck
 | Page | What it is |
 | --- | --- |
 | [`/`](http://localhost:5173/) | **The showcase** — a full `vf-desktop` with menu bar, movable windows, dialogs, alerts and every control ([`index.html`](./index.html) + [`demo/`](./demo)) |
-| [`/blog.html`](http://localhost:5173/blog.html) | **The integration example** — an ordinary blog page (system-font copy, normal document flow, no `vintage.css`) using the controls in its header, sidebar and comment form ([`blog.html`](./blog.html) + [`demo/blog.*`](./demo)) |
+| [`/blog.html`](http://localhost:5173/blog.html) | **The integration example** — an ordinary blog page (system-font copy, normal document flow, no `vintage.css`) using the controls in its header, sidebar, dialogs and comment form ([`blog.html`](./blog.html) + [`demo/blog.*`](./demo)) |
 
 The second one is the more useful reference if you're dropping these components
 into an existing site. Everything on it is in its **default state** — the page
@@ -42,13 +42,13 @@ the page on purpose:
 | URL | What it shows |
 | --- | --- |
 | [`/blog.html`](http://localhost:5173/blog.html) | The page as authored — it already follows the layout contract, so snapping has nothing to correct |
-| [`/blog.html?offgrid`](http://localhost:5173/blog.html?offgrid) | A ratio leading and a fractional document offset put every component off the grid; snapping recovers all 38 measured |
+| [`/blog.html?offgrid`](http://localhost:5173/blog.html?offgrid) | A ratio leading and a fractional document offset put every component off the grid; snapping recovers all 45 measured |
 | [`/blog.html?offgrid&nosnap`](http://localhost:5173/blog.html?offgrid&nosnap) | The same broken page with snapping off — the comparison |
 
 The harness line at the top of the page reports how many components are off the
-grid right now — counting the 38 that carry their own correction; rows, options
-and the two groups ride their containers — so the three read 0, 0 and 38. A/B
-the last two at 100% zoom: the stepped button corners, hairline borders and
+grid right now — counting the 45 that carry their own correction; rows, options
+and the two group kinds ride their containers — so the three read 0, 0 and 45.
+A/B the last two at 100% zoom: the stepped button corners, hairline borders and
 glyph stems are the tell.
 
 The page also shows where a normal page must meet the kit halfway — the
@@ -57,6 +57,18 @@ setting `--vf-surface` behind a `vf-fieldset` legend on a tinted background,
 letting an `auto` grid column size a sidebar rather than fixing it in CSS px,
 and styling `vf-menu-bar::part(bar)` to align a full-bleed nav with a centered
 content column. Each is marked `vf hook` in [`demo/blog.css`](./demo/blog.css).
+
+It draws the line between page type and kit type by **what the text belongs
+to**. The article prose, headings and brand are the page's own voice and stay in
+Georgia and system UI type — the size slider drives them from 15 to 22px, which
+a bitmap face could not do. Text that captions a control or lives inside one is
+chrome, and uses [`vf-label` and `vf-paragraph`](#fonts): the form and sidebar
+captions, the readouts, and the dialog and alert copy. Buttons that share a row
+go in a `vf-button-group` rather than a flex row, which is what keeps a
+`variant="default"` button's face in line with its neighbour's instead of its
+ring. Notably, `blog.css` never reads `--vf-scale`: where it has to relate to a
+component's size it uses an `auto` grid track, `em` or `ch`, so the page stays
+ordinary CSS and the components do the scaling.
 
 ```sh
 npm run dev

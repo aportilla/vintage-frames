@@ -7,9 +7,20 @@
  * lines below that know Vintage Frames exists are the four marked "vf hook",
  * and they are the whole integration surface for a page like this.
  *
+ * Nothing here reads --vf-scale. The components size themselves, so where this
+ * file has to relate to their size it does it in ordinary relative units — an
+ * `auto` grid column that measures the captions, `em` and `ch` against the
+ * component's own type — and never in system pixels.
+ *
+ * The page's captions, readouts and dialog copy are vf-label and vf-paragraph,
+ * so their face, size and line box are the components' business and not this
+ * file's — the classes for them below set layout only. The article prose stays
+ * the page's own Georgia; see the third note at the top of blog.html.
+ *
  * Loaded from a <link> in blog.html's <head> rather than imported from JS, so
- * the --vf-scale below is in scope before the components upgrade. See the note
- * in blog.html.
+ * anything it declared in :root would be in scope before the components
+ * upgrade — which is what a page pinning --vf-scale would need. This one pins
+ * nothing; see the note in blog.html.
  */
 
 /* ── vf hook 1 ─────────────────────────────────────────────────────────────
@@ -201,22 +212,26 @@ code {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* The default button's ring outsets 4 system px on every side, so a row of
-     mixed buttons needs a little slack to breathe. */
-  padding-bottom: 2px;
+  /* No slack needed for the default button's ring: the two buttons are a
+     vf-button-group, which reserves the ring's 4 system px as its own padding
+     (see the note in blog.html). */
 }
 
 /* ── vf hook 3 ─────────────────────────────────────────────────────────────
  * The nav bar is deliberately full-bleed — vf-menu-bar paints its own white
  * ground and 1px rule edge to edge — but its *labels* should line up with the
  * brand above them. `::part(bar)` reaches the flex row inside and gives it the
- * page container's box. The 10px is vf-menu's own label padding, backed out so
- * the first label's text lands on the container edge rather than 10px past it.
+ * page container's box, less vf-menu's own label padding so the first label's
+ * text lands on the container edge rather than inside it.
+ *
+ * That padding is 10 system px, expressed here as 0.625em — `em` inside the
+ * part resolves against the menu bar's own font, which is what scales, so the
+ * correction tracks the component without this file naming --vf-scale.
  * ------------------------------------------------------------------------ */
 .site-header vf-menu-bar::part(bar) {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 max(0px, calc(24px - var(--vf-scale, 1) * 10px));
+  padding: 0 max(0px, calc(24px - 0.625em));
 }
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
@@ -306,12 +321,6 @@ code {
   margin-top: 18px;
 }
 
-.post__saved {
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--ink-soft);
-}
-
 /* vf-separator is display:block and 1 system px tall; give it its own room. */
 .post-rule {
   margin: 12px 0;
@@ -328,33 +337,35 @@ code {
   margin-top: 40px;
 }
 
+/*
+ * A caption/control grid: vf-labels in the first column, controls in the
+ * second. One grid holds every row, so all the captions share one column and
+ * the fields line up — and the column is `auto`, so it sizes itself to the
+ * widest caption instead of the page picking a number.
+ *
+ * That `auto` is doing real work beyond convenience. Contract rule 3 wants a
+ * box holding components to have a whole-pixel size, and a fixed width can't
+ * be right at every scale: the components size themselves to the display, so a
+ * caption is 16px tall on a 3× screen and 48px on a 1× one. An `auto` column is
+ * whatever the captions measure — which, being bitmap type, is always a whole
+ * number of system pixels. The page gets a shared, on-grid column without
+ * knowing what a system pixel is.
+ *
+ * `baseline` sits each caption on its control's own text baseline, which is
+ * likewise a relationship the page doesn't have to compute.
+ */
 .field {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-/* A multi-line field reads better with its label at the top. */
-.field:has(vf-text-area) {
-  align-items: flex-start;
-}
-
-.field__label {
-  flex: 0 0 auto;
-  width: 64px;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--ink-soft);
-}
-
-.field:has(vf-text-area) .field__label {
-  padding-top: 4px;
-}
-
+/* vf-text-field/-area carry a default width (--vf-field-width, 180 system px);
+   let them fill the column instead. */
 .field vf-text-field,
 .field vf-text-area {
-  flex: 1 1 auto;
   width: auto;
   min-width: 0;
 }
@@ -363,10 +374,11 @@ code {
   margin: 4px 0 16px;
 }
 
+/* The buttons are a vf-button-group, which shrink-wraps and brings its own
+   gap; the row only has to push it to the end. */
 .comments__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
 }
 
 .notes {
@@ -426,15 +438,14 @@ code {
   margin-top: 20px;
 }
 
+/* Caption and readout are both vf-labels, so the face, size and line box are
+   theirs; this is the row that holds them. */
 .sidebar__row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
   margin: 0 0 6px;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--ink-soft);
 }
 
 .sidebar__block + .sidebar__block .sidebar__row {
@@ -465,10 +476,15 @@ code {
 
 /* ── Dialogs ──────────────────────────────────────────────────────────── */
 
+/* vf-paragraph brings the face and the line box; the page sets the measure and
+   the space between paragraphs (a component adds no margin of its own).
+   Both in the paragraph's OWN units — `ch` for a measure, `em` for the gap — so
+   they track whatever size the component rendered at, with no reference to
+   --vf-scale. 0.75em of a 16-system-px face is 12 system px, so the gap stays a
+   whole number too. */
 .dialog__copy {
-  margin: 0 0 12px;
+  margin: 0 0 0.75em;
   max-width: 42ch;
-  line-height: 20px;
 }
 
 /* ── Footer ───────────────────────────────────────────────────────────── */

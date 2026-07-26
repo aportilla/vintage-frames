@@ -19,18 +19,12 @@
 /* ------------------------------- Menu bar ------------------------------ */
 
 /*
- * The Apple menu's title is U+F8FF, which ChiKareGo doesn't carry — it falls
- * through to a platform face whose advance for it is fractional (32.641 system
- * px). A menu is inline-block and sized by its label, so that fraction became
- * this menu's width and every menu after it started at a fractional device
- * pixel, fringing five labels' worth of 1-bit chrome.
- *
- * Whole width, whole offsets. `npm run verify:grid` catches this class of
- * thing; see the layout contract in README.
+ * Nothing to lay out. The Apple menu's title used to be U+F8FF — a
+ * fallback-face glyph whose fractional advance (32.641 system px) pushed all
+ * five menu titles off the device-pixel grid until this file pinned the menu
+ * to a whole width. It is now a slotted vf-img (16 system px square, whole by
+ * construction), so the bar needs no correction at all.
  */
-#menu-apple {
-  width: calc(var(--vf-scale, 1) * 33px);
-}
 
 /* ------------------------------- Desktop ------------------------------- */
 

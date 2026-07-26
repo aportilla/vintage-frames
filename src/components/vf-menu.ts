@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, nothing } from 'lit'
 import {
   customElement,
   property,
@@ -22,6 +22,10 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * keyboard navigation (ArrowUp/ArrowDown, Home/End) while open.
  *
  * @slot - Menu contents: `vf-menu-item` and `vf-separator` elements.
+ * @slot label - Replaces the `label` text in the bar — e.g. a `vf-img` apple
+ *   icon for the Apple menu. Keep the `label` attribute set too: it stays the
+ *   menu's accessible name (the bar item's `aria-label` and the panel's) when
+ *   the visible title is an image.
  * @csspart label - The menu title in the bar (inverts while open).
  * @csspart panel - The dropped `.vf-panel` containing the items.
  */
@@ -82,7 +86,11 @@ export class VfMenu extends LitElement {
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
-  /** The menu title shown in the bar (may contain a glyph, e.g. an apple). */
+  /**
+   * The menu title shown in the bar, and the menu's accessible name. Slotted
+   * `label` content replaces it visually (see the `label` slot) but this text
+   * keeps naming the menu for AT.
+   */
   @property() label = ''
 
   /**
@@ -191,11 +199,12 @@ export class VfMenu extends LitElement {
         tabindex=${this.barTabIndex}
         aria-haspopup="menu"
         aria-expanded=${this.open ? 'true' : 'false'}
+        aria-label=${this.label || nothing}
         @click=${this.#onLabelClick}
         @pointerenter=${this.#onLabelEnter}
         @keydown=${this.#onLabelKeydown}
       >
-        ${this.label}
+        <slot name="label">${this.label}</slot>
       </div>
       <div class="panel vf-panel" part="panel" role="menu" aria-label=${this.label}>
         <slot></slot>

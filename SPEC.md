@@ -651,7 +651,10 @@ The classic popup menu control ("Macintosh HD ▼").
   to parent `vf-menu-bar` when present (only one open at a time). Sets
   `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so slotted
   `vf-separator`s render dimmed with 2px vertical margin.
-- **Slots:** default (vf-menu-item / vf-separator). **Parts:** `label`, `panel`.
+- **Slots:** default (vf-menu-item / vf-separator), `label` (replaces the
+  `label` text in the bar — e.g. the Apple menu's `vf-img` apple; the `label`
+  attribute stays set as the accessible name, mirrored to the bar item's
+  `aria-label`). **Parts:** `label`, `panel`.
 
 #### `vf-menu-item` (`VfMenuItem`, vf-menu-item.ts)
 - **Attributes/props:** `disabled`, `checked` (shows ✓ in left gutter),
@@ -862,6 +865,28 @@ A paragraph of copy on the kit's body face and grid.
   page's, in whole pixels like everything else.
 - **Slots:** default (the copy). **Parts:** `paragraph`.
 
+### Group F — images
+
+#### `vf-img` (`VfImg`, vf-img.ts)
+A raster image — the reference art's pixel icons — on the kit's grid, treating
+one image pixel as one system pixel.
+- **Attributes/props:** `width`, `height`: number (system px, whole; default
+  the slotted image's natural size). Stated up front they reserve the box
+  before the file loads; a whole multiple magnifies on the same grid.
+- **Visual:** `display: inline-block`; the shadow `frame` box is sized
+  `width × height` system px (× `--vf-scale` in `calc()`, so a source pixel
+  covers exactly `scale × dpr` device px — contract rule 1) and the slotted
+  `<img>` fills it with `image-rendering: pixelated`, which on a
+  whole-device-pixel box is bit-exact nearest-neighbor magnification. The box
+  is 0×0 until a size is known — never a flash of the image at some other
+  scale. `-webkit-user-drag: none` (chrome, not draggable content).
+- **Behavior:** the graphic stays a native `<img>` in the consumer's light DOM
+  (native loading, `alt` semantics — `alt=""` when decorative; the kit ships no
+  raster files). The component watches the slotted image's `load`/`error` to
+  pick up its natural size and any later `src` swap. Carries a
+  `ScaleController` and a `GridSnapController` like every painted host.
+- **Slots:** default (a single `<img>`). **Parts:** `frame`.
+
 ## 6. Exports
 
 `src/index.ts` (already written — do not change without reason) exports every
@@ -873,8 +898,8 @@ component class. Importing the package registers all elements.
 root. It is both showcase and fidelity test — it recreates the reference
 screenshots:
 
-1. Full-viewport `vf-desktop` with a `vf-menu-bar` on top: apple glyph menu
-   (about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, disabled Print,
+1. Full-viewport `vf-desktop` with a `vf-menu-bar` on top: Apple menu (its bar
+   title a slotted 16-px `vf-img` apple icon; about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, disabled Print,
    sep, Quit ⌘Q), Edit (Undo ⌘Z, sep, Cut/Copy/Paste), View (checked item
    "by Icon", "by Name"), Special (Restart, Shut Down, sep, "Show All
    Windows" — reopens closed demo windows).

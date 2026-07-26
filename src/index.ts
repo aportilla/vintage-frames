@@ -34,9 +34,10 @@ export { VfOption } from './components/vf-option.js'
 export { VfProgressBar } from './components/vf-progress-bar.js'
 export { VfSlider } from './components/vf-slider.js'
 
-// Static text
+// Static text & images
 export { VfLabel } from './components/vf-label.js'
 export { VfParagraph } from './components/vf-paragraph.js'
+export { VfImg } from './components/vf-img.js'
 
 // Menus, lists, containers
 export { VfMenuBar } from './components/vf-menu-bar.js'

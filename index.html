@@ -10,8 +10,16 @@
     <vf-desktop id="desktop">
       <!-- ============================== Menu bar ======================== -->
       <vf-menu-bar>
-        <!-- U+F8FF: the Apple logo glyph (renders on Apple platforms). -->
-        <vf-menu id="menu-apple" label="&#xf8ff;">
+        <!-- The six-color apple as pixel art (16×16, one image px = one
+             system px), slotted into the bar title as a vf-img. The image is
+             decorative (alt=""); `label` keeps naming the menu for AT. -->
+        <vf-menu id="menu-apple" label="Apple">
+          <vf-img slot="label" width="16" height="16">
+            <img
+              src="/Classic%20Macintosh%20UI%20Kit%20Reference/Base%20elements/Apple.png"
+              alt=""
+            />
+          </vf-img>
           <vf-menu-item value="about">About This Macintosh…</vf-menu-item>
         </vf-menu>
         <vf-menu id="menu-file" label="File">

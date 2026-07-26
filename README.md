@@ -132,6 +132,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-fieldset` | Group box with legend punching through the border |
 | `vf-label` | Static caption ("Name:", "Mode") in the chrome face; `for` focuses and names a control the way `<label for>` does |
 | `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box |
+| `vf-img` | Pixel art on the kit's grid — sizes a slotted `<img>` to one system pixel per image pixel and keeps the nearest-neighbor magnification on whole device pixels; `width`/`height` (system px) reserve the box before the file loads |
 
 All visual constants are CSS custom properties (`--vf-*`) with inlined
 fallbacks — components need **no global CSS**, and everything is themeable.
@@ -282,7 +283,8 @@ grid. That was the 46th component: two text-sized `<span>`s made their flex row
 The same trap catches any label whose glyphs come from a fallback face — the
 showcase's Apple menu (`U+F8FF`, which the bitmap face doesn't carry) measured
 `32.641` system px and pushed all five menu titles off-grid until it was given a
-whole width.
+whole width. (It has since dropped the glyph altogether: the menu now slots a
+16-px `vf-img` apple icon, whole by construction.)
 
 Snapping covers the origin half of this rule but not the size half: a
 block-level component stretched by a fractional-width parent still *measures*

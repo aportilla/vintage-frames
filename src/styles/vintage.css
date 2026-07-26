@@ -16,7 +16,10 @@
    *   'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif; // chrome face
    * --vf-font-size: 16px;
    * --vf-font-size-display: 16px;
-   * --vf-font-size-small: 12px;
+   * --vf-font-size-small: 12px;            // fine print. Both bitmap faces are
+   *   16-design-px masters, so this renders them at 0.75 design px per system
+   *   px: soft stems and a fractional text width. It's the fine print the
+   *   reference screens contain, not a size to set copy in.
    * --vf-font-smoothing-display: none;         // crisp 1-bit chrome edges;
    *   set to 'antialiased' if you point --vf-font-family-display at a vector face
    * --vf-font-weight: 700;
@@ -29,6 +32,11 @@
    * --vf-button-height: 20px;                // vf-button face
    * --vf-popup-height: 18px;                 // vf-select pill (border box)
    * --vf-menu-row-height: 16px;              // vf-menu-item row pitch
+   * --vf-label-line-height: 16px;            // vf-label line box
+   * --vf-paragraph-line-height: 20px;        // vf-paragraph line box
+   * --vf-paragraph-line-height-small: 16px;  // …under size="small"
+   *   Line boxes are lengths: keep them whole system px, never a ratio — that
+   *   is what puts a page off the device-pixel grid (see README).
    * --vf-control-height-small: 16px;
    * --vf-select-gutter: 16px;                 // ✓ column: select / option / menu-item
    * --vf-titlebar-height: 18px;

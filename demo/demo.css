@@ -4,9 +4,9 @@
  * This file positions and sizes things on the desktop (window placement,
  * flex/grid flow, gaps, margins, scroll heights). All aesthetics — colors,
  * borders, shadows, stripes, type — come from the components themselves.
- * The two typographic exceptions: the spec-mandated small-font disk caption
- * (SPEC §7.2), and the static field labels below — plain text, not components,
- * so the demo sets their face to match System 7 chrome.
+ * That now includes the static text: every caption is a `vf-label` and every
+ * run of copy a `vf-paragraph`, so the classes below only ever set layout
+ * (a label column's width, the gap under a paragraph) — never a face or a size.
  *
  * Display scaling: the components render at true 72dpi size by default (each
  * system pixel = 3 device pixels; see src/scale.ts), driven by the inherited
@@ -15,32 +15,6 @@
  * calc(), so window sizes, positions, gaps and the chrome labels scale in
  * lockstep with the controls. Default --vf-scale of 1 = the original layout.
  */
-
-/* ------------------------------ Typography ----------------------------- */
-
-/* Field labels ("Name:", "Find items", "Title:") are dialog chrome, so they
-   take the Chicago-style display face, crisp (no smoothing) — the same face
-   the components use for buttons, menus and popups — and scale with them. */
-.field-label,
-.group-label,
-.newdoc-label,
-.newimage-label,
-.find-label {
-  font-family: var(
-    --vf-font-family-display,
-    'ChiKareGo',
-    'Chicago',
-    'ChicagoFLF',
-    'Charcoal',
-    'Geneva',
-    'Helvetica Neue',
-    Helvetica,
-    Arial,
-    sans-serif
-  );
-  font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-display, 16px));
-  -webkit-font-smoothing: none;
-}
 
 /* ------------------------------- Menu bar ------------------------------ */
 
@@ -134,7 +108,7 @@ vf-desktop {
 .installer-well {
   height: calc(var(--vf-scale, 1) * 190px);
 }
-.installer-well p,
+.installer-well vf-paragraph,
 .installer-well ul {
   margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
@@ -145,13 +119,20 @@ vf-desktop {
   margin-bottom: 0;
 }
 
+/* The fine print (SPEC §7.2) — the size comes from the labels' own
+   size="small", so this is layout only.
+
+   The captions stretch (no align-items) on purpose. At 12px the 16-design-px
+   bitmap face renders at 0.75 design px per system px, so a shrink-wrapped
+   caption measures a fractional width — 139.5 system px here — and lands the
+   host off the device-pixel grid (README rule 3). Stretched, each caption takes
+   the well's own whole width and only the glyphs are soft, which at this size
+   is the kit's documented trade-off (SPEC §3, --vf-font-size-small). */
 .installer-caption {
   display: flex;
   flex-direction: column;
   gap: calc(var(--vf-scale, 1) * 2px);
   margin: calc(var(--vf-scale, 1) * 10px) calc(var(--vf-scale, 1) * 2px);
-  /* Spec-mandated fine print (SPEC §7.2 / §3 --vf-font-size-small). */
-  font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-small, 12px));
 }
 
 .installer-bottom {
@@ -236,6 +217,16 @@ vf-desktop {
   flex: none;
   min-width: calc(var(--vf-scale, 1) * 80px);
 }
+/* vf-number-field is the kit's one odd-height control — 25 system px, its
+   little-arrows sprite's native size — so centering the 16px caption in the row
+   would put it on a half pixel (README rule 3). Sit it beside the field's own
+   22px well instead: 1px (the well's optical-centering bias, see
+   vf-number-field) + 3px. The component solves the same parity problem the
+   same way. */
+.field-row.stepper .field-label {
+  align-self: flex-start;
+  margin-top: calc(var(--vf-scale, 1) * 4px);
+}
 .field-row vf-text-field,
 .field-row vf-text-area {
   flex: 1;
@@ -255,7 +246,7 @@ vf-desktop {
 .scroll-demo {
   height: calc(var(--vf-scale, 1) * 130px);
 }
-.scroll-demo p {
+.scroll-demo vf-paragraph {
   margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
 
@@ -419,7 +410,7 @@ vf-desktop {
 .about-body {
   max-width: calc(var(--vf-scale, 1) * 360px);
 }
-.about-body p {
+.about-body vf-paragraph {
   margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
 

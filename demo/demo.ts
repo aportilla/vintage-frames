@@ -5,7 +5,7 @@
  * dialog, and the animated determinate progress bar. Everything visual comes
  * from the components; this module is behavior only.
  */
-import { VfWindow } from '../src/index.js'
+import { VfParagraph, VfWindow } from '../src/index.js'
 import { sys } from '../src/scale.js'
 import type {
   VfAlert,
@@ -92,7 +92,7 @@ function spawnWindow(): void {
   win.style.top = `${sys(140 + step * 26, desktop)}px`
   win.style.width = `${sys(300, desktop)}px`
 
-  const note = document.createElement('p')
+  const note = new VfParagraph()
   note.className = 'untitled-note'
   note.textContent =
     'A fresh window. Drag it by its title bar; click any window to bring it to the front.'

@@ -96,7 +96,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-font-family-display` | `'ChiKareGo', 'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
 | `--vf-font-size` | `16px` | body face size |
 | `--vf-font-size-display` | `16px` | chrome face size |
-| `--vf-font-size-small` | `12px` | fine print (e.g. disk-space captions) |
+| `--vf-font-size-small` | `12px` | fine print (disk-space captions, `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table |
 | `--vf-font-weight` | `700` | all text (Chicago is inherently bold) |
 | `--vf-black` | `#000000` | borders, text, stripes, selection bg |
 | `--vf-white` | `#ffffff` | content wells, control faces |
@@ -108,6 +108,9 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
 | `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) |
+| `--vf-label-line-height` | `16px` | `vf-label` line box — the faces' own em, so a caption sits on the menu/popup rhythm |
+| `--vf-paragraph-line-height` | `20px` | `vf-paragraph` line box — the same pitch as a `vf-list-item` row |
+| `--vf-paragraph-line-height-small` | `16px` | `vf-paragraph` line box under `size="small"` |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
@@ -130,6 +133,22 @@ consumer or ancestor `--vf-scale` always wins (set it to `1` to pin the fixed
 authored sizes), and because it is a plain inherited multiplier, nesting never
 compounds. JS-driven geometry (slider rail/thumb, select panel, window resize)
 converts between system and CSS px with the `sys()` / `toSys()` helpers.
+
+**Line boxes are lengths too.** Every line-height in the kit is stated in whole
+system px (`--vf-menu-row-height`, `--vf-label-line-height`,
+`--vf-paragraph-line-height`, …), never as a ratio. A ratio resolves to whatever
+it resolves to — `1.65 × 17px` is `28.05px` — and each line pushes everything
+after it further off the device-pixel grid, which is the single most common way
+a page fringes an otherwise-correct component (see the layout contract in
+README). Re-theme these tokens with whole numbers.
+
+**One size, honestly.** Both embedded faces are single 16-design-px masters, so
+`--vf-font-size-small` (12px) renders them at 0.75 design px per system px:
+stems land between device pixels and a run of text measures fractionally, which
+also drags its host off the grid if the host shrink-wraps to it (contract rule
+3). It is the one place the kit trades pixel-exactness for the fine print the
+reference screens actually contain. Use it for genuine captions, give the box a
+whole width (or let it stretch), and keep everything else at the one true size.
 
 **Grid snapping.** Whole system pixels only put an edge on the device grid
 *relative to the component's own origin*; a page that lands that origin on a
@@ -158,6 +177,13 @@ right.
 - `vfBase` — host font, `box-sizing: border-box` everywhere, the `.vf-snap`
   grid-correction hook (see Grid snapping above), `user-select: none`
   (text inputs re-enable), `:host([hidden]) { display: none !important }`.
+- `vfBodyDecls` — the three declarations that put text on the FindersKeepers
+  body face (family, 16px, smoothing), for composing into one rule; the mirror
+  of `vfDisplayDecls`, and the body face's single definition (`vfBase` applies
+  it to every host; `vf-button size="small"` and `face="body"` switch back to it).
+- `vfStaticText` — the `face` / `size` / `dim` host switches shared by
+  `vf-label` and `vf-paragraph`. All `:host([attr])`, one specificity step above
+  the plain `:host` rule each component sets its own default face in.
 - `vfStripes` — a `.vf-stripes` class:
   `background: repeating-linear-gradient(to bottom, var(--vf-black, #000) 0 1px, transparent 1px 2px);`
   Position it absolutely inside the title bar, inset `3px 2px` (top/bottom 3px,
@@ -749,6 +775,52 @@ The "Install Location" group box.
 - **Slots:** default, plus named slot `legend` (overrides attr).
 - **Parts:** `fieldset`, `legend`.
 
+### Group E — static text
+
+The two components for text that is *not* part of a control: captions and copy.
+Both compose `vfStaticText` for their `face` / `size` / `dim` switches, both
+carry a `ScaleController` and a `GridSnapController`, and both exist for the
+same reason — a line box stated in whole system px, so text stops being the
+thing that knocks a page off the device-pixel grid (§3, "Line boxes are lengths
+too"). `npm run verify:text` asserts the line boxes, the faces and the `for`
+wiring, and A/Bs a column of paragraphs against plain `<p>`s under a ratio
+leading.
+
+#### `vf-label` (`VfLabel`, vf-label.ts)
+The static caption: "Name:" beside a field, "Mode" over a radio group, a readout.
+- **Attributes/props:** `for: string` (id of the labelled control, resolved in
+  the label's own tree scope), `face: 'display' | 'body'`, `size: 'small'`,
+  `dim: boolean`.
+- **Visual:** `display: inline-block` (so a page can give a caption column a
+  shared width — contract rule 3), the **display face** by default (dialog
+  captions are chrome), `line-height: var(--vf-label-line-height, 16px)`,
+  `cursor: default`, not selectable (chrome, per §1). `dim` greys the text to
+  `--vf-disabled` — System 7 dims the label, not the control.
+- **Behavior (`for`):** clicking the caption **focuses** the target (a focus
+  shortcut, not an activation — the kit's toggles carry their own labels), and
+  the caption text becomes the target's **accessible name** by whichever route
+  reaches it: a `vf-*` control's `label` property (the only thing that reaches
+  the focusable element inside its shadow root), or `aria-labelledby` for
+  anything in the label's own tree scope. Never overwrites a name the consumer
+  set; puts back what it found when the label is removed, the id changes or the
+  caption text does. A target that hasn't upgraded yet is waited for
+  (`customElements.whenDefined`), since a pre-upgrade element has no `label`
+  property to fill in. A disabled target (`disabled`, or `isDisabled` for an
+  ancestor `<fieldset disabled>`) is not focused.
+- **Slots:** default (the caption). **Parts:** `label`.
+
+#### `vf-paragraph` (`VfParagraph`, vf-paragraph.ts)
+A paragraph of copy on the kit's body face and grid.
+- **Attributes/props:** `face: 'display' | 'body'`, `size: 'small'`,
+  `dim: boolean`.
+- **Visual:** `display: block`, the **body face** by default,
+  `line-height: var(--vf-paragraph-line-height, 20px)` (16px under
+  `size="small"`), selectable (prose, so it re-enables the text selection
+  `vfBase` suppresses). Renders a real `<p>` in the shadow root, so the copy
+  keeps paragraph semantics for AT. **No margin** (§2): paragraph spacing is the
+  page's, in whole pixels like everything else.
+- **Slots:** default (the copy). **Parts:** `paragraph`.
+
 ## 6. Exports
 
 `src/index.ts` (already written — do not change without reason) exports every
@@ -790,7 +862,10 @@ screenshots:
    Special → Show All Windows un-hides.
 
 Demo may use small amounts of layout CSS (positioning windows on the desktop)
-but NO aesthetic CSS — looks must come from the components.
+but NO aesthetic CSS — looks must come from the components. That includes the
+static text: every caption is a `vf-label` and every run of copy a
+`vf-paragraph`, so `demo.css` sets no face or size at all (it used to hand-roll
+the display face for the field labels, which is what Group E replaced).
 
 ## 8. Definition of done
 

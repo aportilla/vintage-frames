@@ -118,6 +118,8 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-list`, `vf-list-item` | List box with inverted selection, a permanent scroll rail, and Finder first-letter type-ahead |
 | `vf-scroll-area` | Container with System 7 scrollbars; reserves the scroll rail as a placeholder (per-axis via `axis`), filling in only on overflow |
 | `vf-fieldset` | Group box with legend punching through the border |
+| `vf-label` | Static caption ("Name:", "Mode") in the chrome face; `for` focuses and names a control the way `<label for>` does |
+| `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box |
 
 All visual constants are CSS custom properties (`--vf-*`) with inlined
 fallbacks — components need **no global CSS**, and everything is themeable.
@@ -249,6 +251,10 @@ clean one (`npm run verify:snap` asserts exactly that, at dpr 1/2/3).
 /* ✓ */ p { font-size: 17px; line-height: 28px; }
 ```
 
+Text you set on the kit's own faces has a third option: `<vf-paragraph>` and
+`<vf-label>` state their line box in whole system pixels themselves, so a column
+of copy accumulates whole offsets with nothing for the page to remember.
+
 **3. Position a box that contains components from its start edge — or give it a
 whole-pixel size.** Normal flow accumulates whole offsets by itself. Anything
 right-aligned, centered, or sharing `space-between` free space computes its
@@ -309,6 +315,35 @@ that grid and would set every baseline one device pixel high
 `--vf-font-family-display` (chrome) and `--vf-font-family` (body), plus the
 matching `--vf-font-size-display` / `--vf-font-smoothing-display` tokens.
 
+**Your own text goes on the same faces with `vf-label` and `vf-paragraph`.**
+A caption beside a control and a run of copy are the two things every page adds
+around the kit, and setting them by hand means repeating the family stack, the
+smoothing and — the part that actually bites — a line box that has to be a whole
+number of system pixels:
+
+```html
+<vf-label for="disk">Install Location:</vf-label>
+<vf-select id="disk">…</vf-select>
+
+<vf-paragraph>Click Install to place DragThing on your hard disk.</vf-paragraph>
+<vf-paragraph size="small" dim>Approximate disk space needed: 4,584K</vf-paragraph>
+```
+
+`vf-label` is chrome type on a 16px line box, `vf-paragraph` body type on a 20px
+one; `face="body"` / `face="display"` swaps either, `size="small"` drops to the
+12px fine print, and `dim` greys the text the way System 7 dims a label. Both
+snap themselves to the device grid, and `for` does what a native `<label for>`
+does — click to focus, plus the accessible name, which for a `vf-*` control has
+to reach the focusable element inside its shadow root and so lands on the
+control's `label` property (never overwriting one you set).
+
+One honest limit: both faces are single 16-design-pixel masters, so
+`size="small"` renders them at 0.75 design px per system px — the stems land
+between device pixels and the run measures fractionally. It is the fine print
+the reference screens contain, not a size to set body copy in; give a small
+caption a whole width (or let it stretch) so its host stays on the grid.
+`npm run verify:text` checks the line boxes, the faces and the `for` wiring.
+
 ## Utilities & style toolkit
 
 The shared toolkit the components are built from is exported from the package
@@ -324,7 +359,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Opt the page into automatic device-pixel-grid snapping; add it to your own component with one controller line plus the `vf-snap` class on its painted root |
 | `sys`, `toSys`, `effectiveScale`, `getScale`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; snap coordinates to the device grid |
 | `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |
-| `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
+| `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `steppedRectClip`, `steppedRingClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`) |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow reporting for the always-a-rail scrollbars; a track's measured width, for drawing your own 1-bit fill on the system-pixel grid; document-level listeners scoped to an open panel or in-flight gesture (paired attach/detach + disconnect cleanup in one place) |

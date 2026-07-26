@@ -9,26 +9,39 @@ import './chikarego-font.js'
 import './finders-keepers-font.js'
 
 /**
+ * The three declarations that put text on the FindersKeepers *body* face — the
+ * family via --vf-font-family, 16px so its 1024-upm pixel grid lands exactly,
+ * and the body smoothing token. The mirror image of {@link vfDisplayDecls}, and
+ * the body face's single definition: {@link vfBase} applies it to every host,
+ * and the handful of places that switch *back* to it from the display face
+ * (vf-button's small size, vf-label/vf-paragraph's `face="body"`) compose this
+ * rather than repeating the family stack.
+ */
+export const vfBodyDecls = unsafeCSS(`
+  font-family: var(
+    --vf-font-family,
+    'FindersKeepers',
+    'Geneva',
+    'Helvetica Neue',
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  font-size: calc(var(--vf-scale, 1) * var(--vf-font-size, 16px));
+  -webkit-font-smoothing: var(--vf-font-smoothing, antialiased);
+`)
+
+/**
  * Shared base styles for every Vintage Frames component.
  * See SPEC.md §3 (tokens) and §4 (recipes).
  */
 export const vfBase = css`
   :host {
     box-sizing: border-box;
-    font-family: var(
-      --vf-font-family,
-      'FindersKeepers',
-      'Geneva',
-      'Helvetica Neue',
-      Helvetica,
-      Arial,
-      sans-serif
-    );
-    font-size: calc(var(--vf-scale, 1) * var(--vf-font-size, 16px));
+    ${vfBodyDecls}
     font-weight: var(--vf-font-weight, 700);
     line-height: 1.25;
     color: var(--vf-black, #000);
-    -webkit-font-smoothing: var(--vf-font-smoothing, antialiased);
     user-select: none;
     -webkit-user-select: none;
   }
@@ -89,6 +102,38 @@ export const vfDisplayDecls = unsafeCSS(`
 export const vfDisplay = css`
   :host {
     ${vfDisplayDecls}
+  }
+`
+
+/**
+ * The three host switches shared by the kit's static-text components
+ * (`vf-label`, `vf-paragraph`) — the only things those two do identically:
+ *
+ * - `face="display" | "body"` picks the face explicitly, so a caption can be
+ *   set in body copy or a paragraph in chrome type. Each component keeps its
+ *   own *default* face in its own stylesheet (a label is chrome, a paragraph is
+ *   body); this is the override.
+ * - `size="small"` drops to `--vf-font-size-small` (12px), the kit's fine print.
+ * - `dim` greys the text to `--vf-disabled` — the System 7 dimmed-text
+ *   treatment (SPEC §1), for static text beside a disabled control.
+ *
+ * Every rule is `:host([attr])`, one specificity step above the plain `:host`
+ * rule a component sets its own defaults in, so they win wherever they are
+ * composed. Order matters *within* this fragment: `size` follows `face`
+ * because both set `font-size` at equal specificity.
+ */
+export const vfStaticText = css`
+  :host([face='display']) {
+    ${vfDisplayDecls}
+  }
+  :host([face='body']) {
+    ${vfBodyDecls}
+  }
+  :host([size='small']) {
+    font-size: calc(var(--vf-scale, 1) * var(--vf-font-size-small, 12px));
+  }
+  :host([dim]) {
+    color: var(--vf-disabled, #c0c0c0);
   }
 `
 

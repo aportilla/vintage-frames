@@ -1,6 +1,6 @@
 import { css, html, unsafeCSS } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import { vfBase, vfDisplay, vfFocus } from '../styles/base.js'
+import { vfBase, vfBodyDecls, vfDisplay, vfFocus } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { VfFormControl } from '../form-control.js'
@@ -150,17 +150,7 @@ export class VfButton extends VfFormControl {
          so only the metrics change — and the label drops to the body face,
          matching the sheet's smaller Geneva-9-style labels. */
       :host([size='small']) {
-        font-family: var(
-          --vf-font-family,
-          'FindersKeepers',
-          'Geneva',
-          'Helvetica Neue',
-          Helvetica,
-          Arial,
-          sans-serif
-        );
-        font-size: calc(var(--vf-scale, 1) * var(--vf-font-size, 16px));
-        -webkit-font-smoothing: var(--vf-font-smoothing, antialiased);
+        ${vfBodyDecls}
       }
       :host([size='small']) button {
         height: calc(var(--vf-scale, 1) * var(--vf-control-height-small, 16px));

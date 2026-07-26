@@ -48,7 +48,7 @@
       <vf-window id="win-format" heading="Format" movable>
         <div class="format-columns">
           <div class="format-group">
-            <span class="group-label" id="format-mode-label">Mode</span>
+            <vf-label class="group-label" id="format-mode-label">Mode</vf-label>
             <vf-radio-group
               value="hierarchical"
               name="mode"
@@ -72,7 +72,7 @@
             >
           </div>
           <div class="format-group">
-            <span class="group-label">Options</span>
+            <vf-label class="group-label">Options</vf-label>
             <div class="stack">
               <vf-checkbox checked>Include Styles</vf-checkbox>
               <vf-checkbox checked>Include Rulers</vf-checkbox>
@@ -94,33 +94,44 @@
           <div class="stack">
             <vf-fieldset legend="Text">
               <div class="stack">
+                <!-- vf-label `for` does what a native <label for> does: click
+                     to focus, and the caption becomes the control's accessible
+                     name — which is why these fields carry no `label` attr. -->
                 <div class="field-row">
-                  <span class="field-label">Name:</span>
+                  <vf-label class="field-label" for="ctl-name">Name:</vf-label>
                   <vf-text-field
+                    id="ctl-name"
                     name="name"
                     value="Macintosh HD"
                     placeholder="Untitled"
                   ></vf-text-field>
                 </div>
                 <div class="field-row">
-                  <span class="field-label">Password:</span>
+                  <vf-label class="field-label" for="ctl-password"
+                    >Password:</vf-label
+                  >
                   <vf-text-field
+                    id="ctl-password"
                     type="password"
                     name="password"
                     value="hunter2"
                   ></vf-text-field>
                 </div>
                 <div class="field-row">
-                  <span class="field-label">Notes:</span>
+                  <vf-label class="field-label" for="ctl-notes">Notes:</vf-label>
                   <vf-text-area
+                    id="ctl-notes"
                     rows="3"
                     name="notes"
                     value="The city in the middle of the water."
                   ></vf-text-area>
                 </div>
-                <div class="field-row">
-                  <span class="field-label">Copies:</span>
+                <div class="field-row stepper">
+                  <vf-label class="field-label" for="ctl-copies"
+                    >Copies:</vf-label
+                  >
                   <vf-number-field
+                    id="ctl-copies"
                     name="copies"
                     value="1"
                     min="1"
@@ -142,7 +153,12 @@
             <vf-fieldset legend="Volume">
               <div class="stack">
                 <div class="field-row">
-                  <span class="field-label">Level:</span>
+                  <!-- The slider names itself, so this caption only wires up
+                       the click-to-focus half; vf-label never overwrites a
+                       `label` the consumer set. -->
+                  <vf-label class="field-label" for="slider-demo"
+                    >Level:</vf-label
+                  >
                   <vf-slider
                     id="slider-demo"
                     name="volume"
@@ -152,7 +168,9 @@
                     label="Volume level"
                     style="flex: 1"
                   ></vf-slider>
-                  <span id="slider-readout" class="field-label">40</span>
+                  <vf-label id="slider-readout" class="field-label"
+                    >40</vf-label
+                  >
                 </div>
                 <vf-slider value="70" disabled label="Balance"></vf-slider>
               </div>
@@ -188,24 +206,24 @@
             </vf-fieldset>
             <vf-fieldset legend="Scroll Area">
               <vf-scroll-area class="scroll-demo">
-                <p>
+                <vf-paragraph>
                   There is a special kind of quiet in a freshly formatted hard
                   disk: 58,616K of nothing at all, waiting for a System Folder.
-                </p>
-                <p>
+                </vf-paragraph>
+                <vf-paragraph>
                   Drag the thumb, press the arrows, or click in the dithered
                   track — the scrollbar is the whole show here. In 1991 this
                   was the state of the art, and honestly it still holds up.
-                </p>
-                <p>
+                </vf-paragraph>
+                <vf-paragraph>
                   Remember to rebuild your desktop file once in a while, keep a
                   spare startup floppy in the drawer, and never, ever unplug a
                   SCSI chain while the machine is on.
-                </p>
-                <p>
+                </vf-paragraph>
+                <vf-paragraph>
                   If you can read this line without scrolling, your window has
                   been zoomed generously. Well done.
-                </p>
+                </vf-paragraph>
               </vf-scroll-area>
             </vf-fieldset>
             <vf-fieldset legend="Disabled">
@@ -229,30 +247,35 @@
       <!-- ================ "DragThing 2.9 Installer" window ============== -->
       <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable>
         <vf-scroll-area class="installer-well">
-          <p>Welcome to the installer for DragThing 2.9!</p>
-          <p>
+          <vf-paragraph>Welcome to the installer for DragThing 2.9!</vf-paragraph>
+          <vf-paragraph>
             DragThing is the original dock: it tidies the icons on your desktop
             into tabbed, floating palettes.
-          </p>
+          </vf-paragraph>
           <ul>
             <li>Requires System 7.0 or later.</li>
             <li>Native on both 68K and Power Macintosh.</li>
             <li>Registration is US$25 — see the enclosed Read Me.</li>
           </ul>
-          <p>
+          <vf-paragraph>
             Click Install to place DragThing, its documentation, and some
             sample docks on your hard disk.
-          </p>
+          </vf-paragraph>
         </vf-scroll-area>
+        <!-- The spec's fine print (SPEC §7.2): body face, 12px. -->
         <div class="installer-caption">
-          <span>Disk space available: 58,616K</span>
-          <span>Approximate disk space needed: 4,584K</span>
+          <vf-label face="body" size="small"
+            >Disk space available: 58,616K</vf-label
+          >
+          <vf-label face="body" size="small"
+            >Approximate disk space needed: 4,584K</vf-label
+          >
         </div>
         <div class="installer-bottom">
           <vf-fieldset legend="Install Location" class="installer-location">
-            <p class="installer-folder">
+            <vf-paragraph class="installer-folder">
               Items will be installed in the folder “DragThing 2.9” on the disk
-            </p>
+            </vf-paragraph>
             <vf-select name="disk" value="Macintosh HD">
               <vf-option>Macintosh HD</vf-option>
               <vf-option>External HD</vf-option>
@@ -300,32 +323,36 @@
 
           <div class="newdoc-fields">
             <div class="newdoc-field">
-              <span class="newdoc-label">Title:</span>
-              <vf-text-field value="Untitled" label="Title"></vf-text-field>
+              <vf-label class="newdoc-label" for="newdoc-title"
+                >Title:</vf-label
+              >
+              <vf-text-field id="newdoc-title" value="Untitled"></vf-text-field>
               <vf-checkbox class="newdoc-isindex">Is Index</vf-checkbox>
             </div>
             <div class="newdoc-field">
-              <span class="newdoc-label">Base:</span>
-              <vf-text-field label="Base"></vf-text-field>
+              <vf-label class="newdoc-label" for="newdoc-base">Base:</vf-label>
+              <vf-text-field id="newdoc-base"></vf-text-field>
             </div>
             <div class="newdoc-field">
-              <span class="newdoc-label">Meta:</span>
-              <vf-text-field label="Meta"></vf-text-field>
+              <vf-label class="newdoc-label" for="newdoc-meta">Meta:</vf-label>
+              <vf-text-field id="newdoc-meta"></vf-text-field>
             </div>
             <div class="newdoc-field">
-              <span class="newdoc-label">Link:</span>
-              <vf-text-field label="Link"></vf-text-field>
+              <vf-label class="newdoc-label" for="newdoc-link">Link:</vf-label>
+              <vf-text-field id="newdoc-link"></vf-text-field>
             </div>
           </div>
 
           <vf-separator class="newdoc-rule"></vf-separator>
 
           <div class="newdoc-row">
-            <span class="newdoc-label">Template:</span>
+            <vf-label class="newdoc-label" for="newdoc-template"
+              >Template:</vf-label
+            >
             <vf-select
+              id="newdoc-template"
               class="newdoc-template-select"
               value="Default"
-              label="Template"
             >
               <vf-option>Default</vf-option>
               <vf-option>(None)</vf-option>
@@ -348,17 +375,17 @@
       <vf-window id="win-find" heading="Find File" movable>
         <div class="find">
           <div class="find-row">
-            <span class="find-label">Find items</span>
+            <vf-label class="find-label" for="find-scope">Find items</vf-label>
             <vf-select
+              id="find-scope"
               class="find-scope-select"
               value="on local disks"
-              label="Find items"
             >
               <vf-option>on all disks</vf-option>
               <vf-option>on local disks</vf-option>
               <vf-option>on the desktop</vf-option>
             </vf-select>
-            <span class="find-label">whose</span>
+            <vf-label class="find-label">whose</vf-label>
           </div>
 
           <div class="find-criteria">
@@ -395,22 +422,26 @@
         <div class="newimage">
           <div class="newimage-main">
             <div class="newimage-field">
-              <span class="newimage-label">Name:</span>
+              <vf-label class="newimage-label" for="newimage-name"
+                >Name:</vf-label
+              >
               <vf-text-field
+                id="newimage-name"
                 class="newimage-name"
                 value="Untitled-1"
-                label="Name"
               ></vf-text-field>
             </div>
 
             <vf-fieldset legend="Image Size: 532K">
               <div class="newimage-sizes">
                 <div class="newimage-field">
-                  <span class="newimage-label size">Width:</span>
+                  <vf-label class="newimage-label size" for="newimage-width"
+                    >Width:</vf-label
+                  >
                   <vf-text-field
+                    id="newimage-width"
                     class="newimage-num"
                     value="7"
-                    label="Width"
                   ></vf-text-field>
                   <vf-select
                     class="newimage-unit"
@@ -425,11 +456,13 @@
                   </vf-select>
                 </div>
                 <div class="newimage-field">
-                  <span class="newimage-label size">Height:</span>
+                  <vf-label class="newimage-label size" for="newimage-height"
+                    >Height:</vf-label
+                  >
                   <vf-text-field
+                    id="newimage-height"
                     class="newimage-num"
                     value="5"
-                    label="Height"
                   ></vf-text-field>
                   <vf-select
                     class="newimage-unit"
@@ -444,11 +477,13 @@
                   </vf-select>
                 </div>
                 <div class="newimage-field">
-                  <span class="newimage-label size">Resolution:</span>
+                  <vf-label class="newimage-label size" for="newimage-res"
+                    >Resolution:</vf-label
+                  >
                   <vf-text-field
+                    id="newimage-res"
                     class="newimage-num"
                     value="72"
-                    label="Resolution"
                   ></vf-text-field>
                   <vf-select
                     class="newimage-unit"
@@ -460,11 +495,13 @@
                   </vf-select>
                 </div>
                 <div class="newimage-field">
-                  <span class="newimage-label size">Mode:</span>
+                  <vf-label class="newimage-label size" for="newimage-mode"
+                    >Mode:</vf-label
+                  >
                   <vf-select
+                    id="newimage-mode"
                     class="newimage-mode"
                     value="RGB Color"
-                    label="Mode"
                   >
                     <vf-option>Bitmap</vf-option>
                     <vf-option>Grayscale</vf-option>
@@ -532,11 +569,13 @@
       <!-- ===================== About dialog (modal) ===================== -->
       <vf-dialog id="dlg-about" heading="About This Macintosh">
         <div class="about-body">
-          <p>Vintage Frames — a System 7 UI kit built with Lit 3.</p>
-          <p>
+          <vf-paragraph
+            >Vintage Frames — a System 7 UI kit built with Lit 3.</vf-paragraph
+          >
+          <vf-paragraph>
             System Software 7.5.5 · Total Memory: 8,192K · Largest Unused
             Block: 7,168K
-          </p>
+          </vf-paragraph>
         </div>
         <vf-button id="btn-about-ok" slot="buttons" variant="default"
           >OK</vf-button
@@ -545,8 +584,10 @@
 
       <!-- ===================== Erase Disk alert (modal) ================= -->
       <vf-alert id="alert-erase" variant="caution">
-        <span class="alert-message"
-          >Completely erase the disk named “Macintosh HD”?</span
+        <!-- An alert speaks in chrome type, so the copy takes the display
+             face rather than vf-paragraph's body default. -->
+        <vf-paragraph class="alert-message" face="display"
+          >Completely erase the disk named “Macintosh HD”?</vf-paragraph
         >
         <vf-button id="btn-erase-cancel" slot="buttons">Cancel</vf-button>
         <vf-button id="btn-erase-confirm" slot="buttons" variant="default"

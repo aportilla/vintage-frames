@@ -1,0 +1,238 @@
+import { css, html, LitElement } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import type { PropertyValues } from 'lit'
+import { vfBase, vfDisplayDecls, vfStaticText } from '../styles/base.js'
+import { ScaleController } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
+
+/** Serial for the auto-generated id an `aria-labelledby` reference needs. */
+let labelIdSeq = 0
+
+/** A target that may expose the kit's `label` accessible-name property. */
+type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
+
+/**
+ * `<vf-label>` — a static System 7 caption.
+ *
+ * The "Name:" beside a field, the "Mode" heading over a group of radios, a
+ * numeric readout beside a slider. Text the page was previously setting by hand
+ * in the display face — this is that, as a component, on the kit's grid:
+ *
+ * - the **Chicago-style chrome face** by default (dialog captions are chrome),
+ *   with `face="body"` to switch to FindersKeepers and `size="small"` for the
+ *   12px fine print;
+ * - a **whole-system-pixel line box** (`--vf-label-line-height`, 16px — the
+ *   faces' own em), so a column of captions accumulates whole offsets instead of
+ *   pushing what follows off the device-pixel grid the way a ratio `line-height`
+ *   does (README, layout contract rule 2);
+ * - its own {@link GridSnapController}, so the bitmap stems stay on the grid
+ *   wherever the page puts it.
+ *
+ * `for` points at a control by id, as a native `<label>` does — clicking the
+ * caption focuses that control, and the caption text becomes its accessible
+ * name (see {@link for} for how, and for what it deliberately doesn't do).
+ *
+ * Chrome text, so the host is not selectable (SPEC §1); prose belongs in
+ * `<vf-paragraph>`, which is.
+ *
+ * @slot - The caption text.
+ * @csspart label - The inner text box.
+ * @cssprop --vf-label-line-height - Line box, in system px (default `16px`).
+ *   Keep it a whole number — a ratio puts every following line off the grid.
+ */
+@customElement('vf-label')
+export class VfLabel extends LitElement {
+  static override styles = [
+    vfBase,
+    vfStaticText,
+    css`
+      :host {
+        /* A real box, so a page can give a caption column a shared width
+           (layout contract rule 3) — inline text can't take one. */
+        display: inline-block;
+        /* Chrome by default; vfStaticText's face="body" overrides it. */
+        ${vfDisplayDecls}
+        /* Whole system px, never a ratio — see the class comment. 16px is the
+           faces' own em (12 above the baseline + 4 below), which is also
+           vf-menu-item's row pitch, so a caption beside a menu or a popup sits
+           on the same rhythm. */
+        line-height: calc(var(--vf-scale, 1) * var(--vf-label-line-height, 16px));
+        cursor: default;
+      }
+    `,
+  ]
+
+  /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
+  private readonly scale = new ScaleController(this)
+
+  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  private readonly gridSnap = new GridSnapController(this)
+
+  /**
+   * The id of the control this caption names, resolved in the label's own tree
+   * scope (its document or shadow root), like a native `<label for>`.
+   *
+   * Two things follow from it. **Clicking the caption focuses the control** —
+   * a focus shortcut, not an activation: the kit's toggles carry their own
+   * labels, so forwarding a click to one would double up on the label they
+   * already have. And **the caption text becomes the control's accessible
+   * name**, by whichever route reaches it:
+   *
+   * - a `vf-*` control's focusable element lives in its shadow root, where an
+   *   `aria-label` on the host cannot reach it — which is why each of them
+   *   exposes a `label` property that lands on the inner control. That property
+   *   is what gets filled in, and only when the consumer left it empty.
+   * - anything else (a native `<input>`, an element with a role) is in this
+   *   label's own tree scope, so an `aria-labelledby` id reference works; it is
+   *   set only when the target has no name of its own.
+   *
+   * Either way the label puts back what it found when it is removed, the id
+   * changes, or the caption text does.
+   *
+   * Left `undefined` rather than `''` so an unset `for` reflects no attribute
+   * at all: `vf-label[for]` is a selector a page will reasonably write, and an
+   * empty `for=""` on every plain caption would make it match all of them.
+   */
+  @property({ reflect: true }) for?: string
+
+  /**
+   * Which embedded face to set the caption in — `'display'` (the Chicago-style
+   * chrome face, the default) or `'body'` (FindersKeepers). Applied by
+   * `vfStaticText`; declared here so it types and reflects.
+   */
+  @property({ reflect: true }) face?: 'display' | 'body'
+
+  /** `'small'` sets the caption in the kit's 12px fine print. */
+  @property({ reflect: true }) size?: 'small'
+
+  /**
+   * Greys the caption to `--vf-disabled`. System 7 dims the label, not the
+   * control (SPEC §1), so this is what a caption beside a disabled control
+   * wears — the control keeps its solid black box.
+   */
+  @property({ type: Boolean, reflect: true }) dim = false
+
+  /** The name we handed the target, so we can take back exactly that. */
+  #named: { target: Nameable; via: 'property' | 'aria'; value: string } | null = null
+
+  constructor() {
+    super()
+    this.addEventListener('click', this.#handleClick)
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback()
+    this.#link()
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    this.#unlink()
+  }
+
+  protected override updated(changed: PropertyValues<this>): void {
+    if (changed.has('for')) this.#link()
+  }
+
+  protected override render() {
+    return html`<span class="vf-snap" part="label"
+      ><slot @slotchange=${this.#handleSlotChange}></slot
+    ></span>`
+  }
+
+  /** Resolve `for` in this label's own tree scope, as `<label for>` does. */
+  #target(): Nameable | null {
+    if (!this.for) return null
+    const root = this.getRootNode()
+    if (!(root instanceof Document || root instanceof ShadowRoot)) return null
+    return root.getElementById(this.for)
+  }
+
+  /**
+   * The caption text is the accessible name, so it has to be re-derived
+   * whenever the light DOM changes — including the very first time, since a
+   * component defined before the page parses is upgraded with no children yet
+   * and `connectedCallback` sees an empty caption.
+   */
+  #handleSlotChange = (): void => {
+    if (this.for) this.#link()
+  }
+
+  /** Retry the wiring once the document has finished parsing (see #link). */
+  #relink = (): void => {
+    if (this.isConnected) this.#link()
+  }
+
+  /** Give the target its name; a no-op if it already has one. */
+  #link(): void {
+    this.#unlink()
+    const target = this.#target()
+    if (!target) {
+      // A caption is authored before the control it names, so a kit loaded
+      // eagerly enough to upgrade this label mid-parse resolves `for` against a
+      // document that has not reached the control yet. Clicking would still
+      // find it (that lookup is lazy), but the name is pushed, so without this
+      // it would silently never land. One listener, deduped by reference.
+      if (this.for && document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', this.#relink, { once: true })
+      }
+      return
+    }
+
+    const tag = target.localName
+    if (tag.includes('-') && !customElements.get(tag)) {
+      // A control that hasn't upgraded has no `label` property yet, so testing
+      // for one now would send every lazily-defined control down the aria
+      // branch — which can't reach into its shadow root. Wait for it instead.
+      void customElements.whenDefined(tag).then(() => {
+        if (this.isConnected && !this.#named) this.#link()
+      })
+      return
+    }
+
+    const text = (this.textContent ?? '').trim()
+    if (!text) return
+
+    if ('label' in target) {
+      if (typeof target.label === 'string' && !target.label) {
+        target.label = text
+        this.#named = { target, via: 'property', value: text }
+      }
+      return
+    }
+
+    if (target.hasAttribute('aria-label') || target.hasAttribute('aria-labelledby')) {
+      return
+    }
+    if (!this.id) this.id = `vf-label-${++labelIdSeq}`
+    target.setAttribute('aria-labelledby', this.id)
+    this.#named = { target, via: 'aria', value: this.id }
+  }
+
+  /** Take back the name — but only if it is still the one we set. */
+  #unlink(): void {
+    const named = this.#named
+    this.#named = null
+    if (!named) return
+    if (named.via === 'property') {
+      if (named.target.label === named.value) named.target.label = ''
+    } else if (named.target.getAttribute('aria-labelledby') === named.value) {
+      named.target.removeAttribute('aria-labelledby')
+    }
+  }
+
+  #handleClick = (): void => {
+    const target = this.#target()
+    if (!target) return
+    // `isDisabled` covers an ancestor <fieldset disabled> too (see
+    // VfFormControl); the attribute check catches plain elements.
+    if (target.isDisabled ?? target.hasAttribute('disabled')) return
+    target.focus()
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'vf-label': VfLabel
+  }
+}

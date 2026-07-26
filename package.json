@@ -52,6 +52,7 @@
     "verify:scale": "node scripts/verify-scale.mjs",
     "verify:chrome": "node scripts/verify-chrome.mjs",
     "verify:toggle": "node scripts/verify-toggle.mjs",
+    "verify:text": "node scripts/verify-text.mjs",
     "verify:updates": "node scripts/verify-updates.mjs",
     "verify:baseline": "node scripts/verify-baseline.mjs",
     "verify:grid": "node scripts/verify-grid.mjs",

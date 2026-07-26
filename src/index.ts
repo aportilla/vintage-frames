@@ -34,6 +34,10 @@ export { VfOption } from './components/vf-option.js'
 export { VfProgressBar } from './components/vf-progress-bar.js'
 export { VfSlider } from './components/vf-slider.js'
 
+// Static text
+export { VfLabel } from './components/vf-label.js'
+export { VfParagraph } from './components/vf-paragraph.js'
+
 // Menus, lists, containers
 export { VfMenuBar } from './components/vf-menu-bar.js'
 export { VfMenu } from './components/vf-menu.js'
@@ -84,8 +88,10 @@ export {
  */
 export {
   vfBase,
+  vfBodyDecls,
   vfDisplay,
   vfDisplayDecls,
+  vfStaticText,
   vfPanel,
   vfChromeFrame,
   vfTitleBar,

@@ -697,7 +697,12 @@ Classic list box.
   host `aria-label`).
 - **Children:** `<vf-list-item value="...">` (`VfListItem`, vf-list-item.ts):
   props `value`, `selected` (reflect), `disabled`; height 20px,
-  `padding: 0 6px`; selected = inverted row (full width).
+  `padding: 0 6px`; selected = inverted row (full width). Slots: default (the
+  row text, in a `text` part that ellipsizes), `icon` (a leading graphic —
+  usually a 16×16 `vf-img` small icon; flex-centered in the row with the
+  reference art's 4px gap to the text, no text contributed so type-ahead
+  still reads the words; keep row-height − icon-height even so the centering
+  offset is a whole pixel).
 - **Visual (list):** white bg; the 1px black frame is a `.vf-scroll-frame`
   overlay above the borderless scroller (see the vf-scroll-area scrollbar
   notes for why), which keeps `overflow-y: scroll` with the shared System 7
@@ -918,8 +923,9 @@ screenshots:
 4. **"Controls" kitchen-sink window** — text field, password field, textarea,
    determinate progress animating 0→100 on a timer, indeterminate progress,
    button variants (normal/default/disabled), separator, multi-select
-   `vf-list`, `vf-scroll-area` with enough text to scroll, disabled control
-   examples.
+   `vf-list` (each row's `icon` slot carrying its DA's 16×16 small icon as a
+   `vf-img`; crops via `npm run extract:icons`), `vf-scroll-area` with enough
+   text to scroll, disabled control examples.
 5. An alert: menu item Special → "Erase Disk…" opens a `vf-alert
    variant="caution"` — "Completely erase the disk named 'Macintosh HD'?" with
    Cancel / Erase buttons (Erase = default variant, closes alert).

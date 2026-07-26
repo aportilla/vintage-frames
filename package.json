@@ -35,6 +35,7 @@
     "preview": "vite preview",
     "extract:buttons": "python3 scripts/extract-button-pixels.py",
     "extract:menus": "python3 scripts/extract-menu-pixels.py",
+    "extract:icons": "python3 scripts/extract-da-icons.py",
     "probe:buttons": "python3 scripts/probe-button-colors.py",
     "verify:buttons": "tsc src/pixel-frame.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/emit-clips.mjs && python3 scripts/verify-button-clips.py",
     "shot:buttons": "npx playwright screenshot --wait-for-timeout=2000 http://localhost:5173/pixel-test.html shots/buttons.png",

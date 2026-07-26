@@ -11,6 +11,15 @@ import { ScaleController } from '../scale.js'
  * keyboard focus are managed by the parent `<vf-list>`.
  *
  * @slot - The row's text/content.
+ * @slot icon - A leading graphic — usually a `vf-img` holding a 16×16 System 7
+ *   small icon, but any element rides here. The row lays it out as the icon
+ *   gutter: flex-centered vertically (keep the difference between the row
+ *   height and the icon height even, so the centering offset stays a whole
+ *   pixel — 16 in a 20px row is a whole 2px), with the reference art's 4px gap
+ *   to the text. Contributes no text, so first-letter type-ahead still reads
+ *   the row's words. On a selected row the graphic rides the inverted bar
+ *   as-is — System 7 left color icons unfiltered on the highlight.
+ * @csspart text - The text span beside the icon gutter (ellipsizes).
  */
 @customElement('vf-list-item')
 export class VfListItem extends LitElement {
@@ -18,15 +27,29 @@ export class VfListItem extends LitElement {
     vfBase,
     css`
       :host {
-        display: block;
+        display: flex;
+        align-items: center;
+        /* Icon-to-text gap, per the reference art (Menus.png's icon-gutter
+           popup: 16px icon cell, 4px to the first glyph). Collapses to
+           nothing when the icon slot is empty — no icon, no flex item. */
+        gap: calc(var(--vf-scale, 1) * 4px);
         height: calc(var(--vf-scale, 1) * 20px);
         line-height: calc(var(--vf-scale, 1) * 20px);
         padding: 0 calc(var(--vf-scale, 1) * 6px);
+        cursor: default;
+        background: transparent;
+      }
+      ::slotted([slot='icon']) {
+        flex: none;
+      }
+      .text {
+        /* min-width lets the span shrink below its content so the ellipsis
+           can happen (flex items otherwise floor at min-content). */
+        flex: 1;
+        min-width: 0;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        cursor: default;
-        background: transparent;
       }
       /* Plain :focus, not :focus-visible — vf-list drives a roving tabindex and
          moves the cursor with item.focus(), and programmatic focus that isn't
@@ -92,7 +115,8 @@ export class VfListItem extends LitElement {
   }
 
   protected override render() {
-    return html`<slot></slot>`
+    return html`<slot name="icon"></slot
+      ><span class="text" part="text"><slot></slot></span>`
   }
 }
 

@@ -194,22 +194,64 @@
           <vf-separator vertical></vf-separator>
           <div class="stack">
             <vf-fieldset legend="Desk Accessories">
+              <!-- Each row's `icon` slot carries the DA's 16×16 System 7 small
+                   icon as a vf-img — real raster crops from the reference
+                   sheet (npm run extract:icons), decorative (alt=""). -->
               <vf-list multiple class="da-list" aria-label="Desk accessories">
-                <vf-list-item value="alarm-clock" selected
-                  >Alarm Clock</vf-list-item
-                >
-                <vf-list-item value="battery" disabled>Battery</vf-list-item>
-                <vf-list-item value="calculator" selected
-                  >Calculator</vf-list-item
-                >
-                <vf-list-item value="chooser">Chooser</vf-list-item>
-                <vf-list-item value="control-panels"
-                  >Control Panels</vf-list-item
-                >
-                <vf-list-item value="key-caps">Key Caps</vf-list-item>
-                <vf-list-item value="note-pad">Note Pad</vf-list-item>
-                <vf-list-item value="puzzle">Puzzle</vf-list-item>
-                <vf-list-item value="scrapbook">Scrapbook</vf-list-item>
+                <vf-list-item value="alarm-clock" selected>
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/alarm-clock.png" alt="" />
+                  </vf-img>
+                  Alarm Clock
+                </vf-list-item>
+                <vf-list-item value="battery" disabled>
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/battery.png" alt="" />
+                  </vf-img>
+                  Battery
+                </vf-list-item>
+                <vf-list-item value="calculator" selected>
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/calculator.png" alt="" />
+                  </vf-img>
+                  Calculator
+                </vf-list-item>
+                <vf-list-item value="chooser">
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/chooser.png" alt="" />
+                  </vf-img>
+                  Chooser
+                </vf-list-item>
+                <vf-list-item value="control-panels">
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/control-panels.png" alt="" />
+                  </vf-img>
+                  Control Panels
+                </vf-list-item>
+                <vf-list-item value="key-caps">
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/key-caps.png" alt="" />
+                  </vf-img>
+                  Key Caps
+                </vf-list-item>
+                <vf-list-item value="note-pad">
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/note-pad.png" alt="" />
+                  </vf-img>
+                  Note Pad
+                </vf-list-item>
+                <vf-list-item value="puzzle">
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/puzzle.png" alt="" />
+                  </vf-img>
+                  Puzzle
+                </vf-list-item>
+                <vf-list-item value="scrapbook">
+                  <vf-img slot="icon" width="16" height="16">
+                    <img src="/demo/icons/scrapbook.png" alt="" />
+                  </vf-img>
+                  Scrapbook
+                </vf-list-item>
               </vf-list>
             </vf-fieldset>
             <vf-fieldset legend="Scroll Area">

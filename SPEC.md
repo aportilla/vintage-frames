@@ -483,7 +483,12 @@ Reserves a permanent System 7 vertical scroll rail (the shared "always-a-rail"
 behavior — see vf-scroll-area): an empty white channel until the text overflows,
 then the dither/thumb/arrows fill in. The `<textarea>` carries the `vf-scroll`
 class + `vfScrollbars` skin, and `ScrollStateController` re-measures on each
-keystroke (a textarea's scrollHeight grows without a box resize).
+keystroke (a textarea's scrollHeight grows without a box resize). Unlike
+vf-text-field, the field's 1px frame is a `.vf-scroll-frame` overlay above the
+borderless `<textarea>` (see the vf-scroll-area scrollbar notes for the Safari
+reason), with `padding: 4px 7px` — vf-text-field's `3px/6px` plus the 1px the
+dropped border occupied — holding the text and the outer box where the
+bordered field put them.
 Parts: `textarea`. Events: `vf-input`, `vf-change`.
 
 #### `vf-number-field` (`VfNumberField`, vf-number-field.ts)
@@ -690,12 +695,15 @@ Classic list box.
 - **Children:** `<vf-list-item value="...">` (`VfListItem`, vf-list-item.ts):
   props `value`, `selected` (reflect), `disabled`; height 20px,
   `padding: 0 6px`; selected = inverted row (full width).
-- **Visual (list):** white bg, `1px solid black`, `overflow-y: scroll` with the
-  shared System 7 scrollbar recipe (`vfScrollbars` from base.ts — add the
-  `vf-scroll` class to the scrolling element), default `max-height: 200px`
-  overridable via `--vf-list-max-height`. Reserves a permanent vertical scroll
-  rail (the "always-a-rail" behavior — see vf-scroll-area): an empty white
-  channel until the rows overflow.
+- **Visual (list):** white bg; the 1px black frame is a `.vf-scroll-frame`
+  overlay above the borderless scroller (see the vf-scroll-area scrollbar
+  notes for why), which keeps `overflow-y: scroll` with the shared System 7
+  scrollbar recipe (`vfScrollbars` from base.ts — add the `vf-scroll` class to
+  the scrolling element) and 1px padding (top/left/bottom) holding the rows
+  inside the frame lines; default `max-height: 200px` overridable via
+  `--vf-list-max-height`. Reserves a permanent vertical scroll rail (the
+  "always-a-rail" behavior — see vf-scroll-area): an empty white channel until
+  the rows overflow.
 - **Behavior:** `role="listbox"` (+`aria-multiselectable`, + `aria-label` from
   `label`), items `role="option"`. A disabled list pushes `aria-disabled` down
   onto every row (as `vf-radio-group` does), so AT is never shown enabled-looking
@@ -719,17 +727,31 @@ A container whose scrollbars look like System 7.
   `aria-label` on the host cannot reach into the shadow DOM). A non-empty
   `label` also promotes the viewport to `role="region"`; the role is omitted
   while it is empty, because an unnamed region is inert.
-- **Visual:** `display: block`, white bg, `1px solid black`, inner viewport
-  `padding: 8px`. Consumer sets width/height on host.
+- **Visual:** `display: block`, white bg; the 1px black frame is a
+  `.vf-scroll-frame` overlay above the borderless inner viewport, whose
+  `padding: 9px` (the old 8px + the 1px the dropped border occupied) keeps the
+  content in place. Consumer sets width/height on host.
   Scrollbars come from the shared `vfScrollbars` recipe in base.ts (add the
   `vf-scroll` class to the scrolling element; WebKit pseudo-elements, with a
   `scrollbar-width/scrollbar-color` fallback for Firefox):
-  - width/height 16px; trough: looser 25%-density dot dither, a white base with
+  - width/height 16px — the classic cell. The scroller is **borderless** and
+    fills the component box; the 1px frame is painted *over* it by a
+    `.vf-scroll-frame` overlay, so the bar's outermost 1px runs under the frame
+    line and the visible bar is a 1px interior rail (`border-left`/`border-top`,
+    dividing the content from the channel) plus the 14px channel. The frame is
+    an overlay, not a border on the scroller, because WebKit snaps scrollbar
+    rects to whole CSS px: a border anchors the rect at the padding edge — a
+    half CSS px at dpr 2 (1 system px = 1.5 CSS px) — and Safari painted the
+    whole rail one device pixel adrift (frame thinned, divider gapped);
+  - trough: looser 25%-density dot dither, a white base with
     black 1px dots traced from the UI kit's "Scroll bg" sprite (a 4×2 SVG tile
     with dots at (0,0) and (2,1) — dotted vertical lines two pixels apart, each
-    column phase-shifted by a row); an interior rail (`border-left`/`border-top`)
-    divides the content from the scrollbar channel;
-  - thumb (elevator): `var(--vf-scrollbar-thumb, #ffffff)` bg (white), `1px solid black`;
+    column phase-shifted by a row);
+  - thumb (elevator): `var(--vf-scrollbar-thumb, #ffffff)` bg (white); 1px black
+    border across the channel (short sides), 2px on each long side so both read
+    as the System 7 doubled line — rail + inset edge on the rail side, frame +
+    inset edge on the frame side (that side's outer pixel runs under the
+    overlay, so at 1px the inset line would vanish — a 12px face between);
   - **Firefox fallback:** `scrollbar-color` takes two flat colors — no dither
     tile, no thumb border — so the trough falls back to
     `var(--vf-scrollbar-track, #c0c0c0)`, the dither's own average tone (2 black
@@ -739,14 +761,15 @@ A container whose scrollbars look like System 7.
     scroll-arrow glyph (triangle head + rectangular stem, from the sprite sheet)
     via inline SVG data-URI backgrounds (`::-webkit-scrollbar-button` with
     `:vertical:decrement` etc.) — hollow outline at rest, filled solid black on
-    `:active` (pressed);
+    `:active` (pressed); the frame-side edge runs under the overlay, leaving a
+    14px visible face with the arrow centered in it;
   - the rail always uses the default arrow cursor, never the host's — a styled
     (custom) scrollbar otherwise inherits e.g. a `<textarea>`'s text I-beam over
     the reserved rail;
-  - **nested-border rule:** the scrollbar assumes it sits inside a 1px-bordered
-    host. Every element (arrow boxes, thumb) omits its border on the edge that
-    coincides with that host border so the two never stack into a 2px line; when
-    both scrollbars show, the corner supplies the interior dividers the buttons
+  - **frame-overlay rule:** the scrollbar assumes the component's 1px frame is
+    painted over it. Every element (arrow boxes, thumb) omits its border on the
+    edge the overlay covers so the two never stack into a 2px line; when both
+    scrollbars show, the corner supplies the interior dividers the buttons
     drop.
 - **Always-a-rail behavior:** each *reserved* axis (per `axis`) is
   `overflow: scroll` + `scrollbar-gutter: stable`, so its rail is a permanent
@@ -762,6 +785,24 @@ A container whose scrollbars look like System 7.
   scrollbars. Shared by vf-list and vf-text-area; a future
   `@container scroll-state(scrollable)` query could replace the JS for
   slotted-content components.
+- **Document-window (TeachText) composition:** to put the rails on a window's
+  edge rather than inset in its body, slot the scroll area into a
+  `vf-window[flush]` sized `calc(100% + 2px·scale)` with `margin: -1px·scale`
+  — one system pixel under the window frame on every side. Its frame overlay
+  then repaints the window's border lines exactly (no doubled frame), and a
+  resizable window's grow box lands in the scrollbar corner cell, giving the
+  classic System 7 document window. The demo's "DragThing Read Me" window
+  (`index.html` + `.readme-scroll` in `demo/demo.css`) is the reference.
+  Caveat: the scrollbar anchors then ride the window's box, and browsers
+  place scrollbar geometry in CSS-px terms — a scroll-bearing box with a
+  half-CSS edge (an odd system count at dpr 2) renders measurably wrong in
+  both engines: WebKit shifts the whole rail a device pixel off the frame,
+  and Blink paints a half-CSS-height window's bottom rail edge one device
+  pixel thick. The kit's own geometry writes — window drag and grow-box
+  resize, dialog pinning — snap onto the system-pixel grid in steps that are
+  always whole CSS px (`snapToSystemPx`: 1 system px at dpr 1 and 3, 2 at
+  dpr 2), so they never produce such an edge; consumer-authored geometry
+  should use even system px at dpr 2 for the same reason.
 - **Slots:** default. **Parts:** `viewport`.
 
 #### `vf-fieldset` (`VfFieldset`, vf-fieldset.ts)

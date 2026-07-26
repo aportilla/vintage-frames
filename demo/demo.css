@@ -36,6 +36,11 @@
 
 vf-desktop {
   height: 100%;
+  /* The desktop is the viewport — absolutely positioned windows past its edge
+     don't give the page a scrollbar, so a window is only reachable if its
+     authored position starts on-screen. Keep placements inside roughly
+     940×560 system px (a 1440×900 retina viewport at scale 1.5) or the
+     window is lost at common densities. */
 }
 
 /* Window placement — staggered (system px × --vf-scale so the whole
@@ -70,8 +75,12 @@ vf-desktop {
    never a system fallback. Authored in system px × --vf-scale like the rest. */
 #win-charset {
   position: absolute;
-  left: calc(var(--vf-scale, 1) * 120px);
-  top: calc(var(--vf-scale, 1) * 1000px);
+  /* Near the top so it's on-screen at every density (see the vf-desktop note
+     — it was originally parked at y 1000, past the reachable canvas). It
+     overlaps the stack below it; every covered window keeps part of its title
+     bar or body clickable to come to the front. */
+  left: calc(var(--vf-scale, 1) * 260px);
+  top: calc(var(--vf-scale, 1) * 140px);
   width: calc(var(--vf-scale, 1) * 700px);
 }
 .charset-panels {
@@ -101,6 +110,42 @@ vf-desktop {
 }
 .charset-note {
   margin: calc(var(--vf-scale, 1) * 12px) 0 0;
+}
+
+/* --------------------------- DragThing Read Me ------------------------- */
+/* The 2-axis scroll + grow-box showcase. The window is authored with a
+   definite size — the grow box then owns it — the scroll area fills the
+   body, and the document keeps its natural size, so each rail activates
+   only while its own axis overflows. */
+#win-readme {
+  position: absolute;
+  left: calc(var(--vf-scale, 1) * 230px);
+  top: calc(var(--vf-scale, 1) * 560px);
+  width: calc(var(--vf-scale, 1) * 420px);
+  height: calc(var(--vf-scale, 1) * 320px);
+}
+.readme-scroll {
+  /* TeachText composition: rails on the window edge, not inset in the body.
+     In the flush window the scroll area is pulled one system pixel under the
+     window frame on every side, so its own frame overlay repaints the window's
+     border lines exactly (no doubled frame), the rails run edge to edge, and
+     the window's grow box lands in the scrollbar corner cell. The scrollbar
+     anchors ride the window's own whole-pixel box; drag and grow keep it on
+     coordinates the engine's scrollbar rects can hold (see snapToSystemPx). */
+  width: calc(100% + var(--vf-scale, 1) * 2px);
+  height: calc(100% + var(--vf-scale, 1) * 2px);
+  margin: calc(var(--vf-scale, 1) * -1px);
+}
+.readme-doc {
+  /* TeachText set read-mes in the body face; a whole-pixel line box (grid
+     rule 2) and `pre` keeping the author's line breaks so the long lines
+     overflow x instead of wrapping. */
+  margin: 0;
+  font-family: var(--vf-font-family, 'FindersKeepers', 'Geneva', sans-serif);
+  font-size: calc(var(--vf-scale, 1) * 16px);
+  line-height: calc(var(--vf-scale, 1) * 20px);
+  font-weight: var(--vf-font-weight, 700);
+  white-space: pre;
 }
 
 /* ------------------------- DragThing installer ------------------------- */

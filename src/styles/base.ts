@@ -355,19 +355,39 @@ export const vfField = css`
 `
 
 /**
- * System 7 scrollbars. Add the `vf-scroll` class to any element with
- * `overflow: auto`/`scroll` that lives inside a 1px-bordered host (the recipe
- * assumes the host border supplies the scrollbar's outer frame).
+ * System 7 scrollbars. Add the `vf-scroll` class to a BORDERLESS element with
+ * `overflow: auto`/`scroll` that fills its component's frame box, and paint
+ * the component's 1px frame over it with a `.vf-scroll-frame` element (a later
+ * sibling of the scroller, inside a positioned wrapper). The scrollbar then
+ * sits flush with the frame box's edges, and the overlay draws the bar's
+ * outer line.
  *
- * WebKit scrollbars are skinned: 16px wide, a loose 1-bit dot-dither trough
- * (25% density, traced from the UI kit's "Scroll bg" sprite), a white boxed
- * thumb, and boxed arrow buttons with inline-SVG triangle glyphs (one at each
- * end). Every element omits its border on the edge that meets the host, so the
- * two never double into a 2px stroke. Firefox falls back to `scrollbar-color`.
+ * Why the frame is an overlay and not a border on the scroller: WebKit pins a
+ * scroller's scrollbar rect to whole CSS pixels. A scroller carrying the 1px
+ * frame border anchors its scrollbar at the padding edge — a half CSS pixel
+ * at dpr 2, where 1 system px is 1.5 CSS px — and Safari paints the entire
+ * rail one device pixel adrift: a gap between divider and frame, the frame
+ * line thinned, arrow cells off the grid. Borderless, every scrollbar anchor
+ * is a whole CSS px at every integer dpr, and Safari renders the rail
+ * bit-exactly. (Chromium doesn't snap scrollbar rects and renders both
+ * structures identically.)
  *
- * Shared by `vf-scroll-area` and `vf-list` so the two never drift.
+ * The skin is the classic 16px cell: the outermost 1px column/row runs under
+ * the frame overlay, leaving a 1px interior rail plus the 14px channel
+ * visible. The trough is a loose 1-bit dot-dither (25% density, traced from
+ * the UI kit's "Scroll bg" sprite), the thumb a white box, and the arrow
+ * buttons boxed inline-SVG glyphs (one at each end) centered on the 14px
+ * visible face. Every element omits its border on the edge the frame overlay
+ * covers, so the two never double into a 2px stroke. Firefox falls back to
+ * `scrollbar-color` (its native bar simply runs under the overlay's edge).
+ *
+ * Shared by `vf-scroll-area`, `vf-list` and `vf-text-area` so they never
+ * drift.
  */
 export const vfScrollbars = css`
+  /* The full 16px cell. The outer 1px along the component frame is covered by
+     the .vf-scroll-frame overlay, so the visible bar is the 1px interior rail
+     plus the 14px channel. */
   .vf-scroll::-webkit-scrollbar {
     width: calc(var(--vf-scale, 1) * 16px);
     height: calc(var(--vf-scale, 1) * 16px);
@@ -392,33 +412,39 @@ export const vfScrollbars = css`
     background-size: calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 2px);
   }
   /* Interior rail dividing the content from the scrollbar channel. The outer
-     edges are left to the host's 1px border (see the border trims below). */
+     edges are drawn by the .vf-scroll-frame overlay (see the border trims
+     below). */
   .vf-scroll::-webkit-scrollbar-track:vertical {
     border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
   .vf-scroll::-webkit-scrollbar-track:horizontal {
     border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
-  /* The thumb keeps a full 1px border on every side. System 7 insets the thumb
-     one pixel from the channel rails, so each long side reads as a doubled 1px
-     line — the rail (or host frame) plus the thumb's own border — but only over
-     the thumb's extent; the rail stays 1px above/below it. The rail-side border
-     is 2px: the extra inner pixel draws over the continuous rail. The frame-side
-     stays 1px and doubles against the host border just outside the channel. */
+  /* The thumb keeps a 1px border across the channel (its short sides) and a
+     2px border on each long side: System 7 insets the thumb one pixel from the
+     channel rails, so each long side reads as a doubled 1px line — the rail
+     (or frame) plus the thumb's own border — but only over the thumb's extent;
+     the rail stays 1px above/below it. On the rail side the extra inner pixel
+     draws over the continuous rail. On the frame side the OUTER pixel runs
+     under the .vf-scroll-frame overlay's line and the inner one is the visible
+     inset edge — at 1px that side's border would sit entirely under the
+     overlay and the inset line would vanish. */
   .vf-scroll::-webkit-scrollbar-thumb {
     background: var(--vf-scrollbar-thumb, #ffffff);
     border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
   .vf-scroll::-webkit-scrollbar-thumb:vertical {
     border-left-width: calc(var(--vf-scale, 1) * 2px);
+    border-right-width: calc(var(--vf-scale, 1) * 2px);
   }
   .vf-scroll::-webkit-scrollbar-thumb:horizontal {
     border-top-width: calc(var(--vf-scale, 1) * 2px);
+    border-bottom-width: calc(var(--vf-scale, 1) * 2px);
   }
   /* The corner only exists when both scrollbars show. It supplies the two
      interior dividers (against the vertical down-arrow above and the horizontal
      right-arrow beside it) that those buttons drop as their container-facing
-     edges; its right/bottom edges are the host border. */
+     edges; its right/bottom edges run under the .vf-scroll-frame overlay. */
   .vf-scroll::-webkit-scrollbar-corner {
     background: var(--vf-white, #fff);
     border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
@@ -443,10 +469,10 @@ export const vfScrollbars = css`
        state on the device grid and crisply centered. */
     background-origin: border-box;
   }
-  /* Nest the arrow boxes cleanly inside the host's 1px border: any button edge
-     that meets the container is drawn by the host border, not the button, so
-     the two never double into a 2px stroke. The button's inner edges (dividers
-     against the track, and the rail-side edge) stay. */
+  /* Nest the arrow boxes cleanly under the frame: any button edge the
+     .vf-scroll-frame overlay covers is drawn by the overlay, not the button,
+     so the two never double into a 2px stroke. The button's inner edges
+     (dividers against the track, and the rail-side edge) stay. */
   .vf-scroll::-webkit-scrollbar-button:vertical {
     border-right: 0;
   }
@@ -535,6 +561,17 @@ export const vfScrollbars = css`
   .vf-scroll[data-overflow-y='false']::-webkit-scrollbar-button:vertical,
   .vf-scroll[data-overflow-x='false']::-webkit-scrollbar-button:horizontal {
     display: none;
+  }
+
+  /* The component's 1px frame, painted OVER the borderless scroller (see the
+     recipe comment for why the scroller itself must not carry it): a later
+     sibling of the scroller inside a positioned wrapper, so it stacks above
+     the scrollbar and rides the wrapper's grid-snap offset with it. */
+  .vf-scroll-frame {
+    position: absolute;
+    inset: 0;
+    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    pointer-events: none;
   }
 
   /* Firefox (no ::-webkit-scrollbar): approximate with scrollbar-color, which

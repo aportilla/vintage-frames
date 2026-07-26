@@ -1,5 +1,5 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit'
-import { snapToDevicePx } from './scale.js'
+import { snapToSystemPx } from './scale.js'
 
 /**
  * The moving side of a pointer drag. A component supplies these callbacks; the
@@ -16,7 +16,7 @@ export interface DragTarget {
    * here before returning the origin.
    */
   onDragStart(event: PointerEvent): { x: number; y: number } | null
-  /** Apply a moved origin. Already snapped onto the device-pixel grid. */
+  /** Apply a moved origin. Already snapped onto the system-pixel grid. */
   onDrag(x: number, y: number): void
   /** Optional: the drag ended (pointer released or cancelled). */
   onDragEnd?(): void
@@ -27,10 +27,11 @@ export interface DragTarget {
  * / {@link onPointerUp} to a handle element (`vf-window`'s title bar,
  * `vf-dialog`'s title bar); the controller captures the pointer on that handle,
  * tracks the delta from the press point, and hands the {@link DragTarget} a new
- * origin snapped onto the device grid — the same snap every JS-written position
- * goes through so the pixel art inside never grows an antialiasing fringe (see
- * scale.ts). The target decides how to apply it (a window writes `left`/`top`, a
- * modal dialog writes its centering margins).
+ * origin snapped onto the system-pixel grid — whole art pixels, the way
+ * QuickDraw moved windows, which is also what keeps the pixel art inside
+ * fringe-free and WebKit's scrollbar rects pinned to the frame (see
+ * {@link snapToSystemPx}). The target decides how to apply it (a window writes
+ * `left`/`top`, a modal dialog writes its centering margins).
  */
 export class DragController implements ReactiveController {
   #pointerId: number | null = null
@@ -40,7 +41,7 @@ export class DragController implements ReactiveController {
   #baseY = 0
 
   constructor(
-    host: ReactiveControllerHost,
+    private readonly host: ReactiveControllerHost & Element,
     private readonly target: DragTarget
   ) {
     host.addController(this)
@@ -69,10 +70,10 @@ export class DragController implements ReactiveController {
   onPointerMove = (event: PointerEvent): void => {
     if (event.pointerId !== this.#pointerId) return
     // Trackpads report fractional clientX/Y — snap every step so the host (and
-    // all the pixel art inside it) stays on the device grid.
+    // all the pixel art inside it) stays on the system grid.
     this.target.onDrag(
-      snapToDevicePx(this.#baseX + (event.clientX - this.#startX)),
-      snapToDevicePx(this.#baseY + (event.clientY - this.#startY))
+      snapToSystemPx(this.#baseX + (event.clientX - this.#startX), this.host),
+      snapToSystemPx(this.#baseY + (event.clientY - this.#startY), this.host)
     )
   }
 

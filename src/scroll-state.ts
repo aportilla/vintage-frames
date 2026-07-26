@@ -101,7 +101,43 @@ export class ScrollStateController implements ReactiveController {
     if (!el) return
     const overY = el.scrollHeight - el.clientHeight > OVERFLOW_EPSILON
     const overX = el.scrollWidth - el.clientWidth > OVERFLOW_EPSILON
+    const changed =
+      el.getAttribute('data-overflow-y') !== String(overY) ||
+      el.getAttribute('data-overflow-x') !== String(overX)
     el.setAttribute('data-overflow-y', String(overY))
     el.setAttribute('data-overflow-x', String(overX))
+    if (changed) refreshWebKitScrollbars(el)
   }
+}
+
+/**
+ * Force WebKit to rebuild an element's scrollbars after the overflow
+ * attributes flip.
+ *
+ * Safari resolves `::-webkit-scrollbar` pseudo-element styles when a scrollbar
+ * is (re)created or its scroller relaid out — not when an attribute selector
+ * starts or stops matching. Typing into a `vf-text-area` flips
+ * `data-overflow-y` to `"true"`, but Safari keeps showing the idle rail until
+ * something unrelated (blurring the field, say, whose `:focus` border
+ * treatment repaints the box) makes it re-resolve. Tearing the scrollbars down
+ * and back up inside one task — overflow to `hidden` and immediately back,
+ * with a forced layout between — recreates them under the current attributes
+ * with no intermediate paint (no frame boundary is crossed), no focus or
+ * selection change, and scroll offsets restored in case the `hidden` clamp
+ * moved them. Chromium restyles scrollbars on attribute changes by itself, so
+ * only WebKit takes this path.
+ */
+function refreshWebKitScrollbars(el: HTMLElement): void {
+  const isWebKit =
+    typeof window !== 'undefined' &&
+    typeof (window as { webkitConvertPointFromNodeToPage?: unknown })
+      .webkitConvertPointFromNodeToPage === 'function'
+  if (!isWebKit) return
+  const { scrollTop, scrollLeft } = el
+  const prev = el.style.overflow
+  el.style.overflow = 'hidden'
+  void el.offsetHeight
+  el.style.overflow = prev
+  el.scrollTop = scrollTop
+  el.scrollLeft = scrollLeft
 }

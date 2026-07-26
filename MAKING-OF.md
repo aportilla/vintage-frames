@@ -137,7 +137,7 @@ The recurring rules behind the techniques above:
 
 Topics from the rest of the kit that this document does not yet cover:
 
-- **Scrollbars** — System 7's reserved-rail scrollbars, rebuilt with a shared scroll-state controller and the WebKit dot-dither trough.
+- **Scrollbars** — System 7's reserved-rail scrollbars, rebuilt with a shared scroll-state controller and the WebKit dot-dither trough; and why the 1px frame is painted *over* the scroller rather than as its border (WebKit pins scrollbar rects to whole CSS pixels, so a border put the rail's anchors on a half CSS pixel at dpr 2 and set the whole rail one device pixel adrift in Safari).
 - **Embedded fonts** — shipping two bitmap faces inside a component library, self-registering on `document.fonts` with no global CSS.
 - **Hard shadows and ink boxes** — why a control's ink bounding box differs from its border box, and how the height tokens were split to match the reference sheet.
 - **The toggle mixin** — one interaction skeleton over two different base classes, and why `vf-radio` is deliberately not form-associated.

@@ -566,6 +566,52 @@
         </p>
       </vf-window>
 
+      <!-- ================ "DragThing Read Me" (TeachText) =============== -->
+      <!-- The 2-axis scroll + grow-box showcase: the Read Me the installer
+           copy points at, as TeachText would open it — a document wider AND
+           taller than its window (white-space: pre keeps the author's line
+           breaks), in a vf-scroll-area axis="both" filling a flush resizable
+           window EDGE TO EDGE: the scroll area is pulled one system pixel
+           under the window frame (see .readme-scroll in demo.css), so the
+           rails sit in the frame itself and the grow box lands in the
+           scrollbar corner — the classic document window. Drag the grow box:
+           each rail fills in only while its own axis overflows. -->
+      <vf-window id="win-readme" heading="DragThing Read Me" movable resizable flush>
+        <vf-scroll-area axis="both" label="DragThing Read Me" class="readme-scroll">
+<pre class="readme-doc">
+DRAGTHING 2.9 — READ ME                                          17 July 1996
+
+Thank you for trying DragThing, the original dock for the Macintosh.
+
+WHAT’S NEW IN 2.9
+• Docks can snap to any edge of the screen, and remember where they were.
+• Option-dragging an item onto an occupied tile now swaps the two items.
+• The Trash can live in a dock. Drag it out of the corner at last.
+• Sounds! Docks click, snap and whoosh. Preferences can silence them.
+
+REQUIREMENTS
+DragThing requires System 7.0 or later and about 900K of disk space.
+It is native on both 68K and Power Macintosh.
+
+INSTALLING
+Run the enclosed installer, or drag the DragThing folder onto your hard
+disk yourself. Neither touches your System Folder.
+
+REGISTERING
+DragThing is shareware: US$25. Registered users get a code that removes
+the startup reminder, plus free updates through the whole 2.x series.
+
+KNOWN PROBLEMS
+• After Dark’s “Boris” module steals mouse clicks from floating docks.
+• RAM Doubler 1.5.2 with virtual memory ON can slow tile dragging badly.
+
+Resize this window with the grow box: a scroll bar fills in only while
+its axis actually overflows — grow the window until a rail empties out,
+shrink it and watch the arrows come back.
+</pre>
+        </vf-scroll-area>
+      </vf-window>
+
       <!-- ===================== About dialog (modal) ===================== -->
       <vf-dialog id="dlg-about" heading="About This Macintosh">
         <div class="about-body">

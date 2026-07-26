@@ -1,7 +1,7 @@
 import { html, css, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { vfBase, vfStripes, vfChromeFrame, vfTitleBar } from '../styles/base.js'
-import { snapToDevicePx } from '../scale.js'
+import { snapToSystemPx } from '../scale.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
@@ -85,8 +85,8 @@ export class VfDialog extends VfModalDialog {
       let y = parseFloat(dialog.style.marginTop)
       if (Number.isNaN(x) || Number.isNaN(y)) {
         const rect = dialog.getBoundingClientRect()
-        x = snapToDevicePx(rect.left)
-        y = snapToDevicePx(rect.top)
+        x = snapToSystemPx(rect.left, this)
+        y = snapToSystemPx(rect.top, this)
       }
       return { x, y }
     },

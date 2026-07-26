@@ -73,25 +73,76 @@ export function toSys(value: number, el: Element): number {
  * (pointer drags report fractional clientX/Y on trackpads, computed styles
  * resolve percentages fractionally) must round through this before being
  * applied.
+ *
+ * At an integral density the snap is to whole CSS px — still whole device px
+ * (1 CSS px = dpr device px), but also a coordinate WebKit can hold its
+ * scrollbar rects to. WebKit pins scrollbar rects to whole CSS px, so a
+ * scroll-bearing box whose edge lands on a half CSS px (an odd device px at
+ * dpr 2) gets its rail painted one device pixel off its frame — dragging or
+ * growing a document window in Safari fluttered a white hairline between the
+ * rail and the frame as edges alternated half/whole CSS px. The costs: drag
+ * granularity of one CSS px instead of one device px (imperceptible), and the
+ * dpr-2 baseline nudge (MAKING-OF §5) always takes its known whole-CSS-px
+ * rendering rather than sometimes its exact half-px one — a hard black/white
+ * rail edge outranks a one-device-px text nudge. Fractional densities (where
+ * WebKit doesn't run) keep the finest crisp grid: whole device px.
  */
 export function snapToDevicePx(value: number): number {
   const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+  if (Number.isInteger(dpr)) return Math.round(value)
   return Math.round(value * dpr) / dpr
 }
 
 /**
- * Pin a native `<dialog>`'s auto-centered position onto the device-pixel
- * grid. The UA centers `margin: auto` dialogs at half-pixel offsets whenever
- * viewport minus dialog size is odd, putting all the chrome inside off-grid.
- * Call after `showModal()` (layout is forced synchronously); the snapped
- * offsets are pinned as inline margins, so clear them on close to let the
- * next open re-center. The dialog stays put if the viewport resizes while
+ * Snap a CSS-px coordinate or length onto the system-pixel grid — the art's
+ * own unit — as resolved by `--vf-scale` at `el`.
+ *
+ * Window chrome geometry (title-bar drags, grow-box sizes, dialog pins) is
+ * held to whole system pixels rather than merely whole device pixels: a
+ * window N system px wide keeps every interior metric — the flexing body, an
+ * edge-mounted scroll rail — a whole count of system px too, and drags step
+ * whole art pixels, the way QuickDraw moved windows. Every step is a whole
+ * count of device px by the scale contract (`scale × dpr` integral), so the
+ * 1-bit art stays fringe-free.
+ *
+ * The step is the smallest run of system px that is also whole in CSS px —
+ * one system px at dpr 1 and 3, two at dpr 2's 1.5 scale, where an odd count
+ * lands an edge on a half CSS px. That lift is not optional at dpr 2:
+ * browsers place scrollbar geometry in CSS-px terms, and a scroll-bearing
+ * box with a half-CSS edge renders measurably wrong in BOTH engines — WebKit
+ * pins the whole scrollbar rect to whole CSS px and shifts the rail a device
+ * pixel off its frame (the slow-resize hairline flutter), and Blink paints a
+ * half-CSS-height window's bottom rail edge one device pixel thick. Single-
+ * pixel steps at dpr 2 would blemish every other position; the kit prefers
+ * the every-step-perfect grid. A scale whole in neither (a fractional
+ * density) falls back to single system px: whole device px, the finest crisp
+ * grid there.
+ */
+export function snapToSystemPx(value: number, el: Element): number {
+  const scale = effectiveScale(el)
+  const step = Number.isInteger(scale)
+    ? scale
+    : Number.isInteger(scale * 2)
+      ? scale * 2
+      : scale
+  return Math.round(value / step) * step
+}
+
+/**
+ * Pin a native `<dialog>`'s auto-centered position onto the system-pixel
+ * grid ({@link snapToSystemPx} — whole device px included). The UA centers
+ * `margin: auto` dialogs at half-pixel offsets whenever viewport minus dialog
+ * size is odd, putting all the chrome inside off-grid. Call after
+ * `showModal()` (layout is forced synchronously); the snapped offsets are
+ * pinned as inline margins, so clear them on close to let the next open
+ * re-center. The snap moves the dialog at most half a system px off true
+ * center — invisible. The dialog stays put if the viewport resizes while
  * open — System 7 modals didn't chase the screen either.
  */
 export function snapDialogToGrid(dialog: HTMLDialogElement): void {
   const rect = dialog.getBoundingClientRect()
-  dialog.style.marginLeft = `${snapToDevicePx(rect.left)}px`
-  dialog.style.marginTop = `${snapToDevicePx(rect.top)}px`
+  dialog.style.marginLeft = `${snapToSystemPx(rect.left, dialog)}px`
+  dialog.style.marginTop = `${snapToSystemPx(rect.top, dialog)}px`
 }
 
 /** Undo {@link snapDialogToGrid} so the next open re-centers. */

@@ -7,7 +7,7 @@ import {
   vfChromeFrame,
   vfTitleBar,
 } from '../styles/base.js'
-import { ScaleController, snapToDevicePx, sys } from '../scale.js'
+import { ScaleController, snapToSystemPx, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar } from '../chrome.js'
@@ -246,12 +246,13 @@ export class VfWindow extends LitElement {
         return null
       }
       // Seed absolute positioning from the current in-flow offset the first
-      // time the window is dragged. Every coordinate is snapped: at a
-      // fractional origin all the 1-bit art inside grows a fringe (scale.ts).
+      // time the window is dragged. Every coordinate is snapped onto the
+      // system-pixel grid (scale.ts): a fractional origin fringes all the
+      // 1-bit art inside, and a half-CSS-px edge shifts WebKit's rails.
       const computed = getComputedStyle(this)
       if (computed.position !== 'absolute') {
-        const left = snapToDevicePx(this.offsetLeft)
-        const top = snapToDevicePx(this.offsetTop)
+        const left = snapToSystemPx(this.offsetLeft, this)
+        const top = snapToSystemPx(this.offsetTop, this)
         this.style.position = 'absolute'
         this.style.left = `${left}px`
         this.style.top = `${top}px`
@@ -260,8 +261,8 @@ export class VfWindow extends LitElement {
         // Already absolute via a stylesheet but with no inline coordinates yet:
         // seed them from the computed position so the drag math has a base
         // (otherwise the first drag would jump the window to 0,0).
-        this.style.left = `${snapToDevicePx(parseFloat(computed.left) || 0)}px`
-        this.style.top = `${snapToDevicePx(parseFloat(computed.top) || 0)}px`
+        this.style.left = `${snapToSystemPx(parseFloat(computed.left) || 0, this)}px`
+        this.style.top = `${snapToSystemPx(parseFloat(computed.top) || 0, this)}px`
       }
       return {
         x: parseFloat(this.style.left) || 0,
@@ -272,15 +273,15 @@ export class VfWindow extends LitElement {
       // Keep a grabbable strip on-screen: clamp the origin against the
       // positioning parent (the desktop, usually) so the window can't be
       // dragged fully past an edge and lost. Re-snap after clamping so the
-      // clamped edge still lands on the device grid.
+      // clamped edge still lands on the system grid.
       const parent = this.offsetParent as HTMLElement | null
       const pw = parent?.clientWidth ?? window.innerWidth
       const ph = parent?.clientHeight ?? window.innerHeight
       const keep = sys(24, this) // px of the window that must stay reachable
       const nx = Math.min(Math.max(x, keep - this.offsetWidth), pw - keep)
       const ny = Math.min(Math.max(y, 0), Math.max(0, ph - keep))
-      this.style.left = `${snapToDevicePx(nx)}px`
-      this.style.top = `${snapToDevicePx(ny)}px`
+      this.style.left = `${snapToSystemPx(nx, this)}px`
+      this.style.top = `${snapToSystemPx(ny, this)}px`
     },
   })
 
@@ -326,15 +327,17 @@ export class VfWindow extends LitElement {
     const resize = this._resizeState
     if (!resize || event.pointerId !== resize.pointerId) return
     // Minimums are in system px; getBoundingClientRect/clientX are real (scaled)
-    // CSS px, so convert the floors with sys(). Snapped so the right/bottom
-    // borders land on the device grid like the (snapped) left/top edges.
+    // CSS px, so convert the floors with sys(). Snapped onto the system grid so
+    // the window stays a whole count of art pixels — every interior metric
+    // (and an edge-mounted scroll rail's anchors) stays whole with it, and the
+    // right/bottom borders land on the device grid like the left/top edges.
     const width = Math.max(sys(80, this), resize.baseWidth + (event.clientX - resize.startX))
     const height = Math.max(
       sys(54, this),
       resize.baseHeight + (event.clientY - resize.startY)
     )
-    this.style.width = `${snapToDevicePx(width)}px`
-    this.style.height = `${snapToDevicePx(height)}px`
+    this.style.width = `${snapToSystemPx(width, this)}px`
+    this.style.height = `${snapToSystemPx(height, this)}px`
   }
 
   /**

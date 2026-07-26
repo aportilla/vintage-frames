@@ -38,10 +38,25 @@ export class VfTextArea extends VfTextControlBase {
            on the host or the --vf-field-width token. */
         width: calc(var(--vf-scale, 1) * var(--vf-field-width, 180px));
       }
-      textarea {
+      .box {
+        /* The snapped wrapper: .vf-snap makes it the positioned anchor the
+           .vf-scroll-frame overlay insets against, and the field and frame
+           ride its grid-snap offset as one. */
+      }
+      /* textarea.vf-field so the border override out-ranks the vf-field skin's
+         own border (a bare element selector would lose to the class). */
+      textarea.vf-field {
         display: block;
         width: 100%;
-        padding: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 6px);
+        /* Borderless — the 1px frame is the .vf-scroll-frame overlay painted
+           on top, so the scrollbar rect anchors on whole CSS px (WebKit snaps
+           scrollbar rects to whole CSS px; the field's own border put them on
+           half CSS px at dpr 2 and set Safari's rail a device pixel adrift —
+           see the vfScrollbars recipe comment). The padding grows 1px per side
+           over vf-text-field's 3px/6px, holding the text — and the outer box —
+           exactly where the bordered field put them. */
+        border: 0;
+        padding: calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 7px);
         resize: none;
         /* Reserve the vertical rail as a permanent placeholder: overflow-y:
            scroll keeps the styled track (and its divider) painted, and
@@ -68,18 +83,21 @@ export class VfTextArea extends VfTextControlBase {
 
   protected override render() {
     return html`
-      <textarea
-        part="textarea"
-        class="vf-field vf-scroll vf-snap"
-        rows=${this.rows}
-        aria-label=${this.label || nothing}
-        .value=${live(this.value)}
-        placeholder=${this.placeholder}
-        ?disabled=${this.isDisabled}
-        ?readonly=${this.readonly}
-        @input=${this.handleInput}
-        @change=${this.handleChange}
-      ></textarea>
+      <div class="box vf-snap">
+        <textarea
+          part="textarea"
+          class="vf-field vf-scroll"
+          rows=${this.rows}
+          aria-label=${this.label || nothing}
+          .value=${live(this.value)}
+          placeholder=${this.placeholder}
+          ?disabled=${this.isDisabled}
+          ?readonly=${this.readonly}
+          @input=${this.handleInput}
+          @change=${this.handleChange}
+        ></textarea>
+        <div class="vf-scroll-frame" aria-hidden="true"></div>
+      </div>
     `
   }
 

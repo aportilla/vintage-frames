@@ -64,6 +64,7 @@ export {
   sys,
   toSys,
   snapToDevicePx,
+  snapToSystemPx,
   snapDialogToGrid,
   unsnapDialog,
   DEVICE_PX_PER_SYSTEM_PX,

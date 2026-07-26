@@ -8,10 +8,12 @@ import { ScrollStateController } from '../scroll-state.js'
 /**
  * `<vf-scroll-area>` — a container whose scrollbars look like System 7.
  *
- * White box with a 1px black border and an inner scrolling viewport. The
- * WebKit scrollbars are the shared `vfScrollbars` recipe: 16px wide, a loose
- * 1-bit dot-dither trough, a white boxed thumb, and boxed arrow buttons that
- * nest cleanly inside the host border. Firefox falls back to `scrollbar-color`.
+ * White box with a 1px black frame and an inner scrolling viewport. The
+ * WebKit scrollbars are the shared `vfScrollbars` recipe: the classic 16px bar
+ * whose outer line is the frame (painted as an overlay above the borderless
+ * viewport — see the recipe comment for the Safari reason), a loose 1-bit
+ * dot-dither trough, a white boxed thumb, and boxed arrow buttons that nest
+ * cleanly under the frame. Firefox falls back to `scrollbar-color`.
  *
  * Each reserved scroll rail is a permanent placeholder: an empty white channel
  * sits in the gutter even when the content fits, filling in with the
@@ -66,16 +68,26 @@ export class VfScrollArea extends LitElement {
       :host {
         display: block;
       }
-      .viewport {
-        /* Background and border live here rather than on the host so they ride
-           the snap offset (see .vf-snap in base.ts); border-box sizing keeps
-           the geometry. The host no longer clips — the shifted viewport may
-           paint up to half a device pixel outside it. */
-        background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+      .box {
+        /* The snapped wrapper: .vf-snap makes it the positioned anchor the
+           .vf-scroll-frame overlay insets against, and the scroller and frame
+           ride its grid-snap offset as one. The host doesn't clip — the
+           shifted box may paint up to half a device pixel outside it. */
         width: 100%;
         height: 100%;
-        padding: calc(var(--vf-scale, 1) * 8px);
+      }
+      .viewport {
+        /* Borderless: the 1px frame is the .vf-scroll-frame overlay painted on
+           top, so the scrollbar rect anchors on whole CSS px — WebKit snaps
+           scrollbar rects to whole CSS px, and a border here would put the
+           anchors on half CSS px at dpr 2 and set the whole rail one device
+           pixel adrift in Safari (see the vfScrollbars recipe comment). */
+        background: var(--vf-white, #fff);
+        width: 100%;
+        height: 100%;
+        /* 9 = the old 8px inset + the 1px the dropped border occupied, keeping
+           the content's position relative to the frame. */
+        padding: calc(var(--vf-scale, 1) * 9px);
       }
       /* Reserve a rail per the host's axis. overflow-*: scroll keeps the
          styled track (and its divider) painted even with nothing to scroll, so
@@ -115,14 +127,17 @@ export class VfScrollArea extends LitElement {
 
   protected override render() {
     return html`
-      <div
-        class="viewport vf-scroll vf-snap"
-        part="viewport"
-        tabindex="0"
-        role=${this.label ? 'region' : nothing}
-        aria-label=${this.label || nothing}
-      >
-        <div class="content"><slot></slot></div>
+      <div class="box vf-snap">
+        <div
+          class="viewport vf-scroll"
+          part="viewport"
+          tabindex="0"
+          role=${this.label ? 'region' : nothing}
+          aria-label=${this.label || nothing}
+        >
+          <div class="content"><slot></slot></div>
+        </div>
+        <div class="vf-scroll-frame" aria-hidden="true"></div>
       </div>
     `
   }

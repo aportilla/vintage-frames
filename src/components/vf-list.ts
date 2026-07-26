@@ -52,15 +52,27 @@ export class VfList extends LitElement {
       :host([disabled]) {
         color: var(--vf-disabled, #c0c0c0);
       }
+      .box {
+        /* The snapped wrapper: .vf-snap makes it the positioned anchor the
+           .vf-scroll-frame overlay insets against, and the scroller and frame
+           ride its grid-snap offset as one. */
+      }
       .list {
-        /* Background and border live on the scroller rather than the host so
-           they ride the snap offset (see .vf-snap in base.ts); +2px keeps the
-           clamped total the height it was when the host carried the border. */
+        /* Background lives on the scroller rather than the host so it rides
+           the snap offset (see .vf-snap in base.ts); +2px keeps the clamped
+           total the height it was when a border supplied the frame. The frame
+           is now the .vf-scroll-frame overlay painted on top — the scroller
+           itself is borderless so its scrollbar rect anchors on whole CSS px
+           (WebKit snaps scrollbar rects to whole CSS px; a border here set the
+           rail a device pixel adrift in Safari at dpr 2 — see vfScrollbars).
+           The 1px padding keeps the rows inside the frame lines; none on the
+           right, where the rows run to the scroll rail. */
         background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         max-height: calc(
           var(--vf-scale, 1) * (var(--vf-list-max-height, 200px) + 2px)
         );
+        padding: calc(var(--vf-scale, 1) * 1px) 0 calc(var(--vf-scale, 1) * 1px)
+          calc(var(--vf-scale, 1) * 1px);
         /* Reserve the vertical rail always. overflow-y: scroll keeps the styled
            track painted; scrollbar-gutter: stable reserves the 16px channel
            (modern Chromium draws a zero-width overlay bar otherwise, so overflow
@@ -189,10 +201,13 @@ export class VfList extends LitElement {
 
   protected override render() {
     return html`
-      <div class="list vf-scroll vf-snap" part="list">
-        <div class="list-content">
-          <slot @slotchange=${this.#onSlotChange}></slot>
+      <div class="box vf-snap">
+        <div class="list vf-scroll" part="list">
+          <div class="list-content">
+            <slot @slotchange=${this.#onSlotChange}></slot>
+          </div>
         </div>
+        <div class="vf-scroll-frame" aria-hidden="true"></div>
       </div>
     `
   }

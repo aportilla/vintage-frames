@@ -62,9 +62,6 @@ export class VfRadioGroup extends VfFormControl {
   // No GridSnapController: the group paints nothing of its own; the slotted
   // radios correct themselves (see src/grid-snap.ts).
 
-  /** Value at first connect, restored on form reset. */
-  private defaultValue: string | null = null
-
   /**
    * Re-syncs the group when its radios change structurally or by value —
    * covers radios added/removed inside arbitrary wrapper markup (no top-level
@@ -81,7 +78,9 @@ export class VfRadioGroup extends VfFormControl {
 
   override connectedCallback(): void {
     super.connectedCallback()
-    if (this.defaultValue === null) this.defaultValue = this.value
+    // An authored value is the reset default; an empty one stays unlatched so
+    // a pre-checked radio adopted on slotchange can claim the default instead.
+    if (this.value !== '') this.latchFormDefault(this.value)
     // Filtered to value/disabled so syncRadios()'s own checked/tabindex
     // writes on the children can't re-trigger the observer (no feedback loop).
     // A subtree observer also reports the *host's* own attributes, and both
@@ -110,6 +109,14 @@ export class VfRadioGroup extends VfFormControl {
     return html`<slot @slotchange=${this.handleSlotChange}></slot>`
   }
 
+  protected override willUpdate(): void {
+    // Parse-time pre-checked radios must be adopted BEFORE the first update
+    // finishes: updated()'s child sync runs ahead of the initial slotchange
+    // dispatch, and with no value it unchecks the very radio the slotchange
+    // adoption would have looked for.
+    if (!this.hasUpdated) this.adoptPreChecked()
+  }
+
   protected override updated(changed: PropertyValues<this>): void {
     const disabled = this.disabledChanged(changed)
     if (changed.has('value') || disabled) {
@@ -125,7 +132,7 @@ export class VfRadioGroup extends VfFormControl {
 
   /** Form-associated lifecycle: restores the initial value. */
   formResetCallback(): void {
-    this.value = this.defaultValue ?? ''
+    this.value = this.formDefault('')
   }
 
   /** All descendant radios belonging to this group (nested groups excluded). */
@@ -222,18 +229,24 @@ export class VfRadioGroup extends VfFormControl {
     if (next) this.selectRadio(next, true)
   }
 
-  private handleSlotChange = (): void => {
-    // If the group has no value but the markup pre-checked a radio, adopt
-    // its value (and treat it as the form-reset default).
-    if (this.value === '') {
-      const preChecked = this.radios.find((radio) => radio.checked)
-      if (preChecked && preChecked.value !== '') {
-        this.value = preChecked.value
-        if (this.defaultValue === null || this.defaultValue === '') {
-          this.defaultValue = this.value
-        }
-      }
+  /**
+   * With no value of its own, adopt a pre-checked radio's value — and treat
+   * it as the form-reset default.
+   */
+  private adoptPreChecked(): void {
+    if (this.value !== '') return
+    const preChecked = this.radios.find((radio) => radio.checked)
+    if (preChecked && preChecked.value !== '') {
+      this.value = preChecked.value
+      this.latchFormDefault(this.value)
     }
+  }
+
+  private handleSlotChange = (): void => {
+    // Radios slotted in after first render: adopt a pre-checked one here (the
+    // parse-time case is handled in willUpdate, before the first child sync
+    // can uncheck it).
+    this.adoptPreChecked()
     this.syncRadios()
   }
 }

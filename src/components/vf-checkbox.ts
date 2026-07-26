@@ -74,9 +74,6 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
   /** Value submitted with the form while checked. */
   @property() value = 'on'
 
-  /** Checked state at first connect, restored on form reset. */
-  private defaultChecked: boolean | null = null
-
   constructor() {
     super()
     this.internals.role = 'checkbox'
@@ -84,7 +81,7 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
 
   override connectedCallback(): void {
     super.connectedCallback()
-    if (this.defaultChecked === null) this.defaultChecked = this.checked
+    this.latchFormDefault(this.checked)
   }
 
   /** The handle {@link VfFormControl} already attached. */
@@ -113,15 +110,21 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
     `
   }
 
-  protected override updated(changed: PropertyValues): void {
+  protected override updated(changed: PropertyValues<this>): void {
     // ARIA + tabindex mirroring comes from VfToggleControl.
     super.updated(changed)
-    this.syncFormValue(this.checked ? this.value : null)
+    // Re-submit only when the submission's inputs changed — checked/value, or
+    // the resolved disabled state that gates it (same shape as
+    // VfTextControlBase.updated; disabledChanged covers the ancestor
+    // <fieldset disabled> path a plain `changed.has('disabled')` misses).
+    if (changed.has('checked') || changed.has('value') || this.disabledChanged(changed)) {
+      this.syncFormValue(this.checked ? this.value : null)
+    }
   }
 
   /** Form-associated lifecycle: restores the initial checked state. */
   formResetCallback(): void {
-    this.checked = this.defaultChecked ?? false
+    this.checked = this.formDefault(false)
   }
 
   /** Click/Space on an enabled checkbox flips it. */

@@ -8,6 +8,7 @@ import {
 import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { DocumentListenersController } from '../document-listeners.js'
 import { emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -150,7 +151,11 @@ export class VfMenu extends LitElement {
     items[next]?.focus()
   }
 
-  #docListenersAttached = false
+  /** Outside dismissal + item keyboard nav while open standalone. */
+  readonly #docListeners = new DocumentListenersController(this, () => [
+    [document, 'pointerdown', this.#onDocPointerDown, true],
+    [document, 'keydown', this.#onDocKeydown, true],
+  ])
 
   override connectedCallback(): void {
     super.connectedCallback()
@@ -160,7 +165,6 @@ export class VfMenu extends LitElement {
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
-    this.#removeDocListeners()
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
@@ -168,8 +172,8 @@ export class VfMenu extends LitElement {
       // A parent vf-menu-bar owns document-level dismissal; only self-manage
       // when standalone.
       const inBar = this.closest('vf-menu-bar') !== null
-      if (this.open && !inBar) this.#addDocListeners()
-      else this.#removeDocListeners()
+      if (this.open && !inBar) this.#docListeners.attach()
+      else this.#docListeners.detach()
     }
   }
 
@@ -237,20 +241,6 @@ export class VfMenu extends LitElement {
   async #focusFirstItem(): Promise<void> {
     await this.updateComplete
     this.items[0]?.focus()
-  }
-
-  #addDocListeners(): void {
-    if (this.#docListenersAttached) return
-    this.#docListenersAttached = true
-    document.addEventListener('pointerdown', this.#onDocPointerDown, true)
-    document.addEventListener('keydown', this.#onDocKeydown, true)
-  }
-
-  #removeDocListeners(): void {
-    if (!this.#docListenersAttached) return
-    this.#docListenersAttached = false
-    document.removeEventListener('pointerdown', this.#onDocPointerDown, true)
-    document.removeEventListener('keydown', this.#onDocKeydown, true)
   }
 }
 

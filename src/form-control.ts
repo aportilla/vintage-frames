@@ -7,9 +7,11 @@ import { property, state } from 'lit/decorators.js'
  * Owns the boilerplate every one of them repeated: the `ElementInternals`
  * handle, the reflected `disabled` property, the `formDisabled` state fed by
  * `formDisabledCallback` (an ancestor `<fieldset disabled>`), the resolved
- * {@link isDisabled} getter, and — crucially — the disabled-guarded
- * {@link syncFormValue} funnel every subclass routes its `setFormValue`
- * through, so a disabled control can never leak a value into submission.
+ * {@link isDisabled} getter, the form-reset default latch
+ * ({@link latchFormDefault} / {@link formDefault}), and — crucially — the
+ * disabled-guarded {@link syncFormValue} funnel every subclass routes its
+ * `setFormValue` through, so a disabled control can never leak a value into
+ * submission.
  *
  * Subclasses supply their own value semantics, ARIA and (where needed) a
  * `formResetCallback` restoring their captured default.
@@ -51,6 +53,36 @@ export class VfFormControl extends LitElement {
    */
   protected syncFormValue(value: string | File | FormData | null): void {
     this.internals.setFormValue(this.isDisabled ? null : value)
+  }
+
+  /**
+   * The value {@link formDefault} hands back for the subclass's
+   * `formResetCallback`. `unknown` because each control latches its own value
+   * type (string, number, boolean); {@link formDefault} casts it back out.
+   */
+  #formDefault: unknown
+  #formDefaultLatched = false
+
+  /**
+   * Capture the control's form-reset default. Only the first call latches, so
+   * lifecycle paths that can run more than once — reconnects, repeated
+   * slotchanges — may call it unconditionally. WHEN to call it is each
+   * control's own contract: most latch on first connect, `vf-select` waits
+   * until options exist, `vf-radio-group` lets a pre-checked radio adopted on
+   * slotchange claim an unauthored default.
+   */
+  protected latchFormDefault(value: unknown): void {
+    if (this.#formDefaultLatched) return
+    this.#formDefaultLatched = true
+    this.#formDefault = value
+  }
+
+  /**
+   * The latched form-reset default, or `fallback` while nothing has latched.
+   * The cast is sound because a control only ever latches its own value type.
+   */
+  protected formDefault<T>(fallback: T): T {
+    return this.#formDefaultLatched ? (this.#formDefault as T) : fallback
   }
 
   /**

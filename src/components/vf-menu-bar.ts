@@ -3,6 +3,7 @@ import { customElement, queryAssignedElements } from 'lit/decorators.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { DocumentListenersController } from '../document-listeners.js'
 import type { VfMenu } from './vf-menu.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -59,7 +60,11 @@ export class VfMenuBar extends LitElement {
    */
   #rovingMenu: VfMenu | null = null
 
-  #docListenersAttached = false
+  /** Outside dismissal + menu/item keyboard nav while a menu is open. */
+  readonly #docListeners = new DocumentListenersController(this, () => [
+    [document, 'pointerdown', this.#onDocPointerDown, true],
+    [document, 'keydown', this.#onDocKeydown, true],
+  ])
 
   override connectedCallback(): void {
     super.connectedCallback()
@@ -76,7 +81,6 @@ export class VfMenuBar extends LitElement {
     this.removeEventListener('vf-menu-hover', this.#onMenuHover)
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.removeEventListener('keydown', this.#onBarKeydown)
-    this.#removeDocListeners()
     this.#openMenu = null
     this.#rovingMenu = null
   }
@@ -152,13 +156,13 @@ export class VfMenuBar extends LitElement {
     this.#openMenu = menu
     this.#rovingMenu = menu
     this.#syncMenus()
-    this.#addDocListeners()
+    this.#docListeners.attach()
   }
 
   #closeAll(): void {
     for (const menu of this._menus) menu.open = false
     this.#openMenu = null
-    this.#removeDocListeners()
+    this.#docListeners.detach()
     // Keep the Tab stop on the last-active menu so re-tabbing lands there.
     this.#syncMenus()
   }
@@ -255,20 +259,6 @@ export class VfMenuBar extends LitElement {
     if (current < 0) next = direction === 1 ? 0 : items.length - 1
     else next = (current + direction + items.length) % items.length
     items[next]?.focus()
-  }
-
-  #addDocListeners(): void {
-    if (this.#docListenersAttached) return
-    this.#docListenersAttached = true
-    document.addEventListener('pointerdown', this.#onDocPointerDown, true)
-    document.addEventListener('keydown', this.#onDocKeydown, true)
-  }
-
-  #removeDocListeners(): void {
-    if (!this.#docListenersAttached) return
-    this.#docListenersAttached = false
-    document.removeEventListener('pointerdown', this.#onDocPointerDown, true)
-    document.removeEventListener('keydown', this.#onDocKeydown, true)
   }
 }
 

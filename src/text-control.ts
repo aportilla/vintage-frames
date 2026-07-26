@@ -51,16 +51,9 @@ export class VfTextControlBase extends VfFormControl {
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   protected readonly gridSnap = new GridSnapController(this)
 
-  /** Value restored by `formResetCallback`; captured on first connect. */
-  private defaultValue = ''
-  private defaultCaptured = false
-
   override connectedCallback(): void {
     super.connectedCallback()
-    if (!this.defaultCaptured) {
-      this.defaultCaptured = true
-      this.defaultValue = this.value
-    }
+    this.latchFormDefault(this.value)
   }
 
   /**
@@ -78,7 +71,7 @@ export class VfTextControlBase extends VfFormControl {
 
   /** Restores the initial value when the associated form resets. */
   formResetCallback(): void {
-    this.value = this.defaultValue
+    this.value = this.formDefault('')
   }
 
   /**

@@ -6,6 +6,7 @@ import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { DocumentListenersController } from '../document-listeners.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
 import { emit } from '../events.js'
@@ -216,6 +217,21 @@ export class VfSelect extends VfFormControl {
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
+  /** While the panel is open: outside dismissal, and closing when a scroll or
+   *  resize would strand the fixed-position panel away from the pill. */
+  private readonly panelListeners = new DocumentListenersController(this, () => [
+    [document, 'pointerdown', this.handleDocumentPointerDown, true],
+    [window, 'scroll', this.handleWindowScroll, true],
+    [window, 'resize', this.handleWindowResize],
+  ])
+
+  /** While a press gesture is in flight: track it to its release anywhere. */
+  private readonly pressListeners = new DocumentListenersController(this, () => [
+    [document, 'pointermove', this.handlePressPointerMove, true],
+    [document, 'pointerup', this.handlePressPointerUp, true],
+    [document, 'pointercancel', this.handlePressCancel, true],
+  ])
+
   /** Index of the highlighted option while the panel is open. */
   private activeIndex = -1
 
@@ -248,10 +264,6 @@ export class VfSelect extends VfFormControl {
 
   private blinkHandle: BlinkHandle | undefined
 
-  /** Value restored by `formResetCallback`; captured on first slot change. */
-  private defaultValue = ''
-  private defaultCaptured = false
-
   constructor() {
     super()
     this.addEventListener('pointerdown', this.handleHostPointerDown)
@@ -262,6 +274,7 @@ export class VfSelect extends VfFormControl {
   }
 
   override disconnectedCallback(): void {
+    // super's controller teardown already detached both listener sets.
     super.disconnectedCallback()
     this.cancelBlink()
     // Clear any stamped `active` flags on the options: a select disconnected
@@ -270,7 +283,6 @@ export class VfSelect extends VfFormControl {
     this.clearActive()
     this.endPress()
     this.open = false
-    this.removeDocumentListeners()
   }
 
   /** Focuses the popup control. */
@@ -303,7 +315,7 @@ export class VfSelect extends VfFormControl {
 
   /** Restores the initial value when the associated form resets. */
   formResetCallback(): void {
-    this.value = this.defaultValue
+    this.value = this.formDefault('')
   }
 
   private get optionItems(): VfOption[] {
@@ -337,10 +349,7 @@ export class VfSelect extends VfFormControl {
     // Latch the reset default only once options actually exist, so an
     // async-populated menu doesn't capture the empty pre-population value and
     // then reset to '' instead of the first-option default.
-    if (!this.defaultCaptured && this.optionItems.length) {
-      this.defaultCaptured = true
-      this.defaultValue = this.value
-    }
+    if (this.optionItems.length) this.latchFormDefault(this.value)
     this.applySelection()
   }
 
@@ -349,9 +358,7 @@ export class VfSelect extends VfFormControl {
   private async openPanel(): Promise<void> {
     if (this.open || this.isDisabled) return
     this.open = true
-    document.addEventListener('pointerdown', this.handleDocumentPointerDown, true)
-    window.addEventListener('scroll', this.handleWindowScroll, true)
-    window.addEventListener('resize', this.handleWindowResize)
+    this.panelListeners.attach()
     await this.updateComplete
     const options = this.optionItems
     let index = options.findIndex((o) => o.selected && !o.disabled)
@@ -420,14 +427,8 @@ export class VfSelect extends VfFormControl {
     this.cancelBlink()
     this.endPress()
     this.clearActive()
-    this.removeDocumentListeners()
+    this.panelListeners.detach()
     if (refocusControl) this.controlEl?.focus()
-  }
-
-  private removeDocumentListeners(): void {
-    document.removeEventListener('pointerdown', this.handleDocumentPointerDown, true)
-    window.removeEventListener('scroll', this.handleWindowScroll, true)
-    window.removeEventListener('resize', this.handleWindowResize)
   }
 
   // ------------------------------------------------------------- highlight
@@ -571,9 +572,7 @@ export class VfSelect extends VfFormControl {
     // We drive focus and highlight ourselves; block the browser's text-range
     // selection / default focus so a drag doesn't select the labels.
     event.preventDefault()
-    document.addEventListener('pointermove', this.handlePressPointerMove, true)
-    document.addEventListener('pointerup', this.handlePressPointerUp, true)
-    document.addEventListener('pointercancel', this.handlePressCancel, true)
+    this.pressListeners.attach()
     if (this.pressOpenedPanel) {
       this.controlEl?.focus()
       // openPanel lays the selected row over the pill; capture the row actually
@@ -629,9 +628,7 @@ export class VfSelect extends VfFormControl {
     if (!this.pressing) return
     this.pressing = false
     this.pressStartOption = null
-    document.removeEventListener('pointermove', this.handlePressPointerMove, true)
-    document.removeEventListener('pointerup', this.handlePressPointerUp, true)
-    document.removeEventListener('pointercancel', this.handlePressCancel, true)
+    this.pressListeners.detach()
   }
 
   /** The option whose row currently contains the viewport point, if any. */

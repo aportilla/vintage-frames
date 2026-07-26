@@ -171,9 +171,6 @@ export class VfSlider extends VfFormControl {
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
-  /** Value at first connect, restored on form reset. */
-  private defaultValue: number | null = null
-
   /** True when this component owns the host `tabindex`. */
   private selfManagedTabIndex = false
 
@@ -200,7 +197,7 @@ export class VfSlider extends VfFormControl {
 
   override connectedCallback(): void {
     super.connectedCallback()
-    if (this.defaultValue === null) this.defaultValue = this.value
+    this.latchFormDefault(this.value)
     if (!this.hasAttribute('tabindex')) {
       this.selfManagedTabIndex = true
       this.tabIndex = this.isDisabled ? -1 : 0
@@ -231,7 +228,7 @@ export class VfSlider extends VfFormControl {
 
   /** Restores the initial value when the associated form resets. */
   formResetCallback(): void {
-    this.value = this.defaultValue ?? 0
+    this.value = this.formDefault(0)
   }
 
   // ------------------------------------------------------------- value math

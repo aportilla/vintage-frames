@@ -133,6 +133,8 @@ export { DragController } from './drag.js'
 export type { DragTarget } from './drag.js'
 export { ScrollStateController } from './scroll-state.js'
 export { TrackWidthController } from './track-width.js'
+export { DocumentListenersController } from './document-listeners.js'
+export type { DocumentListenerSpec } from './document-listeners.js'
 export { emit } from './events.js'
 export {
   prefersReducedMotion,

@@ -1,31 +1,52 @@
 import { html, css, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { vfBase, vfStripes, vfChromeFrame, vfTitleBar } from '../styles/base.js'
+import {
+  vfBase,
+  vfStripes,
+  vfFocus,
+  vfChromeFrame,
+  vfModalFrame,
+  vfTitleBar,
+  vfWindowWidgets,
+  vfDisplayDecls,
+} from '../styles/base.js'
 import { snapToSystemPx } from '../scale.js'
 import { DragController } from '../drag.js'
-import { chromeTitleBar } from '../chrome.js'
+import { chromeTitleBar, widgetLabel, closeBox } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
 /**
- * `<vf-dialog>` — the System 7 movable-modal dialog.
+ * `<vf-dialog>` — the System 7 modal dialog shell.
  *
- * A striped title bar with a centered title and NO window widgets, over a
- * white body. Drag the title bar to move it — the classic movable-modal
- * behavior. Wraps a native `<dialog>` for top-layer rendering and focus
- * trapping, with a fully transparent backdrop (no dimming — pure System 7).
+ * Two chromes, one modal lifecycle (native `<dialog>` for top-layer rendering
+ * and focus trapping, with a fully transparent backdrop — no dimming):
+ *
+ * - **Default:** a striped title bar with a centered title over a white body —
+ *   the movable-modal look. Drag the title bar to move it. `closable` adds the
+ *   standard close box (left of the bar) — the HIG's own figures disagree on
+ *   whether a movable modal carries one (Figure 5-1 says yes, Figure 6-1 and
+ *   the Chapter 6 text say no), so the component enables either reading rather
+ *   than enforcing one.
+ * - **`frame="plain"`:** the classic dBoxProc modal-dialog frame — 1px outer
+ *   border, 2px gap, 2px inner band, no shadow, no title bar — and immovable,
+ *   like the original. A `heading` renders as a centered display-face heading
+ *   at the top of the body (the reference art's "Dialog title"); `closable` is
+ *   ignored, there being no bar to carry the widget.
  *
  * Open it with `show()` (or set the `open` attribute/property); close with
  * `close()`. Escape closes it and fires `vf-close` with
- * `{ reason: 'escape' }`; programmatic closing fires `{ reason: 'close' }`.
+ * `{ reason: 'escape' }`; the close box and programmatic closing fire
+ * `{ reason: 'close' }`.
  *
  * @slot - Default slot: dialog body content.
  * @slot buttons - Optional action buttons. Rendered as a bottom-right
  *   `vf-button-group` (equal-width, faces aligned); the footer only takes
  *   space when the slot is populated.
- * @csspart frame - The outer chrome frame.
- * @csspart title-bar - The striped title bar.
- * @csspart title - The centered title patch.
+ * @csspart frame - The outer chrome frame (striped-bar or plain).
+ * @csspart title-bar - The striped title bar (default chrome only).
+ * @csspart title - The centered title patch (or the plain-frame heading).
+ * @csspart close-box - The close widget (`closable`, default chrome only).
  * @csspart body - The white content area.
  * @csspart footer - The action row wrapping the buttons.
  * @csspart buttons - The button group inside the footer.
@@ -36,8 +57,11 @@ export class VfDialog extends VfModalDialog {
   static override styles = [
     vfBase,
     vfStripes,
+    vfFocus,
     vfChromeFrame,
+    vfModalFrame,
     vfTitleBar,
+    vfWindowWidgets,
     modalDialogStyles,
     css`
       :host {
@@ -49,10 +73,26 @@ export class VfDialog extends VfModalDialog {
       .vf-title-bar {
         touch-action: none;
       }
+      /* Close box clearance: the same 60px vf-window uses, so an ellipsized
+         title can't run under the widget (the title is centered, so the inset
+         has to cover both sides). */
+      :host([closable]) .vf-title {
+        --vf-title-inset: 60px;
+      }
       .body {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
         padding: calc(var(--vf-scale, 1) * 16px);
+      }
+      /* The plain frame's heading: centered chrome type at the top of the
+         body, the way dBoxProc dialogs drew their title in content (see
+         Windows/modal dialog.png). No patch, no ellipsis — it's body-top
+         text, not a bar. */
+      .plain-heading {
+        ${vfDisplayDecls}
+        display: block;
+        text-align: center;
+        margin-bottom: calc(var(--vf-scale, 1) * 16px);
       }
       /* Optional action row (slot="buttons"): a right-aligned vf-button-group
          that only takes space when populated. */
@@ -72,11 +112,23 @@ export class VfDialog extends VfModalDialog {
    * The dialog is a centered top-layer `<dialog>` pinned onto the device grid
    * on open (snapDialogToGrid); dragging rewrites those centering margins with
    * the snapped new origin. `unsnapDialog` on close clears them so the next
-   * open re-centers.
+   * open re-centers. Inert with `frame="plain"` — no bar is rendered, so no
+   * pointer ever reaches the controller (dBoxProc dialogs don't move).
    */
   private readonly _drag = new DragController(this, {
     onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
       if (event.button !== 0) return null
+      // Ignore drags that start on the close widget (same guard as vf-window).
+      if (
+        event
+          .composedPath()
+          .some(
+            (node) =>
+              node instanceof HTMLElement && node.classList.contains('box')
+          )
+      ) {
+        return null
+      }
       const dialog = this._dialog
       if (!dialog?.open) return null
       // Seed from the grid-pinned margins written on open; fall back to the
@@ -98,7 +150,7 @@ export class VfDialog extends VfModalDialog {
     },
   })
 
-  /** Title text shown centered in the title bar. */
+  /** Title text: the bar's centered patch, or the plain frame's heading. */
   @property() heading = ''
 
   /**
@@ -109,15 +161,53 @@ export class VfDialog extends VfModalDialog {
    */
   @property() label = ''
 
+  /**
+   * Show the close box (left side of the title bar). Off by default — the
+   * bare movable-modal bar. Ignored with `frame="plain"` (no bar). Clicking
+   * it closes the dialog and fires `vf-close` with `{ reason: 'close' }`.
+   */
+  @property({ type: Boolean, reflect: true }) closable = false
+
+  /**
+   * Frame chrome. Omit for the striped title bar (movable modal); `'plain'`
+   * for the immovable dBoxProc double frame with no bar (modal dialog box).
+   */
+  @property({ reflect: true }) frame?: 'plain'
+
   /** Whether the `buttons` slot has assigned content (drives the footer). */
   @state() private _hasButtons = false
 
+  private _onCloseClick(): void {
+    this.close()
+  }
+
   protected override render(): unknown {
-    // A titled dialog is named by its own title patch. An untitled one has
-    // nothing to point at — aria-labelledby would resolve to an empty node and
-    // leave the dialog with no accessible name at all — so it names itself with
-    // aria-label instead, the way vf-alert (which never has a title bar) does.
+    // A titled dialog is named by its own title patch (or, on the plain
+    // frame, its body-top heading — both carry id="title"). An untitled one
+    // has nothing to point at — aria-labelledby would resolve to an empty
+    // node and leave the dialog with no accessible name at all — so it names
+    // itself with aria-label instead, the way vf-alert (which never has a
+    // title bar) does.
     const titled = !this.label && this.heading !== ''
+    const plain = this.frame === 'plain'
+    const body = html`
+      <div class="body" part="body">
+        ${plain && this.heading !== ''
+          ? html`<span class="plain-heading" part="title" id="title"
+              >${this.heading}</span
+            >`
+          : nothing}
+        <slot></slot>
+        <div class="footer ${this._hasButtons ? '' : 'empty'}" part="footer">
+          <vf-button-group class="buttons" part="buttons">
+            <slot
+              name="buttons"
+              @slotchange=${this._onButtonsSlotChange}
+            ></slot>
+          </vf-button-group>
+        </div>
+      </div>
+    `
     return html`
       <dialog
         aria-labelledby=${titled ? 'title' : nothing}
@@ -125,25 +215,31 @@ export class VfDialog extends VfModalDialog {
         @cancel=${this._onNativeCancel}
         @close=${this._onNativeClose}
       >
-        <div class="vf-frame" part="frame">
-          ${chromeTitleBar(
-            this._drag,
-            html`<span class="vf-title" part="title" id="title"
-              >${this.heading}</span
-            >`
-          )}
-          <div class="body" part="body">
-            <slot></slot>
-            <div class="footer ${this._hasButtons ? '' : 'empty'}" part="footer">
-              <vf-button-group class="buttons" part="buttons">
-                <slot
-                  name="buttons"
-                  @slotchange=${this._onButtonsSlotChange}
-                ></slot>
-              </vf-button-group>
-            </div>
-          </div>
-        </div>
+        ${plain
+          ? html`
+              <div class="vf-modal-frame" part="frame">
+                <div class="vf-modal-frame-inner">${body}</div>
+              </div>
+            `
+          : html`
+              <div class="vf-frame" part="frame">
+                ${chromeTitleBar(
+                  this._drag,
+                  html`
+                    ${this.closable
+                      ? closeBox(
+                          widgetLabel('Close', this.heading),
+                          this._onCloseClick
+                        )
+                      : nothing}
+                    <span class="vf-title" part="title" id="title"
+                      >${this.heading}</span
+                    >
+                  `
+                )}
+                ${body}
+              </div>
+            `}
       </dialog>
     `
   }

@@ -27,6 +27,7 @@
           <vf-menu-item value="open" shortcut="⌘O">Open…</vf-menu-item>
           <vf-separator></vf-separator>
           <vf-menu-item value="close" shortcut="⌘W">Close</vf-menu-item>
+          <vf-menu-item value="page-setup">Page Setup…</vf-menu-item>
           <vf-menu-item disabled shortcut="⌘P">Print</vf-menu-item>
           <vf-separator></vf-separator>
           <vf-menu-item value="quit" shortcut="⌘Q">Quit</vf-menu-item>
@@ -421,7 +422,11 @@
         </div>
       </vf-window>
 
-      <!-- ==================== "Find File" document window =============== -->
+      <!-- ================= "Find File" modeless dialog box ============== -->
+      <!-- The modeless-dialog-box archetype recipe (README "Window
+           archetypes"): close box + movable, no zoom box, grow box or scroll
+           rails — a dialog that floats among the document windows and can be
+           put away any time. Find is the HIG's own canonical example. -->
       <vf-window id="win-find" heading="Find File" movable>
         <div class="find">
           <div class="find-row">
@@ -617,17 +622,24 @@
       </vf-window>
 
       <!-- ================ "DragThing Read Me" (TeachText) =============== -->
-      <!-- The 2-axis scroll + grow-box showcase: the Read Me the installer
-           copy points at, as TeachText would open it — a document wider AND
-           taller than its window (white-space: pre keeps the author's line
-           breaks), in a vf-scroll-area axis="both" filling a flush resizable
-           window EDGE TO EDGE: the scroll area is pulled one system pixel
-           under the window frame (see .readme-scroll in demo.css), so the
-           rails sit in the frame itself and the grow box lands in the
-           scrollbar corner — the classic document window. Drag the grow box:
-           each rail fills in only while its own axis overflows. -->
-      <vf-window id="win-readme" heading="DragThing Read Me" movable resizable flush>
-        <vf-scroll-area axis="both" label="DragThing Read Me" class="readme-scroll">
+      <!-- The document-window archetype at full anatomy: the Read Me the
+           installer copy points at, as TeachText would open it — a document
+           wider AND taller than its window (white-space: pre keeps the
+           author's line breaks). scrollbars="both" renders the body inside
+           the window's own edge-mounted scroll area (the TeachText
+           composition, internalized — SPEC §5 vf-window), so the rails sit
+           in the frame itself and the grow box lands in the scrollbar
+           corner. Drag the grow box: each rail fills in only while its own
+           axis overflows. (The slotted vf-scroll-area form this window used
+           to hand-roll still works — the installer's read-me well keeps it,
+           inset.) -->
+      <vf-window
+        id="win-readme"
+        heading="DragThing Read Me"
+        movable
+        resizable
+        scrollbars="both"
+      >
 <pre class="readme-doc">
 DRAGTHING 2.9 — READ ME                                          17 July 1996
 
@@ -659,7 +671,76 @@ Resize this window with the grow box: a scroll bar fills in only while
 its axis actually overflows — grow the window until a rail empties out,
 shrink it and watch the arrows come back.
 </pre>
-        </vf-scroll-area>
+      </vf-window>
+
+      <!-- ============== "Desk Accessories" utility palette ============== -->
+      <!-- The utility-window archetype: vf-window variant="utility" movable —
+           the slim windoid bar (dot-grid dither, 7×7 close box) traced from
+           Windows/utility-window.png, floating on vf-desktop's upper tier.
+           Click any document window underneath: the palette stays on top and
+           keeps its bar, because utility windows stand outside the
+           single-active rule (HIG Figure 5-6's tool palette, recast with the
+           DA icons the kit ships). The 3×3 cell grid is page furniture like
+           the Find window's dotted well; each icon is 16×16 vf-img pixel
+           art. -->
+      <vf-window
+        id="win-tools"
+        variant="utility"
+        heading="Desk Accessories"
+        movable
+        flush
+      >
+        <div class="tools-grid" role="group" aria-label="Desk accessories">
+          <button class="tool" aria-pressed="true" aria-label="Alarm Clock">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/alarm-clock.png" alt="" />
+            </vf-img>
+          </button>
+          <button class="tool" aria-pressed="false" aria-label="Battery">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/battery.png" alt="" />
+            </vf-img>
+          </button>
+          <button class="tool" aria-pressed="false" aria-label="Calculator">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/calculator.png" alt="" />
+            </vf-img>
+          </button>
+          <button class="tool" aria-pressed="false" aria-label="Chooser">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/chooser.png" alt="" />
+            </vf-img>
+          </button>
+          <button
+            class="tool"
+            aria-pressed="false"
+            aria-label="Control Panels"
+          >
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/control-panels.png" alt="" />
+            </vf-img>
+          </button>
+          <button class="tool" aria-pressed="false" aria-label="Key Caps">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/key-caps.png" alt="" />
+            </vf-img>
+          </button>
+          <button class="tool" aria-pressed="false" aria-label="Note Pad">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/note-pad.png" alt="" />
+            </vf-img>
+          </button>
+          <button class="tool" aria-pressed="false" aria-label="Puzzle">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/puzzle.png" alt="" />
+            </vf-img>
+          </button>
+          <button class="tool" aria-pressed="false" aria-label="Scrapbook">
+            <vf-img width="16" height="16">
+              <img src="/demo/icons/scrapbook.png" alt="" />
+            </vf-img>
+          </button>
+        </div>
       </vf-window>
 
       <!-- ===================== About dialog (modal) ===================== -->
@@ -674,6 +755,39 @@ shrink it and watch the arrows come back.
           </vf-paragraph>
         </div>
         <vf-button id="btn-about-ok" slot="buttons" variant="default"
+          >OK</vf-button
+        >
+      </vf-dialog>
+
+      <!-- =============== "Page Setup" modal dialog box (plain) ========== -->
+      <!-- The modal-dialog-box archetype: vf-dialog frame="plain" — the
+           dBoxProc double frame (1px outer rule, 2px gap, 2px inner band, no
+           shadow, no title bar, immovable), with the heading drawn in
+           content the way those dialogs titled themselves. File →
+           Page Setup… opens it; Page Setup is the classic example of a
+           dialog you must answer before working on. -->
+      <vf-dialog id="dlg-pagesetup" frame="plain" heading="Page Setup">
+        <div class="pagesetup">
+          <vf-fieldset legend="Paper">
+            <vf-radio-group value="us-letter" name="paper" label="Paper">
+              <vf-radio value="us-letter">US Letter</vf-radio>
+              <vf-radio value="us-legal">US Legal</vf-radio>
+              <vf-radio value="a4">A4 Letter</vf-radio>
+            </vf-radio-group>
+          </vf-fieldset>
+          <div class="pagesetup-row">
+            <vf-label for="pagesetup-scale">Reduce or Enlarge:</vf-label>
+            <vf-number-field
+              id="pagesetup-scale"
+              value="100"
+              min="25"
+              max="400"
+            ></vf-number-field>
+            <vf-label>%</vf-label>
+          </div>
+        </div>
+        <vf-button id="btn-pagesetup-cancel" slot="buttons">Cancel</vf-button>
+        <vf-button id="btn-pagesetup-ok" slot="buttons" variant="default"
           >OK</vf-button
         >
       </vf-dialog>

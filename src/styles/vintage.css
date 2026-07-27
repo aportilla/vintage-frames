@@ -40,6 +40,7 @@
    * --vf-control-height-small: 16px;
    * --vf-select-gutter: 16px;                 // ✓ column: select / option / menu-item
    * --vf-titlebar-height: 18px;
+   * --vf-titlebar-height-utility: 12px;      // the slim windoid bar
    * --vf-menubar-height: 24px;
    * --vf-focus-outline: 1px dotted #000;
    * --vf-progress-fill: #000000;

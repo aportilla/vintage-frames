@@ -3,15 +3,18 @@ import { customElement, property } from 'lit/decorators.js'
 import {
   vfBase,
   vfStripes,
+  vfDots,
   vfFocus,
   vfChromeFrame,
   vfTitleBar,
+  vfWindowWidgets,
 } from '../styles/base.js'
 import { ScaleController, snapToSystemPx, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
-import { chromeTitleBar } from '../chrome.js'
+import { chromeTitleBar, widgetLabel, closeBox, zoomBox } from '../chrome.js'
 import { emit } from '../events.js'
+import './vf-scroll-area.js'
 
 interface ResizeState {
   pointerId: number
@@ -22,21 +25,30 @@ interface ResizeState {
 }
 
 /**
- * `<vf-window>` — the classic System 7 document window.
+ * `<vf-window>` — the System 7 desktop-window shell.
  *
- * Racing-stripe title bar with close box (left) and optional zoom box
- * (right), a solid-white frame with a hard offset shadow, and an optional
- * grow box for resizing. Place inside `<vf-desktop>` to get click-to-front
- * stacking and automatic `active` management.
+ * Striped title bar with optional close box (left) and zoom box (right), a
+ * solid-white frame with a hard offset shadow, an optional grow box for
+ * resizing, optional edge scroll rails (`scrollbars`), and the slim windoid
+ * chrome (`variant="utility"`). The HIG's window archetypes are parameter
+ * recipes over this shell rather than fixed anatomies — the component enables
+ * HIG compliance, it doesn't enforce it (see README "window archetypes"):
+ * the full document window is `closable zoomable movable resizable
+ * scrollbars="both"`, a modeless dialog box is `closable movable`, a utility
+ * window is `variant="utility" movable`. Place inside `<vf-desktop>` to get
+ * click-to-front stacking and automatic `active` management (utility windows
+ * float above the document tier).
  *
  * @slot - Default slot: window body content.
  * @csspart frame - The outer chrome frame.
- * @csspart title-bar - The striped title bar.
- * @csspart title - The centered title patch.
+ * @csspart title-bar - The striped (or dithered) title bar.
+ * @csspart title - The centered title patch (hidden on the utility bar).
  * @csspart close-box - The close widget (left).
  * @csspart zoom-box - The zoom widget (right).
  * @csspart body - The content area.
  * @csspart grow-box - The resize widget (bottom-right, when `resizable`).
+ * @csspart viewport - The built-in scroll area's viewport (when `scrollbars`;
+ *   re-exported from vf-scroll-area).
  * @fires vf-close - Close box clicked. Detail `{ reason: 'close' }` (shape-
  *   compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT
  *   remove itself; the consumer decides what closing means.
@@ -47,9 +59,11 @@ export class VfWindow extends LitElement {
   static override styles = [
     vfBase,
     vfStripes,
+    vfDots,
     vfFocus,
     vfChromeFrame,
     vfTitleBar,
+    vfWindowWidgets,
     css`
       :host {
         display: block;
@@ -78,76 +92,64 @@ export class VfWindow extends LitElement {
       :host([movable]) .vf-title-bar {
         touch-action: none;
       }
-      :host(:not([active])) .vf-stripes {
+      :host(:not([active])) .vf-stripes,
+      :host(:not([active])) .vf-dots {
         display: none;
       }
       /* Inactive window: stripes and widgets go away, but the title text
          stays black — classic System 7 never grayed the title. */
 
       /* --- Window widgets (close / zoom boxes) ----------------------- */
-      .box {
-        position: absolute;
-        /* 11×11 box with 3px of clear white above and below it (title-bar
-           interior is 17px: 3 + 11 + 3). See SPEC §5 vf-window. */
-        top: calc(var(--vf-scale, 1) * 3px);
-        z-index: 1;
-        width: calc(var(--vf-scale, 1) * 11px);
-        height: calc(var(--vf-scale, 1) * 11px);
-        padding: 0;
-        margin: 0;
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
-        background: var(--vf-white, #ffffff);
-        /* A 2px white patch ring that interrupts the stripes around the
-           box (no bevel — flat 1-bit). */
-        box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 2px) var(--vf-white, #ffffff);
-        font: inherit;
-        cursor: default;
-        -webkit-appearance: none;
-        appearance: none;
-      }
-      .close {
-        left: calc(var(--vf-scale, 1) * 8px);
-      }
-      .zoom {
-        right: calc(var(--vf-scale, 1) * 8px);
-      }
-      /* Pressed box (close AND zoom): the interior fills with the classic
-         radiating "go-away" sunburst — black 1-bit spokes on the white face
-         (4 orthogonal 3px spokes + 4 diagonal 2px ones around an empty center),
-         traced pixel-for-pixel from the UI kit's close-button-active-state
-         sprite. Both widgets flash the identical graphic while pressed. That
-         sprite is the whole 11×11 box; its outer ring is this element's own 1px
-         border, so the SVG draws just the 9×9 interior into the padding box. */
-      .box:active {
-        background-color: var(--vf-white, #ffffff);
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM0 4h3v1h-3zM6 4h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM4 8h1v1h-1z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: calc(var(--vf-scale, 1) * 9px) calc(var(--vf-scale, 1) * 9px);
-      }
-      .zoom::after {
-        content: '';
-        position: absolute;
-        /* A small box nested in the TOP-LEFT corner of the widget (classic
-           System 7 zoom box). It shares the widget's own top and left border, so
-           only its right and bottom edges are drawn: a 6×6 box anchored at the
-           padding-box origin whose 1px right/bottom borders land the vertical at
-           sprite col 6 and the horizontal at row 6. Traced from the UI kit
-           zoom-button rest sprite. */
-        top: 0;
-        left: 0;
-        width: calc(var(--vf-scale, 1) * 6px);
-        height: calc(var(--vf-scale, 1) * 6px);
-        border-right: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
-        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
-      }
-      /* While pressed the zoom box shows the same sunburst as the close box, so
-         its inner detail square gives way to it. */
-      .zoom:active::after {
-        display: none;
-      }
+      /* Skin from vfWindowWidgets (shared with vf-dialog); only the
+         host-state rule is the window's own — a dialog has no inactive
+         state, so hiding widgets with the stripes lives here. */
       :host(:not([active])) .box {
         display: none;
+      }
+
+      /* --- Utility (windoid) variant --------------------------------- */
+      /* The slim floating-window bar, traced from Windows/utility-window.png
+         (npm run extract:windows): 11px interior over the 1px rule
+         (--vf-titlebar-height-utility: 12px), the vf-dots dither instead of
+         stripes, and 7×7 widgets at left:7px / right:8px — the art really is
+         asymmetric by that pixel. No title patch: the bar is two system px
+         shorter than the display face's line box, so the heading feeds the
+         widget labels instead (a consumer retheming a taller bar can re-show
+         it through ::part(title)). */
+      :host([variant='utility']) .vf-title-bar {
+        height: calc(
+          var(--vf-scale, 1) * var(--vf-titlebar-height-utility, 12px)
+        );
+      }
+      :host([variant='utility']) .vf-title {
+        display: none;
+      }
+      :host([variant='utility']) .box {
+        /* 7×7 box with 2px of clear white above and below (bar interior is
+           11px: 2 + 7 + 2). */
+        top: calc(var(--vf-scale, 1) * 2px);
+        width: calc(var(--vf-scale, 1) * 7px);
+        height: calc(var(--vf-scale, 1) * 7px);
+      }
+      :host([variant='utility']) .close {
+        left: calc(var(--vf-scale, 1) * 7px);
+      }
+      :host([variant='utility']) .zoom {
+        right: calc(var(--vf-scale, 1) * 8px);
+      }
+      /* Pressed windoid widget: the whole box inverts — black interior under
+         a white (invisible, over the patch ring) borderline — rather than the
+         big bar's 9×9 sunburst, which cannot land whole on a 5×5 interior. */
+      :host([variant='utility']) .box:active {
+        border-color: var(--vf-white, #ffffff);
+        background-color: var(--vf-black, #000000);
+        background-image: none;
+      }
+      /* The nested zoom square, miniaturized: right/bottom edges land at
+         sprite col/row 3 of the 7×7 box (padding col/row 2). */
+      :host([variant='utility']) .zoom::after {
+        width: calc(var(--vf-scale, 1) * 3px);
+        height: calc(var(--vf-scale, 1) * 3px);
       }
 
       /* --- Body ------------------------------------------------------ */
@@ -156,8 +158,24 @@ export class VfWindow extends LitElement {
         min-height: 0;
         padding: calc(var(--vf-scale, 1) * 12px);
       }
-      :host([flush]) .body {
+      :host([flush]) .body,
+      :host([scrollbars]) .body {
         padding: 0;
+      }
+
+      /* --- Edge scroll rails (scrollbars) ----------------------------- */
+      /* The TeachText composition (SPEC §5 vf-scroll-area), internalized:
+         the built-in scroll area is pulled one system pixel under the window
+         frame on every side, so its own frame overlay repaints the window's
+         border lines exactly (no doubled frame), the rails run edge to edge,
+         and a resizable window's grow box (z-index 1) lands in the scrollbar
+         corner cell. The scrollbar anchors ride the window's whole-pixel box;
+         drag and grow keep it on coordinates the engine's scrollbar rects can
+         hold (see snapToSystemPx). */
+      .edge-scroll {
+        width: calc(100% + var(--vf-scale, 1) * 2px);
+        height: calc(100% + var(--vf-scale, 1) * 2px);
+        margin: calc(var(--vf-scale, 1) * -1px);
       }
 
       /* --- Grow box --------------------------------------------------- */
@@ -196,6 +214,14 @@ export class VfWindow extends LitElement {
     `,
   ]
 
+  /**
+   * Chrome variant. Omit for the standard 18px striped bar; `'utility'` for
+   * the slim windoid bar (dot-grid dither, 7×7 widgets, no title patch — the
+   * heading still names the widgets). Inside a `vf-desktop`, utility windows
+   * float above the document tier and never take the single-active state.
+   */
+  @property({ reflect: true }) variant?: 'utility'
+
   /** Title text shown centered in the title bar. */
   @property() heading = ''
 
@@ -219,6 +245,18 @@ export class VfWindow extends LitElement {
 
   /** Remove the default 12px body padding. */
   @property({ type: Boolean, reflect: true }) flush = false
+
+  /**
+   * Put System 7 scroll rails on the window edge — the classic document
+   * window. The body slot renders inside a built-in `vf-scroll-area` pulled
+   * one system pixel under the frame on every side, so the rails repaint the
+   * border lines and a `resizable` window's grow box lands in the corner
+   * cell. Values mirror `vf-scroll-area`'s `axis`; the `heading` names the
+   * scroll region; the viewport part is re-exported. Implies `flush` (the
+   * viewport carries its own padding). The slotted composition (SPEC §5
+   * vf-scroll-area) still works for windows that want an inset well instead.
+   */
+  @property({ reflect: true }) scrollbars?: 'vertical' | 'horizontal' | 'both'
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -355,15 +393,6 @@ export class VfWindow extends LitElement {
     }
   }
 
-  /**
-   * Widget label, qualified by the window title when there is one — several
-   * windows are open at once by design, so a bare "Close" repeated across the
-   * desktop leaves an AT user no way to tell which window a button belongs to.
-   */
-  private _widgetLabel(action: string): string {
-    return this.heading ? `${action} ${this.heading}` : action
-  }
-
   protected override render(): unknown {
     return html`
       <div class="vf-frame vf-snap" part="frame">
@@ -371,31 +400,29 @@ export class VfWindow extends LitElement {
           this._drag,
           html`
             ${this.closable
-              ? html`
-                  <button
-                    type="button"
-                    class="box close vf-focus"
-                    part="close-box"
-                    aria-label=${this._widgetLabel('Close')}
-                    @click=${this._onCloseClick}
-                  ></button>
-                `
+              ? closeBox(widgetLabel('Close', this.heading), this._onCloseClick)
               : nothing}
             <span class="vf-title" part="title">${this.heading}</span>
             ${this.zoomable
-              ? html`
-                  <button
-                    type="button"
-                    class="box zoom vf-focus"
-                    part="zoom-box"
-                    aria-label=${this._widgetLabel('Zoom')}
-                    @click=${this._onZoomClick}
-                  ></button>
-                `
+              ? zoomBox(widgetLabel('Zoom', this.heading), this._onZoomClick)
               : nothing}
-          `
+          `,
+          this.variant === 'utility' ? 'vf-dots' : 'vf-stripes'
         )}
-        <div class="body" part="body"><slot></slot></div>
+        <div class="body" part="body">
+          ${this.scrollbars
+            ? html`
+                <vf-scroll-area
+                  class="edge-scroll"
+                  axis=${this.scrollbars}
+                  label=${this.heading || nothing}
+                  exportparts="viewport"
+                >
+                  <slot></slot>
+                </vf-scroll-area>
+              `
+            : html`<slot></slot>`}
+        </div>
         ${this.resizable
           ? html`
               <div

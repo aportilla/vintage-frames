@@ -115,6 +115,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
+| `--vf-titlebar-height-utility` | `12px` | the slim `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` |
+| `--vf-dots-pattern` | *(1-bit SVG tile)* | the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
 | `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
@@ -189,6 +191,13 @@ right.
   Position it absolutely inside the title bar, inset `3px 2px` (top/bottom 3px,
   left/right 2px) so exactly six 1px stripes show at the 18px bar height, their
   top and bottom edges aligned with the close box's.
+- `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer
+  inset `2px` top/bottom and **flush left/right** (the close-up reference runs
+  the dots into the side borders; the `Windows/` sheet's 2px side inset is the
+  artist's, not the bar's), tiled with a 2×2 crisp SVG carrying one black
+  pixel at the tile origin (`--vf-dots-pattern` to retheme) — see
+  `npm run extract:windows`. An SVG tile for the same reason as the desktop
+  dither: gradient hard stops feather at scale, SVG rects don't.
 - `vfHardShadowDecls` — the hard 1-bit drop shadow on its own, for composing
   into a surface that supplies its own border:
   `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
@@ -202,6 +211,20 @@ right.
   `vfPanel`, no bevels. Skin only — each component supplies its own layout,
   since a window frame is a full-size flex column while a dialog's is a block the
   native `<dialog>` shrink-wraps.
+- `vfModalFrame` — the dBoxProc modal-dialog frame (`vf-dialog frame="plain"`):
+  `.vf-modal-frame` (white face, 1px black border, **no shadow**) around
+  `.vf-modal-frame-inner` (`margin: 2px; border: 2px solid`). Deliberately not
+  shared with `vf-alert`'s frame, which is the mirror trace — 2px outer, 2px
+  gap, 1px inner rule, *with* the hard shadow. System 7 drew alerts and modal
+  dialogs with two different double frames (`Windows/modal dialog.png` vs the
+  alert reference), so the kit keeps two recipes.
+- `vfWindowWidgets` — the title-bar window widgets (`.box` base, `.close`
+  left / `.zoom` right at 11×11 with the 2px white patch ring, the pressed
+  go-away sunburst, the nested zoom square), shared by `vf-window` and a
+  `closable` `vf-dialog` so the two components' widgets match by construction.
+  The templates that pair with it (`closeBox`/`zoomBox`/`widgetLabel`) live in
+  `src/chrome.ts` with `chromeTitleBar`. Geometry is the standard bar's;
+  `vf-window`'s utility variant overrides sizes under its own selector.
 - `vfTitleBar` — the striped title bar shared by `vf-window` and `vf-dialog`:
   a `.vf-title-bar` row (`height: var(--vf-titlebar-height, 18px)`, 1px bottom
   rule, flex-centered, `overflow: hidden`) and the `.vf-title` patch inside it
@@ -215,13 +238,34 @@ right.
     scrolling on a bar that can't be dragged would be a behavior change.
   - The markup and the four DragController pointer bindings that go with it are
     `chromeTitleBar()` in `src/chrome.ts` (internal — it bakes in the kit's own
-    `part` names, so it is not part of the public toolkit).
+    `part` names, so it is not part of the public toolkit). Its third argument
+    picks the texture layer class: `'vf-stripes'` (default) or `'vf-dots'`
+    (`vf-window variant="utility"`).
 
 ## 5. Component specifications
 
 Files live in `src/components/`. "Parts" = CSS shadow parts via `part=`.
 
 ### Group A — chrome & shells
+
+**The window archetypes are parameter recipes, not components.** The 1992 HIG
+names five standard windows, but its own figures disagree about their anatomy
+(Figure 5-1 and Figure 6-1 label the same two artworks opposite ways — the
+close box migrates between the movable modal and the modeless dialog). So the
+kit's two shells stay neutral parameter surfaces — `vf-window` (desktop-
+resident) and `vf-dialog` (top-layer modal) — and the archetypes are the
+documented one-liners below. The components *enable* HIG compliance via
+specific author choice; they don't enforce one reading. The canonical recipes
+follow the Chapter 6 body text (movable modal: bare bar; modeless: close box),
+treating Figure 5-1's labels as the erratum — both readings stay composable.
+
+| Archetype (1992 HIG) | Recipe |
+| --- | --- |
+| Document window | `<vf-window closable zoomable movable resizable scrollbars="both">` |
+| Movable modal dialog box | `<vf-dialog heading="…">` (add `closable` for the Figure 5-1 reading) |
+| Modal dialog box | `<vf-dialog frame="plain">` |
+| Modeless dialog box | `<vf-window closable movable>` (no zoom, grow or rails) |
+| Utility (floating) window | `<vf-window variant="utility" movable>` |
 
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
@@ -241,15 +285,25 @@ Full-bleed classic desktop container.
   defined are re-normalized once `customElements.whenDefined('vf-window')`
   settles, since the upgrade reflects each window's `active = true` default back
   out and upgrading a slotted node doesn't re-fire `slotchange`.
+  - **Floating tier:** `vf-window[variant="utility"]` children stack in a z
+    band `1_000_000` above the document tier (one shared monotonic counter, so
+    a palette stays above every document window), restack only among
+    themselves, and stand outside the single-active invariant both ways:
+    clicking a palette doesn't deactivate the active document window, and
+    activating a document window never clears a palette's `active` — System 7
+    windoid behavior while the app is frontmost. The tier test reads the
+    `variant` *attribute*, so a not-yet-upgraded element still lands right.
 - **Parts:** `desktop`.
 
 #### `vf-window` (`VfWindow`, vf-window.ts)
-The classic document window (see DragThing screenshot).
+The desktop-window shell: the classic document window (see DragThing
+screenshot), parameterized down to the windoid (see the Group A recipe table).
 - **Attributes/props:** `heading: string` (title text), `active: boolean`
   (default **true**; reflect), `closable: boolean` (default true),
   `zoomable: boolean` (default false), `movable: boolean` (default false),
   `resizable: boolean` (default false), `flush: boolean` (default false —
-  removes body padding).
+  removes body padding), `variant?: 'utility'` (the slim windoid chrome),
+  `scrollbars?: 'vertical' | 'horizontal' | 'both'` (edge scroll rails).
 - **Visual:** `vfChromeFrame` + `vfTitleBar` (§4), plus a full-size flex-column
   layout on the frame. `display: block`. Sets
   `--vf-surface: var(--vf-white, #fff)` on itself.
@@ -271,9 +325,30 @@ The classic document window (see DragThing screenshot).
     corner (sharing the widget's own top/left border; only the right and bottom
     edges are drawn). `:active` (pressed) → shows the identical sunburst as the
     close box; the nested box gives way to it.
-  - Body: `padding: 12px` (0 if `flush`).
+  - Body: `padding: 12px` (0 if `flush` or `scrollbars`).
   - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black
     top/left borders, containing two overlapping small square outlines.
+  - Edge scroll rails (if `scrollbars`): the body slot renders inside a shadow
+    `vf-scroll-area` (its `axis` = the attribute's value, `label` = the
+    heading, `viewport` part re-exported) carrying the TeachText composition
+    internally — `calc(100% + 2px·scale)` with `margin: -1px·scale`, one
+    system px under the frame on every side, so the area's frame overlay
+    repaints the window's border lines and a `resizable` window's grow box
+    (z-index 1) lands in the rail-corner cell. Same caveats as the slotted
+    composition (see vf-scroll-area §5), which remains supported for inset
+    wells.
+  - Utility variant (`variant="utility"`): the slim windoid bar traced from
+    `Windows/utility-window.png` — `--vf-titlebar-height-utility` (12px = 11px
+    interior + 1px rule), the `vfDots` dither instead of stripes (flush to the
+    side borders — see §4 vfDots), 7×7 widgets (`top: 2px`; close `left: 7px`,
+    zoom `right: 8px` — the art really is asymmetric by that pixel) with the
+    same 2px patch ring, and the nested zoom square shrunk so its edges land
+    at sprite col/row 3. No title patch: the display face's 16px line box
+    can't sit in an 11px interior, so `.vf-title` is `display: none` under the
+    variant (a retheming consumer can re-show it via `::part(title)`) and the
+    heading names the widgets. A pressed windoid widget inverts whole —
+    black interior under a white (invisible) borderline — rather than
+    flashing the big bar's 9×9 sunburst, which can't land on a 5×5 interior.
 - **A11y:** the close/zoom `aria-label`s are qualified by the title when there is
   one (`Close ${heading}` / `Zoom ${heading}`, falling back to bare `Close` /
   `Zoom`) — several windows are open at once by design, so a bare repeated
@@ -286,42 +361,66 @@ The classic document window (see DragThing screenshot).
   current offset position, then update `left/top` via pointer capture. If
   `resizable`: dragging grow box adjusts inline `width`/`height`.
 - **Slots:** default (body content).
-- **Parts:** `frame`, `title-bar`, `title`, `close-box`, `zoom-box`, `body`, `grow-box`.
+- **Parts:** `frame`, `title-bar`, `title`, `close-box`, `zoom-box`, `body`,
+  `grow-box`, plus `viewport` re-exported from the built-in scroll area when
+  `scrollbars` is set.
 - **Events:** `vf-close`, `vf-zoom` (detail `{}`).
 
 #### `vf-dialog` (`VfDialog`, vf-dialog.ts)
-Movable-modal dialog (see "Format" screenshot): striped title bar, NO window
-widgets, white body.
+The modal-dialog shell: movable modal by default (see "Format" screenshot,
+striped title bar over a white body), the dBoxProc modal dialog box with
+`frame="plain"` (see the Group A recipe table).
 - **Attributes/props:** `open: boolean` (reflect), `heading: string`,
-  `label: string` (accessible name for a dialog with no `heading`).
+  `label: string` (accessible name for a dialog with no `heading`),
+  `closable: boolean` (default **false** — the bare movable-modal bar; the
+  close box is opt-in because the HIG's Chapter 6 text denies a movable modal
+  one while its Figure 5-1 grants it — the parameter enables either reading),
+  `frame?: 'plain'`.
 - **Implementation:** wraps a native `<dialog>` (for top-layer + focus trap).
   `show()` → `showModal()`; `close()` closes. Keep `open` attr in sync both
   directions. Drag the title bar to move it (shared `DragController` with
-  `vf-window`), rewriting the grid-pinned centering margins. Escape → close +
-  `vf-close` detail `{ reason: 'escape' }`;
-  programmatic/close() → `{ reason: 'close' }`. No backdrop dimming:
+  `vf-window`), rewriting the grid-pinned centering margins; drags starting on
+  the close widget are ignored (same composedPath guard as `vf-window`).
+  Escape → close + `vf-close` detail `{ reason: 'escape' }`;
+  close box/programmatic/close() → `{ reason: 'close' }`. No backdrop dimming:
   `::backdrop { background: transparent; }`.
-- **Visual:** `vfChromeFrame` + `vfTitleBar` (§4) — literally the same two
-  recipes `vf-window` uses, so the bar is identical by construction (stripes +
-  centered title, no boxes) rather than by matching copies. It takes the default
-  `--vf-title-inset` (16px, nothing else is in the bar) and sets
-  `touch-action: none` unconditionally, having no immovable state. Body is WHITE
+- **Visual (default chrome):** `vfChromeFrame` + `vfTitleBar` (§4) — literally
+  the same two recipes `vf-window` uses, so the bar is identical by
+  construction (stripes + centered title) rather than by matching copies. It
+  takes the default `--vf-title-inset` (16px) — 60px when `closable`, the same
+  clearance as `vf-window`, since the centered title needs symmetric room for
+  the widget — and sets `touch-action: none` unconditionally, having no
+  immovable state. `closable` renders the shared close box (`vfWindowWidgets`
+  + `closeBox()` — byte-identical to `vf-window`'s, per the
+  `moveable modal dialog.png` reference). Body is WHITE
   (`--vf-surface: #fff`), separated from title bar by 1px black line,
   `padding: 16px`. An optional `buttons` slot renders a bottom-right
   `vf-button-group` footer that only takes space when populated (equal-width,
   faces aligned).
-- **A11y:** named by its own title patch (`aria-labelledby`) when `heading` is
-  set. With no heading there is nothing to point at — `aria-labelledby` would
-  resolve to an empty node and leave the dialog unnamed — so it falls back to
-  `aria-label`, taking `label` if given and otherwise `'Dialog'`. An explicit
-  `label` wins over `heading`. Mirrors how `vf-alert` (which never has a title
-  bar) names itself.
+- **Visual (`frame="plain"`):** `vfModalFrame` (§4 — 1px outer, 2px gap, 2px
+  inner band, no shadow, per `Windows/modal dialog.png`), no title bar, and
+  immovable like the original dBoxProc dialog (nothing renders a drag handle).
+  A `heading` renders as a centered display-face heading at the top of the
+  body (`margin-bottom: 16px`) — the way those dialogs drew their title in
+  content — and `closable` is ignored, there being no bar to carry the widget.
+- **A11y:** named by its own title patch — or, on the plain frame, its
+  body-top heading; both carry `id="title"` — via `aria-labelledby` when
+  `heading` is set. With no heading there is nothing to point at —
+  `aria-labelledby` would resolve to an empty node and leave the dialog
+  unnamed — so it falls back to `aria-label`, taking `label` if given and
+  otherwise `'Dialog'`. An explicit `label` wins over `heading`. Mirrors how
+  `vf-alert` (which never has a title bar) names itself. The close box is
+  labeled `Close ${heading}` like `vf-window`'s.
 - **Slots:** default, `buttons`.
-- **Parts:** `frame`, `title-bar`, `title`, `body`, `footer`, `buttons`.
+- **Parts:** `frame`, `title-bar` (default chrome), `title`, `close-box`
+  (when `closable`), `body`, `footer`, `buttons`.
 - **Events:** `vf-close`.
 
 #### `vf-alert` (`VfAlert`, vf-alert.ts)
-Classic fixed modal alert: double black frame, no title bar.
+Classic fixed modal alert: double black frame, no title bar. (Its frame is
+deliberately NOT `vfModalFrame` — the alert's trace is 2px outer / 1px inner
+*with* the hard shadow, the modal dialog's is 1px outer / 2px inner without;
+see §4.)
 - **Attributes/props:** `open: boolean`, `variant?: 'caution'` (renders the
   classic black/white triangle-with-! icon as inline SVG; omit for none/slot).
 - **Implementation:** native `<dialog>` like vf-dialog. `show()`/`close()`.
@@ -799,8 +898,10 @@ A container whose scrollbars look like System 7.
   — one system pixel under the window frame on every side. Its frame overlay
   then repaints the window's border lines exactly (no doubled frame), and a
   resizable window's grow box lands in the scrollbar corner cell, giving the
-  classic System 7 document window. The demo's "DragThing Read Me" window
-  (`index.html` + `.readme-scroll` in `demo/demo.css`) is the reference.
+  classic System 7 document window. `vf-window[scrollbars]` renders exactly
+  this composition from its own shadow tree, so the one-liner and the slotted
+  form are geometrically identical; slot it yourself when the well should sit
+  *inset* in the body instead (the installer's read-me well).
   Caveat: the scrollbar anchors then ride the window's box, and browsers
   place scrollbar geometry in CSS-px terms — a scroll-bearing box with a
   half-CSS edge (an odd system count at dpr 2) renders measurably wrong in
@@ -904,10 +1005,10 @@ root. It is both showcase and fidelity test — it recreates the reference
 screenshots:
 
 1. Full-viewport `vf-desktop` with a `vf-menu-bar` on top: Apple menu (its bar
-   title a slotted 16-px `vf-img` apple icon; about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, disabled Print,
-   sep, Quit ⌘Q), Edit (Undo ⌘Z, sep, Cut/Copy/Paste), View (checked item
-   "by Icon", "by Name"), Special (Restart, Shut Down, sep, "Show All
-   Windows" — reopens closed demo windows).
+   title a slotted 16-px `vf-img` apple icon; about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, Page Setup…,
+   disabled Print, sep, Quit ⌘Q), Edit (Undo ⌘Z, sep, Cut/Copy/Paste), View
+   (checked item "by Icon", "by Name"), Special (Restart, Shut Down, sep,
+   "Show All Windows" — reopens closed demo windows).
 2. **"DragThing 2.9 Installer" window** — faithful to the screenshot: white
    content well (bordered) with welcome copy + bullet list, "Disk space
    available: 58,616K / Approximate disk space needed: 4,584K" caption row
@@ -932,6 +1033,19 @@ screenshots:
 6. All windows `movable`; desktop stacking/active management demonstrably
    works; closing a window hides it (listen for `vf-close`, set `hidden`);
    Special → Show All Windows un-hides.
+7. **"Page Setup" modal dialog box** — File → Page Setup… opens a
+   `vf-dialog frame="plain"` (dBoxProc double frame, heading drawn in
+   content): Paper radio group in a fieldset, Reduce or Enlarge
+   `vf-number-field`, Cancel / OK (default) buttons.
+8. **"Desk Accessories" utility palette** — `vf-window variant="utility"
+   movable flush`: a 3×3 grid of 16×16 `vf-img` DA icons (one selected,
+   inverted), floating above the document windows on the desktop's utility
+   tier and untouched by their active-state churn — the Group A archetype
+   table's fifth recipe, live.
+9. The **"DragThing Read Me"** window (item 2's copy points at it) carries the
+   document-window archetype at full anatomy: `movable resizable
+   scrollbars="both"`, the rails in the frame and the grow box in the corner
+   cell.
 
 Demo may use small amounts of layout CSS (positioning windows on the desktop)
 but NO aesthetic CSS — looks must come from the components. That includes the

@@ -118,18 +118,9 @@ vf-desktop {
   width: calc(var(--vf-scale, 1) * 420px);
   height: calc(var(--vf-scale, 1) * 320px);
 }
-.readme-scroll {
-  /* TeachText composition: rails on the window edge, not inset in the body.
-     In the flush window the scroll area is pulled one system pixel under the
-     window frame on every side, so its own frame overlay repaints the window's
-     border lines exactly (no doubled frame), the rails run edge to edge, and
-     the window's grow box lands in the scrollbar corner cell. The scrollbar
-     anchors ride the window's own whole-pixel box; drag and grow keep it on
-     coordinates the engine's scrollbar rects can hold (see snapToSystemPx). */
-  width: calc(100% + var(--vf-scale, 1) * 2px);
-  height: calc(100% + var(--vf-scale, 1) * 2px);
-  margin: calc(var(--vf-scale, 1) * -1px);
-}
+/* (The TeachText rails-on-the-edge composition this window used to carry as
+   .readme-scroll is now the window's own scrollbars="both" — SPEC §5
+   vf-window.) */
 .readme-doc {
   /* TeachText set read-mes in the body face; a whole-pixel line box (grid
      rule 2) and `pre` keeping the author's line breaks so the long lines
@@ -140,6 +131,60 @@ vf-desktop {
   line-height: calc(var(--vf-scale, 1) * 20px);
   font-weight: var(--vf-font-weight, 700);
   white-space: pre;
+}
+
+/* ----------------------- Desk Accessories palette ----------------------- */
+/* The utility windoid floats over the Read Me's top-right corner, the way
+   HIG Figure 5-6 parks its tool palette over the document (and inside the
+   ~940×560 system-px reachable canvas — see the vf-desktop note). */
+#win-tools {
+  position: absolute;
+  left: calc(var(--vf-scale, 1) * 600px);
+  top: calc(var(--vf-scale, 1) * 490px);
+}
+/* 3×3 tool cells with 1px rules between them (the palette grid of Figure
+   5-6): the rules are the grid's 1px gaps showing the black background
+   through — the same page-furniture license as .find-criteria's dotted
+   well. The window frame supplies the outer border (flush window). */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(3, calc(var(--vf-scale, 1) * 26px));
+  gap: calc(var(--vf-scale, 1) * 1px);
+  background: var(--vf-black, #000);
+}
+.tool {
+  display: grid;
+  place-items: center;
+  height: calc(var(--vf-scale, 1) * 26px);
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: var(--vf-white, #fff);
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* The selected tool inverts its cell, like the reference palette's active
+   tool (aria-pressed is wired in demo.ts). */
+.tool[aria-pressed='true'] {
+  background: var(--vf-black, #000);
+}
+.tool[aria-pressed='true'] img {
+  filter: invert(1);
+}
+
+/* ------------------------------ Page Setup ------------------------------ */
+
+.pagesetup {
+  width: calc(var(--vf-scale, 1) * 260px);
+}
+.pagesetup-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--vf-scale, 1) * 8px);
+  margin-top: calc(var(--vf-scale, 1) * 12px);
+}
+.pagesetup-row vf-number-field {
+  width: calc(var(--vf-scale, 1) * 64px);
 }
 
 /* ------------------------- DragThing installer ------------------------- */

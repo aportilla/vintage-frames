@@ -1,9 +1,10 @@
 /// <reference types="vite/client" />
 /**
  * Vintage Frames demo — wires the System 7 showcase desktop (SPEC §7):
- * menu behavior, window close / re-open, the Erase Disk alert, the About
- * dialog, and the animated determinate progress bar. Everything visual comes
- * from the components; this module is behavior only.
+ * menu behavior, window close / re-open, the Erase Disk alert, the About and
+ * Page Setup dialogs, the Desk Accessories utility palette, and the animated
+ * determinate progress bar. Everything visual comes from the components; this
+ * module is behavior only.
  */
 import { VfParagraph, VfWindow } from '../src/index.js'
 import { sys } from '../src/scale.js'
@@ -41,7 +42,9 @@ const installerWindow = $<VfWindow>('#win-installer')
 const formatWindow = $<VfWindow>('#win-format')
 const newDocWindow = $<VfWindow>('#win-newdoc')
 const newImageWindow = $<VfWindow>('#win-newimage')
+const toolsPalette = $<VfWindow>('#win-tools')
 const aboutDialog = $<VfDialog>('#dlg-about')
+const pageSetupDialog = $<VfDialog>('#dlg-pagesetup')
 const eraseAlert = $<VfAlert>('#alert-erase')
 
 /* ------------------------------------------------------------------ *
@@ -112,7 +115,14 @@ $<VfMenu>('#menu-apple').addEventListener('vf-menu-select', (event) => {
 })
 
 $<VfMenu>('#menu-file').addEventListener('vf-menu-select', (event) => {
-  if (menuDetail(event).value === 'new-window') spawnWindow()
+  switch (menuDetail(event).value) {
+    case 'new-window':
+      spawnWindow()
+      break
+    case 'page-setup':
+      pageSetupDialog.show()
+      break
+  }
 })
 
 // View: exclusive check between "by Icon" and "by Name".
@@ -142,6 +152,12 @@ $<VfMenu>('#menu-special').addEventListener('vf-menu-select', (event) => {
 $<HTMLElement>('#btn-about-ok').addEventListener('click', () =>
   aboutDialog.close()
 )
+$<HTMLElement>('#btn-pagesetup-cancel').addEventListener('click', () =>
+  pageSetupDialog.close()
+)
+$<HTMLElement>('#btn-pagesetup-ok').addEventListener('click', () =>
+  pageSetupDialog.close()
+)
 $<HTMLElement>('#btn-erase-cancel').addEventListener('click', () =>
   eraseAlert.close()
 )
@@ -152,6 +168,21 @@ $<HTMLElement>('#btn-erase-confirm').addEventListener('click', () =>
 // Installer: Quit behaves like the close box (Show All Windows re-opens it).
 $<HTMLElement>('#btn-quit').addEventListener('click', () => {
   installerWindow.hidden = true
+})
+
+/* ------------------------------------------------------------------ *
+ * Utility palette: one tool selected at a time (aria-pressed drives
+ * the inverted cell in demo.css).
+ * ------------------------------------------------------------------ */
+
+toolsPalette.addEventListener('click', (event) => {
+  const tool = (event.target as HTMLElement).closest<HTMLButtonElement>('.tool')
+  if (!tool) return
+  for (const other of toolsPalette.querySelectorAll<HTMLButtonElement>(
+    '.tool'
+  )) {
+    other.setAttribute('aria-pressed', String(other === tool))
+  }
 })
 
 /* ------------------------------------------------------------------ *

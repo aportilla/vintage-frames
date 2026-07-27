@@ -157,6 +157,30 @@ export const vfStripes = css`
 `
 
 /**
+ * Dot-grid dither for the utility ("windoid") title bar — the slim bar's
+ * counterpart to {@link vfStripes}. Apply the class to an absolutely-positioned
+ * layer inset 2px top/bottom and FLUSH left/right: the close-up reference art
+ * runs the dots all the way into the side borders (the Windows/ sheet hand-
+ * insets them 2px, which the close-up shows is not the bar's own geometry).
+ * The tile is 2×2 with a single black pixel at the tile origin (see
+ * `npm run extract:windows`), drawn as a crisp 1-bit SVG for the same reason
+ * as vf-desktop's checker: gradient hard stops feather at scale, SVG rects
+ * don't. Override the whole pattern via `--vf-dots-pattern`.
+ */
+export const vfDots = css`
+  .vf-dots {
+    position: absolute;
+    inset: calc(var(--vf-scale, 1) * 2px) 0;
+    background-image: var(
+      --vf-dots-pattern,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
+    );
+    background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+    pointer-events: none;
+  }
+`
+
+/**
  * The hard 1-bit drop shadow — a solid black copy of the box offset down-right
  * with no blur and no spread, System 7's only depth cue. The offset is
  * tokenized via `--vf-shadow-offset` and scales with `--vf-scale`.
@@ -212,6 +236,28 @@ export const vfChromeFrame = css`
 `
 
 /**
+ * The classic modal-dialog (dBoxProc) frame: 1px outer border, 2px white gap,
+ * 2px inner band — and NO drop shadow, per the `Windows/modal dialog.png`
+ * reference (`npm run extract:windows`). Deliberately not shared with
+ * vf-alert's frame, which is the *mirror* trace (2px outer, 2px gap, 1px inner
+ * rule, with the hard shadow): System 7 drew alerts and modal dialogs with two
+ * different double frames, so the kit keeps two recipes.
+ *
+ * Apply `.vf-modal-frame` to the outer element and `.vf-modal-frame-inner` to
+ * a wrapper inside it; content goes in the wrapper.
+ */
+export const vfModalFrame = css`
+  .vf-modal-frame {
+    background: var(--vf-white, #fff);
+    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+  }
+  .vf-modal-frame-inner {
+    margin: calc(var(--vf-scale, 1) * 2px);
+    border: calc(var(--vf-scale, 1) * 2px) solid var(--vf-black, #000);
+  }
+`
+
+/**
  * The striped title bar shared by vf-window and vf-dialog: a fixed-height row
  * with a 1px bottom rule, and a centered white title patch that interrupts the
  * racing stripes running behind it.
@@ -253,6 +299,82 @@ export const vfTitleBar = css`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+`
+
+/**
+ * The title-bar window widgets (close box left, zoom box right) shared by
+ * `vf-window` and a `closable` `vf-dialog` — one recipe so the two components'
+ * widgets are identical by construction, like the bar itself (the
+ * `Windows/moveable modal dialog.png` reference draws the dialog's close box
+ * exactly as the document window's: 11×11 at left:8px). Pair with the
+ * templates in src/chrome.ts, which carry the matching class/part contract.
+ *
+ * Geometry is the standard 18px bar's; vf-window's utility variant overrides
+ * the sizes under its own selector. Host-state rules (hiding widgets on an
+ * inactive window) stay with the component — a dialog has no inactive state.
+ */
+export const vfWindowWidgets = css`
+  .box {
+    position: absolute;
+    /* 11×11 box with 3px of clear white above and below it (title-bar
+       interior is 17px: 3 + 11 + 3). See SPEC §5 vf-window. */
+    top: calc(var(--vf-scale, 1) * 3px);
+    z-index: 1;
+    width: calc(var(--vf-scale, 1) * 11px);
+    height: calc(var(--vf-scale, 1) * 11px);
+    padding: 0;
+    margin: 0;
+    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+    background: var(--vf-white, #ffffff);
+    /* A 2px white patch ring that interrupts the stripes around the
+       box (no bevel — flat 1-bit). */
+    box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 2px) var(--vf-white, #ffffff);
+    font: inherit;
+    cursor: default;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .close {
+    left: calc(var(--vf-scale, 1) * 8px);
+  }
+  .zoom {
+    right: calc(var(--vf-scale, 1) * 8px);
+  }
+  /* Pressed box (close AND zoom): the interior fills with the classic
+     radiating "go-away" sunburst — black 1-bit spokes on the white face
+     (4 orthogonal 3px spokes + 4 diagonal 2px ones around an empty center),
+     traced pixel-for-pixel from the UI kit's close-button-active-state
+     sprite. Both widgets flash the identical graphic while pressed. That
+     sprite is the whole 11×11 box; its outer ring is this element's own 1px
+     border, so the SVG draws just the 9×9 interior into the padding box. */
+  .box:active {
+    background-color: var(--vf-white, #ffffff);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM0 4h3v1h-3zM6 4h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM4 8h1v1h-1z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: calc(var(--vf-scale, 1) * 9px) calc(var(--vf-scale, 1) * 9px);
+  }
+  .zoom::after {
+    content: '';
+    position: absolute;
+    /* A small box nested in the TOP-LEFT corner of the widget (classic
+       System 7 zoom box). It shares the widget's own top and left border, so
+       only its right and bottom edges are drawn: a 6×6 box anchored at the
+       padding-box origin whose 1px right/bottom borders land the vertical at
+       sprite col 6 and the horizontal at row 6. Traced from the UI kit
+       zoom-button rest sprite. */
+    top: 0;
+    left: 0;
+    width: calc(var(--vf-scale, 1) * 6px);
+    height: calc(var(--vf-scale, 1) * 6px);
+    border-right: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+    border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+  }
+  /* While pressed the zoom box shows the same sunburst as the close box, so
+     its inner detail square gives way to it. */
+  .zoom:active::after {
+    display: none;
   }
 `
 

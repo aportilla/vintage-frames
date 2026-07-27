@@ -3,9 +3,10 @@ import type { DragController } from './drag.js'
 
 /**
  * The title-bar element shared by `vf-window` and `vf-dialog`: the
- * `.vf-title-bar` row (skinned by `vfTitleBar` in styles/base.ts), the racing
- * stripe layer behind it, and the four pointer bindings that hand the bar to a
- * {@link DragController}.
+ * `.vf-title-bar` row (skinned by `vfTitleBar` in styles/base.ts), the texture
+ * layer behind it (racing stripes by default; `vf-window`'s utility variant
+ * passes `'vf-dots'` for the windoid dither), and the four pointer bindings
+ * that hand the bar to a {@link DragController}.
  *
  * Both components render a byte-identical header with byte-identical wiring;
  * only what sits in the bar differs — vf-window interleaves its close/zoom
@@ -19,7 +20,8 @@ import type { DragController } from './drag.js'
  */
 export const chromeTitleBar = (
   drag: DragController,
-  content: unknown
+  content: unknown,
+  textureClass: 'vf-stripes' | 'vf-dots' = 'vf-stripes'
 ): TemplateResult => html`
   <header
     class="vf-title-bar"
@@ -29,7 +31,50 @@ export const chromeTitleBar = (
     @pointerup=${drag.onPointerUp}
     @pointercancel=${drag.onPointerUp}
   >
-    <div class="vf-stripes"></div>
+    <div class=${textureClass}></div>
     ${content}
   </header>
+`
+
+/**
+ * Widget label, qualified by the window/dialog title when there is one —
+ * several windows are open at once by design, so a bare "Close" repeated
+ * across the desktop leaves an AT user no way to tell which window a button
+ * belongs to.
+ */
+export const widgetLabel = (action: string, heading: string): string =>
+  heading ? `${action} ${heading}` : action
+
+/**
+ * The close box (left of the bar) and zoom box (right of the bar), shared by
+ * `vf-window` and a `closable` `vf-dialog`. Byte-identical markup for the same
+ * reason as {@link chromeTitleBar}: the widgets must match by construction,
+ * not by copies staying in sync. Skinned by `vfWindowWidgets` (styles/base.ts);
+ * drag delegates must keep ignoring pointerdowns on `.box` so a press on a
+ * widget never starts a bar drag.
+ */
+export const closeBox = (
+  label: string,
+  onClick: () => void
+): TemplateResult => html`
+  <button
+    type="button"
+    class="box close vf-focus"
+    part="close-box"
+    aria-label=${label}
+    @click=${onClick}
+  ></button>
+`
+
+export const zoomBox = (
+  label: string,
+  onClick: () => void
+): TemplateResult => html`
+  <button
+    type="button"
+    class="box zoom vf-focus"
+    part="zoom-box"
+    aria-label=${label}
+    @click=${onClick}
+  ></button>
 `

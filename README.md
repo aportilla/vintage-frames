@@ -112,9 +112,9 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 
 | Element | Purpose |
 | --- | --- |
-| `vf-desktop` | Gray desktop container; manages window stacking + active state |
-| `vf-window` | Document window with striped title bar, close/zoom boxes, movable/resizable |
-| `vf-dialog` | Movable-modal dialog (native `<dialog>` under the hood) |
+| `vf-desktop` | Gray desktop container; manages window stacking + active state, with utility windows on a floating tier |
+| `vf-window` | The desktop-window shell: striped title bar, close/zoom boxes, movable/resizable, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`) — see [Window archetypes](#window-archetypes--enabling-the-1992-hig-not-enforcing-it) |
+| `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` |
 | `vf-alert` | Classic double-framed modal alert |
 | `vf-separator` | 1px rule (horizontal/vertical; dims inside menus) |
 | `vf-button` | Push button with pixel-stepped corners (no antialiased `border-radius`); `variant="default"` renders the double-ring default button, `size="small"` the compact 16px one |
@@ -138,6 +138,42 @@ All visual constants are CSS custom properties (`--vf-*`) with inlined
 fallbacks — components need **no global CSS**, and everything is themeable.
 See [SPEC.md](./SPEC.md) for the full design spec, tokens, events, slots, and
 parts.
+
+## Window archetypes — enabling the 1992 HIG, not enforcing it
+
+The 1992 *Macintosh Human Interface Guidelines* names five standard windows.
+The kit doesn't ship five window components — it ships two parameterized
+shells, and each archetype is a one-line recipe over them:
+
+| Archetype (1992 HIG) | Recipe |
+| --- | --- |
+| Document window | `<vf-window closable zoomable movable resizable scrollbars="both">` |
+| Movable modal dialog box | `<vf-dialog heading="…">` |
+| Modal dialog box | `<vf-dialog frame="plain">` |
+| Modeless dialog box | `<vf-window closable movable>` |
+| Utility (floating) window | `<vf-window variant="utility" movable>` |
+
+Why parameters instead of fixed anatomies: the HIG disagrees *with itself*
+about the details. Figure 5-1 (Windows chapter) and Figure 6-1 (Dialogs
+chapter) label the same two artworks opposite ways — the close box migrates
+between the movable modal and the modeless dialog. The Chapter 6 body text
+resolves it (a movable modal "has a title bar (without a close box)"; a
+modeless dialog is dismissed "by clicking the close box"), and the recipes
+above follow that reading — but the components stay neutral: it's not the
+component enforcing HIG compliance, it's the component *enabling* it via
+specific choice. `<vf-dialog closable>` builds the Figure 5-1 reading just as
+easily.
+
+The chrome itself is traced, not paraphrased (`npm run extract:windows`):
+`frame="plain"` is the modal-dialog double frame — 1px outer rule, 2px gap,
+2px inner band, no shadow, which is *not* the alert's frame (2px outer, 1px
+inner, with shadow; System 7 drew them differently, so `vf-alert` keeps its
+own) — and `variant="utility"` is the windoid: a 12px bar with a dot-grid
+dither in place of racing stripes and 7×7 widgets. Inside a `vf-desktop`,
+utility windows float above every document window and stand outside the
+single-active rule, so clicking a tool palette never deactivates the document
+you're working in. `scrollbars` puts the System 7 rails on the window edge
+with the grow box in the corner cell — the TeachText composition, built in.
 
 ## Display scaling — true classic size, crisp on any screen
 

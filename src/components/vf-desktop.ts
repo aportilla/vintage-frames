@@ -5,12 +5,26 @@ import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 
 /**
+ * z-index offset lifting the utility (floating) tier above the document tier.
+ * Both tiers share the one monotonic counter, so a utility window assigned
+ * `counter + BAND` stays above every document window until the counter itself
+ * crosses the band — far beyond any real session's restack count.
+ */
+const UTILITY_Z_BAND = 1_000_000
+
+/**
  * `<vf-desktop>` — the full-bleed classic desktop container.
  *
  * Renders the 50%-dither gray desktop pattern and manages the stacking order
  * and `active` state of slotted `vf-window` children: a `pointerdown` or
  * `focusin` (keyboard focus) anywhere inside a window brings it to the front
  * and makes it the single active window.
+ *
+ * Utility windows (`vf-window[variant="utility"]`) stack in a floating tier
+ * above every document-tier window, restack only among themselves, and stand
+ * outside the single-active invariant entirely — clicking a palette neither
+ * deactivates the active document window nor greys the palette, exactly as
+ * System 7's floating windoids behaved while their application was frontmost.
  *
  * Custom properties:
  * - `--vf-desktop-pattern` — the background-image pattern layer (default a
@@ -90,34 +104,59 @@ export class VfDesktop extends LitElement {
     super.disconnectedCallback()
   }
 
-  /**
-   * Bring a slotted window to the front of the stack and make it the single
-   * active window (clears `active` on all the others).
-   */
-  bringToFront(win: HTMLElement): void {
-    win.style.zIndex = String(++this._zCounter)
-    this._setActive(win)
+  /** Whether a slotted window belongs to the floating (utility) tier. The
+   *  attribute is the source of truth here so a not-yet-upgraded element
+   *  still lands in the right tier (variant reflects, so an upgraded
+   *  property-set window agrees). */
+  private _isUtility(win: HTMLElement): boolean {
+    return win.getAttribute('variant') === 'utility'
   }
 
-  /** Delegated pointerdown: activate the window the event originated in. */
-  private _onPointerDown = (event: PointerEvent): void => {
-    const win = this._windowFromEvent(event)
-    if (!win) return
-    // Skip the restack/activation churn when the click is inside the window
-    // that's already active and on top: otherwise every click there would
-    // bump _zCounter and re-run the whole-fleet activation loop for nothing.
-    if (win.hasAttribute('active') && Number(win.style.zIndex) === this._zCounter) return
+  /**
+   * Bring a slotted window to the front of its tier. A document-tier window
+   * also becomes the single active window (clearing `active` on the other
+   * document windows); a utility window restacks within the floating tier
+   * and leaves every `active` state alone.
+   */
+  bringToFront(win: HTMLElement): void {
+    const utility = this._isUtility(win)
+    win.style.zIndex = String(++this._zCounter + (utility ? UTILITY_Z_BAND : 0))
+    if (!utility) this._setActive(win)
+  }
+
+  /**
+   * Raise the window an event originated in, skipping the restack/activation
+   * churn when it is already on top of its own tier (and, for a document
+   * window, already active): otherwise every click inside the front window
+   * would bump _zCounter and re-run the whole-fleet activation loop for
+   * nothing.
+   */
+  private _raise(win: HTMLElement): void {
+    const utility = this._isUtility(win)
+    const tier = this._windows.filter((w) => this._isUtility(w) === utility)
+    if (
+      this._topmost(tier) === win &&
+      (utility || win.hasAttribute('active'))
+    ) {
+      return
+    }
     this.bringToFront(win)
   }
 
+  /** Delegated pointerdown: raise the window the event originated in. */
+  private _onPointerDown = (event: PointerEvent): void => {
+    const win = this._windowFromEvent(event)
+    if (win) this._raise(win)
+  }
+
   /**
-   * Delegated focusin: activate the window keyboard focus entered, so
-   * tabbing into a background window brings it to front (and reveals its
-   * close/zoom widgets) just like a pointerdown would.
+   * Delegated focusin: raise the window keyboard focus entered, so tabbing
+   * into a background window brings it to front (and reveals its close/zoom
+   * widgets) just like a pointerdown would.
    */
   private _onFocusIn = (event: FocusEvent): void => {
     const win = this._windowFromEvent(event)
-    if (win && !win.hasAttribute('active')) this.bringToFront(win)
+    if (win) this._raise(win)
   }
 
   /** The slotted window the event originated in, if any. */
@@ -137,11 +176,17 @@ export class VfDesktop extends LitElement {
     let newest: HTMLElement | null = null
     for (const win of windows) {
       if (!win.style.zIndex) {
-        win.style.zIndex = String(++this._zCounter)
-        newest = win
+        const utility = this._isUtility(win)
+        win.style.zIndex = String(
+          ++this._zCounter + (utility ? UTILITY_Z_BAND : 0)
+        )
+        // Only a document-tier window can become the active one; a newly
+        // slotted palette floats up without touching active states.
+        if (!utility) newest = win
       }
     }
-    const top = newest ?? this._topmost(windows)
+    const top =
+      newest ?? this._topmost(windows.filter((w) => !this._isUtility(w)))
     if (top) this._setActive(top)
     // Windows slotted before vf-window is defined are plain unknown elements,
     // so _setWindowActive can only *clear their attribute* — and on upgrade
@@ -166,15 +211,21 @@ export class VfDesktop extends LitElement {
       if (!this.isConnected) return
       // Every window now exposes the property, so _setWindowActive takes the
       // authoritative property path; z-indices were already seeded above, so
-      // the topmost window is the one that should be active.
-      const top = this._topmost(this._windows)
+      // the topmost document-tier window is the one that should be active.
+      const top = this._topmost(
+        this._windows.filter((w) => !this._isUtility(w))
+      )
       if (top) this._setActive(top)
     })
   }
 
-  /** Set `active` on `win` only, clearing it on every other window. */
+  /** Set `active` on `win` only, clearing it on every other *document-tier*
+   *  window. Utility windows stand outside the invariant: a palette keeps
+   *  whatever `active` state it has (true by default, so its dither and
+   *  widgets stay drawn while document windows trade the highlight). */
   private _setActive(win: HTMLElement): void {
     for (const other of this._windows) {
+      if (this._isUtility(other)) continue
       this._setWindowActive(other, other === win)
     }
   }

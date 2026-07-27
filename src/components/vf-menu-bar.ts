@@ -4,6 +4,7 @@ import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
+import { MenuPressController } from '../menu-press.js'
 import type { VfMenu } from './vf-menu.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -11,11 +12,16 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * `<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom
  * rule, slotted `<vf-menu>` children laid out from the left.
  *
- * Coordinates its menus: clicking a label opens that menu (and inverts the
+ * Coordinates its menus: pressing a label opens that menu (and inverts the
  * label); while any menu is open, hovering another label switches to it;
  * Escape, an outside click, or item selection closes. ArrowLeft/ArrowRight
  * move between menus while one is open; ArrowDown/ArrowUp move focus through
  * the open menu's items.
+ *
+ * The bar also owns the **press-drag-release** gesture (see src/menu-press.ts)
+ * — press a title, slide onto a command, release over it — because one press
+ * may travel across several of its menus. `vf-select` drives its popup by the
+ * same mechanic.
  *
  * @slot - `vf-menu` elements.
  * @csspart bar - The horizontal layout container.
@@ -66,6 +72,18 @@ export class VfMenuBar extends LitElement {
     [document, 'keydown', this.#onDocKeydown, true],
   ])
 
+  /**
+   * The System 7 press-drag-release gesture across the whole bar. Presses on a
+   * title or a dropped row both bubble up here composed, and the callbacks are
+   * the bar's own open/close rules — so the gesture changes *when* a menu
+   * opens, never *how*.
+   */
+  readonly #press = new MenuPressController(this, {
+    menus: () => this._menus,
+    open: (menu) => this.#openMenuAt(menu),
+    close: () => this.#closeAll(),
+  })
+
   override connectedCallback(): void {
     super.connectedCallback()
     this.setAttribute('role', 'menubar')
@@ -73,6 +91,7 @@ export class VfMenuBar extends LitElement {
     this.addEventListener('vf-menu-hover', this.#onMenuHover)
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.addEventListener('keydown', this.#onBarKeydown)
+    this.addEventListener('pointerdown', this.#press.onPointerDown)
   }
 
   override disconnectedCallback(): void {
@@ -81,6 +100,7 @@ export class VfMenuBar extends LitElement {
     this.removeEventListener('vf-menu-hover', this.#onMenuHover)
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.removeEventListener('keydown', this.#onBarKeydown)
+    this.removeEventListener('pointerdown', this.#press.onPointerDown)
     this.#openMenu = null
     this.#rovingMenu = null
   }

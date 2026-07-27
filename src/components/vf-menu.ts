@@ -9,6 +9,7 @@ import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
+import { MenuPressController } from '../menu-press.js'
 import { emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -17,9 +18,16 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * `<vf-menu-item>` / `<vf-separator>` children.
  *
  * Inside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,
- * hover-switching, outside-click/Escape dismissal). Used standalone, the menu
- * toggles itself on label click and manages its own dismissal and item
- * keyboard navigation (ArrowUp/ArrowDown, Home/End) while open.
+ * hover-switching, outside-click/Escape dismissal) and owns the pointer
+ * gesture, which may travel between its menus. Used standalone, the menu
+ * toggles itself on label click and manages its own dismissal, its own press
+ * gesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End) while
+ * open.
+ *
+ * Pointer — the two styles `vf-select` supports, on the same terms (see
+ * src/menu-press.ts): the System 7 press-drag-release (press the title, slide
+ * onto a command, release over it) and a modern quick tap that leaves the menu
+ * dropped for a second click.
  *
  * @slot - Menu contents: `vf-menu-item` and `vf-separator` elements.
  * @slot label - Replaces the `label` text in the bar — e.g. a `vf-img` apple
@@ -47,6 +55,10 @@ export class VfMenu extends LitElement {
         height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 24px));
         padding: 0 calc(var(--vf-scale, 1) * 10px);
         white-space: nowrap;
+        /* The press-drag gesture owns pointer moves while the title is held;
+           suppress the browser's own touch panning/scrolling so a touch drag
+           walks the menu instead of scrolling the page. */
+        touch-action: none;
         cursor: default;
       }
       :host([open]) .label {
@@ -68,6 +80,9 @@ export class VfMenu extends LitElement {
            invisible while the rows themselves were 6px too tall. */
         padding: 0;
         z-index: 1000;
+        /* As on the title: the held press, not the browser, owns touch moves
+           over the dropped panel. */
+        touch-action: none;
         /* Slotted vf-separators render as the classic dimmed dotted menu rule. */
         --vf-separator-color: var(--vf-disabled, #c0c0c0);
         --vf-separator-style: dotted;
@@ -112,10 +127,58 @@ export class VfMenu extends LitElement {
   @queryAssignedElements({ selector: 'vf-menu-item', flatten: true })
   private _assignedItems!: VfMenuItem[]
 
+  /**
+   * The System 7 press-drag-release gesture, for a menu standing on its own.
+   * Inside a `vf-menu-bar` the bar owns it instead — a press may travel between
+   * its menus, so the coordinator has to be the one tracking it.
+   */
+  readonly #press = new MenuPressController(this, {
+    menus: () => [this],
+    open: (menu) => {
+      menu.open = true
+    },
+    close: () => {
+      this.open = false
+    },
+  })
+
   /** The enabled `vf-menu-item` children, in document order. */
   get items(): VfMenuItem[] {
-    return this._assignedItems.filter((item) => !item.disabled)
+    return this.allItems.filter((item) => !item.disabled)
   }
+
+  /**
+   * Every slotted `vf-menu-item`, in document order — **disabled rows
+   * included**, unlike {@link items}. The press gesture hit-tests against
+   * these: releasing over a disabled row has to cancel, not fall through to
+   * whatever the panel covers.
+   */
+  get allItems(): VfMenuItem[] {
+    return this._assignedItems
+  }
+
+  /**
+   * Viewport rect of the bar title, or `null` before the first render. The
+   * press gesture hit-tests by coordinates rather than by event target (see
+   * src/menu-press.ts), so it wants the box, not the element.
+   */
+  get labelRect(): DOMRect | null {
+    return this._labelEl?.getBoundingClientRect() ?? null
+  }
+
+  /** Whether a `vf-menu-bar` is coordinating this menu. */
+  get #inBar(): boolean {
+    return this.closest('vf-menu-bar') !== null
+  }
+
+  /**
+   * Swallows the one `click` the browser synthesises after a pointer press, so
+   * the gesture that just dropped the menu isn't immediately toggled shut by
+   * its own trailing click. A `click` with no preceding pointerdown (keyboard /
+   * assistive-tech activation) still reaches {@link #onLabelClick}. The same
+   * guard `vf-select` uses, for the same reason.
+   */
+  #swallowClick = false
 
   #onCloseRequest = (): void => {
     this.open = false
@@ -168,21 +231,36 @@ export class VfMenu extends LitElement {
   override connectedCallback(): void {
     super.connectedCallback()
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
+    this.addEventListener('pointerdown', this.#onHostPointerDown)
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
+    this.removeEventListener('pointerdown', this.#onHostPointerDown)
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     if (changed.has('open')) {
       // A parent vf-menu-bar owns document-level dismissal; only self-manage
       // when standalone.
-      const inBar = this.closest('vf-menu-bar') !== null
-      if (this.open && !inBar) this.#docListeners.attach()
+      if (this.open && !this.#inBar) this.#docListeners.attach()
       else this.#docListeners.detach()
+      // A drag leaves the row it picked inverted through the blink; drop the
+      // flag once the panel is gone, so a reopened menu never shows a stale
+      // highlight.
+      if (!this.open) for (const item of this.allItems) item.active = false
     }
+  }
+
+  /**
+   * A press anywhere in the menu — the title, or a row inside the dropped panel
+   * (both bubble up composed). Inside a bar the bar's own listener drives the
+   * gesture instead, since it may travel between menus.
+   */
+  #onHostPointerDown = (event: PointerEvent): void => {
+    if (this.#inBar) return
+    this.#press.onPointerDown(event)
   }
 
   /** Moves keyboard focus to the menu's bar label. */
@@ -200,6 +278,7 @@ export class VfMenu extends LitElement {
         aria-haspopup="menu"
         aria-expanded=${this.open ? 'true' : 'false'}
         aria-label=${this.label || nothing}
+        @pointerdown=${this.#onLabelPointerDown}
         @click=${this.#onLabelClick}
         @pointerenter=${this.#onLabelEnter}
         @keydown=${this.#onLabelKeydown}
@@ -222,7 +301,21 @@ export class VfMenu extends LitElement {
     if (proceed) this.open = !this.open
   }
 
+  /** Arms {@link #swallowClick}: the pointer gesture owns this press. */
+  #onLabelPointerDown(): void {
+    this.#swallowClick = true
+  }
+
+  /**
+   * `click` handler for *synthesised* activation — keyboard/assistive-tech
+   * clicks that arrive with no preceding pointerdown. A real mouse/touch click
+   * is swallowed here because the press gesture already resolved it.
+   */
   #onLabelClick(): void {
+    if (this.#swallowClick) {
+      this.#swallowClick = false
+      return
+    }
     this.#requestToggle()
   }
 

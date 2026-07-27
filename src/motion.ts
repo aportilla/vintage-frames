@@ -15,6 +15,18 @@ export function prefersReducedMotion(): boolean {
   )
 }
 
+/**
+ * How long (ms) an *in-place* press may last and still read as a modern
+ * click-to-open tap rather than a completed System 7 press.
+ *
+ * Shared by the two surfaces that offer the classic press-drag-release gesture
+ * — `vf-select`'s popup and the pull-down menus (`src/menu-press.ts`) — so the
+ * one timing a user can feel across both can't drift between them. Only an
+ * in-place release consults it: a press that travels to another row is a
+ * drag-pick regardless of duration.
+ */
+export const PRESS_HOLD_MS = 200
+
 /** Milliseconds between selection-blink phase flips. */
 export const BLINK_INTERVAL_MS = 42
 

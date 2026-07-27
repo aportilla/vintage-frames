@@ -7,7 +7,7 @@ import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
-import { runSelectionBlink, type BlinkHandle } from '../motion.js'
+import { runSelectionBlink, PRESS_HOLD_MS, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
 import { emit } from '../events.js'
 
@@ -33,7 +33,9 @@ import { emit } from '../events.js'
  *     then picks an item.
  * The two share one opening trigger (pointerdown) and diverge only on how the
  * press ends — whether the pointer travelled to another item, and (for an
- * in-place release) whether it was a quick tap or a held press.
+ * in-place release) whether it was a quick tap or a held press. The pull-down
+ * menus drive themselves the same way, on the same threshold; that half lives
+ * in src/menu-press.ts, because one menu press may travel across a whole bar.
  *
  * Keyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the
  * highlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an
@@ -61,15 +63,6 @@ export class VfSelect extends VfFormControl {
    * `vf-option`'s default row height.
    */
   private static readonly ITEM_HEIGHT = 16
-
-  /**
-   * In-place press+release shorter than this (ms) reads as a modern
-   * click-to-open — the list stays open for a second click; a longer in-place
-   * hold-then-release reads as a completed System 7 press and closes. Only the
-   * *in-place* case consults time: any press that travels to another item is a
-   * drag-pick regardless of duration.
-   */
-  private static readonly PRESS_HOLD_MS = 200
 
   static override styles = [
     vfBase,
@@ -608,7 +601,7 @@ export class VfSelect extends VfFormControl {
     const option = this.optionAtPoint(event.clientX, event.clientY)
     const openedByThisPress = this.pressOpenedPanel
     const inPlace = !this.pressMoved
-    const quick = event.timeStamp - this.pressDownTime < VfSelect.PRESS_HOLD_MS
+    const quick = event.timeStamp - this.pressDownTime < PRESS_HOLD_MS
     this.endPress()
     // Modern click-to-open: a quick in-place tap on the closed pill leaves the
     // list open for a second, independent click.

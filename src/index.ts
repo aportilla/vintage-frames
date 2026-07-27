@@ -153,6 +153,7 @@ export {
   runSelectionBlink,
   BLINK_INTERVAL_MS,
   BLINK_FLIPS,
+  PRESS_HOLD_MS,
 } from './motion.js'
 export type { BlinkHandle } from './motion.js'
 

@@ -142,3 +142,4 @@ Topics from the rest of the kit that this document does not yet cover:
 - **Hard shadows and ink boxes** — why a control's ink bounding box differs from its border box, and how the height tokens were split to match the reference sheet.
 - **The toggle mixin** — one interaction skeleton over two different base classes, and why `vf-radio` is deliberately not form-associated.
 - **The selection blink** — System 7's ~250ms menu-selection blink as a reduced-motion-aware primitive.
+- **Press-drag-release** — reviving the gesture the Mac was actually driven by (press a title, slide onto a command, release over it) on top of a click-to-open world: how the two are disambiguated by the gesture rather than by a mode, why hit-testing has to be by coordinates once touch's implicit pointer capture is in play, and what to do about the `click` the browser synthesises after a press it has already answered.

@@ -762,11 +762,15 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Visual:** `display: block/flex`, height `var(--vf-menubar-height, 24px)`,
   white bg, `border-bottom: 1px solid var(--vf-black, #000)`, children laid out
   horizontally from left with `padding: 0 10px` per label.
-- **Behavior:** container/controller for slotted `vf-menu` children. Click a
+- **Behavior:** container/controller for slotted `vf-menu` children. Pressing a
   menu label → opens it (label inverts while open). While any menu is open,
   hovering another label switches to it (classic behavior). Escape / outside
   click / item selection closes. `role="menubar"`. ArrowLeft/Right move between
-  menus when open.
+  menus when open. The bar also **owns the press-drag-release gesture** across
+  its menus (`MenuPressController`, `src/menu-press.ts` — see `vf-menu`), since
+  one press may travel over several of them: it binds the opening `pointerdown`
+  and hands the controller its own open/close rules, so the gesture changes
+  *when* a menu opens, never *how*.
 - **Slots:** default (vf-menu elements). **Parts:** `bar`.
 
 #### `vf-menu` (`VfMenu`, vf-menu.ts)
@@ -776,10 +780,32 @@ The classic popup menu control ("Macintosh HD ▼").
   (black bg / white text). Panel: `.vf-panel`, `position: absolute` below the
   label (`top: 100%; left: 0;`), `min-width: 180px`, `padding: 2px 0`;
   `role="menu"`.
-- **Behavior:** clicking the label toggles; delegates open-state coordination
-  to parent `vf-menu-bar` when present (only one open at a time). Sets
+- **Behavior:** delegates open-state coordination to parent `vf-menu-bar` when
+  present (only one open at a time). Sets
   `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so slotted
   `vf-separator`s render dimmed with 2px vertical margin.
+  **Pointer:** the two styles `vf-select` supports, on the same terms and the
+  same `PRESS_HOLD_MS` threshold (`src/motion.ts`) — the menus get theirs from
+  `MenuPressController` (`src/menu-press.ts`), which a standalone menu hosts
+  itself and a `vf-menu-bar` hosts for all of its menus. Opening is on
+  **pointerdown**, and the press is then tracked to its release anywhere:
+  - *System 7 press-drag-release* — press the title, slide onto a command,
+    release over it to run it. Sliding sideways onto another title switches
+    menus mid-press. Releasing over a disabled row, a separator, the title, or
+    off the menu closes with nothing chosen (the classic "release outside").
+  - *Modern click-to-open* — a quick in-place tap (under `PRESS_HOLD_MS`, 200ms)
+    on a title leaves the menu dropped for a second, independent click; a *held*
+    in-place press closes it, and a press on an already-dropped title closes it.
+    Time is consulted only for an in-place release: any press that travels is a
+    drag-pick however long it took.
+  Hit-testing is by **coordinates**, not event target, so tracking survives
+  touch's implicit pointer capture (every move is delivered to the pressed
+  title); the row under the pointer carries `vf-menu-item[active]` rather than
+  relying on `:hover`, which capture defeats. The trailing `click` the browser
+  synthesises after a press is swallowed by the label and by the row (the same
+  guard `vf-select` uses), so a keyboard/assistive-tech click — which arrives
+  with no preceding pointerdown — is the only click that still toggles or
+  activates.
 - **Slots:** default (vf-menu-item / vf-separator), `label` (replaces the
   `label` text in the bar — e.g. the Apple menu's `vf-img` apple; the `label`
   attribute stays set as the accessible name, mirrored to the bar item's
@@ -789,7 +815,8 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Attributes/props:** `disabled`, `checked` (shows ✓ in left gutter),
   `checkable` (declares a toggle up front — see Behavior),
   `shortcut: string` (e.g. `"⌘H"`, right-aligned), `value?: string` (defaults
-  to text content).
+  to text content), `active` (reflect; the transient press-drag highlight,
+  managed by the menu — mirrors `vf-option[active]`, not an authoring API).
 - **Visual:** height `var(--vf-menu-row-height, 16px)` — `Menus.png` puts every
   menu row on a 16px pitch (3px above + the 9px glyph + 4px below), so a
   pulldown row matches a popup row exactly; the line box is locked to the same
@@ -798,7 +825,10 @@ The classic popup menu control ("Macintosh HD ▼").
   (left gutter for ✓, shared with `vf-select`/`vf-option` — `Menus.png` puts a
   pulldown's label ink at the same inset as a popup's), shortcut right-aligned
   with 24px min gap, `color: var(--vf-disabled)` when
-  disabled. Hover (not disabled): full-width inversion. A disabled row dims its
+  disabled. Hover, `[active]`, keyboard focus (not disabled): full-width
+  inversion — each with its own `.blink-off` override at matching specificity,
+  so a drag-picked row keeps its flag through the blink and the release reads as
+  the highlight flashing off. A disabled row dims its
   ✓ along with the label — a **documented deviation** from the §1 "dim the label,
   chrome glyphs stay black" rule, because authentic System 7 greyed the whole
   disabled row.
@@ -808,8 +838,11 @@ The classic popup menu control ("Macintosh HD ▼").
   which would otherwise announce as a plain command until its first flip (a
   boolean `checked` attribute can't express "checkable but off"). The role is
   re-derived on every connect, so re-parenting a checkable item keeps it; an
-  author-supplied `role` is left alone. On click: classic **blink** (invert
-  toggles 3 times over ~250ms via timer; skipped under
+  author-supplied `role` is left alone. On activation — a click, Enter/Space, or
+  the public `activate()` the menu's press gesture calls for the row a drag was
+  released over (which the row's own `click` never sees, since a press that
+  started on the title dispatches its click above both): classic **blink**
+  (invert toggles 3 times over ~250ms via timer; skipped under
   `prefers-reduced-motion`, selecting at once), then dispatch `vf-menu-select`
   detail `{ value, item }` and signal ancestors to close the menu. Disabling an
   item mid-blink cancels it and drops the pending `vf-menu-select`.

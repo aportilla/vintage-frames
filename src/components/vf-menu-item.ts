@@ -99,18 +99,24 @@ export class VfMenuItem extends LitElement {
       :host([disabled]) .item {
         color: var(--vf-disabled, #c0c0c0);
       }
-      /* Highlight = full-width inversion (hover, keyboard focus, blink "on").
-         blink-on is scoped to the enabled host like its siblings: an item
-         disabled mid-blink has its timer cancelled (see updated()), and this
-         keeps it from flashing even for the frame before that lands. */
+      /* Highlight = full-width inversion (hover, the press-drag's [active],
+         keyboard focus, blink "on"). blink-on is scoped to the enabled host
+         like its siblings: an item disabled mid-blink has its timer cancelled
+         (see updated()), and this keeps it from flashing even for the frame
+         before that lands. */
       :host(:not([disabled])) .item:hover,
+      :host(:not([disabled])[active]) .item,
       :host(:not([disabled]):focus) .item,
       :host(:not([disabled])) .item.blink-on {
         background: var(--vf-highlight, #000);
         color: var(--vf-highlight-text, #fff);
       }
-      /* While blinking, the timer — not the pointer — owns the inversion. */
+      /* While blinking, the timer — not the pointer — owns the inversion. Each
+         highlight source needs its own override at matching specificity; the
+         [active] one is what lets a drag-picked row keep its flag through the
+         blink, so the release reads as the highlight flashing off. */
       :host(:not([disabled])) .item.blink-off:hover,
+      :host(:not([disabled])[active]) .item.blink-off,
       :host(:not([disabled]):focus) .item.blink-off,
       .item.blink-off {
         background: transparent;
@@ -129,6 +135,14 @@ export class VfMenuItem extends LitElement {
 
   /** Shows the classic ✓ checkmark in the left gutter. */
   @property({ type: Boolean, reflect: true }) checked = false
+
+  /**
+   * Transient highlight — the full-row inversion the press-drag gesture paints
+   * on the row under the pointer (`:hover` can't: under touch the pointer is
+   * captured by the title the press started on). Managed by the menu, mirroring
+   * `vf-option[active]`; not part of the authoring API.
+   */
+  @property({ type: Boolean, reflect: true }) active = false
 
   /**
    * Declares the item a *checkable* toggle up front, so it carries
@@ -171,11 +185,24 @@ export class VfMenuItem extends LitElement {
    */
   #ownsRole: boolean | undefined
 
+  /**
+   * Swallows the one `click` the browser synthesises after a pointer press: the
+   * menu's press gesture (src/menu-press.ts) already resolved it, and under
+   * `prefers-reduced-motion` — where activation completes synchronously and the
+   * blink guard is back down by the time the click lands — the row would
+   * otherwise fire `vf-menu-select` twice. Set only inside a `vf-menu`, where
+   * that gesture is running; a row used outside one keeps plain click
+   * activation. A `click` with no preceding pointerdown (keyboard /
+   * assistive tech) always activates.
+   */
+  #swallowClick = false
+
   constructor() {
     super()
     // Bound on the host: keydown targets the focused host element and never
     // enters the shadow tree, so a shadow-internal binding would not fire.
     this.addEventListener('keydown', this.#onKeydown)
+    this.addEventListener('pointerdown', this.#onPointerDown)
   }
 
   /** True when the item should announce as a toggle, not a plain command. */
@@ -254,23 +281,35 @@ export class VfMenuItem extends LitElement {
     `
   }
 
+  #onPointerDown(): void {
+    this.#swallowClick = this.closest('vf-menu') !== null
+  }
+
   #onClick(): void {
-    this.#activate()
+    if (this.#swallowClick) {
+      this.#swallowClick = false
+      return
+    }
+    this.activate()
   }
 
   #onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       event.stopPropagation()
-      this.#activate()
+      this.activate()
     }
   }
 
   /**
    * Runs the classic 3-blink inversion, then dispatches `vf-menu-select` and an
-   * internal `vf-menu-close-request` so ancestor menu/menu-bar close.
+   * internal `vf-menu-close-request` so ancestor menu/menu-bar close. Public
+   * because the menu's press gesture activates the row a drag was released
+   * over, which the row's own `click` never sees (a press that started on the
+   * title dispatches its click above both of them). No-op while disabled or
+   * already blinking.
    */
-  #activate(): void {
+  activate(): void {
     if (this.disabled || this.#blinking) return
     this.#blinking = true
     // Shared primitive owns the timing + reduced-motion short-circuit; under

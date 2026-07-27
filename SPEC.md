@@ -117,6 +117,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
 | `--vf-titlebar-height-utility` | `12px` | the slim `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` |
 | `--vf-dots-pattern` | *(1-bit SVG tile)* | the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) |
+| `--vf-swatch-checker` | *(SVG tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like `--vf-desktop-pattern`) |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
 | `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
@@ -514,6 +515,31 @@ see §4.)
   `justify-self: end` for a bottom-right action row). `vf-alert` and `vf-dialog`
   wrap their `buttons` slots in one.
 - **Slots:** default (vf-button elements). **Parts:** none. **Events:** none.
+
+#### `vf-swatch` (`VfSwatch`, vf-swatch.ts)
+The color-swatch button: a hard-shadowed well of solid color — a palette cell.
+- **Attributes/props:** `color?: string` (the fill — a CSS color, typically
+  hex; unset shows the transparency checker, and a translucent value layers
+  over that checker so partial opacity reads as partial), `width` / `height`:
+  number (the border box, whole system px; default 24×18), `label: string`
+  (accessible name; defaults to `color`, or "transparent"), `disabled`.
+- **Visual:** inner `<button>` sized `width × height`: 1px black border, 1px
+  white inset (the button's own padding + background), the shared hard shadow
+  (`vfHardShadowDecls` — the same `--vf-shadow-offset` token as windows and
+  menus, painting outside the box like theirs), and a `fill` span carrying the
+  color. The checker is a crisp SVG tile like the desktop dither (gradient
+  hard stops feather at scale); `--vf-swatch-checker` overrides the pattern.
+  - `:active` (pressed, not disabled): the white inset inverts to black — the
+    inset counterpart of vf-button's face inversion.
+  - `disabled`: interaction stops; nothing dims. The kit dims *labels* when
+    disabled, and a swatch's only label is its fill, which must keep reading
+    as its color.
+- **Behavior:** "basically a button", not form-associated (a palette cell
+  picks, it doesn't submit): native `click` retargets to the host, Enter/Space
+  activate via the inner button, `delegatesFocus`. `label` feeds the inner
+  button's `aria-label`, so `vf-label for` reaches it like every control.
+  Carries a `ScaleController` and a `GridSnapController`.
+- **Slots:** none. **Parts:** `button`, `fill`. **Events:** none custom.
 
 #### `vf-checkbox` (`VfCheckbox`, vf-checkbox.ts)
 - **Attributes/props:** `checked`, `disabled`, `name`, `value` (default `'on'`).
@@ -1045,7 +1071,8 @@ screenshots:
    `vf-window` with no close box (closable=false) to sit on the desktop.
 4. **"Controls" kitchen-sink window** — text field, password field, textarea,
    determinate progress animating 0→100 on a timer, indeterminate progress,
-   button variants (normal/default/disabled), separator, multi-select
+   button variants (normal/default/disabled), a `vf-swatch` palette row (the
+   six-color wells plus the no-color checker), separator, multi-select
    `vf-list` (each row's `icon` slot carrying its DA's 16×16 small icon as a
    `vf-img`; crops via `npm run extract:icons`), `vf-scroll-area` with enough
    text to scroll, disabled control examples.

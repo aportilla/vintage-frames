@@ -21,6 +21,7 @@ export { VfSeparator } from './components/vf-separator.js'
 // Buttons & toggles
 export { VfButton } from './components/vf-button.js'
 export { VfButtonGroup } from './components/vf-button-group.js'
+export { VfSwatch } from './components/vf-swatch.js'
 export { VfCheckbox } from './components/vf-checkbox.js'
 export { VfRadio } from './components/vf-radio.js'
 export { VfRadioGroup } from './components/vf-radio-group.js'

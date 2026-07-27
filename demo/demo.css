@@ -327,6 +327,14 @@ vf-desktop {
   --vf-list-max-height: calc(var(--vf-scale, 1) * 132px);
 }
 
+/* Swatch palette: a wrapping row on a whole-px gap; each swatch's hard shadow
+   paints outside its box, so the gap stays larger than the shadow offset. */
+.swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--vf-scale, 1) * 8px);
+}
+
 .scroll-demo {
   height: calc(var(--vf-scale, 1) * 130px);
 }

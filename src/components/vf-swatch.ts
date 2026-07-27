@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { styleMap } from 'lit/directives/style-map.js'
-import { vfBase, vfFocus, vfHardShadowDecls } from '../styles/base.js'
+import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 
@@ -23,7 +23,9 @@ import { GridSnapController } from '../grid-snap.js'
  *
  * It is "basically a button": a native `<button>` inside, so `click` retargets
  * to the host, Enter/Space activate it, and pressing inverts the white inset
- * to black — the inset counterpart of vf-button's face inversion. It is not
+ * to black — the inset counterpart of vf-button's face inversion. Keyboard
+ * focus is marked with the kit's 1px dashed rule under the box
+ * (`vfFocusUnderline`) rather than a ring around it. It is not
  * form-associated (a palette cell picks, it doesn't submit); `disabled` only
  * stops interaction, dimming nothing — the kit dims *labels* when disabled,
  * and a swatch's only label is its fill, which must keep reading as its color.
@@ -40,7 +42,6 @@ export class VfSwatch extends LitElement {
 
   static override styles = [
     vfBase,
-    vfFocus,
     css`
       :host {
         display: inline-flex;
@@ -62,6 +63,8 @@ export class VfSwatch extends LitElement {
          like every raised surface's. */
       button {
         display: block;
+        /* Also the anchor the focus rule below hangs from. */
+        position: relative;
         padding: calc(var(--vf-scale, 1) * 1px);
         margin: 0;
         background: var(--vf-white, #fff);
@@ -74,6 +77,27 @@ export class VfSwatch extends LitElement {
       /* Pressed: the white inset inverts to black — instant 1-bit feedback. */
       button:active:not(:disabled) {
         background: var(--vf-black, #000);
+      }
+      /* Keyboard focus is the kit's dashed rule under the swatch, not a ring
+         around it (see vfFocusUnderline). It goes BELOW the whole box rather
+         than inside it the way vf-button underlines its label: a swatch has no
+         interior to lend — every pixel inside the inset is the color it exists
+         to show, and a rule drawn over the fill would read as part of it.
+
+         The offset counts every row of ink below the pseudo-element's padding
+         box before the blank row and the rule itself — the 1px border, then
+         the hard shadow, whose depth is a token a consumer can retheme, so it
+         composes rather than assumes it. The ±1px sides widen the rule from
+         that same padding box to the border box, the shape the swatch reads
+         as (the shadow is a depth cue, not part of the silhouette). */
+      button:focus-visible {
+        outline: none;
+      }
+      button:focus-visible::after {
+        --vf-focus-underline-offset: calc(-3px - var(--vf-shadow-offset, 2px));
+        ${vfFocusUnderline}
+        left: calc(var(--vf-scale, 1) * -1px);
+        right: calc(var(--vf-scale, 1) * -1px);
       }
       .fill {
         display: block;
@@ -133,7 +157,7 @@ export class VfSwatch extends LitElement {
     return html`
       <button
         part="button"
-        class="vf-focus vf-snap"
+        class="vf-snap"
         type="button"
         style="width: calc(var(--vf-scale, 1) * ${this.width}px); height: calc(var(--vf-scale, 1) * ${this.height}px)"
         aria-label=${this.label || this.color || 'transparent'}

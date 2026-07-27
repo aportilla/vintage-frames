@@ -51,9 +51,10 @@ Modern requirements that we deliberately keep (accessibility over purity):
   — except where the control's own vocabulary can carry the mark instead:
   `vf-button`, `vf-checkbox`, `vf-radio` and the three editable fields draw a
   1px dashed rule under the label, the box, the circle and the well
-  respectively (`vfFocusUnderline`, §4). System 7 had no keyboard-focus
-  indicator to copy — these are modern affordances the kit **adds**, drawn on
-  the 1-bit grid so they read as native rather than bolted on.
+  respectively, and `vf-select` and `vf-swatch` the same rule under their whole
+  box, clear of its hard shadow (`vfFocusUnderline`, §4). System 7 had no
+  keyboard-focus indicator to copy — these are modern affordances the kit
+  **adds**, drawn on the 1-bit grid so they read as native rather than bolted on.
 - Full ARIA roles + keyboard support per component.
 - Form-associated custom elements where noted (`static formAssociated = true`
   + `ElementInternals`).
@@ -261,34 +262,51 @@ right.
     on its own face: an `::after` on that element, 1 system px tall, spanning
     its box, dashed 1px on / 1px off via a `repeating-linear-gradient` in
     `currentColor` — so it inverts to white with the label on a pressed face.
-    `vf-button` underlines its label, `vf-checkbox` its box, `vf-radio` its
-    circle (narrowed to 9 of its 13px, since that shape is round — §5) and the
-    three editable fields their well (via `vfField`'s `.vf-field-well`); the
-    component suppresses the UA outline in the same rule set, and the
-    underlined element needs `position: relative`.
+    The component suppresses the UA outline in the same rule set, and the
+    underlined element needs `position: relative`. Two placements:
+    - **Inside the control**, under the ink it marks: `vf-button` underlines its
+      label, `vf-checkbox` its box, `vf-radio` its circle (narrowed to 9 of its
+      13px, since that shape is round — §5) and the three editable fields their
+      well (via `vfField`'s `.vf-field-well`).
+    - **Below the control**, under its whole box, where there is no interior to
+      give: a `vf-select`'s single line is already the label and the ▼, and
+      every pixel inside a `vf-swatch` is the color it exists to show. Both cast
+      the hard shadow, which the rule has to clear — ink that lies outside every
+      box the pseudo-element could size itself to.
     - `--vf-focus-underline-offset` places it, measured (like any `bottom`)
       from the element's **padding** box up to the rule's bottom edge, so
       positive insets it and negative drops it below. The contract is one blank
-      system px row between the rule and the ink above it: `4px` (the default)
-      for a text box, whose ink stops at the baseline 6px above its bottom
-      (2px half-leading over the 16px em + the 4px descent); `-3px` for the
-      checkbox's bordered well (border + blank row + rule); `-2px` for the
-      radio's unbordered one and for a field, whose wrapper already boxes the
-      border. `npm run verify:focus`.
-    - The mark is **keyboard-only** everywhere, but the fields can't say so
-      with `:focus-visible`. That selector is specified to match *any* focus of
-      an element which takes keyboard input, so it is already true for a text
-      field clicked with the mouse — where on a button it is false. So the
-      fields gate on a `.vf-focus-rule` class that `VfTextControlBase` adds
-      only when the page's last input modality was the keyboard
-      (`src/focus-modality.ts`): one refcounted capture-phase `pointerdown` +
-      `keydown` pair on the document, read at `focusin`, defaulting to
-      `'keyboard'` so assistive tech and `autofocus` are still marked. Typing
-      after a click does not reveal it, and neither does a click on the
-      control's `vf-label` caption — a pointer landing focus from outside the
-      field is why the tracker is page-wide rather than a local `pointerdown`
-      latch like `vf-slider`'s. `npm run verify:focus` pins all of it,
-      including the browser behavior that makes it necessary.
+      system px row between the rule and the ink above it, so a negative offset
+      counts every row of ink in between: `4px` (the default) for a text box,
+      whose ink stops at the baseline 6px above its bottom (2px half-leading
+      over the 16px em + the 4px descent); `-2px` for a well whose ink ends at
+      its own bottom edge (the radio's circle, a field's wrapper); `-3px` for
+      the checkbox, adding its 1px border; `-4px` for `vf-select`, adding its
+      1px hard shadow as well; and for `vf-swatch` a `calc()` that composes
+      `--vf-shadow-offset` rather than hard-coding a depth its consumer can
+      retheme. `npm run verify:focus`.
+    - The mark is **keyboard-only** everywhere, but two controls can't say so
+      with `:focus-visible`, from opposite directions:
+      - The **fields**, because that selector is specified to match *any* focus
+        of an element which takes keyboard input, so it is already true for a
+        text field clicked with the mouse — where on a button it is false.
+      - **`vf-select`**, because it suppresses the browser's own mouse focus
+        (the press-drag gesture owns the pointer) and calls `focus()` itself —
+        on `pointerdown` to open, and again when a release closes the list —
+        and Blink reads a scripted focus as a visible one. So a pure mouse
+        round-trip through the menu ends `:focus-visible`.
+
+      Both gate on a `.vf-focus-rule` class added only when the page's last
+      input modality was the keyboard (`src/focus-modality.ts`): one refcounted
+      capture-phase `pointerdown` + `keydown` pair on the document, read at
+      `focusin`, defaulting to `'keyboard'` so assistive tech and `autofocus`
+      are still marked. `VfTextControlBase` owns the field half (via
+      `wellClass`), `vf-select` its own. Typing after a click does not reveal
+      it, and neither does a click on the control's `vf-label` caption — a
+      pointer landing focus from outside the control is why the tracker is
+      page-wide rather than a local `pointerdown` latch like `vf-slider`'s.
+      `npm run verify:focus` pins all of it, including the two browser
+      behaviors that make it necessary.
 
 ## 5. Component specifications
 
@@ -589,6 +607,14 @@ The color-swatch button: a hard-shadowed well of solid color — a palette cell.
   hard stops feather at scale); `--vf-swatch-checker` overrides the pattern.
   - `:active` (pressed, not disabled): the white inset inverts to black — the
     inset counterpart of vf-button's face inversion.
+  - `:focus-visible`: **no ring** — the UA outline is off on both the inner
+    button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline`
+    (§4) below the whole box: a `calc()` offset that clears the 1px border and
+    the `--vf-shadow-offset` shadow, then leaves the blank row. Not inside the
+    box the way vf-button underlines its label — every pixel in there is the
+    color the swatch exists to show, and a rule over the fill would read as
+    part of it. Spans the border box (±1px off the padding box the pseudo-
+    element sizes to). `npm run verify:focus`.
   - `disabled`: interaction stops; nothing dims. The kit dims *labels* when
     disabled, and a swatch's only label is its fill, which must keep reading
     as its color.
@@ -764,6 +790,14 @@ The classic popup menu control ("Macintosh HD ▼").
   grid cell; so the closed pill and the open panel are always exactly the same
   width and the value never shifts as the selection changes. Authors wanting a
   floor set `min-width` on the host (or grow it in their layout, e.g. `flex: 1`).
+  **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
+  `--vf-focus-underline-offset: -4px`, a dashed rule under the *whole* pill
+  (border + hard shadow + blank row), not inside the face the way vf-button
+  underlines its label: the pill's one line already holds the label and the ▼.
+  Spans the border box (±1px off the padding box the pseudo-element sizes to).
+  Gated on a `.vf-focus-rule` class from the page's input modality, not
+  `:focus-visible` — see §4 for why this control can't use the selector either.
+  `npm run verify:focus`.
 - **Visual (open):** panel uses the `.vf-panel` recipe but overrides
   `--vf-shadow-offset: 1px` so its hard shadow matches the pill's (not the 2px
   menu shadow). Positioned `position: fixed` to the control's exact width and

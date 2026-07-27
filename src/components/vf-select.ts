@@ -1,7 +1,8 @@
 import { css, html, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js'
-import { vfBase, vfDisplay, vfFocus, vfPanel, vfScrollbars } from '../styles/base.js'
+import { classMap } from 'lit/directives/class-map.js'
+import { vfBase, vfDisplay, vfFocusUnderline, vfPanel, vfScrollbars } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
@@ -9,6 +10,7 @@ import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { runSelectionBlink, PRESS_HOLD_MS, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
+import { focusModality, trackFocusModality } from '../focus-modality.js'
 import { emit } from '../events.js'
 
 /**
@@ -39,7 +41,11 @@ import { emit } from '../events.js'
  *
  * Keyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the
  * highlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an
- * item plays the classic inversion blink (~250 ms) before closing.
+ * item plays the classic inversion blink (~250 ms) before closing. Keyboard
+ * focus is marked with the kit's 1px dashed rule under the closed pill
+ * (`vfFocusUnderline`) rather than a ring around it — keyboard only, which
+ * here means the page's input modality rather than `:focus-visible` (the pill
+ * drives its own focus, and Blink reads that as visible either way).
  *
  * Form-associated: submits `value` under `name`.
  *
@@ -68,7 +74,6 @@ export class VfSelect extends VfFormControl {
     vfBase,
     vfDisplay,
     vfPanel,
-    vfFocus,
     vfScrollbars,
     css`
       :host {
@@ -81,6 +86,8 @@ export class VfSelect extends VfFormControl {
         width: fit-content;
       }
       .control {
+        /* Also the anchor the focus rule below hangs from. */
+        position: relative;
         display: flex;
         align-items: center;
         gap: calc(var(--vf-scale, 1) * 8px);
@@ -106,6 +113,34 @@ export class VfSelect extends VfFormControl {
            tracks the list instead of scrolling the page. */
         touch-action: none;
         cursor: default;
+      }
+      /* Keyboard focus is the kit's dashed rule under the pill, not a ring
+         around it (see vfFocusUnderline). It goes BELOW the whole box rather
+         than inside the face the way vf-button underlines its label: the pill
+         has one line and the label already shares it with the ▼.
+
+         The offset counts every row of ink below the pseudo-element's padding
+         box before the blank row and the rule itself — the 1px border, then
+         the 1px hard shadow: −(1 + 1 + 1 + 1). The ±1px sides widen it from
+         that same padding box to the border box, which is the shape the pill
+         reads as (the shadow is a depth cue, not part of the silhouette).
+
+         Gated on a class, not :focus-visible — the same problem the editable
+         fields have, arrived at from the other direction. The pill suppresses
+         the browser's own mouse focus (the press-drag gesture owns it) and
+         calls focus() itself: on pointerdown to open, and again when a release
+         closes the list. Blink reads a scripted focus as a visible one, so
+         :focus-visible is TRUE after a pure mouse round-trip through the menu,
+         where on a button it is false. handleHostFocusIn consults the page's
+         last input modality instead (see src/focus-modality.ts). */
+      .control:focus-visible {
+        outline: none;
+      }
+      .control.vf-focus-rule::after {
+        --vf-focus-underline-offset: -4px;
+        ${vfFocusUnderline}
+        left: calc(var(--vf-scale, 1) * -1px);
+        right: calc(var(--vf-scale, 1) * -1px);
       }
       /* The label is a 1×1 grid: the visible value and an invisible stack of
          every option's text share the one cell, so the cell — and thus the
@@ -189,6 +224,16 @@ export class VfSelect extends VfFormControl {
   /** Whether the popup panel is open. */
   @state() private open = false
 
+  /**
+   * Whether the closed pill wears the kit's dashed focus rule. True only for a
+   * focus that arrived from the keyboard — see {@link focusModality} for why
+   * this control can't read that off `:focus-visible`.
+   */
+  @state() private focusRule = false
+
+  /** Releases this control's share of the modality listeners. */
+  private releaseModality?: () => void
+
   @query('.control') private controlEl!: HTMLDivElement | null
 
   @query('.panel') private panelEl!: HTMLDivElement | null
@@ -263,12 +308,21 @@ export class VfSelect extends VfFormControl {
     this.addEventListener('click', this.handleHostClick)
     this.addEventListener('keydown', this.handleHostKeyDown)
     this.addEventListener('pointerover', this.handleHostPointerOver)
+    this.addEventListener('focusin', this.handleHostFocusIn)
     this.addEventListener('focusout', this.handleHostFocusOut)
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback()
+    this.releaseModality = trackFocusModality()
   }
 
   override disconnectedCallback(): void {
     // super's controller teardown already detached both listener sets.
     super.disconnectedCallback()
+    this.releaseModality?.()
+    this.releaseModality = undefined
+    this.focusRule = false
     this.cancelBlink()
     // Clear any stamped `active` flags on the options: a select disconnected
     // mid-open/mid-blink otherwise keeps an inverted highlight row when
@@ -724,12 +778,24 @@ export class VfSelect extends VfFormControl {
     }
   }
 
+  /**
+   * `focusin`, not `focus`: the focus lands on `.control` inside the shadow
+   * root, and only the bubbling, composed pair crosses that boundary to reach
+   * the host. It fires again when a closing list hands focus back to the pill,
+   * which is what leaves a mouse round-trip through the menu unmarked.
+   */
+  private handleHostFocusIn = (): void => {
+    this.focusRule = focusModality() === 'keyboard'
+  }
+
   private handleHostFocusOut = (event: FocusEvent): void => {
-    if (!this.open || this.blinking) return
     const next = event.relatedTarget
-    if (next instanceof Node && (this.contains(next) || this.renderRoot.contains(next))) {
-      return
-    }
+    const inside = next instanceof Node && (this.contains(next) || this.renderRoot.contains(next))
+    // Focus leaving the component drops the rule. Moving between the pill and
+    // its own option rows is not leaving: the open list is where the keyboard
+    // highlight lives, and the pill takes focus back when it closes.
+    if (!inside) this.focusRule = false
+    if (!this.open || this.blinking || inside) return
     this.closePanel(false)
   }
 
@@ -764,7 +830,12 @@ export class VfSelect extends VfFormControl {
     const disabled = this.isDisabled
     return html`
       <div
-        class="control vf-focus vf-snap ${disabled ? 'disabled' : ''}"
+        class=${classMap({
+          control: true,
+          'vf-snap': true,
+          'vf-focus-rule': this.focusRule,
+          disabled,
+        })}
         part="control"
         role="combobox"
         aria-haspopup="listbox"

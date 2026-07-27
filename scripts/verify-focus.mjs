@@ -1,21 +1,26 @@
 /**
  * Verifies the kit's dashed keyboard-focus rule (`vfFocusUnderline`,
- * src/styles/base.ts), which replaces the browser's ring on the six controls
- * that can carry the mark themselves: vf-button underlines its label,
- * vf-checkbox its box, vf-radio its circle, and the three editable fields
- * (vf-text-field, vf-text-area, vf-number-field) their well. Focus visibility
- * is an accessibility affordance the kit ADDS to System 7's vocabulary — it is
- * not something the original drew — so what these checks defend is that the
- * added affordance obeys the 1-bit grid as strictly as the traced chrome does.
+ * src/styles/base.ts), which replaces the browser's ring on the eight controls
+ * that can carry the mark themselves. Two placements, one recipe: INSIDE the
+ * control, under the ink it marks — vf-button underlines its label, vf-checkbox
+ * its box, vf-radio its circle, and the three editable fields (vf-text-field,
+ * vf-text-area, vf-number-field) their well — or BELOW it, under the whole box,
+ * where the control has no interior to give: vf-select's one line is already
+ * the label and the ▼, and a vf-swatch is nothing but fill. Focus visibility is
+ * an accessibility affordance the kit ADDS to System 7's vocabulary — it is not
+ * something the original drew — so what these checks defend is that the added
+ * affordance obeys the 1-bit grid as strictly as the traced chrome does.
  *
  * The load-bearing facts, all asserted against rendered pixels rather than the
  * CSS that produces them:
  *
  *  - GEOMETRY: the rule is 1 system px tall, leaves exactly one blank row
- *    between itself and the ink above it (glyph, box border, sprite or the
- *    well's bottom edge), and spans that element's own box — the label, not
- *    the button's padded face; the whole well, not the toggle's row; the
- *    number field's well, not the stepper beside it.
+ *    between itself and the ink above it (glyph, box border, sprite, the well's
+ *    bottom edge — or, for the two below-the-box controls, the hard shadow the
+ *    box casts, which no box the pseudo-element can size to contains), and
+ *    spans that element's own box — the label, not the button's padded face;
+ *    the whole well, not the toggle's row; the number field's well, not the
+ *    stepper beside it.
  *  - PATTERN: 1 system px on, 1 off, every pixel pure black or pure white. A
  *    feathered dash is the failure this exists to catch, so the check refuses
  *    any intermediate gray, including in the case that provokes it: a grouped
@@ -33,8 +38,8 @@
  *    click in the well, typing after it, and a click on its vf-label caption,
  *    which focuses it programmatically) must leave it unmarked.
  *  - PRESSED: currentColor inverts the rule to white on the black face.
- *  - The controls that are not a label keep the dotted ring, so vf-select is
- *    checked as the canary.
+ *  - The controls with no face to carry the mark keep the dotted ring, so
+ *    vf-menu is checked as the canary.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:focus
@@ -48,6 +53,8 @@ const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 const S = 3
 /** Padding around the screenshot clip, in device px. */
 const PAD = 9
+/** …and for a control whose rule sits below its box, past a 2px hard shadow. */
+const BELOW_PAD = 6 * S
 
 // ── minimal PNG decode (Playwright PNGs: 8-bit RGBA/RGB, non-interlaced) ──
 function decodePng(buf) {
@@ -139,14 +146,14 @@ async function build(markup) {
 
 /**
  * The rendered state of one control: its computed focus declarations plus a
- * screenshot of `frameSel`'s box with PAD device px of the page around it.
+ * screenshot of `frameSel`'s box with `pad` device px of the page around it.
  * `targetSel` is the element carrying the rule — the button's label wrapper,
  * or the toggles' well, which is its own frame.
  *
  * Returned coordinates are device px within that clip: `x0`/`y0`/`w`/`h` are
  * the frame's box, `ruleX0`/`ruleX1` the x-range the rule may occupy.
  */
-async function shoot(page, id, frameSel = 'button', targetSel = '.label') {
+async function shoot(page, id, frameSel = 'button', targetSel = '.label', pad = PAD) {
   const geo = await page.evaluate(
     ([elId, frame, target]) => {
       const host = document.getElementById(elId)
@@ -174,24 +181,24 @@ async function shoot(page, id, frameSel = 'button', targetSel = '.label') {
   )
   const shot = await page.screenshot({
     clip: {
-      x: geo.face.x - PAD,
-      y: geo.face.y - PAD,
-      width: geo.face.w + 2 * PAD,
-      height: geo.face.h + 2 * PAD,
+      x: geo.face.x - pad,
+      y: geo.face.y - pad,
+      width: geo.face.w + 2 * pad,
+      height: geo.face.h + 2 * pad,
     },
   })
   return {
     ...geo,
     png: decodePng(shot),
-    x0: PAD,
-    y0: PAD,
+    x0: pad,
+    y0: pad,
     w: Math.round(geo.face.w),
     h: Math.round(geo.face.h),
     // The button's rule spans its label; a toggle's spans its whole well —
     // one device px of slack each side, since the checkbox's grows over its
     // border and the wells sit on a half system px inside the row.
-    ruleX0: PAD + geo.target.x,
-    ruleX1: PAD + geo.target.x + geo.target.w,
+    ruleX0: pad + geo.target.x,
+    ruleX1: pad + geo.target.x + geo.target.w,
   }
 }
 
@@ -619,19 +626,139 @@ for (const [tag, markup] of [
   await modalPage.close()
 }
 
-// ── canary: the controls that aren't a label keep the dotted ring ─────────
-{
-  const page = await build(
-    '<vf-select id="s" value="a"><vf-option value="a">A</vf-option></vf-select>'
+// ── the two shadowed boxes: the rule goes UNDER the control, not inside ───
+// vf-select and vf-swatch have no interior to lend the mark — the pill's one
+// line is already the label and the ▼, and every pixel inside the swatch is
+// the color it exists to show — so the rule drops below the whole box. Which
+// means it has to clear the hard shadow, ink that sits outside every box the
+// pseudo-element could size itself to. What's checked is the ink profile: the
+// box AND its shadow as one band, one blank row, then the rule.
+for (const [tag, markup, frame, shadow] of [
+  [
+    'vf-select',
+    '<vf-select id="x" value="a"><vf-option value="a">Macintosh HD</vf-option>' +
+      '<vf-option value="b">Backup</vf-option></vf-select>',
+    '.control',
+    1,
+  ],
+  ['vf-swatch', '<vf-swatch id="x"></vf-swatch>', 'button', 2],
+]) {
+  const page = await build(markup)
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, 'x', frame, frame, BELOW_PAD)
+
+  check(`${tag}: Tab draws the rule`, s.drawn)
+  check(
+    `${tag}: no outline left on the host or the control`,
+    s.hostOutline === 'none' && s.frameOutline === 'none',
+    `host=${s.hostOutline} control=${s.frameOutline}`
   )
+
+  // Scanning the whole clip: the box's own side borders put ink in every one
+  // of its rows, so the control and its shadow read as a single band, and a
+  // ring would show up as a third one (or widen these two).
+  const groups = bands(s, isBlack, { inset: 0 })
+  check(
+    `${tag}: two ink bands — the box with its hard shadow, then the rule`,
+    groups.length === 2,
+    `found ${groups.length}`
+  )
+  const [ink, rule] = groups.length === 2 ? groups : [[], []]
+  check(
+    `${tag}: the ink above it is the box plus its ${shadow}px shadow, nothing more`,
+    ink.length === s.h + shadow * S,
+    `${ink.length / S} system px vs the box's ${s.h / S} + ${shadow}`
+  )
+  check(`${tag}: the rule is 1 system px tall`, rule.length === S, `${rule.length} device px`)
+  check(
+    `${tag}: one blank system px row separates it from the shadow`,
+    rule.length ? rule[0] - (ink[ink.length - 1] + 1) === S : false,
+    rule.length ? `gap=${(rule[0] - (ink[ink.length - 1] + 1)) / S} system px` : ''
+  )
+  // The point of the placement: it is BELOW the box, not inside it the way
+  // vf-button's sits on row 15 of its own 20px face.
+  check(
+    `${tag}: it sits outside the box entirely, ${shadow + 1} system px below it`,
+    rule.length ? rule[0] - (s.y0 + s.h) === (shadow + 1) * S : false,
+    rule.length ? `${(rule[0] - (s.y0 + s.h)) / S} system px below the box's bottom edge` : ''
+  )
+
+  const dashes = rule.length ? runs(s.png, rule[0], s.ruleX0, s.ruleX1, isBlack) : []
+  check(
+    `${tag}: 1 system px on, 1 off`,
+    dashes.length > 4 &&
+      dashes.every(([a, b]) => b - a === S) &&
+      dashes.every(([a], i) => i === 0 || a - dashes[i - 1][1] === S),
+    `${dashes.length} dashes, widths=${[...new Set(dashes.map(([a, b]) => b - a))]}`
+  )
+  check(
+    `${tag}: it spans the border box — the shape the control reads as, not the shadow`,
+    dashes.length > 0 &&
+      Math.abs(dashes[0][0] - s.ruleX0) <= 1 &&
+      s.ruleX1 - dashes[dashes.length - 1][1] <= S + 1,
+    dashes.length
+      ? `box=${s.ruleX0}..${s.ruleX1} rule=${dashes[0][0]}..${dashes[dashes.length - 1][1]}`
+      : ''
+  )
+  const impure = []
+  for (let x = Math.round(s.ruleX0); x < Math.round(s.ruleX1); x++) {
+    for (const y of rule) {
+      if (!isBlack(s.png, x, y) && !isWhite(s.png, x, y))
+        impure.push([x - s.x0, y - s.y0, rgb(s.png, x, y)])
+    }
+  }
+  check(
+    `${tag}: every pixel of the rule is pure black or white`,
+    rule.length && !impure.length,
+    `${impure.length} feathered, first ${JSON.stringify(impure[0] ?? null)}`
+  )
+  await page.close()
+
+  // Modality: keyboard only. The select's pointer route is a round trip — the
+  // first click opens the list, the second releases on the current item, which
+  // closes it and hands focus back to the pill. That is the one pointer gesture
+  // that ENDS with the control focused, so it's the one worth checking.
+  const clickPage = await build(markup)
+  await clickPage.locator('#x').click()
+  if (tag === 'vf-select') await clickPage.locator('#x').click()
+  const focused = await clickPage.evaluate(
+    (sel) => document.getElementById('x').shadowRoot.querySelector(sel).matches(':focus'),
+    frame
+  )
+  check(`${tag}: a mouse click leaves the control focused (guards the check below)`, focused)
+  const clicked = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
+  check(`${tag}: …and unmarked`, !clicked.drawn)
+  if (tag === 'vf-select') {
+    // The pill is the second control in the kit that cannot read the modality
+    // off :focus-visible, and it gets there the opposite way to a text field:
+    // not because the selector is specified to match a clicked field, but
+    // because the pill suppresses the browser's mouse focus and calls focus()
+    // itself, which Blink treats as a visible focus. Pin that, since it is the
+    // whole reason the class gate is there.
+    const nativeFv = await clickPage.evaluate(() =>
+      document.getElementById('x').shadowRoot.querySelector('.control').matches(':focus-visible')
+    )
+    check(`${tag}: …while it DOES match :focus-visible (why the modality gate exists)`, nativeFv)
+  }
+  // Out to the page, then back by Tab: same control, keyboard route, marked.
+  await clickPage.mouse.click(4, 4)
+  await clickPage.keyboard.press('Tab')
+  const tabbed = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
+  check(`${tag}: tabbing to it after that click marks it`, tabbed.drawn)
+  await clickPage.close()
+}
+
+// ── canary: a control with no face to carry the mark keeps the dotted ring ─
+{
+  const page = await build('<vf-menu id="m" label="File"><vf-menu-item>New</vf-menu-item></vf-menu>')
   await page.keyboard.press('Tab')
   const ring = await page.evaluate(() => {
-    const control = document.getElementById('s').shadowRoot.querySelector('.control')
-    const cs = getComputedStyle(control)
-    return { style: cs.outlineStyle, width: cs.outlineWidth, focused: control.matches(':focus-visible') }
+    const label = document.getElementById('m').shadowRoot.querySelector('.label')
+    const cs = getComputedStyle(label)
+    return { style: cs.outlineStyle, width: cs.outlineWidth, focused: label.matches(':focus-visible') }
   })
   check(
-    'vf-select still focuses with the dotted ring (the rule is the button, toggles and fields only)',
+    'vf-menu still focuses with the dotted ring (the rule is only for controls that can draw it)',
     ring.focused && ring.style === 'dotted' && ring.width === '1px',
     JSON.stringify(ring)
   )

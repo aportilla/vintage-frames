@@ -144,13 +144,18 @@ Keyboard focus is an affordance System 7 never had — full keyboard access
 postdates it — so the kit **adds** one and draws it in the 1-bit vocabulary
 rather than leaving the browser's ring on top of the artwork. Where a control
 can carry the mark itself it does, as a 1px dashed rule on the system-pixel
-grid (`vfFocusUnderline`): `vf-button` underlines its label, `vf-checkbox` its
-box, `vf-radio` its circle, and the three editable fields their well. Every
-other control keeps the dotted ring. Either way it is **keyboard-only** — a
-mouse click never draws it. The fields need help to manage that, since
-`:focus-visible` is true for a clicked text input by design, so they read the
-page's last input modality instead (`src/focus-modality.ts`).
-`npm run verify:focus` asserts the rendered pixels.
+grid (`vfFocusUnderline`) — either *inside* the control, under the ink it
+marks (`vf-button` underlines its label, `vf-checkbox` its box, `vf-radio` its
+circle, the three editable fields their well), or, where there is no interior
+to give, *below* the whole box and clear of its hard shadow (`vf-select`,
+whose one line already holds the label and the ▼, and `vf-swatch`, which is
+nothing but fill). Every other control keeps the dotted ring. Either way it is
+**keyboard-only** — a mouse click never draws it. Two controls need help to
+manage that, because `:focus-visible` is true for them after a pointer:
+the fields, since the selector matches a clicked text input by design, and
+`vf-select`, which suppresses the browser's mouse focus to run its press-drag
+gesture and focuses itself instead. Both read the page's last input modality
+(`src/focus-modality.ts`). `npm run verify:focus` asserts the rendered pixels.
 
 ## Window archetypes — enabling the 1992 HIG, not enforcing it
 

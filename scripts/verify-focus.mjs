@@ -1,26 +1,29 @@
 /**
  * Verifies the kit's dashed keyboard-focus rule (`vfFocusUnderline`,
- * src/styles/base.ts), which replaces the browser's ring on the eight controls
+ * src/styles/base.ts), which replaces the browser's ring on the ten controls
  * that can carry the mark themselves. Two placements, one recipe: INSIDE the
  * control, under the ink it marks — vf-button underlines its label, vf-checkbox
- * its box, vf-radio its circle, and the three editable fields (vf-text-field,
- * vf-text-area, vf-number-field) their well — or BELOW it, under the whole box,
- * where the control has no interior to give: vf-select's one line is already
- * the label and the ▼, and a vf-swatch is nothing but fill. Focus visibility is
- * an accessibility affordance the kit ADDS to System 7's vocabulary — it is not
- * something the original drew — so what these checks defend is that the added
- * affordance obeys the 1-bit grid as strictly as the traced chrome does.
+ * its box, vf-radio its circle, the three editable fields (vf-text-field,
+ * vf-text-area, vf-number-field) their well, and vf-menu its bar title — or
+ * BELOW it, under the whole box, where the control has no interior to give:
+ * vf-select's one line is already the label and the ▼, a vf-swatch is nothing
+ * but fill, and a vf-slider's only interior is a handle that moves. Focus
+ * visibility is an accessibility affordance the kit ADDS to System 7's
+ * vocabulary — it is not something the original drew — so what these checks
+ * defend is that the added affordance obeys the 1-bit grid as strictly as the
+ * traced chrome does.
  *
  * The load-bearing facts, all asserted against rendered pixels rather than the
  * CSS that produces them:
  *
  *  - GEOMETRY: the rule is 1 system px tall, leaves exactly one blank row
  *    between itself and the ink above it (glyph, box border, sprite, the well's
- *    bottom edge — or, for the two below-the-box controls, the hard shadow the
- *    box casts, which no box the pseudo-element can size to contains), and
+ *    bottom edge, the rail — or, for vf-select and vf-swatch, the hard shadow
+ *    the box casts, which no box the pseudo-element can size to contains), and
  *    spans that element's own box — the label, not the button's padded face;
  *    the whole well, not the toggle's row; the number field's well, not the
- *    stepper beside it.
+ *    stepper beside it; the menu's title, not the bar cell around it; the
+ *    slider's whole rail, not just the handle.
  *  - PATTERN: 1 system px on, 1 off, every pixel pure black or pure white. A
  *    feathered dash is the failure this exists to catch, so the check refuses
  *    any intermediate gray, including in the case that provokes it: a grouped
@@ -30,16 +33,22 @@
  *    1px it was — the box-shadow that used to thicken it on focus is gone.
  *    Every outline involved — the inner button's and input's, the
  *    (delegatesFocus) hosts', the wells' — must be off.
- *  - MODALITY: keyboard focus shows it, a pointer never does. The fields are
- *    the interesting case — `:focus-visible` is specified to match any focus of
- *    an element that takes keyboard input, so it is ALREADY true for a clicked
- *    text field, and the checks below pin that browser behavior as the reason
- *    src/focus-modality.ts exists. All three pointer routes into a field (a
- *    click in the well, typing after it, and a click on its vf-label caption,
- *    which focuses it programmatically) must leave it unmarked.
+ *  - MODALITY: keyboard focus shows it, a pointer never does. Four controls
+ *    can't get that from `:focus-visible`, for two opposite reasons, and the
+ *    checks below pin BOTH as the reason src/focus-modality.ts exists. The
+ *    fields, because the selector is specified to match any focus of an element
+ *    that takes keyboard input, so it is ALREADY true for a clicked text field:
+ *    all three pointer routes into one (a click in the well, typing after it,
+ *    and a click on its vf-label caption, which focuses it programmatically)
+ *    must leave it unmarked. And vf-select / vf-menu / vf-slider, because each
+ *    suppresses the browser's own mouse focus to run a press-drag gesture and
+ *    calls focus() itself, which Blink reads as a VISIBLE focus. The nastiest
+ *    route is a press on an already-focused one: it moves no focus, so there is
+ *    no focus event to read the modality at, and the control has to drop the
+ *    mark from its own pointerdown.
  *  - PRESSED: currentColor inverts the rule to white on the black face.
  *  - The controls with no face to carry the mark keep the dotted ring, so
- *    vf-menu is checked as the canary.
+ *    vf-scroll-area is checked as the canary.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:focus
@@ -167,7 +176,7 @@ async function shoot(page, id, frameSel = 'button', targetSel = '.label', pad = 
       const t = targetEl.getBoundingClientRect()
       return {
         face: { x: f.x, y: f.y, w: f.width, h: f.height },
-        target: { x: t.x - f.x, w: t.width },
+        target: { x: t.x - f.x, y: t.y - f.y, w: t.width, h: t.height },
         drawn: after.content !== 'none',
         height: parseFloat(after.height),
         bottom: parseFloat(after.bottom),
@@ -745,20 +754,250 @@ for (const [tag, markup, frame, shadow] of [
   await clickPage.keyboard.press('Tab')
   const tabbed = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
   check(`${tag}: tabbing to it after that click marks it`, tabbed.drawn)
+  if (tag === 'vf-select') {
+    // The open list is itself where focus is, so the rule stands down — as a
+    // dropped vf-menu's does. It matters most for a ONE-option menu, whose
+    // panel overlays the pill exactly and so would leave the rule hanging in
+    // the open below it rather than covering it.
+    await clickPage.keyboard.press(' ')
+    const open = await clickPage.evaluate(() =>
+      document.getElementById('x').shadowRoot.querySelector('.panel').classList.contains('open')
+    )
+    check(`${tag}: Space opens the list (guards the check below)`, open)
+    const whileOpen = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
+    check(`${tag}: …and while open the rule stands down`, !whileOpen.drawn)
+    await clickPage.keyboard.press('Escape')
+    const reclosed = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
+    check(`${tag}: Escape closes it and the rule comes back`, reclosed.drawn)
+  }
+  await clickPage.close()
+}
+
+// ── the menu title: the rule goes under the TITLE, not the bar cell ───────
+// A bar title is text in a 24px cell with 10px of padding each side, so the
+// rule spans the title's own box — and hangs one row under it rather than one
+// row under the baseline, because the same box holds the Apple menu's 16px
+// vf-img and a rule tucked under the baseline crosses both that artwork and a
+// descender.
+// Standalone rather than in a vf-menu-bar, so the bar's own 1px bottom rule —
+// which lands inside the 24px cell — doesn't join the scan as a third band.
+{
+  const page = await build('<vf-menu id="x" label="Page"><vf-menu-item>Setup</vf-menu-item></vf-menu>')
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, 'x', '.label', '.title', BELOW_PAD)
+
+  check('vf-menu: Tab draws the rule', s.drawn)
+  check(
+    'vf-menu: no outline left on the host or the bar cell',
+    s.hostOutline === 'none' && s.frameOutline === 'none',
+    `host=${s.hostOutline} label=${s.frameOutline}`
+  )
+  check(
+    'vf-menu: the rule spans the title, not the cell it sits in',
+    s.target.w < s.w,
+    `title ${s.target.w / S} of the cell's ${s.w / S} system px`
+  )
+
+  // Scan the title's own column across the whole clip: the glyph ink, then the
+  // rule. A ring would add a band above the glyphs or beside them.
+  const groups = bands(s, isBlack, { inset: 0 })
+  check('vf-menu: two ink bands — the glyphs, then the rule', groups.length === 2,
+    `found ${groups.length}`)
+  const [glyphs, rule] = groups.length === 2 ? groups : [[], []]
+  check('vf-menu: the rule is 1 system px tall', rule.length === S, `${rule.length} device px`)
+  // The anchor is the title's own BOX — the em box, whose bottom is the
+  // descent line — not the glyph ink and not the baseline. That is what lets
+  // one offset serve both a descender and the Apple menu's 16px vf-img.
+  check(
+    'vf-menu: it hangs one blank system px row under the title box',
+    rule.length ? rule[0] - (s.y0 + s.target.y + s.target.h) === S : false,
+    rule.length ? `gap=${(rule[0] - (s.y0 + s.target.y + s.target.h)) / S} system px` : ''
+  )
+  // So a descender clears it — where vf-button's, one row under the baseline,
+  // would be crossed by the same glyph. ("Page" is chosen for the 'g'; its ink
+  // stops a row short of the descent line, so the measured gap is 2.)
+  check(
+    "vf-menu: …so the 'g' of \"Page\" never crosses it",
+    rule.length ? rule[0] - (glyphs[glyphs.length - 1] + 1) >= S : false,
+    rule.length ? `ink gap=${(rule[0] - (glyphs[glyphs.length - 1] + 1)) / S} system px` : ''
+  )
+  const dashes = rule.length ? runs(s.png, rule[0], s.ruleX0, s.ruleX1, isBlack) : []
+  check(
+    'vf-menu: 1 system px on, 1 off across the title',
+    dashes.length > 4 &&
+      dashes.every(([a, b]) => b - a === S) &&
+      dashes.every(([a], i) => i === 0 || a - dashes[i - 1][1] === S),
+    `${dashes.length} dashes, widths=${[...new Set(dashes.map(([a, b]) => b - a))]}`
+  )
+  const impure = []
+  for (let x = Math.round(s.ruleX0); x < Math.round(s.ruleX1); x++) {
+    for (const y of rule) {
+      if (!isBlack(s.png, x, y) && !isWhite(s.png, x, y)) impure.push([x - s.x0, y - s.y0])
+    }
+  }
+  check('vf-menu: every pixel of the rule is pure black or white', rule.length && !impure.length,
+    `${impure.length} feathered`)
+  await page.close()
+
+  // Modality. The press gesture suppresses the browser's mouse focus and calls
+  // focusLabel() itself, so :focus-visible is true after a plain click — and a
+  // press on an ALREADY-focused title moves no focus at all, which is why the
+  // menu suppresses the rule from its own pointerdown. Check that harder case:
+  // Tab to the title first, THEN click it.
+  const clickPage = await build(
+    '<vf-menu-bar><vf-menu id="x" label="Page"><vf-menu-item>Setup</vf-menu-item></vf-menu>' +
+      '<vf-menu label="File"><vf-menu-item>New</vf-menu-item></vf-menu></vf-menu-bar>'
+  )
+  await clickPage.keyboard.press('Tab')
+  const tabbed = await shoot(clickPage, 'x', '.label', '.title', BELOW_PAD)
+  check('vf-menu: Tab marks it (guards the check below)', tabbed.drawn)
+  await clickPage.locator('#x').click()
+  const clicked = await shoot(clickPage, 'x', '.label', '.title', BELOW_PAD)
+  check('vf-menu: clicking the title it was already on unmarks it', !clicked.drawn)
+  const nativeFv = await clickPage.evaluate(() =>
+    document.getElementById('x').shadowRoot.querySelector('.label').matches(':focus-visible')
+  )
+  check('vf-menu: …while it DOES match :focus-visible (why the modality gate exists)', nativeFv)
+  await clickPage.close()
+
+  // A dropped menu inverts its whole cell, which says where focus is louder
+  // than the rule does — so the rule is for the state the inversion can't
+  // express, and stands down while the menu is open. Keyboard route
+  // throughout, so the mark is on for every step it should be.
+  const openPage = await build(
+    '<vf-menu-bar><vf-menu id="x" label="Page"><vf-menu-item>Setup</vf-menu-item></vf-menu>' +
+      '<vf-menu label="File"><vf-menu-item>New</vf-menu-item></vf-menu></vf-menu-bar>'
+  )
+  await openPage.keyboard.press('Tab')
+  check('vf-menu: focused and closed — marked', (await shoot(openPage, 'x', '.label', '.title', BELOW_PAD)).drawn)
+  await openPage.keyboard.press('ArrowDown')
+  const opened = await openPage.evaluate(() => document.getElementById('x').open)
+  check('vf-menu: ArrowDown drops the menu (guards the check below)', opened)
+  const whileOpen = await shoot(openPage, 'x', '.label', '.title', BELOW_PAD)
+  check('vf-menu: …and while open the rule stands down — the inversion is the mark', !whileOpen.drawn)
+  // Nothing white left under the inverted title either: the rule is
+  // currentColor, so a surviving one would read as a white dashed line on the
+  // black cell — a second white band below the glyphs. Scanned inside the cell
+  // (inset 1 device px), since the page around it is white too.
+  const inverted = bands(whileOpen, isWhite, { inset: 1 })
+  check(
+    'vf-menu: no white dashes under the inverted title',
+    inverted.length === 1,
+    `${inverted.length} white bands inside the cell (the glyphs alone)`
+  )
+  await openPage.keyboard.press('Escape')
+  const closed = await shoot(openPage, 'x', '.label', '.title', BELOW_PAD)
+  check('vf-menu: Escape closes it and the rule comes back', closed.drawn)
+  await openPage.close()
+}
+
+// ── the slider: the rule goes under the RAIL, not around the handle ───────
+// The handle moves with the value, so a mark on it marked the value rather
+// than the control. The rail is the slider's whole extent; the rule runs its
+// full width one blank row under it, and the handle occludes the dashes it
+// passes over exactly as it occludes the rail behind it.
+{
+  const page = await build('<vf-slider id="x" value="45" style="width:300px"></vf-slider>')
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, 'x', '.track', '.track', BELOW_PAD)
+
+  check('vf-slider: Tab draws the rule', s.drawn)
+  check('vf-slider: no outline left on the host', s.hostOutline === 'none', s.hostOutline)
+
+  // Where the handle is, so the scans can stay off it. It is opaque and
+  // z-index 1, so it occludes the dashes it passes over.
+  const thumb = await page.evaluate(() => {
+    const root = document.getElementById('x').shadowRoot
+    const t = root.querySelector('.thumb').getBoundingClientRect()
+    const track = root.querySelector('.track').getBoundingClientRect()
+    return { left: t.x - track.x, right: t.right - track.x }
+  })
+  const thumbX0 = s.x0 + thumb.left
+  const thumbX1 = s.x0 + thumb.right
+
+  // A 6-system-px window a quarter of the way along, clear of the handle. A
+  // window and not one column: the pattern is 1 on / 1 off, so a single column
+  // lands in a gap half the time.
+  const probe = { ...s, ruleX0: Math.round(s.x0 + s.w / 4), ruleX1: Math.round(s.x0 + s.w / 4) + 6 * S }
+  const column = bands(probe, isBlack, { inset: 0 })
+  check('vf-slider: two ink bands down the rail — the rail, then the rule',
+    column.length === 2, `found ${column.length}`)
+  const [rail, rule] = column.length === 2 ? column : [[], []]
+  check('vf-slider: the rail is still its 4 system px', rail.length === 4 * S,
+    `${rail.length / S} system px`)
+  check('vf-slider: the rule is 1 system px tall', rule.length === S, `${rule.length} device px`)
+  check(
+    'vf-slider: one blank system px row separates it from the rail',
+    rule.length ? rule[0] - (rail[rail.length - 1] + 1) === S : false,
+    rule.length ? `gap=${(rule[0] - (rail[rail.length - 1] + 1)) / S} system px` : ''
+  )
+
+  // The rule runs the WHOLE rail, not just under the handle — so it is checked
+  // on BOTH sides of the handle, out to each end of the rail.
+  const row = rule.length ? rule[0] : -1
+  const clean = (from, to) => {
+    const d = runs(s.png, row, from, to, isBlack)
+    return {
+      d,
+      ok:
+        d.length > 2 &&
+        d.every(([a, b]) => b - a === S) &&
+        d.every(([a], i) => i === 0 || a - d[i - 1][1] === S),
+    }
+  }
+  const left = rule.length ? clean(s.ruleX0, thumbX0) : { d: [], ok: false }
+  const right = rule.length ? clean(thumbX1, s.ruleX1) : { d: [], ok: false }
+  check(
+    'vf-slider: 1 system px on, 1 off from the left end up to the handle',
+    left.ok && Math.abs(left.d[0]?.[0] - s.ruleX0) <= 1,
+    `${left.d.length} dashes from ${left.d[0]?.[0]} (rail starts ${s.ruleX0})`
+  )
+  check(
+    'vf-slider: …and on from the handle out to the right end',
+    right.ok && s.ruleX1 - right.d[right.d.length - 1]?.[1] <= S + 1,
+    `${right.d.length} dashes to ${right.d[right.d.length - 1]?.[1]} (rail ends ${s.ruleX1})`
+  )
+  const impure = []
+  for (let x = Math.round(s.ruleX0); x < Math.round(thumbX0); x++) {
+    for (const y of rule) {
+      if (!isBlack(s.png, x, y) && !isWhite(s.png, x, y)) impure.push([x - s.x0, y - s.y0])
+    }
+  }
+  check('vf-slider: every pixel of the rule is pure black or white', rule.length && !impure.length,
+    `${impure.length} feathered`)
+  await page.close()
+
+  // Modality: a drag never marks it, but the arrow keys reveal it mid-gesture.
+  const clickPage = await build('<vf-slider id="x" value="45" style="width:300px"></vf-slider>')
+  await clickPage.keyboard.press('Tab')
+  const tabbed = await shoot(clickPage, 'x', '.track', '.track', BELOW_PAD)
+  check('vf-slider: Tab marks it (guards the check below)', tabbed.drawn)
+  await clickPage.locator('#x').click()
+  const clicked = await shoot(clickPage, 'x', '.track', '.track', BELOW_PAD)
+  check('vf-slider: clicking the rail it was already focused on unmarks it', !clicked.drawn)
+  await clickPage.keyboard.press('ArrowRight')
+  const keyed = await shoot(clickPage, 'x', '.track', '.track', BELOW_PAD)
+  check('vf-slider: an arrow key after that click reveals it again', keyed.drawn)
   await clickPage.close()
 }
 
 // ── canary: a control with no face to carry the mark keeps the dotted ring ─
 {
-  const page = await build('<vf-menu id="m" label="File"><vf-menu-item>New</vf-menu-item></vf-menu>')
+  const page = await build(
+    '<vf-scroll-area id="a" style="width:120px;height:80px"><p>Scrolling copy.</p></vf-scroll-area>'
+  )
   await page.keyboard.press('Tab')
   const ring = await page.evaluate(() => {
-    const label = document.getElementById('m').shadowRoot.querySelector('.label')
-    const cs = getComputedStyle(label)
-    return { style: cs.outlineStyle, width: cs.outlineWidth, focused: label.matches(':focus-visible') }
+    const viewport = document.getElementById('a').shadowRoot.querySelector('.viewport')
+    const cs = getComputedStyle(viewport)
+    return {
+      style: cs.outlineStyle,
+      width: cs.outlineWidth,
+      focused: viewport.matches(':focus-visible'),
+    }
   })
   check(
-    'vf-menu still focuses with the dotted ring (the rule is only for controls that can draw it)',
+    'vf-scroll-area still focuses with the dotted ring (the rule is only for controls that can draw it)',
     ring.focused && ring.style === 'dotted' && ring.width === '1px',
     JSON.stringify(ring)
   )

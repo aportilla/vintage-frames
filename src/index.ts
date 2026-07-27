@@ -148,7 +148,7 @@ export { ScrollStateController } from './scroll-state.js'
 export { TrackWidthController } from './track-width.js'
 export { DocumentListenersController } from './document-listeners.js'
 export type { DocumentListenerSpec } from './document-listeners.js'
-export { focusModality, trackFocusModality } from './focus-modality.js'
+export { focusModality, trackFocusModality, FocusRuleController } from './focus-modality.js'
 export type { FocusModality } from './focus-modality.js'
 export { emit } from './events.js'
 export {

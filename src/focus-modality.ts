@@ -22,6 +22,8 @@
  * all is assistive tech, an `autofocus`, or a script, and all three should be
  * marked. Only an observed pointer suppresses the mark.
  */
+import type { LitElement, ReactiveController } from 'lit'
+
 export type FocusModality = 'keyboard' | 'pointer'
 
 let modality: FocusModality = 'keyboard'
@@ -78,5 +80,91 @@ export function trackFocusModality(): () => void {
       document.removeEventListener('pointerdown', onPointer, { capture: true })
       document.removeEventListener('keydown', onKey, { capture: true })
     }
+  }
+}
+
+/**
+ * Whether a control should be wearing the kit's dashed focus rule right now:
+ * {@link focusModality} resolved against the host's own focus, as one reactive
+ * flag.
+ *
+ * Four controls need this rather than `:focus-visible`, for two different
+ * reasons (SPEC §4). The editable fields, because that selector is specified to
+ * match *any* focus of an element which takes keyboard input, so it is already
+ * true for a clicked text field. And the three that suppress the browser's own
+ * mouse focus so a press-drag gesture can own the pointer — `vf-select`,
+ * `vf-menu`, `vf-slider` — then call `focus()` themselves, which Blink reads as
+ * a *visible* focus, making `:focus-visible` true after a pure mouse gesture.
+ * One controller so the answer can't drift between them.
+ *
+ * `focusin`/`focusout`, not `focus`/`blur`: the focus usually lands on an
+ * element inside the shadow root, and only the bubbling, composed pair crosses
+ * that boundary to reach the host. Focus moving *within* the component — a
+ * `vf-select` pill handing off to its option rows, a `vf-menu` title to its
+ * dropped panel — is not leaving, so the mark survives it and the host takes it
+ * back when the panel closes.
+ */
+export class FocusRuleController implements ReactiveController {
+  #marked = false
+
+  /** This host's share of the document listeners; see {@link trackFocusModality}. */
+  #release?: () => void
+
+  constructor(private readonly host: LitElement) {
+    host.addController(this)
+  }
+
+  /** True while the host's focus should be marked. */
+  get marked(): boolean {
+    return this.#marked
+  }
+
+  hostConnected(): void {
+    this.#release = trackFocusModality()
+    this.host.addEventListener('focusin', this.#onFocusIn)
+    this.host.addEventListener('focusout', this.#onFocusOut)
+  }
+
+  hostDisconnected(): void {
+    this.host.removeEventListener('focusin', this.#onFocusIn)
+    this.host.removeEventListener('focusout', this.#onFocusOut)
+    this.#release?.()
+    this.#release = undefined
+    this.#set(false)
+  }
+
+  /**
+   * Force the mark on: the keyboard just drove the control, whatever put the
+   * focus there. `vf-slider` calls this from a handled arrow key, so a slider
+   * clicked and then nudged with the keys starts showing its rule.
+   */
+  reveal(): void {
+    this.#set(true)
+  }
+
+  /**
+   * Force the mark off. A pointer press on an ALREADY-focused control moves no
+   * focus and so fires no `focusin` — the one pointer route this controller
+   * cannot see for itself.
+   */
+  suppress(): void {
+    this.#set(false)
+  }
+
+  #set(next: boolean): void {
+    if (next === this.#marked) return
+    this.#marked = next
+    this.host.requestUpdate()
+  }
+
+  #onFocusIn = (): void => {
+    this.#set(modality === 'keyboard')
+  }
+
+  #onFocusOut = (event: FocusEvent): void => {
+    const next = event.relatedTarget
+    const inside =
+      next instanceof Node && (this.host.contains(next) || this.host.renderRoot.contains(next))
+    if (!inside) this.#set(false)
   }
 }

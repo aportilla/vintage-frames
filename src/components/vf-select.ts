@@ -10,7 +10,7 @@ import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { runSelectionBlink, PRESS_HOLD_MS, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
-import { focusModality, trackFocusModality } from '../focus-modality.js'
+import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
 
 /**
@@ -131,8 +131,9 @@ export class VfSelect extends VfFormControl {
          calls focus() itself: on pointerdown to open, and again when a release
          closes the list. Blink reads a scripted focus as a visible one, so
          :focus-visible is TRUE after a pure mouse round-trip through the menu,
-         where on a button it is false. handleHostFocusIn consults the page's
-         last input modality instead (see src/focus-modality.ts). */
+         where on a button it is false. FocusRuleController consults the page's
+         last input modality instead (see src/focus-modality.ts), and render()
+         holds the class off while the list is open — see there. */
       .control:focus-visible {
         outline: none;
       }
@@ -224,16 +225,6 @@ export class VfSelect extends VfFormControl {
   /** Whether the popup panel is open. */
   @state() private open = false
 
-  /**
-   * Whether the closed pill wears the kit's dashed focus rule. True only for a
-   * focus that arrived from the keyboard — see {@link focusModality} for why
-   * this control can't read that off `:focus-visible`.
-   */
-  @state() private focusRule = false
-
-  /** Releases this control's share of the modality listeners. */
-  private releaseModality?: () => void
-
   @query('.control') private controlEl!: HTMLDivElement | null
 
   @query('.panel') private panelEl!: HTMLDivElement | null
@@ -254,6 +245,12 @@ export class VfSelect extends VfFormControl {
 
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
+
+  /**
+   * Whether the closed pill wears the kit's dashed focus rule — keyboard focus
+   * only, which this control can't read off `:focus-visible` (see the CSS).
+   */
+  private readonly focusRule = new FocusRuleController(this)
 
   /** While the panel is open: outside dismissal, and closing when a scroll or
    *  resize would strand the fixed-position panel away from the pill. */
@@ -308,21 +305,12 @@ export class VfSelect extends VfFormControl {
     this.addEventListener('click', this.handleHostClick)
     this.addEventListener('keydown', this.handleHostKeyDown)
     this.addEventListener('pointerover', this.handleHostPointerOver)
-    this.addEventListener('focusin', this.handleHostFocusIn)
     this.addEventListener('focusout', this.handleHostFocusOut)
-  }
-
-  override connectedCallback(): void {
-    super.connectedCallback()
-    this.releaseModality = trackFocusModality()
   }
 
   override disconnectedCallback(): void {
     // super's controller teardown already detached both listener sets.
     super.disconnectedCallback()
-    this.releaseModality?.()
-    this.releaseModality = undefined
-    this.focusRule = false
     this.cancelBlink()
     // Clear any stamped `active` flags on the options: a select disconnected
     // mid-open/mid-blink otherwise keeps an inverted highlight row when
@@ -778,24 +766,12 @@ export class VfSelect extends VfFormControl {
     }
   }
 
-  /**
-   * `focusin`, not `focus`: the focus lands on `.control` inside the shadow
-   * root, and only the bubbling, composed pair crosses that boundary to reach
-   * the host. It fires again when a closing list hands focus back to the pill,
-   * which is what leaves a mouse round-trip through the menu unmarked.
-   */
-  private handleHostFocusIn = (): void => {
-    this.focusRule = focusModality() === 'keyboard'
-  }
-
   private handleHostFocusOut = (event: FocusEvent): void => {
+    if (!this.open || this.blinking) return
     const next = event.relatedTarget
-    const inside = next instanceof Node && (this.contains(next) || this.renderRoot.contains(next))
-    // Focus leaving the component drops the rule. Moving between the pill and
-    // its own option rows is not leaving: the open list is where the keyboard
-    // highlight lives, and the pill takes focus back when it closes.
-    if (!inside) this.focusRule = false
-    if (!this.open || this.blinking || inside) return
+    if (next instanceof Node && (this.contains(next) || this.renderRoot.contains(next))) {
+      return
+    }
     this.closePanel(false)
   }
 
@@ -833,7 +809,10 @@ export class VfSelect extends VfFormControl {
         class=${classMap({
           control: true,
           'vf-snap': true,
-          'vf-focus-rule': this.focusRule,
+          // Closed only: an open list is itself where focus is, and a panel
+          // short enough not to cover the rule (a one-option menu overlays the
+          // pill exactly) would otherwise leave a dashed line hanging under it.
+          'vf-focus-rule': this.focusRule.marked && !this.open,
           disabled,
         })}
         part="control"

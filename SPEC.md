@@ -48,13 +48,16 @@ The System 7 look, distilled:
 Modern requirements that we deliberately keep (accessibility over purity):
 
 - `:focus-visible` gets `outline: var(--vf-focus-outline, 1px dotted #000); outline-offset: 2px;`
-  — except where the control's own vocabulary can carry the mark instead:
-  `vf-button`, `vf-checkbox`, `vf-radio` and the three editable fields draw a
-  1px dashed rule under the label, the box, the circle and the well
-  respectively, and `vf-select` and `vf-swatch` the same rule under their whole
-  box, clear of its hard shadow (`vfFocusUnderline`, §4). System 7 had no
-  keyboard-focus indicator to copy — these are modern affordances the kit
-  **adds**, drawn on the 1-bit grid so they read as native rather than bolted on.
+  — but only where the control has no face to carry the mark instead. The kit
+  prefers a **1px dashed rule** (`vfFocusUnderline`, §4) and reaches for the
+  ring last: `vf-button`, `vf-checkbox`, `vf-radio`, the three editable fields
+  and `vf-menu` draw it under the label, the box, the circle, the well and the
+  bar title; `vf-select`, `vf-swatch` and `vf-slider` under the whole box —
+  clear of the hard shadow for the first two, the rail's full width for the
+  slider. That leaves the ring to the window widgets, `vf-list-item` and
+  `vf-scroll-area`. System 7 had no keyboard-focus indicator to copy — these
+  are modern affordances the kit **adds**, drawn on the 1-bit grid so they read
+  as native rather than bolted on.
 - Full ARIA roles + keyboard support per component.
 - Form-associated custom elements where noted (`static formAssociated = true`
   + `ElementInternals`).
@@ -266,13 +269,17 @@ right.
     underlined element needs `position: relative`. Two placements:
     - **Inside the control**, under the ink it marks: `vf-button` underlines its
       label, `vf-checkbox` its box, `vf-radio` its circle (narrowed to 9 of its
-      13px, since that shape is round — §5) and the three editable fields their
-      well (via `vfField`'s `.vf-field-well`).
+      13px, since that shape is round — §5), the three editable fields their
+      well (via `vfField`'s `.vf-field-well`) and `vf-menu` its bar title.
     - **Below the control**, under its whole box, where there is no interior to
-      give: a `vf-select`'s single line is already the label and the ▼, and
-      every pixel inside a `vf-swatch` is the color it exists to show. Both cast
-      the hard shadow, which the rule has to clear — ink that lies outside every
-      box the pseudo-element could size itself to.
+      give: a `vf-select`'s single line is already the label and the ▼, every
+      pixel inside a `vf-swatch` is the color it exists to show, and a
+      `vf-slider`'s only interior is the handle — which moves, so marking it
+      marked the *value* rather than the control. The first two cast the hard
+      shadow, which the rule has to clear — ink lying outside every box the
+      pseudo-element could size itself to; the slider's runs the rail's full
+      width and the handle occludes it in passing (z-index 1), exactly as it
+      occludes the rail behind it.
     - `--vf-focus-underline-offset` places it, measured (like any `bottom`)
       from the element's **padding** box up to the rule's bottom edge, so
       positive insets it and negative drops it below. The contract is one blank
@@ -280,31 +287,53 @@ right.
       counts every row of ink in between: `4px` (the default) for a text box,
       whose ink stops at the baseline 6px above its bottom (2px half-leading
       over the 16px em + the 4px descent); `-2px` for a well whose ink ends at
-      its own bottom edge (the radio's circle, a field's wrapper); `-3px` for
-      the checkbox, adding its 1px border; `-4px` for `vf-select`, adding its
-      1px hard shadow as well; and for `vf-swatch` a `calc()` that composes
-      `--vf-shadow-offset` rather than hard-coding a depth its consumer can
-      retheme. `npm run verify:focus`.
-    - The mark is **keyboard-only** everywhere, but two controls can't say so
-      with `:focus-visible`, from opposite directions:
+      its own bottom edge (the radio's circle, a field's wrapper) and for
+      `vf-menu`'s title box; `-3px` for the checkbox, adding its 1px border;
+      `-4px` for `vf-select`, adding its 1px hard shadow as well; `3px` for
+      `vf-slider`, counting back up from the track's bottom to a row under the
+      rail; and for `vf-swatch` a `calc()` that composes `--vf-shadow-offset`
+      rather than hard-coding a depth its consumer can retheme.
+      `npm run verify:focus`.
+    - `vf-menu` is the one that anchors to a **box** rather than to the
+      baseline the button uses, and it is worth the contrast: its title box is
+      shrunk to the face's own em (`line-height: 1`), whose bottom edge is the
+      descent line, so one offset serves both a descender and the Apple menu's
+      slotted 16px `vf-img`. The button's rule, one row under the baseline, is
+      crossed by both.
+    - The two controls that **drop open** — `vf-menu` and `vf-select` — draw the
+      rule only while closed. An open menu or list is itself where focus is, in
+      a louder language (a whole inverted cell, a dropped panel), so the rule is
+      left to the state that language can't express. Both keep the underlying
+      keyboard-focus state through the open state, so the rule returns by itself
+      on close.
+    - The mark is **keyboard-only** everywhere, but four controls can't say so
+      with `:focus-visible`, for two opposite reasons:
       - The **fields**, because that selector is specified to match *any* focus
         of an element which takes keyboard input, so it is already true for a
         text field clicked with the mouse — where on a button it is false.
-      - **`vf-select`**, because it suppresses the browser's own mouse focus
-        (the press-drag gesture owns the pointer) and calls `focus()` itself —
-        on `pointerdown` to open, and again when a release closes the list —
-        and Blink reads a scripted focus as a visible one. So a pure mouse
-        round-trip through the menu ends `:focus-visible`.
+      - **`vf-select`, `vf-menu` and `vf-slider`**, because each suppresses the
+        browser's own mouse focus (a press-drag gesture owns the pointer) and
+        calls `focus()` itself, and Blink reads a scripted focus as a *visible*
+        one. So a plain mouse press on any of the three ends `:focus-visible`.
 
-      Both gate on a `.vf-focus-rule` class added only when the page's last
-      input modality was the keyboard (`src/focus-modality.ts`): one refcounted
+      All four gate on a `.vf-focus-rule` class driven by
+      {@link FocusRuleController} (`src/focus-modality.ts`), which resolves the
+      page's last input modality against the host's own focus: one refcounted
       capture-phase `pointerdown` + `keydown` pair on the document, read at
       `focusin`, defaulting to `'keyboard'` so assistive tech and `autofocus`
-      are still marked. `VfTextControlBase` owns the field half (via
-      `wellClass`), `vf-select` its own. Typing after a click does not reveal
-      it, and neither does a click on the control's `vf-label` caption — a
-      pointer landing focus from outside the control is why the tracker is
-      page-wide rather than a local `pointerdown` latch like `vf-slider`'s.
+      are still marked, and dropped at a `focusout` that leaves the component
+      (focus moving *within* it — a pill to its option rows, a title to its
+      dropped panel — keeps the mark). Typing after a click does not reveal it,
+      and neither does a click on the control's `vf-label` caption — a pointer
+      landing focus from outside the control is why the tracker is page-wide
+      rather than a local `pointerdown` latch.
+      - Two escape hatches, for the routes a focus event can't report.
+        `suppress()`: a press on an **already-focused** control moves no focus
+        and fires no `focusin`, so `vf-menu` and `vf-slider` call it from their
+        own `pointerdown`. `reveal()`: `vf-slider` calls it from a handled
+        arrow key, so a slider grabbed with the mouse and then nudged with the
+        keys starts showing its rule.
+
       `npm run verify:focus` pins all of it, including the two browser
       behaviors that make it necessary.
 
@@ -795,6 +824,9 @@ The classic popup menu control ("Macintosh HD ▼").
   (border + hard shadow + blank row), not inside the face the way vf-button
   underlines its label: the pill's one line already holds the label and the ▼.
   Spans the border box (±1px off the padding box the pseudo-element sizes to).
+  **Closed only**, as `vf-menu`'s is: the open list is itself where focus is,
+  and a panel short enough not to cover the rule — a one-option menu overlays
+  the pill exactly — would leave a dashed line hanging in the open below it.
   Gated on a `.vf-focus-rule` class from the page's input modality, not
   `:focus-visible` — see §4 for why this control can't use the selector either.
   `npm run verify:focus`.
@@ -873,9 +905,22 @@ The classic popup menu control ("Macintosh HD ▼").
   `aria-valuemin/max/now/valuetext` + `aria-orientation="horizontal"`. Click or
   drag the track to set the value (the thumb's travel is inset by half its width
   so its edges stay flush within the rail, never overhanging). Focusable
-  (self-managed `tabindex`, dotted ring on the thumb): Arrow keys step by `step`,
-  PageUp/PageDown by `max(step, range/10)`, Home/End jump to min/max.
-  `formResetCallback` restores the initial value.
+  (self-managed `tabindex`): Arrow keys step by `step`, PageUp/PageDown by
+  `max(step, range/10)`, Home/End jump to min/max. `formResetCallback` restores
+  the initial value.
+  - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
+    `--vf-focus-underline-offset: 3px`, a dashed rule under the **rail**, its
+    full width, one blank system px row below it. Not around the handle: that
+    marked the value rather than the control, and moved as the value did. The
+    handle is `z-index: 1` and the rule is not, so it occludes the dashes it
+    passes over exactly as it occludes the rail behind it.
+  - Gated on a `.vf-focus-rule` class from the page's input modality, not
+    `:focus-visible` (§4): a press on the track `preventDefault`s to suppress
+    text selection, which cancels the native focus, so the control calls
+    `focus()` itself. It calls the controller's `suppress()` from that same
+    `pointerdown` (a press on an already-focused slider fires no `focusin`) and
+    `reveal()` from a handled arrow key, so a slider grabbed with the mouse and
+    then nudged with the keys starts showing its rule. `npm run verify:focus`.
 - **Events:** `vf-input` detail `{ value: number }` on every drag move / key
   change; `vf-change` detail `{ value: number }` on commit (pointer release or
   key change).
@@ -902,9 +947,30 @@ The classic popup menu control ("Macintosh HD ▼").
 - **Attributes/props:** `label: string` (the menu title in the bar; may contain
   e.g. an apple glyph), `open: boolean` (reflect, managed by menu-bar or self).
 - **Visual:** label: bold, height of menubar, `padding: 0 10px`; open → inverted
-  (black bg / white text). Panel: `.vf-panel`, `position: absolute` below the
-  label (`top: 100%; left: 0;`), `min-width: 180px`, `padding: 2px 0`;
-  `role="menu"`.
+  (black bg / white text). The title itself sits in a `.title` box inside that
+  cell, so the focus rule can span the title and not the padding. Panel:
+  `.vf-panel`, `position: absolute` below the label (`top: 100%; left: 0;`),
+  `min-width: 180px`, `padding: 2px 0`; `role="menu"`.
+  - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
+    `--vf-focus-underline-offset: -2px`, a dashed rule one blank system px row
+    under the `.title` box. That box is `line-height: 1`, i.e. the face's own
+    em, whose bottom edge is the descent line — so the one offset clears a
+    descender *and* a slotted 16px `vf-img` (the Apple menu), where the
+    button's baseline-anchored rule is crossed by both. In `currentColor`, so
+    it inverts with the title on an open menu's black cell.
+  - **Closed only** (`:host(:not([open]))`). A dropped menu inverts its whole
+    cell, which says where focus is in the louder of the two languages; the
+    rule is for the state the inversion can't express — focused, not yet open —
+    and drawing both would put a second, quieter mark (in white, since it is
+    `currentColor`) under the first. The class stays on through the open state,
+    so the rule returns by itself when the menu closes and hands focus back.
+  - Gated on a `.vf-focus-rule` class from the page's input modality, not
+    `:focus-visible` (§4): `MenuPressController` `preventDefault`s the opening
+    `pointerdown` and calls `focusLabel()` itself. The menu also calls the
+    controller's `suppress()` from its own host `pointerdown`, so a press on an
+    already-focused title — which moves no focus, and so fires no `focusin` —
+    still drops the mark, as does mousing into the dropped panel.
+    `npm run verify:focus`.
 - **Behavior:** delegates open-state coordination to parent `vf-menu-bar` when
   present (only one open at a time). Sets
   `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so slotted

@@ -146,16 +146,23 @@ rather than leaving the browser's ring on top of the artwork. Where a control
 can carry the mark itself it does, as a 1px dashed rule on the system-pixel
 grid (`vfFocusUnderline`) — either *inside* the control, under the ink it
 marks (`vf-button` underlines its label, `vf-checkbox` its box, `vf-radio` its
-circle, the three editable fields their well), or, where there is no interior
-to give, *below* the whole box and clear of its hard shadow (`vf-select`,
-whose one line already holds the label and the ▼, and `vf-swatch`, which is
-nothing but fill). Every other control keeps the dotted ring. Either way it is
-**keyboard-only** — a mouse click never draws it. Two controls need help to
-manage that, because `:focus-visible` is true for them after a pointer:
-the fields, since the selector matches a clicked text input by design, and
-`vf-select`, which suppresses the browser's mouse focus to run its press-drag
-gesture and focuses itself instead. Both read the page's last input modality
-(`src/focus-modality.ts`). `npm run verify:focus` asserts the rendered pixels.
+circle, the three editable fields their well, `vf-menu` its bar title), or,
+where there is no interior to give, *below* the whole box: `vf-select` and
+`vf-swatch` clear of their hard shadow, and `vf-slider` under the full width of
+its rail, so the mark stays put as the handle travels. Only the controls with
+no face to draw on — a window's close and zoom boxes, a list row, a scroll
+area's viewport — keep the dotted ring. The two controls that drop open,
+`vf-menu` and `vf-select`, draw it only while closed: an open menu or list is
+already saying where focus is, in a louder language.
+
+Either way it is **keyboard-only**: a mouse click never draws it. Four controls
+need help to manage that, because `:focus-visible` is true for them after a
+pointer — the fields, since the selector matches a clicked text input by
+design, and `vf-select`/`vf-menu`/`vf-slider`, which suppress the browser's
+mouse focus to run a press-drag gesture and focus themselves instead, which
+Blink reads as a visible focus. All four gate on the page's last input modality
+(`FocusRuleController`, `src/focus-modality.ts`).
+`npm run verify:focus` asserts the rendered pixels.
 
 ## Window archetypes — enabling the 1992 HIG, not enforcing it
 
@@ -431,7 +438,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `steppedRectClip`, `steppedRingClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`) |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow and inactive-window reporting for the always-a-rail scrollbars (a non-frontmost window's rails blank, per the HIG); a track's measured width, for drawing your own 1-bit fill on the system-pixel grid; document-level listeners scoped to an open panel or in-flight gesture (paired attach/detach + disconnect cleanup in one place) |
-| `focusModality`, `trackFocusModality` | Whether the keyboard or a pointer last drove the page — what a text control has to consult to mark keyboard focus only, since `:focus-visible` matches a *clicked* text input too |
+| `focusModality`, `trackFocusModality`, `FocusRuleController` | Whether the keyboard or a pointer last drove the page, and that resolved against a host's own focus as one reactive flag — what a control consults to mark keyboard focus only, wherever `:focus-visible` can't say so: a *clicked* text input matches it, and so does any control that suppresses the browser's mouse focus and calls `focus()` itself |
 | `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share |
 | `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), the native-`<dialog>` lifecycle |
 | `registerEmbeddedFont`, `registerChiKareGo`, `registerFindersKeepers`, `CHIKAREGO_FAMILY`, `FINDERS_KEEPERS_FAMILY` | Register the bitmap faces on `document.fonts` yourself |

@@ -5,10 +5,11 @@ import {
   query,
   queryAssignedElements,
 } from 'lit/decorators.js'
-import { vfBase, vfDisplay, vfFocus, vfPanel } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
+import { FocusRuleController } from '../focus-modality.js'
 import { MenuPressController } from '../menu-press.js'
 import { emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
@@ -43,7 +44,6 @@ export class VfMenu extends LitElement {
     vfBase,
     vfDisplay,
     vfPanel,
-    vfFocus,
     css`
       :host {
         display: inline-block;
@@ -64,6 +64,47 @@ export class VfMenu extends LitElement {
       :host([open]) .label {
         background: var(--vf-highlight, #000);
         color: var(--vf-highlight-text, #fff);
+      }
+      /* The title rides in its own box so the focus rule spans the title and
+         not the bar cell's 10px padding — the same reason vf-button wraps its
+         label. A line-height of 1 shrinks that box to the face's own em, whose
+         bottom edge IS the descender line (the Chicago 12/4 metrics — see
+         register-embedded-font.ts), so the rule below it clears every glyph
+         instead of being crossed by a 'g' the way the button's is. A slotted
+         icon — the Apple menu's vf-img — sizes the box instead, and the same
+         rule lands one blank row under the artwork. The title doesn't move
+         either way: symmetric half-leading and align-items:center put the
+         baseline in the same place at any line height. */
+      .title {
+        position: relative;
+        display: flex;
+        align-items: center;
+        line-height: 1;
+      }
+      /* Keyboard focus is the kit's dashed rule under the title, not a ring
+         around the bar cell (see vfFocusUnderline) — one blank row under the
+         box, so −(1 + 1).
+
+         Gated on a class, not :focus-visible, exactly as vf-select is: the
+         press-drag gesture suppresses the browser's own mouse focus and
+         MenuPressController calls focusLabel() instead, and Blink reads a
+         scripted focus as a visible one. So :focus-visible is true after a
+         plain mouse press on a title. FocusRuleController consults the page's
+         last input modality instead (see src/focus-modality.ts).
+
+         Only while CLOSED: a dropped menu already says where focus is, in the
+         louder of the two languages — the whole cell inverts. Drawing the rule
+         under an inverted title as well just adds a second, quieter mark
+         saying the same thing (in white, since it is currentColor). The mark
+         is for the state the inversion can't express: focused, not yet open.
+         The class stays on through the open state, so the rule comes back by
+         itself when the menu closes and hands focus back to the title. */
+      .label:focus {
+        outline: none;
+      }
+      :host(:not([open])) .label.vf-focus-rule .title::after {
+        --vf-focus-underline-offset: -2px;
+        ${vfFocusUnderline}
       }
       .panel {
         position: absolute;
@@ -100,6 +141,12 @@ export class VfMenu extends LitElement {
 
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
+
+  /**
+   * Whether the bar title wears the kit's dashed focus rule — keyboard focus
+   * only, which this control can't read off `:focus-visible` (see the CSS).
+   */
+  readonly #focusRule = new FocusRuleController(this)
 
   /**
    * The menu title shown in the bar, and the menu's accessible name. Slotted
@@ -259,6 +306,12 @@ export class VfMenu extends LitElement {
    * gesture instead, since it may travel between menus.
    */
   #onHostPointerDown = (event: PointerEvent): void => {
+    // Any press in this menu is pointer interaction, so the focus rule goes —
+    // and it has to be said explicitly, because a press on an ALREADY-focused
+    // title moves no focus and so fires no focusin for the controller to read.
+    // Registered on the host, not the title, so mousing into the dropped panel
+    // drops it too. This half runs even inside a bar.
+    this.#focusRule.suppress()
     if (this.#inBar) return
     this.#press.onPointerDown(event)
   }
@@ -271,7 +324,7 @@ export class VfMenu extends LitElement {
   protected override render() {
     return html`
       <div
-        class="label vf-focus vf-snap"
+        class="label vf-snap ${this.#focusRule.marked ? 'vf-focus-rule' : ''}"
         part="label"
         role="menuitem"
         tabindex=${this.barTabIndex}
@@ -283,7 +336,7 @@ export class VfMenu extends LitElement {
         @pointerenter=${this.#onLabelEnter}
         @keydown=${this.#onLabelKeydown}
       >
-        <slot name="label">${this.label}</slot>
+        <span class="title"><slot name="label">${this.label}</slot></span>
       </div>
       <div class="panel vf-panel" part="panel" role="menu" aria-label=${this.label}>
         <slot></slot>

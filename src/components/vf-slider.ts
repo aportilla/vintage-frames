@@ -1,12 +1,13 @@
 import { css, html } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property, query, state } from 'lit/decorators.js'
-import { vfBase, vfFocusRing } from '../styles/base.js'
+import { customElement, property, query } from 'lit/decorators.js'
+import { vfBase, vfFocusUnderline } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { TrackWidthController } from '../track-width.js'
 import { VfFormControl } from '../form-control.js'
+import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
 import { decimalsOf } from '../number.js'
 
@@ -129,14 +130,28 @@ export class VfSlider extends VfFormControl {
       .thumb-outline {
         fill: currentColor;
       }
-      /* Never draw the UA outline on the host. We render our own dotted ring on
-         the thumb, and only for keyboard focus — never during a pointer drag
-         (:focus-visible misfires there because we focus() programmatically). */
+      /* Never draw the UA outline on the host: keyboard focus is the kit's
+         dashed rule under the RAIL, not a ring around the handle. Marking the
+         handle marked the value rather than the control, and moved as the value
+         did; the rail is the slider's whole extent, so the rule reads as one
+         underline for the control however far along the thumb has travelled.
+         One blank system px row under the rail's bottom edge, which sits
+         RAIL_TOP + RAIL_H from the track's top: the offset counts back up from
+         the track's own bottom, 12 − (3 + 4) − 1 − 1 = 3.
+
+         The thumb is z-index 1 and the rule is not, so the handle occludes the
+         dashes it passes over — the same way it occludes the rail behind it.
+
+         Gated on a class, not :focus-visible, as vf-select and vf-menu are: a
+         press on the track preventDefaults (to suppress text selection), which
+         cancels the native focus, so #onPointerDown calls focus() itself — and
+         Blink reads a scripted focus as a visible one. */
       :host(:focus) {
         outline: none;
       }
-      .thumb.focus-ring {
-        ${vfFocusRing}
+      .track.vf-focus-rule::after {
+        --vf-focus-underline-offset: ${THUMB_H - (RAIL_TOP + RAIL_H) - 2}px;
+        ${vfFocusUnderline}
       }
     `,
   ]
@@ -174,8 +189,11 @@ export class VfSlider extends VfFormControl {
   /** True when this component owns the host `tabindex`. */
   private selfManagedTabIndex = false
 
-  /** Whether to show the dotted focus ring — true only for keyboard focus. */
-  @state() private focusRing = false
+  /**
+   * Whether the rail wears the kit's dashed focus rule — keyboard focus only,
+   * which this control can't read off `:focus-visible` (see the CSS).
+   */
+  readonly #focusRule = new FocusRuleController(this)
 
   /** Value captured at pointer-down, to decide whether a drag emitted a change. */
   #dragStartValue = 0
@@ -183,9 +201,6 @@ export class VfSlider extends VfFormControl {
   /** True between pointer-down and its release — drives the drag lifecycle so a
    * commit does not depend on pointer capture having been established. */
   #dragging = false
-
-  /** True when the current focus originated from a pointer (suppresses the ring). */
-  #pointerFocus = false
 
   constructor() {
     super()
@@ -203,27 +218,11 @@ export class VfSlider extends VfFormControl {
       this.tabIndex = this.isDisabled ? -1 : 0
     }
     this.addEventListener('keydown', this.#onKeydown)
-    this.addEventListener('focus', this.#onFocus)
-    this.addEventListener('blur', this.#onBlur)
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.removeEventListener('keydown', this.#onKeydown)
-    this.removeEventListener('focus', this.#onFocus)
-    this.removeEventListener('blur', this.#onBlur)
-  }
-
-  // Focus-ring modality: show the dotted ring only when focus arrives from the
-  // keyboard. A pointer-down flags the focus as pointer-originated (ring off);
-  // an arrow/page/home/end key re-enables it (see #onKeydown).
-  #onFocus = (): void => {
-    this.focusRing = !this.#pointerFocus
-  }
-
-  #onBlur = (): void => {
-    this.focusRing = false
-    this.#pointerFocus = false
   }
 
   /** Restores the initial value when the associated form resets. */
@@ -302,10 +301,11 @@ export class VfSlider extends VfFormControl {
     if (this.isDisabled || event.button !== 0) return
     event.preventDefault()
     // We preventDefault (to suppress text selection), which also cancels the
-    // native focus, so focus() manually — but flag it as pointer-originated so
-    // the dotted keyboard ring stays hidden during the drag.
-    this.#pointerFocus = true
-    this.focusRing = false
+    // native focus, so focus() manually. The modality tracker sees the
+    // pointerdown first and leaves the rule off — except when the slider is
+    // ALREADY focused, where focus() moves nothing and fires no focusin, so
+    // suppress() covers a keyboard-focused slider the user then grabs.
+    this.#focusRule.suppress()
     this.focus()
     this.#dragging = true
     this.#dragStartValue = this.value
@@ -372,9 +372,9 @@ export class VfSlider extends VfFormControl {
         return
     }
     event.preventDefault()
-    // A handled key is keyboard interaction — reveal the dotted ring.
-    this.#pointerFocus = false
-    this.focusRing = true
+    // A handled key is keyboard interaction, whatever put the focus here —
+    // reveal the rule even on a slider that was grabbed with the mouse.
+    this.#focusRule.reveal()
     if (next !== this.value) {
       this.#update(next)
       this.#emit('vf-change')
@@ -416,7 +416,9 @@ export class VfSlider extends VfFormControl {
     const pos = thumbLeftSys + THUMB_CENTER
     return html`
       <div
-        class="track vf-snap ${this.isDisabled ? 'disabled' : ''}"
+        class="track vf-snap ${this.#focusRule.marked ? 'vf-focus-rule' : ''} ${
+          this.isDisabled ? 'disabled' : ''
+        }"
         part="track"
         @pointerdown=${this.#onPointerDown}
         @pointermove=${this.#onPointerMove}
@@ -437,11 +439,7 @@ export class VfSlider extends VfFormControl {
               <path d=${railPath(sysW, pos)}></path>
             </svg>`
           : null}
-        <span
-          class="thumb ${this.focusRing ? 'focus-ring' : ''}"
-          part="thumb"
-          style="left: ${thumbLeft}px"
-        >
+        <span class="thumb" part="thumb" style="left: ${thumbLeft}px">
           <svg
             class="thumb-glyph"
             viewBox="0 0 ${THUMB_W} ${THUMB_H}"

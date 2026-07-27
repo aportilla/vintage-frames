@@ -1,9 +1,9 @@
 import type { PropertyValues } from 'lit'
-import { property, state } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
 import { ScaleController } from './scale.js'
 import { GridSnapController } from './grid-snap.js'
 import { VfFormControl } from './form-control.js'
-import { focusModality, trackFocusModality } from './focus-modality.js'
+import { FocusRuleController } from './focus-modality.js'
 import { emit } from './events.js'
 
 /**
@@ -53,14 +53,14 @@ export class VfTextControlBase extends VfFormControl {
   protected readonly gridSnap = new GridSnapController(this)
 
   /**
-   * Whether the well wears the kit's dashed focus rule. True only for a focus
-   * that arrived from the keyboard — see {@link focusModality} for why a field
-   * cannot get this from `:focus-visible` the way the rest of the kit does.
+   * Whether the well wears the kit's dashed focus rule — keyboard focus only.
+   * See {@link FocusRuleController} for why a field cannot get this from
+   * `:focus-visible` the way most of the kit does. Typing does NOT reveal the
+   * rule after a click: the click already showed where the insertion point
+   * went, which is the whole reason a field marks keyboard focus and not every
+   * focus, so the field never calls the controller's `reveal()`.
    */
-  @state() protected focusRule = false
-
-  /** Releases this field's share of the modality listeners. */
-  #releaseModality?: () => void
+  protected readonly focusRule = new FocusRuleController(this)
 
   /**
    * Classes for the `.vf-field-well` wrapper every field renders around its
@@ -69,39 +69,12 @@ export class VfTextControlBase extends VfFormControl {
    * wrapper once and can't drift on what turns the rule on.
    */
   protected get wellClass(): string {
-    return `vf-field-well vf-snap${this.focusRule ? ' vf-focus-rule' : ''}`
+    return `vf-field-well vf-snap${this.focusRule.marked ? ' vf-focus-rule' : ''}`
   }
 
   override connectedCallback(): void {
     super.connectedCallback()
     this.latchFormDefault(this.value)
-    this.#releaseModality = trackFocusModality()
-    this.addEventListener('focusin', this.#onFocusIn)
-    this.addEventListener('focusout', this.#onFocusOut)
-  }
-
-  override disconnectedCallback(): void {
-    super.disconnectedCallback()
-    this.removeEventListener('focusin', this.#onFocusIn)
-    this.removeEventListener('focusout', this.#onFocusOut)
-    this.#releaseModality?.()
-    this.#releaseModality = undefined
-    this.focusRule = false
-  }
-
-  /**
-   * `focusin`, not `focus`: the focus lands on the native control inside the
-   * shadow root, and only the bubbling, composed pair crosses that boundary to
-   * reach the host. Typing does NOT reveal the rule afterwards — a click has
-   * already shown where the insertion point went, which is the whole reason
-   * this control marks keyboard focus and not every focus.
-   */
-  #onFocusIn = (): void => {
-    this.focusRule = focusModality() === 'keyboard'
-  }
-
-  #onFocusOut = (): void => {
-    this.focusRule = false
   }
 
   /**

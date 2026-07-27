@@ -1,6 +1,6 @@
 import { css, html, unsafeCSS } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import { vfBase, vfBodyDecls, vfDisplay, vfFocus } from '../styles/base.js'
+import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { VfFormControl } from '../form-control.js'
@@ -28,6 +28,10 @@ import {
  * reference sheet (see `src/pixel-frame.ts`), so every corner renders as the
  * exact 1-bit staircase with no antialiasing.
  *
+ * Keyboard focus — an affordance System 7 didn't have, drawn in its idiom
+ * anyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)
+ * rather than a ring around the control.
+ *
  * Form-associated: place it inside a `<form>` and `type="submit"` submits the
  * form (contributing its `name`/`value` to the submission), `type="reset"`
  * resets it. Enter and Space activate it via the inner native button.
@@ -45,7 +49,6 @@ export class VfButton extends VfFormControl {
   static override styles = [
     vfBase,
     vfDisplay,
-    vfFocus,
     css`
       :host {
         display: inline-flex;
@@ -89,8 +92,9 @@ export class VfButton extends VfFormControl {
       }
       /* The native button paints no box of its own — its frame and face are
          the stepped pseudo-element silhouettes below. Keeping the clip-paths
-         off the button itself leaves the :focus-visible outline unclipped
-         (clip-path would swallow it) and the hit area a plain rectangle. */
+         off the button itself leaves the hit area a plain rectangle, and
+         anything painted outside the silhouette (a ring a consumer restores
+         on ::part(button)) unclipped. */
       button {
         position: relative;
         /* Own stacking context so the negative-z silhouettes stay inside the
@@ -144,6 +148,21 @@ export class VfButton extends VfFormControl {
       }
       button:active:not(:disabled)::after {
         background: var(--vf-black, #000);
+      }
+      /* The label rides in its own box so the focus underline can span the
+         text and not the button's padding: as the flex item it shrink-wraps
+         to the label, and its 20px line box puts the baseline a known
+         distance above its bottom edge (see vfFocusUnderline). */
+      .label {
+        position: relative;
+      }
+      /* Keyboard focus is the dashed rule under the label, not a ring around
+         the control — so the UA's own outline goes. */
+      button:focus-visible {
+        outline: none;
+      }
+      button:focus-visible .label::after {
+        ${vfFocusUnderline}
       }
       /* Small: the 16px button from the reference's third row. The corner
          traces are identical (verified against the 80×16 sample sheet row),
@@ -199,12 +218,12 @@ export class VfButton extends VfFormControl {
     return html`
       <button
         part="button"
-        class="vf-focus vf-snap"
+        class="vf-snap"
         type="button"
         ?disabled=${this.isDisabled}
         @click=${this.handleClick}
       >
-        <slot></slot>
+        <span class="label"><slot></slot></span>
       </button>
     `
   }

@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplay, vfFocusRing, vfToggle } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js'
 import {
   RADIO_DOT,
   RADIO_FACE,
@@ -35,9 +35,23 @@ export class VfRadio extends VfToggleControl(LitElement) {
     vfDisplay,
     vfToggle,
     css`
-      /* Focus ring around the circle only, not the label. */
-      :host(:focus-visible) .circle {
-        ${vfFocusRing}
+      /* Keyboard focus underlines the circle itself — not the label, and not a
+         ring around either (see vfFocusUnderline). One blank row below the
+         well, which is where vf-checkbox puts its own: −2 rather than that
+         control's −3 only because this well is unbordered, so the two rules
+         land on the same row of a mixed list. The 12px sprite sits half a
+         pixel proud of the 13px well, so the gap reads as one row or two
+         depending on which way that rounds — the well is the anchor, not the
+         sprite. */
+      :host(:focus-visible) .circle::after {
+        --vf-focus-underline-offset: -2px;
+        ${vfFocusUnderline}
+        /* …and narrower than the well, because the shape above it is round:
+           a full-width rule reads as wider than the circle it marks. 9 of the
+           13px (5 dashes) is the closest to two thirds that still insets by a
+           whole 2px each side and keeps ink at both ends. */
+        left: calc(var(--vf-scale, 1) * 2px);
+        right: calc(var(--vf-scale, 1) * 2px);
       }
       .circle {
         position: relative;

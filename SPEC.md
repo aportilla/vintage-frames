@@ -48,7 +48,12 @@ The System 7 look, distilled:
 Modern requirements that we deliberately keep (accessibility over purity):
 
 - `:focus-visible` gets `outline: var(--vf-focus-outline, 1px dotted #000); outline-offset: 2px;`
-  (text inputs instead thicken their border on focus, see §5).
+  — except where the control's own vocabulary can carry the mark instead: text
+  inputs thicken their border (§5), and `vf-button`, `vf-checkbox` and
+  `vf-radio` draw a 1px dashed rule under the label, the box and the circle
+  respectively (`vfFocusUnderline`, §4). System 7 had no keyboard-focus
+  indicator to copy — these are modern affordances the kit **adds**, drawn on
+  the 1-bit grid so they read as native rather than bolted on.
 - Full ARIA roles + keyboard support per component.
 - Form-associated custom elements where noted (`static formAssociated = true`
   + `ElementInternals`).
@@ -120,6 +125,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-swatch-checker` | *(SVG tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like `--vf-desktop-pattern`) |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
 | `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
+| `--vf-focus-offset` | `2px` | its `outline-offset` (negative to inset the ring) |
+| `--vf-focus-underline-offset` | `4px` | where the dashed focus rule sits, from the underlined element's padding-box bottom (negative drops it below) — see §4 |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
 | `--vf-progress-track` | `#ffffff` | progress track (white) |
 | `--vf-scrollbar-thumb` | `#ffffff` | scrollbar thumb/elevator (white) |
@@ -242,6 +249,30 @@ right.
     `part` names, so it is not part of the public toolkit). Its third argument
     picks the texture layer class: `'vf-stripes'` (default) or `'vf-dots'`
     (`vf-window variant="utility"`).
+- `vfFocusRing` / `vfFocus` / `vfFocusUnderline` — the two focus indicators.
+  Neither is a System 7 reproduction: the machine drew no keyboard focus at all
+  (see §1), so both are additions rendered in its vocabulary.
+  - `vfFocusRing` is the dotted-outline declaration pair — `outline:
+    var(--vf-focus-outline, 1px dotted #000)` plus a scaled `--vf-focus-offset`
+    (default +2px) — interpolated into whatever selector a component focuses
+    on; `vfFocus` wraps it as a `.vf-focus:focus-visible` class for the
+    controls where focus and ring share one element.
+  - `vfFocusUnderline` is the alternative for a control that can carry the mark
+    on its own face: an `::after` on that element, 1 system px tall, spanning
+    its box, dashed 1px on / 1px off via a `repeating-linear-gradient` in
+    `currentColor` — so it inverts to white with the label on a pressed face.
+    `vf-button` underlines its label, `vf-checkbox` its box and `vf-radio` its
+    circle (narrowed to 9 of its 13px, since that shape is round — §5); the
+    component suppresses the UA outline in the same rule set, and the
+    underlined element needs `position: relative`.
+    - `--vf-focus-underline-offset` places it, measured (like any `bottom`)
+      from the element's **padding** box up to the rule's bottom edge, so
+      positive insets it and negative drops it below. The contract is one blank
+      system px row between the rule and the ink above it: `4px` (the default)
+      for a text box, whose ink stops at the baseline 6px above its bottom
+      (2px half-leading over the 16px em + the 4px descent); `-3px` for the
+      checkbox's bordered well (border + blank row + rule); `-2px` for the
+      radio's unbordered one. `npm run verify:focus`.
 
 ## 5. Component specifications
 
@@ -460,6 +491,9 @@ see §4.)
   The button is 20px, not the fields' 22px: both 1x sheets measure the face at
   80×20, and the default ring's *inner* box is exactly that, so the ring traces
   assume a 20px face.
+  The label rides in its own `.label` span (the flex item, shrink-wrapped to
+  the text) so the focus rule below can span the text rather than the padded
+  face.
   The rounded rect is NOT `border-radius` (which antialiases): the button
   paints no box of its own; two pseudo-element layers carry stepped
   `clip-path` silhouettes traced from the reference sheet (`src/pixel-frame.ts`,
@@ -469,11 +503,19 @@ see §4.)
   outer silhouette (corner insets `[3,1,1]`, then straight), `::after` fills
   `var(--vf-white)` clipped to the face (row 1 corner insets `[3,2]`, then 1px
   inside) — the 1px frame, corner steps included, is the QuickDraw-style
-  difference of the two. Clip-paths stay off the `<button>` so `:focus-visible`
-  outlines aren't clipped. All coordinates are `calc(var(--vf-scale,1) * Npx)`
+  difference of the two. Clip-paths stay off the `<button>` so the hit area
+  stays a plain rectangle and anything painted outside the silhouette isn't
+  swallowed. All coordinates are `calc(var(--vf-scale,1) * Npx)`
   system pixels, so edges land on whole device pixels and never antialias.
   - `:active` (pressed, not disabled): invert — the `::after` face flips to
     black, white text.
+  - `:focus-visible`: **no ring** — the UA outline is off on both the inner
+    button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline`
+    (§4) on the label: a 1px dashed rule 1px below the baseline, i.e. row 15
+    of the 20px face, one blank row under the glyph ink. It inverts with the
+    label when pressed and is scoped to this component — every other control
+    keeps the dotted ring. `npm run verify:focus` and the focused button in
+    `npm run shot:verify` assert the rendered pixels.
   - `disabled`: only the label dims to `var(--vf-disabled, #c0c0c0)`; the 1px
     black border stays black. (For `variant="default"`, the fat outer ring
     dims to `var(--vf-disabled)` while the inner black border stays.)
@@ -551,8 +593,12 @@ The color-swatch button: a hard-shadowed well of solid color — a palette cell.
   the box border and ✕ glyph stay black. Pressed (`:active` on box): border
   thickens to 2px (classic press feedback).
 - **Behavior:** form-associated; toggles on click and Space; `role="checkbox"`,
-  `aria-checked`; focusable (tabindex 0 on host or inner wrapper w/ focus ring
-  around the box only).
+  `aria-checked`; focusable (tabindex 0 on the host). `:focus-visible` marks
+  the **box**, not the label and not either with a ring: `vfFocusUnderline`
+  (§4) at `--vf-focus-underline-offset: -3px`, a dashed rule spanning the
+  well's full 13px, one blank row under its border. The −3 and the ±1px width
+  growth both count that 1px border, which an absolutely positioned pseudo
+  sizes inside of. `npm run verify:focus`.
 - **Slots:** default (label). **Parts:** `box`, `label`.
 - **Events:** `vf-change` detail `{ checked: boolean }`.
 
@@ -565,7 +611,16 @@ The color-swatch button: a hard-shadowed well of solid color — a palette cell.
   6px gap. Disabled dims like checkbox (label only; ring + dot stay black).
 - **Behavior:** `role="radio"`, `aria-checked`. Click → asks parent group to
   select it (dispatch internal event or parent listens). NOT itself
-  form-associated — the group is. Focus: inside a `vf-radio-group` the group
+  form-associated — the group is. `:focus-visible` marks the **circle** with
+  `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: -2px` — one blank
+  row below the same 13px well the checkbox uses, so the two rules share a row
+  in a mixed list (the −1 difference is only that this well has no border).
+  The 12px sprite sits half a system px proud of the well, so the gap to the
+  circle itself reads as one row or two depending on how that rounds; the well
+  is the anchor. The rule is also narrowed to **9** of the well's 13px (2px
+  inset each side, 5 dashes): full width reads wider than the round shape above
+  it, and 9 is the closest to two thirds that keeps whole-px insets and ink at
+  both ends. Focus: inside a `vf-radio-group` the group
   owns the roving tabindex and is the single source of truth for `checked`;
   standalone, the radio self-manages its own tabindex (otherwise it would be
   keyboard-dead) and self-checks on activation. A consumer-authored `tabindex`

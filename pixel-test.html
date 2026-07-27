@@ -53,7 +53,9 @@
 
     <script type="module">
       // Give the fourth button keyboard focus so the screenshot captures the
-      // dotted :focus-visible outline (proves clip-path doesn't swallow it).
+      // dashed :focus-visible rule under its label (1px on, 1px off, on row
+      // 15 of the face) — and, since that rule is the whole indicator, that
+      // nothing paints outside the silhouette.
       await customElements.whenDefined('vf-button')
       const btn = document.getElementById('focused')
       // focus({focusVisible}) keeps the outline for programmatic focus where

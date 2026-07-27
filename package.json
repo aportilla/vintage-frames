@@ -59,6 +59,7 @@
     "verify:text": "node scripts/verify-text.mjs",
     "verify:updates": "node scripts/verify-updates.mjs",
     "verify:baseline": "node scripts/verify-baseline.mjs",
+    "verify:focus": "node scripts/verify-focus.mjs",
     "verify:grid": "node scripts/verify-grid.mjs",
     "verify:snap": "node scripts/verify-snap.mjs",
     "verify:blog": "node scripts/verify-blog.mjs"

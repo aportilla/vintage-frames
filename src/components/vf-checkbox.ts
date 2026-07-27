@@ -1,7 +1,7 @@
 import { css, html, type PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplay, vfFocusRing, vfToggle } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
 import { VfFormControl } from '../form-control.js'
 import { VfToggleControl } from '../toggle-control.js'
@@ -29,9 +29,17 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
     vfDisplay,
     vfToggle,
     css`
-      /* Focus ring around the box only, not the label. */
-      :host(:focus-visible) .box {
-        ${vfFocusRing}
+      /* Keyboard focus underlines the box itself — not the label, and not a
+         ring around either (see vfFocusUnderline). Both adjustments below are
+         the 1px border: an absolutely positioned pseudo sizes to the PADDING
+         box, which the border sits outside of. So the rule grows 1px each side
+         to span the whole well, and its offset counts the border before the
+         blank row and the rule itself: −(1 + 1 + 1). */
+      :host(:focus-visible) .box::after {
+        --vf-focus-underline-offset: -3px;
+        ${vfFocusUnderline}
+        left: calc(var(--vf-scale, 1) * -1px);
+        right: calc(var(--vf-scale, 1) * -1px);
       }
       .box {
         position: relative;

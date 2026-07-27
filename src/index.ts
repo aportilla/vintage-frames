@@ -105,6 +105,7 @@ export {
   vfDots,
   vfFocus,
   vfFocusRing,
+  vfFocusUnderline,
   vfToggle,
   vfField,
   vfScrollbars,

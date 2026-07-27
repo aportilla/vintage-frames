@@ -18,6 +18,9 @@ Checks per button:
   (label pixels vary, so only the outline band is asserted)
 - the default ring: ring band exactly black, hole gap row shows pure page
   magenta (transparent → background), no seam pixels at the 50% keyhole
+- the focused button: the 1px dashed focus rule under the label — 1px on, 1px
+  off, on row 15 with a blank row between it and the glyph ink, and nothing
+  painted outside the silhouette (the indicator is not a ring)
 """
 
 import sys
@@ -41,6 +44,11 @@ RING_INSET = 4
 # default ring's inner box is exactly that. --vf-control-height-small stays 16.
 BUTTON_H = 20
 SMALL_H = 16
+
+# Row of the 20px face carrying the keyboard-focus rule: the label's baseline
+# sits on row 14 (the 12/4 em centered in the face), and the rule is 1px below
+# it. See vfFocusUnderline in src/styles/base.ts.
+FOCUS_ROW = 15
 
 
 def inset_at(profile, row, h):
@@ -97,9 +105,8 @@ def main():
                             seen[ny][nx] = True
                             stack.append((nx, ny))
             islands.append((y0, x0, x1, y1))
-    # The dotted focus outline renders as dozens of disconnected 1px dot
-    # islands — keep only button-sized islands (the dots are checked
-    # separately around the focused button's box).
+    # Keep only button-sized islands: the page's on-grid marker square is the
+    # other non-magenta thing on it.
     islands = [
         (y0, x0, x1, y1)
         for (y0, x0, x1, y1) in islands
@@ -118,7 +125,7 @@ def main():
             print(f"FAIL {name} {detail}")
             ok = False
 
-    def check_button(bx0, by0, bx1, by1, name, expect_focus_ring=False):
+    def check_button(bx0, by0, bx1, by1, name):
         nonlocal ok
         w = bx1 - bx0 + 1
         h = by1 - by0 + 1
@@ -143,7 +150,7 @@ def main():
                         bad_alias.append((x, y, p))
                     if not in_face and not (p[0] < 32 and p[1] < 32 and p[2] < 32):
                         bad_border.append((x, y, p))
-                elif not expect_focus_ring:
+                else:
                     # outside silhouette must be page background (transparent
                     # host) — the corner notches must show magenta
                     if not is_bg(p):
@@ -165,36 +172,32 @@ def main():
         check(f"{name}: no antialiased silhouette pixels", not bad_alias, str(bad_alias[:5]))
         check(f"{name}: border band pure black", not bad_border, str(bad_border[:5]))
         check(f"{name}: face outline band pure white", not bad_face, str(bad_face[:5]))
-        if not expect_focus_ring:
-            check(f"{name}: corner notches transparent", not bad_outside, str(bad_outside[:5]))
+        check(f"{name}: corner notches transparent", not bad_outside, str(bad_outside[:5]))
+
+    def black_runs(x_from, x_to, y):
+        """Black runs along one scanline, as (start, length) pairs."""
+        out = []
+        x = x_from
+        while x <= x_to:
+            if all(c < 32 for c in px[y][x][:3]):
+                start = x
+                while x <= x_to and all(c < 32 for c in px[y][x][:3]):
+                    x += 1
+                out.append((start, x - start))
+            else:
+                x += 1
+        return out
 
     # The dragged test window lives right of x=250; the button column left of
     # it. Split before ordering.
     window_islands = [i for i in islands if i[1] >= 250]
     islands = [i for i in islands if i[1] < 250]
 
-    # The focus outline may render as one connected ring island whose bbox
-    # contains the focused button's — pull it out before ordering buttons.
-    # The default-button ring ALSO contains its inner button, but at exactly
-    # RING_INSET margins on all sides; the outline sits at offset 2 + 1px = 3.
     def contains(a, b):
         return a[0] < b[0] and a[1] < b[1] and a[2] > b[2] and a[3] > b[3]
 
-    def margin_set(a, b):
-        return {b[0] - a[0], b[1] - a[1], a[2] - b[2], a[3] - b[3]}
-
-    outlines = [
-        a
-        for a in islands
-        if any(
-            contains(a, b) and margin_set(a, b) != {RING_INSET}
-            for b in islands
-            if b != a
-        )
-    ]
-    islands = [a for a in islands if a not in outlines]
-    # ...and the ring's inner button is its own island too (the 1px gap
-    # separates them); it is verified as "default inner", so drop it here.
+    # The default ring's inner button is its own island (the 1px gap separates
+    # them); it is verified as "default inner", so drop it here.
     islands = [
         b
         for b in islands
@@ -251,29 +254,36 @@ def main():
     (y0, x0, x1, y1) = islands[2]
     check_button(x0, y0, x1, y1, "disabled")
 
-    # focused button: the island is the button box itself (the dotted
-    # outline's dots are separate specks filtered out above). Check the
-    # button renders like the plain one, then look for outline dots in the
-    # band 1..4px around the box (outline-offset is 2).
+    # focused button: the indicator lives INSIDE the face — a dashed rule under
+    # the label, so the island is just the button box (check_button's "corner
+    # notches transparent" is the assertion that no ring escaped it). Row 15 of
+    # the 20px face is the rule; row 14 is the blank row under the glyph ink.
     (y0, x0, x1, y1) = islands[3]
-    check_button(x0, y0, x1, y1, "focused", expect_focus_ring=True)
-    ring_found = any(contains(o, islands[3]) for o in outlines)
-    dots = 0
-    if not ring_found:
-        # dotted outlines can also break into disconnected specks — scan the
-        # band 1..4px around the box (outline-offset is 2)
-        for band in range(1, 5):
-            for x in range(x0 - band, x1 + 1 + band):
-                for y in (y0 - band, y1 + band):
-                    if 0 <= y < height and 0 <= x < width and px[y][x][0] < 32:
-                        dots += 1
-            for y in range(y0 - band, y1 + 1 + band):
-                for x in (x0 - band, x1 + band):
-                    if 0 <= y < height and 0 <= x < width and px[y][x][0] < 32:
-                        dots += 1
+    check_button(x0, y0, x1, y1, "focused")
+    dashes = black_runs(x0 + 1, x1 - 1, y0 + FOCUS_ROW)
+    gaps = [dashes[i + 1][0] - (dashes[i][0] + dashes[i][1]) for i in range(len(dashes) - 1)]
     check(
-        "focused: focus outline visible outside silhouette",
-        ring_found or dots > 0,
+        f"focused: dashed rule on row {FOCUS_ROW}, 1px on / 1px off",
+        len(dashes) >= 8
+        and all(n == 1 for _, n in dashes)
+        and all(g == 1 for g in gaps),
+        f"{len(dashes)} dashes, widths={sorted({n for _, n in dashes})}, gaps={sorted(set(gaps))}",
+    )
+    check(
+        "focused: a blank row separates the rule from the glyph ink",
+        not black_runs(dashes[0][0], dashes[-1][0], y0 + FOCUS_ROW - 1) if dashes else False,
+    )
+    check(
+        "focused: the rule is centered under the label",
+        bool(dashes)
+        and abs((dashes[0][0] - x0) - (x1 - (dashes[-1][0] + dashes[-1][1] - 1))) <= 2,
+        f"left={dashes[0][0] - x0} right={x1 - (dashes[-1][0] + dashes[-1][1] - 1)}" if dashes else "",
+    )
+    # …and an unfocused button has no rule at all.
+    (py0, pxx0, pxx1, py1) = islands[0]
+    check(
+        "plain: no focus rule when unfocused",
+        not black_runs(pxx0 + 1, pxx1 - 1, py0 + FOCUS_ROW),
     )
 
     # small variant: 16px tall, same traced corners

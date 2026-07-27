@@ -1,0 +1,511 @@
+/**
+ * Verifies the kit's dashed keyboard-focus rule (`vfFocusUnderline`,
+ * src/styles/base.ts), which replaces the browser's ring on the three controls
+ * that can carry the mark themselves: vf-button underlines its label,
+ * vf-checkbox its box and vf-radio its circle. Focus visibility is an
+ * accessibility affordance the kit ADDS to System 7's vocabulary — it is not
+ * something the original drew — so what these checks defend is that the added
+ * affordance obeys the 1-bit grid as strictly as the traced chrome does.
+ *
+ * The load-bearing facts, all asserted against rendered pixels rather than the
+ * CSS that produces them:
+ *
+ *  - GEOMETRY: the rule is 1 system px tall, leaves exactly one blank row
+ *    between itself and the ink above it (glyph, box border or sprite), and
+ *    spans that element's own box — the label, not the button's padded face;
+ *    the whole well, not the toggle's row.
+ *  - PATTERN: 1 system px on, 1 off, every pixel pure black or pure white. A
+ *    feathered dash is the failure this exists to catch, so the check refuses
+ *    any intermediate gray, including in the case that provokes it: a grouped
+ *    button whose centered odd-width label lands on a half system px.
+ *  - NO RING: nothing paints outside the button's silhouette, and a toggle's
+ *    well column carries exactly two ink bands. Every outline involved — the
+ *    inner button's, the (delegatesFocus) host's, the wells' — must be off.
+ *  - :focus-visible: keyboard focus shows it, a mouse click does not.
+ *  - PRESSED: currentColor inverts the rule to white on the black face.
+ *  - The controls that are not a label keep the dotted ring, so vf-select is
+ *    checked as the canary.
+ *
+ *   npm run dev        # in another shell (port 5173)
+ *   npm run verify:focus
+ */
+import { chromium } from 'playwright'
+import { inflateSync } from 'node:zlib'
+
+const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+
+/** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
+const S = 3
+/** Padding around the screenshot clip, in device px. */
+const PAD = 9
+
+// ── minimal PNG decode (Playwright PNGs: 8-bit RGBA/RGB, non-interlaced) ──
+function decodePng(buf) {
+  let pos = 8
+  let ihdr
+  const idat = []
+  while (pos < buf.length) {
+    const len = buf.readUInt32BE(pos)
+    const type = buf.toString('ascii', pos + 4, pos + 8)
+    if (type === 'IHDR') ihdr = buf.subarray(pos + 8, pos + 8 + len)
+    else if (type === 'IDAT') idat.push(buf.subarray(pos + 8, pos + 8 + len))
+    pos += 12 + len
+  }
+  const width = ihdr.readUInt32BE(0)
+  const height = ihdr.readUInt32BE(4)
+  const bpp = ihdr[9] === 6 ? 4 : 3
+  const raw = inflateSync(Buffer.concat(idat))
+  const stride = width * bpp
+  const out = Buffer.alloc(height * stride)
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)]
+    const row = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1))
+    const prev = y > 0 ? out.subarray((y - 1) * stride, y * stride) : null
+    const cur = out.subarray(y * stride, (y + 1) * stride)
+    for (let x = 0; x < stride; x++) {
+      const a = x >= bpp ? cur[x - bpp] : 0
+      const b = prev ? prev[x] : 0
+      const c = x >= bpp && prev ? prev[x - bpp] : 0
+      let v = row[x]
+      switch (filter) {
+        case 1: v += a; break
+        case 2: v += b; break
+        case 3: v += (a + b) >> 1; break
+        case 4: {
+          const p = a + b - c
+          const pa = Math.abs(p - a)
+          const pb = Math.abs(p - b)
+          const pc = Math.abs(p - c)
+          v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c
+          break
+        }
+      }
+      cur[x] = v & 0xff
+    }
+  }
+  return { width, height, bpp, data: out }
+}
+
+const rgb = (png, x, y) => {
+  const i = (y * png.width + x) * png.bpp
+  return [png.data[i], png.data[i + 1], png.data[i + 2]]
+}
+const isBlack = (png, x, y) => rgb(png, x, y).every((c) => c < 32)
+const isWhite = (png, x, y) => rgb(png, x, y).every((c) => c > 224)
+
+const results = []
+function check(name, pass, detail = '') {
+  results.push(pass)
+  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
+}
+
+const browser = await chromium.launch()
+
+/** A page with the kit loaded and every vf-* element upgraded. */
+async function build(markup) {
+  const page = await browser.newPage({ viewport: { width: 900, height: 500 } })
+  await page.route(ORIGIN, (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
+  )
+  await page.goto(ORIGIN)
+  await page.unroute(ORIGIN)
+  await page.setContent(
+    `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff;padding:24px">${markup}`
+  )
+  await page.evaluate(() => import('/src/index.js'))
+  await page.evaluate(() =>
+    Promise.all(
+      [...document.querySelectorAll('*')]
+        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
+        .map((e) => e.updateComplete)
+    )
+  )
+  await page.evaluate(() => document.fonts.ready)
+  await page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  )
+  return page
+}
+
+/**
+ * The rendered state of one control: its computed focus declarations plus a
+ * screenshot of `frameSel`'s box with PAD device px of the page around it.
+ * `targetSel` is the element carrying the rule — the button's label wrapper,
+ * or the toggles' well, which is its own frame.
+ *
+ * Returned coordinates are device px within that clip: `x0`/`y0`/`w`/`h` are
+ * the frame's box, `ruleX0`/`ruleX1` the x-range the rule may occupy.
+ */
+async function shoot(page, id, frameSel = 'button', targetSel = '.label') {
+  const geo = await page.evaluate(
+    ([elId, frame, target]) => {
+      const host = document.getElementById(elId)
+      // 'host' clips around the element itself: the toggles' wells sit on a
+      // half system px inside their row, so their own box is the wrong origin
+      // to measure whole rows from — the host's is whole.
+      const frameEl = frame === 'host' ? host : host.shadowRoot.querySelector(frame)
+      const targetEl = host.shadowRoot.querySelector(target)
+      const after = getComputedStyle(targetEl, '::after')
+      const f = frameEl.getBoundingClientRect()
+      const t = targetEl.getBoundingClientRect()
+      return {
+        face: { x: f.x, y: f.y, w: f.width, h: f.height },
+        target: { x: t.x - f.x, w: t.width },
+        drawn: after.content !== 'none',
+        height: parseFloat(after.height),
+        bottom: parseFloat(after.bottom),
+        hostOutline: getComputedStyle(host).outlineStyle,
+        frameOutline: getComputedStyle(frameEl).outlineStyle,
+        targetOutline: getComputedStyle(targetEl).outlineStyle,
+        scale: parseFloat(getComputedStyle(host).getPropertyValue('--vf-scale')),
+      }
+    },
+    [id, frameSel, targetSel]
+  )
+  const shot = await page.screenshot({
+    clip: {
+      x: geo.face.x - PAD,
+      y: geo.face.y - PAD,
+      width: geo.face.w + 2 * PAD,
+      height: geo.face.h + 2 * PAD,
+    },
+  })
+  return {
+    ...geo,
+    png: decodePng(shot),
+    x0: PAD,
+    y0: PAD,
+    w: Math.round(geo.face.w),
+    h: Math.round(geo.face.h),
+    // The button's rule spans its label; a toggle's spans its whole well —
+    // one device px of slack each side, since the checkbox's grows over its
+    // border and the wells sit on a half system px inside the row.
+    ruleX0: PAD + geo.target.x,
+    ruleX1: PAD + geo.target.x + geo.target.w,
+  }
+}
+
+/**
+ * Ink runs along one row of the face interior, as [start, end) device-px
+ * pairs. Used both to find the dashed row and to measure its pattern.
+ */
+function runs(png, y, x0, x1, ink) {
+  const out = []
+  let start = null
+  for (let x = Math.round(x0); x < Math.round(x1); x++) {
+    if (ink(png, x, y)) {
+      if (start === null) start = x
+    } else if (start !== null) {
+      out.push([start, x])
+      start = null
+    }
+  }
+  if (start !== null) out.push([start, Math.round(x1)])
+  return out
+}
+
+/**
+ * The rows of the rule's column that carry ink, grouped into bands: the
+ * control's own ink, then the dashed rule under it. `ink` swaps to
+ * white-on-black for a pressed face.
+ *
+ * The button scans the face interior (its frame would join every band into
+ * one); a toggle scans the whole clip with a device px of slack each side, so
+ * that a stray ring above or beside the well shows up as an extra band.
+ */
+function bands(s, ink, { inset = S, slack = 0 } = {}) {
+  const rows = []
+  for (let y = inset ? s.y0 + inset : 0; y < (inset ? s.y0 + s.h - inset : s.png.height); y++) {
+    if (runs(s.png, y, s.ruleX0 - slack, s.ruleX1 + slack, ink).length) rows.push(y)
+  }
+  const groups = []
+  for (const y of rows) {
+    const last = groups[groups.length - 1]
+    if (last && y === last[last.length - 1] + 1) last.push(y)
+    else groups.push([y])
+  }
+  return groups
+}
+
+// ── the default push button, focused by keyboard ──────────────────────────
+{
+  const page = await build('<vf-button id="b">Button</vf-button>')
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, 'b')
+
+  check('Tab focuses the button and draws the underline', s.drawn)
+  check(
+    'the UA ring is off on both the inner button and the host',
+    s.frameOutline === 'none' && s.hostOutline === 'none',
+    `button=${s.frameOutline} host=${s.hostOutline}`
+  )
+
+  const groups = bands(s, isBlack)
+  check('the label shows two ink bands: the glyphs and the rule', groups.length === 2,
+    `found ${groups.length}`)
+  const [glyphs, rule] = groups
+  check('the rule is 1 system px tall', rule.length === S, `${rule.length} device px`)
+  check(
+    'one blank system px row separates it from the glyph ink',
+    rule[0] - (glyphs[glyphs.length - 1] + 1) === S,
+    `gap=${(rule[0] - (glyphs[glyphs.length - 1] + 1)) / S} system px`
+  )
+  // The face's own geometry: 20px tall, glyph ink on rows 5..13 (the 12/4 em
+  // centered), baseline on row 14, so the rule lands on row 15.
+  check(
+    'the rule sits on row 15 of the 20px face (baseline + 1)',
+    (rule[0] - s.y0) / S === 15,
+    `row ${(rule[0] - s.y0) / S}`
+  )
+
+  const dashes = runs(s.png, rule[0], s.ruleX0, s.ruleX1, isBlack)
+  check('the dashes are 1 system px on', dashes.every(([a, b]) => b - a === S),
+    `widths=${[...new Set(dashes.map(([a, b]) => b - a))]}`)
+  check(
+    'the gaps are 1 system px off',
+    dashes.every(([a], i) => i === 0 || a - dashes[i - 1][1] === S),
+    `gaps=${[...new Set(dashes.slice(1).map(([a], i) => a - dashes[i][1]))]}`
+  )
+  check(
+    'the rule starts on ink at the label box, and ends within a dash of it',
+    Math.abs(dashes[0][0] - s.ruleX0) <= 1 &&
+      s.ruleX1 - dashes[dashes.length - 1][1] <= S + 1,
+    `label=${s.ruleX0.toFixed(1)}..${s.ruleX1.toFixed(1)} ` +
+      `rule=${dashes[0][0]}..${dashes[dashes.length - 1][1]}`
+  )
+  // Nothing between the dashes may be a partial tone: that is what a
+  // gradient stop landing off the device grid would produce.
+  const impure = []
+  for (let x = Math.round(s.ruleX0); x < Math.round(s.ruleX1); x++) {
+    for (let y = rule[0]; y <= rule[rule.length - 1]; y++) {
+      if (!isBlack(s.png, x, y) && !isWhite(s.png, x, y)) impure.push([x - s.x0, y - s.y0, rgb(s.png, x, y)])
+    }
+  }
+  check('every pixel of the rule is pure black or white', !impure.length,
+    `${impure.length} feathered, first ${JSON.stringify(impure[0] ?? null)}`)
+
+  // No ring: the band outside the silhouette stays page white.
+  const outside = []
+  for (let y = 0; y < s.png.height; y++) {
+    for (let x = 0; x < s.png.width; x++) {
+      const inFace = x >= s.x0 - 1 && x < s.x0 + s.w + 1 && y >= s.y0 - 1 && y < s.y0 + s.h + 1
+      if (!inFace && !isWhite(s.png, x, y)) outside.push([x - s.x0, y - s.y0])
+    }
+  }
+  check('nothing paints outside the button silhouette', !outside.length,
+    `${outside.length} px, first ${JSON.stringify(outside[0] ?? null)}`)
+  await page.close()
+}
+
+// ── :focus-visible semantics: a mouse click must not show it ──────────────
+{
+  const page = await build('<vf-button id="b">Button</vf-button>')
+  await page.locator('#b').click()
+  const clicked = await shoot(page, 'b')
+  check('a mouse click leaves the button focused but unmarked', !clicked.drawn)
+  await page.keyboard.press('Tab')
+  await page.keyboard.down('Shift')
+  await page.keyboard.press('Tab')
+  await page.keyboard.up('Shift')
+  const tabbed = await shoot(page, 'b')
+  check('tabbing back to it marks it again', tabbed.drawn)
+  await page.close()
+}
+
+// ── pressed: the rule inverts with the label ──────────────────────────────
+{
+  const page = await build('<vf-button id="b">Button</vf-button>')
+  await page.keyboard.press('Tab')
+  const box = await page.locator('#b').boundingBox()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  const s = await shoot(page, 'b')
+  const groups = bands(s, isWhite)
+  const rule = groups[groups.length - 1]
+  const dashes = runs(s.png, rule[0], s.ruleX0, s.ruleX1, isWhite)
+  check(
+    'pressed: the rule inverts to white dashes on the black face',
+    groups.length === 2 && rule.length === S && dashes.length > 4 &&
+      dashes.every(([a, b]) => b - a === S),
+    `bands=${groups.length} height=${rule.length / S} dashes=${dashes.length}`
+  )
+  await page.mouse.up()
+  await page.close()
+}
+
+// ── the other two shapes: small, and the default button's ring ────────────
+{
+  const page = await build(
+    '<vf-button id="s" size="small">Button</vf-button>' +
+      '<vf-button id="d" variant="default">Button</vf-button>'
+  )
+  await page.keyboard.press('Tab')
+  const small = await shoot(page, 's')
+  const sg = bands(small, isBlack)
+  check('size=small draws the rule too', small.drawn && sg.length === 2)
+  check(
+    'small: still one blank system px row below the glyph ink',
+    sg.length === 2 && sg[1][0] - (sg[0][sg[0].length - 1] + 1) === S,
+    sg.length === 2 ? `gap=${(sg[1][0] - (sg[0][sg[0].length - 1] + 1)) / S}` : ''
+  )
+
+  await page.keyboard.press('Tab')
+  const def = await shoot(page, 'd')
+  const dg = bands(def, isBlack)
+  check('variant=default draws the rule inside its face', def.drawn && dg.length === 2)
+  check(
+    'default: the rule sits on row 15 of the face, clear of the ring',
+    dg.length === 2 && (dg[1][0] - def.y0) / S === 15,
+    dg.length === 2 ? `row ${(dg[1][0] - def.y0) / S}` : ''
+  )
+  // The ring is the host's ::before at inset -4: it must still be there.
+  const ring = await page.evaluate(() => {
+    const cs = getComputedStyle(document.getElementById('d'), '::before')
+    return { content: cs.content, top: cs.top }
+  })
+  check('default: the double ring is untouched', ring.content === '""' && ring.top === '-12px',
+    JSON.stringify(ring))
+  await page.close()
+}
+
+// ── the half-pixel case: a grouped button centering an odd-width label ────
+{
+  const page = await build(
+    '<vf-button-group><vf-button id="b">Cancel</vf-button>' +
+      '<vf-button>Save As…</vf-button></vf-button-group>'
+  )
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, 'b')
+  const offGrid = Math.abs(s.target.x - Math.round(s.target.x)) > 1e-6
+  const rule = bands(s, isBlack)[1] ?? []
+  const impure = []
+  for (let x = Math.round(s.ruleX0); x < Math.round(s.ruleX1); x++) {
+    for (const y of rule) {
+      if (!isBlack(s.png, x, y) && !isWhite(s.png, x, y)) impure.push([x, y])
+    }
+  }
+  check(
+    'a group centers this label off the system-px grid (the case under test)',
+    offGrid,
+    `label offset ${s.target.x} device px`
+  )
+  check('…and the rule still rasterizes pure black/white', rule.length === S && !impure.length,
+    `${impure.length} feathered`)
+  await page.close()
+}
+
+// ── the two toggles: the rule goes under the WELL, not the label ──────────
+const ruleRow = {}
+// `inset` is how far the rule is pulled in from each side of the 13px well, in
+// system px: the checkbox's spans it, the radio's is narrowed to 9 because the
+// shape above it is round.
+for (const [tag, id, well, inset] of [
+  ['vf-checkbox', 'c', '.box', 0],
+  ['vf-radio', 'r', '.circle', 2],
+]) {
+  const width = 13 - 2 * inset
+  const page = await build(`<${tag} id="${id}" checked>Label</${tag}>`)
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, id, 'host', well)
+
+  check(`${tag}: Tab draws the rule`, s.drawn)
+  check(
+    `${tag}: no outline left on the host or the well`,
+    s.hostOutline === 'none' && s.targetOutline === 'none',
+    `host=${s.hostOutline} well=${s.targetOutline}`
+  )
+
+  // Scanning the whole clip, not just the well: a ring would show up here as
+  // a third band (above the control) or widen the two.
+  const groups = bands(s, isBlack, { inset: 0, slack: 1 })
+  check(
+    `${tag}: two ink bands in the well's column — the control, then the rule`,
+    groups.length === 2,
+    `found ${groups.length}`
+  )
+  const [ink, rule] = groups.length === 2 ? groups : [[], []]
+  check(`${tag}: the rule is 1 system px tall`, rule.length === S, `${rule.length} device px`)
+  // The checkbox's border IS its well's bottom edge, so its gap is exactly the
+  // one blank row both controls are anchored for. The radio's 12px sprite sits
+  // half a system px proud of its 13px well, so the same anchor reads as one
+  // row or two depending on which way that half pixel rounds.
+  const gap = rule.length ? rule[0] - (ink[ink.length - 1] + 1) : NaN
+  check(
+    tag === 'vf-checkbox'
+      ? `${tag}: one blank system px row separates it from the box`
+      : `${tag}: the rule clears the sprite by a row (± the sprite's half-px inset)`,
+    tag === 'vf-checkbox' ? gap === S : gap >= S && gap <= 2 * S,
+    `gap=${(gap / S).toFixed(2)} system px`
+  )
+
+  const dashes = rule.length ? runs(s.png, rule[0], s.ruleX0 - 1, s.ruleX1 + 1, isBlack) : []
+  check(
+    `${tag}: 1 system px on, 1 off — ${Math.ceil(width / 2)} dashes over ${width} system px`,
+    dashes.length === Math.ceil(width / 2) &&
+      dashes.every(([a, b]) => b - a === S) &&
+      dashes.every(([a], i) => i === 0 || a - dashes[i - 1][1] === S),
+    `${dashes.length} dashes, widths=${[...new Set(dashes.map(([a, b]) => b - a))]}`
+  )
+  check(
+    inset
+      ? `${tag}: it sits ${inset} system px inside the well on each side`
+      : `${tag}: it spans the well's own box, edge to edge`,
+    dashes.length > 0 &&
+      Math.abs(dashes[0][0] - (s.ruleX0 + inset * S)) <= 1 &&
+      // The pattern ends on ink, so the last dash's far edge IS the rule's.
+      Math.abs(s.ruleX1 - inset * S - dashes[dashes.length - 1][1]) <= 1,
+    dashes.length
+      ? `well=${s.ruleX0}..${s.ruleX1} rule=${dashes[0][0]}..${dashes[dashes.length - 1][1]}`
+      : ''
+  )
+  const impure = []
+  for (let x = Math.round(s.ruleX0) - 1; x < Math.round(s.ruleX1) + 1; x++) {
+    for (const y of rule) {
+      if (!isBlack(s.png, x, y) && !isWhite(s.png, x, y)) impure.push([x, y])
+    }
+  }
+  check(`${tag}: every pixel of the rule is pure black or white`, !impure.length,
+    `${impure.length} feathered`)
+  ruleRow[tag] = rule.length ? rule[0] - s.y0 : null
+  await page.close()
+
+  const clickPage = await build(`<${tag} id="${id}">Label</${tag}>`)
+  await clickPage.locator(`#${id}`).click()
+  const clicked = await shoot(clickPage, id, 'host', well)
+  check(`${tag}: a mouse click leaves it focused but unmarked`, !clicked.drawn)
+  await clickPage.close()
+}
+
+// Both wells are the same 13px box in the same 20px row, so a mixed list must
+// put the two rules on one line — the reason the radio's offset is −2 to the
+// checkbox's −3 rather than both being "one row under the ink".
+check(
+  'the checkbox and radio rules land on the same row of their host',
+  ruleRow['vf-checkbox'] !== null && ruleRow['vf-checkbox'] === ruleRow['vf-radio'],
+  `checkbox=${ruleRow['vf-checkbox']} radio=${ruleRow['vf-radio']} device px from the host top`
+)
+
+// ── canary: the controls that aren't a label keep the dotted ring ─────────
+{
+  const page = await build(
+    '<vf-select id="s" value="a"><vf-option value="a">A</vf-option></vf-select>'
+  )
+  await page.keyboard.press('Tab')
+  const ring = await page.evaluate(() => {
+    const control = document.getElementById('s').shadowRoot.querySelector('.control')
+    const cs = getComputedStyle(control)
+    return { style: cs.outlineStyle, width: cs.outlineWidth, focused: control.matches(':focus-visible') }
+  })
+  check(
+    'vf-select still focuses with the dotted ring (the rule is the button + toggles only)',
+    ring.focused && ring.style === 'dotted' && ring.width === '1px',
+    JSON.stringify(ring)
+  )
+  await page.close()
+}
+
+await browser.close()
+
+const failed = results.filter((r) => !r).length
+console.log(`\n${results.length - failed}/${results.length} checks passed`)
+process.exit(failed ? 1 : 0)

@@ -407,12 +407,62 @@ export const vfFocus = css`
 `
 
 /**
+ * The kit's focus indicator for a control that can carry the mark on its own
+ * face: a 1px dashed rule beneath it — 1 system px on, 1 off — instead of a
+ * ring around it. The button underlines its label; the two toggles underline
+ * the box and the circle themselves. It is why those three don't compose
+ * {@link vfFocus}.
+ *
+ * Keyboard focus is one of the modern requirements the kit adds rather than
+ * emulates (SPEC §1): System 7 predates full keyboard access and drew no such
+ * indicator at all. So the job is to render an affordance it never had in a
+ * 1-bit vocabulary it would recognize — a hairline dashed rule on the pixel
+ * grid, which reads on a white face and inside a control's tight silhouette
+ * where an offset ring has nowhere to go.
+ *
+ * Interpolate into an `::after` rule on the element being underlined (which
+ * needs `position: relative`), gated on whatever focus selector the component
+ * uses — and suppress the UA outline in the same rule set:
+ *
+ *   button:focus-visible { outline: none; }
+ *   button:focus-visible .label::after { ${vfFocusUnderline} }
+ *
+ * The rule spans that element's own box and leaves ONE blank system px row
+ * between itself and the ink above, which is what `--vf-focus-underline-offset`
+ * places — measured from the element's bottom edge up to the rule's, so
+ * positive insets it and negative drops it below:
+ *
+ * - `4px` (the default) is a text box, where the ink stops at the baseline and
+ *   the box continues 6px past it (2px half-leading from vfBase's 1.25 line box
+ *   over the 16px em, plus the face's 4px descent): 6 − 2 = 4.
+ * - `-2px` is a well whose ink runs to its own bottom edge — the toggles' box
+ *   and circle — putting the rule in the second row below it.
+ *
+ * Drawn in `currentColor`, so it inverts with the label on a pressed face.
+ */
+export const vfFocusUnderline = css`
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--vf-scale, 1) * var(--vf-focus-underline-offset, 4px));
+  height: calc(var(--vf-scale, 1) * 1px);
+  background: repeating-linear-gradient(
+    to right,
+    currentColor 0 calc(var(--vf-scale, 1) * 1px),
+    transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
+  );
+  pointer-events: none;
+`
+
+/**
  * Shared layout for the two toggle controls (vf-checkbox, vf-radio): the
- * box-and-label row, the host focus suppressed (the ring is drawn on the
- * box/circle instead), and the classic "dim the label, not the control"
- * disabled treatment. The Chicago display face comes from {@link vfDisplay}
- * (both controls compose it), so no font is set here. Each component adds only
- * its own well (`.box`/`.circle`), glyphs and press feedback.
+ * box-and-label row, the host focus suppressed (each control draws
+ * {@link vfFocusUnderline} under its own well instead), and the classic "dim
+ * the label, not the control" disabled treatment. The Chicago display face
+ * comes from {@link vfDisplay} (both controls compose it), so no font is set
+ * here. Each component adds only its own well (`.box`/`.circle`), glyphs,
+ * press feedback and focus rule.
  */
 export const vfToggle = css`
   :host {
@@ -421,7 +471,7 @@ export const vfToggle = css`
     gap: calc(var(--vf-scale, 1) * 6px);
     cursor: default;
   }
-  /* The focus ring is drawn on the box/circle, not the host. */
+  /* The focus rule is drawn under the box/circle, not around the host. */
   :host(:focus-visible) {
     outline: none;
   }

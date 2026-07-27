@@ -685,6 +685,36 @@ export const vfScrollbars = css`
     display: none;
   }
 
+  /* ── Inactive-window rails (driven by ScrollStateController) ─────────────
+     The HIG: a window that isn't frontmost must not display interactive
+     scroll UX. System 7 blanked a deactivated window's scrollbars back to
+     the empty rail — the same placeholder as the idle state above, applied
+     to BOTH axes regardless of overflow, so only the white channel and its
+     divider stay. The controller toggles data-window-inactive
+     (presence-only) from the nearest vf-window ancestor's active state;
+     a scroller outside any window never carries it.
+
+     FUTURE: when @container style() queries reach baseline support, this
+     signal could go declarative — vf-window cascades a custom property under
+     :host(:not([active])) (custom properties already cross every shadow
+     boundary here, as --vf-scale proves) and these rules gate on
+     @container style(--vf-window-active: false) instead of the attribute,
+     retiring the controller's MutationObserver and composed-tree walk. The
+     WebKit rebuild at each flip must survive that migration: Safari resolves
+     scrollbar pseudo styles only when a scrollbar is (re)created or its
+     scroller relays out, not when a selector starts matching — however the
+     selector is expressed. See the matching note in src/scroll-state.ts. */
+  .vf-scroll[data-window-inactive]::-webkit-scrollbar-track {
+    background-image: none;
+  }
+  .vf-scroll[data-window-inactive]::-webkit-scrollbar-thumb {
+    background: transparent;
+    border: 0;
+  }
+  .vf-scroll[data-window-inactive]::-webkit-scrollbar-button {
+    display: none;
+  }
+
   /* The component's 1px frame, painted OVER the borderless scroller (see the
      recipe comment for why the scroller itself must not carry it): a later
      sibling of the scroller inside a positioned wrapper, so it stacks above
@@ -709,6 +739,13 @@ export const vfScrollbars = css`
       scrollbar-width: auto;
       scrollbar-color: var(--vf-scrollbar-thumb, #ffffff)
         var(--vf-scrollbar-track, #c0c0c0);
+    }
+    /* Inactive window: thumb and track both go white, so the bar reads as the
+       blank rail. Unlike the per-axis idle state (which scrollbar-color can't
+       express), window deactivation blanks both axes at once, so Firefox can
+       follow it. */
+    .vf-scroll[data-window-inactive] {
+      scrollbar-color: var(--vf-white, #fff) var(--vf-white, #fff);
     }
   }
 `

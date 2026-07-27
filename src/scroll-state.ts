@@ -4,7 +4,7 @@ import type { ReactiveController, ReactiveControllerHost } from 'lit'
 const OVERFLOW_EPSILON = 1
 
 /**
- * Overflow-state tracking for System 7 "always-a-rail" scrollbars.
+ * Rail-state tracking for System 7 "always-a-rail" scrollbars.
  *
  * System 7 draws a scrollable frame's scroll bar as a permanent part of its
  * chrome: an empty white rail sits in the reserved channel even when there is
@@ -19,6 +19,17 @@ const OVERFLOW_EPSILON = 1
  * (`"true"` | `"false"`) onto the scroll element. The shared `vfScrollbars`
  * recipe keys the dither, thumb and arrows off those attributes, so a bar is a
  * bare white rail at `"false"` and the full System 7 scrollbar at `"true"`.
+ *
+ * It also supplies the HIG's inactive-window treatment: a window that isn't
+ * frontmost must not display interactive scroll UX, so System 7 blanked a
+ * deactivated window's scrollbars back to the empty rail (and its List
+ * Manager/TextEdit did the same for scrollbars *inside* the window). The
+ * controller finds the nearest `vf-window` up the composed tree, watches its
+ * reflected `active` attribute, and toggles `data-window-inactive`
+ * (presence-only) on the scroll element; the recipe empties the
+ * dither/thumb/arrows while it is present, regardless of overflow. A scroller
+ * with no `vf-window` ancestor never carries the attribute — `vf-dialog` has
+ * no inactive state, and a bare scroll component on a page always draws live.
  *
  * The controller reports BOTH axes always; each component decides which rails
  * it *reserves* purely in CSS (`overflow-{x,y}: scroll` + `scrollbar-gutter`).
@@ -36,11 +47,22 @@ const OVERFLOW_EPSILON = 1
  * FUTURE: once `@container scroll-state(scrollable)` container queries reach
  * baseline support, slotted-content components could drop this JS and gate the
  * same recipe rules with a pure-CSS `@container` query instead (a native
- * `<textarea>`'s own scrollbar would still need the imperative path). See the
- * matching note in styles/base.ts `vfScrollbars`.
+ * `<textarea>`'s own scrollbar would still need the imperative path). The
+ * window-activity half has the same trajectory via `@container style()`
+ * queries: vf-window cascades a custom property under `:host(:not([active]))`
+ * and the recipe gates on `style(--vf-window-active: false)`, retiring
+ * {@link observeWindow}'s MutationObserver and composed-tree walk. Either
+ * migration must keep the {@link refreshWebKitScrollbars} poke at each flip —
+ * Safari resolves scrollbar pseudo styles only when a scrollbar is
+ * (re)created or its scroller relays out, not when a selector starts
+ * matching, however that selector is expressed (and Playwright WebKit does
+ * not reproduce the staleness, so only real Safari can green-light removing
+ * it). See the matching notes in styles/base.ts `vfScrollbars`.
  */
 export class ScrollStateController implements ReactiveController {
   private resizeObserver?: ResizeObserver
+  private windowObserver?: MutationObserver
+  private vfWindow: HTMLElement | null = null
   private wired = false
 
   constructor(
@@ -54,6 +76,7 @@ export class ScrollStateController implements ReactiveController {
   hostConnected(): void {
     this.wired = false
     this.wire()
+    this.observeWindow()
     // The bitmap chrome/body faces register and paint after first layout, which
     // changes measured content height; re-measure once they're ready so a field
     // that only overflows in the real font doesn't miss its first activation.
@@ -65,11 +88,15 @@ export class ScrollStateController implements ReactiveController {
   hostUpdated(): void {
     this.wire()
     this.measure()
+    this.reflectWindowState()
   }
 
   hostDisconnected(): void {
     this.resizeObserver?.disconnect()
     this.resizeObserver = undefined
+    this.windowObserver?.disconnect()
+    this.windowObserver = undefined
+    this.vfWindow = null
     this.wired = false
   }
 
@@ -89,6 +116,52 @@ export class ScrollStateController implements ReactiveController {
     const content = this.getContent?.()
     if (content) this.resizeObserver.observe(content)
     this.wired = true
+  }
+
+  /**
+   * Find the containing `vf-window` (checked by tag name, not instanceof — an
+   * import here would pull the whole window component into every scroller's
+   * graph) and watch its `active` attribute. The walk crosses shadow
+   * boundaries, so it reaches the window whether the scroller is slotted into
+   * its body (light-DOM ancestor) or is the window's own edge scroll area
+   * (shadow-DOM ancestor). Reconnect re-runs it, so a reparented scroller
+   * re-resolves its window.
+   */
+  private observeWindow(): void {
+    let node: Node | null = this.host
+    this.vfWindow = null
+    while (node) {
+      if (node instanceof HTMLElement && node.localName === 'vf-window') {
+        this.vfWindow = node
+        break
+      }
+      node = node.parentNode ?? (node instanceof ShadowRoot ? node.host : null)
+    }
+    if (!this.vfWindow || typeof MutationObserver === 'undefined') return
+    this.windowObserver ??= new MutationObserver(() =>
+      this.reflectWindowState()
+    )
+    this.windowObserver.observe(this.vfWindow, {
+      attributes: true,
+      attributeFilter: ['active'],
+    })
+  }
+
+  /**
+   * Reflect the containing window's `active` state as a presence-only
+   * `data-window-inactive` on the scroll element. A window that hasn't
+   * upgraded yet has no `active` attribute (its default reflects on first
+   * update, which precedes any scroller rendering inside it); the observer
+   * catches the reflection either way.
+   */
+  private reflectWindowState(): void {
+    const el = this.getScroll()
+    if (!el) return
+    const inactive =
+      this.vfWindow !== null && !this.vfWindow.hasAttribute('active')
+    if (el.hasAttribute('data-window-inactive') === inactive) return
+    el.toggleAttribute('data-window-inactive', inactive)
+    refreshWebKitScrollbars(el)
   }
 
   /**

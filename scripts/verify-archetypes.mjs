@@ -25,6 +25,11 @@
  *  - EDGE RAILS: scrollbars="both" reproduces the TeachText composition —
  *    the built-in scroll area sits flush on the frame with the grow box in
  *    the rail corner.
+ *  - INACTIVE RAILS: a deactivated window shows no interactive scroll UX —
+ *    ScrollStateController toggles data-window-inactive on every managed
+ *    scroller inside it (edge rails and slotted components alike), the grow
+ *    box goes hollow, and a scroller outside any window never carries the
+ *    attribute.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:archetypes
@@ -486,6 +491,91 @@ function decodePng(buf) {
     String(geo.growInset))
   check('the viewport part is re-exported', geo.exports === 'viewport')
   check("the heading names the scroll region", geo.label === 'Read Me')
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   6. INACTIVE RAILS — a deactivated window blanks its scroll UX
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  const page = await build(`
+    <vf-desktop id="desk" style="display:block;width:900px;height:600px">
+      <vf-window id="doc" heading="Doc" scrollbars="both" resizable
+        style="position:absolute;left:20px;top:20px;width:420px;height:300px">
+        <pre style="margin:0;white-space:pre">${'a long overflowing line of document text here\n'.repeat(40)}</pre>
+      </vf-window>
+      <vf-window id="other" heading="Other"
+        style="position:absolute;left:460px;top:40px;width:360px;height:300px">
+        <vf-list id="slotted" style="height:120px">
+          <vf-list-item>Alpha</vf-list-item>
+          <vf-list-item>Beta</vf-list-item>
+        </vf-list>
+      </vf-window>
+    </vf-desktop>
+    <vf-list id="free" style="width:200px;height:80px">
+      <vf-list-item>Gamma</vf-list-item>
+    </vf-list>
+  `)
+
+  const rails = () =>
+    page.evaluate(() => {
+      const scroller = (host) => host.shadowRoot.querySelector('.vf-scroll')
+      const doc = scroller(
+        document.getElementById('doc').shadowRoot.querySelector('vf-scroll-area')
+      )
+      const grow = getComputedStyle(
+        document.getElementById('doc').shadowRoot.querySelector('[part=grow-box]'),
+        '::before'
+      )
+      return {
+        docInactive: doc.hasAttribute('data-window-inactive'),
+        docOverflow: [doc.dataset.overflowX, doc.dataset.overflowY],
+        growHollow: grow.display === 'none',
+        slottedInactive: scroller(
+          document.getElementById('slotted')
+        ).hasAttribute('data-window-inactive'),
+        freeInactive: scroller(document.getElementById('free')).hasAttribute(
+          'data-window-inactive'
+        ),
+      }
+    })
+  const clickBar = async (id) => {
+    const r = await page.evaluate((i) => {
+      const bar = document.getElementById(i).shadowRoot.querySelector('[part=title-bar]')
+      const b = bar.getBoundingClientRect()
+      return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
+    }, id)
+    await page.mouse.click(r.x, r.y)
+    await page.evaluate(() =>
+      Promise.all(
+        [...document.querySelectorAll('vf-window')].map((w) => w.updateComplete)
+      )
+    )
+  }
+
+  let s = await rails()
+  check('background window: its edge rails carry data-window-inactive',
+    s.docInactive, JSON.stringify(s))
+  check('…while overflow reporting underneath is untouched',
+    s.docOverflow[0] === 'true' && s.docOverflow[1] === 'true',
+    String(s.docOverflow))
+  check('…and its grow box goes hollow', s.growHollow)
+  check('active window: a slotted scroller stays live', !s.slottedInactive)
+  check('a scroller outside any window never carries the attribute',
+    !s.freeInactive)
+
+  await clickBar('doc')
+  s = await rails()
+  check('activating the window fills its rails back in',
+    !s.docInactive && s.growHollow === false,
+    JSON.stringify(s))
+  check('…and blanks the newly backgrounded window’s slotted scroller',
+    s.slottedInactive)
+
+  await clickBar('other')
+  s = await rails()
+  check('deactivating again re-blanks the edge rails',
+    s.docInactive && !s.slottedInactive)
   await page.close()
 }
 

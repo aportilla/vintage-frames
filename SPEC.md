@@ -312,8 +312,10 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
     `active`). `touch-action: none` only when `[movable]`.
   - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
     stripes, with `--vf-title-inset: 60px` of clearance so it ellipsizes before
-    reaching the widgets. Inactive: no stripes and widgets hidden, but the title
-    text stays black (System 7 never grayed the window title).
+    reaching the widgets. Inactive: no stripes, widgets hidden, the grow box's
+    nested squares hidden, and every managed scroll rail inside the window
+    blanked (see "always-a-rail" §5 vf-scroll-area) — but the title text stays
+    black (System 7 never grayed the window title).
   - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of
     clear white above and below it, `1px solid black`, white bg, no bevel,
     surrounded by a 2px white patch interrupting the stripes. `:active`
@@ -327,7 +329,9 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
     close box; the nested box gives way to it.
   - Body: `padding: 12px` (0 if `flush` or `scrollbars`).
   - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black
-    top/left borders, containing two overlapping small square outlines.
+    top/left borders, containing two overlapping small square outlines. Inactive:
+    the cell and its borders stay, the nested squares go — System 7 drew a
+    deactivated window's size box hollow, with its blanked scroll rails.
   - Edge scroll rails (if `scrollbars`): the body slot renders inside a shadow
     `vf-scroll-area` (its `axis` = the attribute's value, `label` = the
     heading, `viewport` part re-exported) carrying the TeachText composition
@@ -892,6 +896,24 @@ A container whose scrollbars look like System 7.
   scrollbars. Shared by vf-list and vf-text-area; a future
   `@container scroll-state(scrollable)` query could replace the JS for
   slotted-content components.
+  - **Inactive-window blanking:** the HIG's non-frontmost window must not
+    display interactive scroll UX, so the controller also finds the nearest
+    `vf-window` up the composed tree (light-DOM ancestor for a slotted
+    scroller, shadow ancestor for `vf-window[scrollbars]`'s own edge rails),
+    watches its reflected `active` attribute, and toggles a presence-only
+    `data-window-inactive` on the scroll element. While present, the recipe
+    empties dither/thumb/arrows on BOTH axes regardless of overflow — the
+    idle-rail placeholder, exactly as System 7 blanked a deactivated window's
+    bars (its List Manager/TextEdit deactivated in-window scrollbars too).
+    Firefox follows via `scrollbar-color: white white` (this state is
+    both-axes, so the flat fallback *can* express it, unlike per-axis idle).
+    No `vf-window` ancestor → the attribute never appears: dialogs have no
+    inactive state and a bare scroll component always draws live. Like the
+    overflow half, this signal could one day go declarative — a custom
+    property cascaded under `vf-window:not([active])` gating the recipe via an
+    `@container style()` query — but the WebKit scrollbar rebuild at each flip
+    outlives any such migration (see the FUTURE notes in scroll-state.ts /
+    `vfScrollbars`).
 - **Document-window (TeachText) composition:** to put the rails on a window's
   edge rather than inset in its body, slot the scroll area into a
   `vf-window[flush]` sized `calc(100% + 2px·scale)` with `margin: -1px·scale`

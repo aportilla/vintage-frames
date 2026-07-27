@@ -211,6 +211,13 @@ export class VfWindow extends LitElement {
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         background: var(--vf-white, #ffffff);
       }
+      /* Inactive window: the size box empties with the scroll rails (the same
+         HIG no-interactive-UX treatment ScrollStateController drives for the
+         bars) — its cell and borders stay, the nested squares go. */
+      :host(:not([active])) .grow::before,
+      :host(:not([active])) .grow::after {
+        display: none;
+      }
     `,
   ]
 

@@ -143,11 +143,14 @@ parts.
 Keyboard focus is an affordance System 7 never had — full keyboard access
 postdates it — so the kit **adds** one and draws it in the 1-bit vocabulary
 rather than leaving the browser's ring on top of the artwork. Where a control
-can carry the mark itself it does: `vf-button` underlines its label,
-`vf-checkbox` its box and `vf-radio` its circle with a 1px dashed rule on the
-system-pixel grid (`vfFocusUnderline`); text fields thicken their border; and
-everything else keeps the dotted ring. `npm run verify:focus` asserts the
-rendered pixels.
+can carry the mark itself it does, as a 1px dashed rule on the system-pixel
+grid (`vfFocusUnderline`): `vf-button` underlines its label, `vf-checkbox` its
+box, `vf-radio` its circle, and the three editable fields their well. Every
+other control keeps the dotted ring. Either way it is **keyboard-only** — a
+mouse click never draws it. The fields need help to manage that, since
+`:focus-visible` is true for a clicked text input by design, so they read the
+page's last input modality instead (`src/focus-modality.ts`).
+`npm run verify:focus` asserts the rendered pixels.
 
 ## Window archetypes — enabling the 1992 HIG, not enforcing it
 
@@ -423,6 +426,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `steppedRectClip`, `steppedRingClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`) |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow and inactive-window reporting for the always-a-rail scrollbars (a non-frontmost window's rails blank, per the HIG); a track's measured width, for drawing your own 1-bit fill on the system-pixel grid; document-level listeners scoped to an open panel or in-flight gesture (paired attach/detach + disconnect cleanup in one place) |
+| `focusModality`, `trackFocusModality` | Whether the keyboard or a pointer last drove the page — what a text control has to consult to mark keyboard focus only, since `:focus-visible` matches a *clicked* text input too |
 | `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share |
 | `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), the native-`<dialog>` lifecycle |
 | `registerEmbeddedFont`, `registerChiKareGo`, `registerFindersKeepers`, `CHIKAREGO_FAMILY`, `FINDERS_KEEPERS_FAMILY` | Register the bitmap faces on `document.fonts` yourself |

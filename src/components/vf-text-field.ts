@@ -8,9 +8,11 @@ import { VfTextControlBase } from '../text-control.js'
  * `<vf-text-field>` — a System 7 single-line text entry field.
  *
  * A form-associated wrapper around a native `<input>`: white well, 1px solid
- * black border, no corner radius. Focus thickens the border (no dotted
- * outline, per SPEC §1/§5). The shared field skin lives in `vfField`; the
- * value/form scaffolding in {@link VfTextControlBase}.
+ * black border, no corner radius. Keyboard focus draws the kit's dashed rule
+ * one blank row under the well; a click leaves it unmarked (no dotted outline
+ * either, per SPEC §1/§5). The shared field skin lives in `vfField`; the
+ * value/form scaffolding — and the focus rule's modality gate — in
+ * {@link VfTextControlBase}.
  *
  * @fires vf-input - On every keystroke. `detail: { value: string }`.
  * @fires vf-change - On commit (native `change`). `detail: { value: string }`.
@@ -53,19 +55,21 @@ export class VfTextField extends VfTextControlBase {
 
   protected override render() {
     return html`
-      <input
-        part="input"
-        class="vf-field vf-snap"
-        type=${this.type}
-        aria-label=${this.label || nothing}
-        .value=${live(this.value)}
-        placeholder=${this.placeholder}
-        ?disabled=${this.isDisabled}
-        ?readonly=${this.readonly}
-        @keydown=${this.handleKeydown}
-        @input=${this.handleInput}
-        @change=${this.handleChange}
-      />
+      <div class=${this.wellClass}>
+        <input
+          part="input"
+          class="vf-field"
+          type=${this.type}
+          aria-label=${this.label || nothing}
+          .value=${live(this.value)}
+          placeholder=${this.placeholder}
+          ?disabled=${this.isDisabled}
+          ?readonly=${this.readonly}
+          @keydown=${this.handleKeydown}
+          @input=${this.handleInput}
+          @change=${this.handleChange}
+        />
+      </div>
     `
   }
 }

@@ -48,9 +48,9 @@ The System 7 look, distilled:
 Modern requirements that we deliberately keep (accessibility over purity):
 
 - `:focus-visible` gets `outline: var(--vf-focus-outline, 1px dotted #000); outline-offset: 2px;`
-  — except where the control's own vocabulary can carry the mark instead: text
-  inputs thicken their border (§5), and `vf-button`, `vf-checkbox` and
-  `vf-radio` draw a 1px dashed rule under the label, the box and the circle
+  — except where the control's own vocabulary can carry the mark instead:
+  `vf-button`, `vf-checkbox`, `vf-radio` and the three editable fields draw a
+  1px dashed rule under the label, the box, the circle and the well
   respectively (`vfFocusUnderline`, §4). System 7 had no keyboard-focus
   indicator to copy — these are modern affordances the kit **adds**, drawn on
   the 1-bit grid so they read as native rather than bolted on.
@@ -261,8 +261,9 @@ right.
     on its own face: an `::after` on that element, 1 system px tall, spanning
     its box, dashed 1px on / 1px off via a `repeating-linear-gradient` in
     `currentColor` — so it inverts to white with the label on a pressed face.
-    `vf-button` underlines its label, `vf-checkbox` its box and `vf-radio` its
-    circle (narrowed to 9 of its 13px, since that shape is round — §5); the
+    `vf-button` underlines its label, `vf-checkbox` its box, `vf-radio` its
+    circle (narrowed to 9 of its 13px, since that shape is round — §5) and the
+    three editable fields their well (via `vfField`'s `.vf-field-well`); the
     component suppresses the UA outline in the same rule set, and the
     underlined element needs `position: relative`.
     - `--vf-focus-underline-offset` places it, measured (like any `bottom`)
@@ -272,7 +273,22 @@ right.
       for a text box, whose ink stops at the baseline 6px above its bottom
       (2px half-leading over the 16px em + the 4px descent); `-3px` for the
       checkbox's bordered well (border + blank row + rule); `-2px` for the
-      radio's unbordered one. `npm run verify:focus`.
+      radio's unbordered one and for a field, whose wrapper already boxes the
+      border. `npm run verify:focus`.
+    - The mark is **keyboard-only** everywhere, but the fields can't say so
+      with `:focus-visible`. That selector is specified to match *any* focus of
+      an element which takes keyboard input, so it is already true for a text
+      field clicked with the mouse — where on a button it is false. So the
+      fields gate on a `.vf-focus-rule` class that `VfTextControlBase` adds
+      only when the page's last input modality was the keyboard
+      (`src/focus-modality.ts`): one refcounted capture-phase `pointerdown` +
+      `keydown` pair on the document, read at `focusin`, defaulting to
+      `'keyboard'` so assistive tech and `autofocus` are still marked. Typing
+      after a click does not reveal it, and neither does a click on the
+      control's `vf-label` caption — a pointer landing focus from outside the
+      field is why the tracker is page-wide rather than a local `pointerdown`
+      latch like `vf-slider`'s. `npm run verify:focus` pins all of it,
+      including the browser behavior that makes it necessary.
 
 ## 5. Component specifications
 
@@ -513,8 +529,8 @@ see §4.)
     button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline`
     (§4) on the label: a 1px dashed rule 1px below the baseline, i.e. row 15
     of the 20px face, one blank row under the glyph ink. It inverts with the
-    label when pressed and is scoped to this component — every other control
-    keeps the dotted ring. `npm run verify:focus` and the focused button in
+    label when pressed; the controls that cannot carry the mark on their own
+    face keep the dotted ring. `npm run verify:focus` and the focused button in
     `npm run shot:verify` assert the rendered pixels.
   - `disabled`: only the label dims to `var(--vf-disabled, #c0c0c0)`; the 1px
     black border stays black. (For `variant="default"`, the fat outer ring
@@ -648,12 +664,28 @@ The color-swatch button: a hard-shadowed well of solid color — a palette cell.
   `type: string` (default `'text'`; pass through to input), `name`.
 - **Visual:** inner `<input>`: white bg, `1px solid black`, NO radius,
   height `var(--vf-control-height, 22px)`, `padding: 0 6px`, font tokens but
-  `font-weight: var(--vf-font-weight, 700)`. `user-select: text`. Focus: border
-  thickens via `box-shadow: 0 0 0 1px var(--vf-black, #000)` (no dotted
-  outline). Disabled: the text dims to gray; the black border stays. Selected
-  text inverts to solid black-on-white (`.vf-field::selection`, using
+  `font-weight: var(--vf-font-weight, 700)`. `user-select: text`. Focus: for a
+  **keyboard** focus, the kit's 1px dashed rule (`vfFocusUnderline`, §4) one
+  blank system px row under the well — no dotted outline and no thickened
+  border. A click leaves it unmarked: the insertion point is already the
+  answer to where focus went (see §4 on why this can't be `:focus-visible`).
+  Disabled: the text dims
+  to gray; the black border stays. Selected text inverts to solid
+  black-on-white (`.vf-field::selection`, using
   `--vf-highlight`/`--vf-highlight-text`) — the 1-bit System 7 selection, shared
   by all three editable fields via the `vfField` skin.
+- **Structure:** the `<input>` sits in a `.vf-field-well` wrapper, which is what
+  the focus rule hangs from and what carries `vf-snap`. A replaced element draws
+  no pseudo-element of its own, and the host is never the thing grid snapping
+  moves, so the wrapper is the only box that is both the well's exact shape and
+  on the corrected grid. Same wrapper in all three fields, assembled by
+  `VfTextControlBase.wellClass` so the focus gate can't drift between them.
+  Two consequences worth knowing when embedding: the rule paints 2 system px
+  **below the host's own box** (`pointer-events: none`, so it never takes a
+  click meant for what sits under it, but a tight `overflow: hidden` ancestor
+  clips it), and a `width` set on `::part(input)` sizes the control without
+  moving the wrapper the rule spans — a field's width belongs on the host or
+  on `--vf-field-width`.
 - **Behavior:** form-associated; syncs `value` on input; `formResetCallback`
   restores default.
 - **Parts:** `input`.
@@ -672,7 +704,9 @@ vf-text-field, the field's 1px frame is a `.vf-scroll-frame` overlay above the
 borderless `<textarea>` (see the vf-scroll-area scrollbar notes for the Safari
 reason), with `padding: 4px 7px` — vf-text-field's `3px/6px` plus the 1px the
 dropped border occupied — holding the text and the outer box where the
-bordered field put them.
+bordered field put them. The `.vf-field-well` wrapper is the same one
+vf-text-field uses, doing double duty as the positioned box that overlay insets
+against; the focus rule spans the full frame, scroll rail included.
 Parts: `textarea`. Events: `vf-input`, `vf-change`.
 
 #### `vf-number-field` (`VfNumberField`, vf-number-field.ts)
@@ -680,9 +714,11 @@ A numeric text field paired with the classic "little arrows" stepper.
 - **Attributes/props:** `value: string`, `min?: number`, `max?: number`,
   `step: number` (default 1; also sets the value's decimal precision),
   `placeholder`, `disabled`, `readonly`, `name`, `label`.
-- **Visual:** a form-associated `<input>` (white well, 1px black border, focus
-  thickens the border like `vf-text-field`, value right-aligned) with a 3px gap
-  to the little-arrows stepper. The stepper is the `STEPPER` glyph (rounded
+- **Visual:** a form-associated `<input>` (white well, 1px black border, value
+  right-aligned) with a 3px gap to the little-arrows stepper. Focus draws the
+  dashed rule under the well like `vf-text-field` — the `.vf-field-well`
+  wrapper is the flex item, so the rule stops at the well and never runs under
+  the stepper, which is not where the insertion point is. The stepper is the `STEPPER` glyph (rounded
   1-bit frame + hollow up/down arrows from `Little arrows.png`), rendered inline
   at its **native 15×25** so it stays pixel-crisp. The well and the sprite are
   authentically different heights (the reference sheets measure fields at 22 and

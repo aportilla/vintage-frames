@@ -1,27 +1,37 @@
 /**
  * Verifies the kit's dashed keyboard-focus rule (`vfFocusUnderline`,
- * src/styles/base.ts), which replaces the browser's ring on the three controls
+ * src/styles/base.ts), which replaces the browser's ring on the six controls
  * that can carry the mark themselves: vf-button underlines its label,
- * vf-checkbox its box and vf-radio its circle. Focus visibility is an
- * accessibility affordance the kit ADDS to System 7's vocabulary — it is not
- * something the original drew — so what these checks defend is that the added
- * affordance obeys the 1-bit grid as strictly as the traced chrome does.
+ * vf-checkbox its box, vf-radio its circle, and the three editable fields
+ * (vf-text-field, vf-text-area, vf-number-field) their well. Focus visibility
+ * is an accessibility affordance the kit ADDS to System 7's vocabulary — it is
+ * not something the original drew — so what these checks defend is that the
+ * added affordance obeys the 1-bit grid as strictly as the traced chrome does.
  *
  * The load-bearing facts, all asserted against rendered pixels rather than the
  * CSS that produces them:
  *
  *  - GEOMETRY: the rule is 1 system px tall, leaves exactly one blank row
- *    between itself and the ink above it (glyph, box border or sprite), and
- *    spans that element's own box — the label, not the button's padded face;
- *    the whole well, not the toggle's row.
+ *    between itself and the ink above it (glyph, box border, sprite or the
+ *    well's bottom edge), and spans that element's own box — the label, not
+ *    the button's padded face; the whole well, not the toggle's row; the
+ *    number field's well, not the stepper beside it.
  *  - PATTERN: 1 system px on, 1 off, every pixel pure black or pure white. A
  *    feathered dash is the failure this exists to catch, so the check refuses
  *    any intermediate gray, including in the case that provokes it: a grouped
  *    button whose centered odd-width label lands on a half system px.
- *  - NO RING: nothing paints outside the button's silhouette, and a toggle's
- *    well column carries exactly two ink bands. Every outline involved — the
- *    inner button's, the (delegatesFocus) host's, the wells' — must be off.
- *  - :focus-visible: keyboard focus shows it, a mouse click does not.
+ *  - NO RING: nothing paints outside the button's silhouette, a toggle's well
+ *    column carries exactly two ink bands, and a field's border is still the
+ *    1px it was — the box-shadow that used to thicken it on focus is gone.
+ *    Every outline involved — the inner button's and input's, the
+ *    (delegatesFocus) hosts', the wells' — must be off.
+ *  - MODALITY: keyboard focus shows it, a pointer never does. The fields are
+ *    the interesting case — `:focus-visible` is specified to match any focus of
+ *    an element that takes keyboard input, so it is ALREADY true for a clicked
+ *    text field, and the checks below pin that browser behavior as the reason
+ *    src/focus-modality.ts exists. All three pointer routes into a field (a
+ *    click in the well, typing after it, and a click on its vf-label caption,
+ *    which focuses it programmatically) must leave it unmarked.
  *  - PRESSED: currentColor inverts the rule to white on the black face.
  *  - The controls that are not a label keep the dotted ring, so vf-select is
  *    checked as the canary.
@@ -485,6 +495,130 @@ check(
   `checkbox=${ruleRow['vf-checkbox']} radio=${ruleRow['vf-radio']} device px from the host top`
 )
 
+// ── the three editable fields: the rule goes under the WELL ───────────────
+// What replaced the box-shadow that used to thicken the border on focus, so
+// each field is checked for the rule AND for a border that is still 1px.
+for (const [tag, markup] of [
+  ['vf-text-field', '<vf-text-field id="f"></vf-text-field>'],
+  ['vf-text-area', '<vf-text-area id="f" rows="2"></vf-text-area>'],
+  ['vf-number-field', '<vf-number-field id="f"></vf-number-field>'],
+]) {
+  const page = await build(markup)
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, 'f', '.vf-field-well', '.vf-field-well')
+
+  check(`${tag}: Tab draws the rule`, s.drawn)
+  check(
+    `${tag}: no outline left on the host or the well`,
+    s.hostOutline === 'none' && s.targetOutline === 'none',
+    `host=${s.hostOutline} well=${s.targetOutline}`
+  )
+
+  // One column down the middle of an empty well carries the whole geometry:
+  // the top border, the bottom border, then the rule. Three bands of exactly
+  // 1 system px each proves the border did NOT thicken (the box-shadow this
+  // replaced would have doubled the first two) and that the rule is a hairline.
+  const cx = Math.round(s.x0 + s.w / 2)
+  const column = bands({ ...s, ruleX0: cx, ruleX1: cx + 1 }, isBlack, { inset: 0 })
+  check(
+    `${tag}: three 1px ink rows down the well — top border, bottom border, rule`,
+    column.length === 3 && column.every((b) => b.length === S),
+    `bands=${column.map((b) => b.length / S).join(',')} system px`
+  )
+  const [, bottom, rule] = column.length === 3 ? column : [[], [], []]
+  const gap = rule.length ? rule[0] - (bottom[bottom.length - 1] + 1) : NaN
+  check(
+    `${tag}: one blank system px row separates it from the well's bottom edge`,
+    gap === S,
+    `gap=${gap / S} system px`
+  )
+
+  const dashes = rule.length ? runs(s.png, rule[0], s.ruleX0, s.ruleX1, isBlack) : []
+  check(
+    `${tag}: 1 system px on, 1 off across the well`,
+    dashes.length > 4 &&
+      dashes.every(([a, b]) => b - a === S) &&
+      dashes.every(([a], i) => i === 0 || a - dashes[i - 1][1] === S),
+    `${dashes.length} dashes, widths=${[...new Set(dashes.map(([a, b]) => b - a))]}`
+  )
+  check(
+    `${tag}: it spans the well's own box, edge to edge`,
+    dashes.length > 0 &&
+      Math.abs(dashes[0][0] - s.ruleX0) <= 1 &&
+      s.ruleX1 - dashes[dashes.length - 1][1] <= S + 1,
+    dashes.length
+      ? `well=${s.ruleX0}..${s.ruleX1} rule=${dashes[0][0]}..${dashes[dashes.length - 1][1]}`
+      : ''
+  )
+  const impure = []
+  for (let x = Math.round(s.ruleX0); x < Math.round(s.ruleX1); x++) {
+    for (const y of rule) {
+      if (!isBlack(s.png, x, y) && !isWhite(s.png, x, y)) impure.push([x - s.x0, y - s.y0, rgb(s.png, x, y)])
+    }
+  }
+  check(
+    `${tag}: every pixel of the rule is pure black or white`,
+    rule.length && !impure.length,
+    `${impure.length} feathered, first ${JSON.stringify(impure[0] ?? null)}`
+  )
+
+  // The 1-system-px band immediately around the well — exactly where the old
+  // focus box-shadow painted, and (below) the rule's blank row. On the number
+  // field it also stays clear of the stepper, which starts 3 system px out.
+  const halo = []
+  for (let y = s.y0 - S; y < s.y0 + s.h + S; y++) {
+    for (let x = s.x0 - S; x < s.x0 + s.w + S; x++) {
+      const inWell = x >= s.x0 && x < s.x0 + s.w && y >= s.y0 && y < s.y0 + s.h
+      if (!inWell && !isWhite(s.png, x, y)) halo.push([x - s.x0, y - s.y0])
+    }
+  }
+  check(
+    `${tag}: nothing paints in the row just outside the well (no ring, no thickening)`,
+    !halo.length,
+    `${halo.length} px, first ${JSON.stringify(halo[0] ?? null)}`
+  )
+  await page.close()
+
+  // Modality. The mark is keyboard-only, which for a field cannot come from
+  // :focus-visible — see the header and src/focus-modality.ts. The caption is
+  // here for the third route: vf-label `for` focuses the control from a click
+  // on the caption, so the field itself sees nothing but a programmatic
+  // focus(), and only a page-wide view of the modality can tell it apart.
+  const well = ['.vf-field-well', '.vf-field-well']
+  const modalPage = await build(`<vf-label id="cap" for="f">Name:</vf-label>${markup}`)
+
+  await modalPage.locator('#f').click()
+  const clicked = await shoot(modalPage, 'f', ...well)
+  check(`${tag}: a mouse click into the well leaves it unmarked`, !clicked.drawn)
+  const nativeFv = await modalPage.evaluate(() =>
+    document.getElementById('f').shadowRoot.querySelector('.vf-field').matches(':focus-visible')
+  )
+  check(
+    `${tag}: …while the native control DOES match :focus-visible (why the class exists)`,
+    nativeFv
+  )
+
+  await modalPage.keyboard.type('ab')
+  const typed = await shoot(modalPage, 'f', ...well)
+  check(`${tag}: typing after that click still leaves it unmarked`, !typed.drawn)
+
+  // Out to the page, then back by Tab: same field, keyboard route, marked.
+  await modalPage.mouse.click(4, 4)
+  await modalPage.keyboard.press('Tab')
+  const tabbed = await shoot(modalPage, 'f', ...well)
+  check(`${tag}: tabbing to it after that click marks it`, tabbed.drawn)
+
+  // And the caption route, which is a pointer landing focus from elsewhere.
+  await modalPage.mouse.click(4, 4)
+  await modalPage.locator('#cap').click()
+  const viaLabel = await shoot(modalPage, 'f', ...well)
+  const landed = await modalPage.evaluate(() => document.activeElement?.id)
+  check(`${tag}: clicking its vf-label caption focuses it (guards the check below)`, landed === 'f',
+    `activeElement=#${landed}`)
+  check(`${tag}: …and that pointer route leaves it unmarked too`, !viaLabel.drawn)
+  await modalPage.close()
+}
+
 // ── canary: the controls that aren't a label keep the dotted ring ─────────
 {
   const page = await build(
@@ -497,7 +631,7 @@ check(
     return { style: cs.outlineStyle, width: cs.outlineWidth, focused: control.matches(':focus-visible') }
   })
   check(
-    'vf-select still focuses with the dotted ring (the rule is the button + toggles only)',
+    'vf-select still focuses with the dotted ring (the rule is the button, toggles and fields only)',
     ring.focused && ring.style === 'dotted' && ring.width === '1px',
     JSON.stringify(ring)
   )

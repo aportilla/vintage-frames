@@ -15,10 +15,11 @@ import { decimalsOf } from '../number.js'
  * border) plus the pixel-exact little-arrows control from the Classic Macintosh
  * UI Kit sprite. Clicking (or press-and-holding, with autorepeat) an arrow
  * steps the value by `step`, clamped to `min`/`max`; the held arrow fills solid
- * black, matching the kit's hollow→filled press convention. The field is a
- * `spinbutton`: ArrowUp/ArrowDown step, Home/End jump to min/max. The shared
- * field skin lives in `vfField`; the value/form scaffolding in
- * {@link VfTextControlBase}.
+ * black, matching the kit's hollow→filled press convention. Keyboard focus
+ * draws the kit's dashed rule under the well alone — the stepper is beside the
+ * text, not part of it. The field is a `spinbutton`: ArrowUp/ArrowDown step, Home/End
+ * jump to min/max. The shared field skin lives in `vfField`; the value/form
+ * scaffolding in {@link VfTextControlBase}.
  *
  * @fires vf-input - On every keystroke. `detail: { value, valueAsNumber }`.
  * @fires vf-change - On commit or step. `detail: { value, valueAsNumber }`.
@@ -39,6 +40,19 @@ export class VfNumberField extends VfTextControlBase {
         align-items: flex-start;
         gap: calc(var(--vf-scale, 1) * 3px);
       }
+      /* The flex item is the wrapper, not the input: it boxes the well exactly,
+         so the focus rule spans the well and stops short of the stepper beside
+         it. Kept a flex container of its own so the input's own em width still
+         sets the base size — and the input still grows with it when a consumer
+         widens the host. */
+      .vf-field-well {
+        display: flex;
+        flex: 1 1 auto;
+        /* The 3px difference is odd, so centering the well would land it on a
+           half pixel and fringe at every scale. Bias it one whole pixel down
+           (1 above / 2 below) — optically centered, still on the device grid. */
+        margin-top: calc(var(--vf-scale, 1) * 1px);
+      }
       input {
         flex: 1 1 auto;
         width: var(--vf-number-field-width, 4em);
@@ -50,10 +64,6 @@ export class VfNumberField extends VfTextControlBase {
         height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
         padding: 0 calc(var(--vf-scale, 1) * 6px);
         text-align: right;
-        /* The 3px difference is odd, so centering the well would land it on a
-           half pixel and fringe at every scale. Bias it one whole pixel down
-           (1 above / 2 below) — optically centered, still on the device grid. */
-        margin-top: calc(var(--vf-scale, 1) * 1px);
       }
 
       /* The little-arrows stepper, drawn at its native 15×25 (1:1, crisp). */
@@ -245,25 +255,27 @@ export class VfNumberField extends VfTextControlBase {
     const disabled = this.isDisabled
     const current = this.#parse()
     return html`
-      <input
-        part="input"
-        class="vf-field vf-snap"
-        type="text"
-        inputmode="decimal"
-        role="spinbutton"
-        autocomplete="off"
-        aria-label=${this.label || nothing}
-        aria-valuenow=${Number.isNaN(current) ? nothing : current}
-        aria-valuemin=${this.min ?? nothing}
-        aria-valuemax=${this.max ?? nothing}
-        .value=${live(this.value)}
-        placeholder=${this.placeholder}
-        ?disabled=${disabled}
-        ?readonly=${this.readonly}
-        @input=${this.#onInput}
-        @change=${this.#onChange}
-        @keydown=${this.#onKeydown}
-      />
+      <div class=${this.wellClass}>
+        <input
+          part="input"
+          class="vf-field"
+          type="text"
+          inputmode="decimal"
+          role="spinbutton"
+          autocomplete="off"
+          aria-label=${this.label || nothing}
+          aria-valuenow=${Number.isNaN(current) ? nothing : current}
+          aria-valuemin=${this.min ?? nothing}
+          aria-valuemax=${this.max ?? nothing}
+          .value=${live(this.value)}
+          placeholder=${this.placeholder}
+          ?disabled=${disabled}
+          ?readonly=${this.readonly}
+          @input=${this.#onInput}
+          @change=${this.#onChange}
+          @keydown=${this.#onKeydown}
+        />
+      </div>
       <span class="stepper vf-snap" part="stepper">
         <svg viewBox="0 0 15 25" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">
           <path d=${STEPPER.d}></path>

@@ -13,6 +13,11 @@ import { ScrollStateController } from '../scroll-state.js'
  * field skin lives in `vfField`; the value/form scaffolding in
  * {@link VfTextControlBase}.
  *
+ * The `.vf-field-well` wrapper is the one `vfField` hangs the focus rule from,
+ * doing double duty here: it is also the positioned box the `.vf-scroll-frame`
+ * overlay insets against, and the `vf-snap` element whose grid-snap offset the
+ * field, the frame and the rule ride as one.
+ *
  * The vertical scroll rail is a permanent System 7 placeholder: an empty white
  * channel sits in the field even when the text fits, filling in with the
  * dither/thumb/arrows only once the content overflows (driven by
@@ -37,11 +42,6 @@ export class VfTextArea extends VfTextControlBase {
            doesn't collapse; the inner control fills it. Override with a width
            on the host or the --vf-field-width token. */
         width: calc(var(--vf-scale, 1) * var(--vf-field-width, 180px));
-      }
-      .box {
-        /* The snapped wrapper: .vf-snap makes it the positioned anchor the
-           .vf-scroll-frame overlay insets against, and the field and frame
-           ride its grid-snap offset as one. */
       }
       /* textarea.vf-field so the border override out-ranks the vf-field skin's
          own border (a bare element selector would lose to the class). */
@@ -83,7 +83,7 @@ export class VfTextArea extends VfTextControlBase {
 
   protected override render() {
     return html`
-      <div class="box vf-snap">
+      <div class=${this.wellClass}>
         <textarea
           part="textarea"
           class="vf-field vf-scroll"

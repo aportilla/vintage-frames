@@ -1,0 +1,484 @@
+/*
+ * examples.css — page styles for examples.html, the component reference.
+ *
+ * Ordinary documentation chrome: system UI type, a warm paper background, a
+ * sticky table of contents beside a single content column. None of it is
+ * System 7 — everything that looks like System 7 on that page comes out of a
+ * component, exactly as it would on a consumer's own site.
+ *
+ * Nothing here declares --vf-scale. The components size themselves — one system
+ * pixel to three device pixels, true ~72dpi — and this file never second-guesses
+ * that. Where a demo box has to relate to a component's size it does it the way
+ * blog.css does: `em` against the component's own type (on a vf-* host 1em is
+ * the kit's 16-system-pixel face, so `15em` is 240 system px at every density),
+ * or a percentage of the box it sits in. Plain px is for page furniture only.
+ *
+ * The one rule this file does follow for the components' sake (README, "Staying
+ * on the device-pixel grid"): every line-height, padding, margin and gap below
+ * is a whole number of pixels. A ratio leading resolves to a fraction (16px ×
+ * 1.5 = 24px is fine; 17px × 1.65 = 28.05px is not) and every line after it
+ * pushes the components below further off the device-pixel grid.
+ *
+ * examples.ts also calls applyGridSnap(), so a component whose origin lands
+ * fractionally anyway corrects itself. Load the page with ?nosnap to turn that
+ * off and compare.
+ */
+
+:root {
+  --paper: #efece4;
+  --card: #ffffff;
+  --code-bg: #f6f4ee;
+  --ink: #1b1a17;
+  --ink-soft: #6a655c;
+  --rule: #d8d3c7;
+  --rule-soft: #e7e3d9;
+  --link: #1b4b8f;
+
+  --ui-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  --mono-font: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'Liberation Mono', monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui-font);
+  font-size: 16px;
+  line-height: 24px;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: var(--link);
+}
+
+code {
+  font-family: var(--mono-font);
+  font-size: 14px;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--rule);
+}
+
+.topbar__brand {
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.topbar__brand span {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.topbar__links {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 24px;
+}
+
+/* ── Page frame ──────────────────────────────────────────────────────────── */
+
+.page {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 32px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 32px 24px 96px;
+}
+
+.toc {
+  position: sticky;
+  top: 73px; /* topbar height (24 + 12 + 12 + 1px rule) */
+  align-self: start;
+  max-height: calc(100vh - 105px);
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.toc h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.toc ol {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.toc a {
+  display: block;
+  padding: 2px 8px;
+  border-left: 2px solid transparent;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  color: var(--link);
+}
+
+.toc a[aria-current='true'] {
+  border-left-color: var(--ink);
+  font-weight: 700;
+}
+
+.toc code {
+  font-size: 13px;
+}
+
+.main {
+  min-width: 0;
+}
+
+/* Clear the sticky top bar when a TOC link jumps to a section. */
+.doc {
+  scroll-margin-top: 64px;
+}
+
+/* ── Prose ───────────────────────────────────────────────────────────────── */
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 30px;
+  line-height: 40px;
+}
+
+h2 {
+  margin: 56px 0 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  font-size: 22px;
+  line-height: 32px;
+}
+
+h2:first-of-type {
+  margin-top: 0;
+}
+
+h3 {
+  margin: 32px 0 8px;
+  font-size: 17px;
+  line-height: 24px;
+}
+
+h4 {
+  margin: 24px 0 8px;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 16px;
+  max-width: 76ch;
+}
+
+li {
+  margin-bottom: 4px;
+}
+
+.lede {
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--ink-soft);
+}
+
+.section-kind {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.note {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--rule);
+  background: var(--card);
+  font-size: 15px;
+  line-height: 24px;
+  max-width: 76ch;
+}
+
+.note--sharp {
+  border-left-color: #a8351f;
+}
+
+.note p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Live example blocks ─────────────────────────────────────────────────── */
+
+.example {
+  margin: 0 0 24px;
+  border: 1px solid var(--rule);
+  background: var(--card);
+}
+
+.example__caption {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-soft);
+}
+
+/*
+ * The stage. White, because --vf-surface falls back to white and a legend or
+ * label patch has to punch out the border onto the same color it sits on. Flex
+ * with whole-pixel gaps, start-aligned: centering derives an origin from
+ * `edge − width`, which is contract rule 3's other half.
+ */
+.example__stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: var(--card);
+}
+
+.example__stage--column {
+  flex-direction: column;
+}
+
+.example__stage--desktop,
+.example__stage--flush {
+  display: block;
+  padding: 0;
+}
+
+/*
+ * The desktop demos are a classic 512-system-pixel screen, stated in em so the
+ * composition holds at any density. At true size on a 1× display that is
+ * 1536 CSS px — wider than this column — so the stage scrolls rather than
+ * squeezing the windows onto fractional positions.
+ */
+.example__stage--desktop {
+  overflow-x: auto;
+}
+
+.example__stage--gapless {
+  gap: 0;
+}
+
+.example__src {
+  border-top: 1px solid var(--rule-soft);
+}
+
+.example__src > summary {
+  padding: 6px 16px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+.example__src > summary:hover {
+  color: var(--ink);
+}
+
+.example__src pre {
+  margin: 0;
+  padding: 0 16px 16px;
+  overflow-x: auto;
+}
+
+pre {
+  font-family: var(--mono-font);
+  font-size: 13px;
+  line-height: 20px;
+  tab-size: 2;
+}
+
+.snippet {
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--rule);
+  background: var(--code-bg);
+  overflow-x: auto;
+}
+
+/*
+ * A labelled cell inside a stage: a state caption under the specimen it names.
+ * The caption is the PAGE's type, not the kit's — it is documentation about a
+ * control, not a caption belonging to one (that would be a vf-label).
+ *
+ * No width: the cell is as wide as whichever is bigger, the component or its
+ * caption, and that flips as the display density changes. A text-sized cell
+ * lands the next one's component on a fractional pixel, which is precisely what
+ * applyGridSnap() is for.
+ */
+.specimen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.specimen__name {
+  font-family: var(--mono-font);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-soft);
+}
+
+/* Live value readouts written by examples.ts. */
+.readout {
+  font-family: var(--mono-font);
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--ink-soft);
+  min-height: 20px;
+}
+
+.log {
+  margin: 0;
+  padding: 8px 12px;
+  width: 100%;
+  height: 100px;
+  overflow-y: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--rule-soft);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: pre;
+}
+
+/* ── API tables ──────────────────────────────────────────────────────────── */
+
+.api {
+  width: 100%;
+  margin: 0 0 24px;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.api caption {
+  padding: 0 0 6px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.api th,
+.api td {
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  text-align: left;
+  vertical-align: top;
+}
+
+.api th {
+  border-bottom-color: var(--rule);
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.api td:first-child,
+.api td.mono {
+  font-family: var(--mono-font);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.api td.wrap {
+  white-space: normal;
+}
+
+.api--wide td:first-child {
+  white-space: normal;
+}
+
+/* The "standard props" line under a control's custom API. */
+.conforms {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--ink-soft);
+  max-width: 76ch;
+}
+
+.conforms code {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* ── Component section heading ───────────────────────────────────────────── */
+
+.doc > h2 code,
+.doc > h3 code {
+  font-size: inherit;
+  font-family: var(--mono-font);
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--code-bg);
+  font-family: var(--ui-font);
+  font-size: 11px;
+  line-height: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  vertical-align: 3px;
+}
+
+/* ── Narrow screens ──────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .toc {
+    position: static;
+    max-height: none;
+  }
+}

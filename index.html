@@ -54,7 +54,7 @@
 
       <!-- =================== "Format" dialog-style window =============== -->
       <!-- Always-open movable-modal lookalike; demo.ts sets closable=false. -->
-      <vf-window id="win-format" heading="Format" movable>
+      <vf-window id="win-format" heading="Format" movable width="470">
         <div class="format-columns">
           <div class="format-group">
             <vf-label class="group-label" id="format-mode-label">Mode</vf-label>
@@ -98,7 +98,7 @@
       </vf-window>
 
       <!-- ================= "Controls" kitchen-sink window =============== -->
-      <vf-window id="win-controls" heading="Controls" movable resizable>
+      <vf-window id="win-controls" heading="Controls" movable resizable width="590">
         <div class="controls-grid">
           <div class="stack">
             <vf-fieldset legend="Text">
@@ -310,7 +310,7 @@
       </vf-window>
 
       <!-- ================ "DragThing 2.9 Installer" window ============== -->
-      <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable>
+      <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable width="560">
         <vf-scroll-area class="installer-well">
           <vf-paragraph>Welcome to the installer for DragThing 2.9!</vf-paragraph>
           <vf-paragraph>
@@ -357,7 +357,7 @@
 
       <!-- ============= "New HTML Document" modal dialog (BBEdit) ========= -->
       <!-- Movable modal lookalike; demo.ts sets closable=false (no close box). -->
-      <vf-window id="win-newdoc" heading="New HTML Document" movable>
+      <vf-window id="win-newdoc" heading="New HTML Document" movable width="480">
         <div class="newdoc">
           <div class="newdoc-row">
             <vf-checkbox checked>Insert DOCTYPE</vf-checkbox>
@@ -441,7 +441,7 @@
            archetypes"): close box + movable, no zoom box, grow box or scroll
            rails — a dialog that floats among the document windows and can be
            put away any time. Find is the HIG's own canonical example. -->
-      <vf-window id="win-find" heading="Find File" movable>
+      <vf-window id="win-find" heading="Find File" movable width="440">
         <div class="find">
           <div class="find-row">
             <vf-label class="find-label" for="find-scope">Find items</vf-label>
@@ -487,7 +487,7 @@
       </vf-window>
 
       <!-- =============== Photoshop "New" document dialog =============== -->
-      <vf-window id="win-newimage" heading="New" movable>
+      <vf-window id="win-newimage" heading="New" movable width="470">
         <div class="newimage">
           <div class="newimage-main">
             <div class="newimage-field">
@@ -606,7 +606,7 @@
       <!-- Full glyph coverage of each embedded face, rendered in the face
            itself with smoothing off — every character here is a real pixel
            glyph, never a system-font fallback. -->
-      <vf-window id="win-charset" heading="Character Set" movable zoomable>
+      <vf-window id="win-charset" heading="Character Set" movable zoomable width="700">
         <div class="charset-panels">
           <vf-fieldset legend="ChiKareGo — chrome face" class="charset-panel">
             <div class="charset charset--chrome">
@@ -653,6 +653,8 @@
         movable
         resizable
         scrollbars="both"
+        width="420"
+        height="320"
       >
 <pre class="readme-doc">
 DRAGTHING 2.9 — READ ME                                          17 July 1996
@@ -703,6 +705,8 @@ shrink it and watch the arrows come back.
         heading="Desk Accessories"
         movable
         flush
+        width="82"
+        height="94"
       >
         <vf-grid
           columns="3"
@@ -766,7 +770,7 @@ shrink it and watch the arrows come back.
       </vf-window>
 
       <!-- ===================== About dialog (modal) ===================== -->
-      <vf-dialog id="dlg-about" heading="About This Macintosh">
+      <vf-dialog id="dlg-about" heading="About This Macintosh" width="400">
         <div class="about-body">
           <vf-paragraph
             >Vintage Frames — a System 7 UI kit built with Lit 3.</vf-paragraph
@@ -788,7 +792,7 @@ shrink it and watch the arrows come back.
            content the way those dialogs titled themselves. File →
            Page Setup… opens it; Page Setup is the classic example of a
            dialog you must answer before working on. -->
-      <vf-dialog id="dlg-pagesetup" frame="plain" heading="Page Setup">
+      <vf-dialog id="dlg-pagesetup" frame="plain" heading="Page Setup" width="320">
         <div class="pagesetup">
           <vf-fieldset legend="Paper">
             <vf-radio-group value="us-letter" name="paper" label="Paper">
@@ -815,7 +819,7 @@ shrink it and watch the arrows come back.
       </vf-dialog>
 
       <!-- ===================== Erase Disk alert (modal) ================= -->
-      <vf-alert id="alert-erase" variant="caution">
+      <vf-alert id="alert-erase" variant="caution" width="400">
         <!-- An alert speaks in chrome type, so the copy takes the display
              face rather than vf-paragraph's body default. -->
         <vf-paragraph class="alert-message" face="display"

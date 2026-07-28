@@ -426,7 +426,7 @@
          buttons — so its copy belongs on the kit's faces rather than the page's
          Georgia. vf-paragraph carries the body face on a 20-system-px line box;
          the article prose above stays exactly as it was. -->
-    <vf-dialog id="dlg-subscribe" heading="Subscribe">
+    <vf-dialog id="dlg-subscribe" heading="Subscribe" width="320">
       <vf-paragraph class="dialog__copy">
         One email per post. No tracking pixels, no “we've updated our privacy
         policy”.
@@ -439,7 +439,7 @@
       <vf-button slot="buttons" id="sub-confirm" variant="default">Subscribe</vf-button>
     </vf-dialog>
 
-    <vf-dialog id="dlg-about" heading="About This Blog">
+    <vf-dialog id="dlg-about" heading="About This Blog" width="320">
       <vf-paragraph class="dialog__copy">
         Notes on small software, written since 2024. Built with
         <strong>Vintage Frames</strong> — Lit web components in the style of
@@ -451,7 +451,7 @@
 
     <!-- An alert speaks in chrome type, so this one takes face="display"
          rather than vf-paragraph's body default. -->
-    <vf-alert id="alert-note" variant="caution">
+    <vf-alert id="alert-note" variant="caution" width="340">
       <vf-paragraph id="alert-message" face="display"
         >A note needs some text before you can post it.</vf-paragraph
       >

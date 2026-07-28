@@ -1,5 +1,6 @@
 import { html, css, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
+import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfDisplay, vfHardShadowDecls } from '../styles/base.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
@@ -154,6 +155,7 @@ export class VfAlert extends VfModalDialog {
     const showIcon = this._hasSlottedIcon || this.variant === 'caution'
     return html`
       <dialog
+        style=${styleMap(this.dialogSize)}
         role="alertdialog"
         aria-label=${this.label ||
         (this.variant === 'caution' ? 'Caution' : 'Alert')}

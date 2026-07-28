@@ -66,6 +66,7 @@ export {
   getScale,
   onScaleChange,
   sys,
+  sysLength,
   toSys,
   snapToDevicePx,
   snapToSystemPx,

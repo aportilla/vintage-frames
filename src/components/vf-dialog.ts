@@ -1,5 +1,6 @@
 import { html, css, nothing } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
+import { styleMap } from 'lit/directives/style-map.js'
 import {
   vfBase,
   vfStripes,
@@ -10,7 +11,7 @@ import {
   vfWindowWidgets,
   vfDisplayDecls,
 } from '../styles/base.js'
-import { snapToSystemPx } from '../scale.js'
+import { snapToSystemPx, sys } from '../scale.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar, widgetLabel, closeBox } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
@@ -145,8 +146,16 @@ export class VfDialog extends VfModalDialog {
     onDrag: (x: number, y: number): void => {
       const dialog = this._dialog
       if (!dialog) return
-      dialog.style.marginLeft = `${x}px`
-      dialog.style.marginTop = `${y}px`
+      // Keep a grabbable strip on-screen, as vf-window does against its
+      // positioning parent — the dialog's is the viewport. With a declared
+      // width nothing else stops a drag at an edge; the box used to run out of
+      // room and squeeze itself instead of moving.
+      // Re-snap after clamping so the clamped edge still lands on the grid.
+      const keep = sys(24, this)
+      const nx = Math.min(Math.max(x, keep - dialog.offsetWidth), window.innerWidth - keep)
+      const ny = Math.min(Math.max(y, 0), Math.max(0, window.innerHeight - keep))
+      dialog.style.marginLeft = `${snapToSystemPx(nx, this)}px`
+      dialog.style.marginTop = `${snapToSystemPx(ny, this)}px`
     },
   })
 
@@ -210,6 +219,7 @@ export class VfDialog extends VfModalDialog {
     `
     return html`
       <dialog
+        style=${styleMap(this.dialogSize)}
         aria-labelledby=${titled ? 'title' : nothing}
         aria-label=${titled ? nothing : this.label || 'Dialog'}
         @cancel=${this._onNativeCancel}

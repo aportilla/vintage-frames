@@ -43,19 +43,16 @@ vf-desktop {
   position: absolute;
   left: calc(var(--vf-scale, 1) * 40px);
   top: calc(var(--vf-scale, 1) * 60px);
-  width: calc(var(--vf-scale, 1) * 560px);
 }
 #win-format {
   position: absolute;
   left: calc(var(--vf-scale, 1) * 380px);
   top: calc(var(--vf-scale, 1) * 440px);
-  width: calc(var(--vf-scale, 1) * 470px);
 }
 #win-controls {
   position: absolute;
   left: calc(var(--vf-scale, 1) * 640px);
   top: calc(var(--vf-scale, 1) * 110px);
-  width: calc(var(--vf-scale, 1) * 590px);
 }
 
 /* Windows spawned by File → New Window. */
@@ -75,7 +72,6 @@ vf-desktop {
      bar or body clickable to come to the front. */
   left: calc(var(--vf-scale, 1) * 260px);
   top: calc(var(--vf-scale, 1) * 140px);
-  width: calc(var(--vf-scale, 1) * 700px);
 }
 .charset-panels {
   display: flex;
@@ -115,8 +111,6 @@ vf-desktop {
   position: absolute;
   left: calc(var(--vf-scale, 1) * 230px);
   top: calc(var(--vf-scale, 1) * 560px);
-  width: calc(var(--vf-scale, 1) * 420px);
-  height: calc(var(--vf-scale, 1) * 320px);
 }
 /* (The TeachText rails-on-the-edge composition this window used to carry as
    .readme-scroll is now the window's own scrollbars="both" — SPEC §5
@@ -149,6 +143,9 @@ vf-desktop {
 .tool {
   display: grid;
   place-items: center;
+  /* Fill the whole well rather than shrink to the icon: vf-grid centers a cell
+     by default, and a selected tool inverts its entire cell, not its glyph. */
+  place-self: stretch;
   padding: 0;
   margin: 0;
   border: none;
@@ -341,7 +338,6 @@ vf-desktop {
   position: absolute;
   left: calc(var(--vf-scale, 1) * 150px);
   top: calc(var(--vf-scale, 1) * 300px);
-  width: calc(var(--vf-scale, 1) * 480px);
 }
 
 .newdoc {
@@ -419,7 +415,6 @@ vf-desktop {
   position: absolute;
   left: calc(var(--vf-scale, 1) * 150px);
   top: calc(var(--vf-scale, 1) * 720px);
-  width: calc(var(--vf-scale, 1) * 440px);
 }
 
 .find {
@@ -510,7 +505,6 @@ vf-desktop {
   position: absolute;
   left: calc(var(--vf-scale, 1) * 700px);
   top: calc(var(--vf-scale, 1) * 540px);
-  width: calc(var(--vf-scale, 1) * 470px);
 }
 
 /* The form on the left, the stacked OK / Cancel group pinned top-right. */

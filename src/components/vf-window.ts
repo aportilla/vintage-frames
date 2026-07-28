@@ -1,4 +1,5 @@
 import { html, css, LitElement, nothing } from 'lit'
+import type { PropertyValues } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import {
   vfBase,
@@ -9,7 +10,7 @@ import {
   vfTitleBar,
   vfWindowWidgets,
 } from '../styles/base.js'
-import { ScaleController, snapToSystemPx, sys } from '../scale.js'
+import { ScaleController, snapToSystemPx, sys, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar, widgetLabel, closeBox, zoomBox } from '../chrome.js'
@@ -233,6 +234,23 @@ export class VfWindow extends LitElement {
   @property() heading = ''
 
   /**
+   * Window width in whole system px — the art's own unit, so the window keeps
+   * its proportions to the chrome inside it at every display density (a CSS-px
+   * width does not: it stays put while the components in it triple).
+   *
+   * **Declare it.** A window owns its size the way a real one does; left to
+   * layout it takes whatever width its container or its content hands it, which
+   * is how a title bar ends up wider than the screen or a dialog reflows as it
+   * moves. Unset, the window still renders — normal block layout, as before —
+   * and says so once in the console. {@link height} is optional on top of it:
+   * unset, the body sizes to its content.
+   */
+  @property({ type: Number }) width?: number
+
+  /** Window height in whole system px; unset, the body sizes to its content. */
+  @property({ type: Number }) height?: number
+
+  /**
    * Whether this is the frontmost (active) window: stripes and widgets show.
    * Managed automatically by an enclosing `vf-desktop`.
    */
@@ -302,10 +320,14 @@ export class VfWindow extends LitElement {
         this.style.left = `${left}px`
         this.style.top = `${top}px`
         this.style.margin = '0'
-      } else if (this.style.left === '' || this.style.top === '') {
-        // Already absolute via a stylesheet but with no inline coordinates yet:
-        // seed them from the computed position so the drag math has a base
-        // (otherwise the first drag would jump the window to 0,0).
+      } else {
+        // Already absolute: re-seed the inline coordinates from the COMPUTED
+        // ones before every drag. They are resolved pixels whatever the author
+        // wrote — an inline `left: 1em` or `left: 10%` is a perfectly good way
+        // to place a window, and reading `style.left` back would parse it as
+        // the bare number and jump the window there on the first move. Once
+        // the drag owns the coordinates they are already px, so this is a
+        // no-op from the second drag on.
         this.style.left = `${snapToSystemPx(parseFloat(computed.left) || 0, this)}px`
         this.style.top = `${snapToSystemPx(parseFloat(computed.top) || 0, this)}px`
       }
@@ -331,6 +353,38 @@ export class VfWindow extends LitElement {
   })
 
   private _resizeState: ResizeState | null = null
+
+  /**
+   * Write {@link width}/{@link height} onto the host as scaled lengths, and say
+   * something the first time a window is opened without a width.
+   *
+   * Only on the update that *changed* them: the grow box writes its own px
+   * width/height straight to the host, and re-applying the authored size on
+   * some later render (a title change, the desktop toggling `active`) would
+   * snap a resized window back. Setting the property again is the deliberate
+   * way to re-size it.
+   */
+  protected override updated(changed: PropertyValues<this>): void {
+    if (changed.has('width')) this.style.width = sysLength(this.width)
+    if (changed.has('height')) this.style.height = sysLength(this.height)
+    this.#warnIfUnsized()
+  }
+
+  /** One warning per element, not per render. */
+  #warnedNoSize = false
+
+  #warnIfUnsized(): void {
+    if (this.#warnedNoSize || this.width !== undefined) return
+    // An inline width is the other honest way to say it; a stylesheet rule we
+    // cannot tell apart from normal block layout, so it warns too.
+    if (this.style.width !== '') return
+    this.#warnedNoSize = true
+    console.warn(
+      `vf-window${this.heading ? ` ("${this.heading}")` : ''}: no width declared — ` +
+        'falling back to block layout. Declare the size in system px: ' +
+        '<vf-window width="240" height="176">.'
+    )
+  }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()

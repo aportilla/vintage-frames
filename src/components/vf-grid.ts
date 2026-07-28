@@ -108,6 +108,15 @@ const scaled = (systemPx: number): string =>
  * covers the boundary it swallowed, and a cell's own ink — a pressed face, a
  * focus rule, a hard shadow — is never crossed by a line.
  *
+ * **Cells are centered in their wells.** What a palette holds is normally
+ * smaller than the well it sits in — a 16px icon in a 26px cell — so a slotted
+ * item is centered on both axes rather than parked in the corner, which is
+ * where grid's own `stretch` default leaves anything carrying its own size. A
+ * cell that means to fill its well — a tool button that inverts black when
+ * selected, a tile whose border merges with the lattice — says
+ * `place-self: stretch` and gets the whole track. (Under `collapse` that is
+ * already the default: those cells exist to meet the lines.)
+ *
  * **The perimeter is part of the lattice**, and drawn by default: the box
  * carries the 1px the outer lines need, and one uninterrupted pitch runs from
  * edge to edge. `frameless` drops it, for a grid inside something that already
@@ -155,6 +164,14 @@ export class VfGrid extends LitElement {
       }
       .grid {
         display: grid;
+        /* A cell is a fixed box and its contents are usually smaller than it —
+           a 16px icon in a 26px well is the palette this component was drawn
+           for — so center them. Grid's own default (stretch) behaves as
+           start for anything with a size of its own, which parks every icon in
+           the top-left corner of its cell. A cell that wants the whole well
+           (a tool button that inverts when selected, a bordered tile under
+           collapse) asks for it with place-self: stretch. */
+        place-items: center;
         /* Shrink-wrap to the cells. The host is block-level (a palette sits in
            normal flow, and an inline-level box would hang a line-box descender
            under it inside a flush window), so without this a wider parent would
@@ -178,12 +195,18 @@ export class VfGrid extends LitElement {
       }
       /* collapse: every cell pulled back onto the lattice, so a cell drawing
          its own 1px border lands it ON the rule rather than beside it (see the
-         class doc). Stretch resizes an auto-width cell to match — a 14px track
-         with -1px margins makes a 16px item — and a consumer's own margin still
-         wins, since a light-DOM declaration beats a ::slotted one. With no
-         rules there is nothing to collapse onto, so it stays inert. */
+         class doc). A consumer's own margin still wins, since a light-DOM
+         declaration beats a ::slotted one. With no rules there is nothing to
+         collapse onto, so it stays inert.
+
+         These cells are the ones that mean to fill their well, so they keep
+         grid's stretch rather than the centering above: a sized tile lands
+         where it did before (stretch is start for a definite size, and the
+         -1px margins already center it), and an auto-sized one is resized to
+         the well — a 14px track with -1px margins makes a 16px item. */
       :host([collapse]:not([rules='none'])) ::slotted(*) {
         margin: calc(var(--vf-scale, 1) * -${RULE}px);
+        place-self: stretch;
       }
       .rules {
         position: absolute;

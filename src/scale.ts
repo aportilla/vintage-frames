@@ -56,6 +56,19 @@ export function sys(value: number, el: Element): number {
   return value * effectiveScale(el)
 }
 
+/**
+ * A length of `size` system px as a CSS length that stays live: the scale is
+ * read at paint time, so the box follows the display the way every metric
+ * declared in a component's stylesheet does. `sys()` resolves the number *now*
+ * and freezes it; this is what a size written onto an element belongs in.
+ *
+ * `undefined` gives back the empty string — the inline declaration is removed
+ * and the box goes back to whatever layout gives it.
+ */
+export function sysLength(size: number | undefined): string {
+  return size === undefined ? '' : `calc(var(--vf-scale, 1) * ${size}px)`
+}
+
 /** Convert display (CSS) px to whole system (art) units, honoring `--vf-scale` at `el`. */
 export function toSys(value: number, el: Element): number {
   return Math.round(value / effectiveScale(el))
@@ -119,13 +132,22 @@ export function snapToDevicePx(value: number): number {
  * grid there.
  */
 export function snapToSystemPx(value: number, el: Element): number {
+  const step = systemPxStep(el)
+  return Math.round(value / step) * step
+}
+
+/**
+ * The grid {@link snapToSystemPx} rounds to: the smallest run of system px that
+ * is also whole in CSS px at `el`'s scale (see the note above for why dpr 2
+ * takes two).
+ */
+function systemPxStep(el: Element): number {
   const scale = effectiveScale(el)
-  const step = Number.isInteger(scale)
+  return Number.isInteger(scale)
     ? scale
     : Number.isInteger(scale * 2)
       ? scale * 2
       : scale
-  return Math.round(value / step) * step
 }
 
 /**
@@ -138,6 +160,12 @@ export function snapToSystemPx(value: number, el: Element): number {
  * re-center. The snap moves the dialog at most half a system px off true
  * center — invisible. The dialog stays put if the viewport resizes while
  * open — System 7 modals didn't chase the screen either.
+ *
+ * Position only: the size is the author's, declared in system px on the
+ * component (`<vf-dialog width="320">`). That is what keeps a drag from
+ * squeezing the box — a native `<dialog>` left at `width: fit-content` measures
+ * against the space beside these very margins, so every pixel toward an edge
+ * would take a pixel of width and reflow the text inside.
  */
 export function snapDialogToGrid(dialog: HTMLDialogElement): void {
   const rect = dialog.getBoundingClientRect()

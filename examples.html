@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vintage Frames — component reference</title>
+
+    <!--
+      COMPONENT REFERENCE — the third demo page.
+
+      index.html is the faux System 7 desktop; blog.html is an ordinary page
+      with kit controls dropped into it. This one is the manual: every
+      component, the custom parameters it takes, and a live specimen of each
+      state that can be shown standing still.
+
+      How to read it:
+
+      * Every demo below is a live component, and the "Markup" block under it
+        is that demo's own source — examples.ts clones one inert <template>
+        into the stage and prints the same template underneath, so the sample
+        can never drift from the thing above it.
+
+      * The API tables document what this kit ADDS. Where a control takes a
+        parameter the platform already defines — `disabled`, `name`, `value`,
+        `readonly`, `placeholder`, `min`/`max`/`step` — the table says so and
+        the "Standards & conventions" section states the conformity once, with
+        links to the specs, rather than paraphrasing them per component.
+
+      * The page pins --vf-scale: 1 (in examples.css, from a <link> so it is
+        in scope before the components upgrade) and calls applyGridSnap().
+        Load it with ?nosnap to turn the second one off.
+    -->
+    <link rel="stylesheet" href="/demo/examples.css" />
+    <script type="module" src="/demo/examples.ts"></script>
+  </head>
+
+  <body>
+    <header class="topbar">
+      <p class="topbar__brand">Vintage Frames <span>— component reference</span></p>
+      <nav class="topbar__links" aria-label="Other demo pages">
+        <a href="/">Showcase</a>
+        <a href="/blog.html">Integration example</a>
+      </nav>
+    </header>
+
+    <div class="page">
+      <nav class="toc" id="toc" aria-label="Contents"></nav>
+
+      <main class="main">
+        <!-- ================================================================
+             GUIDE
+             ============================================================= -->
+
+        <section class="doc" id="overview" data-group="Guide" data-toc="Overview">
+          <h1>Vintage Frames</h1>
+          <p class="lede">
+            Lit web components that emulate classic Mac OS System 7 — racing-stripe
+            title bars, 1px black borders, hard offset shadows, Chicago-style bold
+            type. Every demo on this page is a live component.
+          </p>
+
+          <template data-example data-caption="Not a screenshot. Press one; then Tab to it and watch the focus mark change language.">
+            <vf-button-group>
+              <vf-button>Quit</vf-button>
+              <vf-button variant="default">Install</vf-button>
+            </vf-button-group>
+          </template>
+
+          <h2>Install</h2>
+          <pre class="snippet"><code>npm install vintage-frames</code></pre>
+          <pre class="snippet"><code>import 'vintage-frames'             // registers every &lt;vf-*&gt; element
+import 'vintage-frames/vintage.css' // OPTIONAL page defaults (desktop bg, body face)</code></pre>
+
+          <p>
+            The second import is genuinely optional. Every visual constant is a
+            <code>--vf-*</code> custom property with an inlined fallback, and the two
+            System 7 bitmap faces register themselves on <code>document.fonts</code>
+            from inside the components — so a component dropped on a blank page
+            renders correctly with <strong>no global CSS at all</strong>.
+            <code>vintage.css</code> only adds page-level defaults (gray desktop
+            background, the body face on <code>&lt;body&gt;</code>), which are right
+            for a faux desktop and wrong for a documentation page like this one. This
+            page does not load it.
+          </p>
+
+          <p>
+            Individual components can be imported from their own modules
+            (<code>vintage-frames/dist/components/vf-button.js</code>) when you want
+            finer-grained loading; the package root registers all of them.
+          </p>
+
+          <h3>Sizing takes care of itself</h3>
+          <p>
+            Components are authored in <em>system pixels</em> — the 1-bit art grid —
+            and each one maps a system pixel onto a whole number of device pixels by
+            itself, so the artwork stays crisp at any <code>devicePixelRatio</code>
+            and re-adapts when the window moves to a different display. It is
+            internal, it needs no setup, and nesting never compounds it.
+          </p>
+          <p>
+            What follows from that: a component's box is never stated in fixed CSS
+            pixels. <strong>Windows and dialogs declare their own size</strong> in
+            system px — <code>&lt;vf-window width="240" height="176"&gt;</code> — and
+            for anything else a demo below sizes in <code>em</code> against the
+            component's own type (on a <code>vf-*</code> host <code>1em</code> is the
+            kit's 16-pixel face, so <code>15em</code> is the same box on every
+            display) or as a percentage of its container. Page furniture around the
+            components stays in ordinary px, as your own layout would.
+          </p>
+
+          <h3>One thing a host page decides</h3>
+          <p>
+            Everything else in this reference is per-component. This one is
+            page-wide, and getting it wrong is what makes an otherwise correct
+            integration look muddy — so it comes first: the
+            <a href="#grid">device-pixel grid</a>.
+          </p>
+        </section>
+
+        <section class="doc" id="grid" data-group="Guide" data-toc="Device-pixel grid">
+          <h2>Staying on the device-pixel grid</h2>
+          <p>
+            A component is built entirely from whole system pixels, so every edge
+            inside it sits on the grid — but only <em>relative to its own origin</em>.
+            Land that origin, or its size, on a fractional device pixel and the whole
+            1-bit interior rasterizes wrong: pixel-stepped corners staircase
+            asymmetrically, hairline borders and bitmap glyph stems smear across two
+            device rows and go gray. Mapping a system pixel onto a whole number of
+            device pixels is the kit's own half of that and it is handled internally.
+            Two rules are the page's, and one call covers the first:
+          </p>
+
+          <ol>
+            <li>
+              <strong>State every <code>line-height</code> in whole pixels, and keep
+              <code>padding</code>, <code>margin</code> and <code>gap</code> on
+              integers</strong> — or call <code>applyGridSnap()</code> and forget it.
+              Line boxes are the biggest offender:
+              <code>1.65 × 17px = 28.05px</code>, and every line of prose nudges
+              everything after it further off.
+            </li>
+            <li>
+              <strong>Position a box that contains components from its start edge — or
+              give it a whole-pixel size.</strong> Anything right-aligned, centered or
+              sharing <code>space-between</code> computes its origin as
+              <code>edge − width</code>, so a width derived from a text run lands it
+              off the grid.
+            </li>
+          </ol>
+
+          <pre class="snippet"><code>import { applyGridSnap, requestGridSnap } from 'vintage-frames'
+
+applyGridSnap()    // every component measures its own paint and cancels the
+                   // fractional remainder — returns a cleanup function
+requestGridSnap()  // re-run after moving components in a way that resizes nothing</code></pre>
+
+          <p>
+            The correction is applied <em>inside</em> each component's shadow root, so
+            the host's own <code>position</code>, <code>left</code>/<code>top</code>
+            and <code>margin</code> are never touched and it cannot collide with your
+            layout. Its whole footprint on your DOM is two reserved custom properties
+            (<code>--vf-snap-dx</code> / <code>--vf-snap-dy</code>) on each corrected
+            host. Opt a single element out with the <code>nosnap</code> attribute.
+          </p>
+
+          <p>
+            This page calls it. Load
+            <a href="/examples.html?nosnap"><code>?nosnap</code></a> to turn it off and
+            A/B at 100% zoom. Text you set on the kit's own faces has another option:
+            <a href="#vf-paragraph"><code>vf-paragraph</code></a> and
+            <a href="#vf-label"><code>vf-label</code></a> state their line box in whole
+            system pixels themselves.
+          </p>
+
+          <p>
+            <code>npm run verify:grid</code> checks every <code>vf-*</code> host on a
+            page at dpr 1/2/3, and <code>npm run verify:snap</code> checks that a page
+            knocked off the grid gets back on it. Point them at your own pages with
+            <code>VF_GRID_PAGES</code> / <code>VF_SNAP_PAGES</code>.
+          </p>
+        </section>
+
+        <section class="doc" id="conformity" data-group="Guide" data-toc="Standards &amp; conventions">
+          <h2>Standards &amp; conventions</h2>
+          <p>
+            The rest of this page documents what the kit <em>adds</em>. Everything a
+            control shares with the platform behaves the way the platform says it
+            does, and is stated once here rather than repeated per component.
+          </p>
+
+          <h3>Attributes and properties</h3>
+          <p>
+            Every documented property is also an attribute of the same name in
+            lowercase (<code>cellWidth</code> → <code>cell-width</code> is the only
+            camelCase pair). Boolean properties are boolean attributes: present means
+            true, and the value is ignored — <code>disabled</code> and
+            <code>disabled="false"</code> both disable. Set a boolean to false from
+            JavaScript (<code>el.disabled = false</code>) or remove the attribute.
+          </p>
+
+          <h3>Form participation</h3>
+          <p>
+            The value-bearing controls are
+            <a href="https://html.spec.whatwg.org/multipage/custom-elements.html#form-associated-custom-elements">form-associated
+            custom elements</a>: they attach their value through
+            <a href="https://html.spec.whatwg.org/multipage/custom-elements.html#the-elementinternals-interface"><code>ElementInternals</code></a>,
+            so a plain <code>&lt;form&gt;</code> submits them, they appear in
+            <code>form.elements</code>, and <code>form.reset()</code> restores their
+            default value. <code>name</code> and <code>value</code> mean exactly what
+            they mean on <a href="https://html.spec.whatwg.org/multipage/input.html#the-input-element"><code>&lt;input&gt;</code></a>.
+          </p>
+
+          <table class="api api--wide">
+            <caption>Standard parameters, and which components take them</caption>
+            <thead>
+              <tr><th>Parameter</th><th>Behaves as</th><th>On</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>name</code>, <code>value</code></td>
+                <td class="wrap">Submitted name/value pair; participates in
+                  <code>form.reset()</code></td>
+                <td class="wrap"><code>vf-button</code>, <code>vf-checkbox</code>,
+                  <code>vf-radio-group</code>, <code>vf-select</code>,
+                  <code>vf-slider</code>, the three fields</td>
+              </tr>
+              <tr>
+                <td><code>disabled</code></td>
+                <td class="wrap">Blocks interaction and removes the control from the
+                  tab order; also honors an ancestor
+                  <code>&lt;fieldset disabled&gt;</code>. Dims the <em>label</em>, not
+                  the chrome — System 7 kept borders and glyphs black</td>
+                <td class="wrap">Every interactive component</td>
+              </tr>
+              <tr>
+                <td><code>readonly</code>, <code>placeholder</code></td>
+                <td class="wrap">Passed to the inner
+                  <code>&lt;input&gt;</code>/<code>&lt;textarea&gt;</code></td>
+                <td class="wrap"><code>vf-text-field</code>, <code>vf-text-area</code>,
+                  <code>vf-number-field</code></td>
+              </tr>
+              <tr>
+                <td><code>type</code></td>
+                <td class="wrap">Passed to the inner <code>&lt;input type&gt;</code>
+                  (<code>text</code>, <code>password</code>, <code>email</code>, …);
+                  on <code>vf-button</code> it is
+                  <code>button</code>/<code>submit</code>/<code>reset</code></td>
+                <td class="wrap"><code>vf-text-field</code>, <code>vf-button</code></td>
+              </tr>
+              <tr>
+                <td><code>min</code>, <code>max</code>, <code>step</code></td>
+                <td class="wrap">Clamping and stepping as on
+                  <code>&lt;input type="number"&gt;</code> / <code>range</code></td>
+                <td class="wrap"><code>vf-number-field</code>, <code>vf-slider</code></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Naming a control</h3>
+          <p>
+            A <code>vf-*</code> control's focusable element lives inside its shadow
+            root, where an <code>aria-label</code> on the host cannot reach it. Two
+            routes reach it instead, and both are wired for you:
+          </p>
+          <ul>
+            <li>
+              <code>&lt;vf-label for="id"&gt;</code> — clicking the caption focuses the
+              target, and the caption text becomes its accessible name. It never
+              overwrites a name you set, and puts back what it found when removed.
+            </li>
+            <li>
+              the control's own <code>label</code> property, for a control with no
+              visible caption (<code>vf-select</code>, <code>vf-slider</code>,
+              <code>vf-list</code>, <code>vf-scroll-area</code>,
+              <code>vf-progress-bar</code>, <code>vf-swatch</code>,
+              <code>vf-radio-group</code>, the three fields).
+            </li>
+          </ul>
+          <p>
+            Where the role sits on the host itself (<code>vf-radio-group</code>,
+            <code>vf-list</code>), plain <code>aria-labelledby</code> works too.
+          </p>
+
+          <h3>Roles and keyboard</h3>
+          <p>
+            Roles follow <a href="https://www.w3.org/TR/wai-aria-1.2/">WAI-ARIA 1.2</a>
+            and the keyboard behavior follows the matching
+            <a href="https://www.w3.org/WAI/ARIA/apg/patterns/">APG pattern</a>, with
+            System 7 behavior layered on top where the two agree (classic Mac radio
+            groups also select on arrow, which is what the APG prescribes).
+          </p>
+
+          <table class="api api--wide">
+            <caption>Role and keyboard per component</caption>
+            <thead>
+              <tr><th>Component</th><th>Role</th><th>Keys</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>vf-button</code>, <code>vf-swatch</code></td>
+                <td class="wrap">native <code>&lt;button&gt;</code> in the shadow root</td>
+                <td class="wrap">Enter, Space</td>
+              </tr>
+              <tr>
+                <td><code>vf-checkbox</code></td>
+                <td class="wrap"><a href="https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/">checkbox</a></td>
+                <td class="wrap">Space</td>
+              </tr>
+              <tr>
+                <td><code>vf-radio-group</code> / <code>vf-radio</code></td>
+                <td class="wrap"><a href="https://www.w3.org/WAI/ARIA/apg/patterns/radio/">radiogroup / radio</a></td>
+                <td class="wrap">Arrows move and select; roving tabindex</td>
+              </tr>
+              <tr>
+                <td><code>vf-select</code> / <code>vf-option</code></td>
+                <td class="wrap"><a href="https://www.w3.org/WAI/ARIA/apg/patterns/combobox/">combobox</a> + listbox panel</td>
+                <td class="wrap">Space / Enter / ↓ open; arrows move; Enter or Space
+                  select; Esc cancels; Home / End</td>
+              </tr>
+              <tr>
+                <td><code>vf-list</code> / <code>vf-list-item</code></td>
+                <td class="wrap"><a href="https://www.w3.org/WAI/ARIA/apg/patterns/listbox/">listbox / option</a></td>
+                <td class="wrap">Arrows move selection, Space toggles when
+                  <code>multiple</code>, printable keys drive Finder first-letter
+                  type-ahead</td>
+              </tr>
+              <tr>
+                <td><code>vf-menu-bar</code> / <code>vf-menu</code> /
+                  <code>vf-menu-item</code></td>
+                <td class="wrap"><a href="https://www.w3.org/WAI/ARIA/apg/patterns/menubar/">menubar / menu / menuitem</a>
+                  (<code>menuitemcheckbox</code> when checkable)</td>
+                <td class="wrap">Arrows move, Enter / Space activate, Esc closes</td>
+              </tr>
+              <tr>
+                <td><code>vf-slider</code></td>
+                <td class="wrap"><a href="https://www.w3.org/WAI/ARIA/apg/patterns/slider/">slider</a></td>
+                <td class="wrap">Arrows step, PageUp / PageDown, Home / End</td>
+              </tr>
+              <tr>
+                <td><code>vf-number-field</code></td>
+                <td class="wrap"><a href="https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/">spinbutton</a></td>
+                <td class="wrap">↑ / ↓ step, Home / End jump to min / max</td>
+              </tr>
+              <tr>
+                <td><code>vf-dialog</code>, <code>vf-alert</code></td>
+                <td class="wrap">native
+                  <a href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element"><code>&lt;dialog&gt;</code></a>
+                  (<code>alertdialog</code> for the alert)</td>
+                <td class="wrap">Esc closes; the platform traps focus</td>
+              </tr>
+              <tr>
+                <td><code>vf-scroll-area</code></td>
+                <td class="wrap"><code>region</code> once <code>label</code> is set</td>
+                <td class="wrap">Focusable viewport; arrows, Page keys</td>
+              </tr>
+              <tr>
+                <td><code>vf-progress-bar</code>, <code>vf-fieldset</code>,
+                  <code>vf-separator</code></td>
+                <td class="wrap"><code>progressbar</code>, <code>group</code>,
+                  <code>separator</code></td>
+                <td class="wrap">—</td>
+              </tr>
+              <tr>
+                <td><code>vf-grid</code>, <code>vf-window</code>,
+                  <code>vf-desktop</code></td>
+                <td class="wrap">none — the semantics are yours to set</td>
+                <td class="wrap">A window's close and zoom widgets are labelled
+                  buttons in the tab order</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Keyboard focus is drawn in the 1-bit idiom</h3>
+          <p>
+            Full keyboard access postdates System 7, so a focus affordance is
+            something this kit <strong>adds</strong> — and it draws it in the kit's own
+            vocabulary rather than leaving the browser's ring on top of the artwork.
+            Where a control can carry the mark itself it does, as a 1px dashed rule on
+            the system-pixel grid: inside the control under the ink it marks, or below
+            the whole box where there is no interior to give. Only the controls with no
+            face to draw on — a window's close and zoom boxes, a list row, a scroll
+            viewport — keep a dotted ring.
+          </p>
+          <p>
+            Either way it is <strong>keyboard-only</strong>: a mouse click never draws
+            it. Tab through the specimens below to see all three.
+          </p>
+
+          <template
+            data-example
+            data-caption="Tab into each of these — a click leaves them unmarked."
+          >
+            <div class="specimen">
+              <vf-button>Open</vf-button>
+              <span class="specimen__name">under the label</span>
+            </div>
+            <div class="specimen">
+              <vf-checkbox>Verify</vf-checkbox>
+              <span class="specimen__name">under the box</span>
+            </div>
+            <div class="specimen">
+              <vf-select value="hd">
+                <vf-option value="hd">Macintosh HD</vf-option>
+                <vf-option value="floppy">Untitled</vf-option>
+              </vf-select>
+              <span class="specimen__name">under the whole pill</span>
+            </div>
+          </template>
+
+          <h3>Events</h3>
+          <p>
+            Custom events are named <code>vf-*</code> and dispatched
+            <code>bubbles: true, composed: true</code>, so one delegated listener on an
+            ancestor sees them all however deep the shadow roots go. Native events are
+            untouched: <code>click</code>, <code>focus</code>, <code>keydown</code> and
+            friends work as they always do.
+          </p>
+
+          <table class="api api--wide">
+            <caption>The whole event vocabulary</caption>
+            <thead>
+              <tr><th>Event</th><th>Detail</th><th>Fired by</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>vf-input</code></td>
+                <td class="wrap"><code>{ value }</code> —
+                  <code>{ value, valueAsNumber }</code> on the number field</td>
+                <td class="wrap">The three fields, <code>vf-slider</code> — every
+                  keystroke or drag move</td>
+              </tr>
+              <tr>
+                <td><code>vf-change</code></td>
+                <td class="wrap"><code>{ value }</code>,
+                  <code>{ checked }</code> (checkbox),
+                  <code>{ value, values }</code> (list)</td>
+                <td class="wrap">Every value-bearing control, on commit</td>
+              </tr>
+              <tr>
+                <td><code>vf-menu-select</code></td>
+                <td class="wrap"><code>{ value, item }</code></td>
+                <td class="wrap"><code>vf-menu-item</code>. Deliberately not
+                  <code>vf-select</code>: that would collide with the popup control's
+                  own event on any delegated listener</td>
+              </tr>
+              <tr>
+                <td><code>vf-close</code></td>
+                <td class="wrap"><code>{}</code> on a window;
+                  <code>{ reason: 'escape' | 'close' }</code> on a modal</td>
+                <td class="wrap"><code>vf-window</code>, <code>vf-dialog</code>,
+                  <code>vf-alert</code></td>
+              </tr>
+              <tr>
+                <td><code>vf-zoom</code></td>
+                <td class="wrap"><code>{}</code></td>
+                <td class="wrap"><code>vf-window</code></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <template
+            data-example
+            data-stage="column"
+            data-caption="One listener on the container catches all of it. The log below is this page's, not a component."
+          >
+            <vf-checkbox>Notify me</vf-checkbox>
+            <vf-select value="draft">
+              <vf-option value="draft">Draft</vf-option>
+              <vf-option value="sent">Sent</vf-option>
+            </vf-select>
+            <vf-slider value="40" label="Volume" style="width: 15em"></vf-slider>
+            <pre class="log" data-log></pre>
+          </template>
+
+          <h3>Styling: parts and tokens</h3>
+          <p>
+            Two supported surfaces, both standard CSS: every visual constant is a
+            <a href="https://www.w3.org/TR/css-variables-1/">custom property</a>
+            (<a href="#tokens">the token table</a>), and each component's internals are
+            reachable through
+            <a href="https://www.w3.org/TR/css-shadow-parts-1/"><code>::part()</code></a>.
+            The per-component tables below list the parts each one exposes.
+          </p>
+          <pre class="snippet"><code>vf-menu-bar::part(bar) { padding-inline: 24px; }   /* align with your content column */
+vf-button::part(button) { min-width: 96px; }
+:root { --vf-shadow-offset: 1px; }</code></pre>
+        </section>
+
+        <!-- ================================================================
+             GROUP A — CHROME & SHELLS
+             ============================================================= -->
+
+        <section class="doc" id="vf-desktop" data-group="Chrome &amp; shells" data-toc="vf-desktop">
+          <h2><code>vf-desktop</code></h2>
+          <p>
+            The gray desktop container: the classic 50% dither drawn as a crisp SVG
+            tile, plus window management. It stacks slotted <code>vf-window</code>
+            children — a pointerdown brings a window to front and marks it
+            <code>active</code>, clearing <code>active</code> on the others.
+          </p>
+          <p>
+            Utility windows (<code>variant="utility"</code>) live on a floating tier
+            above every document window and stand outside the single-active rule both
+            ways, so clicking a palette never deactivates the document you are working
+            in.
+          </p>
+
+          <template
+            data-example
+            data-stage="desktop"
+            data-caption="Click each window to restack it — and watch the other one's stripes, widgets and grow box go. The palette is on the floating tier: clicking it deactivates nothing."
+          >
+            <vf-desktop style="width: 32em; height: 17em">
+              <vf-window
+                heading="Untitled"
+                movable
+                resizable
+                width="192"
+                style="position: absolute; left: 1em; top: 1em"
+              >
+                <vf-paragraph>Drag my title bar. Drag the grow box.</vf-paragraph>
+              </vf-window>
+              <vf-window
+                heading="Second"
+                movable
+                width="176"
+                style="position: absolute; left: 8em; top: 6em"
+              >
+                <vf-paragraph>Click me to come forward.</vf-paragraph>
+              </vf-window>
+              <vf-window
+                variant="utility"
+                heading="Tools"
+                movable
+                flush
+                width="82"
+                height="94"
+                style="position: absolute; left: 22em; top: 1em"
+              >
+                <vf-grid columns="3" cell-width="26" cell-height="26" frameless>
+                  <vf-img width="16" height="16"><img src="/demo/icons/alarm-clock.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/battery.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/calculator.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/chooser.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/key-caps.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/note-pad.png" alt="" /></vf-img>
+                </vf-grid>
+              </vf-window>
+            </vf-desktop>
+          </template>
+
+          <p class="conforms">
+            No parameters of its own. Give it a height; it is
+            <code>position: relative</code> already, so position windows inside it
+            absolutely.
+          </p>
+
+          <table class="api">
+            <caption>Anatomy</caption>
+            <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, anything</td></tr>
+              <tr><td>Part</td><td><code>desktop</code></td><td class="wrap">The dithered surface</td></tr>
+              <tr><td>Token</td><td><code>--vf-desktop</code></td><td class="wrap">Base color under the tile (<code>#808080</code>); visible only under a custom pattern with transparent cells</td></tr>
+              <tr><td>Token</td><td><code>--vf-desktop-pattern</code></td><td class="wrap">The whole background-image tile</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-window" data-group="Chrome &amp; shells" data-toc="vf-window">
+          <h2><code>vf-window</code></h2>
+          <p>
+            The desktop-window shell, parameterized from the full document window down
+            to the slim windoid. The 1992 <em>Macintosh Human Interface Guidelines</em>
+            names five standard windows; the kit does not ship five components — it
+            ships two shells, and each archetype is a one-line recipe over them.
+          </p>
+
+          <table class="api api--wide">
+            <caption>The five HIG archetypes as recipes</caption>
+            <thead><tr><th>Archetype</th><th>Recipe</th></tr></thead>
+            <tbody>
+              <tr><td class="wrap">Document window</td><td class="mono wrap">&lt;vf-window closable zoomable movable resizable scrollbars="both"&gt;</td></tr>
+              <tr><td class="wrap">Movable modal dialog box</td><td class="mono wrap">&lt;vf-dialog heading="…"&gt;</td></tr>
+              <tr><td class="wrap">Modal dialog box</td><td class="mono wrap">&lt;vf-dialog frame="plain"&gt;</td></tr>
+              <tr><td class="wrap">Modeless dialog box</td><td class="mono wrap">&lt;vf-window closable movable&gt;</td></tr>
+              <tr><td class="wrap">Utility (floating) window</td><td class="mono wrap">&lt;vf-window variant="utility" movable&gt;</td></tr>
+            </tbody>
+          </table>
+
+          <p>
+            Parameters rather than fixed anatomies because the HIG disagrees with
+            itself about the details — Figure 5-1 and Figure 6-1 label the same two
+            artworks opposite ways, the close box migrating between the movable modal
+            and the modeless dialog. The recipes follow the Chapter 6 body text, but
+            the components stay neutral: they <em>enable</em> HIG compliance rather
+            than enforcing one reading.
+          </p>
+
+          <template
+            data-example
+            data-stage="desktop"
+            data-caption="Document window (rails on the frame, grow box in the corner cell), modeless dialog, and the windoid. One document window is frontmost at a time — click a title bar to switch. Then close it: vf-close does not remove the window, so this page hides it and the button puts it back."
+          >
+            <vf-desktop style="width: 32em; height: 21em">
+              <vf-window
+                heading="Read Me"
+                movable
+                resizable
+                zoomable
+                scrollbars="both"
+                data-hide-on-close
+                id="ex-window-doc"
+                width="240"
+                height="176"
+                style="position: absolute; left: 1em; top: 1em"
+              >
+                <vf-paragraph>DragThing 2.9 — read me before installing.</vf-paragraph>
+                <vf-paragraph>
+                  This window carries the document archetype at full anatomy: the
+                  System 7 rails sit on the window's own frame rather than inset in its
+                  body, and the grow box lands in the corner cell between them.
+                </vf-paragraph>
+              </vf-window>
+              <vf-window
+                heading="Find"
+                closable
+                movable
+                width="208"
+                style="position: absolute; left: 18em; top: 3em"
+              >
+                <vf-label for="ex-find">Find:</vf-label>
+                <vf-text-field id="ex-find" value="System" style="width: 100%"></vf-text-field>
+              </vf-window>
+              <vf-window
+                variant="utility"
+                heading="Palette"
+                movable
+                width="144"
+                style="position: absolute; left: 18em; top: 12em"
+              >
+                <vf-paragraph size="small">A windoid: 12px bar, dot dither, 7×7 widgets.</vf-paragraph>
+              </vf-window>
+              <vf-button data-reopen="#ex-window-doc" style="position: absolute; left: 1em; top: 14em">Reopen</vf-button>
+            </vf-desktop>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it.</strong> Whole system px — the art's own unit, so the window holds its proportion to the chrome inside it at every density, which a CSS-px width does not. Undeclared, the window falls back to plain block layout and says so once in the console</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Unset, the body sizes to its content</td></tr>
+              <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title text, centered on the stripes. Also qualifies the widgets' accessible names (<code>Close Read Me</code>) — several windows are open at once by design</td></tr>
+              <tr><td><code>active</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">Frontmost. Inactive drops the stripes and widgets, hollows the grow box and blanks every scroll rail inside — but keeps the title black, as System 7 did. Managed by <code>vf-desktop</code>; outside one, nothing changes it</td></tr>
+              <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">The left close box</td></tr>
+              <tr><td><code>zoomable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The right zoom box</td></tr>
+              <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag the title bar to move; the component seeds <code>position: absolute</code> from the current offset on first drag</td></tr>
+              <tr><td><code>resizable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The 15×15 grow box, bottom right</td></tr>
+              <tr><td><code>flush</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Removes the 12px body padding</td></tr>
+              <tr><td><code>variant</code></td><td class="wrap"><code>'utility'</code></td><td>—</td><td class="wrap">The windoid: 12px bar with a dot dither instead of racing stripes, 7×7 widgets, no title patch (the heading names the widgets). Floats above document windows inside a <code>vf-desktop</code></td></tr>
+              <tr><td><code>scrollbars</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td>—</td><td class="wrap">Puts the System 7 rails on the window's edge with the grow box in the corner cell — the TeachText composition, built in. Implies <code>flush</code></td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption>Anatomy</caption>
+            <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap">Body content</td></tr>
+              <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap">The close box was clicked. The window does <strong>not</strong> remove itself — the consumer decides</td></tr>
+              <tr><td>Event</td><td><code>vf-zoom</code></td><td class="wrap">The zoom box was clicked</td></tr>
+              <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>zoom-box</code>, <code>body</code>, <code>grow-box</code></td><td class="wrap">Plus <code>viewport</code>, re-exported from the built-in scroll area when <code>scrollbars</code> is set</td></tr>
+              <tr><td>Tokens</td><td class="wrap"><code>--vf-titlebar-height</code>, <code>--vf-titlebar-height-utility</code>, <code>--vf-title-inset</code>, <code>--vf-dots-pattern</code>, <code>--vf-shadow-offset</code></td><td class="wrap">18px / 12px bars, the title's clearance from the widgets, the windoid dither, the hard shadow</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-dialog" data-group="Chrome &amp; shells" data-toc="vf-dialog">
+          <h2><code>vf-dialog</code></h2>
+          <p>
+            The modal-dialog shell, wrapping a native
+            <code>&lt;dialog&gt;</code> for the top layer and its focus trap. Movable
+            modal by default (striped bar, draggable, no close box); the dBoxProc modal
+            dialog box with <code>frame="plain"</code>. No backdrop dimming — System 7
+            had none.
+          </p>
+
+          <template
+            data-example
+            data-caption="Both open with show(). Escape closes either, with reason: 'escape'."
+          >
+            <vf-button data-show="#ex-dialog">Save As…</vf-button>
+            <vf-button data-show="#ex-dialog-plain">Page Setup…</vf-button>
+
+            <vf-dialog id="ex-dialog" heading="Save As" closable width="320">
+              <vf-label for="ex-dialog-name">Save this document as:</vf-label>
+              <vf-text-field id="ex-dialog-name" value="Untitled 1"></vf-text-field>
+              <vf-button slot="buttons" data-close="#ex-dialog">Cancel</vf-button>
+              <vf-button slot="buttons" variant="default" data-close="#ex-dialog">Save</vf-button>
+            </vf-dialog>
+
+            <vf-dialog id="ex-dialog-plain" frame="plain" heading="Page Setup" width="300">
+              <vf-fieldset legend="Paper">
+                <vf-radio-group name="paper" value="us-letter" label="Paper">
+                  <vf-radio value="us-letter">US Letter</vf-radio>
+                  <vf-radio value="a4">A4 Letter</vf-radio>
+                </vf-radio-group>
+              </vf-fieldset>
+              <vf-button slot="buttons" data-close="#ex-dialog-plain">Cancel</vf-button>
+              <vf-button slot="buttons" variant="default" data-close="#ex-dialog-plain">OK</vf-button>
+            </vf-dialog>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected, and kept in sync with the native dialog both directions</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it.</strong> Whole system px. A dialog owns its width; it is not a shape its content falls into. The platform's default is <code>fit-content</code> measured against the space beside the margins — and the margins are how a movable modal is positioned, so an undeclared dialog squeezes itself and reflows as you drag it toward an edge. Unset, it falls back to 260 system px and says so once in the console</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Unset, the body sizes to its content, which for a dialog is usually right</td></tr>
+              <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title-bar text — or, on <code>frame="plain"</code>, a centered heading at the top of the body, the way those dialogs drew their title in content. Also the accessible name</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for a dialog with no <code>heading</code>; wins over one when both are set. Falls back to <code>'Dialog'</code></td></tr>
+              <tr><td><code>closable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Opt into the close box. Off by default because the HIG's Chapter 6 text denies a movable modal one while its Figure 5-1 grants it — the parameter enables either reading. Ignored under <code>frame="plain"</code>, which has no bar</td></tr>
+              <tr><td><code>frame</code></td><td class="wrap"><code>'plain'</code></td><td>—</td><td class="wrap">The modal double frame: 1px outer rule, 2px gap, 2px inner band, no shadow, no title bar, immovable — the original dBoxProc. Not the alert's frame, which System 7 drew differently</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption>Anatomy</caption>
+            <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Method</td><td><code>show()</code></td><td class="wrap">Opens it (native <code>showModal()</code>), pinned onto the device-pixel grid</td></tr>
+              <tr><td>Method</td><td><code>close()</code></td><td class="wrap">Closes it; fires <code>vf-close</code> with <code>reason: 'close'</code></td></tr>
+              <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' }</code> — every close path routes through the native <code>close</code> event, so the reason is always right</td></tr>
+              <tr><td>Slots</td><td class="wrap">(default), <code>buttons</code></td><td class="wrap">The <code>buttons</code> slot renders a bottom-right <code>vf-button-group</code> footer (equal width, faces aligned) that takes no space when empty</td></tr>
+              <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>body</code>, <code>footer</code>, <code>buttons</code></td><td class="wrap">Title bar and close box only on the default chrome</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-alert" data-group="Chrome &amp; shells" data-toc="vf-alert">
+          <h2><code>vf-alert</code></h2>
+          <p>
+            The classic fixed modal alert: double black frame, hard shadow, no title
+            bar. Its frame is deliberately <em>not</em> the modal dialog's — the
+            alert's trace is 2px outer / 1px inner with the shadow, the dialog's is 1px
+            outer / 2px inner without. System 7 drew them differently, so the kit keeps
+            both.
+          </p>
+
+          <template data-example data-caption="variant='caution' renders the classic triangle as inline 1-bit SVG.">
+            <vf-button data-show="#ex-alert">Erase Disk…</vf-button>
+
+            <vf-alert id="ex-alert" variant="caution" label="Erase disk" width="340">
+              <vf-paragraph>Completely erase the disk named “Macintosh HD”?</vf-paragraph>
+              <vf-button slot="buttons" data-close="#ex-alert">Cancel</vf-button>
+              <vf-button slot="buttons" variant="default" data-close="#ex-alert">Erase</vf-button>
+            </vf-alert>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; synced with the native dialog</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it.</strong> Whole system px — the same requirement, fallback and warning as <a href="#vf-dialog"><code>vf-dialog</code></a>; both modals inherit it from the same base</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Unset, the body sizes to its content</td></tr>
+              <tr><td><code>variant</code></td><td class="wrap"><code>'caution'</code></td><td>—</td><td class="wrap">The black/white triangle-with-! icon. Omit for none, or slot your own</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name — an alert has no title bar to take one from</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption>Anatomy</caption>
+            <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Methods</td><td class="wrap"><code>show()</code>, <code>close()</code></td><td class="wrap">As <code>vf-dialog</code></td></tr>
+              <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' }</code></td></tr>
+              <tr><td>Slots</td><td class="wrap"><code>icon</code>, (default), <code>buttons</code></td><td class="wrap">32px icon column left, message right, button group bottom right</td></tr>
+              <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>icon</code>, <code>message</code>, <code>buttons</code></td><td class="wrap">Role is <code>alertdialog</code></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-separator" data-group="Chrome &amp; shells" data-toc="vf-separator">
+          <h2><code>vf-separator</code></h2>
+          <p>
+            A 1px black rule. Inside a menu panel it renders as the classic dimmed
+            dotted rule instead — the menu sets the two tokens below on its panel, so
+            the same element draws both.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Horizontal, spanning its container; then vertical, stretched to the row it divides.">
+            <vf-separator style="width: 100%"></vf-separator>
+            <div style="display: flex; gap: 12px; align-items: stretch">
+              <vf-label>Before</vf-label>
+              <vf-separator vertical></vf-separator>
+              <vf-label>After</vf-label>
+            </div>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>vertical</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">1px wide, auto height — give it a height context</td></tr>
+              <tr><td><code>--vf-separator-color</code></td><td>Token</td><td><code>--vf-black</code></td><td class="wrap">Menus set it to the dim gray</td></tr>
+              <tr><td><code>--vf-separator-style</code></td><td>Token</td><td><code>solid</code></td><td class="wrap">Menus set it to <code>dotted</code></td></tr>
+              <tr><td colspan="4" class="wrap">Role <code>separator</code>. No slots, parts or events.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ================================================================
+             GROUP B — BUTTONS & TOGGLES
+             ============================================================= -->
+
+        <section class="doc" id="vf-button" data-group="Buttons &amp; toggles" data-toc="vf-button">
+          <h2><code>vf-button</code></h2>
+          <p>
+            The push button, with pixel-stepped corners traced from the reference
+            sheet — two clipped pseudo-element layers, never an antialiasing
+            <code>border-radius</code>. Press one to see the face invert; Tab to one to
+            see the dashed rule under its label.
+          </p>
+
+          <template data-example data-caption="Every declarative state. Press and Tab for the two that are interaction-only.">
+            <vf-button>Quit</vf-button>
+            <vf-button variant="default">Install</vf-button>
+            <vf-button size="small">Eject</vf-button>
+            <vf-button disabled>Print</vf-button>
+            <vf-button variant="default" disabled>Install</vf-button>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>variant</code></td><td class="wrap"><code>'default'</code></td><td>—</td><td class="wrap">The double-ring default button. The 3px ring sits 1px clear of the face and reserves 4px of margin — which is why buttons that share a row belong in a <a href="#vf-button-group"><code>vf-button-group</code></a></td></tr>
+              <tr><td><code>size</code></td><td class="wrap"><code>'small'</code></td><td>—</td><td class="wrap">The compact 16px button, label in the body face; same traced corners</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the <em>label</em> only; the 1px border stays black (the default ring dims, its inner border does not)</td></tr>
+              <tr><td><code>type</code></td><td class="wrap"><code>'button' | 'submit' | 'reset'</code></td><td><code>'button'</code></td><td class="wrap">Form-associated: <code>submit</code> calls <code>requestSubmit()</code>, <code>reset</code> calls <code>reset()</code></td></tr>
+              <tr><td><code>name</code>, <code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Standard — see <a href="#conformity">Form participation</a></td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption>Anatomy</caption>
+            <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap">The label</td></tr>
+              <tr><td>Part</td><td><code>button</code></td><td class="wrap">The inner <code>&lt;button&gt;</code> — put a <code>min-width</code> here</td></tr>
+              <tr><td>Events</td><td>—</td><td class="wrap">None custom; native <code>click</code> suffices</td></tr>
+              <tr><td>Tokens</td><td class="wrap"><code>--vf-button-height</code> (20px), <code>--vf-control-height-small</code> (16px), <code>--vf-button-ring-margin</code>, <code>--vf-button-flex</code></td><td class="wrap">The last two are the hooks <code>vf-button-group</code> sets; standalone they are inert</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-button-group" data-group="Buttons &amp; toggles" data-toc="vf-button-group">
+          <h2><code>vf-button-group</code></h2>
+          <p>
+            Arranges buttons in a row, sizing them all to the widest — the classic
+            System 7 shared width — and aligning their <em>faces</em>. That second part
+            is the point: a <code>variant="default"</code> button reserves 4px of
+            margin for its ring, so an ad-hoc flex row lines up the ring instead of the
+            button. Compare the two stages below.
+          </p>
+
+          <template data-example data-caption="A group: equal widths, faces on one line.">
+            <vf-button-group>
+              <vf-button>Cancel</vf-button>
+              <vf-button variant="default">OK</vf-button>
+            </vf-button-group>
+          </template>
+
+          <template data-example data-caption="The same two buttons in a plain flex row: unequal widths, and the ring sets the alignment.">
+            <div style="display: flex; gap: 12px">
+              <vf-button>Cancel</vf-button>
+              <vf-button variant="default">OK</vf-button>
+            </div>
+          </template>
+
+          <template data-example data-caption="natural keeps each button's own width; vertical stacks them in one column sized to the widest.">
+            <vf-button-group natural>
+              <vf-button>Cancel</vf-button>
+              <vf-button variant="default">Install</vf-button>
+            </vf-button-group>
+            <vf-button-group vertical>
+              <vf-button>Quit</vf-button>
+              <vf-button variant="default">Install</vf-button>
+            </vf-button-group>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>vertical</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Stack in a column instead of a row</td></tr>
+              <tr><td><code>natural</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Let each button keep its own content width</td></tr>
+              <tr><td><code>--vf-button-group-gap</code></td><td>Token</td><td><code>12px</code></td><td class="wrap">Gap between buttons</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (<code>vf-button</code> elements). No parts, no events. Layout-neutral — it shrink-wraps to its buttons, so the parent positions it (<code>justify-self: end</code> for an action row). <code>vf-dialog</code> and <code>vf-alert</code> wrap their <code>buttons</code> slots in one.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-swatch" data-group="Buttons &amp; toggles" data-toc="vf-swatch">
+          <h2><code>vf-swatch</code></h2>
+          <p>
+            A color-swatch button: a hard-shadowed, white-inset color well sized in
+            system pixels — a palette cell. With no <code>color</code> it shows the
+            transparency checker, and a translucent value layers over that checker so
+            partial opacity reads as partial.
+          </p>
+
+          <template data-example data-caption="The six-color palette, a translucent well, the no-color checker, a large square, and a disabled one.">
+            <vf-swatch color="#000000" label="Black"></vf-swatch>
+            <vf-swatch color="#dd0000" label="Red"></vf-swatch>
+            <vf-swatch color="#ff6600" label="Orange"></vf-swatch>
+            <vf-swatch color="#ffcc00" label="Yellow"></vf-swatch>
+            <vf-swatch color="#008800" label="Green"></vf-swatch>
+            <vf-swatch color="#0066cc" label="Blue"></vf-swatch>
+            <vf-swatch color="rgb(0 102 204 / 40%)" label="Blue, 40%"></vf-swatch>
+            <vf-swatch label="No color"></vf-swatch>
+            <vf-swatch color="#663399" width="40" height="40" label="Purple"></vf-swatch>
+            <vf-swatch color="#0066cc" label="Blue" disabled></vf-swatch>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>color</code></td><td class="wrap">string (CSS color)</td><td>—</td><td class="wrap">The fill. Unset shows the checker</td></tr>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td><code>24</code>, <code>18</code></td><td class="wrap">The border box, in whole system px</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name; defaults to the <code>color</code>, or "transparent"</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Stops interaction; <em>nothing dims</em>. The kit dims labels, and a swatch's only label is its fill, which has to keep reading as its color</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption>Anatomy</caption>
+            <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Parts</td><td class="wrap"><code>button</code>, <code>fill</code></td><td class="wrap">No slots</td></tr>
+              <tr><td>Events</td><td>—</td><td class="wrap">None custom — native <code>click</code>. Not form-associated: a palette cell picks, it does not submit</td></tr>
+              <tr><td>Token</td><td><code>--vf-swatch-checker</code></td><td class="wrap">The transparency-checker tile; <code>--vf-shadow-offset</code> for the hard shadow</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-checkbox" data-group="Buttons &amp; toggles" data-toc="vf-checkbox">
+          <h2><code>vf-checkbox</code></h2>
+          <p>
+            A 13×13 white box with the classic ✕ — the pixel-exact corner-to-corner
+            cross from the sprite sheet, not an antialiased stroke. Pressing thickens
+            the border to 2px, the way System 7 acknowledged a click.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Note what dims when disabled: the label, never the box or the mark.">
+            <vf-checkbox name="quit" value="on">Quit when finished</vf-checkbox>
+            <vf-checkbox checked>Create alias</vf-checkbox>
+            <vf-checkbox disabled>Selection only</vf-checkbox>
+            <vf-checkbox checked disabled>Verify after install</vf-checkbox>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected</td></tr>
+              <tr><td><code>disabled</code>, <code>name</code></td><td>—</td><td>—</td><td class="wrap">Standard — see <a href="#conformity">Form participation</a></td></tr>
+              <tr><td><code>value</code></td><td>string</td><td><code>'on'</code></td><td class="wrap">Submitted when checked, as on a native checkbox</td></tr>
+              <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ checked: boolean }</code>, on user interaction</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>box</code>, <code>label</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-radio" data-group="Buttons &amp; toggles" data-toc="vf-radio + vf-radio-group">
+          <h2><code>vf-radio</code> &amp; <code>vf-radio-group</code></h2>
+          <p>
+            A 13×13 pixel circle drawn as inline 1-bit SVG — a hand-tuned outline over
+            a white disc, never <code>border-radius</code>. The <em>group</em> is the
+            form surface: it owns <code>value</code>, the roving tabindex and the
+            submitted name; a bare <code>vf-radio</code> outside one self-manages so it
+            is never keyboard-dead.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Arrow keys move and select, as they did on the classic Mac. The caption is a vf-label whose `for` both focuses and names the group.">
+            <vf-label for="ex-mode">Mode</vf-label>
+            <vf-radio-group id="ex-mode" name="mode" value="hierarchical">
+              <vf-radio value="hierarchical">Hierarchical</vf-radio>
+              <vf-radio value="by-level">By Level</vf-radio>
+              <vf-radio value="source" disabled>Source Format Profile</vf-radio>
+              <vf-radio value="none">Don't Reorganize</vf-radio>
+            </vf-radio-group>
+            <span class="readout" data-value-src="ex-mode"></span>
+          </template>
+
+          <table class="api">
+            <caption><code>vf-radio-group</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">The selected child's value; setting it checks that child</td></tr>
+              <tr><td><code>name</code>, <code>disabled</code></td><td>—</td><td>—</td><td class="wrap">Standard. Form-associated: the group submits, not the radios</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name (or use <code>vf-label for</code> / <code>aria-labelledby</code>)</td></tr>
+              <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code></td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default — the radios, or arbitrary markup containing them. Role <code>radiogroup</code>; no parts.</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption><code>vf-radio</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">What the group reports when this one is selected</td></tr>
+              <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected. Inside a group, the group is the source of truth</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the label; the ring and dot stay black</td></tr>
+              <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code>, on user interaction only</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>circle</code>, <code>label</code>. Not form-associated by design — the group is.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ================================================================
+             GROUP C — TEXT & VALUE INPUTS
+             ============================================================= -->
+
+        <section class="doc" id="vf-text-field" data-group="Text &amp; value inputs" data-toc="vf-text-field">
+          <h2><code>vf-text-field</code></h2>
+          <p>
+            A bordered text input at the field height of 22px, typed in the chrome face
+            (System 7 typed its dialog fields in Chicago). Selected text inverts to the
+            1-bit black-on-white selection all three editable fields share.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Click one and type; the selection inverts. Tab in to see the dashed rule under the well — a click leaves it unmarked, because the insertion point already says where focus went.">
+            <vf-label for="ex-name">Name:</vf-label>
+            <vf-text-field id="ex-name" name="name" placeholder="Untitled"></vf-text-field>
+            <vf-text-field value="Macintosh HD" name="disk"></vf-text-field>
+            <vf-text-field type="password" value="hunter2" name="pw"></vf-text-field>
+            <vf-text-field value="Read only" readonly></vf-text-field>
+            <vf-text-field value="Disabled" disabled></vf-text-field>
+            <span class="readout" data-value-src="ex-name"></span>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>type</code></td><td>—</td><td>—</td><td class="wrap">Standard — see <a href="#conformity">Form participation</a>. <code>type</code> defaults to <code>'text'</code> and passes through to the inner input</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name, for a field with no visible caption</td></tr>
+              <tr><td><code>vf-input</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on every keystroke</td></tr>
+              <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on commit</td></tr>
+              <tr><td><code>--vf-field-width</code></td><td>Token</td><td><code>180px</code></td><td class="wrap">Default width. Set a width on the <em>host</em> or this token — not on <code>::part(input)</code>, which sizes the control without moving the well the focus rule spans</td></tr>
+              <tr><td colspan="4" class="wrap">Part: <code>input</code>. Also <code>--vf-control-height</code> (22px). The focus rule paints 2 system px below the host's own box, so a tight <code>overflow: hidden</code> ancestor clips it.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-text-area" data-group="Text &amp; value inputs" data-toc="vf-text-area">
+          <h2><code>vf-text-area</code></h2>
+          <p>
+            The same field, wrapping a <code>&lt;textarea&gt;</code>, with no resize
+            grip — System 7 fields did not resize. It reserves a permanent System 7
+            scroll rail: an empty white channel until the text overflows, when the
+            dither, thumb and arrows fill in. Type into it to watch that happen.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Everything vf-text-field takes, plus rows.">
+            <vf-text-area rows="3" placeholder="Comments…"></vf-text-area>
+            <vf-text-area rows="4" value="Type past the fourth line and the rail fills in: the dither, the elevator and the arrow boxes appear together."></vf-text-area>
+            <vf-text-area rows="2" value="Disabled" disabled></vf-text-area>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>rows</code></td><td>number</td><td><code>4</code></td><td class="wrap">Visible lines, as on <code>&lt;textarea&gt;</code></td></tr>
+              <tr><td colspan="4" class="wrap">Everything else matches <a href="#vf-text-field"><code>vf-text-field</code></a>: <code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>label</code>, <code>vf-input</code>, <code>vf-change</code>, <code>--vf-field-width</code>. Part: <code>textarea</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-number-field" data-group="Text &amp; value inputs" data-toc="vf-number-field">
+          <h2><code>vf-number-field</code></h2>
+          <p>
+            A numeric field paired with the classic "little arrows" stepper, rendered at
+            its native 15×25 so it stays pixel-crisp. The well and the sprite are
+            authentically different heights — the reference sheets measure fields at 22
+            and the arrows at 25 — so the well keeps the field height and lines up with
+            its siblings while the taller sprite sets the host's.
+          </p>
+
+          <template data-example data-caption="Hold an arrow: it fills solid and autorepeats. Typing is free-form; the value clamps and rounds on commit.">
+            <vf-label for="ex-scale">Reduce or Enlarge:</vf-label>
+            <vf-number-field id="ex-scale" value="100" min="25" max="400" step="25" name="scale"></vf-number-field>
+            <vf-number-field value="4" min="1" max="9" step="0.5"></vf-number-field>
+            <vf-number-field value="12" disabled></vf-number-field>
+            <span class="readout" data-value-src="ex-scale"></span>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>min</code>, <code>max</code></td><td>number</td><td>—</td><td class="wrap">Clamp the value; also fill <code>aria-valuemin</code>/<code>max</code></td></tr>
+              <tr><td><code>step</code></td><td>number</td><td><code>1</code></td><td class="wrap">Step size <em>and</em> the value's decimal precision</td></tr>
+              <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>label</code></td><td>—</td><td>—</td><td class="wrap">Standard. <code>readonly</code> blocks stepping as well as editing</td></tr>
+              <tr><td><code>vf-input</code> / <code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, valueAsNumber }</code> — on every keystroke / on commit or a step</td></tr>
+              <tr><td><code>--vf-number-field-width</code></td><td>Token</td><td><code>4em</code></td><td class="wrap">Width of the well</td></tr>
+              <tr><td colspan="4" class="wrap">Parts: <code>input</code>, <code>stepper</code>. Role <code>spinbutton</code> on the input.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-select" data-group="Text &amp; value inputs" data-toc="vf-select + vf-option">
+          <h2><code>vf-select</code> &amp; <code>vf-option</code></h2>
+          <p>
+            The popup menu control. Two pointer styles coexist and are resolved at the
+            first release: <strong>System 7 press-drag-release</strong> (press the pill,
+            drag onto an item, release to pick) and <strong>modern
+            click-to-open</strong> (a quick tap leaves the list open for a second
+            click). Selecting blinks the row ~3 times in ~250ms, then closes.
+          </p>
+          <p>
+            The panel opens with the selected row laid directly over the closed pill, so
+            the label does not move, and the control hugs the <em>widest</em> option — so
+            the value never shifts as the selection changes. Give it a floor with
+            <code>min-width</code> on the host if you want one.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Press and drag onto an item, or click to open and click again.">
+            <vf-label for="ex-select">Install Location:</vf-label>
+            <vf-select id="ex-select" name="disk" value="hd">
+              <vf-option value="hd">Macintosh HD</vf-option>
+              <vf-option value="ext">External Disk</vf-option>
+              <vf-option value="net" disabled>File Server (offline)</vf-option>
+              <vf-option value="floppy">Untitled Floppy</vf-option>
+            </vf-select>
+            <vf-select value="a" disabled>
+              <vf-option value="a">Disabled popup</vf-option>
+            </vf-select>
+            <span class="readout" data-value-src="ex-select"></span>
+          </template>
+
+          <table class="api">
+            <caption><code>vf-select</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">The selected option's value</td></tr>
+              <tr><td><code>name</code>, <code>disabled</code></td><td>—</td><td>—</td><td class="wrap">Standard; form-associated. Disabled dims the label only — the ▼ stays black</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name</td></tr>
+              <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code>, after the blink</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (<code>vf-option</code> elements). Parts: <code>control</code>, <code>label</code>, <code>arrow</code>, <code>panel</code>. Tokens: <code>--vf-popup-height</code> (18px), <code>--vf-select-gutter</code> (16px — the ✓ column, shared with the menus so a popup row and a pulldown row line up). The panel is <code>position: fixed</code>, so it escapes clipping containers.</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption><code>vf-option</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">What the select reports</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Grayed and unpickable</td></tr>
+              <tr><td><code>selected</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; managed by the parent</td></tr>
+              <tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The transient press-drag highlight, managed by the parent — not an authoring API</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the label). Part: <code>check</code>. Role <code>option</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-progress-bar" data-group="Text &amp; value inputs" data-toc="vf-progress-bar">
+          <h2><code>vf-progress-bar</code></h2>
+          <p>
+            Determinate: a solid black fill from the left with a 1px leading edge.
+            Indeterminate: full-width diagonal barber stripes, drawn as a 1-bit
+            staircase of axis-aligned rects (a real diagonal blurs to gray when the
+            background is scaled up) and stepped, not smoothed.
+          </p>
+
+          <template data-example data-stage="column gapless" data-caption="Live, then 0 / 45 / 100, then indeterminate. The live one holds still under prefers-reduced-motion.">
+            <vf-progress-bar id="ex-progress-live" value="0" label="Copying files" style="width: 15em"></vf-progress-bar>
+            <vf-progress-bar value="0" style="width: 15em"></vf-progress-bar>
+            <vf-progress-bar value="45" style="width: 15em"></vf-progress-bar>
+            <vf-progress-bar value="100" style="width: 15em"></vf-progress-bar>
+            <vf-progress-bar indeterminate label="Searching" style="width: 15em"></vf-progress-bar>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>number</td><td><code>0</code></td><td class="wrap">0–<code>max</code></td></tr>
+              <tr><td><code>max</code></td><td>number</td><td><code>100</code></td><td class="wrap"></td></tr>
+              <tr><td><code>indeterminate</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Barber stripes; <code>aria-valuenow</code> is omitted</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name — the only way to name an indeterminate bar</td></tr>
+              <tr><td colspan="4" class="wrap">Parts: <code>track</code>, <code>fill</code>. Tokens: <code>--vf-progress-fill</code>, <code>--vf-progress-track</code>, <code>--vf-progress-stripes</code>. Role <code>progressbar</code>. No events — it is an output.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-slider" data-group="Text &amp; value inputs" data-toc="vf-slider">
+          <h2><code>vf-slider</code></h2>
+          <p>
+            Not a historical System 7 control — a 1-bit reverse-adaptation of the later
+            Mac OS slider, and labelled as such: a 4px capsule rail that fills solid
+            black up to the shield-shaped handle and runs hollow after it. The rail is a
+            whole-pixel SVG regenerated on resize, so it stays crisp at any width.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Drag it, or Tab to it and use the arrows — the dashed focus rule sits under the whole rail, so it stays put as the handle travels.">
+            <vf-label for="ex-slider">Volume</vf-label>
+            <vf-slider id="ex-slider" value="40" name="volume" style="width: 15em"></vf-slider>
+            <vf-slider value="3" min="1" max="7" step="1" label="Zoom" style="width: 15em"></vf-slider>
+            <vf-slider value="60" disabled label="Disabled" style="width: 15em"></vf-slider>
+            <span class="readout" data-value-src="ex-slider"></span>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>number</td><td><code>0</code></td><td class="wrap"></td></tr>
+              <tr><td><code>min</code>, <code>max</code>, <code>step</code></td><td>number</td><td><code>0</code>, <code>100</code>, <code>1</code></td><td class="wrap">Standard. Arrows step by <code>step</code>, Page keys by <code>max(step, range/10)</code></td></tr>
+              <tr><td><code>name</code>, <code>disabled</code></td><td>—</td><td>—</td><td class="wrap">Standard; form-associated. Disabled dims the <em>whole</em> control — the fill is the value, and there is no label to dim instead</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name</td></tr>
+              <tr><td><code>vf-input</code> / <code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value: number }</code> — every drag move or key / on commit</td></tr>
+              <tr><td colspan="4" class="wrap">Parts: <code>track</code>, <code>rail</code>, <code>thumb</code>. Role <code>slider</code>. Give it a width; the thumb's travel is inset by half its own width so its edges stay flush in the rail.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ================================================================
+             GROUP D — MENUS, LISTS & CONTAINERS
+             ============================================================= -->
+
+        <section class="doc" id="vf-menu-bar" data-group="Menus, lists &amp; containers" data-toc="vf-menu-bar + vf-menu + vf-menu-item">
+          <h2><code>vf-menu-bar</code>, <code>vf-menu</code> &amp; <code>vf-menu-item</code></h2>
+          <p>
+            Pull-down menus with the classic press-drag-release: press a title, slide
+            onto a command, release to run it. Sliding sideways onto another title
+            switches menus mid-press; releasing over a disabled row, a separator or off
+            the menu closes with nothing chosen. A quick in-place tap instead leaves the
+            menu dropped for a second, independent click — both styles, one gesture
+            model, disambiguated only by an in-place release.
+          </p>
+          <p>
+            Selecting a command blinks the row ~3 times in ~250ms (skipped under
+            <code>prefers-reduced-motion</code>) and then fires
+            <code>vf-menu-select</code>.
+          </p>
+
+          <template
+            data-example
+            data-stage="column gapless"
+            data-caption="A bar owns the gesture across its menus. Pick a command and watch the log."
+          >
+            <vf-menu-bar>
+              <vf-menu label="File">
+                <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
+                <vf-menu-item value="open" shortcut="⌘O">Open…</vf-menu-item>
+                <vf-separator></vf-separator>
+                <vf-menu-item value="print" shortcut="⌘P" disabled>Print</vf-menu-item>
+                <vf-menu-item value="quit" shortcut="⌘Q">Quit</vf-menu-item>
+              </vf-menu>
+              <vf-menu label="Edit">
+                <vf-menu-item value="undo" shortcut="⌘Z">Undo</vf-menu-item>
+                <vf-separator></vf-separator>
+                <vf-menu-item value="cut" shortcut="⌘X">Cut</vf-menu-item>
+                <vf-menu-item value="copy" shortcut="⌘C">Copy</vf-menu-item>
+              </vf-menu>
+              <vf-menu label="View">
+                <vf-menu-item value="by-icon" checked>by Icon</vf-menu-item>
+                <vf-menu-item value="by-name" checkable>by Name</vf-menu-item>
+              </vf-menu>
+            </vf-menu-bar>
+            <pre class="log" data-log></pre>
+          </template>
+
+          <p>
+            A <code>vf-menu</code> works standing alone too — it hosts the press
+            gesture itself when there is no bar to own it:
+          </p>
+
+          <template data-example data-caption="No bar. The label slot takes markup — here 16×16 pixel art, which is how the showcase draws its Apple menu.">
+            <vf-menu label="Apple">
+              <vf-img slot="label" width="16" height="16">
+                <img src="/demo/icons/puzzle.png" alt="" />
+              </vf-img>
+              <vf-menu-item value="about">About This Macintosh…</vf-menu-item>
+              <vf-separator></vf-separator>
+              <vf-menu-item value="calculator">Calculator</vf-menu-item>
+            </vf-menu>
+          </template>
+
+          <table class="api">
+            <caption><code>vf-menu-bar</code></caption>
+            <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Properties</td><td>—</td><td class="wrap">None. It is the coordinator: one menu open at a time, hover switches while open, ArrowLeft/Right move between menus</td></tr>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap"><code>vf-menu</code> elements</td></tr>
+              <tr><td>Part</td><td><code>bar</code></td><td class="wrap">Style this to align a full-bleed nav with a centered content column</td></tr>
+              <tr><td>Token</td><td><code>--vf-menubar-height</code></td><td class="wrap">24px</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption><code>vf-menu</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">The title in the bar, and the accessible name when the <code>label</code> slot replaces the text</td></tr>
+              <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; managed by the bar, or by the menu itself when standalone</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: default (<code>vf-menu-item</code> / <code>vf-separator</code>), <code>label</code>. Parts: <code>label</code>, <code>panel</code>. The panel sets the separator tokens, so a slotted <code>vf-separator</code> renders as the dimmed dotted rule.</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption><code>vf-menu-item</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>string</td><td class="wrap">text content</td><td class="wrap">Carried in the event detail</td></tr>
+              <tr><td><code>shortcut</code></td><td>string</td><td><code>''</code></td><td class="wrap">Right-aligned key equivalent (<code>⌘N</code>) — display only; binding the key is yours</td></tr>
+              <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows the ✓ in the left gutter</td></tr>
+              <tr><td><code>checkable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Declares a toggle that starts <em>off</em>, so it announces as <code>menuitemcheckbox</code> instead of a plain command before its first flip (a boolean <code>checked</code> cannot express "checkable but off")</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the whole row, ✓ included — a documented deviation from the kit's dim-the-label rule, because System 7 grayed the whole disabled row</td></tr>
+              <tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The transient press-drag highlight, managed by the menu — not an authoring API</td></tr>
+              <tr><td><code>activate()</code></td><td>Method</td><td>—</td><td class="wrap">Blink, then select — what the press gesture calls for the row a drag was released over</td></tr>
+              <tr><td><code>vf-menu-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, item }</code></td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>item</code>, <code>check</code>, <code>label</code>, <code>shortcut</code>. Token: <code>--vf-menu-row-height</code> (16px), <code>--vf-select-gutter</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-list" data-group="Menus, lists &amp; containers" data-toc="vf-list + vf-list-item">
+          <h2><code>vf-list</code> &amp; <code>vf-list-item</code></h2>
+          <p>
+            The list box: inverted selection, a permanent scroll rail, and Finder
+            first-letter type-ahead — click a row and type "n" repeatedly to cycle the
+            rows starting with it. Each row takes a leading graphic in its
+            <code>icon</code> slot, usually a 16×16 <code>vf-img</code>.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Single selection. Arrow keys move; printable keys jump.">
+            <vf-label for="ex-list">Desk Accessories</vf-label>
+            <vf-list id="ex-list" value="calculator" style="width: 15em">
+              <vf-list-item value="alarm-clock">
+                <vf-img slot="icon" width="16" height="16"><img src="/demo/icons/alarm-clock.png" alt="" /></vf-img>
+                Alarm Clock
+              </vf-list-item>
+              <vf-list-item value="battery">
+                <vf-img slot="icon" width="16" height="16"><img src="/demo/icons/battery.png" alt="" /></vf-img>
+                Battery
+              </vf-list-item>
+              <vf-list-item value="calculator">
+                <vf-img slot="icon" width="16" height="16"><img src="/demo/icons/calculator.png" alt="" /></vf-img>
+                Calculator
+              </vf-list-item>
+              <vf-list-item value="chooser" disabled>
+                <vf-img slot="icon" width="16" height="16"><img src="/demo/icons/chooser.png" alt="" /></vf-img>
+                Chooser
+              </vf-list-item>
+              <vf-list-item value="note-pad">
+                <vf-img slot="icon" width="16" height="16"><img src="/demo/icons/note-pad.png" alt="" /></vf-img>
+                Note Pad
+              </vf-list-item>
+              <vf-list-item value="puzzle">
+                <vf-img slot="icon" width="16" height="16"><img src="/demo/icons/puzzle.png" alt="" /></vf-img>
+                Puzzle
+              </vf-list-item>
+            </vf-list>
+            <span class="readout" data-value-src="ex-list"></span>
+          </template>
+
+          <template data-example data-stage="column" data-caption="multiple: Shift and ⌘ extend, Space toggles. `values` is a property, not an attribute.">
+            <vf-list id="ex-list-multi" multiple label="Fonts" style="width: 15em">
+              <vf-list-item value="chicago" selected>Chicago</vf-list-item>
+              <vf-list-item value="geneva">Geneva</vf-list-item>
+              <vf-list-item value="monaco" selected>Monaco</vf-list-item>
+              <vf-list-item value="new-york">New York</vf-list-item>
+            </vf-list>
+            <span class="readout" data-value-src="ex-list-multi" data-value-prop="values"></span>
+          </template>
+
+          <table class="api">
+            <caption><code>vf-list</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>multiple</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shift/⌘ extend, Space toggles</td></tr>
+              <tr><td><code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">The selected row's value (the first, when multiple)</td></tr>
+              <tr><td><code>values</code></td><td>string[]</td><td><code>[]</code></td><td class="wrap">Property only — no attribute</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Pushes <code>aria-disabled</code> down onto every row, and re-enabling leaves individually disabled rows disabled</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for the listbox</td></tr>
+              <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, values }</code></td></tr>
+              <tr><td><code>--vf-list-max-height</code></td><td>Token</td><td><code>200px</code></td><td class="wrap">Part: <code>list</code>. Give the host a width</td></tr>
+            </tbody>
+          </table>
+
+          <table class="api">
+            <caption><code>vf-list-item</code></caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Reported by the list</td></tr>
+              <tr><td><code>selected</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; the row inverts full width</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Skipped by selection and by type-ahead</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: default (the row text), <code>icon</code> (a leading graphic — it contributes no text, so type-ahead still reads the words). Part: <code>text</code> (it ellipsizes). Keep row height − icon height even, so the centering offset stays a whole pixel.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-scroll-area" data-group="Menus, lists &amp; containers" data-toc="vf-scroll-area">
+          <h2><code>vf-scroll-area</code></h2>
+          <p>
+            A container with System 7 scrollbars: 16px cells, a dot-dither trough, the
+            white elevator, and hollow arrow glyphs that fill solid when pressed. Each
+            <em>reserved</em> axis behaves the way System 7 did — the rail is a
+            permanent placeholder, an empty white channel, and only fills in when the
+            content actually overflows.
+          </p>
+          <p>
+            Inside a <code>vf-window</code>, a non-frontmost window's rails blank
+            entirely on both axes, per the HIG. For rails on a window's own frame rather
+            than inset in its body, use
+            <a href="#vf-window"><code>vf-window[scrollbars]</code></a>, which renders
+            this composition from its own shadow tree.
+          </p>
+
+          <template data-example data-caption="axis='both' reserves both rails; the horizontal one here has nothing to scroll, so it stays an empty channel.">
+            <vf-scroll-area axis="both" label="Release notes" style="width: 16em; height: 9em">
+              <vf-paragraph>System 7.0 introduced virtual memory, file sharing, aliases, TrueType fonts and the Application menu.</vf-paragraph>
+              <vf-paragraph>It also replaced the MultiFinder switch with permanent multitasking, which is why every window on this page can be frontmost or not.</vf-paragraph>
+              <vf-paragraph>Scroll me.</vf-paragraph>
+            </vf-scroll-area>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>axis</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td><code>'vertical'</code></td><td class="wrap">Which rails to reserve. The unreserved axis stays on-demand</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for the focusable viewport. A non-empty value also promotes it to <code>role="region"</code>; the role is omitted while empty, because an unnamed region is inert</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>viewport</code>. Set width and height on the host. Firefox falls back to <code>scrollbar-color</code> (flat trough, no dither or thumb border) — the dithered rail is the WebKit/Blink path.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-fieldset" data-group="Menus, lists &amp; containers" data-toc="vf-fieldset">
+          <h2><code>vf-fieldset</code></h2>
+          <p>
+            The group box, with the legend punching through the top border. It paints
+            the legend's backdrop from <code>--vf-surface</code> (white by default, and
+            <code>vf-window</code>/<code>vf-dialog</code> set it), so on a tinted
+            background set that property on the container or the legend will sit in a
+            white notch.
+          </p>
+
+          <template data-example data-caption="The legend as an attribute, and as a slot when it needs markup.">
+            <vf-fieldset legend="Install Location" style="width: 15em">
+              <vf-select value="hd">
+                <vf-option value="hd">Macintosh HD</vf-option>
+                <vf-option value="ext">External Disk</vf-option>
+              </vf-select>
+            </vf-fieldset>
+            <vf-fieldset style="width: 15em">
+              <vf-label slot="legend">Options</vf-label>
+              <vf-checkbox checked>Verify after install</vf-checkbox>
+            </vf-fieldset>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>legend</code></td><td>string</td><td><code>''</code></td><td class="wrap">The caption; the <code>legend</code> slot overrides it</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: default, <code>legend</code>. Parts: <code>fieldset</code>, <code>legend</code>. Role <code>group</code>. Token: <code>--vf-surface</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-grid" data-group="Menus, lists &amp; containers" data-toc="vf-grid">
+          <h2><code>vf-grid</code></h2>
+          <p>
+            A lattice of equal cells with 1px rules between them: the HIG's 3×3 tool
+            palette, a color picker's swatch table, a pattern chooser. The rules are a
+            masked lattice rather than gaps showing a black background, so the pen
+            switches from solid to dashed with no change in layout and the color stays a
+            token. They paint <em>under</em> the cells, so an item spanning two cells
+            covers the boundary it swallowed and a cell's own ink is never crossed.
+          </p>
+          <p>
+            A cell is centered in its well on both axes, because what a palette holds
+            is normally smaller than the well — a 16px icon in a 26px cell. A cell
+            that means to fill its well instead, like a tool button that inverts black
+            when selected, asks with <code>place-self: stretch</code>; under
+            <code>collapse</code> that is already the default, those cells existing to
+            meet the lines.
+          </p>
+          <p>
+            Semantics are yours: the grid takes no role, no keyboard behavior and no
+            selection. Put <code>role="group"</code> on the host for a tool palette,
+            <code>role="radiogroup"</code> for a picker, nothing at all for a plain
+            tiling.
+          </p>
+
+          <template data-example data-caption="Solid rules with a frame, filled; then the dashed pen, and frameless — which pulls the lattice back a pixel, for a container that already draws that line.">
+            <vf-grid columns="3" cell-width="26" cell-height="26" role="group" aria-label="Desk accessories">
+              <vf-img width="16" height="16"><img src="/demo/icons/alarm-clock.png" alt="Alarm Clock" /></vf-img>
+              <vf-img width="16" height="16"><img src="/demo/icons/battery.png" alt="Battery" /></vf-img>
+              <vf-img width="16" height="16"><img src="/demo/icons/calculator.png" alt="Calculator" /></vf-img>
+              <vf-img width="16" height="16"><img src="/demo/icons/chooser.png" alt="Chooser" /></vf-img>
+              <vf-img width="16" height="16"><img src="/demo/icons/key-caps.png" alt="Key Caps" /></vf-img>
+              <vf-img width="16" height="16"><img src="/demo/icons/note-pad.png" alt="Note Pad" /></vf-img>
+            </vf-grid>
+
+            <vf-grid columns="4" rows="3" cell-width="20" cell-height="20" rules="dashed"></vf-grid>
+            <vf-grid columns="4" rows="3" cell-width="20" cell-height="20" frameless></vf-grid>
+          </template>
+
+          <template data-example data-caption="Cells that draw their own 1px border. collapse lands that border ON the rule instead of beside it, so no boundary reads 2px — size the cells at item − 2px. rules='none' closes the gap entirely and the wells butt together.">
+            <vf-grid columns="4" cell-width="22" cell-height="16" collapse>
+              <vf-swatch color="#000000" width="24" height="18" label="Black"></vf-swatch>
+              <vf-swatch color="#dd0000" width="24" height="18" label="Red"></vf-swatch>
+              <vf-swatch color="#ffcc00" width="24" height="18" label="Yellow"></vf-swatch>
+              <vf-swatch color="#0066cc" width="24" height="18" label="Blue"></vf-swatch>
+            </vf-grid>
+
+            <vf-grid columns="4" cell-width="24" cell-height="18" rules="none" frameless>
+              <vf-swatch color="#000000" width="24" height="18" label="Black"></vf-swatch>
+              <vf-swatch color="#dd0000" width="24" height="18" label="Red"></vf-swatch>
+              <vf-swatch color="#ffcc00" width="24" height="18" label="Yellow"></vf-swatch>
+              <vf-swatch color="#0066cc" width="24" height="18" label="Blue"></vf-swatch>
+            </vf-grid>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>columns</code></td><td>number</td><td><code>1</code></td><td class="wrap">Cells across</td></tr>
+              <tr><td><code>rows</code></td><td>number</td><td>—</td><td class="wrap">Cells down. Unset, the slotted cells decide; set, that many are reserved, so an unfilled cell still gets its rules</td></tr>
+              <tr><td><code>cell-width</code>, <code>cell-height</code></td><td>number</td><td><code>16</code></td><td class="wrap">Whole system px. Properties are <code>cellWidth</code> / <code>cellHeight</code></td></tr>
+              <tr><td><code>rules</code></td><td class="wrap"><code>'solid' | 'dashed' | 'none'</code></td><td><code>'solid'</code></td><td class="wrap">The pen. <code>none</code> closes the gap and the cells butt together</td></tr>
+              <tr><td><code>frameless</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drop the perimeter — for a grid whose container already draws that line, like a windoid's border</td></tr>
+              <tr><td><code>collapse</code></td><td>boolean</td><td><code>false</code></td><td class="wrap"><code>border-collapse: collapse</code> in system px: pulls each cell back 1px on all four sides so its border and the rule become one line</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the cells, in order — they keep their own semantics and styling). Parts: <code>grid</code>, <code>rules</code>. Tokens: <code>--vf-black</code>, <code>--vf-surface</code>. No events.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ================================================================
+             GROUP E/F — STATIC TEXT & IMAGES
+             ============================================================= -->
+
+        <section class="doc" id="vf-label" data-group="Static text &amp; images" data-toc="vf-label">
+          <h2><code>vf-label</code></h2>
+          <p>
+            The static caption: "Name:" beside a field, "Mode" over a radio group, a
+            readout. Chrome type on a 16px line box — stated in whole system pixels, so
+            a column of captions accumulates whole offsets with nothing for the page to
+            remember.
+          </p>
+          <p>
+            <code>for</code> does what a native <code>&lt;label for&gt;</code> does:
+            clicking focuses the target (a focus shortcut, not an activation — the kit's
+            toggles carry their own labels), and the caption text becomes the target's
+            accessible name by whichever route reaches it. It never overwrites a name
+            you set, and puts back what it found when the label is removed or its text
+            changes.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Click 'Volume:' — focus lands in the field, and the caption is now its accessible name. The small caption carries a whole width, for the reason in its row below.">
+            <div style="display: flex; gap: 8px; align-items: center">
+              <vf-label for="ex-label-target">Volume:</vf-label>
+              <vf-text-field id="ex-label-target" value="7"></vf-text-field>
+            </div>
+            <vf-label>Display face (default)</vf-label>
+            <vf-label face="body">Body face</vf-label>
+            <vf-label size="small" style="width: 16em">Small — the fine print</vf-label>
+            <vf-label dim>Dimmed, the way System 7 dims a caption</vf-label>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>for</code></td><td>string</td><td>—</td><td class="wrap">Id of the labelled control, resolved in the label's own tree scope. A disabled target is not focused; a target that has not upgraded yet is waited for</td></tr>
+              <tr><td><code>face</code></td><td class="wrap"><code>'display' | 'body'</code></td><td><code>'display'</code></td><td class="wrap">Chrome type by default — dialog captions are chrome</td></tr>
+              <tr><td><code>size</code></td><td class="wrap"><code>'small'</code></td><td>—</td><td class="wrap">The 12px fine print. Both faces are single 16-design-px masters, so this renders at 0.75 design px per system px and measures fractionally — give a small caption a whole width (or let it stretch) so its host stays on the grid</td></tr>
+              <tr><td><code>dim</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Greys the text to <code>--vf-disabled</code></td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>label</code>. Token: <code>--vf-label-line-height</code> (16px). <code>display: inline-block</code>, so a page can give a caption column a shared width.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-paragraph" data-group="Static text &amp; images" data-toc="vf-paragraph">
+          <h2><code>vf-paragraph</code></h2>
+          <p>
+            A run of copy on the kit's body face and a 20px line box — the same pitch as
+            a list row. It renders a real <code>&lt;p&gt;</code> in its shadow root, so
+            the copy keeps paragraph semantics, and it has <strong>no margin</strong>:
+            paragraph spacing is the page's, in whole pixels like everything else.
+          </p>
+
+          <template data-example data-stage="column" data-caption="Body face by default; the display face and the fine print on demand.">
+            <vf-paragraph>Click Install to place DragThing on your hard disk.</vf-paragraph>
+            <vf-paragraph face="display">The same copy on the chrome face.</vf-paragraph>
+            <vf-paragraph size="small" dim style="width: 15em">Approximate disk space needed: 4,584K</vf-paragraph>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>face</code></td><td class="wrap"><code>'display' | 'body'</code></td><td><code>'body'</code></td><td class="wrap"></td></tr>
+              <tr><td><code>size</code></td><td class="wrap"><code>'small'</code></td><td>—</td><td class="wrap">12px type on a 16px line box; same honest caveat as <code>vf-label</code></td></tr>
+              <tr><td><code>dim</code></td><td>boolean</td><td><code>false</code></td><td class="wrap"></td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>paragraph</code>. Tokens: <code>--vf-paragraph-line-height</code> (20px), <code>--vf-paragraph-line-height-small</code> (16px). Selectable, unlike the kit's chrome text.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-img" data-group="Static text &amp; images" data-toc="vf-img">
+          <h2><code>vf-img</code></h2>
+          <p>
+            Pixel art on the kit's grid: it sizes a slotted <code>&lt;img&gt;</code> to
+            one system pixel per image pixel and keeps the nearest-neighbor
+            magnification on whole device pixels. The graphic stays a native
+            <code>&lt;img&gt;</code> in your light DOM, so native loading and
+            <code>alt</code> semantics are untouched — the kit ships no raster files of
+            its own.
+          </p>
+
+          <template data-example data-caption="A 16×16 icon at 1:1, then the same file at 2× and 3× — whole multiples, so it magnifies on the same grid instead of resampling.">
+            <vf-img width="16" height="16"><img src="/demo/icons/puzzle.png" alt="Puzzle desk accessory" /></vf-img>
+            <vf-img width="32" height="32"><img src="/demo/icons/puzzle.png" alt="" /></vf-img>
+            <vf-img width="48" height="48"><img src="/demo/icons/puzzle.png" alt="" /></vf-img>
+          </template>
+
+          <table class="api">
+            <caption>Properties &amp; anatomy</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td class="wrap">the image's natural size</td><td class="wrap">Whole system px. Stated up front they reserve the box before the file loads; the box is 0×0 until a size is known, so there is never a flash at some other scale</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (a single <code>&lt;img&gt;</code> — use <code>alt=""</code> when it is decorative, as in a list row or a menu title that already carries a name). Part: <code>frame</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ================================================================
+             REFERENCE
+             ============================================================= -->
+
+        <section class="doc" id="tokens" data-group="Reference" data-toc="Design tokens">
+          <h2>Design tokens</h2>
+          <p>
+            Every visual constant, with its inlined fallback. Override at
+            <code>:root</code>, on a subtree, or on one element. Every length below is a
+            <em>system pixel</em> value — the components do the device-pixel
+            arithmetic themselves, so a re-themed metric stays crisp on any display.
+          </p>
+          <p class="note note--sharp">
+            Line boxes are lengths too. Every line-height in the kit is stated in whole
+            system px, never as a ratio — re-theme these with whole numbers, or you put
+            the components below them off the device-pixel grid.
+          </p>
+
+          <table class="api api--wide">
+            <caption>All tokens</caption>
+            <thead><tr><th>Token</th><th>Default</th><th>Used for</th></tr></thead>
+            <tbody>
+              <tr><td><code>--vf-font-family</code></td><td class="wrap">FindersKeepers, Geneva, …</td><td class="wrap">Body face (list rows, page copy)</td></tr>
+              <tr><td><code>--vf-font-family-display</code></td><td class="wrap">ChiKareGo, Chicago, …</td><td class="wrap">Chrome face (menus, buttons, titles, fields)</td></tr>
+              <tr><td><code>--vf-font-size</code></td><td><code>16px</code></td><td class="wrap">Body face size</td></tr>
+              <tr><td><code>--vf-font-size-display</code></td><td><code>16px</code></td><td class="wrap">Chrome face size</td></tr>
+              <tr><td><code>--vf-font-size-small</code></td><td><code>12px</code></td><td class="wrap">Fine print (<code>size="small"</code>)</td></tr>
+              <tr><td><code>--vf-font-weight</code></td><td><code>700</code></td><td class="wrap">All text — Chicago is inherently bold</td></tr>
+              <tr><td><code>--vf-font-smoothing-display</code></td><td><code>none</code></td><td class="wrap">Crisp 1-bit chrome edges; set <code>antialiased</code> if you point the display family at a vector face</td></tr>
+              <tr><td><code>--vf-black</code></td><td><code>#000000</code></td><td class="wrap">Borders, text, stripes, selection bg</td></tr>
+              <tr><td><code>--vf-white</code></td><td><code>#ffffff</code></td><td class="wrap">Content wells, control faces</td></tr>
+              <tr><td><code>--vf-surface</code></td><td class="wrap">set by containers</td><td class="wrap">Backdrop behind legends and label patches</td></tr>
+              <tr><td><code>--vf-disabled</code></td><td><code>#c0c0c0</code></td><td class="wrap">Dimmed text and glyphs</td></tr>
+              <tr><td><code>--vf-desktop</code></td><td><code>#808080</code></td><td class="wrap">Base color under the desktop dither</td></tr>
+              <tr><td><code>--vf-desktop-pattern</code></td><td class="wrap">SVG tile</td><td class="wrap">The desktop's 50% dither</td></tr>
+              <tr><td><code>--vf-dots-pattern</code></td><td class="wrap">SVG tile</td><td class="wrap">The windoid bar's dot-grid dither</td></tr>
+              <tr><td><code>--vf-swatch-checker</code></td><td class="wrap">SVG tile</td><td class="wrap"><code>vf-swatch</code>'s transparency checker</td></tr>
+              <tr><td><code>--vf-progress-stripes</code></td><td class="wrap">SVG tile</td><td class="wrap">Indeterminate barber stripes</td></tr>
+              <tr><td><code>--vf-shadow-offset</code></td><td><code>2px</code></td><td class="wrap">Window / menu hard shadow</td></tr>
+              <tr><td><code>--vf-control-height</code></td><td><code>22px</code></td><td class="wrap">Text fields, and the number field's well</td></tr>
+              <tr><td><code>--vf-button-height</code></td><td><code>20px</code></td><td class="wrap"><code>vf-button</code> face</td></tr>
+              <tr><td><code>--vf-control-height-small</code></td><td><code>16px</code></td><td class="wrap"><code>size="small"</code> buttons</td></tr>
+              <tr><td><code>--vf-button-ring-margin</code></td><td><code>4px</code></td><td class="wrap">Room reserved for the default ring (<code>vf-button-group</code> zeroes it)</td></tr>
+              <tr><td><code>--vf-button-flex</code></td><td><code>0 1 auto</code></td><td class="wrap">The inner button's flex (the group sets <code>1 1 auto</code>)</td></tr>
+              <tr><td><code>--vf-button-group-gap</code></td><td><code>12px</code></td><td class="wrap">Gap between grouped buttons</td></tr>
+              <tr><td><code>--vf-popup-height</code></td><td><code>18px</code></td><td class="wrap"><code>vf-select</code> pill</td></tr>
+              <tr><td><code>--vf-menu-row-height</code></td><td><code>16px</code></td><td class="wrap"><code>vf-menu-item</code> row pitch</td></tr>
+              <tr><td><code>--vf-select-gutter</code></td><td><code>16px</code></td><td class="wrap">The ✓ column, shared by select, option and menu item</td></tr>
+              <tr><td><code>--vf-field-width</code></td><td><code>180px</code></td><td class="wrap">Default width of the text field and area</td></tr>
+              <tr><td><code>--vf-number-field-width</code></td><td><code>4em</code></td><td class="wrap">Width of the number field's well</td></tr>
+              <tr><td><code>--vf-list-max-height</code></td><td><code>200px</code></td><td class="wrap"><code>vf-list</code></td></tr>
+              <tr><td><code>--vf-label-line-height</code></td><td><code>16px</code></td><td class="wrap"><code>vf-label</code> line box</td></tr>
+              <tr><td><code>--vf-paragraph-line-height</code></td><td><code>20px</code></td><td class="wrap"><code>vf-paragraph</code> line box</td></tr>
+              <tr><td><code>--vf-paragraph-line-height-small</code></td><td><code>16px</code></td><td class="wrap">…under <code>size="small"</code></td></tr>
+              <tr><td><code>--vf-titlebar-height</code></td><td><code>18px</code></td><td class="wrap">Window / dialog title bars</td></tr>
+              <tr><td><code>--vf-titlebar-height-utility</code></td><td><code>12px</code></td><td class="wrap">The windoid bar</td></tr>
+              <tr><td><code>--vf-title-inset</code></td><td class="wrap"><code>16px</code> / <code>60px</code></td><td class="wrap">The centered title's clearance from the widgets</td></tr>
+              <tr><td><code>--vf-menubar-height</code></td><td><code>24px</code></td><td class="wrap"><code>vf-menu-bar</code></td></tr>
+              <tr><td><code>--vf-separator-color</code> / <code>-style</code></td><td class="wrap"><code>--vf-black</code> / <code>solid</code></td><td class="wrap">Menus set the dimmed dotted rule</td></tr>
+              <tr><td><code>--vf-focus-outline</code></td><td class="wrap"><code>1px dotted #000</code></td><td class="wrap">The dotted ring, for the controls with no face to draw on</td></tr>
+              <tr><td><code>--vf-focus-offset</code></td><td><code>2px</code></td><td class="wrap">Its <code>outline-offset</code></td></tr>
+              <tr><td><code>--vf-focus-underline-offset</code></td><td><code>4px</code></td><td class="wrap">Where the dashed focus rule sits, from the underlined element's padding-box bottom</td></tr>
+              <tr><td><code>--vf-progress-fill</code> / <code>-track</code></td><td class="wrap"><code>#000000</code> / <code>#ffffff</code></td><td class="wrap"><code>vf-progress-bar</code></td></tr>
+              <tr><td><code>--vf-scrollbar-thumb</code></td><td><code>#ffffff</code></td><td class="wrap">The elevator</td></tr>
+              <tr><td><code>--vf-scrollbar-track</code></td><td><code>#c0c0c0</code></td><td class="wrap">Firefox fallback only — the dither's flat average</td></tr>
+              <tr><td><code>--vf-highlight</code> / <code>-text</code></td><td class="wrap"><code>#000000</code> / <code>#ffffff</code></td><td class="wrap">Selection colors</td></tr>
+              <tr><td><code>--vf-snap-dx</code> / <code>-dy</code></td><td class="wrap">written by the kit</td><td class="wrap">Reserved: the grid-snap correction. Do not set these</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="toolkit" data-group="Reference" data-toc="Utilities &amp; toolkit">
+          <h2>Utilities &amp; style toolkit</h2>
+          <p>
+            The shared toolkit the components are built from is exported from the
+            package root, so a custom control can match the kit pixel-for-pixel:
+          </p>
+
+          <pre class="snippet"><code>import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'</code></pre>
+
+          <table class="api api--wide">
+            <caption>Exports</caption>
+            <thead><tr><th>Export</th><th>What it is for</th></tr></thead>
+            <tbody>
+              <tr><td class="wrap"><code>applyScale</code>, <code>ScaleController</code>, <code>onScaleChange</code></td><td class="wrap">Put your own markup, or a custom component, on the same sizing the kit gives itself</td></tr>
+              <tr><td class="wrap"><code>applyGridSnap</code>, <code>requestGridSnap</code>, <code>GridSnapController</code></td><td class="wrap">Automatic device-pixel-grid snapping; one controller line plus the <code>vf-snap</code> class on your painted root adds it to a custom component</td></tr>
+              <tr><td class="wrap"><code>sys</code>, <code>toSys</code>, <code>effectiveScale</code>, <code>getScale</code>, <code>snapToSystemPx</code>, <code>snapToDevicePx</code>, <code>DEVICE_PX_PER_SYSTEM_PX</code></td><td class="wrap">Convert between system (art) px and CSS px in a custom control's own JS geometry; snap what you write onto the system grid (whole art pixels, like QuickDraw) or the finer device grid</td></tr>
+              <tr><td class="wrap"><code>snapDialogToGrid</code>, <code>unsnapDialog</code></td><td class="wrap">Pin and unpin a native <code>&lt;dialog&gt;</code> to whole device px</td></tr>
+              <tr><td class="wrap"><code>vfBase</code>, <code>vfDisplay</code>, <code>vfStaticText</code>, <code>vfPanel</code>, <code>vfChromeFrame</code>, <code>vfModalFrame</code>, <code>vfTitleBar</code>, <code>vfWindowWidgets</code>, <code>vfHardShadowDecls</code>, <code>vfStripes</code>, <code>vfDots</code>, <code>vfFocus</code>, <code>vfFocusRing</code>, <code>vfFocusUnderline</code>, <code>vfToggle</code>, <code>vfField</code>, <code>vfScrollbars</code></td><td class="wrap">The 1-bit CSS recipes — compose into <code>static styles</code></td></tr>
+              <tr><td class="wrap"><code>glyphSvg</code> + <code>CHECKMARK</code>, <code>CARET_DOWN</code>, <code>STEPPER</code>, <code>RADIO_RING</code>, <code>SLIDER_THUMB</code>, …</td><td class="wrap">The 1-bit sprite set, rendered inline as SVG</td></tr>
+              <tr><td class="wrap"><code>steppedRectClip</code>, <code>steppedRingClip</code>, <code>BUTTON_FRAME</code>, <code>BUTTON_FACE</code>, <code>RING_FRAME</code>, <code>RING_HOLE</code>, <code>RING_INSET</code></td><td class="wrap">Pixel-stepped corner profiles and their <code>clip-path</code> traces</td></tr>
+              <tr><td class="wrap"><code>DragController</code>, <code>ScrollStateController</code>, <code>TrackWidthController</code>, <code>DocumentListenersController</code></td><td class="wrap">Pointer-drag wiring; per-axis overflow and inactive-window reporting for the always-a-rail scrollbars; a track's measured width; document-level listeners scoped to an open panel or in-flight gesture</td></tr>
+              <tr><td class="wrap"><code>focusModality</code>, <code>trackFocusModality</code>, <code>FocusRuleController</code></td><td class="wrap">Whether the keyboard or a pointer last drove the page, resolved against a host's own focus as one reactive flag — what a control consults to mark keyboard focus only, wherever <code>:focus-visible</code> cannot say so</td></tr>
+              <tr><td class="wrap"><code>emit</code>, <code>prefersReducedMotion</code>, <code>runSelectionBlink</code>, <code>BLINK_INTERVAL_MS</code>, <code>BLINK_FLIPS</code>, <code>PRESS_HOLD_MS</code></td><td class="wrap">The <code>bubbles</code>+<code>composed</code> event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share</td></tr>
+              <tr><td class="wrap"><code>VfFormControl</code>, <code>VfTextControlBase</code>, <code>VfToggleControl</code>, <code>VfModalDialog</code>, <code>modalDialogStyles</code></td><td class="wrap">Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin), the native-<code>&lt;dialog&gt;</code> lifecycle</td></tr>
+              <tr><td class="wrap"><code>registerEmbeddedFont</code>, <code>registerChiKareGo</code>, <code>registerFindersKeepers</code>, <code>CHIKAREGO_FAMILY</code>, <code>FINDERS_KEEPERS_FAMILY</code></td><td class="wrap">Register the bitmap faces on <code>document.fonts</code> yourself</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Authoring a control on the kit's terms</h3>
+          <p>
+            <code>VfToggleControl</code> is a mixin rather than a plain base class,
+            because the kit's two toggles sit on different bases:
+            <code>vf-checkbox</code> extends <code>VfFormControl</code> (it submits a
+            value under a name), while <code>vf-radio</code> is deliberately not
+            form-associated — its group is the form surface. Apply it over whichever
+            base your control needs:
+          </p>
+
+          <pre class="snippet"><code>class MyToggle extends VfToggleControl(VfFormControl) {
+  @property({ type: Boolean, reflect: true }) override checked = false
+  protected override get toggleInternals() { return this.internals }
+  protected override get toggleDisabled() { return this.isDisabled }
+  protected override activate() {
+    this.checked = !this.checked
+    this.focus()
+    emit(this, 'vf-change', { checked: this.checked })
+  }
+}</code></pre>
+
+          <p>
+            You get the click/Space wiring (including the held-Space auto-repeat guard),
+            one disabled gate every activation passes through,
+            <code>aria-checked</code>/<code>aria-disabled</code> mirroring, and a
+            self-managed host tabindex that never clobbers a consumer's own.
+          </p>
+
+          <p>
+            Deeper detail than this page carries lives in
+            <code>SPEC.md</code> (the full design spec, every token, slot, part and
+            event, with the pixel traces they came from) and <code>README.md</code>.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -362,6 +362,11 @@ treating Figure 5-1's labels as the erratum — both readings stay composable.
 | Modeless dialog box | `<vf-window closable movable>` (no zoom, grow or rails) |
 | Utility (floating) window | `<vf-window variant="utility" movable>` |
 
+Every recipe also declares its size — `width`, and `height` where the window
+isn't content-shaped — in whole system px. Left out of the table to keep the
+parameter that *makes* each archetype legible, not because a window may go
+without one.
+
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
 - **Visual:** `display: block; position: relative; overflow: hidden;`
@@ -393,7 +398,11 @@ Full-bleed classic desktop container.
 #### `vf-window` (`VfWindow`, vf-window.ts)
 The desktop-window shell: the classic document window (see DragThing
 screenshot), parameterized down to the windoid (see the Group A recipe table).
-- **Attributes/props:** `heading: string` (title text), `active: boolean`
+- **Attributes/props:** `heading: string` (title text), `width: number` /
+  `height: number` (**declare them** — whole system px, so the window keeps its
+  proportion to the chrome inside it at every density; an undeclared width falls
+  back to block layout and warns once in the console, an undeclared height sizes
+  to the body), `active: boolean`
   (default **true**; reflect), `closable: boolean` (default true),
   `zoomable: boolean` (default false), `movable: boolean` (default false),
   `resizable: boolean` (default false), `flush: boolean` (default false —
@@ -470,7 +479,12 @@ The modal-dialog shell: movable modal by default (see "Format" screenshot,
 striped title bar over a white body), the dBoxProc modal dialog box with
 `frame="plain"` (see the Group A recipe table).
 - **Attributes/props:** `open: boolean` (reflect), `heading: string`,
-  `label: string` (accessible name for a dialog with no `heading`),
+  `width: number` / `height: number` (**declare the width** — whole system px.
+  A native `<dialog>` is `width: fit-content` measured against the space beside
+  its margins, and those margins are how the movable modal is positioned, so an
+  undeclared dialog squeezes itself and reflows as it is dragged toward an edge.
+  Unset it falls back to 260 system px and warns once; an unset height sizes to
+  the body), `label: string` (accessible name for a dialog with no `heading`),
   `closable: boolean` (default **false** — the bare movable-modal bar; the
   close box is opt-in because the HIG's Chapter 6 text denies a movable modal
   one while its Figure 5-1 grants it — the parameter enables either reading),
@@ -520,7 +534,10 @@ Classic fixed modal alert: double black frame, no title bar. (Its frame is
 deliberately NOT `vfModalFrame` — the alert's trace is 2px outer / 1px inner
 *with* the hard shadow, the modal dialog's is 1px outer / 2px inner without;
 see §4.)
-- **Attributes/props:** `open: boolean`, `variant?: 'caution'` (renders the
+- **Attributes/props:** `open: boolean`, `width: number` / `height: number`
+  (**declare the width** — whole system px, the same requirement and the same
+  260px fallback + one-time console warning as `vf-dialog`; both inherit it from
+  `VfModalDialog`), `variant?: 'caution'` (renders the
   classic black/white triangle-with-! icon as inline SVG; omit for none/slot).
 - **Implementation:** native `<dialog>` like vf-dialog. `show()`/`close()`.
 - **Visual:** outer `border: 2px solid black`; inner frame: a wrapper with
@@ -1220,6 +1237,11 @@ consumer's stylesheet).
   1px of padding for the outer lines to land on, which `frameless` drops with
   them. Cells are the *slotted* elements
   (`slot { display: contents }`), so they keep their own semantics and styling.
+  The grid is `place-items: center`: what a palette holds is smaller than its
+  well (a 16px icon in a 26px cell), and grid's own `stretch` default behaves as
+  *start* for anything with a size, which parks every icon in a corner. A cell
+  that means to fill its well — a tool button that inverts when selected — asks
+  with `place-self: stretch`; under `collapse` that is already the default.
 - **The rules are a masked lattice, not gaps:** one overlay paints
   `var(--vf-black, #000)` through two tiled 1-bit SVG masks — a pixel column at
   the horizontal pitch, a pixel row at the vertical — so the pen switches from
@@ -1246,9 +1268,10 @@ consumer's stylesheet).
   border sets *beside* the lattice line and every boundary reads 2px. It pulls
   each cell back 1px on all four sides (`::slotted(*) { margin: -1px }`), so the
   two become one line and neighbors share it. Size the cells at *item − 2px*
-  (`cell-width="14"` for a 16px item); stretch then resizes an auto-width cell
-  to match, and a consumer's own margin still wins (a light-DOM declaration
-  beats a `::slotted` one). The frame gives the outermost borders a line to land
+  (`cell-width="14"` for a 16px item); these cells also keep grid's `stretch`
+  rather than the centering above — they exist to meet the lines — so an
+  auto-width one is resized to match, and a consumer's own margin still wins (a
+  light-DOM declaration beats a `::slotted` one). The frame gives the outermost borders a line to land
   on and ends the box exactly at the last item's outer edge — `n × (cell + 1) + 1`
   is exactly `n` items of `cell + 2` overlapping by one. On a `frameless` grid
   those outer borders paint a pixel outside its box; with `rules="none"` there is

@@ -1197,6 +1197,68 @@ The "Install Location" group box.
 - **Slots:** default, plus named slot `legend` (overrides attr).
 - **Parts:** `fieldset`, `legend`.
 
+#### `vf-grid` (`VfGrid`, vf-grid.ts)
+A lattice of equal cells with 1px rules between them: the Figure 5-6 tool
+palette's 3×3 of desk accessories, a color picker's swatch table, a pattern or
+icon chooser. All the same drawing, and all of it used to be hand-rolled page
+CSS — a `display: grid` with a 1px gap over a black background, showing through
+as the rules (which only draws them solid, and puts the kit's artwork in the
+consumer's stylesheet).
+- **Attributes/props:** `columns: number` (cells across, default 1),
+  `rows: number` (cells down; unset, the slotted cells decide — set, that many
+  are reserved, so an unfilled cell still gets its rules),
+  `cell-width` / `cell-height`: number (whole system px, default 16),
+  `rules: 'solid' | 'dashed' | 'none'` (default `'solid'`, reflected) — the pen
+  every rule is drawn with, `frameless: boolean` (reflected) — drop the
+  perimeter, which is otherwise drawn, `collapse: boolean` (reflected) — land a
+  cell's own border on the rule rather than beside it.
+- **Visual:** host `display: block`; the shadow `grid` box is `width: max-content`
+  (a block-level grid stretched by a wider parent would tile its rules on across
+  the empty space) over `var(--vf-surface, var(--vf-white, #fff))`, with fixed
+  `cell-width × cell-height` tracks and a 1px gap for the rules to paint into
+  (`rules="none"` closes the gap and the cells butt together). The box carries
+  1px of padding for the outer lines to land on, which `frameless` drops with
+  them. Cells are the *slotted* elements
+  (`slot { display: contents }`), so they keep their own semantics and styling.
+- **The rules are a masked lattice, not gaps:** one overlay paints
+  `var(--vf-black, #000)` through two tiled 1-bit SVG masks — a pixel column at
+  the horizontal pitch, a pixel row at the vertical — so the pen switches from
+  solid to dashed with no change in layout, and the color stays a token (the
+  SVG only says *where*; rects rather than gradient stops, like the windoid
+  dither). The lattice starts at the box's own edge, so the perimeter is simply
+  its first and last lines; `frameless` pulls it back one pixel, putting the
+  first line on the first gap and the last one outside the box.
+- **The dashed pen inks where `x + y` is even** — the diagonal phase of a 50%
+  dither, and the only phasing under which the two layers agree at a crossing:
+  either both draw that pixel or neither does. Phase the lines independently and
+  the crossings where one layer inks and the other doesn't put a stray pixel
+  beside a dash, rendering the 1px rule as 2 and 3 px clumps at half its
+  intersections. Carrying it takes a mask tile two pitches long (its second line
+  starting `pitch % dash` steps out of phase).
+- **Painted under the cells** (`z-index: -1` in the grid's own stacking context,
+  above its surface), so an item spanning two cells covers the boundary it
+  swallowed and a cell's own ink — a pressed face, a focus rule, a hard shadow —
+  is never crossed by a line. It is also what makes `collapse` read right: a
+  filled cell's solid border hides the rule beneath it while the empty cells
+  around it keep showing the pen.
+- **`collapse`** is `border-collapse: collapse` in system px, for cells that
+  draw their own 1px border (a bordered tile, a `vf-swatch`): without it that
+  border sets *beside* the lattice line and every boundary reads 2px. It pulls
+  each cell back 1px on all four sides (`::slotted(*) { margin: -1px }`), so the
+  two become one line and neighbors share it. Size the cells at *item − 2px*
+  (`cell-width="14"` for a 16px item); stretch then resizes an auto-width cell
+  to match, and a consumer's own margin still wins (a light-DOM declaration
+  beats a `::slotted` one). The frame gives the outermost borders a line to land
+  on and ends the box exactly at the last item's outer edge — `n × (cell + 1) + 1`
+  is exactly `n` items of `cell + 2` overlapping by one. On a `frameless` grid
+  those outer borders paint a pixel outside its box; with `rules="none"` there is
+  nothing to collapse onto and it goes inert.
+- **Semantics are the consumer's:** the grid takes no role, no keyboard behavior
+  and no selection — `role="group"`/`aria-label` on the host for a tool palette,
+  `role="radiogroup"` for a picker, nothing at all for a plain tiling.
+- **Slots:** default (the cells, in order). **Parts:** `grid`, `rules`.
+  **Events:** none.
+
 ### Group E — static text
 
 The two components for text that is *not* part of a control: captions and copy.
@@ -1311,8 +1373,9 @@ screenshots:
    content): Paper radio group in a fieldset, Reduce or Enlarge
    `vf-number-field`, Cancel / OK (default) buttons.
 8. **"Desk Accessories" utility palette** — `vf-window variant="utility"
-   movable flush`: a 3×3 grid of 16×16 `vf-img` DA icons (one selected,
-   inverted), floating above the document windows on the desktop's utility
+   movable flush`: a `vf-grid` of 3×3 26px cells holding 16×16 `vf-img` DA
+   icons (one selected, inverted), frameless so the window's own border is the
+   palette's, floating above the document windows on the desktop's utility
    tier and untouched by their active-state churn — the Group A archetype
    table's fifth recipe, live.
 9. The **"DragThing Read Me"** window (item 2's copy points at it) carries the

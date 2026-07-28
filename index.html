@@ -694,9 +694,9 @@ shrink it and watch the arrows come back.
            Click any document window underneath: the palette stays on top and
            keeps its bar, because utility windows stand outside the
            single-active rule (HIG Figure 5-6's tool palette, recast with the
-           DA icons the kit ships). The 3×3 cell grid is page furniture like
-           the Find window's dotted well; each icon is 16×16 vf-img pixel
-           art. -->
+           DA icons the kit ships). The 3×3 cell lattice is a vf-grid, marked
+           `frameless` because the window's own frame is its outer border; each
+           icon is 16×16 vf-img pixel art. -->
       <vf-window
         id="win-tools"
         variant="utility"
@@ -704,7 +704,15 @@ shrink it and watch the arrows come back.
         movable
         flush
       >
-        <div class="tools-grid" role="group" aria-label="Desk accessories">
+        <vf-grid
+          columns="3"
+          rows="3"
+          cell-width="26"
+          cell-height="26"
+          frameless
+          role="group"
+          aria-label="Desk accessories"
+        >
           <button class="tool" aria-pressed="true" aria-label="Alarm Clock">
             <vf-img width="16" height="16">
               <img src="/demo/icons/alarm-clock.png" alt="" />
@@ -754,7 +762,7 @@ shrink it and watch the arrows come back.
               <img src="/demo/icons/scrapbook.png" alt="" />
             </vf-img>
           </button>
-        </div>
+        </vf-grid>
       </vf-window>
 
       <!-- ===================== About dialog (modal) ===================== -->

@@ -131,6 +131,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-list`, `vf-list-item` | List box with inverted selection, a permanent scroll rail, and Finder first-letter type-ahead; each row takes a leading graphic (usually a 16×16 `vf-img`) in its `icon` slot |
 | `vf-scroll-area` | Container with System 7 scrollbars; reserves the scroll rail as a placeholder (per-axis via `axis`), filling in only on overflow |
 | `vf-fieldset` | Group box with legend punching through the border |
+| `vf-grid` | A lattice of equal cells with 1px rules between them — the desk-accessory palette, a color picker's swatch table; the cell count and cell size are properties, `rules` picks the pen (`solid`, `dashed` or `none`), `frameless` drops the perimeter for a grid whose container already draws that line, and `collapse` lands a cell's own border *on* the rule instead of beside it |
 | `vf-label` | Static caption ("Name:", "Mode") in the chrome face; `for` focuses and names a control the way `<label for>` does |
 | `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box |
 | `vf-img` | Pixel art on the kit's grid — sizes a slotted `<img>` to one system pixel per image pixel and keeps the nearest-neighbor magnification on whole device pixels; `width`/`height` (system px) reserve the box before the file loads |

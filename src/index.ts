@@ -48,6 +48,8 @@ export { VfList } from './components/vf-list.js'
 export { VfListItem } from './components/vf-list-item.js'
 export { VfScrollArea } from './components/vf-scroll-area.js'
 export { VfFieldset } from './components/vf-fieldset.js'
+export { VfGrid } from './components/vf-grid.js'
+export type { VfGridRules } from './components/vf-grid.js'
 
 /* ── Utilities & style toolkit ──────────────────────────────────────────── */
 

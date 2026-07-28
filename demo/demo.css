@@ -142,20 +142,13 @@ vf-desktop {
   left: calc(var(--vf-scale, 1) * 600px);
   top: calc(var(--vf-scale, 1) * 490px);
 }
-/* 3×3 tool cells with 1px rules between them (the palette grid of Figure
-   5-6): the rules are the grid's 1px gaps showing the black background
-   through — the same page-furniture license as .find-criteria's dotted
-   well. The window frame supplies the outer border (flush window). */
-.tools-grid {
-  display: grid;
-  grid-template-columns: repeat(3, calc(var(--vf-scale, 1) * 26px));
-  gap: calc(var(--vf-scale, 1) * 1px);
-  background: var(--vf-black, #000);
-}
+/* The 3×3 tool cells and the 1px rules between them are the vf-grid in the
+   markup (26×26 cells, frameless — the flush window's own border is the
+   outer one). All that's left here is what a tool cell is: a borderless
+   button filling its cell with its icon centered. */
 .tool {
   display: grid;
   place-items: center;
-  height: calc(var(--vf-scale, 1) * 26px);
   padding: 0;
   margin: 0;
   border: none;

@@ -18,8 +18,10 @@
  *
  *  - GEOMETRY: the rule is 1 system px tall, leaves exactly one blank row
  *    between itself and the ink above it (glyph, box border, sprite, the well's
- *    bottom edge, the rail — or, for vf-select and vf-swatch, the hard shadow
- *    the box casts, which no box the pseudo-element can size to contains), and
+ *    bottom edge, the rail — or, for vf-select and a `shadow` vf-swatch, the
+ *    hard shadow the box casts, which no box the pseudo-element can size to
+ *    contains; the flat swatch is checked too, since that offset is a calc()
+ *    over the depth in play rather than a constant), and
  *    spans that element's own box — the label, not the button's padded face;
  *    the whole well, not the toggle's row; the number field's well, not the
  *    stepper beside it; the menu's title, not the bar cell around it; the
@@ -635,13 +637,18 @@ for (const [tag, markup] of [
   await modalPage.close()
 }
 
-// ── the two shadowed boxes: the rule goes UNDER the control, not inside ───
+// ── the boxes that mark BELOW themselves: the rule goes UNDER, not inside ───
 // vf-select and vf-swatch have no interior to lend the mark — the pill's one
 // line is already the label and the ▼, and every pixel inside the swatch is
 // the color it exists to show — so the rule drops below the whole box. Which
 // means it has to clear the hard shadow, ink that sits outside every box the
 // pseudo-element could size itself to. What's checked is the ink profile: the
-// box AND its shadow as one band, one blank row, then the rule.
+// box AND whatever shadow it casts as one band, one blank row, then the rule.
+//
+// vf-swatch runs twice because its shadow is a parameter, not a constant: the
+// offset is a calc() over the depth actually in play, so the flat default (the
+// palette-cell case, no shadow at all) and the raised `shadow` reading have to
+// land the rule one blank row under DIFFERENT amounts of ink.
 for (const [tag, markup, frame, shadow] of [
   [
     'vf-select',
@@ -650,7 +657,8 @@ for (const [tag, markup, frame, shadow] of [
     '.control',
     1,
   ],
-  ['vf-swatch', '<vf-swatch id="x"></vf-swatch>', 'button', 2],
+  ['vf-swatch', '<vf-swatch id="x"></vf-swatch>', 'button', 0],
+  ['vf-swatch shadow', '<vf-swatch id="x" shadow></vf-swatch>', 'button', 2],
 ]) {
   const page = await build(markup)
   await page.keyboard.press('Tab')
@@ -666,21 +674,22 @@ for (const [tag, markup, frame, shadow] of [
   // Scanning the whole clip: the box's own side borders put ink in every one
   // of its rows, so the control and its shadow read as a single band, and a
   // ring would show up as a third one (or widen these two).
+  const withShadow = shadow ? ' with its hard shadow' : ''
   const groups = bands(s, isBlack, { inset: 0 })
   check(
-    `${tag}: two ink bands — the box with its hard shadow, then the rule`,
+    `${tag}: two ink bands — the box${withShadow}, then the rule`,
     groups.length === 2,
     `found ${groups.length}`
   )
   const [ink, rule] = groups.length === 2 ? groups : [[], []]
   check(
-    `${tag}: the ink above it is the box plus its ${shadow}px shadow, nothing more`,
+    `${tag}: the ink above it is the box${shadow ? ` plus its ${shadow}px shadow` : ''}, nothing more`,
     ink.length === s.h + shadow * S,
     `${ink.length / S} system px vs the box's ${s.h / S} + ${shadow}`
   )
   check(`${tag}: the rule is 1 system px tall`, rule.length === S, `${rule.length} device px`)
   check(
-    `${tag}: one blank system px row separates it from the shadow`,
+    `${tag}: one blank system px row separates it from the ink above`,
     rule.length ? rule[0] - (ink[ink.length - 1] + 1) === S : false,
     rule.length ? `gap=${(rule[0] - (ink[ink.length - 1] + 1)) / S} system px` : ''
   )

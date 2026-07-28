@@ -907,13 +907,21 @@ vf-button::part(button) { min-width: 96px; }
         <section class="doc" id="vf-swatch" data-group="Buttons &amp; toggles" data-toc="vf-swatch">
           <h2><code>vf-swatch</code></h2>
           <p>
-            A color-swatch button: a hard-shadowed, white-inset color well sized in
-            system pixels — a palette cell. With no <code>color</code> it shows the
-            transparency checker, and a translucent value layers over that checker so
-            partial opacity reads as partial.
+            A color-swatch button: a white-inset color well sized in system pixels — a
+            palette cell. With no <code>color</code> it shows the transparency checker,
+            and a translucent value layers over that checker so partial opacity reads as
+            partial.
+          </p>
+          <p>
+            The default is the flat well — 1px black border, no depth — because the
+            swatch's usual home is a table of them, where every cell shadowing its
+            neighbour reads as noise. <code>shadow</code> opts into the kit's hard drop
+            shadow for the case that wants it: the lone well standing in for a current
+            color, raised like the windows and menus it shares
+            <code>--vf-shadow-offset</code> with.
           </p>
 
-          <template data-example data-caption="The six-color palette, a translucent well, the no-color checker, a large square, and a disabled one.">
+          <template data-example data-caption="The six-color palette, a translucent well, the no-color checker, a large square, and a disabled one — all flat, the default.">
             <vf-swatch color="#000000" label="Black"></vf-swatch>
             <vf-swatch color="#dd0000" label="Red"></vf-swatch>
             <vf-swatch color="#ff6600" label="Orange"></vf-swatch>
@@ -926,12 +934,19 @@ vf-button::part(button) { min-width: 96px; }
             <vf-swatch color="#0066cc" label="Blue" disabled></vf-swatch>
           </template>
 
+          <template data-example data-caption="The same wells with shadow: the raised reading, for a swatch that stands alone. Tab to either specimen — the focus rule drops below whatever ink is really there, so it clears the shadow only when there is one.">
+            <vf-swatch color="#663399" shadow label="Purple"></vf-swatch>
+            <vf-swatch color="#0066cc" width="40" height="40" shadow label="Blue"></vf-swatch>
+            <vf-swatch shadow label="No color"></vf-swatch>
+          </template>
+
           <table class="api">
             <caption>Properties</caption>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>color</code></td><td class="wrap">string (CSS color)</td><td>—</td><td class="wrap">The fill. Unset shows the checker</td></tr>
               <tr><td><code>width</code>, <code>height</code></td><td>number</td><td><code>24</code>, <code>18</code></td><td class="wrap">The border box, in whole system px</td></tr>
+              <tr><td><code>shadow</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Cast the kit's hard drop shadow. Off by default — the flat well is what a table of swatches wants; the depth cue is for a lone one</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name; defaults to the <code>color</code>, or "transparent"</td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Stops interaction; <em>nothing dims</em>. The kit dims labels, and a swatch's only label is its fill, which has to keep reading as its color</td></tr>
             </tbody>
@@ -943,7 +958,7 @@ vf-button::part(button) { min-width: 96px; }
             <tbody>
               <tr><td>Parts</td><td class="wrap"><code>button</code>, <code>fill</code></td><td class="wrap">No slots</td></tr>
               <tr><td>Events</td><td>—</td><td class="wrap">None custom — native <code>click</code>. Not form-associated: a palette cell picks, it does not submit</td></tr>
-              <tr><td>Token</td><td><code>--vf-swatch-checker</code></td><td class="wrap">The transparency-checker tile; <code>--vf-shadow-offset</code> for the hard shadow</td></tr>
+              <tr><td>Token</td><td><code>--vf-swatch-checker</code></td><td class="wrap">The transparency-checker tile; <code>--vf-shadow-offset</code> for the depth under <code>shadow</code></td></tr>
             </tbody>
           </table>
         </section>
@@ -1516,19 +1531,63 @@ vf-button::part(button) { min-width: 96px; }
             <vf-grid columns="4" rows="3" cell-width="20" cell-height="20" frameless></vf-grid>
           </template>
 
-          <template data-example data-caption="Cells that draw their own 1px border. collapse lands that border ON the rule instead of beside it, so no boundary reads 2px — size the cells at item − 2px. rules='none' closes the gap entirely and the wells butt together.">
-            <vf-grid columns="4" cell-width="22" cell-height="16" collapse>
-              <vf-swatch color="#000000" width="24" height="18" label="Black"></vf-swatch>
-              <vf-swatch color="#dd0000" width="24" height="18" label="Red"></vf-swatch>
-              <vf-swatch color="#ffcc00" width="24" height="18" label="Yellow"></vf-swatch>
-              <vf-swatch color="#0066cc" width="24" height="18" label="Blue"></vf-swatch>
+          <template data-example data-caption="The color picker's swatch table: 5 × 8 flat wells, one hue family per row, dark to pale across. Cells that draw their own 1px border. collapse lands that border ON the rule instead of beside it, so no boundary reads 2px — size the cells at item − 2px. rules='none' closes the gap entirely and the wells butt together.">
+            <vf-grid columns="5" rows="8" cell-width="10" cell-height="10" collapse role="group" aria-label="Color palette">
+              <vf-swatch color="#000000" width="12" height="12" label="Black"></vf-swatch>
+              <vf-swatch color="#404040" width="12" height="12" label="Dark gray"></vf-swatch>
+              <vf-swatch color="#808080" width="12" height="12" label="Gray"></vf-swatch>
+              <vf-swatch color="#c0c0c0" width="12" height="12" label="Light gray"></vf-swatch>
+              <vf-swatch color="#ffffff" width="12" height="12" label="White"></vf-swatch>
+
+              <vf-swatch color="#400000" width="12" height="12" label="Darkest red"></vf-swatch>
+              <vf-swatch color="#800000" width="12" height="12" label="Dark red"></vf-swatch>
+              <vf-swatch color="#dd0000" width="12" height="12" label="Red"></vf-swatch>
+              <vf-swatch color="#ff6666" width="12" height="12" label="Light red"></vf-swatch>
+              <vf-swatch color="#ffcccc" width="12" height="12" label="Pale red"></vf-swatch>
+
+              <vf-swatch color="#402000" width="12" height="12" label="Darkest orange"></vf-swatch>
+              <vf-swatch color="#804000" width="12" height="12" label="Dark orange"></vf-swatch>
+              <vf-swatch color="#ff6600" width="12" height="12" label="Orange"></vf-swatch>
+              <vf-swatch color="#ff9955" width="12" height="12" label="Light orange"></vf-swatch>
+              <vf-swatch color="#ffddbb" width="12" height="12" label="Pale orange"></vf-swatch>
+
+              <vf-swatch color="#404000" width="12" height="12" label="Darkest yellow"></vf-swatch>
+              <vf-swatch color="#808000" width="12" height="12" label="Dark yellow"></vf-swatch>
+              <vf-swatch color="#ffcc00" width="12" height="12" label="Yellow"></vf-swatch>
+              <vf-swatch color="#ffee55" width="12" height="12" label="Light yellow"></vf-swatch>
+              <vf-swatch color="#ffffbb" width="12" height="12" label="Pale yellow"></vf-swatch>
+
+              <vf-swatch color="#004000" width="12" height="12" label="Darkest green"></vf-swatch>
+              <vf-swatch color="#008800" width="12" height="12" label="Dark green"></vf-swatch>
+              <vf-swatch color="#00cc00" width="12" height="12" label="Green"></vf-swatch>
+              <vf-swatch color="#66dd66" width="12" height="12" label="Light green"></vf-swatch>
+              <vf-swatch color="#ccffcc" width="12" height="12" label="Pale green"></vf-swatch>
+
+              <vf-swatch color="#004040" width="12" height="12" label="Darkest cyan"></vf-swatch>
+              <vf-swatch color="#008888" width="12" height="12" label="Dark cyan"></vf-swatch>
+              <vf-swatch color="#00cccc" width="12" height="12" label="Cyan"></vf-swatch>
+              <vf-swatch color="#66dddd" width="12" height="12" label="Light cyan"></vf-swatch>
+              <vf-swatch color="#ccffff" width="12" height="12" label="Pale cyan"></vf-swatch>
+
+              <vf-swatch color="#000040" width="12" height="12" label="Darkest blue"></vf-swatch>
+              <vf-swatch color="#003388" width="12" height="12" label="Dark blue"></vf-swatch>
+              <vf-swatch color="#0066cc" width="12" height="12" label="Blue"></vf-swatch>
+              <vf-swatch color="#6699dd" width="12" height="12" label="Light blue"></vf-swatch>
+              <vf-swatch color="#cceeff" width="12" height="12" label="Pale blue"></vf-swatch>
+
+              <vf-swatch color="#200040" width="12" height="12" label="Darkest purple"></vf-swatch>
+              <vf-swatch color="#440088" width="12" height="12" label="Dark purple"></vf-swatch>
+              <vf-swatch color="#663399" width="12" height="12" label="Purple"></vf-swatch>
+              <vf-swatch color="#9966cc" width="12" height="12" label="Light purple"></vf-swatch>
+              <vf-swatch color="#ddccff" width="12" height="12" label="Pale purple"></vf-swatch>
             </vf-grid>
 
-            <vf-grid columns="4" cell-width="24" cell-height="18" rules="none" frameless>
-              <vf-swatch color="#000000" width="24" height="18" label="Black"></vf-swatch>
-              <vf-swatch color="#dd0000" width="24" height="18" label="Red"></vf-swatch>
-              <vf-swatch color="#ffcc00" width="24" height="18" label="Yellow"></vf-swatch>
-              <vf-swatch color="#0066cc" width="24" height="18" label="Blue"></vf-swatch>
+            <vf-grid columns="5" cell-width="12" cell-height="12" rules="none" frameless>
+              <vf-swatch color="#000000" width="12" height="12" label="Black"></vf-swatch>
+              <vf-swatch color="#dd0000" width="12" height="12" label="Red"></vf-swatch>
+              <vf-swatch color="#ffcc00" width="12" height="12" label="Yellow"></vf-swatch>
+              <vf-swatch color="#008800" width="12" height="12" label="Green"></vf-swatch>
+              <vf-swatch color="#0066cc" width="12" height="12" label="Blue"></vf-swatch>
             </vf-grid>
           </template>
 

@@ -275,11 +275,11 @@ right.
       give: a `vf-select`'s single line is already the label and the ▼, every
       pixel inside a `vf-swatch` is the color it exists to show, and a
       `vf-slider`'s only interior is the handle — which moves, so marking it
-      marked the *value* rather than the control. The first two cast the hard
-      shadow, which the rule has to clear — ink lying outside every box the
-      pseudo-element could size itself to; the slider's runs the rail's full
-      width and the handle occludes it in passing (z-index 1), exactly as it
-      occludes the rail behind it.
+      marked the *value* rather than the control. `vf-select` always casts the
+      hard shadow and `vf-swatch` does under `shadow`, which the rule has to
+      clear — ink lying outside every box the pseudo-element could size itself
+      to; the slider's runs the rail's full width and the handle occludes it in
+      passing (z-index 1), exactly as it occludes the rail behind it.
     - `--vf-focus-underline-offset` places it, measured (like any `bottom`)
       from the element's **padding** box up to the rule's bottom edge, so
       positive insets it and negative drops it below. The contract is one blank
@@ -291,9 +291,9 @@ right.
       `vf-menu`'s title box; `-3px` for the checkbox, adding its 1px border;
       `-4px` for `vf-select`, adding its 1px hard shadow as well; `3px` for
       `vf-slider`, counting back up from the track's bottom to a row under the
-      rail; and for `vf-swatch` a `calc()` that composes `--vf-shadow-offset`
-      rather than hard-coding a depth its consumer can retheme.
-      `npm run verify:focus`.
+      rail; and for `vf-swatch` a `calc()` that composes the depth actually in
+      play — `0px` flat, a rethemeable `--vf-shadow-offset` under `shadow` —
+      rather than hard-coding one. `npm run verify:focus`.
     - `vf-menu` is the one that anchors to a **box** rather than to the
       baseline the button uses, and it is worth the contrast: its title box is
       shrunk to the face's own em (`line-height: 1`), whose bottom edge is the
@@ -639,28 +639,37 @@ see §4.)
 - **Slots:** default (vf-button elements). **Parts:** none. **Events:** none.
 
 #### `vf-swatch` (`VfSwatch`, vf-swatch.ts)
-The color-swatch button: a hard-shadowed well of solid color — a palette cell.
+The color-swatch button: a well of solid color — a palette cell.
 - **Attributes/props:** `color?: string` (the fill — a CSS color, typically
   hex; unset shows the transparency checker, and a translucent value layers
   over that checker so partial opacity reads as partial), `width` / `height`:
-  number (the border box, whole system px; default 24×18), `label: string`
+  number (the border box, whole system px; default 24×18), `shadow`: boolean
+  (default **false** — cast the kit's hard drop shadow), `label: string`
   (accessible name; defaults to `color`, or "transparent"), `disabled`.
 - **Visual:** inner `<button>` sized `width × height`: 1px black border, 1px
-  white inset (the button's own padding + background), the shared hard shadow
-  (`vfHardShadowDecls` — the same `--vf-shadow-offset` token as windows and
-  menus, painting outside the box like theirs), and a `fill` span carrying the
-  color. The checker is a crisp SVG tile like the desktop dither (gradient
-  hard stops feather at scale); `--vf-swatch-checker` overrides the pattern.
+  white inset (the button's own padding + background) and a `fill` span
+  carrying the color. The checker is a crisp SVG tile like the desktop dither
+  (gradient hard stops feather at scale); `--vf-swatch-checker` overrides the
+  pattern.
+  - `shadow`: adds the shared hard shadow (`vfHardShadowDecls` — the same
+    `--vf-shadow-offset` token as windows and menus, painting outside the box
+    like theirs). **Opt-in, because the swatch's usual home is a table of
+    them** (a `vf-grid`, a picker row), where every cell shadowing its
+    neighbour reads as noise rather than depth; the lone well standing in for
+    a current color is the case that wants the raised reading. The depth in
+    play is resolved once into a private `--_shadow-depth` (`0px` unset), so
+    the focus rule below composes what is actually there.
   - `:active` (pressed, not disabled): the white inset inverts to black — the
     inset counterpart of vf-button's face inversion.
   - `:focus-visible`: **no ring** — the UA outline is off on both the inner
     button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline`
     (§4) below the whole box: a `calc()` offset that clears the 1px border and
-    the `--vf-shadow-offset` shadow, then leaves the blank row. Not inside the
-    box the way vf-button underlines its label — every pixel in there is the
-    color the swatch exists to show, and a rule over the fill would read as
-    part of it. Spans the border box (±1px off the padding box the pseudo-
-    element sizes to). `npm run verify:focus`.
+    `--_shadow-depth`, then leaves the blank row — so the rule lands one row
+    under a flat swatch's border and one under a shadowed one's shadow. Not
+    inside the box the way vf-button underlines its label — every pixel in
+    there is the color the swatch exists to show, and a rule over the fill
+    would read as part of it. Spans the border box (±1px off the padding box
+    the pseudo-element sizes to). `npm run verify:focus` checks both depths.
   - `disabled`: interaction stops; nothing dims. The kit dims *labels* when
     disabled, and a swatch's only label is its fill, which must keep reading
     as its color.

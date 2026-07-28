@@ -6,20 +6,25 @@ import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 
 /**
- * `<vf-swatch>` — a color-swatch button: the hard-shadowed color well of a
- * palette cell.
+ * `<vf-swatch>` — a color-swatch button: the color well of a palette cell.
  *
- * A solid rectangle with a 1px black border, a 1px white inset ring and the
- * kit's shared hard shadow, filled edge-to-edge with a solid color. Given no
- * `color` at all it shows the transparency checker instead — the "this cell
- * holds nothing" grid every paint program draws behind an empty fill.
+ * A solid rectangle with a 1px black border and a 1px white inset ring, filled
+ * edge-to-edge with a solid color. Given no `color` at all it shows the
+ * transparency checker instead — the "this cell holds nothing" grid every
+ * paint program draws behind an empty fill.
  *
  * `width`/`height` state the border box in whole system pixels (the fill is
  * what remains inside the border and inset), multiplied by `--vf-scale` like
  * every other metric, so the swatch holds the device-pixel grid wherever a
- * palette puts it. The shadow is the shared `--vf-shadow-offset` token — the
- * same depth cue as windows, menus and alerts, painted outside the box like
- * theirs.
+ * palette puts it.
+ *
+ * `shadow` opts into the kit's hard drop shadow — the shared
+ * `--vf-shadow-offset` token, the same depth cue as windows, menus and alerts,
+ * painted outside the box like theirs. It is off by default because the
+ * swatch's usual home is a table of them (a `vf-grid`, a picker row), where
+ * every cell shadowing its neighbour reads as noise rather than depth; a lone
+ * well standing in for a current color — the one a dialog asks you to click —
+ * is the case that wants it.
  *
  * It is "basically a button": a native `<button>` inside, so `click` retargets
  * to the host, Enter/Space activate it, and pressing inverts the white inset
@@ -30,7 +35,8 @@ import { GridSnapController } from '../grid-snap.js'
  * stops interaction, dimming nothing — the kit dims *labels* when disabled,
  * and a swatch's only label is its fill, which must keep reading as its color.
  *
- * @csspart button - The inner native `<button>` (border, inset and shadow).
+ * @csspart button - The inner native `<button>` (border, inset and, with
+ *   `shadow`, the drop shadow).
  * @csspart fill - The color area inside the inset.
  */
 @customElement('vf-swatch')
@@ -56,11 +62,17 @@ export class VfSwatch extends LitElement {
           --vf-swatch-checker,
           url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23ffffff'/%3E%3Crect width='2' height='2' fill='%23c0c0c0'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23c0c0c0'/%3E%3C/svg%3E")
         );
+        /* How deep a shadow this swatch actually casts — nothing unless the
+           shadow attribute is set. Resolved here once so the focus rule below
+           can compose the real depth rather than assume one, and so a consumer
+           retheming --vf-shadow-offset still moves both together. */
+        --_shadow-depth: 0px;
+      }
+      :host([shadow]) {
+        --_shadow-depth: var(--vf-shadow-offset, 2px);
       }
       /* The 1px black frame, and — as the button's own background showing
-         through its 1px padding — the white inset ring around the fill. The
-         shadow is the kit's one hard shadow, painted outside the border box
-         like every raised surface's. */
+         through its 1px padding — the white inset ring around the fill. */
       button {
         display: block;
         /* Also the anchor the focus rule below hangs from. */
@@ -69,10 +81,14 @@ export class VfSwatch extends LitElement {
         margin: 0;
         background: var(--vf-white, #fff);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-        ${vfHardShadowDecls}
         cursor: inherit;
         -webkit-appearance: none;
         appearance: none;
+      }
+      /* Opt-in depth: the kit's one hard shadow, painted outside the border
+         box like every raised surface's. */
+      :host([shadow]) button {
+        ${vfHardShadowDecls}
       }
       /* Pressed: the white inset inverts to black — instant 1-bit feedback. */
       button:active:not(:disabled) {
@@ -86,15 +102,16 @@ export class VfSwatch extends LitElement {
 
          The offset counts every row of ink below the pseudo-element's padding
          box before the blank row and the rule itself — the 1px border, then
-         the hard shadow, whose depth is a token a consumer can retheme, so it
-         composes rather than assumes it. The ±1px sides widen the rule from
-         that same padding box to the border box, the shape the swatch reads
-         as (the shadow is a depth cue, not part of the silhouette). */
+         whatever shadow this swatch is casting — none by default, a rethemeable
+         token under the shadow attribute — so it composes --_shadow-depth
+         rather than assuming a depth. The ±1px sides widen the rule from that
+         same padding box to the border box, the shape the swatch reads as (the
+         shadow is a depth cue, not part of the silhouette). */
       button:focus-visible {
         outline: none;
       }
       button:focus-visible::after {
-        --vf-focus-underline-offset: calc(-3px - var(--vf-shadow-offset, 2px));
+        --vf-focus-underline-offset: calc(-3px - var(--_shadow-depth));
         ${vfFocusUnderline}
         left: calc(var(--vf-scale, 1) * -1px);
         right: calc(var(--vf-scale, 1) * -1px);
@@ -126,6 +143,13 @@ export class VfSwatch extends LitElement {
 
   /** The swatch's border box height in whole system px. */
   @property({ type: Number }) height = 18
+
+  /**
+   * Cast the kit's hard drop shadow (`--vf-shadow-offset`). Off by default:
+   * the plain black-bordered well is what a table of swatches wants, and the
+   * depth cue is for the lone well that stands in for a current color.
+   */
+  @property({ type: Boolean, reflect: true }) shadow = false
 
   /**
    * Accessible name for the inner button — a swatch has no text of its own.

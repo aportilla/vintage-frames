@@ -123,7 +123,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-separator` | 1px rule (horizontal/vertical; dims inside menus) |
 | `vf-button` | Push button with pixel-stepped corners (no antialiased `border-radius`); `variant="default"` renders the double-ring default button, `size="small"` the compact 16px one |
 | `vf-button-group` | Arranges buttons in a row (or `vertical` column), sizing them all to the widest — the classic System 7 shared width — unless `natural`; aligns their faces so a `variant="default"` button lines up with its neighbors |
-| `vf-swatch` | Color-swatch button: a hard-shadowed, white-inset color well sized in system px, showing the transparency checker when it has no color |
+| `vf-swatch` | Color-swatch button: a white-inset color well sized in system px, showing the transparency checker when it has no color; flat by default, with `shadow` opting into the kit's hard drop shadow for a well that stands alone |
 | `vf-checkbox` | Checkbox with the classic ✕ mark |
 | `vf-radio`, `vf-radio-group` | Radio buttons with form-associated group |
 | `vf-text-field`, `vf-text-area` | Bordered text inputs; `vf-text-area` keeps a permanent System 7 scroll rail |
@@ -152,8 +152,9 @@ can carry the mark itself it does, as a 1px dashed rule on the system-pixel
 grid (`vfFocusUnderline`) — either *inside* the control, under the ink it
 marks (`vf-button` underlines its label, `vf-checkbox` its box, `vf-radio` its
 circle, the three editable fields their well, `vf-menu` its bar title), or,
-where there is no interior to give, *below* the whole box: `vf-select` and
-`vf-swatch` clear of their hard shadow, and `vf-slider` under the full width of
+where there is no interior to give, *below* the whole box: `vf-select` clear of
+its hard shadow, `vf-swatch` clear of whatever it is casting (nothing by
+default, the shadow when it has one), and `vf-slider` under the full width of
 its rail, so the mark stays put as the handle travels. Only the controls with
 no face to draw on — a window's close and zoom boxes, a list row, a scroll
 area's viewport — keep the dotted ring. The two controls that drop open,

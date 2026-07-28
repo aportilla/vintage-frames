@@ -317,8 +317,9 @@ vf-desktop {
   --vf-list-max-height: calc(var(--vf-scale, 1) * 132px);
 }
 
-/* Swatch palette: a wrapping row on a whole-px gap; each swatch's hard shadow
-   paints outside its box, so the gap stays larger than the shadow offset. */
+/* Swatch palette: a wrapping row on a whole-px gap. The gap stays larger than
+   --vf-shadow-offset, so the row still reads if a swatch opts into `shadow`,
+   which paints outside its box. */
 .swatch-row {
   display: flex;
   flex-wrap: wrap;

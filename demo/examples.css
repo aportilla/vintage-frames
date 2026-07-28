@@ -2,9 +2,10 @@
  * examples.css — page styles for examples.html, the component reference.
  *
  * Ordinary documentation chrome: system UI type, a warm paper background, a
- * sticky table of contents beside a single content column. None of it is
- * System 7 — everything that looks like System 7 on that page comes out of a
- * component, exactly as it would on a consumer's own site.
+ * flush-left sidebar carrying the page header and the table of contents, and
+ * one scrolling content column beside it. None of it is System 7 — everything
+ * that looks like System 7 on that page comes out of a component, exactly as
+ * it would on a consumer's own site.
  *
  * Nothing here declares --vf-scale. The components size themselves — one system
  * pixel to three device pixels, true ~72dpi — and this file never second-guesses
@@ -65,57 +66,65 @@ code {
   font-size: 14px;
 }
 
-/* ── Top bar ─────────────────────────────────────────────────────────────── */
+/* ── Page frame ──────────────────────────────────────────────────────────── */
 
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+/*
+ * Two full-height panes, no document scroll: a sidebar flush to the left edge
+ * and one scroll container on the right. The sidebar is itself a column — a
+ * header that stays put, and the table of contents scrolling underneath it —
+ * so neither header nor sidebar ever spans the content.
+ */
+.shell {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 24px;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.sidebar {
+  flex: 0 0 264px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* let the TOC below scroll instead of stretching the column */
   background: var(--card);
+  border-right: 1px solid var(--rule);
+}
+
+/* The one part of the page that never moves. */
+.sidebar__head {
+  flex: none;
+  padding: 16px 16px 16px 24px;
   border-bottom: 1px solid var(--rule);
 }
 
-.topbar__brand {
+.sidebar__brand {
   margin: 0;
   font-size: 17px;
   line-height: 24px;
   font-weight: 700;
 }
 
-.topbar__brand span {
-  color: var(--ink-soft);
-  font-weight: 400;
-}
-
-.topbar__links {
-  display: flex;
-  gap: 12px;
+.sidebar__tagline {
+  margin: 0;
   font-size: 14px;
-  line-height: 24px;
+  line-height: 20px;
+  color: var(--ink-soft);
 }
 
-/* ── Page frame ──────────────────────────────────────────────────────────── */
-
-.page {
-  display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
-  gap: 32px;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 32px 24px 96px;
+.sidebar__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .toc {
-  position: sticky;
-  top: 73px; /* topbar height (24 + 12 + 12 + 1px rule) */
-  align-self: start;
-  max-height: calc(100vh - 105px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  padding: 16px 12px 32px 16px;
   font-size: 14px;
   line-height: 22px;
 }
@@ -156,13 +165,27 @@ code {
   font-size: 13px;
 }
 
+/*
+ * The whole content space, and the page's only scroller. `overflow-y: auto`
+ * computes the visible x axis to `auto` as well, so a stray wide element gets
+ * its own scrollbar here rather than being clipped.
+ */
 .main {
+  flex: 1 1 auto;
   min-width: 0;
+  overflow-y: auto;
+  padding: 32px 32px 96px;
 }
 
-/* Clear the sticky top bar when a TOC link jumps to a section. */
+/*
+ * One column, centered in the pane. Its width is capped in whole px, so what
+ * centering can land on a fractional device pixel is the origin — the half
+ * applyGridSnap() corrects (README, layout contract rule 3).
+ */
 .doc {
-  scroll-margin-top: 64px;
+  max-width: 960px;
+  margin-inline: auto;
+  scroll-margin-top: 24px; /* breathing room when a TOC link jumps here */
 }
 
 /* ── Prose ───────────────────────────────────────────────────────────────── */
@@ -472,13 +495,36 @@ pre {
 
 /* ── Narrow screens ──────────────────────────────────────────────────────── */
 
+/*
+ * The two panes stack, and the sidebar becomes a capped strip on top — but
+ * <main> stays the scroll container at every width, so there is one scrolling
+ * model on the page rather than two (examples.ts scroll-spies against it).
+ */
 @media (max-width: 900px) {
-  .page {
-    grid-template-columns: minmax(0, 1fr);
+  .shell {
+    flex-direction: column;
   }
 
-  .toc {
-    position: static;
-    max-height: none;
+  .sidebar {
+    flex: 0 0 auto;
+    max-height: 33%;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .sidebar__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 16px;
+    padding: 12px 16px;
+  }
+
+  .sidebar__links {
+    margin-top: 0;
+  }
+
+  .main {
+    padding: 24px 16px 64px;
   }
 }

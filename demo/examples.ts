@@ -281,7 +281,10 @@ function buildToc(): void {
     links.set(section.id, link)
   }
 
-  // Scroll spy: the topmost section intersecting the viewport wins.
+  // Scroll spy: the topmost section intersecting the scrollport wins. The
+  // document does not scroll — <main> is the page's scroll container at every
+  // width (examples.css, "Page frame") — so it is the observer's root.
+  const scroller = $<HTMLElement>('.main')
   const visible = new Set<string>()
   const observer = new IntersectionObserver(
     (entries) => {
@@ -302,7 +305,7 @@ function buildToc(): void {
         else link.removeAttribute('aria-current')
       }
     },
-    { rootMargin: '-80px 0px -70% 0px' }
+    { root: scroller, rootMargin: '-24px 0px -70% 0px' }
   )
   for (const section of sections) observer.observe(section)
 }

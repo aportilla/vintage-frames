@@ -35,16 +35,24 @@
   </head>
 
   <body>
-    <header class="topbar">
-      <p class="topbar__brand">Vintage Frames <span>— component reference</span></p>
-      <nav class="topbar__links" aria-label="Other demo pages">
-        <a href="/">Showcase</a>
-        <a href="/blog.html">Integration example</a>
-      </nav>
-    </header>
+    <!--
+      Two panes, both full height: a sidebar flush to the left edge whose
+      header stays put while its contents scroll under it, and the content
+      itself. The document never scrolls — <main> is the scroll container.
+    -->
+    <div class="shell">
+      <aside class="sidebar">
+        <header class="sidebar__head">
+          <p class="sidebar__brand">Vintage Frames</p>
+          <p class="sidebar__tagline">Component reference</p>
+          <nav class="sidebar__links" aria-label="Other demo pages">
+            <a href="/">Showcase</a>
+            <a href="/blog.html">Integration example</a>
+          </nav>
+        </header>
 
-    <div class="page">
-      <nav class="toc" id="toc" aria-label="Contents"></nav>
+        <nav class="toc" id="toc" aria-label="Contents"></nav>
+      </aside>
 
       <main class="main">
         <!-- ================================================================
@@ -801,7 +809,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>vertical</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">1px wide, auto height — give it a height context</td></tr>
@@ -893,7 +901,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>vertical</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Stack in a column instead of a row</td></tr>
@@ -979,7 +987,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected</td></tr>
@@ -1060,7 +1068,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>type</code></td><td>—</td><td>—</td><td class="wrap">Standard — see <a href="#conformity">Form participation</a>. <code>type</code> defaults to <code>'text'</code> and passes through to the inner input</td></tr>
@@ -1089,7 +1097,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>rows</code></td><td>number</td><td><code>4</code></td><td class="wrap">Visible lines, as on <code>&lt;textarea&gt;</code></td></tr>
@@ -1117,7 +1125,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>min</code>, <code>max</code></td><td>number</td><td>—</td><td class="wrap">Clamp the value; also fill <code>aria-valuemin</code>/<code>max</code></td></tr>
@@ -1203,7 +1211,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>value</code></td><td>number</td><td><code>0</code></td><td class="wrap">0–<code>max</code></td></tr>
@@ -1233,7 +1241,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>value</code></td><td>number</td><td><code>0</code></td><td class="wrap"></td></tr>
@@ -1449,7 +1457,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>axis</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td><code>'vertical'</code></td><td class="wrap">Which rails to reserve. The unreserved axis stays on-demand</td></tr>
@@ -1483,7 +1491,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>legend</code></td><td>string</td><td><code>''</code></td><td class="wrap">The caption; the <code>legend</code> slot overrides it</td></tr>
@@ -1592,7 +1600,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>columns</code></td><td>number</td><td><code>1</code></td><td class="wrap">Cells across</td></tr>
@@ -1639,7 +1647,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>for</code></td><td>string</td><td>—</td><td class="wrap">Id of the labelled control, resolved in the label's own tree scope. A disabled target is not focused; a target that has not upgraded yet is waited for</td></tr>
@@ -1667,7 +1675,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>face</code></td><td class="wrap"><code>'display' | 'body'</code></td><td><code>'body'</code></td><td class="wrap"></td></tr>
@@ -1696,7 +1704,7 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <table class="api">
-            <caption>Properties &amp; anatomy</caption>
+            <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>width</code>, <code>height</code></td><td>number</td><td class="wrap">the image's natural size</td><td class="wrap">Whole system px. Stated up front they reserve the box before the file loads; the box is 0×0 until a size is known, so there is never a flash at some other scale</td></tr>

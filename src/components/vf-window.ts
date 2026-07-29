@@ -40,6 +40,10 @@ interface ResizeState {
  * click-to-front stacking and automatic `active` management (utility windows
  * float above the document tier).
  *
+ * Every recipe also declares {@link width} AND {@link height}, in whole system
+ * px: a window is a fixed box in both axes, and content taller than it is
+ * clipped at the frame the way the classic content region was.
+ *
  * @slot - Default slot: window body content.
  * @csspart frame - The outer chrome frame.
  * @csspart title-bar - The striped (or dithered) title bar.
@@ -154,14 +158,37 @@ export class VfWindow extends LitElement {
       }
 
       /* --- Body ------------------------------------------------------ */
+      /* Clipped at the frame, the way the classic content region was: the
+         window is a fixed box (width and height are both declared), so content
+         taller than it is content the user reaches with the scrollbars
+         parameter, not something that paints out over the desktop.
+
+         What this deliberately does NOT clip is a control's drop-open panel.
+         vf-select's list is position:fixed, computed from the control's rect,
+         precisely so it escapes clipping ancestors (see vf-select.ts) — and it
+         still escapes this one, because nothing between it and the viewport
+         establishes a containing block for fixed descendants: the grid-snap
+         correction is a position:relative left/top offset, never a transform
+         (see grid-snap.ts, "Why an offset and not a transform"). So a popup
+         opening near the bottom edge still runs past the window border, as it
+         should. A vf-menu panel is anchored position:absolute and would clip —
+         but a menu bar belongs to the desktop, not inside a window body. */
       .body {
         flex: 1 1 auto;
         min-height: 0;
+        overflow: hidden;
         padding: calc(var(--vf-scale, 1) * 12px);
       }
       :host([flush]) .body,
       :host([scrollbars]) .body {
         padding: 0;
+      }
+      /* The edge-rail composition pulls the scroll area one system px OUT of
+         the body on every side so its frame overlay repaints the window's
+         border (see .edge-scroll below) — clipping the body would shave
+         exactly that overhang off. The scroll area does its own clipping. */
+      :host([scrollbars]) .body {
+        overflow: visible;
       }
 
       /* --- Edge scroll rails (scrollbars) ----------------------------- */
@@ -238,16 +265,27 @@ export class VfWindow extends LitElement {
    * its proportions to the chrome inside it at every display density (a CSS-px
    * width does not: it stays put while the components in it triple).
    *
-   * **Declare it.** A window owns its size the way a real one does; left to
-   * layout it takes whatever width its container or its content hands it, which
-   * is how a title bar ends up wider than the screen or a dialog reflows as it
-   * moves. Unset, the window still renders — normal block layout, as before —
-   * and says so once in the console. {@link height} is optional on top of it:
-   * unset, the body sizes to its content.
+   * **Declare it,** with {@link height}. A window owns its size the way a real
+   * one does; left to layout it takes whatever width its container or its
+   * content hands it, which is how a title bar ends up wider than the screen or
+   * a dialog reflows as it moves. Unset, the window still renders — normal
+   * block layout, as before — and says so once in the console.
    */
   @property({ type: Number }) width?: number
 
-  /** Window height in whole system px; unset, the body sizes to its content. */
+  /**
+   * Window height in whole system px.
+   *
+   * **Declare it,** with {@link width}. A window is a fixed box, not a shape
+   * its contents fall into: System 7 carried both dimensions in the WIND
+   * resource, and a window that grows with its body is one the user can neither
+   * predict nor (via the grow box) own. Unset, the body sizes to its content —
+   * the old behavior — and the window says so once in the console.
+   *
+   * Content taller than the declared box is clipped at the frame, as the
+   * classic content region was; give the window `scrollbars` to let the user
+   * reach the rest.
+   */
   @property({ type: Number }) height?: number
 
   /**
@@ -373,16 +411,29 @@ export class VfWindow extends LitElement {
   /** One warning per element, not per render. */
   #warnedNoSize = false
 
+  /**
+   * Both dimensions are required: a window is a fixed box in both axes, and
+   * each one left out falls back to a different wrong thing.
+   *
+   * An inline `width`/`height` is the other honest way to declare it — the grow
+   * box writes exactly that — so it counts. A stylesheet rule we cannot tell
+   * apart from normal block layout, so it still warns.
+   */
   #warnIfUnsized(): void {
-    if (this.#warnedNoSize || this.width !== undefined) return
-    // An inline width is the other honest way to say it; a stylesheet rule we
-    // cannot tell apart from normal block layout, so it warns too.
-    if (this.style.width !== '') return
+    if (this.#warnedNoSize) return
+    const missing: string[] = []
+    if (this.width === undefined && this.style.width === '') {
+      missing.push('width (falling back to block layout)')
+    }
+    if (this.height === undefined && this.style.height === '') {
+      missing.push('height (falling back to the content)')
+    }
+    if (missing.length === 0) return
     this.#warnedNoSize = true
     console.warn(
-      `vf-window${this.heading ? ` ("${this.heading}")` : ''}: no width declared — ` +
-        'falling back to block layout. Declare the size in system px: ' +
-        '<vf-window width="240" height="176">.'
+      `vf-window${this.heading ? ` ("${this.heading}")` : ''}: no ` +
+        `${missing.join(', no ')}. A window owns its whole box — declare both ` +
+        'in system px: <vf-window width="240" height="176">.'
     )
   }
 

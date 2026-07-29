@@ -66,18 +66,35 @@ export class VfAlert extends VfModalDialog {
         display: contents;
       }
       /* Not vfChromeFrame: the alert's outer rule is 2px, the double-frame's
-         heavier outer stroke. Only the shadow is shared. */
+         heavier outer stroke. Only the shadow is shared.
+
+         A declared height lands on the <dialog> (dialogSize), so each ring of
+         the double frame has to pass it inward — a plain block child of a
+         taller box stays content-tall and leaves the framed art floating in a
+         transparent dialog. Unset height leaves the <dialog> auto, where this
+         chain resolves to the content and costs nothing. */
       .frame {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
         border: calc(var(--vf-scale, 1) * 2px) solid var(--vf-black, #000000);
         ${vfHardShadowDecls}
       }
       .inner {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
         margin: calc(var(--vf-scale, 1) * 2px);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
       }
+      /* Clips at the frame, as vf-window's and vf-dialog's bodies do. */
       .content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
         display: grid;
         grid-template-columns: calc(var(--vf-scale, 1) * 32px) 1fr;
         grid-template-areas:

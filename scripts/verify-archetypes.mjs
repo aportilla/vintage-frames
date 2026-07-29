@@ -147,8 +147,8 @@ function decodePng(buf) {
     <div style="position:relative">
       <vf-window id="win" heading="Notes" movable
         style="width:300px;height:200px"><p>Body</p></vf-window>
-      <vf-dialog id="dlg" heading="Search and Replace" closable open><p>Body</p></vf-dialog>
-      <vf-dialog id="bare" heading="Bare" open><p>Body</p></vf-dialog>
+      <vf-dialog id="dlg" heading="Search and Replace" closable width="200" height="120" open><p>Body</p></vf-dialog>
+      <vf-dialog id="bare" heading="Bare" width="200" height="120" open><p>Body</p></vf-dialog>
     </div>
   `)
 
@@ -227,12 +227,12 @@ function decodePng(buf) {
    ──────────────────────────────────────────────────────────────────────── */
 {
   const page = await build(`
-    <vf-dialog id="plain" frame="plain" heading="Page Setup" closable open>
+    <vf-dialog id="plain" frame="plain" heading="Page Setup" closable width="200" height="120" open>
       <p>Body</p>
     </vf-dialog>
     <!-- NOT open: a second open modal would be the top layer's topmost and
          swallow the Escape aimed at #plain. Naming renders regardless. -->
-    <vf-dialog id="unnamed" frame="plain"><p>Body</p></vf-dialog>
+    <vf-dialog id="unnamed" frame="plain" width="200" height="120"><p>Body</p></vf-dialog>
   `)
 
   const frame = await partMetrics(page, 'plain', 'frame',

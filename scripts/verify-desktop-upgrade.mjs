@@ -17,11 +17,11 @@ const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 
 const MARKUP = `
   <vf-desktop id="desk" style="height: 400px">
-    <vf-window id="w1" heading="One">one</vf-window>
-    <vf-window id="w2" heading="Two">two</vf-window>
-    <vf-window id="w3" heading="Three">three</vf-window>
+    <vf-window id="w1" heading="One" width="200" height="80">one</vf-window>
+    <vf-window id="w2" heading="Two" width="200" height="80">two</vf-window>
+    <vf-window id="w3" heading="Three" width="200" height="80">three</vf-window>
   </vf-desktop>
-  <vf-window id="lone" heading="Standalone">lone</vf-window>
+  <vf-window id="lone" heading="Standalone" width="200" height="80">lone</vf-window>
 `
 
 const results = []

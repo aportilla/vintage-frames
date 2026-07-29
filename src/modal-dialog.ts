@@ -77,7 +77,18 @@ export class VfModalDialog extends LitElement {
    */
   @property({ type: Number }) width?: number
 
-  /** Modal height in whole system px; unset, the body sizes to its content. */
+  /**
+   * Modal height in whole system px.
+   *
+   * **Declare it,** with {@link width}. A modal is a fixed box in both axes —
+   * the same rule `vf-window` follows, for the same reason: the classic shells
+   * carried both dimensions in the resource, and a box that grows with its body
+   * is one whose buttons move under the pointer as its text changes. Unset, the
+   * body sizes to its content — the old behavior — and it says so once in the
+   * console.
+   *
+   * Content taller than the declared box is clipped at the frame.
+   */
   @property({ type: Number }) height?: number
 
   @query('dialog') protected _dialog!: HTMLDialogElement
@@ -102,17 +113,30 @@ export class VfModalDialog extends LitElement {
    * Say it once, when an unsized modal is first shown — a hidden one is not
    * yet anybody's problem, and the name in the message is what makes it
    * findable in a page with several.
+   *
+   * Both dimensions are required, as on `vf-window`, but they fail differently:
+   * an undeclared width takes a definite fallback (a squeezing box is worse
+   * than a wrong-but-stable one), while an undeclared height just sizes to the
+   * content and says so.
    */
   #warnIfUnsized(): void {
-    if (this.#warnedNoSize || !this.open || this.width !== undefined) return
+    if (this.#warnedNoSize || !this.open) return
+    const missing: string[] = []
+    if (this.width === undefined) {
+      missing.push(`width (falling back to ${MODAL_FALLBACK_WIDTH} system px)`)
+    }
+    if (this.height === undefined) {
+      missing.push('height (falling back to the content)')
+    }
+    if (missing.length === 0) return
     this.#warnedNoSize = true
     // Read the name off attributes: `heading` and `label` belong to the
     // subclasses, and the base has no business knowing which is which.
     const name = this.getAttribute('heading') ?? this.getAttribute('label') ?? ''
     console.warn(
-      `${this.localName}${name ? ` ("${name}")` : ''}: no width declared — ` +
-        `falling back to ${MODAL_FALLBACK_WIDTH} system px. Declare the size: ` +
-        `<${this.localName} width="320" height="140">.`
+      `${this.localName}${name ? ` ("${name}")` : ''}: no ` +
+        `${missing.join(', no ')}. A modal owns its whole box — declare both ` +
+        `in system px: <${this.localName} width="320" height="140">.`
     )
   }
 

@@ -286,7 +286,9 @@ for (const path of PAGES) {
   await page.setContent(
     `<!doctype html><meta charset="utf-8"><body style="margin:0">
      <vf-desktop nosnap style="height:700px;padding:.4px 0 0 .4px">
-       <vf-window id="win" heading="Drag Me" movable><p>Body</p></vf-window>
+       <vf-window id="win" heading="Drag Me" movable width="200" height="120"
+         ><p>Body</p></vf-window
+       >
      </vf-desktop>`
   )
   await page.evaluate(() => import('/src/index.ts'))

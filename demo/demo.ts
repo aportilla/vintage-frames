@@ -94,6 +94,10 @@ function spawnWindow(): void {
   win.style.left = `${sys(180 + step * 28, desktop)}px`
   win.style.top = `${sys(140 + step * 26, desktop)}px`
   win.style.width = `${sys(300, desktop)}px`
+  // Both axes, like every other window here: a window is a fixed box, and an
+  // undeclared height would size it to whatever the note below happens to wrap
+  // to. Tall enough for that note at this width.
+  win.style.height = `${sys(112, desktop)}px`
 
   const note = new VfParagraph()
   note.className = 'untitled-note'

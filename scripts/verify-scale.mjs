@@ -40,7 +40,7 @@ const COMPONENTS = `
   <vf-menu-bar><vf-menu id="menu" label="File" open><vf-menu-item id="item">Menu item</vf-menu-item></vf-menu></vf-menu-bar>
   <vf-fieldset legend="Group"><vf-button>Inner</vf-button></vf-fieldset>
   <vf-scroll-area><p>Body</p></vf-scroll-area>
-  <vf-window heading="Win"><vf-button>In window</vf-button></vf-window>
+  <vf-window heading="Win" width="200" height="120"><vf-button>In window</vf-button></vf-window>
 `
 
 const results = []

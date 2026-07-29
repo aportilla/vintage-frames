@@ -87,7 +87,7 @@ const partMetrics = (page, hostId, part, props) =>
     <div id="host" style="position:relative">
       <vf-window id="win" heading="My Window" movable resizable zoomable
         style="width:300px;height:200px"><p>Body</p></vf-window>
-      <vf-dialog id="dlg" heading="My Dialog" open><p>Body</p></vf-dialog>
+      <vf-dialog id="dlg" heading="My Dialog" width="200" height="120" open><p>Body</p></vf-dialog>
     </div>
   `)
 
@@ -190,7 +190,7 @@ const partMetrics = (page, hostId, part, props) =>
       <vf-window id="win" heading="My Window" movable zoomable
         style="width:300px;height:200px"><p>Body</p></vf-window>
       <vf-window id="fixed" heading="Fixed" style="width:300px;height:120px"><p>B</p></vf-window>
-      <vf-dialog id="dlg" heading="My Dialog" open><p>Body</p></vf-dialog>
+      <vf-dialog id="dlg" heading="My Dialog" width="200" height="120" open><p>Body</p></vf-dialog>
     </div>
   `)
 
@@ -244,8 +244,8 @@ const partMetrics = (page, hostId, part, props) =>
   const page = await build(`
     <div id="host" style="position:relative;--vf-titlebar-height:26px;--vf-shadow-offset:4px">
       <vf-window id="win" heading="W" movable style="width:300px;height:200px"><p>B</p></vf-window>
-      <vf-dialog id="dlg" heading="D" open><p>B</p></vf-dialog>
-      <vf-alert id="alert" variant="caution" open>Careful</vf-alert>
+      <vf-dialog id="dlg" heading="D" width="200" height="120" open><p>B</p></vf-dialog>
+      <vf-alert id="alert" variant="caution" width="240" height="100" open>Careful</vf-alert>
     </div>
   `)
   const barH = async (id) => (await partMetrics(page, id, 'title-bar', ['height'])).height
@@ -274,7 +274,7 @@ const partMetrics = (page, hostId, part, props) =>
 {
   const page = await build(`
     <div id="host" style="position:relative;--vf-title-inset:40px">
-      <vf-dialog id="dlg" heading="D" open><p>B</p></vf-dialog>
+      <vf-dialog id="dlg" heading="D" width="200" height="120" open><p>B</p></vf-dialog>
     </div>
   `)
   const mw = await page.evaluate(() =>
@@ -336,7 +336,7 @@ const partMetrics = (page, hostId, part, props) =>
 }
 {
   const page = await build(`
-    <vf-dialog id="dlg" heading="Drag Me" open><p>Body</p></vf-dialog>
+    <vf-dialog id="dlg" heading="Drag Me" width="200" height="120" open><p>Body</p></vf-dialog>
   `)
   const bar = await page.evaluate(() => {
     const b = document.getElementById('dlg').shadowRoot
@@ -420,7 +420,7 @@ const partMetrics = (page, hostId, part, props) =>
 }
 {
   const page = await build(`
-    <vf-dialog id="titled" heading="Save Changes" open><p>B</p></vf-dialog>
+    <vf-dialog id="titled" heading="Save Changes" width="200" height="120" open><p>B</p></vf-dialog>
   `)
   const aria = await page.evaluate(() => {
     const d = document.getElementById('titled').shadowRoot.querySelector('dialog')
@@ -440,9 +440,9 @@ const partMetrics = (page, hostId, part, props) =>
 }
 {
   const page = await build(`
-    <vf-dialog id="bare" open><p>B</p></vf-dialog>
-    <vf-dialog id="named" label="Preferences" open><p>B</p></vf-dialog>
-    <vf-dialog id="both" heading="Heading" label="Explicit" open><p>B</p></vf-dialog>
+    <vf-dialog id="bare" width="200" height="120" open><p>B</p></vf-dialog>
+    <vf-dialog id="named" label="Preferences" width="200" height="120" open><p>B</p></vf-dialog>
+    <vf-dialog id="both" heading="Heading" label="Explicit" width="200" height="120" open><p>B</p></vf-dialog>
   `)
   const aria = (id) =>
     page.evaluate((hostId) => {
@@ -473,7 +473,7 @@ const partMetrics = (page, hostId, part, props) =>
   // The <dialog> lives in the shadow root, so walk the pierced DOM to its
   // nodeId: DOM.querySelector does not cross a shadow boundary, and
   // fetchRelatives reaches ancestors/siblings, not shadow descendants.
-  const page = await build(`<vf-dialog id="bare" open><p>B</p></vf-dialog>`)
+  const page = await build(`<vf-dialog id="bare" width="200" height="120" open><p>B</p></vf-dialog>`)
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('Accessibility.enable')
   const doc = await cdp.send('DOM.getDocument', { depth: -1, pierce: true })
@@ -509,7 +509,7 @@ const partMetrics = (page, hostId, part, props) =>
   const page = await build(`
     <div id="host" style="position:relative;--vf-scale:1">
       <vf-window id="win" heading="W" movable style="width:200px;height:120px"><p>B</p></vf-window>
-      <vf-dialog id="dlg" heading="D" open><p>B</p></vf-dialog>
+      <vf-dialog id="dlg" heading="D" width="200" height="120" open><p>B</p></vf-dialog>
     </div>
   `)
   const bar = async (id) =>

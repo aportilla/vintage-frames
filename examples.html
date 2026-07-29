@@ -524,6 +524,7 @@ vf-button::part(button) { min-width: 96px; }
                 movable
                 resizable
                 width="192"
+                height="84"
                 style="position: absolute; left: 1em; top: 1em"
               >
                 <vf-paragraph>Drag my title bar. Drag the grow box.</vf-paragraph>
@@ -532,6 +533,7 @@ vf-button::part(button) { min-width: 96px; }
                 heading="Second"
                 movable
                 width="176"
+                height="64"
                 style="position: absolute; left: 8em; top: 6em"
               >
                 <vf-paragraph>Click me to come forward.</vf-paragraph>
@@ -635,6 +637,7 @@ vf-button::part(button) { min-width: 96px; }
                 closable
                 movable
                 width="208"
+                height="86"
                 style="position: absolute; left: 18em; top: 3em"
               >
                 <vf-label for="ex-find">Find:</vf-label>
@@ -645,6 +648,7 @@ vf-button::part(button) { min-width: 96px; }
                 heading="Palette"
                 movable
                 width="144"
+                height="70"
                 style="position: absolute; left: 18em; top: 12em"
               >
                 <vf-paragraph size="small">A windoid: 12px bar, dot dither, 7×7 widgets.</vf-paragraph>
@@ -657,8 +661,8 @@ vf-button::part(button) { min-width: 96px; }
             <caption>Properties</caption>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it.</strong> Whole system px — the art's own unit, so the window holds its proportion to the chrome inside it at every density, which a CSS-px width does not. Undeclared, the window falls back to plain block layout and says so once in the console</td></tr>
-              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Unset, the body sizes to its content</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it,</strong> with <code>height</code>. Whole system px — the art's own unit, so the window holds its proportion to the chrome inside it at every density, which a CSS-px width does not. Undeclared, the window falls back to plain block layout and says so once in the console</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it too.</strong> A window is a fixed box in both axes, not a shape its contents fall into — System 7 carried both dimensions in the WIND resource. Content taller than the box is clipped at the frame, as the classic content region was; <code>scrollbars</code> is how the user reaches the rest. Unset, the body sizes to its content and it says so once in the console</td></tr>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title text, centered on the stripes. Also qualifies the widgets' accessible names (<code>Close Read Me</code>) — several windows are open at once by design</td></tr>
               <tr><td><code>active</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">Frontmost. Inactive drops the stripes and widgets, hollows the grow box and blanks every scroll rail inside — but keeps the title black, as System 7 did. Managed by <code>vf-desktop</code>; outside one, nothing changes it</td></tr>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">The left close box</td></tr>
@@ -701,14 +705,14 @@ vf-button::part(button) { min-width: 96px; }
             <vf-button data-show="#ex-dialog">Save As…</vf-button>
             <vf-button data-show="#ex-dialog-plain">Page Setup…</vf-button>
 
-            <vf-dialog id="ex-dialog" heading="Save As" closable width="320">
+            <vf-dialog id="ex-dialog" heading="Save As" closable width="320" height="138">
               <vf-label for="ex-dialog-name">Save this document as:</vf-label>
               <vf-text-field id="ex-dialog-name" value="Untitled 1"></vf-text-field>
               <vf-button slot="buttons" data-close="#ex-dialog">Cancel</vf-button>
               <vf-button slot="buttons" variant="default" data-close="#ex-dialog">Save</vf-button>
             </vf-dialog>
 
-            <vf-dialog id="ex-dialog-plain" frame="plain" heading="Page Setup" width="300">
+            <vf-dialog id="ex-dialog-plain" frame="plain" heading="Page Setup" width="300" height="194">
               <vf-fieldset legend="Paper">
                 <vf-radio-group name="paper" value="us-letter" label="Paper">
                   <vf-radio value="us-letter">US Letter</vf-radio>
@@ -725,8 +729,8 @@ vf-button::part(button) { min-width: 96px; }
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected, and kept in sync with the native dialog both directions</td></tr>
-              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it.</strong> Whole system px. A dialog owns its width; it is not a shape its content falls into. The platform's default is <code>fit-content</code> measured against the space beside the margins — and the margins are how a movable modal is positioned, so an undeclared dialog squeezes itself and reflows as you drag it toward an edge. Unset, it falls back to 260 system px and says so once in the console</td></tr>
-              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Unset, the body sizes to its content, which for a dialog is usually right</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it,</strong> with <code>height</code>. Whole system px. A dialog owns its width; it is not a shape its content falls into. The platform's default is <code>fit-content</code> measured against the space beside the margins — and the margins are how a movable modal is positioned, so an undeclared dialog squeezes itself and reflows as you drag it toward an edge. Unset, it falls back to 260 system px and says so once in the console</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it too.</strong> Whole system px — the same fixed box <code>vf-window</code> is, so the action buttons don't move under the pointer as the copy changes. Content taller than the box is clipped at the frame. Unset, the body sizes to its content and it says so once in the console</td></tr>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title-bar text — or, on <code>frame="plain"</code>, a centered heading at the top of the body, the way those dialogs drew their title in content. Also the accessible name</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for a dialog with no <code>heading</code>; wins over one when both are set. Falls back to <code>'Dialog'</code></td></tr>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Opt into the close box. Off by default because the HIG's Chapter 6 text denies a movable modal one while its Figure 5-1 grants it — the parameter enables either reading. Ignored under <code>frame="plain"</code>, which has no bar</td></tr>
@@ -760,7 +764,7 @@ vf-button::part(button) { min-width: 96px; }
           <template data-example data-caption="variant='caution' renders the classic triangle as inline 1-bit SVG.">
             <vf-button data-show="#ex-alert">Erase Disk…</vf-button>
 
-            <vf-alert id="ex-alert" variant="caution" label="Erase disk" width="340">
+            <vf-alert id="ex-alert" variant="caution" label="Erase disk" width="340" height="118">
               <vf-paragraph>Completely erase the disk named “Macintosh HD”?</vf-paragraph>
               <vf-button slot="buttons" data-close="#ex-alert">Cancel</vf-button>
               <vf-button slot="buttons" variant="default" data-close="#ex-alert">Erase</vf-button>
@@ -772,8 +776,8 @@ vf-button::part(button) { min-width: 96px; }
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; synced with the native dialog</td></tr>
-              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it.</strong> Whole system px — the same requirement, fallback and warning as <a href="#vf-dialog"><code>vf-dialog</code></a>; both modals inherit it from the same base</td></tr>
-              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Unset, the body sizes to its content</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it,</strong> with <code>height</code>. Whole system px — the same requirement, fallback and warning as <a href="#vf-dialog"><code>vf-dialog</code></a>; both modals inherit it from the same base</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it too.</strong> Whole system px, the same fixed box the other two shells are. Content taller than the box is clipped at the frame. Unset, the body sizes to its content and it says so once in the console</td></tr>
               <tr><td><code>variant</code></td><td class="wrap"><code>'caution'</code></td><td>—</td><td class="wrap">The black/white triangle-with-! icon. Omit for none, or slot your own</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name — an alert has no title bar to take one from</td></tr>
             </tbody>

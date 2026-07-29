@@ -32,7 +32,7 @@ const MARKUP = `
   <vf-menu label="Edit" open><vf-menu-item id="standalone">Menu item</vf-menu-item></vf-menu>
   <vf-fieldset legend="Group"><vf-button>Inner</vf-button></vf-fieldset>
   <vf-scroll-area><p>Body</p></vf-scroll-area>
-  <vf-window heading="Win"><vf-button>In window</vf-button></vf-window>
+  <vf-window heading="Win" width="200" height="120"><vf-button>In window</vf-button></vf-window>
 `
 
 const browser = await chromium.launch()

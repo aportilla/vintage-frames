@@ -68,6 +68,25 @@ export class VfDialog extends VfModalDialog {
       :host {
         display: contents;
       }
+      /* A declared height lands on the <dialog> (dialogSize), so the frame has
+         to be told to fill it — vfChromeFrame is skin only, and a plain block
+         child of a taller box just stays content-tall, leaving the white frame
+         floating in a transparent dialog. Both chromes are full-height flex
+         columns for the same reason vf-window's is: the body takes the slack
+         the title bar doesn't. Unset height leaves the <dialog> auto, where
+         100% resolves to the content and this is a no-op. */
+      .vf-frame,
+      .vf-modal-frame {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .vf-modal-frame-inner {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
       /* The bar is always a drag handle here (a movable modal has no immovable
          state, unlike vf-window's [movable]); keep touch gestures from
          scrolling the page instead of moving the dialog. */
@@ -80,9 +99,17 @@ export class VfDialog extends VfModalDialog {
       :host([closable]) .vf-title {
         --vf-title-inset: 60px;
       }
+      /* Takes the slack under the title bar, and clips at the frame the way
+         vf-window's body does — a modal is a fixed box, so content taller than
+         the declared height is over-stuffed content, not something that paints
+         out past the border. A slotted vf-select's list still escapes: it is
+         position:fixed off the control's own rect (see vf-select.ts). */
       .body {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
         padding: calc(var(--vf-scale, 1) * 16px);
       }
       /* The plain frame's heading: centered chrome type at the top of the

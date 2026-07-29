@@ -99,7 +99,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
     </vf-menu>
   </vf-menu-bar>
 
-  <vf-window heading="My Installer" movable width="360">
+  <vf-window heading="My Installer" movable width="360" height="220">
     <p>Welcome!</p>
     <vf-fieldset legend="Install Location">
       <vf-select value="hd">
@@ -117,9 +117,9 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | Element | Purpose |
 | --- | --- |
 | `vf-desktop` | Gray desktop container; manages window stacking + active state, with utility windows on a floating tier |
-| `vf-window` | The desktop-window shell (**declare `width`**, in system px): striped title bar, close/zoom boxes, movable/resizable, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`) — see [Window archetypes](#window-archetypes--enabling-the-1992-hig-not-enforcing-it) |
-| `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood; **declare `width`**, in system px): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` |
-| `vf-alert` | Classic double-framed modal alert (**declare `width`**, in system px) |
+| `vf-window` | The desktop-window shell (**declare `width` and `height`**, in system px): striped title bar, close/zoom boxes, movable/resizable, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`) — see [Window archetypes](#window-archetypes--enabling-the-1992-hig-not-enforcing-it) |
+| `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood; **declare `width` and `height`**, in system px): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` |
+| `vf-alert` | Classic double-framed modal alert (**declare `width` and `height`**, in system px) |
 | `vf-separator` | 1px rule (horizontal/vertical; dims inside menus) |
 | `vf-button` | Push button with pixel-stepped corners (no antialiased `border-radius`); `variant="default"` renders the double-ring default button, `size="small"` the compact 16px one |
 | `vf-button-group` | Arranges buttons in a row (or `vertical` column), sizing them all to the widest — the classic System 7 shared width — unless `natural`; aligns their faces so a `variant="default"` button lines up with its neighbors |
@@ -184,10 +184,15 @@ shells, and each archetype is a one-line recipe over them:
 | Modeless dialog box | `<vf-window closable movable>` |
 | Utility (floating) window | `<vf-window variant="utility" movable>` |
 
-Every recipe also declares its size — `width`, and `height` where the window
-isn't content-shaped — in whole system px, the art's own unit, so a window keeps
-its proportion to the chrome inside it at any display density. It is left out of
-the table to keep the parameter that *makes* each archetype legible.
+Every recipe also declares its size — **both `width` and `height`**, in whole
+system px, the art's own unit, so a window keeps its proportion to the chrome
+inside it at any display density. A window is a fixed box in both axes, the way
+a WIND resource was; one that grows with its body is one the user can neither
+predict nor own via the grow box. Content taller than the declared box is
+clipped at the frame, as the classic content region was — `scrollbars` is how
+the user reaches the rest, and a control's drop-open list still escapes the clip
+and paints past the border. The size is left out of the table above to keep the
+parameter that *makes* each archetype legible.
 
 Why parameters instead of fixed anatomies: the HIG disagrees *with itself*
 about the details. Figure 5-1 (Windows chapter) and Figure 6-1 (Dialogs

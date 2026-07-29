@@ -399,10 +399,13 @@ Full-bleed classic desktop container.
 The desktop-window shell: the classic document window (see DragThing
 screenshot), parameterized down to the windoid (see the Group A recipe table).
 - **Attributes/props:** `heading: string` (title text), `width: number` /
-  `height: number` (**declare them** — whole system px, so the window keeps its
-  proportion to the chrome inside it at every density; an undeclared width falls
-  back to block layout and warns once in the console, an undeclared height sizes
-  to the body), `active: boolean`
+  `height: number` (**declare them both** — whole system px, so the window keeps
+  its proportion to the chrome inside it at every density. A window is a fixed
+  box in both axes, the way a WIND resource was: one that grows with its body is
+  one the user can neither predict nor own via the grow box. Each missing
+  dimension falls back to something different — width to block layout, height to
+  the content — and the window names whichever are missing, once, in the
+  console), `active: boolean`
   (default **true**; reflect), `closable: boolean` (default true),
   `zoomable: boolean` (default false), `movable: boolean` (default false),
   `resizable: boolean` (default false), `flush: boolean` (default false —
@@ -431,7 +434,21 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
     corner (sharing the widget's own top/left border; only the right and bottom
     edges are drawn). `:active` (pressed) → shows the identical sunburst as the
     close box; the nested box gives way to it.
-  - Body: `padding: 12px` (0 if `flush` or `scrollbars`).
+  - Body: `padding: 12px` (0 if `flush` or `scrollbars`), and `overflow: hidden`
+    — the window being a fixed box, content taller than it is clipped at the
+    frame the way the classic content region was, rather than painting out over
+    the desktop; `scrollbars` is how the user reaches the rest. Two deliberate
+    exemptions: `[scrollbars]` restores `overflow: visible`, because the
+    edge-rail composition below pulls the scroll area one system px *outside*
+    the body on every side and clipping would shave exactly that overhang off
+    (the scroll area does its own clipping); and a control's drop-open panel is
+    not clipped — `vf-select`'s list is `position: fixed` off the control's rect
+    precisely to escape clipping ancestors (§5 vf-select), and it still escapes,
+    because nothing between it and the viewport establishes a containing block
+    for fixed descendants (the grid-snap correction is a `position: relative`
+    left/top offset, never a transform — see §7). A `vf-menu` panel is anchored
+    `position: absolute` and *would* clip, but a menu bar belongs to the desktop,
+    not inside a window body.
   - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black
     top/left borders, containing two overlapping small square outlines. Inactive:
     the cell and its borders stay, the nested squares go — System 7 drew a
@@ -479,12 +496,14 @@ The modal-dialog shell: movable modal by default (see "Format" screenshot,
 striped title bar over a white body), the dBoxProc modal dialog box with
 `frame="plain"` (see the Group A recipe table).
 - **Attributes/props:** `open: boolean` (reflect), `heading: string`,
-  `width: number` / `height: number` (**declare the width** — whole system px.
-  A native `<dialog>` is `width: fit-content` measured against the space beside
-  its margins, and those margins are how the movable modal is positioned, so an
-  undeclared dialog squeezes itself and reflows as it is dragged toward an edge.
-  Unset it falls back to 260 system px and warns once; an unset height sizes to
-  the body), `label: string` (accessible name for a dialog with no `heading`),
+  `width: number` / `height: number` (**declare them both** — whole system px,
+  the same fixed box `vf-window` is. A native `<dialog>` is `width: fit-content`
+  measured against the space beside its margins, and those margins are how the
+  movable modal is positioned, so an undeclared dialog squeezes itself and
+  reflows as it is dragged toward an edge. The two fall back differently — width
+  to 260 system px, height to the content — and it names whichever are missing,
+  once, on the open that first shows it), `label: string` (accessible name for a
+  dialog with no `heading`),
   `closable: boolean` (default **false** — the bare movable-modal bar; the
   close box is opt-in because the HIG's Chapter 6 text denies a movable modal
   one while its Figure 5-1 grants it — the parameter enables either reading),
@@ -510,6 +529,14 @@ striped title bar over a white body), the dBoxProc modal dialog box with
   `padding: 16px`. An optional `buttons` slot renders a bottom-right
   `vf-button-group` footer that only takes space when populated (equal-width,
   faces aligned).
+  Both chromes are full-height flex columns and the body takes the slack, for
+  the same reason `vf-window`'s frame is: the declared `height` lands on the
+  `<dialog>` (see `dialogSize`), and the recipes are skin only — a plain block
+  child of a taller box stays content-tall and leaves the white frame floating
+  inside a transparent dialog. With no declared height the `<dialog>` is auto,
+  `height: 100%` resolves to the content, and the chain is a no-op. The body
+  clips (`overflow: hidden`) like `vf-window`'s, with the same drop-open
+  exemption.
 - **Visual (`frame="plain"`):** `vfModalFrame` (§4 — 1px outer, 2px gap, 2px
   inner band, no shadow, per `Windows/modal dialog.png`), no title bar, and
   immovable like the original dBoxProc dialog (nothing renders a drag handle).
@@ -535,9 +562,9 @@ deliberately NOT `vfModalFrame` — the alert's trace is 2px outer / 1px inner
 *with* the hard shadow, the modal dialog's is 1px outer / 2px inner without;
 see §4.)
 - **Attributes/props:** `open: boolean`, `width: number` / `height: number`
-  (**declare the width** — whole system px, the same requirement and the same
-  260px fallback + one-time console warning as `vf-dialog`; both inherit it from
-  `VfModalDialog`), `variant?: 'caution'` (renders the
+  (**declare them both** — whole system px, the same requirement, the same
+  fallbacks and the same one-time console warning as `vf-dialog`; both inherit
+  it from `VfModalDialog`), `variant?: 'caution'` (renders the
   classic black/white triangle-with-! icon as inline SVG; omit for none/slot).
 - **Implementation:** native `<dialog>` like vf-dialog. `show()`/`close()`.
 - **Visual:** outer `border: 2px solid black`; inner frame: a wrapper with
@@ -545,6 +572,10 @@ see §4.)
   `padding: 16px 20px`, drop shadow `2px 2px 0 0 black`. Layout: icon column
   (32px) left, message right; the `buttons` slot is a bottom-right
   `vf-button-group` (equal-width, faces aligned; classic 12px gap).
+  Each ring of the double frame is a flex column passing the declared `height`
+  inward (outer `height: 100%`, inner and content `flex: 1 1 auto`), for the
+  reason given under `vf-dialog` — otherwise the framed art stays content-tall
+  inside a taller `<dialog>`. The content grid clips (`overflow: hidden`).
 - **Slots:** `icon`, default (message), `buttons`.
 - **Parts:** `frame`, `icon`, `message`, `buttons`.
 - **Events:** `vf-close` (detail `{ reason }`).

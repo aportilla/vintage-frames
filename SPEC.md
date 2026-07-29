@@ -1322,6 +1322,100 @@ consumer's stylesheet).
 - **Slots:** default (the cells, in order). **Parts:** `grid`, `rules`.
   **Events:** none.
 
+#### `vf-stack` (`VfStack`, vf-stack.ts)
+The kit's layout primitive: a flexbox whose `gap`, `pad`, `width` and `height`
+are declared in whole system px and converted internally, so a window's insides
+are laid out in the art's own unit with no `calc(var(--vf-scale, 1) * Npx)` in
+the consumer's stylesheet.
+- **Why a component and not a documented snippet:** scaling is default-on and
+  *per component* — `ScaleController` sets `--vf-scale` on the component's own
+  host, never on the document — so `var(--vf-scale, 1)` in page CSS resolves
+  only where the rule's element happens to sit inside a `vf-*` ancestor and
+  inherit it. Inside a window body it does (which is the only reason the demo's
+  own hand-written rules ever worked); for a plain `<div>` holding two buttons
+  on an ordinary page it does not, and the fallback `1` silently renders an 8px
+  gap around 3×-sized controls. A page that hasn't called `applyScale()` cannot
+  express "8 system px" at all. A component always can, because it *is* the
+  scope — which is also why the stack carries a `ScaleController` of its own.
+- **Attributes/props:** `direction: 'column' | 'row'` (default `'column'`,
+  reflected), `gap: number` (whole system px, default `0`), `pad: string | number`
+  (whole system px, one to four values in CSS shorthand order),
+  `align: 'auto' | 'start' | 'center' | 'end' | 'stretch' | 'baseline'`
+  (reflected; unset = `auto`), `justify: 'start' | 'center' | 'end' | 'between'`
+  (reflected), `wrap: boolean`, `inline: boolean`, `width` / `height`: number
+  (whole system px). Whole system px is the only expressible value — a
+  fractional entry is truncated — so the gap half of the layout contract
+  (README rule 2) holds by construction, and a declared `width` covers the size
+  half of rule 3.
+- **Visual:** none. The stack paints nothing — no border, background or shadow —
+  and takes no role, no keyboard behavior and no selection; what it holds
+  decides what it is, as with `vf-grid`. `:host` is the flex container with a
+  bare `<slot>` (slots are `display: contents` by UA default, the same
+  arrangement `vf-button-group` uses), so it adds no box and composes inside a
+  `flex: 1` chain. The four measured props are written to the host's own inline
+  style as `calc(var(--vf-scale, 1) * Npx)` via `sysLength`/`sysLengths` — the
+  way `vf-window` writes its declared size — so each stays live against the
+  display rather than freezing at write time. **No `GridSnapController`:** with
+  no ink of its own there is nothing to hold on the grid, and the slotted
+  components correct their own origins.
+- **`align="auto"` resolves per direction** — `stretch` down a column (a group
+  box fills the panel), `center` across a row (a caption sits beside its
+  control). The two axes want opposite things and always did; the default is
+  *named* rather than hidden so the one piece of implicit behavior is visible in
+  the API surface.
+- **…but the auto default never resizes a control.** A push button is as wide as
+  its label, a popup menu hugs its widest option, a swatch is a fixed well —
+  that is the drawing, and a column that stretched them to its own width would
+  invent full-bleed controls System 7 never had. So `vf-button`,
+  `vf-button-group`, `vf-swatch`, `vf-checkbox`, `vf-radio`, `vf-select`,
+  `vf-text-field`, `vf-text-area`, `vf-number-field` and `vf-img` take
+  `align-self: flex-start` in a stretching column, while what genuinely fills a
+  panel — `vf-fieldset`, `vf-list`, `vf-scroll-area`, `vf-separator`,
+  `vf-paragraph`, `vf-label`, and a `vf-slider` or `vf-progress-bar` whose track
+  *is* the width — goes on stretching. They also take `max-width: 100%`, because
+  these children don't shrink either: a `vf-text-field` defaults to 180 system px
+  and would otherwise hang over the window frame in a narrower column. Only the
+  auto default is overridden — an author who writes `align="stretch"` has asked
+  by name and gets it on everything. (In a row the auto default is `center`,
+  which resizes nothing, so the rule is scoped to columns.) Note that two of
+  these never stretched anyway: `vf-text-field` and `vf-select` carry widths of
+  their own, so `stretch` had nothing to act on — it was `vf-button` and
+  `vf-checkbox` that grew.
+- **Children don't shrink** (`::slotted(*) { flex: 0 0 auto }`): System 7 boxes
+  are the size they are, and a window is a fixed box whose overflow is clipped
+  at the frame, not a layout that squeezes its controls. `grow` on a child opts
+  into `flex: 1 1 0` with the `min-width`/`min-height: 0` that lets it actually
+  take the slack — a bare attribute on consumer DOM, like `nosnap`. A light-DOM
+  declaration beats a `::slotted` one, so a page can still override either.
+- **Typographically transparent** — the kit's one component that is. `vfBase`
+  dresses a host as chrome (body face, a 1.25 ratio line box, black,
+  unselectable); the stack returns `font`, `-webkit-font-smoothing`, `color` and
+  `user-select` to `inherit`, because wrapping content in a layout box must not
+  change how that content reads. Inside a window it goes on inheriting the
+  window's face and the SPEC §1 chrome selection rule; on an ordinary page it
+  leaves the page's typography — and its whole-pixel line boxes — alone. A ratio
+  line-height landing on slotted prose is the exact rule-2 fault the kit warns
+  pages about.
+- **The gap is the real CSS property, not a token.** Written as a custom
+  property it would inherit, and a nested stack would silently pick up its
+  parent's spacing (`--vf-button-group-gap` inherits on purpose; this must not).
+- **What it deliberately doesn't do:** equalize its children's widths. A row of
+  buttons still belongs in a `vf-button-group`, which sizes them to the widest
+  and aligns their *faces* rather than the `variant="default"` ring boxes a
+  plain flex row lines up. It is also not a grid: `grid-template-columns:
+  1fr auto 1fr` stays page CSS.
+- **Two traps it does not fix.** Centering cannot land on a whole pixel by
+  itself — a 16px caption centered against the 25-system-px `vf-number-field`
+  sits at 4.5 system px, and no container can round that without reading each
+  child's height (`applyGridSnap()` keeps the caption's own ink crisp anyway;
+  `align="start"` is the deterministic escape; `hit-list.md` files the 25px
+  height as the underlying fault). And a flex container does not collapse
+  margins, so `vf-fieldset`'s legend room — an 8px `margin-top` on its inner box
+  that escapes the host in block flow — is genuinely reserved inside a stack
+  instead of being donated by whatever precedes it.
+- **Slots:** default (the children; `grow` on any of them). **Parts:** none.
+  **Events:** none.
+
 ### Group E — static text
 
 The two components for text that is *not* part of a control: captions and copy.
@@ -1337,7 +1431,15 @@ leading.
 The static caption: "Name:" beside a field, "Mode" over a radio group, a readout.
 - **Attributes/props:** `for: string` (id of the labelled control, resolved in
   the label's own tree scope), `face: 'display' | 'body'`, `size: 'small'`,
-  `dim: boolean`.
+  `dim: boolean`, `width: number` (whole system px).
+- **`width` is the caption's half of contract rule 3.** Left to its text a
+  caption measures whatever its glyphs measure (the showcase's Apple menu title
+  came to 32.641 system px) and anything sized from it inherits the fraction; a
+  declared width is whole, and so is the row built on it. It replaces the
+  `min-width: calc(var(--vf-scale, 1) * 80px)` a page used to need, which only
+  landed whole while it happened to bind. Written to the host's inline style via
+  `sysLength`, so it stays live against the display. A caption wider than its
+  width overflows rather than reflowing the row — the number is the column.
 - **Visual:** `display: inline-block` (so a page can give a caption column a
   shared width — contract rule 3), the **display face** by default (dialog
   captions are chrome), `line-height: var(--vf-label-line-height, 16px)`,

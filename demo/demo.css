@@ -73,11 +73,6 @@ vf-desktop {
   left: calc(var(--vf-scale, 1) * 260px);
   top: calc(var(--vf-scale, 1) * 140px);
 }
-.charset-panels {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 14px);
-}
 .charset {
   font-size: calc(var(--vf-scale, 1) * 16px);
   line-height: 1.5;
@@ -98,8 +93,10 @@ vf-desktop {
   text-align: right;
   opacity: 0.55;
 }
+/* Spacing above it is the enclosing vf-stack's gap; this only cancels the
+   UA's own paragraph margins. */
 .charset-note {
-  margin: calc(var(--vf-scale, 1) * 12px) 0 0;
+  margin: 0;
 }
 
 /* --------------------------- DragThing Read Me ------------------------- */
@@ -164,15 +161,6 @@ vf-desktop {
 
 /* ------------------------------ Page Setup ------------------------------ */
 
-.pagesetup {
-  width: calc(var(--vf-scale, 1) * 260px);
-}
-.pagesetup-row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vf-scale, 1) * 8px);
-  margin-top: calc(var(--vf-scale, 1) * 12px);
-}
 .pagesetup-row vf-number-field {
   width: calc(var(--vf-scale, 1) * 64px);
 }
@@ -182,75 +170,29 @@ vf-desktop {
 .installer-well {
   height: calc(var(--vf-scale, 1) * 190px);
 }
-.installer-well vf-paragraph,
 .installer-well ul {
-  margin: 0 0 calc(var(--vf-scale, 1) * 10px);
-}
-.installer-well ul {
+  margin: 0;
   padding-left: calc(var(--vf-scale, 1) * 20px);
-}
-.installer-well :last-child {
-  margin-bottom: 0;
-}
-
-/* The fine print (SPEC §7.2) — the size comes from the labels' own
-   size="small", so this is layout only.
-
-   The captions stretch (no align-items) on purpose. At 12px the 16-design-px
-   bitmap face renders at 0.75 design px per system px, so a shrink-wrapped
-   caption measures a fractional width — 139.5 system px here — and lands the
-   host off the device-pixel grid (README rule 3). Stretched, each caption takes
-   the well's own whole width and only the glyphs are soft, which at this size
-   is the kit's documented trade-off (SPEC §3, --vf-font-size-small). */
-.installer-caption {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 2px);
-  margin: calc(var(--vf-scale, 1) * 10px) calc(var(--vf-scale, 1) * 2px);
-}
-
-.installer-bottom {
-  display: flex;
-  align-items: flex-end;
-  gap: calc(var(--vf-scale, 1) * 20px);
-}
-.installer-location {
-  flex: 1;
-  min-width: 0;
-}
-.installer-folder {
-  margin: 0 0 calc(var(--vf-scale, 1) * 8px);
 }
 .installer-actions {
   /* A vf-button-group vertical: it equalizes the button faces and centers
      them, treating the default button's ring as an overhang that doesn't
-     count. Keep the shrink-wrapped group at its intrinsic size, bottom-aligned
-     in the .installer-bottom row. */
-  flex: none;
-  /* 14px face-to-face keeps the classic ~10px visible gap once the Install
+     count. The enclosing stack keeps it at its intrinsic size (no `grow`) and
+     bottom-aligned (align="end").
+
+     14px face-to-face keeps the classic ~10px visible gap once the Install
      button's ring reaches 4px up into it. */
   --vf-button-group-gap: 14px;
 }
 
 /* ----------------------------- Format window --------------------------- */
 
-.format-columns {
-  display: flex;
-  gap: calc(var(--vf-scale, 1) * 32px);
-}
-.format-group {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 8px);
-}
-.group-label {
-  display: block;
-}
-/* Stretch each radio row so the ⌘ shortcut can right-align. */
-.format-group vf-radio {
+/* Stretch each radio row so the ⌘ shortcut can right-align. Scoped to this
+   window — the other radio groups on the desktop carry no shortcut. */
+#win-format vf-radio {
   display: flex;
 }
-.format-group vf-radio::part(label) {
+#win-format vf-radio::part(label) {
   flex: 1;
   display: flex;
 }
@@ -258,14 +200,9 @@ vf-desktop {
   margin-left: auto;
   padding-left: calc(var(--vf-scale, 1) * 16px);
 }
+/* 12px clear of the radio group, on top of the column's own 8px gap. */
 .format-selection {
   margin-top: calc(var(--vf-scale, 1) * 12px);
-}
-.format-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: calc(var(--vf-scale, 1) * 12px);
-  margin-top: calc(var(--vf-scale, 1) * 18px);
 }
 
 /* --------------------------- Controls window --------------------------- */
@@ -276,35 +213,16 @@ vf-desktop {
   gap: calc(var(--vf-scale, 1) * 16px);
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 10px);
-}
-
-.field-row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vf-scale, 1) * 8px);
-}
-.field-row .field-label {
-  flex: none;
-  min-width: calc(var(--vf-scale, 1) * 80px);
-}
 /* vf-number-field is the kit's one odd-height control — 25 system px, its
-   little-arrows sprite's native size — so centering the 16px caption in the row
-   would put it on a half pixel (README rule 3). Sit it beside the field's own
+   little-arrows sprite's native size — so a row centering the 16px caption
+   against it lands on a half pixel, and no container can round that (it would
+   have to read each child's height). Sit the caption beside the field's own
    22px well instead: 1px (the well's optical-centering bias, see
    vf-number-field) + 3px. The component solves the same parity problem the
-   same way. */
-.field-row.stepper .field-label {
+   same way, and hit-list.md files the 25px height as the underlying fault. */
+.stepper-caption {
   align-self: flex-start;
   margin-top: calc(var(--vf-scale, 1) * 4px);
-}
-.field-row vf-text-field,
-.field-row vf-text-area {
-  flex: 1;
-  min-width: 0;
 }
 
 /* The button showcase is a natural-width vf-button-group; only add wrapping so
@@ -317,20 +235,8 @@ vf-desktop {
   --vf-list-max-height: calc(var(--vf-scale, 1) * 132px);
 }
 
-/* Swatch palette: a wrapping row on a whole-px gap. The gap stays larger than
-   --vf-shadow-offset, so the row still reads if a swatch opts into `shadow`,
-   which paints outside its box. */
-.swatch-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(var(--vf-scale, 1) * 8px);
-}
-
 .scroll-demo {
   height: calc(var(--vf-scale, 1) * 130px);
-}
-.scroll-demo vf-paragraph {
-  margin: 0 0 calc(var(--vf-scale, 1) * 10px);
 }
 
 /* ----------------------- New HTML Document dialog ---------------------- */
@@ -341,12 +247,6 @@ vf-desktop {
   top: calc(var(--vf-scale, 1) * 300px);
 }
 
-.newdoc {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 12px);
-}
-
 /* The faint dotted rules that split the dialog into sections — the same
    dimmed-dotted recipe vf-menu uses for its separators. */
 .newdoc-rule {
@@ -354,60 +254,12 @@ vf-desktop {
   --vf-separator-color: var(--vf-disabled, #c0c0c0);
 }
 
-.newdoc-row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vf-scale, 1) * 10px);
-}
-
-/* Insert DOCTYPE: the popup hugs its widest option ("HTML 4.0 Transitional"). */
-.newdoc-doctype-select {
-  flex: none;
-}
-
-/* HTML / Head / Body sit in a loosely-spaced row. */
-.newdoc-tags {
-  gap: calc(var(--vf-scale, 1) * 28px);
-}
-
-/* Title / Base / Meta / Link — an aligned label column beside growing fields. */
-.newdoc-fields {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 8px);
-}
-.newdoc-field {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vf-scale, 1) * 8px);
-}
-.newdoc-label {
-  flex: none;
-  min-width: calc(var(--vf-scale, 1) * 48px);
-}
-.newdoc-field vf-text-field {
-  flex: 1;
-  min-width: 0;
-}
-/* The Title field yields room for the "Is Index" box to its right. */
+/* The two boxes that stand further off than their row's own gap. */
 .newdoc-isindex {
-  flex: none;
   margin-left: calc(var(--vf-scale, 1) * 12px);
-}
-
-/* Template popup keeps its intrinsic width; the checkbox stands off to the right. */
-.newdoc-template-select {
-  flex: none;
 }
 .newdoc-createwin {
   margin-left: calc(var(--vf-scale, 1) * 24px);
-}
-
-.newdoc-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: calc(var(--vf-scale, 1) * 12px);
-  margin-top: calc(var(--vf-scale, 1) * 4px);
 }
 
 /* ---------------------------- Find File window ------------------------- */
@@ -418,32 +270,13 @@ vf-desktop {
   top: calc(var(--vf-scale, 1) * 720px);
 }
 
-.find {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 12px);
-}
-
-.find-row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vf-scale, 1) * 10px);
-}
-/* "Find items [on local disks ▼] whose" — the popup hugs its widest option. */
-.find-scope-select {
-  flex: none;
-}
-
 /* The criteria "well": a hairline dotted frame around the
    attribute/operator/value row — exactly 1px black dots with 1px gaps, square
    corners. CSS `dotted` draws round dots at browser-chosen spacing, so the
    frame is drawn as four edge gradients pinned to a 1-on/1-off pixel grid
-   (scaled to stay 1 system px on/off). */
+   (scaled to stay 1 system px on/off). The row inside it is a vf-stack; this
+   is the frame only. */
 .find-criteria {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vf-scale, 1) * 10px);
-  padding: calc(var(--vf-scale, 1) * 10px);
   background-image: repeating-linear-gradient(
       90deg,
       var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),
@@ -470,30 +303,7 @@ vf-desktop {
     calc(var(--vf-scale, 1) * 1px) 100%;
   background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
 }
-.find-attr,
-.find-op {
-  flex: none;
-}
-.find-value {
-  flex: 1;
-  min-width: 0;
-}
-
-/* More Choices on the left, the default Find button on the right. */
-.find-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 /* ------------------------- About dialog & alert ------------------------ */
-
-.about-body {
-  max-width: calc(var(--vf-scale, 1) * 360px);
-}
-.about-body vf-paragraph {
-  margin: 0 0 calc(var(--vf-scale, 1) * 10px);
-}
 
 .alert-message {
   display: inline-block;
@@ -508,51 +318,11 @@ vf-desktop {
   top: calc(var(--vf-scale, 1) * 540px);
 }
 
-/* The form on the left, the stacked OK / Cancel group pinned top-right. */
-.newimage {
-  display: flex;
-  align-items: flex-start;
-  gap: calc(var(--vf-scale, 1) * 16px);
-}
-.newimage-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 12px);
-}
 .newimage-actions {
-  flex: none;
   /* Tighter than the 12px dialog default — Photoshop stacked OK/Cancel close.
      Unscaled: the group multiplies it by --vf-scale internally. */
   --vf-button-group-gap: 6px;
 }
-
-/* A label beside its control(s). */
-.newimage-field {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vf-scale, 1) * 8px);
-}
-.newimage-label {
-  flex: none;
-}
-/* The Name field grows to fill its row. */
-.newimage-name {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Image Size rows share a fixed label column so every field lands on one x. */
-.newimage-sizes {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--vf-scale, 1) * 8px);
-}
-.newimage-label.size {
-  min-width: calc(var(--vf-scale, 1) * 92px);
-}
 .newimage-num {
-  flex: none;
   width: calc(var(--vf-scale, 1) * 52px);
 }

@@ -50,6 +50,12 @@ export { VfScrollArea } from './components/vf-scroll-area.js'
 export { VfFieldset } from './components/vf-fieldset.js'
 export { VfGrid } from './components/vf-grid.js'
 export type { VfGridRules } from './components/vf-grid.js'
+export { VfStack } from './components/vf-stack.js'
+export type {
+  VfStackDirection,
+  VfStackAlign,
+  VfStackJustify,
+} from './components/vf-stack.js'
 
 /* ── Utilities & style toolkit ──────────────────────────────────────────── */
 
@@ -67,6 +73,7 @@ export {
   onScaleChange,
   sys,
   sysLength,
+  sysLengths,
   toSys,
   snapToDevicePx,
   snapToSystemPx,

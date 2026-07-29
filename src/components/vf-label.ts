@@ -2,7 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfDisplayDecls, vfStaticText } from '../styles/base.js'
-import { ScaleController } from '../scale.js'
+import { ScaleController, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 
 /** Serial for the auto-generated id an `aria-labelledby` reference needs. */
@@ -112,6 +112,24 @@ export class VfLabel extends LitElement {
    */
   @property({ type: Boolean, reflect: true }) dim = false
 
+  /**
+   * Width in whole system px — the shared width of a caption column, so a run
+   * of label-and-field rows lands every field on one x.
+   *
+   * This is the caption's half of layout contract rule 3. Left to its text a
+   * caption measures whatever its glyphs measure (the showcase's Apple menu
+   * title came to 32.641 system px), and anything sized from it inherits the
+   * fraction; a declared width is whole, and so is the row built on it. The
+   * host has been `inline-block` for exactly this purpose since it was written
+   * — this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page
+   * used to need, which only landed whole while it happened to bind.
+   *
+   * A caption wider than the width it is given overflows rather than wrapping
+   * the row's layout around it: the number is the column, and a caption that
+   * doesn't fit is a number to raise.
+   */
+  @property({ type: Number }) width?: number
+
   /** The name we handed the target, so we can take back exactly that. */
   #named: { target: Nameable; via: 'property' | 'aria'; value: string } | null = null
 
@@ -132,6 +150,8 @@ export class VfLabel extends LitElement {
 
   protected override updated(changed: PropertyValues<this>): void {
     if (changed.has('for')) this.#link()
+    // Live against --vf-scale, like vf-window's declared size (src/scale.ts).
+    if (changed.has('width')) this.style.width = sysLength(this.width)
   }
 
   protected override render() {

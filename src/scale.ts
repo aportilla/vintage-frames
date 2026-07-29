@@ -63,10 +63,35 @@ export function sys(value: number, el: Element): number {
  * and freezes it; this is what a size written onto an element belongs in.
  *
  * `undefined` gives back the empty string — the inline declaration is removed
- * and the box goes back to whatever layout gives it.
+ * and the box goes back to whatever layout gives it. So does `null`, which is
+ * what Lit's Number converter hands back when the attribute is *removed* rather
+ * than never set; `0` is a real length and still emits one.
  */
-export function sysLength(size: number | undefined): string {
-  return size === undefined ? '' : `calc(var(--vf-scale, 1) * ${size}px)`
+export function sysLength(size: number | null | undefined): string {
+  return size == null ? '' : `calc(var(--vf-scale, 1) * ${size}px)`
+}
+
+/**
+ * A CSS shorthand of one to four system-px lengths — `padding`, `margin`,
+ * `inset` — each one live against `--vf-scale` the way {@link sysLength}'s
+ * single value is. `12` gives one length, `'10 12'` two, and so on in the usual
+ * top/right/bottom/left order.
+ *
+ * Whole system px only: a fractional entry is truncated rather than passed
+ * through, because an 8.5-system-px padding is precisely the off-grid metric
+ * the layout contract exists to prevent (README rule 2). A value that can't be
+ * read as one to four whole numbers gives back the empty string — the
+ * declaration is removed rather than half-applied.
+ */
+export function sysLengths(value: number | string | null | undefined): string {
+  if (value == null) return ''
+  const parts = String(value).trim().split(/\s+/).filter(Boolean).slice(0, 4)
+  if (parts.length === 0) return ''
+  const lengths = parts.map((part) => {
+    const n = Math.trunc(Number(part))
+    return Number.isFinite(n) ? sysLength(n) : ''
+  })
+  return lengths.every(Boolean) ? lengths.join(' ') : ''
 }
 
 /** Convert display (CSS) px to whole system (art) units, honoring `--vf-scale` at `el`. */

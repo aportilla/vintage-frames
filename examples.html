@@ -369,8 +369,8 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
                 <td class="wrap">—</td>
               </tr>
               <tr>
-                <td><code>vf-grid</code>, <code>vf-window</code>,
-                  <code>vf-desktop</code></td>
+                <td><code>vf-grid</code>, <code>vf-stack</code>,
+                  <code>vf-window</code>, <code>vf-desktop</code></td>
                 <td class="wrap">none — the semantics are yours to set</td>
                 <td class="wrap">A window's close and zoom widgets are labelled
                   buttons in the tab order</td>
@@ -1618,6 +1618,91 @@ vf-button::part(button) { min-width: 96px; }
           </table>
         </section>
 
+        <section class="doc" id="vf-stack" data-group="Menus, lists &amp; containers" data-toc="vf-stack">
+          <h2><code>vf-stack</code></h2>
+          <p>
+            The layout primitive: a flexbox whose <code>gap</code>, <code>pad</code>,
+            <code>width</code> and <code>height</code> are declared in whole system
+            pixels — the art's own unit — and converted internally, so a window's
+            insides need no <code>calc(var(--vf-scale, 1) * …)</code> in your
+            stylesheet.
+          </p>
+          <p>
+            It exists because a page's own CSS often <em>cannot</em> say "8 system px".
+            Scaling is per component: each element sets <code>--vf-scale</code> on
+            itself, never on the document, so <code>var(--vf-scale, 1)</code> in your
+            stylesheet resolves only where the rule's element happens to sit inside a
+            <code>vf-*</code> ancestor and inherit it. For a plain <code>&lt;div&gt;</code>
+            on an ordinary page the fallback <code>1</code> wins and the gap comes out
+            3× too tight, silently. A component always has the unit, because it
+            <em>is</em> the scope.
+          </p>
+          <p>
+            Whole system px is the only expressible value, so the gap half of the
+            layout contract holds by construction; a declared <code>width</code> covers
+            the size half. It paints nothing and takes no role — what it holds decides
+            what it is — and it is the kit's one typographically transparent component:
+            face, line box, color and selectability all return to
+            <code>inherit</code>, because wrapping content in a layout box must not
+            change how that content reads.
+          </p>
+
+          <template data-example data-caption="A column of labelled rows, then an action row. `grow` gives one child the slack; everything else keeps its size, because System 7 boxes don't squeeze. The caption width is what lands both fields on one x.">
+            <vf-stack gap="12" width="300">
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72" for="ex-stack-name">Name:</vf-label>
+                <vf-text-field grow id="ex-stack-name" value="Macintosh HD"></vf-text-field>
+              </vf-stack>
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72" for="ex-stack-kind">Kind:</vf-label>
+                <!-- No `grow`: a popup menu hugs its widest option. -->
+                <vf-select id="ex-stack-kind" value="Folder">
+                  <vf-option>Folder</vf-option>
+                  <vf-option>Document</vf-option>
+                  <vf-option>Application</vf-option>
+                </vf-select>
+              </vf-stack>
+              <vf-stack direction="row" justify="end">
+                <vf-button-group>
+                  <vf-button>Cancel</vf-button>
+                  <vf-button variant="default">OK</vf-button>
+                </vf-button-group>
+              </vf-stack>
+            </vf-stack>
+          </template>
+
+          <template data-example data-caption="align='auto' — the default — resolves per direction: it stretches down a column and centers across a row, because the two axes want opposite things and always did. A control is never resized by it, though: the group box and the rule below take the panel's width, while the buttons stay as wide as their labels. Say align='stretch' and you get it on everything.">
+            <vf-stack gap="6" width="260">
+              <vf-fieldset legend="Fills the panel">
+                <vf-label>a group box takes the width</vf-label>
+              </vf-fieldset>
+              <vf-separator></vf-separator>
+              <vf-button>As wide as its label</vf-button>
+              <vf-button>Longer label, wider button</vf-button>
+            </vf-stack>
+            <vf-stack direction="row" gap="8">
+              <vf-label>Centered:</vf-label>
+              <vf-checkbox checked>on the row's cross axis</vf-checkbox>
+            </vf-stack>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>direction</code></td><td class="wrap"><code>'column' | 'row'</code></td><td><code>'column'</code></td><td class="wrap">A stack is vertical unless it says otherwise</td></tr>
+              <tr><td><code>gap</code></td><td>number</td><td><code>0</code></td><td class="wrap">Whole system px between children. <code>0</code> by default: a layout box that spaced things on its own would be the kind of surprise the kit rules out</td></tr>
+              <tr><td><code>pad</code></td><td class="wrap">string | number</td><td>—</td><td class="wrap">Whole system px, one to four values in CSS shorthand order (<code>pad="12"</code>, <code>pad="10 12"</code>, <code>pad="14 12 10"</code>). Leave it off inside a <code>vf-window</code> body, which carries its own 12px inset</td></tr>
+              <tr><td><code>align</code></td><td class="wrap"><code>'auto' | 'start' | 'center' | 'end' | 'stretch' | 'baseline'</code></td><td><code>'auto'</code></td><td class="wrap">Cross axis. <code>auto</code> = stretch in a column, center in a row — but it never resizes a <em>control</em>: buttons, popups, swatches, toggles, fields and images keep their drawn width while a group box, list, rule or run of copy fills the panel. <code>stretch</code> is asked for by name and applies to everything. Centering can't land on a whole pixel by itself — a 16px caption centered against the 25-system-px <code>vf-number-field</code> sits at 4.5 — so use <code>start</code> where that matters</td></tr>
+              <tr><td><code>justify</code></td><td class="wrap"><code>'start' | 'center' | 'end' | 'between'</code></td><td><code>'start'</code></td><td class="wrap">Main axis. <code>end</code> and <code>between</code> compute an origin as <code>edge − width</code>, so they inherit contract rule 3</td></tr>
+              <tr><td><code>wrap</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Let children wrap onto further lines instead of overflowing</td></tr>
+              <tr><td><code>inline</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shrink-wrap to the children (<code>inline-flex</code>) instead of filling the parent</td></tr>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Worth declaring on a panel's outermost stack: the box is then on the device-pixel grid by construction, and so is everything stretched to it</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. On a <em>child</em>: <code>grow</code> takes the slack (<code>flex: 1 1 0</code> plus the min sizes that let it shrink below its content) — a bare attribute, like <code>nosnap</code>. Everything else is <code>flex: 0 0 auto</code>, and a light-DOM declaration beats both. No parts, no tokens, no events, no role. Not a <code>vf-button-group</code> (which equalizes widths and aligns faces) and not a grid.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
         <!-- ================================================================
              GROUP E/F — STATIC TEXT & IMAGES
              ============================================================= -->
@@ -1658,6 +1743,7 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>face</code></td><td class="wrap"><code>'display' | 'body'</code></td><td><code>'display'</code></td><td class="wrap">Chrome type by default — dialog captions are chrome</td></tr>
               <tr><td><code>size</code></td><td class="wrap"><code>'small'</code></td><td>—</td><td class="wrap">The 12px fine print. Both faces are single 16-design-px masters, so this renders at 0.75 design px per system px and measures fractionally — give a small caption a whole width (or let it stretch) so its host stays on the grid</td></tr>
               <tr><td><code>dim</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Greys the text to <code>--vf-disabled</code></td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap">Whole system px — a caption column's shared width, so a run of label-and-field rows lands every field on one x. Left to its text a caption measures whatever its glyphs measure and anything sized from it inherits the fraction (contract rule 3); a caption wider than its width overflows rather than reflowing the row</td></tr>
               <tr><td colspan="4" class="wrap">Slot: default. Part: <code>label</code>. Token: <code>--vf-label-line-height</code> (16px). <code>display: inline-block</code>, so a page can give a caption column a shared width.</td></tr>
             </tbody>
           </table>

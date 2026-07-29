@@ -55,88 +55,98 @@
       <!-- =================== "Format" dialog-style window =============== -->
       <!-- Always-open movable-modal lookalike; demo.ts sets closable=false. -->
       <vf-window id="win-format" heading="Format" movable width="470" height="252">
-        <div class="format-columns">
-          <div class="format-group">
-            <vf-label class="group-label" id="format-mode-label">Mode</vf-label>
-            <vf-radio-group
-              value="hierarchical"
-              name="mode"
-              aria-labelledby="format-mode-label"
-            >
-              <vf-radio value="hierarchical"
-                >Hierarchical<span class="key">⌘H</span></vf-radio
+        <vf-stack gap="18">
+          <!-- align="stretch": the cross axis of a row is vertical, and these
+               two columns start at the top. (A row's own default is center,
+               which is what a caption beside a control wants.) -->
+          <vf-stack direction="row" gap="32" align="stretch">
+            <vf-stack gap="8">
+              <vf-label id="format-mode-label">Mode</vf-label>
+              <vf-radio-group
+                value="hierarchical"
+                name="mode"
+                aria-labelledby="format-mode-label"
               >
-              <vf-radio value="by-level"
-                >By Level<span class="key">⌘L</span></vf-radio
+                <vf-radio value="hierarchical"
+                  >Hierarchical<span class="key">⌘H</span></vf-radio
+                >
+                <vf-radio value="by-level"
+                  >By Level<span class="key">⌘L</span></vf-radio
+                >
+                <vf-radio value="source-profile" disabled
+                  >Source Format Profile</vf-radio
+                >
+                <vf-radio value="dont-reorganize"
+                  >Don’t Reorganize<span class="key">⌘R</span></vf-radio
+                >
+              </vf-radio-group>
+              <vf-checkbox disabled class="format-selection"
+                >Selection Only</vf-checkbox
               >
-              <vf-radio value="source-profile" disabled
-                >Source Format Profile</vf-radio
-              >
-              <vf-radio value="dont-reorganize"
-                >Don’t Reorganize<span class="key">⌘R</span></vf-radio
-              >
-            </vf-radio-group>
-            <vf-checkbox disabled class="format-selection"
-              >Selection Only</vf-checkbox
-            >
-          </div>
-          <div class="format-group">
-            <vf-label class="group-label">Options</vf-label>
-            <div class="stack">
-              <vf-checkbox checked>Include Styles</vf-checkbox>
-              <vf-checkbox checked>Include Rulers</vf-checkbox>
-              <vf-checkbox checked>Preserve Line Breaks</vf-checkbox>
-            </div>
-          </div>
-        </div>
-        <div class="format-actions">
-          <vf-button-group>
-            <vf-button>Cancel ⌘.</vf-button>
-            <vf-button variant="default">Format</vf-button>
-          </vf-button-group>
-        </div>
+            </vf-stack>
+            <vf-stack gap="8">
+              <vf-label>Options</vf-label>
+              <vf-stack gap="10">
+                <vf-checkbox checked>Include Styles</vf-checkbox>
+                <vf-checkbox checked>Include Rulers</vf-checkbox>
+                <vf-checkbox checked>Preserve Line Breaks</vf-checkbox>
+              </vf-stack>
+            </vf-stack>
+          </vf-stack>
+          <vf-stack direction="row" justify="end">
+            <vf-button-group>
+              <vf-button>Cancel ⌘.</vf-button>
+              <vf-button variant="default">Format</vf-button>
+            </vf-button-group>
+          </vf-stack>
+        </vf-stack>
       </vf-window>
 
       <!-- ================= "Controls" kitchen-sink window =============== -->
       <vf-window id="win-controls" heading="Controls" movable resizable width="590" height="560">
         <div class="controls-grid">
-          <div class="stack">
+          <vf-stack gap="10">
             <vf-fieldset legend="Text">
-              <div class="stack">
+              <vf-stack gap="10">
                 <!-- vf-label `for` does what a native <label for> does: click
                      to focus, and the caption becomes the control's accessible
-                     name — which is why these fields carry no `label` attr. -->
-                <div class="field-row">
-                  <vf-label class="field-label" for="ctl-name">Name:</vf-label>
+                     name — which is why these fields carry no `label` attr.
+                     `width` gives the caption column one whole-pixel x for
+                     every field to start from (layout contract rule 3). -->
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="80" for="ctl-name">Name:</vf-label>
                   <vf-text-field
+                    grow
                     id="ctl-name"
                     name="name"
                     value="Macintosh HD"
                     placeholder="Untitled"
                   ></vf-text-field>
-                </div>
-                <div class="field-row">
-                  <vf-label class="field-label" for="ctl-password"
+                </vf-stack>
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="80" for="ctl-password"
                     >Password:</vf-label
                   >
                   <vf-text-field
+                    grow
                     id="ctl-password"
                     type="password"
                     name="password"
                     value="hunter2"
                   ></vf-text-field>
-                </div>
-                <div class="field-row">
-                  <vf-label class="field-label" for="ctl-notes">Notes:</vf-label>
+                </vf-stack>
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="80" for="ctl-notes">Notes:</vf-label>
                   <vf-text-area
+                    grow
                     id="ctl-notes"
                     rows="3"
                     name="notes"
                     value="The city in the middle of the water."
                   ></vf-text-area>
-                </div>
-                <div class="field-row stepper">
-                  <vf-label class="field-label" for="ctl-copies"
+                </vf-stack>
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="80" class="stepper-caption" for="ctl-copies"
                     >Copies:</vf-label
                   >
                   <vf-number-field
@@ -146,43 +156,39 @@
                     min="1"
                     max="99"
                   ></vf-number-field>
-                </div>
-              </div>
+                </vf-stack>
+              </vf-stack>
             </vf-fieldset>
             <vf-fieldset legend="Progress">
-              <div class="stack">
+              <vf-stack gap="10">
                 <vf-progress-bar
                   id="progress-demo"
                   value="0"
                   max="100"
                 ></vf-progress-bar>
                 <vf-progress-bar indeterminate></vf-progress-bar>
-              </div>
+              </vf-stack>
             </vf-fieldset>
             <vf-fieldset legend="Volume">
-              <div class="stack">
-                <div class="field-row">
+              <vf-stack gap="10">
+                <vf-stack direction="row" gap="8">
                   <!-- The slider names itself, so this caption only wires up
                        the click-to-focus half; vf-label never overwrites a
                        `label` the consumer set. -->
-                  <vf-label class="field-label" for="slider-demo"
-                    >Level:</vf-label
-                  >
+                  <vf-label width="80" for="slider-demo">Level:</vf-label>
                   <vf-slider
+                    grow
                     id="slider-demo"
                     name="volume"
                     value="40"
                     min="0"
                     max="100"
                     label="Volume level"
-                    style="flex: 1"
                   ></vf-slider>
-                  <vf-label id="slider-readout" class="field-label"
-                    >40</vf-label
-                  >
-                </div>
+                  <vf-label width="80" id="slider-readout">40</vf-label>
+                </vf-stack>
                 <vf-slider value="70" disabled label="Balance"></vf-slider>
-              </div>
+              </vf-stack>
             </vf-fieldset>
             <vf-fieldset legend="Swatches">
               <!-- vf-swatch: the white-inset color well, "basically a
@@ -190,7 +196,10 @@
                    showing the transparency checker. Flat, the default — a row
                    of wells all shadowing each other reads as noise; `shadow`
                    raises the lone well that stands in for a current color. -->
-              <div class="swatch-row">
+              <!-- The gap stays larger than --vf-shadow-offset, so the row
+                   still reads if a swatch opts into `shadow`, which paints
+                   outside its box. -->
+              <vf-stack direction="row" gap="8" wrap align="stretch">
                 <vf-swatch color="#61bb46" label="Green"></vf-swatch>
                 <vf-swatch color="#fdb827" label="Yellow"></vf-swatch>
                 <vf-swatch color="#f5821f" label="Orange"></vf-swatch>
@@ -198,7 +207,7 @@
                 <vf-swatch color="#963d97" label="Purple"></vf-swatch>
                 <vf-swatch color="#009ddc" label="Blue"></vf-swatch>
                 <vf-swatch label="No color"></vf-swatch>
-              </div>
+              </vf-stack>
             </vf-fieldset>
             <vf-separator></vf-separator>
             <vf-button-group natural class="button-row">
@@ -207,9 +216,9 @@
               <vf-button disabled>Disabled</vf-button>
               <vf-button size="small">Small</vf-button>
             </vf-button-group>
-          </div>
+          </vf-stack>
           <vf-separator vertical></vf-separator>
-          <div class="stack">
+          <vf-stack gap="10">
             <vf-fieldset legend="Desk Accessories">
               <!-- Each row's `icon` slot carries the DA's 16×16 System 7 small
                    icon as a vf-img — real raster crops from the reference
@@ -273,6 +282,10 @@
             </vf-fieldset>
             <vf-fieldset legend="Scroll Area">
               <vf-scroll-area class="scroll-demo">
+                <!-- pad keeps the trailing 10px the old per-paragraph
+                     margin-bottom put below the last one, so the scrolled
+                     document is the same height it always was. -->
+                <vf-stack gap="10" pad="0 0 10">
                 <vf-paragraph>
                   There is a special kind of quiet in a freshly formatted hard
                   disk: 58,616K of nothing at all, waiting for a System Folder.
@@ -291,10 +304,11 @@
                   If you can read this line without scrolling, your window has
                   been zoomed generously. Well done.
                 </vf-paragraph>
+                </vf-stack>
               </vf-scroll-area>
             </vf-fieldset>
             <vf-fieldset legend="Disabled">
-              <div class="stack">
+              <vf-stack gap="10">
                 <vf-checkbox disabled checked>Checked but dimmed</vf-checkbox>
                 <vf-text-field
                   disabled
@@ -305,137 +319,150 @@
                   <vf-option>Chicago</vf-option>
                   <vf-option>Monaco</vf-option>
                 </vf-select>
-              </div>
+              </vf-stack>
             </vf-fieldset>
-          </div>
+          </vf-stack>
         </div>
       </vf-window>
 
       <!-- ================ "DragThing 2.9 Installer" window ============== -->
       <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable width="560" height="370">
-        <vf-scroll-area class="installer-well">
-          <vf-paragraph>Welcome to the installer for DragThing 2.9!</vf-paragraph>
-          <vf-paragraph>
-            DragThing is the original dock: it tidies the icons on your desktop
-            into tabbed, floating palettes.
-          </vf-paragraph>
-          <ul>
-            <li>Requires System 7.0 or later.</li>
-            <li>Native on both 68K and Power Macintosh.</li>
-            <li>Registration is US$25 — see the enclosed Read Me.</li>
-          </ul>
-          <vf-paragraph>
-            Click Install to place DragThing, its documentation, and some
-            sample docks on your hard disk.
-          </vf-paragraph>
-        </vf-scroll-area>
-        <!-- The spec's fine print (SPEC §7.2): body face, 12px. -->
-        <div class="installer-caption">
-          <vf-label face="body" size="small"
-            >Disk space available: 58,616K</vf-label
-          >
-          <vf-label face="body" size="small"
-            >Approximate disk space needed: 4,584K</vf-label
-          >
-        </div>
-        <div class="installer-bottom">
-          <vf-fieldset legend="Install Location" class="installer-location">
-            <vf-paragraph class="installer-folder">
-              Items will be installed in the folder “DragThing 2.9” on the disk
-            </vf-paragraph>
-            <vf-select name="disk" value="Macintosh HD">
-              <vf-option>Macintosh HD</vf-option>
-              <vf-option>External HD</vf-option>
-              <vf-option disabled>Locked Floppy</vf-option>
-              <vf-option>Select Folder…</vf-option>
-            </vf-select>
-          </vf-fieldset>
-          <vf-button-group vertical class="installer-actions">
-            <vf-button id="btn-quit">Quit</vf-button>
-            <vf-button id="btn-install" variant="default">Install</vf-button>
-          </vf-button-group>
-        </div>
+        <vf-stack gap="10">
+          <vf-scroll-area class="installer-well">
+            <vf-stack gap="10">
+              <vf-paragraph>Welcome to the installer for DragThing 2.9!</vf-paragraph>
+              <vf-paragraph>
+                DragThing is the original dock: it tidies the icons on your
+                desktop into tabbed, floating palettes.
+              </vf-paragraph>
+              <ul>
+                <li>Requires System 7.0 or later.</li>
+                <li>Native on both 68K and Power Macintosh.</li>
+                <li>Registration is US$25 — see the enclosed Read Me.</li>
+              </ul>
+              <vf-paragraph>
+                Click Install to place DragThing, its documentation, and some
+                sample docks on your hard disk.
+              </vf-paragraph>
+            </vf-stack>
+          </vf-scroll-area>
+          <!-- The spec's fine print (SPEC §7.2): body face, 12px. The captions
+               stretch (the column default) on purpose: at 12px the 16-design-px
+               face renders at 0.75 design px per system px, so a shrink-wrapped
+               caption measures a fractional width — 139.5 system px here — and
+               lands its host off the device-pixel grid (README rule 3).
+               Stretched, each caption takes the panel's own whole width and
+               only the glyphs are soft, which at this size is the kit's
+               documented trade-off (SPEC §3, --vf-font-size-small). -->
+          <vf-stack gap="2" pad="0 2">
+            <vf-label face="body" size="small"
+              >Disk space available: 58,616K</vf-label
+            >
+            <vf-label face="body" size="small"
+              >Approximate disk space needed: 4,584K</vf-label
+            >
+          </vf-stack>
+          <vf-stack direction="row" gap="20" align="end">
+            <vf-fieldset grow legend="Install Location">
+              <vf-stack gap="8">
+                <vf-paragraph>
+                  Items will be installed in the folder “DragThing 2.9” on the
+                  disk
+                </vf-paragraph>
+                <vf-select name="disk" value="Macintosh HD">
+                  <vf-option>Macintosh HD</vf-option>
+                  <vf-option>External HD</vf-option>
+                  <vf-option disabled>Locked Floppy</vf-option>
+                  <vf-option>Select Folder…</vf-option>
+                </vf-select>
+              </vf-stack>
+            </vf-fieldset>
+            <vf-button-group vertical class="installer-actions">
+              <vf-button id="btn-quit">Quit</vf-button>
+              <vf-button id="btn-install" variant="default">Install</vf-button>
+            </vf-button-group>
+          </vf-stack>
+        </vf-stack>
       </vf-window>
 
       <!-- ============= "New HTML Document" modal dialog (BBEdit) ========= -->
       <!-- Movable modal lookalike; demo.ts sets closable=false (no close box). -->
       <vf-window id="win-newdoc" heading="New HTML Document" movable width="480" height="368">
-        <div class="newdoc">
-          <div class="newdoc-row">
+        <vf-stack gap="12">
+          <vf-stack direction="row" gap="10">
             <vf-checkbox checked>Insert DOCTYPE</vf-checkbox>
-            <vf-select
-              class="newdoc-doctype-select"
-              value="HTML 3.2"
-              label="DOCTYPE"
-            >
+            <!-- No `grow`: the popup hugs its widest option. -->
+            <vf-select value="HTML 3.2" label="DOCTYPE">
               <vf-option>HTML 2.0</vf-option>
               <vf-option>HTML 3.2</vf-option>
               <vf-option>HTML 4.0</vf-option>
               <vf-option>HTML 4.0 Transitional</vf-option>
             </vf-select>
-          </div>
+          </vf-stack>
 
           <vf-separator class="newdoc-rule"></vf-separator>
 
-          <div class="newdoc-row newdoc-tags">
+          <!-- HTML / Head / Body sit in a loosely-spaced row. -->
+          <vf-stack direction="row" gap="28">
             <vf-checkbox checked>HTML</vf-checkbox>
             <vf-checkbox checked>Head</vf-checkbox>
             <vf-checkbox checked>Body</vf-checkbox>
-          </div>
-          <div class="newdoc-row">
+          </vf-stack>
+          <vf-stack direction="row" gap="10">
             <vf-checkbox checked>Give BBEdit Credit</vf-checkbox>
-          </div>
+          </vf-stack>
 
           <vf-separator class="newdoc-rule"></vf-separator>
 
-          <div class="newdoc-fields">
-            <div class="newdoc-field">
-              <vf-label class="newdoc-label" for="newdoc-title"
-                >Title:</vf-label
-              >
-              <vf-text-field id="newdoc-title" value="Untitled"></vf-text-field>
+          <!-- An aligned caption column beside growing fields. -->
+          <vf-stack gap="8">
+            <vf-stack direction="row" gap="8">
+              <vf-label width="48" for="newdoc-title">Title:</vf-label>
+              <vf-text-field
+                grow
+                id="newdoc-title"
+                value="Untitled"
+              ></vf-text-field>
               <vf-checkbox class="newdoc-isindex">Is Index</vf-checkbox>
-            </div>
-            <div class="newdoc-field">
-              <vf-label class="newdoc-label" for="newdoc-base">Base:</vf-label>
-              <vf-text-field id="newdoc-base"></vf-text-field>
-            </div>
-            <div class="newdoc-field">
-              <vf-label class="newdoc-label" for="newdoc-meta">Meta:</vf-label>
-              <vf-text-field id="newdoc-meta"></vf-text-field>
-            </div>
-            <div class="newdoc-field">
-              <vf-label class="newdoc-label" for="newdoc-link">Link:</vf-label>
-              <vf-text-field id="newdoc-link"></vf-text-field>
-            </div>
-          </div>
+            </vf-stack>
+            <vf-stack direction="row" gap="8">
+              <vf-label width="48" for="newdoc-base">Base:</vf-label>
+              <vf-text-field grow id="newdoc-base"></vf-text-field>
+            </vf-stack>
+            <vf-stack direction="row" gap="8">
+              <vf-label width="48" for="newdoc-meta">Meta:</vf-label>
+              <vf-text-field grow id="newdoc-meta"></vf-text-field>
+            </vf-stack>
+            <vf-stack direction="row" gap="8">
+              <vf-label width="48" for="newdoc-link">Link:</vf-label>
+              <vf-text-field grow id="newdoc-link"></vf-text-field>
+            </vf-stack>
+          </vf-stack>
 
           <vf-separator class="newdoc-rule"></vf-separator>
 
-          <div class="newdoc-row">
-            <vf-label class="newdoc-label" for="newdoc-template"
-              >Template:</vf-label
-            >
-            <vf-select
-              id="newdoc-template"
-              class="newdoc-template-select"
-              value="Default"
-            >
+          <vf-stack direction="row" gap="10">
+            <!-- Naturally wider than the 48px caption column above, so it
+                 keeps its own width rather than being clipped by one. -->
+            <vf-label for="newdoc-template">Template:</vf-label>
+            <vf-select id="newdoc-template" value="Default">
               <vf-option>Default</vf-option>
               <vf-option>(None)</vf-option>
             </vf-select>
             <vf-checkbox checked class="newdoc-createwin"
               >Create New Window</vf-checkbox
             >
-          </div>
+          </vf-stack>
 
-          <div class="newdoc-actions">
+          <!-- pad is the 4px this row used to carry as a margin-top, on top of
+               the column's own 12px gap. -->
+          <vf-stack direction="row" justify="end" pad="4 0 0">
             <vf-button-group>
               <vf-button>Cancel</vf-button>
               <vf-button variant="default">OK</vf-button>
             </vf-button-group>
-          </div>
-        </div>
+          </vf-stack>
+        </vf-stack>
       </vf-window>
 
       <!-- ================= "Find File" modeless dialog box ============== -->
@@ -444,144 +471,117 @@
            rails — a dialog that floats among the document windows and can be
            put away any time. Find is the HIG's own canonical example. -->
       <vf-window id="win-find" heading="Find File" movable width="440" height="156">
-        <div class="find">
-          <div class="find-row">
-            <vf-label class="find-label" for="find-scope">Find items</vf-label>
-            <vf-select
-              id="find-scope"
-              class="find-scope-select"
-              value="on local disks"
-            >
+        <vf-stack gap="12">
+          <!-- "Find items [on local disks ▼] whose" — the popup hugs its
+               widest option, so no `grow` on it. -->
+          <vf-stack direction="row" gap="10">
+            <vf-label for="find-scope">Find items</vf-label>
+            <vf-select id="find-scope" value="on local disks">
               <vf-option>on all disks</vf-option>
               <vf-option>on local disks</vf-option>
               <vf-option>on the desktop</vf-option>
             </vf-select>
-            <vf-label class="find-label">whose</vf-label>
-          </div>
+            <vf-label>whose</vf-label>
+          </vf-stack>
 
-          <div class="find-criteria">
-            <vf-select class="find-attr" value="name" label="Attribute">
+          <!-- The criteria well: layout here, the dotted hairline frame in
+               demo.css. -->
+          <vf-stack direction="row" gap="10" pad="10" class="find-criteria">
+            <vf-select value="name" label="Attribute">
               <vf-option>name</vf-option>
               <vf-option>size</vf-option>
               <vf-option>kind</vf-option>
               <vf-option>date modified</vf-option>
               <vf-option>label</vf-option>
             </vf-select>
-            <vf-select class="find-op" value="contains" label="Comparison">
+            <vf-select value="contains" label="Comparison">
               <vf-option>contains</vf-option>
               <vf-option>starts with</vf-option>
               <vf-option>ends with</vf-option>
               <vf-option>is</vf-option>
               <vf-option>is not</vf-option>
             </vf-select>
-            <vf-text-field
-              class="find-value"
-              value="hello"
-              label="Value"
-            ></vf-text-field>
-          </div>
+            <vf-text-field grow value="hello" label="Value"></vf-text-field>
+          </vf-stack>
 
-          <div class="find-actions">
+          <!-- More Choices on the left, the default Find button on the right. -->
+          <vf-stack direction="row" justify="between">
             <vf-button>More Choices</vf-button>
             <vf-button variant="default">Find</vf-button>
-          </div>
-        </div>
+          </vf-stack>
+        </vf-stack>
       </vf-window>
 
       <!-- =============== Photoshop "New" document dialog =============== -->
       <vf-window id="win-newimage" heading="New" movable width="470" height="338">
-        <div class="newimage">
-          <div class="newimage-main">
-            <div class="newimage-field">
-              <vf-label class="newimage-label" for="newimage-name"
-                >Name:</vf-label
-              >
+        <vf-stack direction="row" gap="16" align="start">
+          <vf-stack grow gap="12">
+            <vf-stack direction="row" gap="8">
+              <vf-label for="newimage-name">Name:</vf-label>
               <vf-text-field
+                grow
                 id="newimage-name"
-                class="newimage-name"
                 value="Untitled-1"
               ></vf-text-field>
-            </div>
+            </vf-stack>
 
             <vf-fieldset legend="Image Size: 532K">
-              <div class="newimage-sizes">
-                <div class="newimage-field">
-                  <vf-label class="newimage-label size" for="newimage-width"
-                    >Width:</vf-label
-                  >
+              <!-- Every row shares the same caption width, so all four fields
+                   land on one x. -->
+              <vf-stack gap="8">
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="92" for="newimage-width">Width:</vf-label>
                   <vf-text-field
                     id="newimage-width"
                     class="newimage-num"
                     value="7"
                   ></vf-text-field>
-                  <vf-select
-                    class="newimage-unit"
-                    value="inches"
-                    label="Width units"
-                  >
+                  <vf-select value="inches" label="Width units">
                     <vf-option>pixels</vf-option>
                     <vf-option>inches</vf-option>
                     <vf-option>cm</vf-option>
                     <vf-option>points</vf-option>
                     <vf-option>picas</vf-option>
                   </vf-select>
-                </div>
-                <div class="newimage-field">
-                  <vf-label class="newimage-label size" for="newimage-height"
-                    >Height:</vf-label
-                  >
+                </vf-stack>
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="92" for="newimage-height">Height:</vf-label>
                   <vf-text-field
                     id="newimage-height"
                     class="newimage-num"
                     value="5"
                   ></vf-text-field>
-                  <vf-select
-                    class="newimage-unit"
-                    value="inches"
-                    label="Height units"
-                  >
+                  <vf-select value="inches" label="Height units">
                     <vf-option>pixels</vf-option>
                     <vf-option>inches</vf-option>
                     <vf-option>cm</vf-option>
                     <vf-option>points</vf-option>
                     <vf-option>picas</vf-option>
                   </vf-select>
-                </div>
-                <div class="newimage-field">
-                  <vf-label class="newimage-label size" for="newimage-res"
-                    >Resolution:</vf-label
-                  >
+                </vf-stack>
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="92" for="newimage-res">Resolution:</vf-label>
                   <vf-text-field
                     id="newimage-res"
                     class="newimage-num"
                     value="72"
                   ></vf-text-field>
-                  <vf-select
-                    class="newimage-unit"
-                    value="pixels/inch"
-                    label="Resolution units"
-                  >
+                  <vf-select value="pixels/inch" label="Resolution units">
                     <vf-option>pixels/inch</vf-option>
                     <vf-option>pixels/cm</vf-option>
                   </vf-select>
-                </div>
-                <div class="newimage-field">
-                  <vf-label class="newimage-label size" for="newimage-mode"
-                    >Mode:</vf-label
-                  >
-                  <vf-select
-                    id="newimage-mode"
-                    class="newimage-mode"
-                    value="RGB Color"
-                  >
+                </vf-stack>
+                <vf-stack direction="row" gap="8">
+                  <vf-label width="92" for="newimage-mode">Mode:</vf-label>
+                  <vf-select id="newimage-mode" value="RGB Color">
                     <vf-option>Bitmap</vf-option>
                     <vf-option>Grayscale</vf-option>
                     <vf-option>RGB Color</vf-option>
                     <vf-option>CMYK Color</vf-option>
                     <vf-option>Lab Color</vf-option>
                   </vf-select>
-                </div>
-              </div>
+                </vf-stack>
+              </vf-stack>
             </vf-fieldset>
 
             <vf-fieldset legend="Contents">
@@ -595,13 +595,13 @@
                 <vf-radio value="transparent">Transparent</vf-radio>
               </vf-radio-group>
             </vf-fieldset>
-          </div>
+          </vf-stack>
 
           <vf-button-group vertical class="newimage-actions">
             <vf-button variant="default">OK</vf-button>
             <vf-button>Cancel</vf-button>
           </vf-button-group>
-        </div>
+        </vf-stack>
       </vf-window>
 
       <!-- ================ "Character Set" specimen window =============== -->
@@ -609,7 +609,12 @@
            itself with smoothing off — every character here is a real pixel
            glyph, never a system-font fallback. -->
       <vf-window id="win-charset" heading="Character Set" movable zoomable width="700" height="372">
-        <div class="charset-panels">
+        <!-- The panels are kit layout, so they stack. What's inside them is a
+             type specimen — raw <p>s in each face — and its own line rhythm
+             stays page CSS (demo.css .charset-line): a stack arranges boxes,
+             it doesn't set typography. -->
+        <vf-stack gap="12">
+        <vf-stack gap="14">
           <vf-fieldset legend="ChiKareGo — chrome face" class="charset-panel">
             <div class="charset charset--chrome">
               <p class="charset-line">
@@ -630,11 +635,12 @@
             </div>
             <p class="charset-count">137 glyphs</p>
           </vf-fieldset>
-        </div>
+        </vf-stack>
         <p class="charset-note">
           Newly patched in: – — • × — before this they rendered as a smooth
           system-font fallback beside the pixels.
         </p>
+        </vf-stack>
       </vf-window>
 
       <!-- ================ "DragThing Read Me" (TeachText) =============== -->
@@ -773,7 +779,7 @@ shrink it and watch the arrows come back.
 
       <!-- ===================== About dialog (modal) ===================== -->
       <vf-dialog id="dlg-about" heading="About This Macintosh" width="400" height="166">
-        <div class="about-body">
+        <vf-stack width="360" gap="10">
           <vf-paragraph
             >Vintage Frames — a System 7 UI kit built with Lit 3.</vf-paragraph
           >
@@ -781,7 +787,7 @@ shrink it and watch the arrows come back.
             System Software 7.5.5 · Total Memory: 8,192K · Largest Unused
             Block: 7,168K
           </vf-paragraph>
-        </div>
+        </vf-stack>
         <vf-button id="btn-about-ok" slot="buttons" variant="default"
           >OK</vf-button
         >
@@ -795,7 +801,9 @@ shrink it and watch the arrows come back.
            Page Setup… opens it; Page Setup is the classic example of a
            dialog you must answer before working on. -->
       <vf-dialog id="dlg-pagesetup" frame="plain" heading="Page Setup" width="320" height="258">
-        <div class="pagesetup">
+        <!-- A declared width keeps the panel — and everything stretched to it
+             — on the device-pixel grid by construction (README rule 3). -->
+        <vf-stack width="260" gap="12">
           <vf-fieldset legend="Paper">
             <vf-radio-group value="us-letter" name="paper" label="Paper">
               <vf-radio value="us-letter">US Letter</vf-radio>
@@ -803,7 +811,7 @@ shrink it and watch the arrows come back.
               <vf-radio value="a4">A4 Letter</vf-radio>
             </vf-radio-group>
           </vf-fieldset>
-          <div class="pagesetup-row">
+          <vf-stack direction="row" gap="8" class="pagesetup-row">
             <vf-label for="pagesetup-scale">Reduce or Enlarge:</vf-label>
             <vf-number-field
               id="pagesetup-scale"
@@ -812,8 +820,8 @@ shrink it and watch the arrows come back.
               max="400"
             ></vf-number-field>
             <vf-label>%</vf-label>
-          </div>
-        </div>
+          </vf-stack>
+        </vf-stack>
         <vf-button id="btn-pagesetup-cancel" slot="buttons">Cancel</vf-button>
         <vf-button id="btn-pagesetup-ok" slot="buttons" variant="default"
           >OK</vf-button

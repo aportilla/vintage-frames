@@ -57,6 +57,7 @@
     "verify:archetypes": "node scripts/verify-archetypes.mjs",
     "verify:toggle": "node scripts/verify-toggle.mjs",
     "verify:text": "node scripts/verify-text.mjs",
+    "verify:stack": "node scripts/verify-stack.mjs",
     "verify:updates": "node scripts/verify-updates.mjs",
     "verify:baseline": "node scripts/verify-baseline.mjs",
     "verify:focus": "node scripts/verify-focus.mjs",

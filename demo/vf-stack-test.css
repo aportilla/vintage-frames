@@ -1,0 +1,252 @@
+/*
+ * vf-stack-test.css — page furniture for the vf-stack playground.
+ *
+ * Ordinary documentation chrome: system UI type, a paper background, a
+ * controls panel flush to the left edge and one scrolling stage beside it.
+ * Everything that looks like System 7 on that page comes out of a component.
+ *
+ * NOTHING HERE DECLARES --vf-scale. Scaling is the components' own business:
+ * each one maps a system pixel onto three device pixels by itself and
+ * re-adapts when the display changes. This file never second-guesses that, so
+ * what the bench shows is what a consumer's page actually gets.
+ *
+ * Which means this file cannot express "8 system px" — the coordinate system a
+ * page has no access to (README, "Laying out inside a window"). It doesn't
+ * try. Page furniture — the panel frame, the code blocks, the prose — is sized
+ * in ordinary px and page type, and every row of kit controls is laid out by a
+ * `vf-stack` in the markup instead, which is the only thing that CAN say it.
+ * So the playground is built from the component it configures. The one under
+ * test is marked and measured on the stage; these are just the bench.
+ *
+ * Every line-height, padding, margin and gap below is a whole number of pixels
+ * (README rule 2), so the components sit on the device-pixel grid.
+ */
+
+:root {
+  --paper: #efece4;
+  --card: #ffffff;
+  --code-bg: #f6f4ee;
+  --ink: #1b1a17;
+  --ink-soft: #6a655c;
+  --rule: #d8d3c7;
+  --link: #1b4b8f;
+
+  /* The two playground-only marks drawn over the stage. Neither is a kit
+     color — nothing in the 1-bit palette is red or blue, so a mark can never
+     be mistaken for something a component drew. */
+  --mark-stack: #c0392b;
+  --mark-child: #1b4b8f;
+
+  --ui-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  --mono-font: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'Liberation Mono', monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  line-height: 22px;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: var(--link);
+}
+
+code {
+  font-family: var(--mono-font);
+  font-size: 13px;
+}
+
+/* ── Page frame ──────────────────────────────────────────────────────────── */
+
+.shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ── Controls panel ──────────────────────────────────────────────────────── */
+
+/*
+ * Width comes from the content, not from a number in this file: the controls
+ * are three times bigger on a 1× display than on a 3× one, and a fixed px
+ * sidebar would be right for exactly one of them. Letting the column size
+ * itself is the same hook blog.css uses for its sidebar (README: "letting an
+ * `auto` grid column size a sidebar rather than fixing it in CSS px").
+ */
+.panel {
+  flex: 0 0 auto;
+  min-width: 300px;
+  max-width: 55vw;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* let the body below scroll instead of stretching the column */
+  background: var(--card);
+  border-right: 1px solid var(--rule);
+}
+
+.panel__head {
+  flex: none;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.panel__title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.panel__title code {
+  font: inherit;
+}
+
+.panel__tagline {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-soft);
+}
+
+.panel__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 20px 48px;
+}
+
+.panel__body > vf-fieldset {
+  display: block;
+  margin-top: 14px;
+}
+
+/* Four steppers side by side: narrow the well, keep the arrows. An em on a
+   vf-* host is the kit's own 16-system-px face, so this stays proportional at
+   every density — unlike a px value, which would not. */
+.pad-fields {
+  --vf-number-field-width: 2em;
+}
+
+/*
+ * Documentation prose, not chrome — so it takes the page's voice back off the
+ * component it sits inside (a vf-fieldset dresses its light DOM in the kit's
+ * body face, and `vfBase` makes chrome text unselectable). The line the README
+ * draws: text that captions a control is chrome and uses vf-label; a paragraph
+ * explaining a parameter belongs to the page.
+ */
+.hint {
+  max-width: 42ch;
+  margin: 6px 0 0;
+  font-family: var(--ui-font);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  -webkit-font-smoothing: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.hint code {
+  font-size: 11px;
+}
+
+/* ── Stage ───────────────────────────────────────────────────────────────── */
+
+.stage-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  padding: 20px 24px 48px;
+}
+
+.stage-pane > * + * {
+  margin-top: 16px;
+}
+
+/*
+ * White, because vf-fieldset punches its legend through the border with
+ * `var(--vf-surface, white)` — a tinted stage would want --vf-surface set to
+ * match (README, "where a normal page must meet the kit halfway").
+ */
+.stage {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  padding: 16px 24px 24px;
+}
+
+.stage__frame {
+  width: var(--frame-width, 100%);
+}
+
+/*
+ * The stack paints nothing — that is the component's whole point — so the
+ * playground draws its box for you. Outlines take no layout space, so marking
+ * costs the measurement nothing.
+ */
+.stage[data-mark~='stack'] #stack {
+  outline: 1px dashed var(--mark-stack);
+  background: rgba(192, 57, 43, 0.06);
+}
+
+.stage[data-mark~='children'] #stack > * {
+  outline: 1px dashed var(--mark-child);
+}
+
+/* ── Output: the markup, and the measurement ─────────────────────────────── */
+
+.out {
+  border: 1px solid var(--rule);
+  background: var(--code-bg);
+}
+
+.out__head {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.out pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: var(--mono-font);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre;
+}
+
+/* Verdicts wrap rather than scrolling out of sight — the markup above is code
+   and keeps its lines, but a measurement that runs off the edge is no use. */
+.out--readout pre {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>vf-stack — configuration playground</title>
+
+    <!--
+      VF-STACK PLAYGROUND — a bench for the layout primitive.
+
+      index.html is the faux desktop, blog.html the ordinary page a consumer
+      has, examples.html the reference manual. This one is a workbench: one
+      <vf-stack> in a marked-off stage, every public parameter of it on a
+      control, and the markup that would reproduce what you are looking at
+      printed underneath.
+
+      How it is put together:
+
+      * The controls are the kit's own components, and every row of them is
+        laid out by a vf-stack — the playground is built from the thing it
+        configures. That is not a flourish: page CSS cannot say "8 system px"
+        (vf-stack-test.css says why), so a bench that hand-rolled its rows
+        would have to lie about the unit. The stack UNDER TEST is the one in
+        the stage, which is marked and measured.
+
+      * Nothing here declares --vf-scale. Scaling is internal — each component
+        maps a system pixel onto three device pixels by itself — so the bench
+        shows what a consumer's page actually gets, and the Measured block
+        reports the scale the components chose rather than imposing one.
+
+      * The stage is a vf-fieldset, so the box being mutated is unmistakable.
+        The stack paints nothing, so "Mark the stack" outlines its box and
+        tints its padding; neither mark is a kit color.
+
+      * The children come from a fixed palette. Each entry's markup is the
+        single source for BOTH the live child and the printed sample, so the
+        sample can never drift from the stage — the same trick examples.html
+        plays with its <template>s.
+
+      Load with ?nosnap to start with applyGridSnap() off (the checkbox
+      toggles it either way).
+    -->
+    <link rel="stylesheet" href="/demo/vf-stack-test.css" />
+    <script type="module" src="/demo/vf-stack-test.ts"></script>
+  </head>
+
+  <body>
+    <div class="shell">
+      <!-- ==============================================================
+           CONTROLS
+           =========================================================== -->
+      <aside class="panel">
+        <header class="panel__head">
+          <p class="panel__title"><code>&lt;vf-stack&gt;</code></p>
+          <p class="panel__tagline">Configuration playground</p>
+          <nav class="panel__links" aria-label="Other demo pages">
+            <a href="/">Showcase</a>
+            <a href="/blog.html">Integration example</a>
+            <a href="/examples.html">Component reference</a>
+          </nav>
+        </header>
+
+        <div class="panel__body">
+          <!-- ---------------------------------------------------------
+               Every public parameter of the component, in declared order.
+               -------------------------------------------------------- -->
+          <vf-fieldset legend="Stack">
+            <vf-stack gap="10">
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72">direction</vf-label>
+                <vf-radio-group id="direction" label="direction" value="column">
+                  <!-- Wrapped in our own markup so the two sit in a row; a
+                       radio group only stacks the radios it slots directly. -->
+                  <vf-stack direction="row" gap="12">
+                    <vf-radio value="column">column</vf-radio>
+                    <vf-radio value="row">row</vf-radio>
+                  </vf-stack>
+                </vf-radio-group>
+              </vf-stack>
+
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72" for="gap">gap</vf-label>
+                <vf-number-field id="gap" value="12" min="0" max="96"></vf-number-field>
+                <vf-label size="small" dim>system px</vf-label>
+              </vf-stack>
+
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72">pad</vf-label>
+                <vf-stack class="pad-fields" direction="row" gap="6">
+                  <vf-number-field id="pad-t" value="0" min="0" max="96" label="pad top"></vf-number-field>
+                  <vf-number-field id="pad-r" value="0" min="0" max="96" label="pad right"></vf-number-field>
+                  <vf-number-field id="pad-b" value="0" min="0" max="96" label="pad bottom"></vf-number-field>
+                  <vf-number-field id="pad-l" value="0" min="0" max="96" label="pad left"></vf-number-field>
+                </vf-stack>
+              </vf-stack>
+              <p class="hint">
+                Top, right, bottom, left. The attribute is emitted in the
+                shortest equivalent CSS shorthand — all four zero leaves it off.
+                Inside a <code>vf-window</code> body leave <code>pad</code>
+                alone: the window already insets 12.
+              </p>
+
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72" for="align">align</vf-label>
+                <vf-select id="align" value="auto">
+                  <vf-option value="auto">auto</vf-option>
+                  <vf-option value="start">start</vf-option>
+                  <vf-option value="center">center</vf-option>
+                  <vf-option value="end">end</vf-option>
+                  <vf-option value="stretch">stretch</vf-option>
+                  <vf-option value="baseline">baseline</vf-option>
+                </vf-select>
+              </vf-stack>
+              <p class="hint">
+                Cross axis. <code>auto</code> stretches down a column and
+                centers across a row — but never resizes a fixed-size control (a
+                button, a popup, a field). <code>stretch</code> is asked for by
+                name and applies to everything.
+              </p>
+
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72" for="justify">justify</vf-label>
+                <vf-select id="justify" value="start">
+                  <vf-option value="start">start</vf-option>
+                  <vf-option value="center">center</vf-option>
+                  <vf-option value="end">end</vf-option>
+                  <vf-option value="between">between</vf-option>
+                </vf-select>
+              </vf-stack>
+              <p class="hint">
+                Main axis. Nothing to see unless the stack has slack to
+                distribute — down a column that means giving it a
+                <code>height</code>.
+              </p>
+
+              <vf-stack direction="row" gap="12">
+                <vf-checkbox id="wrap">wrap</vf-checkbox>
+                <vf-checkbox id="inline">inline</vf-checkbox>
+              </vf-stack>
+
+              <vf-stack direction="row" gap="8">
+                <vf-checkbox id="width-on"></vf-checkbox>
+                <vf-label width="52" for="width">width</vf-label>
+                <vf-number-field id="width" value="260" min="0" max="900" disabled></vf-number-field>
+                <vf-label size="small" dim>system px</vf-label>
+              </vf-stack>
+
+              <vf-stack direction="row" gap="8">
+                <vf-checkbox id="height-on"></vf-checkbox>
+                <vf-label width="52" for="height">height</vf-label>
+                <vf-number-field id="height" value="160" min="0" max="900" disabled></vf-number-field>
+                <vf-label size="small" dim>system px</vf-label>
+              </vf-stack>
+              <p class="hint">
+                Both optional. A declared width is the size half of layout rule
+                3: the stack is whole by construction, and so is everything
+                stretched inside it.
+              </p>
+            </vf-stack>
+          </vf-fieldset>
+
+          <!-- ---------------------------------------------------------
+               What goes IN the stack. Options are filled in from the
+               palette in vf-stack-test.ts, which also owns each entry's
+               markup.
+               -------------------------------------------------------- -->
+          <vf-fieldset legend="Children">
+            <vf-stack gap="10">
+              <vf-stack direction="row" gap="8">
+                <vf-select id="palette" label="child to add" grow></vf-select>
+                <vf-button id="add">Add</vf-button>
+              </vf-stack>
+
+              <vf-list id="children" label="Children of the stack"></vf-list>
+
+              <vf-button-group>
+                <vf-button id="up">Up</vf-button>
+                <vf-button id="down">Down</vf-button>
+                <vf-button id="remove">Remove</vf-button>
+                <vf-button id="clear">Clear</vf-button>
+              </vf-button-group>
+
+              <vf-checkbox id="grow" disabled>grow — the selected child takes the slack</vf-checkbox>
+              <p class="hint">
+                Children keep their size otherwise: System 7 boxes don't
+                squeeze, so the default is <code>flex: 0 0 auto</code>.
+              </p>
+            </vf-stack>
+          </vf-fieldset>
+
+          <!-- ---------------------------------------------------------
+               Whole configurations, including the README's own example.
+               -------------------------------------------------------- -->
+          <vf-fieldset legend="Presets">
+            <vf-stack direction="row" gap="8">
+              <vf-select id="preset" label="preset" grow></vf-select>
+              <vf-button id="apply-preset" variant="default">Load</vf-button>
+            </vf-stack>
+          </vf-fieldset>
+
+          <!-- ---------------------------------------------------------
+               The bench itself — none of this is a stack parameter.
+               -------------------------------------------------------- -->
+          <vf-fieldset legend="Bench">
+            <vf-stack gap="10">
+              <vf-stack direction="row" gap="8">
+                <vf-label width="72">stage</vf-label>
+                <!-- 10em on a vf-* host is 160 system px at every density; a
+                     px width here would be right on one display only. -->
+                <vf-slider id="frame-width" label="stage width" min="20" max="100" value="60" style="width: 10em"></vf-slider>
+                <vf-label size="small" dim id="frame-width-readout">60%</vf-label>
+              </vf-stack>
+              <p class="hint">
+                How much of the stage the box may fill — slack for
+                <code>justify</code> across a row, and room for
+                <code>wrap</code> to run out of.
+              </p>
+
+              <vf-stack direction="row" gap="12" wrap>
+                <vf-checkbox id="mark-stack" checked>Mark the stack</vf-checkbox>
+                <vf-checkbox id="mark-children">Mark the children</vf-checkbox>
+              </vf-stack>
+
+              <vf-checkbox id="snap" checked>applyGridSnap()</vf-checkbox>
+              <p class="hint">
+                The components pick their own scale (3 device px per system px,
+                whatever the display) — this page never sets
+                <code>--vf-scale</code>, so what you see is what a consumer's
+                page gets. Measured, below, reports the scale they chose. To
+                see the other densities, <code>npm run verify:stack</code>
+                asserts the system-px gaps at dpr 1, 2 and 3.
+              </p>
+            </vf-stack>
+          </vf-fieldset>
+        </div>
+      </aside>
+
+      <!-- ==============================================================
+           STAGE — the one <vf-stack> under test, and what it measures
+           =========================================================== -->
+      <main class="stage-pane">
+        <div class="stage" id="stage" data-mark="stack">
+          <vf-fieldset class="stage__frame" legend="vf-stack">
+            <vf-stack id="stack" gap="12"></vf-stack>
+          </vf-fieldset>
+        </div>
+
+        <section class="out">
+          <h2 class="out__head">Markup</h2>
+          <pre><code id="markup"></code></pre>
+        </section>
+
+        <section class="out out--readout">
+          <h2 class="out__head">Measured</h2>
+          <pre id="readout"></pre>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

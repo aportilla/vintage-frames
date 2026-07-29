@@ -149,6 +149,26 @@ code {
 }
 
 /*
+ * The child list is a fixed 150 system px, not a box that grows with the
+ * children: adding a child should move nothing but the list's own scroll rail,
+ * so the controls under it stay where the mouse left them.
+ *
+ * `height` rather than the `--vf-list-max-height` token, because a max only
+ * caps a box that is otherwise as tall as its rows — an empty list would still
+ * collapse. It goes on ::part(list), the scrolling viewport, since that is the
+ * box the rail and the frame overlay are measured against; on the host it would
+ * leave the white well short of the frame.
+ *
+ * And this is the one place page CSS *can* write system px: --vf-scale is set
+ * on the vf-list host itself, so it is in scope for a rule whose element is
+ * inside that host (README, "a page's own stylesheet often cannot say 8 system
+ * px" — the exception that proves it).
+ */
+#children::part(list) {
+  height: calc(var(--vf-scale, 1) * 150px);
+}
+
+/*
  * Documentation prose, not chrome — so it takes the page's voice back off the
  * component it sits inside (a vf-fieldset dresses its light DOM in the kit's
  * body face, and `vfBase` makes chrome text unselectable). The line the README

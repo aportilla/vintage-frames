@@ -55,11 +55,11 @@
       <!-- =================== "Format" dialog-style window =============== -->
       <!-- Always-open movable-modal lookalike; demo.ts sets closable=false. -->
       <vf-window id="win-format" heading="Format" movable width="470" height="252">
-        <vf-stack gap="18">
-          <!-- align="stretch": the cross axis of a row is vertical, and these
-               two columns start at the top. (A row's own default is center,
-               which is what a caption beside a control wants.) -->
-          <vf-stack direction="row" gap="32" align="stretch">
+        <vf-stack fill-width gap="18">
+          <!-- place="start": the cross axis of a row is vertical, and these two
+               columns start at the top. (A row's own default is center, which
+               is what a caption beside a control wants.) -->
+          <vf-stack direction="row" gap="32" place="start">
             <vf-stack gap="8">
               <vf-label id="format-mode-label">Mode</vf-label>
               <vf-radio-group
@@ -93,7 +93,9 @@
               </vf-stack>
             </vf-stack>
           </vf-stack>
-          <vf-stack direction="row" justify="end">
+          <!-- The action row: a column filled to the panel, its one child
+               parked at the end of that width. -->
+          <vf-stack fill-width place="end">
             <vf-button-group>
               <vf-button>Cancel ⌘.</vf-button>
               <vf-button variant="default">Format</vf-button>
@@ -105,47 +107,47 @@
       <!-- ================= "Controls" kitchen-sink window =============== -->
       <vf-window id="win-controls" heading="Controls" movable resizable width="590" height="560">
         <div class="controls-grid">
-          <vf-stack gap="10">
-            <vf-fieldset legend="Text">
-              <vf-stack gap="10">
+          <vf-stack fill-width gap="10">
+            <vf-fieldset fill-width legend="Text">
+              <vf-stack fill-width gap="10">
                 <!-- vf-label `for` does what a native <label for> does: click
                      to focus, and the caption becomes the control's accessible
                      name — which is why these fields carry no `label` attr.
                      `width` gives the caption column one whole-pixel x for
                      every field to start from (layout contract rule 3). -->
-                <vf-stack direction="row" gap="8">
+                <vf-stack fill-width direction="row" gap="8">
                   <vf-label width="80" for="ctl-name">Name:</vf-label>
                   <vf-text-field
-                    grow
+                    fill-width
                     id="ctl-name"
                     name="name"
                     value="Macintosh HD"
                     placeholder="Untitled"
                   ></vf-text-field>
                 </vf-stack>
-                <vf-stack direction="row" gap="8">
+                <vf-stack fill-width direction="row" gap="8">
                   <vf-label width="80" for="ctl-password"
                     >Password:</vf-label
                   >
                   <vf-text-field
-                    grow
+                    fill-width
                     id="ctl-password"
                     type="password"
                     name="password"
                     value="hunter2"
                   ></vf-text-field>
                 </vf-stack>
-                <vf-stack direction="row" gap="8">
+                <vf-stack fill-width direction="row" gap="8">
                   <vf-label width="80" for="ctl-notes">Notes:</vf-label>
                   <vf-text-area
-                    grow
+                    fill-width
                     id="ctl-notes"
                     rows="3"
                     name="notes"
                     value="The city in the middle of the water."
                   ></vf-text-area>
                 </vf-stack>
-                <vf-stack direction="row" gap="8">
+                <vf-stack fill-width direction="row" gap="8">
                   <vf-label width="80" class="stepper-caption" for="ctl-copies"
                     >Copies:</vf-label
                   >
@@ -159,25 +161,29 @@
                 </vf-stack>
               </vf-stack>
             </vf-fieldset>
-            <vf-fieldset legend="Progress">
-              <vf-stack gap="10">
+            <!-- A progress bar and a slider are drawn as a track that IS the
+                 width, so they're the panel's width rather than their own —
+                 fill-width is that, said once per box. -->
+            <vf-fieldset fill-width legend="Progress">
+              <vf-stack fill-width gap="10">
                 <vf-progress-bar
+                  fill-width
                   id="progress-demo"
                   value="0"
                   max="100"
                 ></vf-progress-bar>
-                <vf-progress-bar indeterminate></vf-progress-bar>
+                <vf-progress-bar fill-width indeterminate></vf-progress-bar>
               </vf-stack>
             </vf-fieldset>
-            <vf-fieldset legend="Volume">
-              <vf-stack gap="10">
-                <vf-stack direction="row" gap="8">
+            <vf-fieldset fill-width legend="Volume">
+              <vf-stack fill-width gap="10">
+                <vf-stack fill-width direction="row" gap="8">
                   <!-- The slider names itself, so this caption only wires up
                        the click-to-focus half; vf-label never overwrites a
                        `label` the consumer set. -->
                   <vf-label width="80" for="slider-demo">Level:</vf-label>
                   <vf-slider
-                    grow
+                    fill-width
                     id="slider-demo"
                     name="volume"
                     value="40"
@@ -187,10 +193,15 @@
                   ></vf-slider>
                   <vf-label width="80" id="slider-readout">40</vf-label>
                 </vf-stack>
-                <vf-slider value="70" disabled label="Balance"></vf-slider>
+                <vf-slider
+                  fill-width
+                  value="70"
+                  disabled
+                  label="Balance"
+                ></vf-slider>
               </vf-stack>
             </vf-fieldset>
-            <vf-fieldset legend="Swatches">
+            <vf-fieldset fill-width legend="Swatches">
               <!-- vf-swatch: the white-inset color well, "basically a
                    button". The six-color palette, then a colorless cell
                    showing the transparency checker. Flat, the default — a row
@@ -199,7 +210,7 @@
               <!-- The gap stays larger than --vf-shadow-offset, so the row
                    still reads if a swatch opts into `shadow`, which paints
                    outside its box. -->
-              <vf-stack direction="row" gap="8" wrap align="stretch">
+              <vf-stack direction="row" gap="8">
                 <vf-swatch color="#61bb46" label="Green"></vf-swatch>
                 <vf-swatch color="#fdb827" label="Yellow"></vf-swatch>
                 <vf-swatch color="#f5821f" label="Orange"></vf-swatch>
@@ -209,7 +220,9 @@
                 <vf-swatch label="No color"></vf-swatch>
               </vf-stack>
             </vf-fieldset>
-            <vf-separator></vf-separator>
+            <!-- A rule has no width of its own to be as wide as; fill-width is
+                 what makes it the panel's. -->
+            <vf-separator fill-width></vf-separator>
             <vf-button-group natural class="button-row">
               <vf-button>Button</vf-button>
               <vf-button variant="default">Default</vf-button>
@@ -218,12 +231,17 @@
             </vf-button-group>
           </vf-stack>
           <vf-separator vertical></vf-separator>
-          <vf-stack gap="10">
-            <vf-fieldset legend="Desk Accessories">
+          <vf-stack fill-width gap="10">
+            <vf-fieldset fill-width legend="Desk Accessories">
               <!-- Each row's `icon` slot carries the DA's 16×16 System 7 small
                    icon as a vf-img — real raster crops from the reference
                    sheet (npm run extract:icons), decorative (alt=""). -->
-              <vf-list multiple class="da-list" aria-label="Desk accessories">
+              <vf-list
+                fill-width
+                multiple
+                class="da-list"
+                aria-label="Desk accessories"
+              >
                 <vf-list-item value="alarm-clock" selected>
                   <vf-img slot="icon" width="16" height="16">
                     <img src="/demo/icons/alarm-clock.png" alt="" />
@@ -280,12 +298,12 @@
                 </vf-list-item>
               </vf-list>
             </vf-fieldset>
-            <vf-fieldset legend="Scroll Area">
-              <vf-scroll-area class="scroll-demo">
+            <vf-fieldset fill-width legend="Scroll Area">
+              <vf-scroll-area fill-width class="scroll-demo">
                 <!-- pad keeps the trailing 10px the old per-paragraph
                      margin-bottom put below the last one, so the scrolled
                      document is the same height it always was. -->
-                <vf-stack gap="10" pad="0 0 10">
+                <vf-stack fill-width gap="10" pad="0 0 10">
                 <vf-paragraph>
                   There is a special kind of quiet in a freshly formatted hard
                   disk: 58,616K of nothing at all, waiting for a System Folder.
@@ -307,8 +325,8 @@
                 </vf-stack>
               </vf-scroll-area>
             </vf-fieldset>
-            <vf-fieldset legend="Disabled">
-              <vf-stack gap="10">
+            <vf-fieldset fill-width legend="Disabled">
+              <vf-stack fill-width gap="10">
                 <vf-checkbox disabled checked>Checked but dimmed</vf-checkbox>
                 <vf-text-field
                   disabled
@@ -327,9 +345,9 @@
 
       <!-- ================ "DragThing 2.9 Installer" window ============== -->
       <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable width="560" height="370">
-        <vf-stack gap="10">
-          <vf-scroll-area class="installer-well">
-            <vf-stack gap="10">
+        <vf-stack fill-width gap="10">
+          <vf-scroll-area fill-width class="installer-well">
+            <vf-stack fill-width gap="10">
               <vf-paragraph>Welcome to the installer for DragThing 2.9!</vf-paragraph>
               <vf-paragraph>
                 DragThing is the original dock: it tidies the icons on your
@@ -347,24 +365,24 @@
             </vf-stack>
           </vf-scroll-area>
           <!-- The spec's fine print (SPEC §7.2): body face, 12px. The captions
-               stretch (the column default) on purpose: at 12px the 16-design-px
-               face renders at 0.75 design px per system px, so a shrink-wrapped
-               caption measures a fractional width — 139.5 system px here — and
-               lands its host off the device-pixel grid (README rule 3).
-               Stretched, each caption takes the panel's own whole width and
-               only the glyphs are soft, which at this size is the kit's
-               documented trade-off (SPEC §3, --vf-font-size-small). -->
-          <vf-stack gap="2" pad="0 2">
-            <vf-label face="body" size="small"
+               carry fill-width on purpose: at 12px the 16-design-px face
+               renders at 0.75 design px per system px, so a caption left at its
+               own size measures a fractional width — 139.5 system px here — and
+               lands its host off the device-pixel grid (README rule 3). Filled,
+               each caption takes the panel's own whole width and only the
+               glyphs are soft, which at this size is the kit's documented
+               trade-off (SPEC §3, --vf-font-size-small). -->
+          <vf-stack fill-width gap="2" pad="0 2">
+            <vf-label fill-width face="body" size="small"
               >Disk space available: 58,616K</vf-label
             >
-            <vf-label face="body" size="small"
+            <vf-label fill-width face="body" size="small"
               >Approximate disk space needed: 4,584K</vf-label
             >
           </vf-stack>
-          <vf-stack direction="row" gap="20" align="end">
-            <vf-fieldset grow legend="Install Location">
-              <vf-stack gap="8">
+          <vf-stack fill-width direction="row" gap="20" place="end">
+            <vf-fieldset fill-width legend="Install Location">
+              <vf-stack fill-width gap="8">
                 <vf-paragraph>
                   Items will be installed in the folder “DragThing 2.9” on the
                   disk
@@ -388,10 +406,10 @@
       <!-- ============= "New HTML Document" modal dialog (BBEdit) ========= -->
       <!-- Movable modal lookalike; demo.ts sets closable=false (no close box). -->
       <vf-window id="win-newdoc" heading="New HTML Document" movable width="480" height="368">
-        <vf-stack gap="12">
+        <vf-stack fill-width gap="12">
           <vf-stack direction="row" gap="10">
             <vf-checkbox checked>Insert DOCTYPE</vf-checkbox>
-            <!-- No `grow`: the popup hugs its widest option. -->
+            <!-- No `fill-width`: the popup hugs its widest option. -->
             <vf-select value="HTML 3.2" label="DOCTYPE">
               <vf-option>HTML 2.0</vf-option>
               <vf-option>HTML 3.2</vf-option>
@@ -400,7 +418,7 @@
             </vf-select>
           </vf-stack>
 
-          <vf-separator class="newdoc-rule"></vf-separator>
+          <vf-separator fill-width class="newdoc-rule"></vf-separator>
 
           <!-- HTML / Head / Body sit in a loosely-spaced row. -->
           <vf-stack direction="row" gap="28">
@@ -412,34 +430,36 @@
             <vf-checkbox checked>Give BBEdit Credit</vf-checkbox>
           </vf-stack>
 
-          <vf-separator class="newdoc-rule"></vf-separator>
+          <vf-separator fill-width class="newdoc-rule"></vf-separator>
 
-          <!-- An aligned caption column beside growing fields. -->
-          <vf-stack gap="8">
-            <vf-stack direction="row" gap="8">
+          <!-- An aligned caption column beside filling fields. Each row is
+               filled to the panel, and the field takes what the caption
+               leaves. -->
+          <vf-stack fill-width gap="8">
+            <vf-stack fill-width direction="row" gap="8">
               <vf-label width="48" for="newdoc-title">Title:</vf-label>
               <vf-text-field
-                grow
+                fill-width
                 id="newdoc-title"
                 value="Untitled"
               ></vf-text-field>
               <vf-checkbox class="newdoc-isindex">Is Index</vf-checkbox>
             </vf-stack>
-            <vf-stack direction="row" gap="8">
+            <vf-stack fill-width direction="row" gap="8">
               <vf-label width="48" for="newdoc-base">Base:</vf-label>
-              <vf-text-field grow id="newdoc-base"></vf-text-field>
+              <vf-text-field fill-width id="newdoc-base"></vf-text-field>
             </vf-stack>
-            <vf-stack direction="row" gap="8">
+            <vf-stack fill-width direction="row" gap="8">
               <vf-label width="48" for="newdoc-meta">Meta:</vf-label>
-              <vf-text-field grow id="newdoc-meta"></vf-text-field>
+              <vf-text-field fill-width id="newdoc-meta"></vf-text-field>
             </vf-stack>
-            <vf-stack direction="row" gap="8">
+            <vf-stack fill-width direction="row" gap="8">
               <vf-label width="48" for="newdoc-link">Link:</vf-label>
-              <vf-text-field grow id="newdoc-link"></vf-text-field>
+              <vf-text-field fill-width id="newdoc-link"></vf-text-field>
             </vf-stack>
           </vf-stack>
 
-          <vf-separator class="newdoc-rule"></vf-separator>
+          <vf-separator fill-width class="newdoc-rule"></vf-separator>
 
           <vf-stack direction="row" gap="10">
             <!-- Naturally wider than the 48px caption column above, so it
@@ -456,7 +476,7 @@
 
           <!-- pad is the 4px this row used to carry as a margin-top, on top of
                the column's own 12px gap. -->
-          <vf-stack direction="row" justify="end" pad="4 0 0">
+          <vf-stack fill-width place="end" pad="4 0 0">
             <vf-button-group>
               <vf-button>Cancel</vf-button>
               <vf-button variant="default">OK</vf-button>
@@ -471,9 +491,9 @@
            rails — a dialog that floats among the document windows and can be
            put away any time. Find is the HIG's own canonical example. -->
       <vf-window id="win-find" heading="Find File" movable width="440" height="156">
-        <vf-stack gap="12">
+        <vf-stack fill-width gap="12">
           <!-- "Find items [on local disks ▼] whose" — the popup hugs its
-               widest option, so no `grow` on it. -->
+               widest option, so no `fill-width` on it. -->
           <vf-stack direction="row" gap="10">
             <vf-label for="find-scope">Find items</vf-label>
             <vf-select id="find-scope" value="on local disks">
@@ -486,7 +506,13 @@
 
           <!-- The criteria well: layout here, the dotted hairline frame in
                demo.css. -->
-          <vf-stack direction="row" gap="10" pad="10" class="find-criteria">
+          <vf-stack
+            fill-width
+            direction="row"
+            gap="10"
+            pad="10"
+            class="find-criteria"
+          >
             <vf-select value="name" label="Attribute">
               <vf-option>name</vf-option>
               <vf-option>size</vf-option>
@@ -501,12 +527,15 @@
               <vf-option>is</vf-option>
               <vf-option>is not</vf-option>
             </vf-select>
-            <vf-text-field grow value="hello" label="Value"></vf-text-field>
+            <vf-text-field fill-width value="hello" label="Value"></vf-text-field>
           </vf-stack>
 
-          <!-- More Choices on the left, the default Find button on the right. -->
-          <vf-stack direction="row" justify="between">
+          <!-- More Choices on the left, the default Find button on the right.
+               The slack between them has to belong to something, so it belongs
+               to an empty stack — the two buttons keep their own widths. -->
+          <vf-stack fill-width direction="row">
             <vf-button>More Choices</vf-button>
+            <vf-stack fill-width></vf-stack>
             <vf-button variant="default">Find</vf-button>
           </vf-stack>
         </vf-stack>
@@ -514,21 +543,21 @@
 
       <!-- =============== Photoshop "New" document dialog =============== -->
       <vf-window id="win-newimage" heading="New" movable width="470" height="338">
-        <vf-stack direction="row" gap="16" align="start">
-          <vf-stack grow gap="12">
-            <vf-stack direction="row" gap="8">
+        <vf-stack fill-width direction="row" gap="16" place="start">
+          <vf-stack fill-width gap="12">
+            <vf-stack fill-width direction="row" gap="8">
               <vf-label for="newimage-name">Name:</vf-label>
               <vf-text-field
-                grow
+                fill-width
                 id="newimage-name"
                 value="Untitled-1"
               ></vf-text-field>
             </vf-stack>
 
-            <vf-fieldset legend="Image Size: 532K">
+            <vf-fieldset fill-width legend="Image Size: 532K">
               <!-- Every row shares the same caption width, so all four fields
                    land on one x. -->
-              <vf-stack gap="8">
+              <vf-stack fill-width gap="8">
                 <vf-stack direction="row" gap="8">
                   <vf-label width="92" for="newimage-width">Width:</vf-label>
                   <vf-text-field
@@ -584,7 +613,7 @@
               </vf-stack>
             </vf-fieldset>
 
-            <vf-fieldset legend="Contents">
+            <vf-fieldset fill-width legend="Contents">
               <vf-radio-group
                 class="newimage-contents"
                 value="white"
@@ -613,9 +642,9 @@
              type specimen — raw <p>s in each face — and its own line rhythm
              stays page CSS (demo.css .charset-line): a stack arranges boxes,
              it doesn't set typography. -->
-        <vf-stack gap="12">
-        <vf-stack gap="14">
-          <vf-fieldset legend="ChiKareGo — chrome face" class="charset-panel">
+        <vf-stack fill-width gap="12">
+        <vf-stack fill-width gap="14">
+          <vf-fieldset fill-width legend="ChiKareGo — chrome face" class="charset-panel">
             <div class="charset charset--chrome">
               <p class="charset-line">
                 !"#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
@@ -625,7 +654,7 @@
             </div>
             <p class="charset-count">114 glyphs</p>
           </vf-fieldset>
-          <vf-fieldset legend="FindersKeepers — body face" class="charset-panel">
+          <vf-fieldset fill-width legend="FindersKeepers — body face" class="charset-panel">
             <div class="charset charset--body">
               <p class="charset-line">
                 !"#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
@@ -804,7 +833,7 @@ shrink it and watch the arrows come back.
         <!-- A declared width keeps the panel — and everything stretched to it
              — on the device-pixel grid by construction (README rule 3). -->
         <vf-stack width="260" gap="12">
-          <vf-fieldset legend="Paper">
+          <vf-fieldset fill-width legend="Paper">
             <vf-radio-group value="us-letter" name="paper" label="Paper">
               <vf-radio value="us-letter">US Letter</vf-radio>
               <vf-radio value="us-legal">US Legal</vf-radio>

@@ -664,9 +664,10 @@ see §4.)
   ring space itself as 4px (`RING_INSET`) padding, then centers the cross axis —
   so button *faces* align and equalize, not margin boxes. Buttons fill their
   column via the inherited `--vf-button-flex`. Pure CSS; no measurement.
-- **Layout-neutral:** shrink-wraps to its buttons; the parent positions it (e.g.
-  `justify-self: end` for a bottom-right action row). `vf-alert` and `vf-dialog`
-  wrap their `buttons` slots in one.
+- **Layout-neutral:** shrink-wraps to its buttons; the parent positions it — a
+  `<vf-stack fill-width place="end">` around it is the kit's own bottom-right
+  action row, and `justify-self: end` does it in page CSS. `vf-alert` and
+  `vf-dialog` wrap their `buttons` slots in one.
 - **Slots:** default (vf-button elements). **Parts:** none. **Events:** none.
 
 #### `vf-swatch` (`VfSwatch`, vf-swatch.ts)
@@ -1340,13 +1341,12 @@ the consumer's stylesheet.
 - **Attributes/props:** `direction: 'column' | 'row'` (default `'column'`,
   reflected), `gap: number` (whole system px, default `0`), `pad: string | number`
   (whole system px, one to four values in CSS shorthand order),
-  `align: 'auto' | 'start' | 'center' | 'end' | 'stretch' | 'baseline'`
-  (reflected; unset = `auto`), `justify: 'start' | 'center' | 'end' | 'between'`
-  (reflected), `wrap: boolean`, `inline: boolean`, `width` / `height`: number
-  (whole system px). Whole system px is the only expressible value — a
-  fractional entry is truncated — so the gap half of the layout contract
-  (README rule 2) holds by construction, and a declared `width` covers the size
-  half of rule 3.
+  `place: 'start' | 'center' | 'end'` (reflected; unset resolves per direction),
+  `width` / `height`: number (whole system px, optional). Whole system px is the
+  only expressible value — a fractional entry is truncated — so the gap half of
+  the layout contract (README rule 2) holds by construction, and a declared
+  `width` covers the size half of rule 3. On a **child**: `fill-width` and
+  `fill-height`, bare attributes like `nosnap`.
 - **Visual:** none. The stack paints nothing — no border, background or shadow —
   and takes no role, no keyboard behavior and no selection; what it holds
   decides what it is, as with `vf-grid`. `:host` is the flex container with a
@@ -1358,40 +1358,65 @@ the consumer's stylesheet.
   display rather than freezing at write time. **No `GridSnapController`:** with
   no ink of its own there is nothing to hold on the grid, and the slotted
   components correct their own origins.
-- **`align="auto"` resolves per direction** — `stretch` down a column (a group
-  box fills the panel), `center` across a row (a caption sits beside its
-  control). The two axes want opposite things and always did; the default is
-  *named* rather than hidden so the one piece of implicit behavior is visible in
-  the API surface.
-- **…but the auto default never resizes a control.** A push button is as wide as
-  its label, a popup menu hugs its widest option, a swatch is a fixed well —
-  that is the drawing, and a column that stretched them to its own width would
-  invent full-bleed controls System 7 never had. So `vf-button`,
-  `vf-button-group`, `vf-swatch`, `vf-checkbox`, `vf-radio`, `vf-select`,
-  `vf-text-field`, `vf-text-area`, `vf-number-field` and `vf-img` take
-  `align-self: flex-start` in a stretching column, while what genuinely fills a
-  panel — `vf-fieldset`, `vf-list`, `vf-scroll-area`, `vf-separator`,
-  `vf-paragraph`, `vf-label`, and a `vf-slider` or `vf-progress-bar` whose track
-  *is* the width — goes on stretching. They also take `max-width: 100%`, because
-  these children don't shrink either: a `vf-text-field` defaults to 180 system px
-  and would otherwise hang over the window frame in a narrower column. Only the
-  auto default is overridden — an author who writes `align="stretch"` has asked
-  by name and gets it on everything. (In a row the auto default is `center`,
-  which resizes nothing, so the rule is scoped to columns.) Note that two of
-  these never stretched anyway: `vf-text-field` and `vf-select` carry widths of
-  their own, so `stretch` had nothing to act on — it was `vf-button` and
-  `vf-checkbox` that grew.
-- **Children don't shrink** (`::slotted(*) { flex: 0 0 auto }`): System 7 boxes
-  are the size they are, and a window is a fixed box whose overflow is clipped
-  at the frame, not a layout that squeezes its controls. `grow` on a child opts
-  into `flex: 1 1 0` with the `min-width`/`min-height: 0` that lets it actually
-  take the slack — a bare attribute on consumer DOM, like `nosnap`. A light-DOM
-  declaration beats a `::slotted` one, so a page can still override either.
+- **The content governs the box.** A column is as wide as its widest child and a
+  row as tall as its tallest; children neither grow nor shrink
+  (`::slotted(*) { flex: 0 0 auto }`). System 7 boxes are the size they are — a
+  push button is as wide as its label, a popup menu hugs its widest option, a
+  swatch is a fixed well — and a window is a fixed box whose overflow is clipped
+  at the frame, not a layout that squeezes its controls. The stack distributes;
+  it never resizes. `width: fit-content` is the same rule stated in the box
+  model: a layout box that claimed its parent's whole width would be handing out
+  a size nobody declared. It shrink-wraps while staying **block-level**, which is
+  deliberate — `inline-flex` gives the same width but puts the box on a line box,
+  and a line box can never be shorter than its parent's strut, so a stack shorter
+  than the surrounding `line-height` silently gains the difference as leading
+  (the showcase's swatch panel, an 18px row in a 20px line box, grew by exactly
+  that). `width`/`height` override the content when an author says so, in system
+  px, and beat `fit-content` from the host's inline style.
+- **`place` defaults per direction** — `start` down a column (a field starts at
+  the panel edge), `center` across a row (a caption sits beside its control).
+  The two directions want opposite things and always did. Both defaults are
+  stated as the direction's own rather than as an `auto` value, so an
+  unrecognized `place` — a stale `stretch` from before this API — lands on the
+  sane one instead of on flexbox's `normal`, which stretches. It is the only
+  placement the stack owns: there is no `justify`, and a right-aligned action row
+  is a filled column whose one child sits at the end of it. **It is `place` and
+  not `align` because `align` is a legacy HTML presentation attribute** — see
+  the transparency bullet below.
+- **`fill-width` / `fill-height` name the outcome, not an axis**, so each
+  compiles to the main axis (`flex: 1 1 0` plus the `min-*: 0` that lets it
+  shrink below its content) or the cross axis (`align-self: stretch`) depending
+  on which way the stack runs — four static rules, no allowlist. What follows is
+  one rule about geometry rather than vocabulary: **the cross axis always has a
+  size, the main axis only has slack if one was declared.** `fill-width` always
+  works in a column and needs a declared `width` in a row; `fill-height` is the
+  other way round; a fill with nothing to take is inert rather than an error; and
+  two children filling along the main axis come out equal, the zeroed flex basis
+  being what lets them divide the slack instead of keeping their natural sizes.
+  A child that declares its own size shouldn't also ask to fill it — in a column
+  the declared size wins, in a row the fill does. The host reads both attributes
+  about **itself** too (`width`/`height: 100%`), for the parents that aren't
+  stacks — a window body, a fieldset, a scroll well, a grid cell — which is where
+  a panel's width enters the tree. Three components have no width of their own
+  and read wrong until filled: `vf-separator`, `vf-progress-bar` and `vf-slider`
+  are drawn as a rule or a track that *is* the width. A light-DOM declaration
+  beats a `::slotted` one, so `align-self: stretch` in page CSS remains the
+  escape hatch for a cross-axis fill a direction doesn't offer.
 - **Typographically transparent** — the kit's one component that is. `vfBase`
   dresses a host as chrome (body face, a 1.25 ratio line box, black,
-  unselectable); the stack returns `font`, `-webkit-font-smoothing`, `color` and
-  `user-select` to `inherit`, because wrapping content in a layout box must not
-  change how that content reads. Inside a window it goes on inheriting the
+  unselectable); the stack returns `font`, `-webkit-font-smoothing`, `color`,
+  `user-select` and `text-align` to `inherit`, because wrapping content in a
+  layout box must not change how that content reads. `text-align` is on that
+  list because **`align` is a legacy HTML presentation attribute**: Blink maps
+  the `align` content attribute on any HTML element to `text-align` — "left" /
+  "right" / "center" by name, anything else verbatim — so `align="end"` on an
+  action row right-aligned every run of copy inside it. Renaming the attribute
+  to `place` is the fix; the reset stays as the belt, because it costs nothing
+  and keeps markup written against the old spelling harmless. The hint loses to
+  a `:host` rule, and the page's own `text-align` still inherits through
+  (`verify:stack` asserts all three). Of every attribute name the kit uses,
+  `align` was the only one that carried a hint — `width`, `height`, `color`,
+  `size`, `direction`, `label` and `value` are all inert on a custom element. Inside a window it goes on inheriting the
   window's face and the SPEC §1 chrome selection rule; on an ordinary page it
   leaves the page's typography — and its whole-pixel line boxes — alone. A ratio
   line-height landing on slotted prose is the exact rule-2 fault the kit warns
@@ -1408,12 +1433,13 @@ the consumer's stylesheet.
   itself — a 16px caption centered against the 25-system-px `vf-number-field`
   sits at 4.5 system px, and no container can round that without reading each
   child's height (`applyGridSnap()` keeps the caption's own ink crisp anyway;
-  `align="start"` is the deterministic escape; `hit-list.md` files the 25px
+  `place="start"` is the deterministic escape; `hit-list.md` files the 25px
   height as the underlying fault). And a flex container does not collapse
   margins, so `vf-fieldset`'s legend room — an 8px `margin-top` on its inner box
   that escapes the host in block flow — is genuinely reserved inside a stack
   instead of being donated by whatever precedes it.
-- **Slots:** default (the children; `grow` on any of them). **Parts:** none.
+- **Slots:** default (the children; `fill-width` / `fill-height` on any of them).
+  **Parts:** none.
   **Events:** none.
 
 ### Group E — static text

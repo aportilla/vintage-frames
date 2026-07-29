@@ -1646,23 +1646,31 @@ vf-button::part(button) { min-width: 96px; }
             <code>inherit</code>, because wrapping content in a layout box must not
             change how that content reads.
           </p>
+          <p>
+            <strong>The content governs the box.</strong> A column is as wide as its
+            widest child and a row as tall as its tallest; children keep the size they
+            were drawn at, because System 7 boxes are the size they are. The stack
+            distributes — it never resizes. That is also why it shrink-wraps: a layout
+            box that claimed its parent's whole width would be handing out a size
+            nobody declared.
+          </p>
 
-          <template data-example data-caption="A column of labelled rows, then an action row. `grow` gives one child the slack; everything else keeps its size, because System 7 boxes don't squeeze. The caption width is what lands both fields on one x.">
+          <template data-example data-caption="A column of labelled rows, then an action row. Each row is filled to the panel and the field takes what the caption leaves; the popup and the buttons keep their drawn widths. The action row is a filled column whose one child sits at the end of that width — which is what a right-aligned OK/Cancel is.">
             <vf-stack gap="12" width="300">
-              <vf-stack direction="row" gap="8">
+              <vf-stack fill-width direction="row" gap="8">
                 <vf-label width="72" for="ex-stack-name">Name:</vf-label>
-                <vf-text-field grow id="ex-stack-name" value="Macintosh HD"></vf-text-field>
+                <vf-text-field fill-width id="ex-stack-name" value="Macintosh HD"></vf-text-field>
               </vf-stack>
-              <vf-stack direction="row" gap="8">
+              <vf-stack fill-width direction="row" gap="8">
                 <vf-label width="72" for="ex-stack-kind">Kind:</vf-label>
-                <!-- No `grow`: a popup menu hugs its widest option. -->
+                <!-- No `fill-width`: a popup menu hugs its widest option. -->
                 <vf-select id="ex-stack-kind" value="Folder">
                   <vf-option>Folder</vf-option>
                   <vf-option>Document</vf-option>
                   <vf-option>Application</vf-option>
                 </vf-select>
               </vf-stack>
-              <vf-stack direction="row" justify="end">
+              <vf-stack fill-width place="end">
                 <vf-button-group>
                   <vf-button>Cancel</vf-button>
                   <vf-button variant="default">OK</vf-button>
@@ -1671,18 +1679,22 @@ vf-button::part(button) { min-width: 96px; }
             </vf-stack>
           </template>
 
-          <template data-example data-caption="align='auto' — the default — resolves per direction: it stretches down a column and centers across a row, because the two axes want opposite things and always did. A control is never resized by it, though: the group box and the rule below take the panel's width, while the buttons stay as wide as their labels. Say align='stretch' and you get it on everything.">
+          <template data-example data-caption="fill-width names the outcome, not an axis, so it means the same thing wherever it lands: the group box and the rule take the panel's width, and in the row below the field takes what the caption leaves. The buttons ask for nothing and stay as wide as their labels. A rule has no width of its own at all — without fill-width it would be there and invisible.">
             <vf-stack gap="6" width="260">
-              <vf-fieldset legend="Fills the panel">
+              <vf-fieldset fill-width legend="Fills the panel">
                 <vf-label>a group box takes the width</vf-label>
               </vf-fieldset>
-              <vf-separator></vf-separator>
+              <vf-separator fill-width></vf-separator>
               <vf-button>As wide as its label</vf-button>
               <vf-button>Longer label, wider button</vf-button>
+              <vf-stack fill-width direction="row" gap="8">
+                <vf-label width="72" for="ex-stack-note">Note:</vf-label>
+                <vf-text-field fill-width id="ex-stack-note"></vf-text-field>
+              </vf-stack>
             </vf-stack>
             <vf-stack direction="row" gap="8">
               <vf-label>Centered:</vf-label>
-              <vf-checkbox checked>on the row's cross axis</vf-checkbox>
+              <vf-checkbox checked>a row's own cross-axis default</vf-checkbox>
             </vf-stack>
           </template>
 
@@ -1693,12 +1705,10 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>direction</code></td><td class="wrap"><code>'column' | 'row'</code></td><td><code>'column'</code></td><td class="wrap">A stack is vertical unless it says otherwise</td></tr>
               <tr><td><code>gap</code></td><td>number</td><td><code>0</code></td><td class="wrap">Whole system px between children. <code>0</code> by default: a layout box that spaced things on its own would be the kind of surprise the kit rules out</td></tr>
               <tr><td><code>pad</code></td><td class="wrap">string | number</td><td>—</td><td class="wrap">Whole system px, one to four values in CSS shorthand order (<code>pad="12"</code>, <code>pad="10 12"</code>, <code>pad="14 12 10"</code>). Leave it off inside a <code>vf-window</code> body, which carries its own 12px inset</td></tr>
-              <tr><td><code>align</code></td><td class="wrap"><code>'auto' | 'start' | 'center' | 'end' | 'stretch' | 'baseline'</code></td><td><code>'auto'</code></td><td class="wrap">Cross axis. <code>auto</code> = stretch in a column, center in a row — but it never resizes a <em>control</em>: buttons, popups, swatches, toggles, fields and images keep their drawn width while a group box, list, rule or run of copy fills the panel. <code>stretch</code> is asked for by name and applies to everything. Centering can't land on a whole pixel by itself — a 16px caption centered against the 25-system-px <code>vf-number-field</code> sits at 4.5 — so use <code>start</code> where that matters</td></tr>
-              <tr><td><code>justify</code></td><td class="wrap"><code>'start' | 'center' | 'end' | 'between'</code></td><td><code>'start'</code></td><td class="wrap">Main axis. <code>end</code> and <code>between</code> compute an origin as <code>edge − width</code>, so they inherit contract rule 3</td></tr>
-              <tr><td><code>wrap</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Let children wrap onto further lines instead of overflowing</td></tr>
-              <tr><td><code>inline</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shrink-wrap to the children (<code>inline-flex</code>) instead of filling the parent</td></tr>
-              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Worth declaring on a panel's outermost stack: the box is then on the device-pixel grid by construction, and so is everything stretched to it</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default. On a <em>child</em>: <code>grow</code> takes the slack (<code>flex: 1 1 0</code> plus the min sizes that let it shrink below its content) — a bare attribute, like <code>nosnap</code>. Everything else is <code>flex: 0 0 auto</code>, and a light-DOM declaration beats both. No parts, no tokens, no events, no role. Not a <code>vf-button-group</code> (which equalizes widths and aligns faces) and not a grid.</td></tr>
+              <tr><td><code>place</code></td><td class="wrap"><code>'start' | 'center' | 'end'</code></td><td class="wrap">per direction</td><td class="wrap">Where the children sit across the stack. Unset resolves to <code>start</code> down a column and <code>center</code> across a row — the two directions want opposite things and always did. Named <code>place</code> and not <code>align</code> because <code>align</code> is a legacy HTML presentation attribute that Blink maps to <code>text-align</code> on any element: it used to re-align every run of copy inside the stack. Centering can't land on a whole pixel by itself — a 16px caption centered against the 25-system-px <code>vf-number-field</code> sits at 4.5 — so use <code>start</code> where that matters</td></tr>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Optional — a column is otherwise as wide as its widest child. Worth declaring on a panel's outermost stack: the box is then on the device-pixel grid by construction, and so is everything filled to it. In a row, a declared width is also what creates the slack a child's <code>fill-width</code> divides</td></tr>
+              <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes on a <em>child</em>, like <code>nosnap</code>: be as wide (tall) as this stack allows. Each names the outcome, not an axis, so the stack compiles it to the main axis or the cross axis depending on which way it runs. One rule follows from that: <strong>the cross axis always has a size, the main axis only has slack if you declared one</strong> — so <code>fill-width</code> always works in a column and needs a declared <code>width</code> in a row, and <code>fill-height</code> is the other way round. A fill with nothing to take is inert, not an error; two children filling along the main axis come out equal. A stack reads both about <em>itself</em> too, for parents that aren't stacks (a window body, a fieldset, a scroll well)</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Children are <code>flex: 0 0 auto</code> — no growing, no shrinking — and a light-DOM declaration beats anything here, so <code>align-self: stretch</code> in your own stylesheet is the escape hatch for a cross-axis fill a direction doesn't offer. No parts, no tokens, no events, no role. Not a <code>vf-button-group</code> (which equalizes widths and aligns faces) and not a grid.</td></tr>
             </tbody>
           </table>
         </section>

@@ -53,8 +53,7 @@ export type { VfGridRules } from './components/vf-grid.js'
 export { VfStack } from './components/vf-stack.js'
 export type {
   VfStackDirection,
-  VfStackAlign,
-  VfStackJustify,
+  VfStackPlace,
 } from './components/vf-stack.js'
 
 /* ── Utilities & style toolkit ──────────────────────────────────────────── */

@@ -7,7 +7,7 @@
  * page CSS resolves only where the rule's element happens to sit inside a `vf-*`
  * ancestor and inherit it. Inside a window body it does; for a plain `<div>`
  * holding two buttons on an ordinary page it does not, and the fallback `1`
- * silently renders an 8px gap around 3×-sized controls. Six groups:
+ * silently renders an 8px gap around 3×-sized controls. Seven groups:
  *
  *  - SYSTEM PX: `gap` and `pad` measure exactly N × 3 device px at dpr 1, 2 and
  *    3 — the whole claim, in the one unit the art is drawn in.
@@ -15,10 +15,18 @@
  *    hand-written `calc(var(--vf-scale, 1) * Npx)` div beside it does not. If
  *    this ever reads "both correct", the fixture stopped reproducing the fault
  *    and the check is worthless.
- *  - CHILDREN: `grow` takes the slack, and a plain child does not shrink —
- *    classic boxes are the size they are.
- *  - AXES: `align="auto"` resolves per direction (stretch in a column, center
- *    in a row), and each named `align`/`justify` value lands.
+ *  - GEOMETRY: the content governs the box — a column is as wide as its widest
+ *    child, a row as tall as its tallest, and neither claims a parent's width
+ *    it was never given. The box shrink-wraps while staying block-level, so it
+ *    never sits on a line box and picks up its parent's leading.
+ *  - FILL: `fill-width`/`fill-height` name the outcome, so each resolves to the
+ *    main axis or the cross axis by direction. The cross axis always has a size;
+ *    the main axis only has slack if one was declared, and a fill with nothing
+ *    to take is inert rather than an error. A stack reads both about itself,
+ *    for the parents that aren't stacks.
+ *  - AXES: `place` defaults per direction (start down a column, center across a
+ *    row) and each named value lands — including the safety net that an
+ *    unrecognized value falls back to the default instead of stretching.
  *  - NESTING: a nested stack keeps its own gap rather than inheriting one.
  *  - TRANSPARENCY: the stack imposes no face, line box or color on what it
  *    wraps — a layout box must not change how content reads.
@@ -81,7 +89,25 @@ async function gapBetween(page, a, b, axis = 'y') {
   return axis === 'y' ? rb.y - ra.bottom : rb.x - ra.right
 }
 
-const CELL = '<div class="cell" style="width:40px;height:12px;background:#000"></div>'
+const widths = (page, ids) =>
+  page.evaluate(
+    (list) =>
+      Object.fromEntries(
+        list.map((i) => [i, document.getElementById(i).getBoundingClientRect().width])
+      ),
+    ids
+  )
+
+const heights = (page, ids) =>
+  page.evaluate(
+    (list) =>
+      Object.fromEntries(
+        list.map((i) => [i, document.getElementById(i).getBoundingClientRect().height])
+      ),
+    ids
+  )
+
+const near = (a, b) => Math.abs(a - b) < 0.001
 
 /* ── SYSTEM PX ────────────────────────────────────────────────────────────
    One system px is DEVICE_PX_PER_SYSTEM_PX device px at every density, by the
@@ -107,14 +133,14 @@ for (const dpr of DENSITIES) {
   const colGap = (await gapBetween(page, 'a', 'b')) * dpr
   check(
     `dpr ${dpr}: gap="12" down a column is 12 system px`,
-    Math.abs(colGap - 12 * DEVICE_PX_PER_SYSTEM_PX) < 0.001,
+    near(colGap, 12 * DEVICE_PX_PER_SYSTEM_PX),
     `${colGap} device px`
   )
 
   const rowGap = (await gapBetween(page, 'c', 'd', 'x')) * dpr
   check(
     `dpr ${dpr}: gap="7" across a row is 7 system px`,
-    Math.abs(rowGap - 7 * DEVICE_PX_PER_SYSTEM_PX) < 0.001,
+    near(rowGap, 7 * DEVICE_PX_PER_SYSTEM_PX),
     `${rowGap} device px`
   )
 
@@ -127,7 +153,7 @@ for (const dpr of DENSITIES) {
   const want = [10, 4, 6, 2].map((n) => n * DEVICE_PX_PER_SYSTEM_PX)
   check(
     `dpr ${dpr}: pad="10 4 6 2" is CSS shorthand order, in system px`,
-    pads.every((v, i) => Math.abs(v - want[i]) < 0.001),
+    pads.every((v, i) => near(v, want[i])),
     `${pads.join('/')} device px`
   )
 
@@ -156,155 +182,275 @@ for (const dpr of DENSITIES) {
   const handGap = await gapBetween(page, 'ha', 'hb')
   check(
     'scope: a stack with no vf-* ancestor still spaces in system px',
-    Math.abs(stackGap - 12 * DEVICE_PX_PER_SYSTEM_PX) < 0.001,
+    near(stackGap, 12 * DEVICE_PX_PER_SYSTEM_PX),
     `${stackGap}px CSS`
   )
   check(
     'scope: the hand-written calc() beside it does NOT (fixture still bites)',
-    Math.abs(handGap - 12) < 0.001 && handGap < stackGap,
+    near(handGap, 12) && handGap < stackGap,
     `${handGap}px CSS — the --vf-scale fallback of 1`
   )
   await page.close()
 }
 
-/* ── CHILDREN ─────────────────────────────────────────────────────────────
-   No shrinking by default (a window is a fixed box whose overflow is clipped,
-   not a layout that squeezes its controls); `grow` is the opt-in. */
+/* ── GEOMETRY ─────────────────────────────────────────────────────────────
+   The content governs the box. A column is as wide as its widest child and a
+   row as tall as its tallest; nothing is stretched to a size nobody declared.
+   The box shrink-wraps (width: fit-content) while staying BLOCK-level, which is
+   the difference between "as big as its content" and "as big as its content,
+   plus whatever leading the parent's line box imposes on an inline-level box
+   shorter than the strut" — 2 system px, in the case that found it. */
 
 {
   const page = await build(`
-    <vf-stack id="r" direction="row" gap="10" style="width:300px">
-      <div id="fixed" style="width:80px;height:12px"></div>
-      <div id="grower" grow style="height:12px"></div>
-    </vf-stack>
-    <vf-stack id="tight" direction="row" gap="10" style="width:100px">
-      <div id="wide1" style="width:80px;height:12px"></div>
-      <div id="wide2" style="width:80px;height:12px"></div>
-    </vf-stack>
+    <div style="width:600px">
+      <vf-stack id="col">
+        <div id="narrow" style="width:80px;height:12px"></div>
+        <div id="wide" style="width:140px;height:12px"></div>
+      </vf-stack>
+    </div>
+    <div style="height:300px">
+      <vf-stack id="row" direction="row">
+        <div id="short" style="width:12px;height:20px"></div>
+        <div id="tall" style="width:12px;height:44px"></div>
+      </vf-stack>
+    </div>
+    <vf-stack id="sized" width="260" height="90"><div style="height:12px"></div></vf-stack>
+    <!-- an 18px stack inside a 40px line box: block-level, so it takes 18 -->
+    <div id="leading" style="font-size:16px;line-height:40px;width:300px">
+      <vf-stack id="shortstack"><div style="width:20px;height:18px"></div></vf-stack>
+    </div>
   `)
 
-  const [fixed, grower] = await Promise.all([rect(page, 'fixed'), rect(page, 'grower')])
+  const col = await rect(page, 'col')
   check(
-    'children: grow takes the slack',
-    Math.abs(grower.w - (300 - 80 - 10 * DEVICE_PX_PER_SYSTEM_PX)) < 0.001,
-    `${grower.w}px of ${300 - 80 - 30} expected`
+    'geometry: a column is as wide as its widest child',
+    near(col.w, 140),
+    `${col.w}px, the widest child being 140`
   )
-  check('children: a plain child keeps its size', Math.abs(fixed.w - 80) < 0.001, `${fixed.w}px`)
-
-  const [w1, w2] = await Promise.all([rect(page, 'wide1'), rect(page, 'wide2')])
   check(
-    'children: a plain child does not shrink to fit',
-    Math.abs(w1.w - 80) < 0.001 && Math.abs(w2.w - 80) < 0.001,
-    `${w1.w}px / ${w2.w}px in a 100px stack`
+    'geometry: …and does not take its parent’s width (shrink-wrapped)',
+    col.w < 600,
+    `${col.w}px inside a 600px block`
+  )
+
+  const row = await rect(page, 'row')
+  check(
+    'geometry: a row is as tall as its tallest child',
+    near(row.h, 44),
+    `${row.h}px, the tallest child being 44`
+  )
+  check(
+    'geometry: …and does not take its parent’s height',
+    row.h < 300,
+    `${row.h}px inside a 300px block`
+  )
+
+  const display = await page.evaluate(
+    () => getComputedStyle(document.getElementById('col')).display
+  )
+  check('geometry: the host is block-level flex', display === 'flex', display)
+
+  // The regression this rule exists for: inline-level, this box sat on a line
+  // box it could not be shorter than, and a short stack silently gained the
+  // parent's leading. Block-level, an 18px stack in a 40px line box is 18px,
+  // and the block around it is 18px too.
+  const [shortStack, leading] = await Promise.all([
+    rect(page, 'shortstack'),
+    rect(page, 'leading'),
+  ])
+  check(
+    'geometry: a stack shorter than its parent’s line box gains no leading',
+    near(shortStack.h, 18) && near(leading.h, 18),
+    `${shortStack.h}px stack in a ${leading.h}px block, line-height 40`
+  )
+
+  const sized = await rect(page, 'sized')
+  check(
+    'geometry: a declared width/height overrides the content, in system px',
+    near(sized.w, 260 * DEVICE_PX_PER_SYSTEM_PX) &&
+      near(sized.h, 90 * DEVICE_PX_PER_SYSTEM_PX),
+    `${sized.w} × ${sized.h} CSS px at scale 3`
+  )
+  await page.close()
+}
+
+/* ── FILL ─────────────────────────────────────────────────────────────────
+   fill-width and fill-height name the OUTCOME, not an axis: each compiles to
+   the main axis or the cross axis depending on which way the stack runs, so
+   the markup means the same thing wherever it lands. What follows from that is
+   one rule about geometry rather than vocabulary — the cross axis always has a
+   size, the main axis only has slack if one was declared. */
+
+{
+  const page = await build(`
+    <!-- cross axis: a column's width always exists, so this always works -->
+    <vf-stack id="c1" style="width:200px">
+      <div id="c1fill" fill-width style="height:12px"></div>
+      <div id="c1keep" style="width:40px;height:12px"></div>
+    </vf-stack>
+
+    <!-- main axis: a row divides the slack a declared width creates -->
+    <vf-stack id="r1" direction="row" gap="10" style="width:300px">
+      <div id="r1fixed" style="width:80px;height:12px"></div>
+      <div id="r1fill" fill-width style="height:12px"></div>
+    </vf-stack>
+
+    <!-- …and with no declared width there is no slack: inert, not an error -->
+    <vf-stack id="r2" direction="row" gap="10">
+      <div id="r2fixed" style="width:80px;height:12px"></div>
+      <div id="r2fill" fill-width style="width:40px;height:12px"></div>
+    </vf-stack>
+
+    <!-- two main-axis fills come out equal (the zeroed flex basis) -->
+    <vf-stack id="r3" direction="row">
+      <div id="r3a" fill-width style="width:40px;height:12px"></div>
+      <div id="r3b" fill-width style="width:120px;height:12px"></div>
+    </vf-stack>
+
+    <!-- the mirror image, down the other axis -->
+    <vf-stack id="c2" style="height:200px">
+      <div id="c2top" style="height:40px;width:12px"></div>
+      <div id="c2fill" fill-height style="width:12px"></div>
+    </vf-stack>
+    <vf-stack id="r4" direction="row">
+      <div id="r4tall" style="height:50px;width:12px"></div>
+      <div id="r4fill" fill-height style="width:12px"></div>
+    </vf-stack>
+
+    <!-- a stack reads both about itself, for parents that aren't stacks -->
+    <div style="width:500px">
+      <vf-stack id="self" fill-width><div style="width:10px;height:12px"></div></vf-stack>
+    </div>
+    <div style="height:240px">
+      <vf-stack id="selftall" fill-height><div style="width:10px;height:12px"></div></vf-stack>
+    </div>
+  `)
+
+  const w = await widths(page, [
+    'c1fill',
+    'c1keep',
+    'r1fill',
+    'r2fill',
+    'r3a',
+    'r3b',
+    'self',
+  ])
+  const h = await heights(page, ['c2fill', 'r4fill', 'selftall'])
+
+  check(
+    'fill: fill-width down a column takes the stack’s width',
+    near(w.c1fill, 200),
+    `${w.c1fill}px of 200`
+  )
+  check(
+    'fill: a child that asks for nothing keeps its own size',
+    near(w.c1keep, 40),
+    `${w.c1keep}px`
+  )
+  check(
+    'fill: fill-width across a row divides the declared slack',
+    near(w.r1fill, 300 - 80 - 10 * DEVICE_PX_PER_SYSTEM_PX),
+    `${w.r1fill}px of ${300 - 80 - 30} expected`
+  )
+  check(
+    'fill: …and is inert in a row with no width to divide',
+    near(w.r2fill, 40),
+    `${w.r2fill}px — its own size, there being no slack`
+  )
+  check(
+    'fill: two main-axis fills come out equal',
+    near(w.r3a, w.r3b),
+    `${w.r3a}px / ${w.r3b}px from natural widths of 40 and 120`
+  )
+  check(
+    'fill: fill-height down a column divides the declared slack',
+    near(h.c2fill, 160),
+    `${h.c2fill}px of 160`
+  )
+  check(
+    'fill: fill-height across a row takes the stack’s height',
+    near(h.r4fill, 50),
+    `${h.r4fill}px of the tallest child’s 50`
+  )
+  check(
+    'fill: a stack fills a parent that is not a stack',
+    near(w.self, 500) && near(h.selftall, 240),
+    `${w.self}px wide of 500, ${h.selftall}px tall of 240`
   )
   await page.close()
 }
 
 /* ── AXES ─────────────────────────────────────────────────────────────────
-   align="auto" is the one piece of implicit behavior in the API: the two axes
-   want opposite things, so the default is named rather than hidden. */
+   place is the only placement the stack owns, and its default is the one
+   piece of behavior that reads differently per direction — a column of fields
+   starts at the panel edge, a caption beside a control centers on it. */
 
 {
   const page = await build(`
-    <vf-stack id="col" style="width:200px"><div id="ca" style="height:12px"></div></vf-stack>
-    <vf-stack id="row" direction="row" style="width:200px;height:60px">
-      <div id="ra" style="width:12px;height:12px"></div>
+    <vf-stack id="colauto" style="width:200px">
+      <div id="cauto" style="width:40px;height:12px"></div>
     </vf-stack>
-    <vf-stack id="colstart" align="start" style="width:200px">
-      <div id="csa" style="height:12px"></div>
+    <vf-stack id="rowauto" direction="row" style="width:200px;height:60px">
+      <div id="rauto" style="width:12px;height:12px"></div>
     </vf-stack>
-    <vf-stack id="rowend" direction="row" justify="end" style="width:200px">
-      <div id="rea" style="width:12px;height:12px"></div>
+    <vf-stack id="colcenter" place="center" style="width:200px">
+      <div id="ccenter" style="width:40px;height:12px"></div>
     </vf-stack>
-    <vf-stack id="rowbetween" direction="row" justify="between" style="width:200px">
-      <div id="rba" style="width:12px;height:12px"></div>
-      <div id="rbb" style="width:12px;height:12px"></div>
+    <vf-stack id="colend" place="end" style="width:200px">
+      <div id="cend" style="width:40px;height:12px"></div>
     </vf-stack>
-    <vf-stack gap="8" style="width:400px">
-      <vf-button id="c-button">OK</vf-button>
-      <vf-select id="c-select" value="Geneva"><vf-option>Geneva</vf-option></vf-select>
-      <vf-text-field id="c-field" value="short"></vf-text-field>
-      <vf-fieldset id="c-fieldset" legend="Group"><vf-label>in it</vf-label></vf-fieldset>
-      <vf-separator id="c-separator"></vf-separator>
-      <vf-progress-bar id="c-progress" value="40" max="100"></vf-progress-bar>
+    <vf-stack id="rowstart" direction="row" place="start" style="width:200px;height:60px">
+      <div id="rstart" style="width:12px;height:12px"></div>
     </vf-stack>
-    <vf-stack gap="8" align="stretch" style="width:400px">
-      <vf-button id="c-stretched">Asked for by name</vf-button>
-    </vf-stack>
-    <vf-stack gap="8" style="width:700px">
-      <vf-text-field id="c-field-wide" value="short"></vf-text-field>
+    <vf-stack id="stale" place="stretch" style="width:200px">
+      <div id="staleChild" style="width:40px;height:12px"></div>
     </vf-stack>
   `)
 
-  const ca = await rect(page, 'ca')
-  check('axes: auto stretches down a column', Math.abs(ca.w - 200) < 0.001, `${ca.w}px of 200`)
-
-  const [row, ra] = await Promise.all([rect(page, 'row'), rect(page, 'ra')])
+  const [colauto, cauto] = await Promise.all([rect(page, 'colauto'), rect(page, 'cauto')])
   check(
-    'axes: auto centers across a row',
-    Math.abs(ra.y - row.y - (row.h - ra.h) / 2) < 0.001,
-    `${(ra.y - row.y).toFixed(1)}px from the top of a ${row.h}px row`
+    'axes: a column starts its children by default',
+    near(cauto.x, colauto.x) && near(cauto.w, 40),
+    `${cauto.x - colauto.x}px from the left edge, ${cauto.w}px wide (not stretched)`
   )
 
-  const ctrls = await page.evaluate(() => {
-    const w = (id) => document.getElementById(id).getBoundingClientRect().width
-    return {
-      button: w('c-button'),
-      select: w('c-select'),
-      field: w('c-field'),
-      fieldset: w('c-fieldset'),
-      separator: w('c-separator'),
-      progress: w('c-progress'),
-      stretched: w('c-stretched'),
-      fieldWide: w('c-field-wide'),
-    }
-  })
+  const [rowauto, rauto] = await Promise.all([rect(page, 'rowauto'), rect(page, 'rauto')])
   check(
-    'axes: a stretching column never resizes a control',
-    ctrls.button < 400 && ctrls.select < 400,
-    `button ${Math.round(ctrls.button)} / select ${Math.round(ctrls.select)} in a 400px column`
-  )
-  check(
-    'axes: a control wider than the panel is capped, not stretched',
-    Math.abs(ctrls.field - 400) < 0.001 && ctrls.fieldWide > 400 && ctrls.fieldWide < 700,
-    `the same field: ${Math.round(ctrls.field)} in a 400px column, ${Math.round(ctrls.fieldWide)} in a 700px one`
-  )
-  check(
-    'axes: …but what genuinely fills a panel still stretches',
-    Math.abs(ctrls.fieldset - 400) < 0.001 &&
-      Math.abs(ctrls.separator - 400) < 0.001 &&
-      Math.abs(ctrls.progress - 400) < 0.001,
-    `fieldset ${ctrls.fieldset} / separator ${ctrls.separator} / progress ${ctrls.progress}`
-  )
-  check(
-    'axes: align="stretch" is asked for by name, so it stretches a control too',
-    Math.abs(ctrls.stretched - 400) < 0.001,
-    `${ctrls.stretched}px of 400`
+    'axes: a row centers its children by default',
+    near(rauto.y - rowauto.y, (rowauto.h - rauto.h) / 2),
+    `${(rauto.y - rowauto.y).toFixed(1)}px from the top of a ${rowauto.h}px row`
   )
 
-  const csa = await rect(page, 'csa')
-  check(
-    'axes: align="start" overrides the column default',
-    csa.w < 200,
-    `${csa.w}px (not stretched)`
-  )
-
-  const [rowend, rea] = await Promise.all([rect(page, 'rowend'), rect(page, 'rea')])
-  check(
-    'axes: justify="end" pushes to the end of the main axis',
-    Math.abs(rea.right - rowend.right) < 0.001,
-    `right edges ${rea.right} / ${rowend.right}`
-  )
-
-  const [rb, rba, rbb] = await Promise.all([
-    rect(page, 'rowbetween'),
-    rect(page, 'rba'),
-    rect(page, 'rbb'),
+  const [colcenter, ccenter] = await Promise.all([
+    rect(page, 'colcenter'),
+    rect(page, 'ccenter'),
   ])
   check(
-    'axes: justify="between" splits the free space',
-    Math.abs(rba.x - rb.x) < 0.001 && Math.abs(rbb.right - rb.right) < 0.001,
-    `${rba.x - rb.x}px / ${rb.right - rbb.right}px from the edges`
+    'axes: place="center" centers on the cross axis',
+    near(ccenter.x - colcenter.x, (colcenter.w - ccenter.w) / 2),
+    `${ccenter.x - colcenter.x}px from the left of a 200px column`
+  )
+
+  const [colend, cend] = await Promise.all([rect(page, 'colend'), rect(page, 'cend')])
+  check(
+    'axes: place="end" is what a right-aligned action row is made of',
+    near(cend.right, colend.right),
+    `right edges ${cend.right} / ${colend.right}`
+  )
+
+  const [rowstart, rstart] = await Promise.all([rect(page, 'rowstart'), rect(page, 'rstart')])
+  check(
+    'axes: place="start" overrides a row’s centering default',
+    near(rstart.y, rowstart.y),
+    `${rstart.y - rowstart.y}px from the top`
+  )
+
+  const staleChild = await rect(page, 'staleChild')
+  check(
+    'axes: an unrecognized place falls back to the default, never to stretch',
+    near(staleChild.w, 40),
+    `place="stretch" left the 40px child at ${staleChild.w}px`
   )
   await page.close()
 }
@@ -328,14 +474,10 @@ for (const dpr of DENSITIES) {
   const innerGap = await gapBetween(page, 'ia', 'ib')
   check(
     'nesting: the outer gap applies',
-    Math.abs(outerGap - 24 * DEVICE_PX_PER_SYSTEM_PX) < 0.001,
+    near(outerGap, 24 * DEVICE_PX_PER_SYSTEM_PX),
     `${outerGap}px CSS`
   )
-  check(
-    'nesting: the inner stack keeps its own default of 0',
-    Math.abs(innerGap) < 0.001,
-    `${innerGap}px CSS`
-  )
+  check('nesting: the inner stack keeps its own default of 0', near(innerGap, 0), `${innerGap}px CSS`)
   await page.close()
 }
 
@@ -350,6 +492,12 @@ for (const dpr of DENSITIES) {
     <div style="font-family: Georgia, serif; font-size: 17px; line-height: 28px; color: rgb(20, 20, 20)">
       <p id="outside">Ordinary page copy.</p>
       <vf-stack><p id="inside">Ordinary page copy.</p></vf-stack>
+    </div>
+    <vf-stack id="ends" place="end"><p id="endcopy">Copy in an action row.</p></vf-stack>
+    <vf-stack id="centers" place="center"><p id="centercopy">Copy in a centered stack.</p></vf-stack>
+    <vf-stack id="legacy" align="end"><p id="legacycopy">Copy under the old spelling.</p></vf-stack>
+    <div style="text-align: right">
+      <vf-stack id="rightish"><p id="rightcopy">The page’s own alignment.</p></vf-stack>
     </div>
     <vf-window id="win" heading="W" width="200" height="120">
       <p id="inwindow">Chrome copy.</p>
@@ -382,6 +530,34 @@ for (const dpr of DENSITIES) {
     'transparency: inside a window it still inherits the window',
     same(by.inwindow, by.instack),
     `${by.instack.font.split(',')[0]} / ${by.instack.line} / select ${by.inwindow.select} vs ${by.instack.select}`
+  )
+
+  // Why the cross-axis attribute is `place` and not `align`: `align` is a
+  // legacy HTML presentation attribute, and Blink maps it to text-align on ANY
+  // element — so align="end" right-aligned every run of copy inside an action
+  // row, and align="center" centered it. The rename is the fix; the host's
+  // text-align reset is the belt, checked here against the old spelling so
+  // markup that predates the rename stays harmless. The last case proves the
+  // reset didn't also swallow the page's own alignment.
+  const aligned = await page.evaluate(() =>
+    ['endcopy', 'centercopy', 'legacycopy', 'rightcopy'].map(
+      (id) => getComputedStyle(document.getElementById(id)).textAlign
+    )
+  )
+  check(
+    'transparency: place= does not touch text-align',
+    aligned[0] === 'start' && aligned[1] === 'start',
+    `place="end" → ${aligned[0]}, place="center" → ${aligned[1]}`
+  )
+  check(
+    'transparency: the legacy align= spelling is neutralized too',
+    aligned[2] === 'start',
+    `align="end" → ${aligned[2]}`
+  )
+  check(
+    'transparency: …and the page’s own text-align still passes through',
+    aligned[3] === 'right',
+    `${aligned[3]}`
   )
   await page.close()
 }

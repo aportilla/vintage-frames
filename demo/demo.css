@@ -177,8 +177,8 @@ vf-desktop {
 .installer-actions {
   /* A vf-button-group vertical: it equalizes the button faces and centers
      them, treating the default button's ring as an overhang that doesn't
-     count. The enclosing stack keeps it at its intrinsic size (no `grow`) and
-     bottom-aligned (align="end").
+     count. The enclosing stack keeps it at its own size (no `fill-width`) and
+     bottom-aligned (place="end").
 
      14px face-to-face keeps the classic ~10px visible gap once the Install
      button's ring reaches 4px up into it. */

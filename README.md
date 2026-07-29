@@ -136,7 +136,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 | `vf-scroll-area` | Container with System 7 scrollbars; reserves the scroll rail as a placeholder (per-axis via `axis`), filling in only on overflow |
 | `vf-fieldset` | Group box with legend punching through the border |
 | `vf-grid` | A lattice of equal cells with 1px rules between them — the desk-accessory palette, a color picker's swatch table; the cell count and cell size are properties, `rules` picks the pen (`solid`, `dashed` or `none`), `frameless` drops the perimeter for a grid whose container already draws that line, and `collapse` lands a cell's own border *on* the rule instead of beside it |
-| `vf-stack` | Arranges things **in system pixels** — a flexbox whose `gap`, `pad`, `width` and `height` are declared in the art's own unit, so a window's insides need no `calc(var(--vf-scale, 1) * …)` in your stylesheet (see [Laying out inside a window](#laying-out-inside-a-window--vf-stack)) |
+| `vf-stack` | Arranges things **in system pixels** — a flexbox whose `gap`, `pad`, `width` and `height` are declared in the art's own unit, so a window's insides need no `calc(var(--vf-scale, 1) * …)` in your stylesheet. Content-governed: a column is as wide as its widest child, and `fill-width`/`fill-height` on a child ask for more (see [Laying out inside a window](#laying-out-inside-a-window--vf-stack)) |
 | `vf-label` | Static caption ("Name:", "Mode") in the chrome face; `for` focuses and names a control the way `<label for>` does, and `width` (system px) gives a caption column one whole-pixel x |
 | `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box |
 | `vf-img` | Pixel art on the kit's grid — sizes a slotted `<img>` to one system pixel per image pixel and keeps the nearest-neighbor magnification on whole device pixels; `width`/`height` (system px) reserve the box before the file loads |
@@ -280,31 +280,65 @@ is that calculation as a component — a flexbox whose `gap`, `pad`, `width` and
 
 ```html
 <vf-window heading="New" width="470" height="338">
-  <vf-stack gap="12">
-    <vf-stack direction="row" gap="8">
+  <vf-stack fill-width gap="12">
+    <vf-stack fill-width direction="row" gap="8">
       <vf-label width="80" for="name">Name:</vf-label>
-      <vf-text-field grow id="name"></vf-text-field>
+      <vf-text-field fill-width id="name"></vf-text-field>
     </vf-stack>
-    <vf-stack direction="row" justify="end" gap="12">
-      <vf-button>Cancel</vf-button>
-      <vf-button variant="default">OK</vf-button>
+    <vf-stack fill-width place="end">
+      <vf-button-group>
+        <vf-button>Cancel</vf-button>
+        <vf-button variant="default">OK</vf-button>
+      </vf-button-group>
     </vf-stack>
   </vf-stack>
 </vf-window>
 ```
 
-`direction` is `column` or `row`; `align` is `auto` (stretch down a column,
-center across a row), `start`, `center`, `end`, `stretch` or `baseline`;
-`justify` is `start`, `center`, `end` or `between`. Children keep their size —
-System 7 boxes don't squeeze — and `grow` on one gives it the slack.
+`direction` is `column` or `row`; `place` is `start`, `center` or `end` — where
+the children sit across the stack — and left off it resolves per direction:
+`start` down a column, `center` across a row, because the two directions want
+opposite things and always did. That is the whole placement API: there is no
+`justify`, and a right-aligned action row is a filled column whose one child
+sits at the end of it, as above.
 
-**A control is never resized by the `auto` default.** A push button is as wide as
-its label and a popup menu hugs its widest option; that's the drawing, and a
-column that stretched them would invent full-bleed controls System 7 never had.
-So the kit's fixed-size components sit at the start of a stretching column while
-what genuinely fills a panel — a group box, a list, a rule, a run of copy, a
-slider whose track *is* the width — goes on filling it. `align="stretch"` is
-asked for by name and applies to everything.
+It is `place` and not `align` because **`align` is a legacy HTML presentation
+attribute**: browsers map it to `text-align` on any element, so the cross-axis
+switch used to re-align every run of copy inside the stack — an action row
+quietly right-aligning its own paragraphs. Worth knowing whenever you name an
+attribute on a custom element: `align`, `hidden` and `dir` all carry behavior
+you didn't ask for. The stack still resets `text-align` to `inherit`, so markup
+written against the old spelling stays harmless.
+
+**The content governs the box.** A column is as wide as its widest child and a
+row as tall as its tallest; children keep the size they were drawn at, because
+System 7 boxes are the size they are — a push button is as wide as its label, a
+popup menu hugs its widest option, and a window is a fixed box whose overflow is
+clipped at the frame, not a layout that squeezes its controls to fit. The stack
+distributes; it never resizes. It shrink-wraps for the same reason — a layout
+box that claimed its parent's whole width would be handing out a size nobody
+declared — while staying block-level, so it never sits on a line box and picks
+up leading it didn't ask for.
+
+**`fill-width` and `fill-height` are how a child asks for more**, as bare
+attributes like `nosnap`. Each names the *outcome*, not an axis, so the markup
+means the same thing wherever it lands and the stack does the flexbox
+translation — in a row `fill-width` divides the main axis, in a column it
+stretches the cross axis. One rule follows, about geometry rather than
+vocabulary: **the cross axis always has a size, the main axis only has slack if
+you declared one.** So `fill-width` always works in a column and needs a
+declared `width` in a row; `fill-height` is exactly the other way round, and a
+fill with nothing to take is inert rather than an error.
+
+A stack reads the same two attributes about *itself*, for the parents that
+aren't stacks — a window body, a fieldset, a scroll well, a grid cell. That is
+where a panel's width enters the tree, and from there `fill-width` hands it
+down a level at a time. Three components have no width of their own at all —
+`vf-separator`, `vf-progress-bar` and `vf-slider` are drawn as a rule or a track
+that *is* the width — so those read wrong until they're filled. For a cross-axis
+fill a direction doesn't offer, `align-self: stretch` in your own stylesheet
+still wins: a light-DOM declaration beats the component's, and a percentage is
+the one fill page CSS can always express.
 
 **A page's own stylesheet often cannot say "8 system px".** Scaling is
 per-component: each element sets `--vf-scale` on *itself*, never on the
@@ -323,21 +357,27 @@ layout contract below holds by construction, and a declared `width` covers the
 size half of rule 3. Porting the showcase to it took `demo.css` from 559 lines
 to 328 — 23 of its 25 flex containers and 38 of its 85 `var(--vf-scale, 1)`
 occurrences went away — and left every window's rendered pixels identical bar
-the two noted at the end of this section.
+the two noted at the end of this section. The later pass that cut the API down
+to the one above holds the same line: window for window, the showcase renders
+pixel-for-pixel as it did, except where a stack was covering for the `align`
+bug.
 
 It paints nothing, takes no role, and is the kit's one typographically
-transparent component: `font`, smoothing, `color` and `user-select` all return
-to `inherit`, so wrapping content in a layout box never changes how that content
-reads. It is not a `vf-button-group` (which equalizes button widths and aligns
-their faces) and not a grid — `grid-template-columns: 1fr auto 1fr` stays yours.
+transparent component: `font`, smoothing, `color`, `user-select` and
+`text-align` all return to `inherit`, so wrapping content in a layout box never
+changes how that content reads. (`text-align` is on that list because of the
+legacy `align` attribute above — the rename is the fix, this is the belt.) It is
+not a `vf-button-group` (which equalizes button widths and aligns their faces)
+and not a grid — `grid-template-columns: 1fr auto 1fr` stays yours.
 
 ```sh
-npm run verify:stack   # the system-px gaps, at dpr 1 / 2 / 3
+npm run verify:stack   # system-px gaps at dpr 1/2/3, the fill matrix, and
+                       # that the box takes nothing it wasn't given
 ```
 
 Two things it can't fix, both documented in [SPEC.md](./SPEC.md): centering
 cannot land on a whole pixel by itself (a 16px caption centered against the
-25-system-px `vf-number-field` sits at 4.5 — use `align="start"`, or leave
+25-system-px `vf-number-field` sits at 4.5 — use `place="start"`, or leave
 `applyGridSnap()` to keep the ink crisp), and a flex container doesn't collapse
 margins, so `vf-fieldset`'s 8px of legend room is genuinely reserved inside a
 stack rather than being donated by whatever precedes it.

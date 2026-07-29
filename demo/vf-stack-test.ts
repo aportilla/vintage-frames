@@ -29,16 +29,13 @@ import { applyGridSnap, effectiveScale, requestGridSnap } from '../src/index.js'
 import type {
   VfButton,
   VfCheckbox,
-  VfLabel,
   VfList,
   VfNumberField,
   VfRadioGroup,
   VfSelect,
-  VfSlider,
   VfStack,
-  VfStackAlign,
+  VfStackPlace,
   VfStackDirection,
-  VfStackJustify,
 } from '../src/index.js'
 
 /** Query a required element; fail loudly if the markup drifts. */
@@ -65,11 +62,13 @@ interface ChildKind {
 }
 
 /**
- * Chosen to cover the two halves of the `align="auto"` rule: the fixed-size
- * controls a stretching column must NOT resize (button, popup, field, swatch,
- * image) and the things that genuinely fill a panel (fieldset, list, scroll
- * area, separator, slider, progress bar, copy). Plus a nested stack, and a
- * plain `<div>` — a child the kit knows nothing about.
+ * Chosen to cover both halves of the fill rule: the controls drawn at a size of
+ * their own, which ask for nothing (button, popup, field, swatch, image), and
+ * the ones drawn as a track or a frame that IS the width, which have no size to
+ * keep and read wrong until they're filled (separator, slider, progress bar,
+ * fieldset, list, scroll area, copy). Plus a nested stack, an empty stack — the
+ * spacer that owns a row's slack — and a plain `<div>`, a child the kit knows
+ * nothing about.
  */
 const CHILD_KINDS: readonly ChildKind[] = [
   {
@@ -218,18 +217,25 @@ const CHILD_KINDS: readonly ChildKind[] = [
   {
     id: 'stack-field-row',
     name: 'vf-stack (field row)',
-    markup: `<vf-stack direction="row" gap="8">
+    markup: `<vf-stack fill-width direction="row" gap="8">
   <vf-label width="80" for="name">Name:</vf-label>
-  <vf-text-field grow id="name"></vf-text-field>
+  <vf-text-field fill-width id="name"></vf-text-field>
 </vf-stack>`,
   },
   {
     id: 'stack-action-row',
     name: 'vf-stack (action row)',
-    markup: `<vf-stack direction="row" justify="end" gap="12">
-  <vf-button>Cancel</vf-button>
-  <vf-button variant="default">OK</vf-button>
+    markup: `<vf-stack fill-width place="end">
+  <vf-button-group>
+    <vf-button>Cancel</vf-button>
+    <vf-button variant="default">OK</vf-button>
+  </vf-button-group>
 </vf-stack>`,
+  },
+  {
+    id: 'stack-spacer',
+    name: 'vf-stack (empty — a spacer)',
+    markup: '<vf-stack></vf-stack>',
   },
   {
     id: 'div',
@@ -244,15 +250,17 @@ const KIND_BY_ID = new Map(CHILD_KINDS.map((kind) => [kind.id, kind]))
  * State.
  * ------------------------------------------------------------------ */
 
+/**
+ * `place` carries the unset state as a value of its own, the way the control
+ * has to offer it: `null` is "left off", which resolves per direction. It is
+ * not a value the attribute can take — the component has no `auto`.
+ */
 interface StackConfig {
   direction: VfStackDirection
   gap: number
   /** top, right, bottom, left — in system px, always four values here. */
   pad: [number, number, number, number]
-  align: VfStackAlign
-  justify: VfStackJustify
-  wrap: boolean
-  inline: boolean
+  place: VfStackPlace | null
   /** `null` means the property is left off entirely, not set to zero. */
   width: number | null
   height: number | null
@@ -264,10 +272,7 @@ function defaults(): StackConfig {
     direction: 'column',
     gap: 12,
     pad: [0, 0, 0, 0],
-    align: 'auto',
-    justify: 'start',
-    wrap: false,
-    inline: false,
+    place: null,
     width: null,
     height: null,
   }
@@ -277,7 +282,8 @@ interface ChildEntry {
   id: string
   kind: ChildKind
   el: HTMLElement
-  grow: boolean
+  fillWidth: boolean
+  fillHeight: boolean
 }
 
 let config = defaults()
@@ -293,7 +299,7 @@ interface Preset {
   id: string
   name: string
   config: () => StackConfig
-  children: readonly { kind: string; grow?: boolean }[]
+  children: readonly { kind: string; fillWidth?: boolean; fillHeight?: boolean }[]
 }
 
 const PRESETS: readonly Preset[] = [
@@ -317,41 +323,56 @@ const PRESETS: readonly Preset[] = [
     children: [{ kind: 'stack-field-row' }, { kind: 'stack-action-row' }],
   },
   {
+    // The one place a main-axis fill matters: without the declared width there
+    // is no slack, and the field would sit at its own 180 system px.
     id: 'field-row',
     name: 'Labeled field row',
-    config: () => ({ ...defaults(), direction: 'row', gap: 8 }),
-    children: [{ kind: 'label' }, { kind: 'text-field', grow: true }],
+    config: () => ({ ...defaults(), direction: 'row', gap: 8, width: 300 }),
+    children: [{ kind: 'label' }, { kind: 'text-field', fillWidth: true }],
   },
   {
     id: 'action-row',
     name: 'Action row',
-    config: () => ({ ...defaults(), direction: 'row', justify: 'end' }),
-    children: [{ kind: 'button' }, { kind: 'button-default' }],
+    config: () => ({ ...defaults(), place: 'end', width: 300 }),
+    children: [{ kind: 'button-group' }],
   },
   {
-    id: 'stretch',
-    name: 'What a column stretches',
+    // The justify="between" composition, without a justify: the slack has to
+    // belong to something, so it belongs to an empty stack.
+    id: 'ends',
+    name: 'Both ends of a row',
+    config: () => ({ ...defaults(), direction: 'row', width: 300 }),
+    children: [
+      { kind: 'button' },
+      { kind: 'stack-spacer', fillWidth: true },
+      { kind: 'button-default' },
+    ],
+  },
+  {
+    id: 'fill',
+    name: 'What fill-width is for',
     config: () => ({ ...defaults(), gap: 10, width: 260 }),
     children: [
       { kind: 'label' },
       { kind: 'select' },
-      { kind: 'separator' },
-      { kind: 'fieldset' },
-      { kind: 'slider' },
+      { kind: 'separator', fillWidth: true },
+      { kind: 'fieldset', fillWidth: true },
+      { kind: 'slider', fillWidth: true },
       { kind: 'paragraph' },
     ],
   },
   {
-    id: 'wrapping',
-    name: 'Wrapping swatch row',
-    config: () => ({
-      ...defaults(),
-      direction: 'row',
-      gap: 6,
-      wrap: true,
-      width: 120,
-    }),
-    children: Array.from({ length: 8 }, () => ({ kind: 'swatch' })),
+    // Nothing declared at all: the column is exactly as wide as its widest
+    // child, which is the whole geometry rule in one screen.
+    id: 'content',
+    name: 'Content governs the box',
+    config: () => ({ ...defaults(), gap: 8 }),
+    children: [
+      { kind: 'button' },
+      { kind: 'button-default' },
+      { kind: 'select' },
+      { kind: 'separator', fillWidth: true },
+    ],
   },
   {
     id: 'padded',
@@ -375,7 +396,6 @@ const PRESETS: readonly Preset[] = [
  * Elements.
  * ------------------------------------------------------------------ */
 
-const stage = $<HTMLElement>('#stage')
 const stack = $<VfStack>('#stack')
 const markupOut = $<HTMLElement>('#markup')
 const readoutOut = $<HTMLElement>('#readout')
@@ -388,10 +408,7 @@ const padFields: readonly VfNumberField[] = [
   $<VfNumberField>('#pad-b'),
   $<VfNumberField>('#pad-l'),
 ]
-const alignSelect = $<VfSelect>('#align')
-const justifySelect = $<VfSelect>('#justify')
-const wrapBox = $<VfCheckbox>('#wrap')
-const inlineBox = $<VfCheckbox>('#inline')
+const placeSelect = $<VfSelect>('#place')
 const widthOn = $<VfCheckbox>('#width-on')
 const widthField = $<VfNumberField>('#width')
 const heightOn = $<VfCheckbox>('#height-on')
@@ -404,16 +421,11 @@ const upButton = $<VfButton>('#up')
 const downButton = $<VfButton>('#down')
 const removeButton = $<VfButton>('#remove')
 const clearButton = $<VfButton>('#clear')
-const growBox = $<VfCheckbox>('#grow')
+const fillWidthBox = $<VfCheckbox>('#fill-width')
+const fillHeightBox = $<VfCheckbox>('#fill-height')
 
 const presetSelect = $<VfSelect>('#preset')
 const presetButton = $<VfButton>('#apply-preset')
-
-const frameWidth = $<VfSlider>('#frame-width')
-const frameWidthReadout = $<VfLabel>('#frame-width-readout')
-const markStackBox = $<VfCheckbox>('#mark-stack')
-const markChildrenBox = $<VfCheckbox>('#mark-children')
-const snapBox = $<VfCheckbox>('#snap')
 
 /* ------------------------------------------------------------------ *
  * Children.
@@ -429,12 +441,19 @@ function elementFrom(markup: string): HTMLElement {
   return el
 }
 
-function addChild(kindId: string, grow = false): void {
+function addChild(kindId: string, fillWidth = false, fillHeight = false): void {
   const kind = KIND_BY_ID.get(kindId)
   if (!kind) return
   const el = elementFrom(kind.markup)
-  if (grow) el.setAttribute('grow', '')
-  const entry: ChildEntry = { id: `child-${nextId++}`, kind, el, grow }
+  if (fillWidth) el.setAttribute('fill-width', '')
+  if (fillHeight) el.setAttribute('fill-height', '')
+  const entry: ChildEntry = {
+    id: `child-${nextId++}`,
+    kind,
+    el,
+    fillWidth,
+    fillHeight,
+  }
   entries.push(entry)
   selectedId = entry.id
 }
@@ -489,7 +508,13 @@ function renderChildList(): void {
     ...entries.map((entry, i) => {
       const item = document.createElement('vf-list-item')
       item.value = entry.id
-      item.textContent = `${i + 1}. ${entry.kind.name}${entry.grow ? ' · grow' : ''}`
+      const fills = [
+        entry.fillWidth ? 'fill-width' : '',
+        entry.fillHeight ? 'fill-height' : '',
+      ].filter(Boolean)
+      item.textContent =
+        `${i + 1}. ${entry.kind.name}` +
+        (fills.length > 0 ? ` · ${fills.join(' ')}` : '')
       return item
     })
   )
@@ -498,8 +523,15 @@ function renderChildList(): void {
   childList.value = selectedId
 
   const current = selected()
-  growBox.checked = current?.grow ?? false
-  for (const control of [upButton, downButton, removeButton, growBox]) {
+  fillWidthBox.checked = current?.fillWidth ?? false
+  fillHeightBox.checked = current?.fillHeight ?? false
+  for (const control of [
+    upButton,
+    downButton,
+    removeButton,
+    fillWidthBox,
+    fillHeightBox,
+  ]) {
     setDisabled(control, current === undefined)
   }
   setDisabled(clearButton, entries.length === 0)
@@ -546,10 +578,7 @@ function applyConfig(): void {
   stack.direction = config.direction
   stack.gap = config.gap
   stack.pad = padShorthand() || undefined
-  stack.align = config.align
-  stack.justify = config.justify
-  stack.wrap = config.wrap
-  stack.inline = config.inline
+  stack.place = config.place ?? undefined
   stack.width = config.width ?? undefined
   stack.height = config.height ?? undefined
 }
@@ -573,10 +602,7 @@ function markupText(): string {
   if (config.gap !== 0) attrs.push(`gap="${config.gap}"`)
   const pad = padShorthand()
   if (pad !== '') attrs.push(`pad="${pad}"`)
-  if (config.align !== 'auto') attrs.push(`align="${config.align}"`)
-  if (config.justify !== 'start') attrs.push(`justify="${config.justify}"`)
-  if (config.wrap) attrs.push('wrap')
-  if (config.inline) attrs.push('inline')
+  if (config.place !== null) attrs.push(`place="${config.place}"`)
   if (config.width !== null) attrs.push(`width="${config.width}"`)
   if (config.height !== null) attrs.push(`height="${config.height}"`)
 
@@ -584,14 +610,18 @@ function markupText(): string {
   if (entries.length === 0) return `${open}</vf-stack>`
 
   const body = entries
-    .map((entry) =>
-      indent(
-        entry.grow
-          ? entry.kind.markup.replace(/^<([a-z-]+)/, '<$1 grow')
-          : entry.kind.markup,
+    .map((entry) => {
+      const fills = [
+        entry.fillWidth ? ' fill-width' : '',
+        entry.fillHeight ? ' fill-height' : '',
+      ].join('')
+      return indent(
+        fills === ''
+          ? entry.kind.markup
+          : entry.kind.markup.replace(/^<([a-z-]+)/, `<$1${fills}`),
         2
       )
-    )
+    })
     .join('\n')
   return `${open}\n${body}\n</vf-stack>`
 }
@@ -640,19 +670,42 @@ function readoutText(): string {
         : '✗ fractional — declare width/height (rule 3, the half snapping cannot fix)'),
   ]
 
+  // The geometry rule, measured rather than asserted: a column is as wide as
+  // its widest child and a row as tall as its tallest — unless that axis was
+  // declared, which is the author overriding the content on purpose.
+  const column = config.direction !== 'row'
+  const declared = column ? config.width : config.height
+  const firstEntry = entries[0]
+  if (firstEntry) {
+    // Margin box, not border box: what a column is as wide as is the widest
+    // child INCLUDING its own margins, and one of the kit's controls has them —
+    // `variant="default"` reserves its ring that way, which is why an OK button
+    // measures 7 system px wider than it draws.
+    const extent = (el: Element): number => {
+      const rect = el.getBoundingClientRect()
+      return column
+        ? rect.width + edge(el, 'margin-left') + edge(el, 'margin-right')
+        : rect.height + edge(el, 'margin-top') + edge(el, 'margin-bottom')
+    }
+    const biggest = Math.max(...entries.map((entry) => extent(entry.el)))
+    const inner = column
+      ? box.width - edge(stack, 'padding-left') - edge(stack, 'padding-right')
+      : box.height - edge(stack, 'padding-top') - edge(stack, 'padding-bottom')
+    const rule = column ? 'widest child' : 'tallest child'
+    lines.push(
+      declared === null
+        ? `content box ${round(inner)} CSS px = the ${rule}'s margin box ` +
+            `(${round(biggest)}) ` +
+            (Math.abs(inner - biggest) < 0.5 ? '✓' : '✗')
+        : `content box ${round(inner)} CSS px — declared, not content; the ` +
+            `${rule}'s margin box measures ${round(biggest)}`
+    )
+  }
+
   const first = entries[0]?.el
   const second = entries[1]?.el
-  // justify distributes slack and wrap breaks the line, so the space between
-  // the first two children is no longer the gap alone — there is nothing
-  // honest to measure against.
-  const comparable = config.justify === 'start' && !config.wrap
   if (!first || !second) {
     lines.push('gap — add a second child to measure it')
-  } else if (!comparable) {
-    lines.push(
-      `gap ${config.gap} system px — justify/wrap is distributing the slack, ` +
-        'so the space between two children is not the gap alone'
-    )
   } else {
     const a = first.getBoundingClientRect()
     const b = second.getBoundingClientRect()
@@ -711,10 +764,7 @@ function syncControls(): void {
   padFields.forEach((field, i) => {
     field.value = String(config.pad[i] ?? 0)
   })
-  alignSelect.value = config.align
-  justifySelect.value = config.justify
-  wrapBox.checked = config.wrap
-  inlineBox.checked = config.inline
+  placeSelect.value = config.place ?? 'default'
 
   widthOn.checked = config.width !== null
   setDisabled(widthField, config.width === null)
@@ -761,23 +811,9 @@ padFields.forEach((field, i) => {
   })
 })
 
-alignSelect.addEventListener('vf-change', (event) => {
-  config.align = valueOf(event) as VfStackAlign
-  sync()
-})
-
-justifySelect.addEventListener('vf-change', (event) => {
-  config.justify = valueOf(event) as VfStackJustify
-  sync()
-})
-
-wrapBox.addEventListener('vf-change', () => {
-  config.wrap = wrapBox.checked
-  sync()
-})
-
-inlineBox.addEventListener('vf-change', () => {
-  config.inline = inlineBox.checked
+placeSelect.addEventListener('vf-change', (event) => {
+  const value = valueOf(event)
+  config.place = value === 'default' ? null : (value as VfStackPlace)
   sync()
 })
 
@@ -825,11 +861,19 @@ clearButton.addEventListener('click', () => {
   sync()
 })
 
-growBox.addEventListener('vf-change', () => {
+fillWidthBox.addEventListener('vf-change', () => {
   const entry = selected()
   if (!entry) return
-  entry.grow = growBox.checked
-  entry.el.toggleAttribute('grow', entry.grow)
+  entry.fillWidth = fillWidthBox.checked
+  entry.el.toggleAttribute('fill-width', entry.fillWidth)
+  sync()
+})
+
+fillHeightBox.addEventListener('vf-change', () => {
+  const entry = selected()
+  if (!entry) return
+  entry.fillHeight = fillHeightBox.checked
+  entry.el.toggleAttribute('fill-height', entry.fillHeight)
   sync()
 })
 
@@ -844,45 +888,13 @@ function loadPreset(preset: Preset): void {
   entries = []
   selectedId = ''
   nextId = 0
-  for (const child of preset.children) addChild(child.kind, child.grow === true)
+  for (const child of preset.children) {
+    addChild(child.kind, child.fillWidth === true, child.fillHeight === true)
+  }
   selectedId = entries[0]?.id ?? ''
   syncControls()
   sync()
 }
-
-/* --- The bench itself ---------------------------------------------- */
-
-/** How much of the stage the box may fill — the slack `justify` needs. */
-function setFrameWidth(): void {
-  const percent = Math.round(frameWidth.value)
-  stage.style.setProperty('--frame-width', `${percent}%`)
-  frameWidthReadout.textContent = `${percent}%`
-  scheduleReadout()
-}
-
-onValue(frameWidth, setFrameWidth)
-
-function syncMarks(): void {
-  const marks = [
-    markStackBox.checked ? 'stack' : '',
-    markChildrenBox.checked ? 'children' : '',
-  ].filter(Boolean)
-  stage.dataset['mark'] = marks.join(' ')
-}
-
-markStackBox.addEventListener('vf-change', syncMarks)
-markChildrenBox.addEventListener('vf-change', syncMarks)
-
-let stopSnap: (() => void) | undefined
-function setSnap(on: boolean): void {
-  if (on && !stopSnap) stopSnap = applyGridSnap()
-  else if (!on && stopSnap) {
-    stopSnap()
-    stopSnap = undefined
-  }
-}
-
-snapBox.addEventListener('vf-change', () => setSnap(snapBox.checked))
 
 // A resize changes neither the config nor the children, but it does move the
 // stack — re-measure so the readout never goes stale.
@@ -910,11 +922,10 @@ function fillSelect(
 fillSelect(palette, CHILD_KINDS)
 fillSelect(presetSelect, PRESETS)
 
-const params = new URLSearchParams(location.search)
-snapBox.checked = !params.has('nosnap')
-setSnap(snapBox.checked)
-syncMarks()
-setFrameWidth()
+// Snapping is a page-level opt-in the components can't make for themselves, so
+// the bench makes it the way a consumer's page would — once, unconditionally.
+// ?nosnap is the escape, for looking at the page without it.
+if (!new URLSearchParams(location.search).has('nosnap')) applyGridSnap()
 
 const opening = PRESETS[0]
 if (opening) loadPreset(opening)

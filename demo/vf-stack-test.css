@@ -31,11 +31,10 @@
   --rule: #d8d3c7;
   --link: #1b4b8f;
 
-  /* The two playground-only marks drawn over the stage. Neither is a kit
-     color — nothing in the 1-bit palette is red or blue, so a mark can never
-     be mistaken for something a component drew. */
+  /* The playground-only mark drawn over the stack. Not a kit color — nothing
+     in the 1-bit palette is red, so the mark can never be mistaken for
+     something a component drew. */
   --mark-stack: #c0392b;
-  --mark-child: #1b4b8f;
 
   --ui-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, sans-serif;
@@ -198,21 +197,17 @@ code {
 }
 
 .stage__frame {
-  width: var(--frame-width, 100%);
+  width: 100%;
 }
 
 /*
  * The stack paints nothing — that is the component's whole point — so the
- * playground draws its box for you. Outlines take no layout space, so marking
- * costs the measurement nothing.
+ * playground draws its box for you, always. Outlines take no layout space, so
+ * the mark costs the measurement nothing.
  */
-.stage[data-mark~='stack'] #stack {
+#stack {
   outline: 1px dashed var(--mark-stack);
   background: rgba(192, 57, 43, 0.06);
-}
-
-.stage[data-mark~='children'] #stack > * {
-  outline: 1px dashed var(--mark-child);
 }
 
 /* ── Output: the markup, and the measurement ─────────────────────────────── */

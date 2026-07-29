@@ -8,19 +8,10 @@ import { ScaleController, sysLength, sysLengths } from '../scale.js'
 export type VfStackDirection = 'column' | 'row'
 
 /**
- * Cross-axis placement. `auto` (the default) resolves per direction — see the
- * class doc.
+ * Where the children sit across the stack. Defaults per direction — `start`
+ * down a column, `center` across a row.
  */
-export type VfStackAlign =
-  | 'auto'
-  | 'start'
-  | 'center'
-  | 'end'
-  | 'stretch'
-  | 'baseline'
-
-/** Main-axis distribution of any slack. */
-export type VfStackJustify = 'start' | 'center' | 'end' | 'between'
+export type VfStackPlace = 'start' | 'center' | 'end'
 
 /**
  * `<vf-stack>` — arrange things inside a window, in system pixels.
@@ -32,14 +23,16 @@ export type VfStackJustify = 'start' | 'center' | 'end' | 'between'
  * `height` are declared in whole system px and converted internally:
  *
  * ```html
- * <vf-stack gap="12">                                  <!-- a column -->
- *   <vf-stack direction="row" gap="8">                 <!-- a labeled field -->
- *     <vf-label for="name">Name:</vf-label>
- *     <vf-text-field id="name" grow></vf-text-field>
+ * <vf-stack gap="12">                            <!-- a column -->
+ *   <vf-stack fill-width direction="row" gap="8">   <!-- a labeled field -->
+ *     <vf-label width="80" for="name">Name:</vf-label>
+ *     <vf-text-field id="name" fill-width></vf-text-field>
  *   </vf-stack>
- *   <vf-stack direction="row" justify="end" gap="12">  <!-- an action row -->
- *     <vf-button>Cancel</vf-button>
- *     <vf-button variant="default">Save</vf-button>
+ *   <vf-stack fill-width place="end">                <!-- an action row -->
+ *     <vf-button-group>
+ *       <vf-button>Cancel</vf-button>
+ *       <vf-button variant="default">Save</vf-button>
+ *     </vf-button-group>
  *   </vf-stack>
  * </vf-stack>
  * ```
@@ -59,23 +52,40 @@ export type VfStackJustify = 'start' | 'center' | 'end' | 'between'
  *
  * **Whole system px is the only expressible value**, so the gap half of the
  * layout contract (README rule 2) stops being a rule to remember. Declaring
- * `width`/`height` covers the size half of rule 3 as well: a stack with a
- * declared width is whole, and so is everything stretched inside it.
+ * `width`/`height` covers the size half of rule 3 as well.
  *
- * **Children don't shrink by default** (`flex: 0 0 auto`). System 7 boxes are
- * the size they are — a window is a fixed box whose overflow is clipped at the
- * frame, not a layout that squeezes its controls to fit. Mark the one child
- * that should take the slack with `grow`, the way `nosnap` opts an element out
- * of snapping:
+ * **The geometry is governed by the content.** A column is as wide as its
+ * widest child and a row as tall as its tallest; children keep the size they
+ * drew themselves at (`flex: 0 0 auto` — no growing, no shrinking). System 7
+ * boxes are the size they are: a push button is as wide as its label, a popup
+ * menu hugs its widest option, and a window is a fixed box whose overflow is
+ * clipped at the frame, not a layout that squeezes its controls to fit. The
+ * stack distributes; it does not resize. That is why it is `inline-flex` rather
+ * than block-level — a layout box that silently claimed its parent's whole
+ * width would be inventing a size nobody declared.
+ *
+ * **`fill-width` / `fill-height` are how a child asks for more**, as bare
+ * attributes on consumer DOM the way `nosnap` opts an element out of snapping:
  *
  * ```html
- * <vf-text-field grow></vf-text-field>
+ * <vf-text-field fill-width></vf-text-field>
  * ```
  *
- * **`align` defaults per direction**, because the two axes want opposite
- * things and always did: a row of a caption beside a control wants its items
- * centered, while a column of fields wants them stretched to the panel width.
- * Rather than hide that in a default, the default value is *named* `auto`.
+ * Each names the *outcome*, not the axis, so the markup means the same thing
+ * wherever it lands; the stack does the flexbox translation, which is the whole
+ * reason to have a component. One rule to learn, about geometry rather than
+ * vocabulary: **the cross axis always has a size, the main axis only has slack
+ * if you declared one.** So `fill-width` always works in a column (the width is
+ * the widest child's) and needs a declared `width` in a row; `fill-height` is
+ * exactly the other way round. A fill with nothing to take is inert, not an
+ * error. Two children filling along the main axis end up *equal* — the zeroed
+ * flex basis is what lets them divide the slack rather than keep their natural
+ * sizes — and a child that declares its own size shouldn't also ask to fill it.
+ *
+ * A stack reads the same two attributes about *itself*, for the parents that
+ * aren't stacks: a window body, a fieldset, a scroll well, a grid cell. That is
+ * where a panel's width enters the tree, and from there `fill-width` hands it
+ * down a level at a time.
  *
  * **It paints nothing and means nothing.** No border, no background, no role,
  * no keyboard behavior — what it holds decides what it is, as with
@@ -95,7 +105,7 @@ export type VfStackJustify = 'start' | 'center' | 'end' | 'between'
  * widest and aligns their *faces* rather than the `variant="default"` ring
  * boxes a plain flex row would line up.
  *
- * @slot - The children to arrange. `grow` on any of them takes the slack.
+ * @slot - The children to arrange. `fill-width` / `fill-height` on any of them.
  */
 @customElement('vf-stack')
 export class VfStack extends LitElement {
@@ -103,8 +113,25 @@ export class VfStack extends LitElement {
     vfBase,
     css`
       :host {
+        /* Shrink to the content, but stay BLOCK-level while doing it: the stack
+           is exactly as big as what it holds, so it can't hand a size it never
+           declared to the things inside it — and it takes no part in its
+           parent's inline formatting while doing it.
+
+           fit-content, not inline-flex, and the difference is 2 system px. An
+           inline-level box sits on a line box, and a line box can never be
+           shorter than the parent's strut: a stack shorter than the line-height
+           around it silently gains the difference as leading (the showcase's
+           swatch panel, an 18px row inside a 20px line box, grew by exactly
+           that). vertical-align: top removes the descender half of it; nothing
+           inside a component can shrink its parent's strut. So the box stays
+           block-level and shrink-wraps instead — same geometry, no line box, no
+           whitespace between two adjacent stacks, and the typographic
+           transparency below stops having an exception. */
         display: flex;
+        width: fit-content;
         flex-direction: column;
+        align-items: flex-start;
         /* Typographic transparency — see the class doc. vfBase dresses a host
            as chrome (body face, 1.25 line box, black, unselectable); a stack
            holds no text of its own, so imposing any of that on what it wraps
@@ -123,114 +150,84 @@ export class VfStack extends LitElement {
            of its own. */
         user-select: inherit;
         -webkit-user-select: inherit;
+        /* text-align is on that list because of a trap this component walked
+           into: align is a LEGACY HTML PRESENTATION ATTRIBUTE. Blink maps the
+           align content attribute on any HTML element to text-align — "left" /
+           "right" / "center" by name, anything else verbatim — so the cross-axis
+           attribute, back when it was spelled align, silently right-aligned
+           every run of copy inside an action row. It is spelled place now, but
+           the reset stays: it costs nothing, it keeps old markup harmless, and
+           a layout box changing how content reads is the one thing this
+           component promises not to do. */
+        text-align: inherit;
       }
-      /* Shrink-wrap in a line rather than filling the parent — a row of buttons
-         parked in a corner, the way vf-button-group sits. */
-      :host([inline]) {
-        display: inline-flex;
+
+      /* The same two words a child uses, read by the stack about itself — for
+         the parents that aren't stacks and have no ::slotted rule to give: a
+         window body, a fieldset, a scroll well, a grid cell, a plain div. A
+         percentage is the one fill a page can always express, needing no
+         system px, so this is the boundary where the chain would otherwise
+         break. Inside a stack both rules apply and agree: 100% of a column's
+         content box is what stretch resolves to anyway, and along a row the
+         zeroed flex basis outranks a width. A declared width/height lands on
+         the host's inline style and beats both, which is the resolution of
+         "don't declare a size and ask to fill it". */
+      :host([fill-width]) {
+        width: 100%;
       }
+      :host([fill-height]) {
+        height: 100%;
+      }
+
+      /* --- Cross axis --------------------------------------------------- */
+      /* The two directions want opposite things and always did: a column of
+         fields starts at the panel's left edge, while a row of a caption beside
+         a control centers on it. Both are stated as the direction's default
+         rather than as an "auto" value, so an unrecognized place (a stale
+         place="stretch", say) lands on the sane one instead of on flexbox's
+         own "normal", which stretches. The named values come after, and win at
+         equal specificity on source order. */
       :host([direction='row']) {
         flex-direction: row;
-      }
-      :host([wrap]) {
-        flex-wrap: wrap;
-      }
-
-      /* --- Cross axis ------------------------------------------------- */
-      /* auto: stretch down a column (a field fills the panel), center across
-         a row (a caption sits beside its control). Written as :not([align])
-         plus the explicit spelling so both say the same thing, and placed
-         before the named values so those win on source order at equal
-         specificity. */
-      :host(:not([align])),
-      :host([align='auto']) {
-        align-items: stretch;
-      }
-      :host([direction='row']:not([align])),
-      :host([direction='row'][align='auto']) {
         align-items: center;
       }
-      :host([align='start']) {
+      :host([place='start']) {
         align-items: flex-start;
       }
-      :host([align='center']) {
+      :host([place='center']) {
         align-items: center;
       }
-      :host([align='end']) {
+      :host([place='end']) {
         align-items: flex-end;
       }
-      :host([align='stretch']) {
-        align-items: stretch;
-      }
-      /* The kit's faces carry ascent/descent overrides on the 16px design grid
-         (12 above the baseline, 4 below), so a baseline shared between two
-         chrome runs lands whole. Mixing in a page face is where it stops being
-         a whole number. */
-      :host([align='baseline']) {
-        align-items: baseline;
-      }
-      /* ...but a control is never resized by the auto default. A push button
-         is as wide as its label, a popup menu hugs its widest option, a swatch
-         is a fixed well — that is the drawing, and a column that stretched
-         them to its own width would invent full-bleed controls System 7 never
-         had. So the kit's fixed-size components sit at the start of a
-         stretching column while the things that genuinely fill a panel — a
-         fieldset, a list, a scroll area, a separator, a rule of copy, a slider
-         or progress bar whose track IS the width — go on stretching.
 
-         Only the auto default is overridden. An author who writes
-         align="stretch" has asked by name and gets it, on everything.
-
-         max-width is the other half: these children don't shrink either
-         (::slotted(*) below), and a control whose natural width exceeds the
-         panel would hang out over the window frame — a text field defaults to
-         180 system px and overflows a narrower column by construction. A
-         ceiling of the panel's own width lets it fit without being stretched
-         past its drawing when there is room to spare. */
-      :host(:is(:not([align]), [align='auto']):not([direction='row']))
-        ::slotted(
-          :is(
-              vf-button,
-              vf-button-group,
-              vf-swatch,
-              vf-checkbox,
-              vf-radio,
-              vf-select,
-              vf-text-field,
-              vf-text-area,
-              vf-number-field,
-              vf-img
-            )
-        ) {
-        align-self: flex-start;
-        max-width: 100%;
-      }
-
-      /* --- Main axis -------------------------------------------------- */
-      /* start is flexbox's own default, so it needs no rule. */
-      :host([justify='center']) {
-        justify-content: center;
-      }
-      :host([justify='end']) {
-        justify-content: flex-end;
-      }
-      :host([justify='between']) {
-        justify-content: space-between;
-      }
-
-      /* --- Children ---------------------------------------------------- */
-      /* No shrinking (see the class doc); grow takes the slack, with the min
-         sizes that let it actually shrink below its content — the flex-item
-         min-width: auto default is what otherwise pins a text field to its
-         value's width. A light-DOM declaration beats a ::slotted one, so a
-         page can still override either of these on its own children. */
+      /* --- Children ----------------------------------------------------- */
+      /* Neither grow nor shrink: the content governs the box, not the other way
+         round (see the class doc). A light-DOM declaration beats a ::slotted
+         one, so a page can still override any of this on its own children —
+         align-self: stretch is the escape hatch for the cross-axis fill a
+         direction doesn't offer, and needs no system px to write. */
       ::slotted(*) {
         flex: 0 0 auto;
       }
-      ::slotted([grow]) {
+      /* fill-width / fill-height name the outcome, so each one compiles to the
+         main axis or the cross axis depending on which way the stack runs. The
+         min-* that rides the main-axis form is what lets a filled child shrink
+         below its content: the flex-item min-width: auto default is what
+         otherwise pins a text field to its value's width. */
+      :host(:not([direction='row'])) ::slotted([fill-width]) {
+        align-self: stretch;
+      }
+      :host(:not([direction='row'])) ::slotted([fill-height]) {
+        flex: 1 1 0;
+        min-height: 0;
+      }
+      :host([direction='row']) ::slotted([fill-width]) {
         flex: 1 1 0;
         min-width: 0;
-        min-height: 0;
+      }
+      :host([direction='row']) ::slotted([fill-height]) {
+        align-self: stretch;
       }
     `,
   ]
@@ -262,42 +259,32 @@ export class VfStack extends LitElement {
   @property() pad?: string | number
 
   /**
-   * Cross-axis placement: `auto` (the default — stretch in a column, center in
-   * a row), `start`, `center`, `end`, `stretch` or `baseline`.
+   * Where the children sit across the stack — `start`, `center` or `end`.
+   * Unset resolves per direction: `start` down a column, `center` across a row.
+   *
+   * Named `place` rather than `align` for a reason worth keeping in the source:
+   * `align` is a legacy HTML presentation attribute, and Blink maps it to
+   * `text-align` on any element, so the cross-axis switch used to re-align every
+   * run of copy inside the stack (see the `text-align` reset above).
    *
    * Note the one thing centering cannot do: land on a whole pixel by itself. A
    * 16px caption centered in a row set by the 25-system-px `vf-number-field`
    * sits at 4.5 system px, and no container can round that — it would have to
    * read each child's height. `applyGridSnap()` keeps the caption's own ink
    * crisp regardless (it corrects the origin inside the child's shadow root);
-   * `align="start"` is the deterministic escape.
+   * `place="start"` is the deterministic escape.
    */
-  @property({ reflect: true }) align?: VfStackAlign
+  @property({ reflect: true }) place?: VfStackPlace
 
   /**
-   * Main-axis distribution: `start` (the default), `center`, `end` or
-   * `between`.
+   * Width in whole system px. Optional — a column is otherwise as wide as its
+   * widest child.
    *
-   * `end` and `between` compute a child's origin as `edge − width`, so they
-   * inherit README rule 3: with whole-width children (which every `vf-*`
-   * control is) the result is whole, and with a text-sized `<span>` in the row
-   * it is not.
-   */
-  @property({ reflect: true }) justify?: VfStackJustify
-
-  /** Let the children wrap onto further lines instead of overflowing. */
-  @property({ type: Boolean, reflect: true }) wrap = false
-
-  /**
-   * Shrink-wrap to the children (`inline-flex`) instead of filling the parent.
-   */
-  @property({ type: Boolean, reflect: true }) inline = false
-
-  /**
-   * Width in whole system px. Optional, and worth declaring on the outermost
-   * stack of a panel: a stack with a declared width is on the device-pixel grid
-   * by construction, and so is every child stretched to it — the size half of
-   * README rule 3, which snapping deliberately doesn't cover.
+   * Worth declaring on the outermost stack of a panel, for two reasons: a stack
+   * with a declared width is on the device-pixel grid by construction, and so
+   * is every child filled to it (the size half of README rule 3, which snapping
+   * deliberately doesn't cover) — and in a row it is what creates the slack a
+   * child's `fill-width` divides.
    */
   @property({ type: Number }) width?: number
 

@@ -1,10 +1,10 @@
 import { css, html, LitElement } from 'lit'
 import {
-  customElement,
   property,
   query,
   queryAssignedElements,
 } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfScrollbars } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -38,8 +38,14 @@ const TYPEAHEAD_TIMEOUT_MS = 1000
  * @csspart list - The scrolling viewport around the slotted items.
  * @fires vf-change - When the user changes the selection.
  *   `detail: { value: string, values: string[] }`.
+ * @cssprop [--vf-list-max-height=200px] - `vf-list` max height before its rail
+ *   takes over (the host adds the 2px frame)
+ * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
+ * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
+ *   the WebKit path draws the dot-dither tile instead, and this is its flat
+ *   25%-black average
  */
-@customElement('vf-list')
+@vfElement('vf-list')
 export class VfList extends LitElement {
   static override styles = [
     vfBase,

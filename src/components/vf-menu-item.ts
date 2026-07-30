@@ -1,5 +1,6 @@
 import { css, html, LitElement, nothing } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { property, state } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
@@ -25,8 +26,14 @@ import { emit } from '../events.js'
  *   Named for the menu rather than plain `vf-select`, which would collide with
  *   the `<vf-select>` popup on any delegated ancestor listener (that component
  *   commits with `vf-change`).
+ * @cssprop [--vf-menu-row-height=16px] - `vf-menu-item` row pitch (`Menus.png`;
+ *   kept separate from `--vf-popup-height` so re-theming the popup pill doesn't
+ *   move pulldown rows)
+ * @cssprop [--vf-select-gutter=16px] - checkmark column: `vf-select` left inset
+ *   / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift
+ *   on open)
  */
-@customElement('vf-menu-item')
+@vfElement('vf-menu-item')
 export class VfMenuItem extends LitElement {
   static override styles = [
     vfBase,

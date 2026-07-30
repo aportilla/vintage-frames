@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfStaticText } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -35,8 +36,10 @@ import { GridSnapController } from '../grid-snap.js'
  * @cssprop --vf-paragraph-line-height-small - Line box under `size="small"`
  *   (default `16px`). Keep both whole numbers — a ratio is what puts a page off
  *   the grid in the first place.
+ * @cssprop --vf-font-size-small - fine print (disk-space captions,
+ *   `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table
  */
-@customElement('vf-paragraph')
+@vfElement('vf-paragraph')
 export class VfParagraph extends LitElement {
   static override styles = [
     vfBase,

@@ -14,7 +14,10 @@ design and public APIs. Every component MUST follow it.
 > scroll arrows). Each is reconstructed pixel-for-pixel as an inline-SVG fill
 > path in `src/glyphs.ts` (shared, `currentColor`-themeable, zero raster assets)
 > and consumed by the components below — the authoritative source for these
-> marks.
+> marks. A glyph is *geometry*, which is why redrawing it loses nothing; the one
+> mark the kit paints that is a **picture** — the 32×32 alert icon — is not
+> redrawn but shipped as the sheet's own pixels (`src/icons.ts`, see
+> `vf-alert`).
 
 ## 1. Design principles
 
@@ -112,9 +115,11 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-surface` | *(set by containers)* | bg behind legends/label patches; `vf-window` and `vf-dialog` both set it to white |
 | `--vf-disabled` | `#C0C0C0` | dimmed text, borders, glyphs (the kit's dim gray) |
 | `--vf-desktop` | `#808080` | base color under the desktop dither — occluded by the default (opaque) tile, so it only shows through a custom `--vf-desktop-pattern` |
+| `--vf-desktop-pattern` | *(1-bit SVG tile)* | `vf-desktop`'s background-image layer — a 50% checker drawn as opaque black-on-white rects (override the whole pattern) |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-control-height` | `22px` | text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well |
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
+| `--vf-button-group-gap` | `12px` | gap between buttons in a `vf-button-group` (always exceeds the default ring's reach, so rings never collide) |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
 | `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) |
 | `--vf-label-line-height` | `16px` | `vf-label` line box — the faces' own em, so a caption sits on the menu/popup rhythm |
@@ -123,16 +128,21 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
+| `--vf-number-field-width` | `4em` | width of `vf-number-field`'s input, in its own text (an em, not a system px length — it sizes to the digits) |
+| `--vf-list-max-height` | `200px` | `vf-list` max height before its rail takes over (the host adds the 2px frame) |
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
 | `--vf-titlebar-height-utility` | `12px` | the slim `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` |
 | `--vf-dots-pattern` | *(1-bit SVG tile)* | the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) |
 | `--vf-swatch-checker` | *(SVG tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like `--vf-desktop-pattern`) |
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
+| `--vf-separator-color` | `var(--vf-black, #000)` | `vf-separator` rule color — `vf-menu` sets it to `--vf-disabled` for the dimmed menu rule |
+| `--vf-separator-style` | `solid` | `vf-separator` rule style — `vf-menu` sets `dotted` (see `Menus.png`) |
 | `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
 | `--vf-focus-offset` | `2px` | its `outline-offset` (negative to inset the ring) |
 | `--vf-focus-underline-offset` | `4px` | where the dashed focus rule sits, from the underlined element's padding-box bottom (negative drops it below) — see §4 |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
 | `--vf-progress-track` | `#ffffff` | progress track (white) |
+| `--vf-progress-stripes` | *(1-bit SVG tile)* | the indeterminate barber-stripe tile, drawn as rects so the staircase stays whole system px at any scale (override the whole pattern) |
 | `--vf-scrollbar-thumb` | `#ffffff` | scrollbar thumb/elevator (white) |
 | `--vf-scrollbar-track` | `#c0c0c0` | scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average |
 | `--vf-highlight` | `#000000` | selection background |
@@ -564,8 +574,8 @@ see §4.)
 - **Attributes/props:** `open: boolean`, `width: number` / `height: number`
   (**declare them both** — whole system px, the same requirement, the same
   fallbacks and the same one-time console warning as `vf-dialog`; both inherit
-  it from `VfModalDialog`), `variant?: 'caution'` (renders the
-  classic black/white triangle-with-! icon as inline SVG; omit for none/slot).
+  it from `VfModalDialog`), `variant?: 'caution'` (renders the classic
+  triangle-with-! icon; omit for none/slot).
 - **Implementation:** native `<dialog>` like vf-dialog. `show()`/`close()`.
 - **Visual:** outer `border: 2px solid black`; inner frame: a wrapper with
   `margin: 2px; border: 1px solid black;` (classic double-rule). Body white,
@@ -576,7 +586,20 @@ see §4.)
   inward (outer `height: 100%`, inner and content `flex: 1 1 auto`), for the
   reason given under `vf-dialog` — otherwise the framed art stays content-tall
   inside a taller `<dialog>`. The content grid clips (`overflow: hidden`).
-- **Slots:** `icon`, default (message), `buttons`.
+  The `variant="caution"` icon is the **only raster art the library itself
+  ships**: an alert icon is a picture, not geometry, so it is not vectorized
+  into glyphs.ts — it is the reference sheet's own 32×32 pixels, inlined as a
+  base64 data URI in `src/icons.ts` (generated by `npm run extract:icons` from
+  the same crop as the demo copy, so the two cannot drift). Black ink on
+  transparency makes it exactly an alpha mask, so it paints as `mask-image`
+  over `background: var(--vf-black)` — the `vf-grid` rules idiom — which keeps
+  the ink on the token and lets the alert's surface show inside the triangle.
+  Sized `32px × --vf-scale` with `mask-size: 100% 100%`, so the box is whole
+  device px and the magnification is bit-exact nearest-neighbor
+  (`npm run verify:caution`).
+- **Slots:** `icon`, default (message), `buttons`. A slotted `icon` replaces the
+  variant's — and with it the variant's accessible-name default, so an alert
+  that slots its own icon should state `label`.
 - **Parts:** `frame`, `icon`, `message`, `buttons`.
 - **Events:** `vf-close` (detail `{ reason }`).
 

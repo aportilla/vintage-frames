@@ -1,5 +1,6 @@
 import { css, html, LitElement, nothing } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { property, state } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -16,8 +17,10 @@ import { GridSnapController } from '../grid-snap.js'
  * @slot legend - Rich legend content; overrides the `legend` attribute.
  * @csspart fieldset - The bordered box.
  * @csspart legend - The legend patch on the top border.
+ * @cssprop [--vf-surface=...] - bg behind legends/label patches; `vf-window`
+ *   and `vf-dialog` both set it to white
  */
-@customElement('vf-fieldset')
+@vfElement('vf-fieldset')
 export class VfFieldset extends LitElement {
   static override styles = [
     vfBase,

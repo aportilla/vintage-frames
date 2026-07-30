@@ -1,5 +1,6 @@
 import { css, html, LitElement, nothing } from 'lit'
-import { customElement, property, query } from 'lit/decorators.js'
+import { property, query } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfScrollbars, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -25,8 +26,12 @@ import { ScrollStateController } from '../scroll-state.js'
  *
  * @slot - Scrollable content.
  * @csspart viewport - The inner scrolling container.
+ * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
+ * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
+ *   the WebKit path draws the dot-dither tile instead, and this is its flat
+ *   25%-black average
  */
-@customElement('vf-scroll-area')
+@vfElement('vf-scroll-area')
 export class VfScrollArea extends LitElement {
   private readonly scale = new ScaleController(this)
 

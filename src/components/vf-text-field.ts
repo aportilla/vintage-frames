@@ -1,5 +1,6 @@
 import { css, html, nothing } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfField } from '../styles/base.js'
 import { VfTextControlBase } from '../text-control.js'
@@ -18,8 +19,12 @@ import { VfTextControlBase } from '../text-control.js'
  * @fires vf-change - On commit (native `change`). `detail: { value: string }`.
  *
  * @csspart input - The inner native `<input>` element.
+ * @cssprop [--vf-control-height=22px] - text fields — `vf-text-field`,
+ *   `vf-text-area`, the `vf-number-field` well
+ * @cssprop [--vf-field-width=180px] - default width of `vf-text-field` /
+ *   `vf-text-area`
  */
-@customElement('vf-text-field')
+@vfElement('vf-text-field')
 export class VfTextField extends VfTextControlBase {
   static override styles = [
     vfBase,

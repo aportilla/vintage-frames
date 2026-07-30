@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { property, state } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -36,7 +37,7 @@ import { GridSnapController } from '../grid-snap.js'
  * @slot - The image: a single `<img>` element.
  * @csspart frame - The sized box the image fills.
  */
-@customElement('vf-img')
+@vfElement('vf-img')
 export class VfImg extends LitElement {
   static override styles = [
     vfBase,

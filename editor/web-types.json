@@ -1,0 +1,2069 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JetBrains/web-types/master/schema/web-types.json",
+  "name": "vintage-frames",
+  "version": "0.1.0",
+  "description-markup": "markdown",
+  "contributions": {
+    "html": {
+      "elements": [
+        {
+          "name": "vf-alert",
+          "description": "`<vf-alert>` — the classic fixed modal alert.\n\nDouble black rule frame (2px outer border, 1px inner rule), no title bar,\nwhite body with an icon column on the left, the message on the right, and\na button row at the bottom-right. Wraps a native `<dialog>` (top layer +\nfocus trap) with a transparent backdrop.\n\nOpen with `show()` (or the `open` attribute/property); close with\n`close()`. Escape fires `vf-close` with `{ reason: 'escape' }`,\nprogrammatic closing with `{ reason: 'close' }`.\n---\n\n\n### **Events:**\n - **vf-close** - Alert closed. Detail `{ reason: 'escape' | 'close' }`.\n\n### **Slots:**\n - _default_ - Default slot: the alert message.\n- **icon** - Custom icon (overrides the `variant` icon).\n- **buttons** - Action buttons, laid out bottom-right in a `vf-button-group` (equal-width, faces aligned; classic 12px gap).\n\n### **CSS Parts:**\n - **frame** - The outer double-rule frame.\n- **icon** - The 32px icon column.\n- **message** - The message area.\n- **buttons** - The button group.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "variant",
+              "description": "Built-in icon variant. `'caution'` renders the classic black/white\ntriangle-with-! icon. Omit for no icon (or slot your own via `icon`).",
+              "value": { "type": "'caution' | undefined" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the alert dialog (`aria-label`). Alerts have no title\nbar, so the name must come from ARIA; defaults to `'Caution'` when\n`variant=\"caution\"`, otherwise `'Alert'`.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "open",
+              "description": "Whether the modal is open. Kept in sync with the native `<dialog>`.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "width",
+              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
+              "value": { "type": "number | undefined" }
+            }
+          ],
+          "slots": [
+            { "name": "", "description": "Default slot: the alert message." },
+            {
+              "name": "icon",
+              "description": "Custom icon (overrides the `variant` icon)."
+            },
+            {
+              "name": "buttons",
+              "description": "Action buttons, laid out bottom-right in a `vf-button-group` (equal-width, faces aligned; classic 12px gap)."
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-close",
+              "description": "Alert closed. Detail `{ reason: 'escape' | 'close' }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "variant",
+                "description": "Built-in icon variant. `'caution'` renders the classic black/white\ntriangle-with-! icon. Omit for no icon (or slot your own via `icon`).",
+                "type": "'caution' | undefined"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the alert dialog (`aria-label`). Alerts have no title\nbar, so the name must come from ARIA; defaults to `'Caution'` when\n`variant=\"caution\"`, otherwise `'Alert'`.",
+                "type": "string"
+              },
+              {
+                "name": "open",
+                "description": "Whether the modal is open. Kept in sync with the native `<dialog>`.",
+                "type": "boolean"
+              },
+              {
+                "name": "width",
+                "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "height",
+                "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
+                "type": "number | undefined"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-close",
+                "description": "Alert closed. Detail `{ reason: 'escape' | 'close' }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-button-group",
+          "description": "Lays out a set of `vf-button`s the way a System 7 dialog does: a tidy row\n(or column) with a consistent gap, every button sharing the width of the\nwidest, and all their *faces* on one line.\n\nTwo wrinkles make an ad-hoc flex row get this subtly wrong, and the group\nfixes both:\n\n- **Face alignment.** A `variant=\"default\"` button reserves room for its\n  ring with a RING_INSETpx margin, so in a row aligned by any edge\n  its *face* drifts from its neighbors' — you line up the ring, not the\n  button. The group zeroes that margin (via the inherited\n  `--vf-button-ring-margin`) and reserves the ring space itself as padding,\n  then centers the cross axis, so the faces — not the margin boxes — align.\n- **Shared width.** Classic dialogs sized grouped buttons to the widest, even\n  when a label was short (\"OK\" as wide as \"Cancel\"). The group does this with\n  pure CSS — equal `1fr` grid columns resolve to the widest button's\n  intrinsic width under the shrink-wrapped `inline-grid` — and stretches each\n  button's face to fill (via the inherited `--vf-button-flex`). No measuring.\n  `natural` opts out, letting each button size to its own label.\n\nThe group is layout-neutral: it shrink-wraps to its buttons, so position it\nwith the parent (e.g. `justify-self: end` for a bottom-right action row).\n---\n\n\n### **Slots:**\n - _default_ - The `vf-button`s to arrange.\n\n### **CSS Properties:**\n - **--vf-button-group-gap** - Gap between buttons (default 12px). _(default: undefined)_",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "vertical",
+              "description": "Stack the buttons vertically instead of in a row.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "natural",
+              "description": "Let each button size to its own label instead of every button sharing the\nwidest button's width. Off by default: grouped buttons are uniform width,\nmatching classic System 7 dialogs.",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [
+            { "name": "", "description": "The `vf-button`s to arrange." }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "vertical",
+                "description": "Stack the buttons vertically instead of in a row.",
+                "type": "boolean"
+              },
+              {
+                "name": "natural",
+                "description": "Let each button size to its own label instead of every button sharing the\nwidest button's width. Off by default: grouped buttons are uniform width,\nmatching classic System 7 dialogs.",
+                "type": "boolean"
+              },
+              { "name": "role", "type": "string" }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-button",
+          "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog. `size=\"small\"` renders the compact 16px button with a\nbody-face label.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` to the submission), `type=\"reset\"`\nresets it. Enter and Space activate it via the inner native button.\n---\n\n\n### **Slots:**\n - _default_ - The button label.\n\n### **CSS Properties:**\n - **--vf-button-height** - `vf-button` face (the default ring's inner box is 80×20) _(default: 20px)_\n- **--vf-control-height-small** - `size=\"small\"` buttons _(default: 16px)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` element.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "variant",
+              "description": "When set to `'default'`, draws the classic double ring that marks the\ndefault button (activated by Return in real System 7 dialogs).",
+              "value": { "type": "'default' | undefined" }
+            },
+            {
+              "name": "size",
+              "description": "When set to `'small'`, renders the compact 16px button from the\nreference sheet's third row: same pixel-traced corners, body-face label.",
+              "value": { "type": "'small' | undefined" }
+            },
+            {
+              "name": "type",
+              "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.",
+              "value": {
+                "type": "'button' | 'submit' | 'reset'",
+                "default": "'button'"
+              }
+            },
+            {
+              "name": "name",
+              "description": "Form field name; submitted as `name=value` when `type=\"submit\"`.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "value",
+              "description": "Value submitted under `name` when `type=\"submit\"`.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [{ "name": "", "description": "The button label." }],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "variant",
+                "description": "When set to `'default'`, draws the classic double ring that marks the\ndefault button (activated by Return in real System 7 dialogs).",
+                "type": "'default' | undefined"
+              },
+              {
+                "name": "size",
+                "description": "When set to `'small'`, renders the compact 16px button from the\nreference sheet's third row: same pixel-traced corners, body-face label.",
+                "type": "'small' | undefined"
+              },
+              {
+                "name": "type",
+                "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.",
+                "type": "'button' | 'submit' | 'reset'"
+              },
+              {
+                "name": "name",
+                "description": "Form field name; submitted as `name=value` when `type=\"submit\"`.",
+                "type": "string"
+              },
+              {
+                "name": "value",
+                "description": "Value submitted under `name` when `type=\"submit\"`.",
+                "type": "string"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-checkbox",
+          "description": "The classic System 7 checkbox: a 13×13 white square with a 1px black\nborder whose checked state is the corner-to-corner ✕ glyph — the pixel-exact\ncross traced from the Classic Macintosh UI Kit sprite. The border \"thickens\"\nwhile pressed, exactly like the original control.\n\nForm-associated: submits `value` under `name` when checked (like a native\ncheckbox) and restores its initial checked state on form reset. Toggles on\nclick and Space.\n---\n\n\n### **Events:**\n - **vf-change** - When toggled by user interaction. `detail: { checked: boolean }`.\n\n### **Slots:**\n - _default_ - The label, rendered to the right of the box with a 6px gap.\n\n### **CSS Parts:**\n - **box** - The 13×13 checkbox square.\n- **label** - The label wrapper around the slot.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "checked",
+              "description": "Whether the checkbox is checked.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "name",
+              "description": "Form field name used when submitting.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "value",
+              "description": "Value submitted with the form while checked.",
+              "value": { "type": "string", "default": "'on'" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [
+            {
+              "name": "",
+              "description": "The label, rendered to the right of the box with a 6px gap."
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-change",
+              "description": "When toggled by user interaction. `detail: { checked: boolean }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "checked",
+                "description": "Whether the checkbox is checked.",
+                "type": "boolean"
+              },
+              {
+                "name": "name",
+                "description": "Form field name used when submitting.",
+                "type": "string"
+              },
+              {
+                "name": "value",
+                "description": "Value submitted with the form while checked.",
+                "type": "string"
+              },
+              { "name": "role", "type": "string" },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-change",
+                "description": "When toggled by user interaction. `detail: { checked: boolean }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-desktop",
+          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).\n---\n\n\n### **Slots:**\n - _default_ - Default slot: menu bar, windows, anything.\n\n### **CSS Properties:**\n - **--vf-desktop** - base color under the desktop dither — occluded by the default (opaque) tile, so it only shows through a custom `--vf-desktop-pattern` _(default: #808080)_\n- **--vf-desktop-pattern** - `vf-desktop`'s background-image layer — a 50% checker drawn as opaque black-on-white rects (override the whole pattern) _(default: undefined)_\n\n### **CSS Parts:**\n - **desktop** - The full-size desktop surface.",
+          "doc-url": "",
+          "attributes": [],
+          "slots": [
+            {
+              "name": "",
+              "description": "Default slot: menu bar, windows, anything."
+            }
+          ],
+          "events": [],
+          "js": { "properties": [], "events": [] }
+        },
+        {
+          "name": "vf-dialog",
+          "description": "`<vf-dialog>` — the System 7 modal dialog shell.\n\nTwo chromes, one modal lifecycle (native `<dialog>` for top-layer rendering\nand focus trapping, with a fully transparent backdrop — no dimming):\n\n- **Default:** a striped title bar with a centered title over a white body —\n  the movable-modal look. Drag the title bar to move it. `closable` adds the\n  standard close box (left of the bar) — the HIG's own figures disagree on\n  whether a movable modal carries one (Figure 5-1 says yes, Figure 6-1 and\n  the Chapter 6 text say no), so the component enables either reading rather\n  than enforcing one.\n- **`frame=\"plain\"`:** the classic dBoxProc modal-dialog frame — 1px outer\n  border, 2px gap, 2px inner band, no shadow, no title bar — and immovable,\n  like the original. A `heading` renders as a centered display-face heading\n  at the top of the body (the reference art's \"Dialog title\"); `closable` is\n  ignored, there being no bar to carry the widget.\n\nOpen it with `show()` (or set the `open` attribute/property); close with\n`close()`. Escape closes it and fires `vf-close` with\n`{ reason: 'escape' }`; the close box and programmatic closing fire\n`{ reason: 'close' }`.\n---\n\n\n### **Events:**\n - **vf-close** - Dialog closed. Detail `{ reason: 'escape' | 'close' }`.\n\n### **Slots:**\n - _default_ - Default slot: dialog body content.\n- **buttons** - Optional action buttons. Rendered as a bottom-right `vf-button-group` (equal-width, faces aligned); the footer only takes space when the slot is populated.\n\n### **CSS Properties:**\n - **--vf-dots-pattern** - the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) _(default: undefined)_\n- **--vf-titlebar-height** - window/dialog title bars _(default: undefined)_\n\n### **CSS Parts:**\n - **frame** - The outer chrome frame (striped-bar or plain).\n- **title-bar** - The striped title bar (default chrome only).\n- **title** - The centered title patch (or the plain-frame heading).\n- **close-box** - The close widget (`closable`, default chrome only).\n- **body** - The white content area.\n- **footer** - The action row wrapping the buttons.\n- **buttons** - The button group inside the footer.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "heading",
+              "description": "Title text: the bar's centered patch, or the plain frame's heading.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given. Mirrors vf-alert's `label`.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "closable",
+              "description": "Show the close box (left side of the title bar). Off by default — the\nbare movable-modal bar. Ignored with `frame=\"plain\"` (no bar). Clicking\nit closes the dialog and fires `vf-close` with `{ reason: 'close' }`.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "frame",
+              "description": "Frame chrome. Omit for the striped title bar (movable modal); `'plain'`\nfor the immovable dBoxProc double frame with no bar (modal dialog box).",
+              "value": { "type": "'plain' | undefined" }
+            },
+            {
+              "name": "open",
+              "description": "Whether the modal is open. Kept in sync with the native `<dialog>`.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "width",
+              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
+              "value": { "type": "number | undefined" }
+            }
+          ],
+          "slots": [
+            { "name": "", "description": "Default slot: dialog body content." },
+            {
+              "name": "buttons",
+              "description": "Optional action buttons. Rendered as a bottom-right `vf-button-group` (equal-width, faces aligned); the footer only takes space when the slot is populated."
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-close",
+              "description": "Dialog closed. Detail `{ reason: 'escape' | 'close' }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "heading",
+                "description": "Title text: the bar's centered patch, or the plain frame's heading.",
+                "type": "string"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given. Mirrors vf-alert's `label`.",
+                "type": "string"
+              },
+              {
+                "name": "closable",
+                "description": "Show the close box (left side of the title bar). Off by default — the\nbare movable-modal bar. Ignored with `frame=\"plain\"` (no bar). Clicking\nit closes the dialog and fires `vf-close` with `{ reason: 'close' }`.",
+                "type": "boolean"
+              },
+              {
+                "name": "frame",
+                "description": "Frame chrome. Omit for the striped title bar (movable modal); `'plain'`\nfor the immovable dBoxProc double frame with no bar (modal dialog box).",
+                "type": "'plain' | undefined"
+              },
+              {
+                "name": "open",
+                "description": "Whether the modal is open. Kept in sync with the native `<dialog>`.",
+                "type": "boolean"
+              },
+              {
+                "name": "width",
+                "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "height",
+                "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
+                "type": "number | undefined"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-close",
+                "description": "Dialog closed. Detail `{ reason: 'escape' | 'close' }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-fieldset",
+          "description": "`<vf-fieldset>` — the classic \"Install Location\" group box.\n\nA 1px black rectangle whose bold legend sits on the top border, punching a\ngap through it with a `var(--vf-surface, ...)` background patch — so it\nmatches whatever surface sits behind it.\n---\n\n\n### **Slots:**\n - _default_ - Group contents.\n- **legend** - Rich legend content; overrides the `legend` attribute.\n\n### **CSS Properties:**\n - **--vf-surface** - bg behind legends/label patches; `vf-window` and `vf-dialog` both set it to white _(default: ...)_\n\n### **CSS Parts:**\n - **fieldset** - The bordered box.\n- **legend** - The legend patch on the top border.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "legend",
+              "description": "Legend text shown on the top border.",
+              "value": { "type": "string", "default": "''" }
+            }
+          ],
+          "slots": [
+            { "name": "", "description": "Group contents." },
+            {
+              "name": "legend",
+              "description": "Rich legend content; overrides the `legend` attribute."
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "legend",
+                "description": "Legend text shown on the top border.",
+                "type": "string"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-grid",
+          "description": "`<vf-grid>` — a lattice of equal cells separated by 1px rules.\n\nThe reference screens are full of these: the Figure 5-6 tool palette's 3×3\nof desk accessories, a color picker's swatch table, a pattern or icon\nchooser. They are all the same drawing — fixed-size cells butted together\nwith a hairline between them — and every one of them used to be hand-rolled\npage CSS: a `display: grid` with a 1px gap over a black background, so the\nbackground showed through as the rules. That trick only draws *solid*\ninterior rules, has to restate the cell size in three places, and puts the\nkit's own artwork in the consumer's stylesheet.\n\nThis draws it instead. State the cell count and cell size in whole system px\nand slot the cells in; the component owns the track geometry and the rules:\n\n```html\n<vf-grid columns=\"3\" rows=\"3\" cell-width=\"26\" cell-height=\"26\">\n  <button>…</button>  <!-- nine of them, one per cell -->\n</vf-grid>\n```\n\n**The rules are a masked lattice, not gaps.** The grid's 1px gaps make the\nroom; a single overlay paints `--vf-black` through two tiled masks — one\ncolumn of pixels at the horizontal pitch, one row at the vertical — so the\npen switches from `solid` to `dashed` (1 on, 1 off) without the layout\nmoving a pixel. It paints *under* the cells (`z-index: -1` inside the grid's\nown stacking context, above its surface), so an item that spans two cells\ncovers the boundary it swallowed, and a cell's own ink — a pressed face, a\nfocus rule, a hard shadow — is never crossed by a line.\n\n**Cells are centered in their wells.** What a palette holds is normally\nsmaller than the well it sits in — a 16px icon in a 26px cell — so a slotted\nitem is centered on both axes rather than parked in the corner, which is\nwhere grid's own `stretch` default leaves anything carrying its own size. A\ncell that means to fill its well — a tool button that inverts black when\nselected, a tile whose border merges with the lattice — says\n`place-self: stretch` and gets the whole track. (Under `collapse` that is\nalready the default: those cells exist to meet the lines.)\n\n**The perimeter is part of the lattice**, and drawn by default: the box\ncarries the 1px the outer lines need, and one uninterrupted pitch runs from\nedge to edge. `frameless` drops it, for a grid inside something that already\ndraws that line — the desk-accessory palette is a `vf-window[flush]`, whose\nframe *is* the grid's outer border, and a doubled one would read as 2px.\n\n**`collapse` puts an item's own border on the rule.** A cell that draws its\nown 1px border — a bordered tile, a 16×16 swatch — otherwise sets that border\n*beside* the lattice line, and every boundary reads 2px thick. `collapse`\npulls each cell back one pixel on all four sides, so the two become one line:\nthe `border-collapse: collapse` of a table, in system px. Size the cells at\n*item − 2px* — `cell-width=\"14\"` for a 16px item — and each item then spans\nlattice line to lattice line, sharing one with each neighbor:\n\n```html\n<vf-grid columns=\"8\" rows=\"4\" cell-width=\"14\" cell-height=\"14\" collapse>\n```\n\nThe frame is what gives the outermost borders a line of their own to land on,\nand it ends the box exactly at the last item's outer edge; go `frameless` and\nthey paint a pixel outside the grid's box instead.\n\n`rules=\"none\"` is the pen, not the lattice: nothing is drawn, the gaps close\nup, and the cells butt directly together (there is then no perimeter and\nnothing for `collapse` to collapse onto, so it goes inert).\n\n**Semantics are the consumer's.** The grid is layout — it takes no role, no\nkeyboard behavior and no selection, so what it holds decides what it is: put\n`role=\"group\"`/`aria-label` on the host for a tool palette, `role=\"radiogroup\"`\nfor a picker, or nothing at all for a plain tiling. Slotted cells stay in the\nlight DOM with their own semantics intact.\n---\n\n\n### **Slots:**\n - _default_ - The cells, in order — one element per cell.\n\n### **CSS Properties:**\n - **--vf-surface** - The surface behind the cells (default white). _(default: undefined)_\n\n### **CSS Parts:**\n - **grid** - The grid box itself (surface, tracks, frame padding).\n- **rules** - The lattice overlay painting the rules.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "columns",
+              "description": "Cells across the x axis.",
+              "value": { "type": "number", "default": "1" }
+            },
+            {
+              "name": "rows",
+              "description": "Cells down the y axis. Left unset the grid takes as many rows as the\nslotted cells need; set, it reserves that many — an unfilled cell still\ngets its rules, the way a palette keeps its empty wells.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "cell-width",
+              "description": "Cell width in whole system px.",
+              "value": { "type": "number", "default": "16" }
+            },
+            {
+              "name": "cell-height",
+              "description": "Cell height in whole system px.",
+              "value": { "type": "number", "default": "16" }
+            },
+            {
+              "name": "rules",
+              "description": "The pen every rule is drawn with: `solid` (default), `dashed` (1 system px\non, 1 off), or `none` — no rules at all, and the cells butt together.",
+              "value": { "type": "VfGridRules", "default": "'solid'" }
+            },
+            {
+              "name": "frameless",
+              "description": "Drop the outer border, leaving only the boundaries between cells. For a\ngrid inside something that already draws that line — a `vf-window[flush]`,\na `vf-fieldset` — where a second one would read as 2px.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "collapse",
+              "description": "Collapse each cell's own 1px border onto the grid's rules instead of\nsetting it beside them (see the class doc). Size the cells at *item − 2px*;\nthe frame is what gives the outermost borders a line to land on, so a\n`frameless` grid lets them paint a pixel outside its box.",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [
+            {
+              "name": "",
+              "description": "The cells, in order — one element per cell."
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "columns",
+                "description": "Cells across the x axis.",
+                "type": "number"
+              },
+              {
+                "name": "rows",
+                "description": "Cells down the y axis. Left unset the grid takes as many rows as the\nslotted cells need; set, it reserves that many — an unfilled cell still\ngets its rules, the way a palette keeps its empty wells.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "cellWidth",
+                "description": "Cell width in whole system px.",
+                "type": "number"
+              },
+              {
+                "name": "cellHeight",
+                "description": "Cell height in whole system px.",
+                "type": "number"
+              },
+              {
+                "name": "rules",
+                "description": "The pen every rule is drawn with: `solid` (default), `dashed` (1 system px\non, 1 off), or `none` — no rules at all, and the cells butt together.",
+                "type": "VfGridRules"
+              },
+              {
+                "name": "frameless",
+                "description": "Drop the outer border, leaving only the boundaries between cells. For a\ngrid inside something that already draws that line — a `vf-window[flush]`,\na `vf-fieldset` — where a second one would read as 2px.",
+                "type": "boolean"
+              },
+              {
+                "name": "collapse",
+                "description": "Collapse each cell's own 1px border onto the grid's rules instead of\nsetting it beside them (see the class doc). Size the cells at *item − 2px*;\nthe frame is what gives the outermost borders a line to land on, so a\n`frameless` grid lets them paint a pixel outside its box.",
+                "type": "boolean"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-img",
+          "description": "`<vf-img>` — a raster image on the kit's pixel grid.\n\nThe reference art is full of small pixel graphics that are *pictures*, not\nglyphs: the Apple menu's logo, desk-accessory and document icons, the\nabout-box machine portrait. This component displays one — a slotted native\n`<img>` — at the kit's own magnification, treating **one image pixel as one\nsystem pixel**:\n\n- the image is sized to `naturalWidth × naturalHeight` system px, multiplied\n  by `--vf-scale` in `calc()` like every other metric, so a source pixel\n  covers exactly `scale × dpr` device pixels (a whole number, per layout\n  contract rule 1);\n- `image-rendering: pixelated` keeps the resampling nearest-neighbor, and on\n  a whole-device-pixel box that is bit-exact magnification — no smoothing,\n  no half-covered edge rows;\n- its own GridSnapController, so the image's origin holds the device\n  grid wherever the page puts it (a fractional origin would slide the whole\n  box across device pixels and shear every source pixel's coverage).\n\nThe graphic stays a real `<img>` in the consumer's light DOM — it keeps\nnative loading, `alt` text (use `alt=\"\"` for a decorative icon) and the\nconsumer's own asset URLs; the kit ships no raster files. `width`/`height`\n(in system px, whole numbers) state the box up front so the page doesn't\nshift when the file lands — until a size is known the box is 0×0, never a\nflash of the image at some other scale. They also override the natural size\ndeliberately: a whole multiple (`width=\"32\"` on 16-px art) magnifies on the\nsame grid.\n---\n\n\n### **Slots:**\n - _default_ - The image: a single `<img>` element.\n\n### **CSS Parts:**\n - **frame** - The sized box the image fills.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "width",
+              "description": "The displayed width in system px — a whole number. Defaults to the slotted\nimage's `naturalWidth` (one image px = one system px); state it explicitly\nto reserve the box before the file loads, or a whole multiple to magnify.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "The displayed height in system px; see width.",
+              "value": { "type": "number | undefined" }
+            }
+          ],
+          "slots": [
+            {
+              "name": "",
+              "description": "The image: a single `<img>` element."
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "width",
+                "description": "The displayed width in system px — a whole number. Defaults to the slotted\nimage's `naturalWidth` (one image px = one system px); state it explicitly\nto reserve the box before the file loads, or a whole multiple to magnify.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "height",
+                "description": "The displayed height in system px; see width.",
+                "type": "number | undefined"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-label",
+          "description": "`<vf-label>` — a static System 7 caption.\n\nThe \"Name:\" beside a field, the \"Mode\" heading over a group of radios, a\nnumeric readout beside a slider. Text the page was previously setting by hand\nin the display face — this is that, as a component, on the kit's grid:\n\n- the **Chicago-style chrome face** by default (dialog captions are chrome),\n  with `face=\"body\"` to switch to FindersKeepers and `size=\"small\"` for the\n  12px fine print;\n- a **whole-system-pixel line box** (`--vf-label-line-height`, 16px — the\n  faces' own em), so a column of captions accumulates whole offsets instead of\n  pushing what follows off the device-pixel grid the way a ratio `line-height`\n  does (README, layout contract rule 2);\n- its own GridSnapController, so the bitmap stems stay on the grid\n  wherever the page puts it.\n\n`for` points at a control by id, as a native `<label>` does — clicking the\ncaption focuses that control, and the caption text becomes its accessible\nname (see for for how, and for what it deliberately doesn't do).\n\nChrome text, so the host is not selectable (SPEC §1); prose belongs in\n`<vf-paragraph>`, which is.\n---\n\n\n### **Slots:**\n - _default_ - The caption text.\n\n### **CSS Properties:**\n - **--vf-label-line-height** - Line box, in system px (default `16px`). Keep it a whole number — a ratio puts every following line off the grid. _(default: undefined)_\n- **--vf-font-size-small** - fine print (disk-space captions, `size=\"small\"` on `vf-label`/`vf-paragraph`) — see the note after the table _(default: undefined)_\n\n### **CSS Parts:**\n - **label** - The inner text box.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "for",
+              "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
+              "value": { "type": "string | undefined" }
+            },
+            {
+              "name": "face",
+              "description": "Which embedded face to set the caption in — `'display'` (the Chicago-style\nchrome face, the default) or `'body'` (FindersKeepers). Applied by\n`vfStaticText`; declared here so it types and reflects.",
+              "value": { "type": "'display' | 'body' | undefined" }
+            },
+            {
+              "name": "size",
+              "description": "`'small'` sets the caption in the kit's 12px fine print.",
+              "value": { "type": "'small' | undefined" }
+            },
+            {
+              "name": "dim",
+              "description": "Greys the caption to `--vf-disabled`. System 7 dims the label, not the\ncontrol (SPEC §1), so this is what a caption beside a disabled control\nwears — the control keeps its solid black box.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "width",
+              "description": "Width in whole system px — the shared width of a caption column, so a run\nof label-and-field rows lands every field on one x.\n\nThis is the caption's half of layout contract rule 3. Left to its text a\ncaption measures whatever its glyphs measure (the showcase's Apple menu\ntitle came to 32.641 system px), and anything sized from it inherits the\nfraction; a declared width is whole, and so is the row built on it. The\nhost has been `inline-block` for exactly this purpose since it was written\n— this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page\nused to need, which only landed whole while it happened to bind.\n\nA caption wider than the width it is given overflows rather than wrapping\nthe row's layout around it: the number is the column, and a caption that\ndoesn't fit is a number to raise.",
+              "value": { "type": "number | undefined" }
+            }
+          ],
+          "slots": [{ "name": "", "description": "The caption text." }],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "for",
+                "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
+                "type": "string | undefined"
+              },
+              {
+                "name": "face",
+                "description": "Which embedded face to set the caption in — `'display'` (the Chicago-style\nchrome face, the default) or `'body'` (FindersKeepers). Applied by\n`vfStaticText`; declared here so it types and reflects.",
+                "type": "'display' | 'body' | undefined"
+              },
+              {
+                "name": "size",
+                "description": "`'small'` sets the caption in the kit's 12px fine print.",
+                "type": "'small' | undefined"
+              },
+              {
+                "name": "dim",
+                "description": "Greys the caption to `--vf-disabled`. System 7 dims the label, not the\ncontrol (SPEC §1), so this is what a caption beside a disabled control\nwears — the control keeps its solid black box.",
+                "type": "boolean"
+              },
+              {
+                "name": "width",
+                "description": "Width in whole system px — the shared width of a caption column, so a run\nof label-and-field rows lands every field on one x.\n\nThis is the caption's half of layout contract rule 3. Left to its text a\ncaption measures whatever its glyphs measure (the showcase's Apple menu\ntitle came to 32.641 system px), and anything sized from it inherits the\nfraction; a declared width is whole, and so is the row built on it. The\nhost has been `inline-block` for exactly this purpose since it was written\n— this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page\nused to need, which only landed whole while it happened to bind.\n\nA caption wider than the width it is given overflows rather than wrapping\nthe row's layout around it: the number is the column, and a caption that\ndoesn't fit is a number to raise.",
+                "type": "number | undefined"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-list-item",
+          "description": "`<vf-list-item>` — a row inside a `<vf-list>` list box.\n\nA 20px-tall single-line row; when selected the entire row inverts\n(white-on-black), the classic System 7 selection style. Selection and\nkeyboard focus are managed by the parent `<vf-list>`.\n---\n\n\n### **Slots:**\n - _default_ - The row's text/content.\n- **icon** - A leading graphic — usually a `vf-img` holding a 16×16 System 7 small icon, but any element rides here. The row lays it out as the icon gutter: flex-centered vertically (keep the difference between the row height and the icon height even, so the centering offset stays a whole pixel — 16 in a 20px row is a whole 2px), with the reference art's 4px gap to the text. Contributes no text, so first-letter type-ahead still reads the row's words. On a selected row the graphic rides the inverted bar as-is — System 7 left color icons unfiltered on the highlight.\n\n### **CSS Parts:**\n - **text** - The text span beside the icon gutter (ellipsizes).",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "value",
+              "description": "The value this row contributes to the list's `value`/`values`.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "selected",
+              "description": "Whether the row is selected (inverted). Managed by `<vf-list>`.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the row: dimmed text, not selectable or focusable.",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [
+            { "name": "", "description": "The row's text/content." },
+            {
+              "name": "icon",
+              "description": "A leading graphic — usually a `vf-img` holding a 16×16 System 7 small icon, but any element rides here. The row lays it out as the icon gutter: flex-centered vertically (keep the difference between the row height and the icon height even, so the centering offset stays a whole pixel — 16 in a 20px row is a whole 2px), with the reference art's 4px gap to the text. Contributes no text, so first-letter type-ahead still reads the row's words. On a selected row the graphic rides the inverted bar as-is — System 7 left color icons unfiltered on the highlight."
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "value",
+                "description": "The value this row contributes to the list's `value`/`values`.",
+                "type": "string"
+              },
+              {
+                "name": "selected",
+                "description": "Whether the row is selected (inverted). Managed by `<vf-list>`.",
+                "type": "boolean"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the row: dimmed text, not selectable or focusable.",
+                "type": "boolean"
+              },
+              {
+                "name": "listDisabled",
+                "description": "True while the containing `<vf-list>` is disabled. Managed by the list —\nnot intended to be set by consumers. Kept distinct from `disabled` so\nre-enabling the list doesn't clear rows that are disabled in their own\nright. (The dimming already arrives by inheritance: the list host sets\n`color: var(--vf-disabled)` and rows inherit it.) Mirrors\n`vf-radio.groupDisabled`.",
+                "type": "boolean"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-list",
+          "description": "`<vf-list>` — the classic System 7 list box.\n\nA white, black-bordered scrolling box of `<vf-list-item>` rows with\nSystem 7-styled scrollbars (dither track, boxed arrow buttons). The vertical\nrail is a permanent placeholder — an empty white channel when the rows fit,\nfilling in with dither/thumb/arrows only on overflow (driven by\nScrollStateController). Selection inverts rows. Supports single and\nmultiple selection, roving tabindex, arrow-key navigation, and classic Finder\nfirst-letter type-ahead.\n\nMax height defaults to 200px; override with `--vf-list-max-height`.\n---\n\n\n### **Events:**\n - **vf-change** - When the user changes the selection. `detail: { value: string, values: string[] }`.\n\n### **Slots:**\n - _default_ - `vf-list-item` elements.\n\n### **CSS Properties:**\n - **--vf-list-max-height** - `vf-list` max height before its rail takes over (the host adds the 2px frame) _(default: 200px)_\n- **--vf-scrollbar-thumb** - scrollbar thumb/elevator (white) _(default: undefined)_\n- **--vf-scrollbar-track** - scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average _(default: undefined)_\n\n### **CSS Parts:**\n - **list** - The scrolling viewport around the slotted items.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "multiple",
+              "description": "Allows multiple selection (Shift extends, Cmd/Ctrl toggles).",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "value",
+              "description": "Value of the (first) selected item. Settable.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the whole list: dimmed, no interaction.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the list, applied as `aria-label` on the host (which\ncarries `role=\"listbox\"`). Without it a caption-less list is announced\nanonymously. A consumer-supplied `aria-label`/`aria-labelledby` attribute\nis left alone.",
+              "value": { "type": "string", "default": "''" }
+            }
+          ],
+          "slots": [{ "name": "", "description": "`vf-list-item` elements." }],
+          "events": [
+            {
+              "name": "vf-change",
+              "description": "When the user changes the selection. `detail: { value: string, values: string[] }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "multiple",
+                "description": "Allows multiple selection (Shift extends, Cmd/Ctrl toggles).",
+                "type": "boolean"
+              },
+              {
+                "name": "value",
+                "description": "Value of the (first) selected item. Settable.",
+                "type": "string"
+              },
+              {
+                "name": "values",
+                "description": "Values of all selected items (multiple mode). Settable.",
+                "type": "string[]"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the whole list: dimmed, no interaction.",
+                "type": "boolean"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the list, applied as `aria-label` on the host (which\ncarries `role=\"listbox\"`). Without it a caption-less list is announced\nanonymously. A consumer-supplied `aria-label`/`aria-labelledby` attribute\nis left alone.",
+                "type": "string"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-change",
+                "description": "When the user changes the selection. `detail: { value: string, values: string[] }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-menu-bar",
+          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items.\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.\n---\n\n\n### **Slots:**\n - _default_ - `vf-menu` elements.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 24px)_\n\n### **CSS Parts:**\n - **bar** - The horizontal layout container.",
+          "doc-url": "",
+          "attributes": [],
+          "slots": [{ "name": "", "description": "`vf-menu` elements." }],
+          "events": [],
+          "js": { "properties": [], "events": [] }
+        },
+        {
+          "name": "vf-menu-item",
+          "description": "`<vf-menu-item>` — a single command inside a `<vf-menu>` panel.\n\nRenders the classic System 7 menu row: optional ✓ check in the\n`--vf-select-gutter` left column (16px, shared with vf-select/vf-option),\nlabel, and a right-aligned keyboard shortcut. On activation the item\nperforms the classic 3-blink inversion (~250ms), then dispatches\n`vf-menu-select` and asks its ancestors to close the menu.\n---\n\n\n### **Events:**\n - **vf-menu-select** - After the blink completes. `detail: { value, item }`. Named for the menu rather than plain `vf-select`, which would collide with the `<vf-select>` popup on any delegated ancestor listener (that component commits with `vf-change`).\n\n### **Slots:**\n - _default_ - The item label.\n\n### **CSS Properties:**\n - **--vf-menu-row-height** - `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) _(default: 16px)_\n- **--vf-select-gutter** - checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) _(default: 16px)_\n\n### **CSS Parts:**\n - **item** - The row container.\n- **check** - The ✓ checkmark glyph (rendered when `checked`).\n- **label** - The label wrapper around the default slot.\n- **shortcut** - The right-aligned shortcut text.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "disabled",
+              "description": "Disables the item: dimmed text, no highlight, no activation.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "checked",
+              "description": "Shows the classic ✓ checkmark in the left gutter.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "active",
+              "description": "Transient highlight — the full-row inversion the press-drag gesture paints\non the row under the pointer (`:hover` can't: under touch the pointer is\ncaptured by the title the press started on). Managed by the menu, mirroring\n`vf-option[active]`; not part of the authoring API.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "checkable",
+              "description": "Declares the item a *checkable* toggle up front, so it carries\n`role=\"menuitemcheckbox\"` and `aria-checked=\"false\"` from the first render\nrather than only once it has been checked. Set this on a toggle that starts\n**off** — otherwise it announces as a plain command until the first flip\n(the `checked` attribute can't express \"checkable but off\": for a boolean\nattribute, presence *is* true).",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "shortcut",
+              "description": "Right-aligned keyboard shortcut text, e.g. `\"⌘H\"`. Display only.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "value",
+              "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\ntrimmed text content when unset.",
+              "value": { "type": "string | undefined" }
+            }
+          ],
+          "slots": [{ "name": "", "description": "The item label." }],
+          "events": [
+            {
+              "name": "vf-menu-select",
+              "description": "After the blink completes. `detail: { value, item }`. Named for the menu rather than plain `vf-select`, which would collide with the `<vf-select>` popup on any delegated ancestor listener (that component commits with `vf-change`)."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "disabled",
+                "description": "Disables the item: dimmed text, no highlight, no activation.",
+                "type": "boolean"
+              },
+              {
+                "name": "checked",
+                "description": "Shows the classic ✓ checkmark in the left gutter.",
+                "type": "boolean"
+              },
+              {
+                "name": "active",
+                "description": "Transient highlight — the full-row inversion the press-drag gesture paints\non the row under the pointer (`:hover` can't: under touch the pointer is\ncaptured by the title the press started on). Managed by the menu, mirroring\n`vf-option[active]`; not part of the authoring API.",
+                "type": "boolean"
+              },
+              {
+                "name": "checkable",
+                "description": "Declares the item a *checkable* toggle up front, so it carries\n`role=\"menuitemcheckbox\"` and `aria-checked=\"false\"` from the first render\nrather than only once it has been checked. Set this on a toggle that starts\n**off** — otherwise it announces as a plain command until the first flip\n(the `checked` attribute can't express \"checkable but off\": for a boolean\nattribute, presence *is* true).",
+                "type": "boolean"
+              },
+              {
+                "name": "shortcut",
+                "description": "Right-aligned keyboard shortcut text, e.g. `\"⌘H\"`. Display only.",
+                "type": "string"
+              },
+              {
+                "name": "value",
+                "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\ntrimmed text content when unset.",
+                "type": "string | undefined"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-menu-select",
+                "description": "After the blink completes. `detail: { value, item }`. Named for the menu rather than plain `vf-select`, which would collide with the `<vf-select>` popup on any delegated ancestor listener (that component commits with `vf-change`)."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-menu",
+          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End) while\nopen.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n---\n\n\n### **Slots:**\n - _default_ - Menu contents: `vf-menu-item` and `vf-separator` elements.\n- **label** - Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 24px)_\n\n### **CSS Parts:**\n - **label** - The menu title in the bar (inverts while open).\n- **panel** - The dropped `.vf-panel` containing the items.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "label",
+              "description": "The menu title shown in the bar, and the menu's accessible name. Slotted\n`label` content replaces it visually (see the `label` slot) but this text\nkeeps naming the menu for AT.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "open",
+              "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [
+            {
+              "name": "",
+              "description": "Menu contents: `vf-menu-item` and `vf-separator` elements."
+            },
+            {
+              "name": "label",
+              "description": "Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image."
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "label",
+                "description": "The menu title shown in the bar, and the menu's accessible name. Slotted\n`label` content replaces it visually (see the `label` slot) but this text\nkeeps naming the menu for AT.",
+                "type": "string"
+              },
+              {
+                "name": "open",
+                "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
+                "type": "boolean"
+              },
+              {
+                "name": "barTabIndex",
+                "description": "The bar label's tabindex. A parent `vf-menu-bar` owns a roving tabindex\nacross its menus and sets this to 0 on the active menu, -1 on the rest,\nso the whole bar is a single Tab stop. Defaults to 0 so a standalone\nmenu is Tab-focusable on its own.",
+                "type": "number"
+              },
+              {
+                "name": "items",
+                "description": "The enabled `vf-menu-item` children, in document order.",
+                "type": "VfMenuItem[]"
+              },
+              {
+                "name": "allItems",
+                "description": "Every slotted `vf-menu-item`, in document order — **disabled rows\nincluded**, unlike items. The press gesture hit-tests against\nthese: releasing over a disabled row has to cancel, not fall through to\nwhatever the panel covers.",
+                "type": "VfMenuItem[]"
+              },
+              {
+                "name": "labelRect",
+                "description": "Viewport rect of the bar title, or `null` before the first render. The\npress gesture hit-tests by coordinates rather than by event target (see\nsrc/menu-press.ts), so it wants the box, not the element.",
+                "type": "DOMRect | null"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-number-field",
+          "description": "`<vf-number-field>` — a System 7 numeric entry field paired with the classic\n\"little arrows\" stepper.\n\nA form-associated wrapper around a native `<input>` (white well, 1px black\nborder) plus the pixel-exact little-arrows control from the Classic Macintosh\nUI Kit sprite. Clicking (or press-and-holding, with autorepeat) an arrow\nsteps the value by `step`, clamped to `min`/`max`; the held arrow fills solid\nblack, matching the kit's hollow→filled press convention. Keyboard focus\ndraws the kit's dashed rule under the well alone — the stepper is beside the\ntext, not part of it. The field is a `spinbutton`: ArrowUp/ArrowDown step, Home/End\njump to min/max. The shared field skin lives in `vfField`; the value/form\nscaffolding in VfTextControlBase.\n---\n\n\n### **Events:**\n - **vf-input** - On every keystroke. `detail: { value, valueAsNumber }`.\n- **vf-change** - On commit or step. `detail: { value, valueAsNumber }`.\n\n### **CSS Properties:**\n - **--vf-control-height** - text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well _(default: 22px)_\n- **--vf-number-field-width** - width of `vf-number-field`'s input, in its own text (an em, not a system px length — it sizes to the digits) _(default: 4em)_\n\n### **CSS Parts:**\n - **input** - The inner native `<input>`.\n- **stepper** - The little-arrows control.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "min",
+              "description": "Minimum allowed value (inclusive). Omit for no lower bound.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "max",
+              "description": "Maximum allowed value (inclusive). Omit for no upper bound.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "step",
+              "description": "Increment applied per step / arrow press. Also sets the value's precision.",
+              "value": { "type": "number", "default": "1" }
+            },
+            {
+              "name": "value",
+              "description": "Current value. Synced on every keystroke and submitted with forms.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "placeholder",
+              "description": "Placeholder text shown when the field is empty.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "readonly",
+              "description": "Makes the field read-only (focusable, not editable).",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "name",
+              "description": "Form field name used when submitting the associated form.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-input",
+              "description": "On every keystroke. `detail: { value, valueAsNumber }`."
+            },
+            {
+              "name": "vf-change",
+              "description": "On commit or step. `detail: { value, valueAsNumber }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "min",
+                "description": "Minimum allowed value (inclusive). Omit for no lower bound.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "max",
+                "description": "Maximum allowed value (inclusive). Omit for no upper bound.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "step",
+                "description": "Increment applied per step / arrow press. Also sets the value's precision.",
+                "type": "number"
+              },
+              {
+                "name": "value",
+                "description": "Current value. Synced on every keystroke and submitted with forms.",
+                "type": "string"
+              },
+              {
+                "name": "placeholder",
+                "description": "Placeholder text shown when the field is empty.",
+                "type": "string"
+              },
+              {
+                "name": "readonly",
+                "description": "Makes the field read-only (focusable, not editable).",
+                "type": "boolean"
+              },
+              {
+                "name": "name",
+                "description": "Form field name used when submitting the associated form.",
+                "type": "string"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+                "type": "string"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-input",
+                "description": "On every keystroke. `detail: { value, valueAsNumber }`."
+              },
+              {
+                "name": "vf-change",
+                "description": "On commit or step. `detail: { value, valueAsNumber }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-option",
+          "description": "`<vf-option>` — a single choice inside a `<vf-select>` popup menu.\n\nA light-DOM child of `<vf-select>` (slotted into the popup panel). Renders\nits slotted label at menu-item metrics (16px row — the pill's content height,\nso a selected option overlays the closed pill exactly; the left checkmark gutter is\n`--vf-select-gutter`, shared with the closed control's left inset so the value\ndoesn't shift on open). The parent select manages `selected` and the transient\n`active` highlight, and slots this element into its popup panel.\n\nThe host carries `role=\"option\"` with `aria-selected`/`aria-disabled`.\n---\n\n\n### **CSS Properties:**\n - **--vf-popup-height** - `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) _(default: 18px)_\n- **--vf-select-gutter** - checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) _(default: 16px)_\n\n### **CSS Parts:**\n - **check** - The ✓ checkmark shown in the left gutter when selected.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "value",
+              "description": "Submitted/compared value of this option. Falls back to the trimmed text\ncontent when empty (like a native `<option>`).",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the option: gray text, not selectable.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "selected",
+              "description": "Whether this option is the select's current value. Managed by the parent.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "active",
+              "description": "Transient highlight (hover / keyboard cursor) — full-row inversion.\nManaged by the parent `<vf-select>`; not part of the authoring API.",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "value",
+                "description": "Submitted/compared value of this option. Falls back to the trimmed text\ncontent when empty (like a native `<option>`).",
+                "type": "string"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the option: gray text, not selectable.",
+                "type": "boolean"
+              },
+              {
+                "name": "selected",
+                "description": "Whether this option is the select's current value. Managed by the parent.",
+                "type": "boolean"
+              },
+              {
+                "name": "active",
+                "description": "Transient highlight (hover / keyboard cursor) — full-row inversion.\nManaged by the parent `<vf-select>`; not part of the authoring API.",
+                "type": "boolean"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-paragraph",
+          "description": "`<vf-paragraph>` — a paragraph of copy on the kit's body face and grid.\n\nThe installer's welcome text, a dialog's explanation, an article's prose:\nanything a page would otherwise set with a `<p>` and hope the leading landed\nsomewhere sensible. What it adds over that `<p>`:\n\n- the **FindersKeepers body face** by default (`face=\"display\"` switches to\n  the Chicago-style chrome face, `size=\"small\"` to the 12px fine print);\n- a **whole-system-pixel line box** — `--vf-paragraph-line-height`, 20px, the\n  same row pitch as `vf-list-item`. This is the point of the component:\n  line boxes are the single biggest source of off-grid layout, because a\n  ratio resolves to whatever it resolves to (`1.65 × 17px = 28.05px`) and\n  every line of prose nudges everything after it further off the device-pixel\n  grid, smearing 1-bit borders and bitmap glyph stems (README, layout\n  contract rule 2). A whole-pixel line box accumulates whole offsets;\n- its own GridSnapController, so it holds its own origin once the\n  page opts in with `applyGridSnap()`.\n\nThe shadow root renders a real `<p>`, so the copy keeps paragraph semantics\nfor assistive tech, and — unlike the kit's chrome — the text is selectable.\nThere is no margin: per SPEC §2 a component adds nothing outside its own box,\nso paragraph spacing is the page's (a `gap` on the column, or a margin on the\nhost — kept a whole number of pixels, like everything else in the contract).\n---\n\n\n### **Slots:**\n - _default_ - The paragraph copy.\n\n### **CSS Properties:**\n - **--vf-paragraph-line-height** - Line box, in system px (default `20px`). _(default: undefined)_\n- **--vf-paragraph-line-height-small** - Line box under `size=\"small\"` (default `16px`). Keep both whole numbers — a ratio is what puts a page off the grid in the first place. _(default: undefined)_\n- **--vf-font-size-small** - fine print (disk-space captions, `size=\"small\"` on `vf-label`/`vf-paragraph`) — see the note after the table _(default: undefined)_\n\n### **CSS Parts:**\n - **paragraph** - The inner `<p>`.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "face",
+              "description": "Which embedded face to set the copy in — `'body'` (FindersKeepers, the\ndefault) or `'display'` (the Chicago-style chrome face, for copy that is\nreally dialog chrome). Applied by `vfStaticText`; declared here so it types\nand reflects.",
+              "value": { "type": "'display' | 'body' | undefined" }
+            },
+            {
+              "name": "size",
+              "description": "`'small'` sets the copy in the kit's 12px fine print, on a 16px line box.",
+              "value": { "type": "'small' | undefined" }
+            },
+            {
+              "name": "dim",
+              "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [{ "name": "", "description": "The paragraph copy." }],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "face",
+                "description": "Which embedded face to set the copy in — `'body'` (FindersKeepers, the\ndefault) or `'display'` (the Chicago-style chrome face, for copy that is\nreally dialog chrome). Applied by `vfStaticText`; declared here so it types\nand reflects.",
+                "type": "'display' | 'body' | undefined"
+              },
+              {
+                "name": "size",
+                "description": "`'small'` sets the copy in the kit's 12px fine print, on a 16px line box.",
+                "type": "'small' | undefined"
+              },
+              {
+                "name": "dim",
+                "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
+                "type": "boolean"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-progress-bar",
+          "description": "`<vf-progress-bar>` — the System 7 progress indicator.\n\nA 14px white track (`--vf-progress-track`) with a 1px black border.\nDeterminate mode fills from the left in solid black\n(`--vf-progress-fill`) with a 1px black leading edge. Indeterminate\nmode shows chunky, stepped diagonal black/white barber stripes (the classic\n\"busy\" bar) animated with `steps()` timing so movement is deliberately\nsteppy, not smooth.\n\nExposes `role=\"progressbar\"` with `aria-valuemin/max` and, when\ndeterminate, `aria-valuenow`.\n---\n\n\n### **CSS Properties:**\n - **--vf-progress-fill** - determinate progress fill (solid black) _(default: #000000)_\n- **--vf-progress-stripes** - the indeterminate barber-stripe tile, drawn as rects so the staircase stays whole system px at any scale (override the whole pattern) _(default: undefined)_\n- **--vf-progress-track** - progress track (white) _(default: #ffffff)_\n\n### **CSS Parts:**\n - **track** - The outer bordered track.\n- **fill** - The determinate fill or the indeterminate stripe layer.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "value",
+              "description": "Current progress, from 0 to `max`. Clamped for display and ARIA.",
+              "value": { "type": "number", "default": "0" }
+            },
+            {
+              "name": "max",
+              "description": "Maximum value (default 100).",
+              "value": { "type": "number", "default": "100" }
+            },
+            {
+              "name": "indeterminate",
+              "description": "Barber-pole \"busy\" mode; ignores `value` and omits `aria-valuenow`.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"progressbar\"`). Especially useful in `indeterminate` mode,\nwhere there is no `aria-valuenow` to describe the bar. A consumer-supplied\n`aria-label`/`aria-labelledby` attribute is left alone.",
+              "value": { "type": "string", "default": "''" }
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "value",
+                "description": "Current progress, from 0 to `max`. Clamped for display and ARIA.",
+                "type": "number"
+              },
+              {
+                "name": "max",
+                "description": "Maximum value (default 100).",
+                "type": "number"
+              },
+              {
+                "name": "indeterminate",
+                "description": "Barber-pole \"busy\" mode; ignores `value` and omits `aria-valuenow`.",
+                "type": "boolean"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"progressbar\"`). Especially useful in `indeterminate` mode,\nwhere there is no `aria-valuenow` to describe the bar. A consumer-supplied\n`aria-label`/`aria-labelledby` attribute is left alone.",
+                "type": "string"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-radio-group",
+          "description": "Groups `vf-radio` children, owning selection, keyboard navigation and the\nform value. Renders no chrome of its own; directly slotted radios stack\nvertically with a 6px gap (override with your own layout if needed —\narbitrary markup containing radios also works).\n\nForm-associated: submits `value` under `name`, restores the initial value\non form reset. Keeps children in sync — the child whose `value` matches\nthe group's `value` is checked, all others unchecked.\n\nKeyboard (classic Mac behavior): the group is one tab stop (roving\ntabindex on the selected radio); ArrowUp/ArrowLeft and\nArrowDown/ArrowRight move the selection AND select it, wrapping around\nand skipping disabled radios.\n---\n\n\n### **Events:**\n - **vf-change** - When the selection changes via user interaction. `detail: { value: string }`.\n\n### **Slots:**\n - _default_ - `vf-radio` elements, or arbitrary markup containing them.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "value",
+              "description": "The value of the selected radio. An empty string means no selection\n(and nothing is submitted with the form).",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "name",
+              "description": "Form field name used when submitting.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the group, exposed as the `radiogroup`'s `aria-label`.\nWithout it a caption-less group is announced anonymously.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [
+            {
+              "name": "",
+              "description": "`vf-radio` elements, or arbitrary markup containing them."
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-change",
+              "description": "When the selection changes via user interaction. `detail: { value: string }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "value",
+                "description": "The value of the selected radio. An empty string means no selection\n(and nothing is submitted with the form).",
+                "type": "string"
+              },
+              {
+                "name": "name",
+                "description": "Form field name used when submitting.",
+                "type": "string"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the group, exposed as the `radiogroup`'s `aria-label`.\nWithout it a caption-less group is announced anonymously.",
+                "type": "string"
+              },
+              { "name": "role", "type": "string" },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-change",
+                "description": "When the selection changes via user interaction. `detail: { value: string }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-radio",
+          "description": "A single System 7 radio button: a 13×13 white circle with the pixel-exact\n1-bit ring and centered dot traced from the Classic Macintosh UI Kit sprite\n(replacing the anti-aliased `border-radius` rendering). The ring thickens\nwhile pressed, exactly like the original control.\n\nRadios are meant to live inside a `vf-radio-group`, which owns selection\nstate, the form value and the roving tabindex. A `vf-radio` is NOT itself\nform-associated. Clicking (or pressing Space on) an unselected radio\ndispatches `vf-change`; the containing group listens, selects it and\nunselects its siblings.\n---\n\n\n### **Events:**\n - **vf-change** - When selected by user interaction. `detail: { value: string }`.\n\n### **Slots:**\n - _default_ - The label, rendered to the right of the circle with a 6px gap.\n\n### **CSS Parts:**\n - **circle** - The 13×13 radio circle.\n- **label** - The label wrapper around the slot.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "checked",
+              "description": "Whether this radio is selected. Managed by the containing group.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables this single radio: the label dims to gray; circle and dot stay black.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "value",
+              "description": "The value the containing `vf-radio-group` reports when selected.",
+              "value": { "type": "string", "default": "''" }
+            }
+          ],
+          "slots": [
+            {
+              "name": "",
+              "description": "The label, rendered to the right of the circle with a 6px gap."
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-change",
+              "description": "When selected by user interaction. `detail: { value: string }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "checked",
+                "description": "Whether this radio is selected. Managed by the containing group.",
+                "type": "boolean"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables this single radio: the label dims to gray; circle and dot stay black.",
+                "type": "boolean"
+              },
+              {
+                "name": "value",
+                "description": "The value the containing `vf-radio-group` reports when selected.",
+                "type": "string"
+              },
+              {
+                "name": "groupDisabled",
+                "description": "True while the containing `vf-radio-group` is disabled. Managed by the\ngroup — not intended to be set by consumers.",
+                "type": "boolean"
+              },
+              { "name": "role", "type": "string" }
+            ],
+            "events": [
+              {
+                "name": "vf-change",
+                "description": "When selected by user interaction. `detail: { value: string }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-scroll-area",
+          "description": "`<vf-scroll-area>` — a container whose scrollbars look like System 7.\n\nWhite box with a 1px black frame and an inner scrolling viewport. The\nWebKit scrollbars are the shared `vfScrollbars` recipe: the classic 16px bar\nwhose outer line is the frame (painted as an overlay above the borderless\nviewport — see the recipe comment for the Safari reason), a loose 1-bit\ndot-dither trough, a white boxed thumb, and boxed arrow buttons that nest\ncleanly under the frame. Firefox falls back to `scrollbar-color`.\n\nEach reserved scroll rail is a permanent placeholder: an empty white channel\nsits in the gutter even when the content fits, filling in with the\ndither/thumb/arrows only once that axis overflows (System 7 behavior, driven\nby ScrollStateController). Which rails are reserved is set by\naxis; when both are reserved the bottom-right corner joins them.\n\nSize the host (width/height) from the outside; the viewport fills it.\n---\n\n\n### **Slots:**\n - _default_ - Scrollable content.\n\n### **CSS Properties:**\n - **--vf-scrollbar-thumb** - scrollbar thumb/elevator (white) _(default: undefined)_\n- **--vf-scrollbar-track** - scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average _(default: undefined)_\n\n### **CSS Parts:**\n - **viewport** - The inner scrolling container.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "axis",
+              "description": "Which scroll rails to reserve as permanent placeholders: `vertical`\n(default), `horizontal`, or `both`. Each reserved rail shows an empty white\nchannel until its axis overflows; the unreserved axis scrolls on demand.",
+              "value": {
+                "type": "'vertical' | 'horizontal' | 'both'",
+                "default": "'vertical'"
+              }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable, so without a name it is announced only as\nan anonymous scrollable group; setting `label` also promotes it to a named\n`role=\"region\"` landmark. The role is omitted while `label` is empty,\nsince an unnamed region is inert.",
+              "value": { "type": "string", "default": "''" }
+            }
+          ],
+          "slots": [{ "name": "", "description": "Scrollable content." }],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "axis",
+                "description": "Which scroll rails to reserve as permanent placeholders: `vertical`\n(default), `horizontal`, or `both`. Each reserved rail shows an empty white\nchannel until its axis overflows; the unreserved axis scrolls on demand.",
+                "type": "'vertical' | 'horizontal' | 'both'"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable, so without a name it is announced only as\nan anonymous scrollable group; setting `label` also promotes it to a named\n`role=\"region\"` landmark. The role is omitted while `label` is empty,\nsince an unnamed region is inert.",
+                "type": "string"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-select",
+          "description": "`<vf-select>` — the classic System 7 popup menu control (\"Macintosh HD ▼\").\n\nChildren are `<vf-option>` elements in the default slot. The closed control\nis a white box with a 1px black border, the small 1px hard shadow, the\nselected option's label on the left and a solid black ▼ triangle on the\nright. The open panel uses the shared `.vf-panel` recipe and is positioned\n`position: fixed` (computed from `getBoundingClientRect()`) so it escapes\nclipping containers; when possible the currently-selected item opens\ndirectly over the control, like the real popup menu.\n\nPointer — two interaction styles are supported and disambiguated by the\ngesture itself, resolved at the first pointer release:\n  - System 7 press-drag-release: press the pill (the list appears under the\n    pointer), drag onto an item, release over it to pick — one continuous\n    press. Releasing over the current item or off the list closes with no\n    change.\n  - Modern click-to-open: a quick in-place click (no drag, released within\n    PRESS_HOLD_MS) leaves the list open; a second, independent click\n    then picks an item.\nThe two share one opening trigger (pointerdown) and diverge only on how the\npress ends — whether the pointer travelled to another item, and (for an\nin-place release) whether it was a quick tap or a held press. The pull-down\nmenus drive themselves the same way, on the same threshold; that half lives\nin src/menu-press.ts, because one menu press may travel across a whole bar.\n\nKeyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the\nhighlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an\nitem plays the classic inversion blink (~250 ms) before closing. Keyboard\nfocus is marked with the kit's 1px dashed rule under the closed pill\n(`vfFocusUnderline`) rather than a ring around it — keyboard only, which\nhere means the page's input modality rather than `:focus-visible` (the pill\ndrives its own focus, and Blink reads that as visible either way).\n\nForm-associated: submits `value` under `name`.\n---\n\n\n### **Events:**\n - **vf-change** - After a selection commits. `detail: { value: string }`.\n\n### **Slots:**\n - _default_ - `<vf-option>` elements.\n\n### **CSS Properties:**\n - **--vf-popup-height** - `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) _(default: 18px)_\n- **--vf-scrollbar-thumb** - scrollbar thumb/elevator (white) _(default: undefined)_\n- **--vf-scrollbar-track** - scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average _(default: undefined)_\n- **--vf-select-gutter** - checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) _(default: 16px)_\n\n### **CSS Parts:**\n - **control** - The closed popup control box.\n- **label** - The selected-option label inside the control.\n- **arrow** - The black ▼ triangle.\n- **panel** - The popup panel (listbox).",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "value",
+              "description": "Value of the selected option. Adopts the first enabled option if unset.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "name",
+              "description": "Form field name used when submitting the associated form.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the combobox control (`aria-label`). Without it the\ncontrol is announced by its contents, i.e. the selected value.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "slots": [{ "name": "", "description": "`<vf-option>` elements." }],
+          "events": [
+            {
+              "name": "vf-change",
+              "description": "After a selection commits. `detail: { value: string }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "value",
+                "description": "Value of the selected option. Adopts the first enabled option if unset.",
+                "type": "string"
+              },
+              {
+                "name": "name",
+                "description": "Form field name used when submitting the associated form.",
+                "type": "string"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the combobox control (`aria-label`). Without it the\ncontrol is announced by its contents, i.e. the selected value.",
+                "type": "string"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-change",
+                "description": "After a selection commits. `detail: { value: string }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-separator",
+          "description": "`<vf-separator>` — a 1px System 7 rule.\n\nHorizontal by default (1px tall, full width); set the `vertical` attribute\nfor a 1px-wide vertical rule (give it a height, or let a flex parent\nstretch it).\n\nContainers may restyle it via custom properties:\n- `--vf-separator-color` — line color (default `var(--vf-black, #000)`).\n- `--vf-separator-style` — line style, e.g. `dotted` (default `solid`).\n  `vf-menu` sets these so slotted separators render as the classic dimmed\n  dotted menu rule (see Menus.png).\n---\n\n\n### **CSS Properties:**\n - **--vf-separator-color** - `vf-separator` rule color — `vf-menu` sets it to `--vf-disabled` for the dimmed menu rule _(default: undefined)_\n- **--vf-separator-style** - `vf-separator` rule style — `vf-menu` sets `dotted` (see `Menus.png`) _(default: solid)_",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "vertical",
+              "description": "Render as a vertical rule (1px wide) instead of horizontal.",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "vertical",
+                "description": "Render as a vertical rule (1px wide) instead of horizontal.",
+                "type": "boolean"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-slider",
+          "description": "`<vf-slider>` — a horizontal 1-bit slider.\n\nNot a historically shipped System 7 control: it reverse-adapts the later\nMac OS slider into the library's solid-black, pixel-crisp 1-bit style. A\nrounded capsule rail fills solid black from the left up to a shield-shaped\ndrag handle (the SLIDER_THUMB sprite) and runs hollow after it. The\nrail is regenerated as a whole-pixel SVG on every resize so it stays crisp at\nany width, and the thumb snaps to integer pixels so the sprite never blurs.\n\nForm-associated: submits `value` under `name` and restores it on form reset.\nDrag or click the track to set the value; focus it and use the arrow keys\n(Home/End jump to min/max, PageUp/PageDown move in bigger steps).\n---\n\n\n### **Events:**\n - **vf-input** - On every drag move or key change. `detail: { value: number }`.\n- **vf-change** - On commit (pointer release, or key change). `detail: { value: number }`.\n\n### **CSS Parts:**\n - **track** - The full-width rail row (the pointer target).\n- **rail** - The `<svg>` capsule (fill + hollow).\n- **thumb** - The shield-shaped drag handle.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "value",
+              "description": "Current value, clamped to `[min, max]` and snapped to `step`.",
+              "value": { "type": "number", "default": "0" }
+            },
+            {
+              "name": "min",
+              "description": "Minimum value (inclusive).",
+              "value": { "type": "number", "default": "0" }
+            },
+            {
+              "name": "max",
+              "description": "Maximum value (inclusive).",
+              "value": { "type": "number", "default": "100" }
+            },
+            {
+              "name": "step",
+              "description": "Increment the value snaps to (also sets its display precision).",
+              "value": { "type": "number", "default": "1" }
+            },
+            {
+              "name": "name",
+              "description": "Form field name used when submitting the associated form.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name, exposed as the control's `aria-label`.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-input",
+              "description": "On every drag move or key change. `detail: { value: number }`."
+            },
+            {
+              "name": "vf-change",
+              "description": "On commit (pointer release, or key change). `detail: { value: number }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "value",
+                "description": "Current value, clamped to `[min, max]` and snapped to `step`.",
+                "type": "number"
+              },
+              {
+                "name": "min",
+                "description": "Minimum value (inclusive).",
+                "type": "number"
+              },
+              {
+                "name": "max",
+                "description": "Maximum value (inclusive).",
+                "type": "number"
+              },
+              {
+                "name": "step",
+                "description": "Increment the value snaps to (also sets its display precision).",
+                "type": "number"
+              },
+              {
+                "name": "name",
+                "description": "Form field name used when submitting the associated form.",
+                "type": "string"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name, exposed as the control's `aria-label`.",
+                "type": "string"
+              },
+              { "name": "role", "type": "string" },
+              { "name": "ariaOrientation", "type": "string" },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-input",
+                "description": "On every drag move or key change. `detail: { value: number }`."
+              },
+              {
+                "name": "vf-change",
+                "description": "On commit (pointer release, or key change). `detail: { value: number }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-stack",
+          "description": "`<vf-stack>` — arrange things inside a window, in system pixels.\n\nA window body is the one place the kit stopped short: every control inside it\nis authored in system px, but the *spaces between* them were the consumer's\nproblem, written by hand as `calc(var(--vf-scale, 1) * 12px)`. This is that\ncalculation, as a component — a flexbox whose `gap`, `pad`, `width` and\n`height` are declared in whole system px and converted internally:\n\n```html\n<vf-stack gap=\"12\">                            <!-- a column -->\n  <vf-stack fill-width direction=\"row\" gap=\"8\">   <!-- a labeled field -->\n    <vf-label width=\"80\" for=\"name\">Name:</vf-label>\n    <vf-text-field id=\"name\" fill-width></vf-text-field>\n  </vf-stack>\n  <vf-stack fill-width place=\"end\">                <!-- an action row -->\n    <vf-button-group>\n      <vf-button>Cancel</vf-button>\n      <vf-button variant=\"default\">Save</vf-button>\n    </vf-button-group>\n  </vf-stack>\n</vf-stack>\n```\n\n**Why this can't just be page CSS.** Scaling is default-on and *per\ncomponent*: `ScaleController` sets `--vf-scale` on the component's own host,\nnot on the document. So `var(--vf-scale, 1)` in a consumer's stylesheet\nresolves only where the rule's element happens to sit inside a `vf-*`\nancestor and inherit it — true inside a window body, false for a plain\n`<div>` holding two buttons on an ordinary page, where the fallback `1` wins\nand the gap renders at 8px around 3×-sized buttons with no warning. A page\nthat hasn't called `applyScale()` has no way to write \"8 system px\" at all.\nA component always can, because it *is* the scope — which is also why this\none carries a ScaleController of its own: without it a lone stack\nwould resolve its own gap against that same fallback while its children each\nself-scaled around it.\n\n**Whole system px is the only expressible value**, so the gap half of the\nlayout contract (README rule 2) stops being a rule to remember. Declaring\n`width`/`height` covers the size half of rule 3 as well.\n\n**The geometry is governed by the content.** A column is as wide as its\nwidest child and a row as tall as its tallest; children keep the size they\ndrew themselves at (`flex: 0 0 auto` — no growing, no shrinking). System 7\nboxes are the size they are: a push button is as wide as its label, a popup\nmenu hugs its widest option, and a window is a fixed box whose overflow is\nclipped at the frame, not a layout that squeezes its controls to fit. The\nstack distributes; it does not resize. That is why it is `inline-flex` rather\nthan block-level — a layout box that silently claimed its parent's whole\nwidth would be inventing a size nobody declared.\n\n**`fill-width` / `fill-height` are how a child asks for more**, as bare\nattributes on consumer DOM the way `nosnap` opts an element out of snapping:\n\n```html\n<vf-text-field fill-width></vf-text-field>\n```\n\nEach names the *outcome*, not the axis, so the markup means the same thing\nwherever it lands; the stack does the flexbox translation, which is the whole\nreason to have a component. One rule to learn, about geometry rather than\nvocabulary: **the cross axis always has a size, the main axis only has slack\nif you declared one.** So `fill-width` always works in a column (the width is\nthe widest child's) and needs a declared `width` in a row; `fill-height` is\nexactly the other way round. A fill with nothing to take is inert, not an\nerror. Two children filling along the main axis end up *equal* — the zeroed\nflex basis is what lets them divide the slack rather than keep their natural\nsizes — and a child that declares its own size shouldn't also ask to fill it.\n\nA stack reads the same two attributes about *itself*, for the parents that\naren't stacks: a window body, a fieldset, a scroll well, a grid cell. That is\nwhere a panel's width enters the tree, and from there `fill-width` hands it\ndown a level at a time.\n\n**It paints nothing and means nothing.** No border, no background, no role,\nno keyboard behavior — what it holds decides what it is, as with\nVfGrid. It carries no `GridSnapController` either: with nothing of\nits own on screen there is no ink to hold on the grid, and the slotted `vf-*`\nchildren each correct their own origin.\n\nIt is also the kit's one **typographically transparent** component: `vfBase`'s\nchrome face, ratio line box, color and non-selectability are all reset to\n`inherit` on the host. Wrapping content in a layout box must not change how\nthat content reads — inside a window it goes on inheriting the window's face\nexactly as before, and on a plain page it leaves the page's typography (and\nits whole-pixel line boxes) alone.\n\nWhat it deliberately does **not** do: equalize its children's widths. A row of\nbuttons still belongs in a `vf-button-group`, which sizes them all to the\nwidest and aligns their *faces* rather than the `variant=\"default\"` ring\nboxes a plain flex row would line up.\n---\n\n\n### **Slots:**\n - _default_ - The children to arrange. `fill-width` / `fill-height` on any of them.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "direction",
+              "description": "Which axis the children run along — `column` (the default) or `row`.\n\nA stack is vertical unless it says otherwise, the way the word is used\neverywhere else; a row is the one that reads as a deliberate choice in the\nmarkup.",
+              "value": { "type": "VfStackDirection", "default": "'column'" }
+            },
+            {
+              "name": "gap",
+              "description": "The space between children, in whole system px. `0` by default: a layout\nbox that spaced things out on its own would be exactly the kind of\nsurprise SPEC §2 rules out when it says a component renders nothing\nunexpected outside its box.",
+              "value": { "type": "number", "default": "0" }
+            },
+            {
+              "name": "pad",
+              "description": "Padding inside the stack, in whole system px — one to four values in the\nusual CSS shorthand order (`pad=\"12\"`, `pad=\"10 12\"`, `pad=\"14 12 10\"`).\n\nLeave it off inside a `vf-window` body, which already carries its own 12px\ninset; a stack that means to own that inset goes inside `<vf-window flush>`.",
+              "value": { "type": "string | number | undefined" }
+            },
+            {
+              "name": "place",
+              "description": "Where the children sit across the stack — `start`, `center` or `end`.\nUnset resolves per direction: `start` down a column, `center` across a row.\n\nNamed `place` rather than `align` for a reason worth keeping in the source:\n`align` is a legacy HTML presentation attribute, and Blink maps it to\n`text-align` on any element, so the cross-axis switch used to re-align every\nrun of copy inside the stack (see the `text-align` reset above).\n\nNote the one thing centering cannot do: land on a whole pixel by itself. A\n16px caption centered in a row set by the 25-system-px `vf-number-field`\nsits at 4.5 system px, and no container can round that — it would have to\nread each child's height. `applyGridSnap()` keeps the caption's own ink\ncrisp regardless (it corrects the origin inside the child's shadow root);\n`place=\"start\"` is the deterministic escape.",
+              "value": { "type": "VfStackPlace | undefined" }
+            },
+            {
+              "name": "width",
+              "description": "Width in whole system px. Optional — a column is otherwise as wide as its\nwidest child.\n\nWorth declaring on the outermost stack of a panel, for two reasons: a stack\nwith a declared width is on the device-pixel grid by construction, and so\nis every child filled to it (the size half of README rule 3, which snapping\ndeliberately doesn't cover) — and in a row it is what creates the slack a\nchild's `fill-width` divides.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "Height in whole system px. Optional; see width.",
+              "value": { "type": "number | undefined" }
+            }
+          ],
+          "slots": [
+            {
+              "name": "",
+              "description": "The children to arrange. `fill-width` / `fill-height` on any of them."
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "direction",
+                "description": "Which axis the children run along — `column` (the default) or `row`.\n\nA stack is vertical unless it says otherwise, the way the word is used\neverywhere else; a row is the one that reads as a deliberate choice in the\nmarkup.",
+                "type": "VfStackDirection"
+              },
+              {
+                "name": "gap",
+                "description": "The space between children, in whole system px. `0` by default: a layout\nbox that spaced things out on its own would be exactly the kind of\nsurprise SPEC §2 rules out when it says a component renders nothing\nunexpected outside its box.",
+                "type": "number"
+              },
+              {
+                "name": "pad",
+                "description": "Padding inside the stack, in whole system px — one to four values in the\nusual CSS shorthand order (`pad=\"12\"`, `pad=\"10 12\"`, `pad=\"14 12 10\"`).\n\nLeave it off inside a `vf-window` body, which already carries its own 12px\ninset; a stack that means to own that inset goes inside `<vf-window flush>`.",
+                "type": "string | number | undefined"
+              },
+              {
+                "name": "place",
+                "description": "Where the children sit across the stack — `start`, `center` or `end`.\nUnset resolves per direction: `start` down a column, `center` across a row.\n\nNamed `place` rather than `align` for a reason worth keeping in the source:\n`align` is a legacy HTML presentation attribute, and Blink maps it to\n`text-align` on any element, so the cross-axis switch used to re-align every\nrun of copy inside the stack (see the `text-align` reset above).\n\nNote the one thing centering cannot do: land on a whole pixel by itself. A\n16px caption centered in a row set by the 25-system-px `vf-number-field`\nsits at 4.5 system px, and no container can round that — it would have to\nread each child's height. `applyGridSnap()` keeps the caption's own ink\ncrisp regardless (it corrects the origin inside the child's shadow root);\n`place=\"start\"` is the deterministic escape.",
+                "type": "VfStackPlace | undefined"
+              },
+              {
+                "name": "width",
+                "description": "Width in whole system px. Optional — a column is otherwise as wide as its\nwidest child.\n\nWorth declaring on the outermost stack of a panel, for two reasons: a stack\nwith a declared width is on the device-pixel grid by construction, and so\nis every child filled to it (the size half of README rule 3, which snapping\ndeliberately doesn't cover) — and in a row it is what creates the slack a\nchild's `fill-width` divides.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "height",
+                "description": "Height in whole system px. Optional; see width.",
+                "type": "number | undefined"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-swatch",
+          "description": "`<vf-swatch>` — a color-swatch button: the color well of a palette cell.\n\nA solid rectangle with a 1px black border and a 1px white inset ring, filled\nedge-to-edge with a solid color. Given no `color` at all it shows the\ntransparency checker instead — the \"this cell holds nothing\" grid every\npaint program draws behind an empty fill.\n\n`width`/`height` state the border box in whole system pixels (the fill is\nwhat remains inside the border and inset), multiplied by `--vf-scale` like\nevery other metric, so the swatch holds the device-pixel grid wherever a\npalette puts it.\n\n`shadow` opts into the kit's hard drop shadow — the shared\n`--vf-shadow-offset` token, the same depth cue as windows, menus and alerts,\npainted outside the box like theirs. It is off by default because the\nswatch's usual home is a table of them (a `vf-grid`, a picker row), where\nevery cell shadowing its neighbour reads as noise rather than depth; a lone\nwell standing in for a current color — the one a dialog asks you to click —\nis the case that wants it.\n\nIt is \"basically a button\": a native `<button>` inside, so `click` retargets\nto the host, Enter/Space activate it, and pressing inverts the white inset\nto black — the inset counterpart of vf-button's face inversion. Keyboard\nfocus is marked with the kit's 1px dashed rule under the box\n(`vfFocusUnderline`) rather than a ring around it. It is not\nform-associated (a palette cell picks, it doesn't submit); `disabled` only\nstops interaction, dimming nothing — the kit dims *labels* when disabled,\nand a swatch's only label is its fill, which must keep reading as its color.\n---\n\n\n### **CSS Properties:**\n - **--vf-swatch-checker** - `vf-swatch`'s no-color transparency checker — a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like `--vf-desktop-pattern`) _(default: undefined)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` (border, inset and, with `shadow`, the drop shadow).\n- **fill** - The color area inside the inset.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "color",
+              "description": "The fill — a CSS color, typically the hex the palette calls for. Unset,\nthe swatch shows the transparency checker; a translucent value (an\n8-digit hex) layers over that same checker, so partial opacity reads as\npartial. An unparseable value falls back to the checker too.",
+              "value": { "type": "string | undefined" }
+            },
+            {
+              "name": "width",
+              "description": "The swatch's border box width in whole system px.",
+              "value": { "type": "number", "default": "24" }
+            },
+            {
+              "name": "height",
+              "description": "The swatch's border box height in whole system px.",
+              "value": { "type": "number", "default": "18" }
+            },
+            {
+              "name": "shadow",
+              "description": "Cast the kit's hard drop shadow (`--vf-shadow-offset`). Off by default:\nthe plain black-bordered well is what a table of swatches wants, and the\ndepth cue is for the lone well that stands in for a current color.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name for the inner button — a swatch has no text of its own.\nDefaults to the `color` value (or \"transparent\"). `vf-label`'s `for`\nwiring writes this property, like every `vf-*` control's.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding. Nothing dims (see class doc).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "events": [],
+          "js": {
+            "properties": [
+              {
+                "name": "color",
+                "description": "The fill — a CSS color, typically the hex the palette calls for. Unset,\nthe swatch shows the transparency checker; a translucent value (an\n8-digit hex) layers over that same checker, so partial opacity reads as\npartial. An unparseable value falls back to the checker too.",
+                "type": "string | undefined"
+              },
+              {
+                "name": "width",
+                "description": "The swatch's border box width in whole system px.",
+                "type": "number"
+              },
+              {
+                "name": "height",
+                "description": "The swatch's border box height in whole system px.",
+                "type": "number"
+              },
+              {
+                "name": "shadow",
+                "description": "Cast the kit's hard drop shadow (`--vf-shadow-offset`). Off by default:\nthe plain black-bordered well is what a table of swatches wants, and the\ndepth cue is for the lone well that stands in for a current color.",
+                "type": "boolean"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name for the inner button — a swatch has no text of its own.\nDefaults to the `color` value (or \"transparent\"). `vf-label`'s `for`\nwiring writes this property, like every `vf-*` control's.",
+                "type": "string"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding. Nothing dims (see class doc).",
+                "type": "boolean"
+              }
+            ],
+            "events": []
+          }
+        },
+        {
+          "name": "vf-text-area",
+          "description": "`<vf-text-area>` — a System 7 multi-line text entry field.\n\nIdentical styling to `<vf-text-field>` but wrapping a native `<textarea>`.\nNo resize grip (`resize: none`) — System 7 fields don't resize. The shared\nfield skin lives in `vfField`; the value/form scaffolding in\nVfTextControlBase.\n\nThe `.vf-field-well` wrapper is the one `vfField` hangs the focus rule from,\ndoing double duty here: it is also the positioned box the `.vf-scroll-frame`\noverlay insets against, and the `vf-snap` element whose grid-snap offset the\nfield, the frame and the rule ride as one.\n\nThe vertical scroll rail is a permanent System 7 placeholder: an empty white\nchannel sits in the field even when the text fits, filling in with the\ndither/thumb/arrows only once the content overflows (driven by\nScrollStateController). The scrollbar wears the shared `vfScrollbars`\nskin — the same one used by `vf-scroll-area` and `vf-list`.\n---\n\n\n### **Events:**\n - **vf-input** - On every keystroke. `detail: { value: string }`.\n- **vf-change** - On commit (native `change`). `detail: { value: string }`.\n\n### **CSS Properties:**\n - **--vf-field-width** - default width of `vf-text-field` / `vf-text-area` _(default: 180px)_\n- **--vf-scrollbar-thumb** - scrollbar thumb/elevator (white) _(default: undefined)_\n- **--vf-scrollbar-track** - scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average _(default: undefined)_\n\n### **CSS Parts:**\n - **textarea** - The inner native `<textarea>` element.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "rows",
+              "description": "Number of visible text rows (native `rows`). Default 4.",
+              "value": { "type": "number", "default": "4" }
+            },
+            {
+              "name": "value",
+              "description": "Current value. Synced on every keystroke and submitted with forms.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "placeholder",
+              "description": "Placeholder text shown when the field is empty.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "readonly",
+              "description": "Makes the field read-only (focusable, not editable).",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "name",
+              "description": "Form field name used when submitting the associated form.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-input",
+              "description": "On every keystroke. `detail: { value: string }`."
+            },
+            {
+              "name": "vf-change",
+              "description": "On commit (native `change`). `detail: { value: string }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "rows",
+                "description": "Number of visible text rows (native `rows`). Default 4.",
+                "type": "number"
+              },
+              {
+                "name": "value",
+                "description": "Current value. Synced on every keystroke and submitted with forms.",
+                "type": "string"
+              },
+              {
+                "name": "placeholder",
+                "description": "Placeholder text shown when the field is empty.",
+                "type": "string"
+              },
+              {
+                "name": "readonly",
+                "description": "Makes the field read-only (focusable, not editable).",
+                "type": "boolean"
+              },
+              {
+                "name": "name",
+                "description": "Form field name used when submitting the associated form.",
+                "type": "string"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+                "type": "string"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-input",
+                "description": "On every keystroke. `detail: { value: string }`."
+              },
+              {
+                "name": "vf-change",
+                "description": "On commit (native `change`). `detail: { value: string }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-text-field",
+          "description": "`<vf-text-field>` — a System 7 single-line text entry field.\n\nA form-associated wrapper around a native `<input>`: white well, 1px solid\nblack border, no corner radius. Keyboard focus draws the kit's dashed rule\none blank row under the well; a click leaves it unmarked (no dotted outline\neither, per SPEC §1/§5). The shared field skin lives in `vfField`; the\nvalue/form scaffolding — and the focus rule's modality gate — in\nVfTextControlBase.\n---\n\n\n### **Events:**\n - **vf-input** - On every keystroke. `detail: { value: string }`.\n- **vf-change** - On commit (native `change`). `detail: { value: string }`.\n\n### **CSS Properties:**\n - **--vf-control-height** - text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well _(default: 22px)_\n- **--vf-field-width** - default width of `vf-text-field` / `vf-text-area` _(default: 180px)_\n\n### **CSS Parts:**\n - **input** - The inner native `<input>` element.",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "type",
+              "description": "Input type, passed through to the native input (e.g. `password`).",
+              "value": { "type": "string", "default": "'text'" }
+            },
+            {
+              "name": "value",
+              "description": "Current value. Synced on every keystroke and submitted with forms.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "placeholder",
+              "description": "Placeholder text shown when the field is empty.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "readonly",
+              "description": "Makes the field read-only (focusable, not editable).",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "name",
+              "description": "Form field name used when submitting the associated form.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "label",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "disabled",
+              "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+              "value": { "type": "boolean", "default": "false" }
+            }
+          ],
+          "events": [
+            {
+              "name": "vf-input",
+              "description": "On every keystroke. `detail: { value: string }`."
+            },
+            {
+              "name": "vf-change",
+              "description": "On commit (native `change`). `detail: { value: string }`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "type",
+                "description": "Input type, passed through to the native input (e.g. `password`).",
+                "type": "string"
+              },
+              {
+                "name": "value",
+                "description": "Current value. Synced on every keystroke and submitted with forms.",
+                "type": "string"
+              },
+              {
+                "name": "placeholder",
+                "description": "Placeholder text shown when the field is empty.",
+                "type": "string"
+              },
+              {
+                "name": "readonly",
+                "description": "Makes the field read-only (focusable, not editable).",
+                "type": "boolean"
+              },
+              {
+                "name": "name",
+                "description": "Form field name used when submitting the associated form.",
+                "type": "string"
+              },
+              {
+                "name": "label",
+                "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+                "type": "string"
+              },
+              {
+                "name": "disabled",
+                "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+                "type": "boolean"
+              },
+              {
+                "name": "isDisabled",
+                "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+                "type": "boolean"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-input",
+                "description": "On every keystroke. `detail: { value: string }`."
+              },
+              {
+                "name": "vf-change",
+                "description": "On commit (native `change`). `detail: { value: string }`."
+              }
+            ]
+          }
+        },
+        {
+          "name": "vf-window",
+          "description": "`<vf-window>` — the System 7 desktop-window shell.\n\nStriped title bar with optional close box (left) and zoom box (right), a\nsolid-white frame with a hard offset shadow, an optional grow box for\nresizing, optional edge scroll rails (`scrollbars`), and the slim windoid\nchrome (`variant=\"utility\"`). The HIG's window archetypes are parameter\nrecipes over this shell rather than fixed anatomies — the component enables\nHIG compliance, it doesn't enforce it (see README \"window archetypes\"):\nthe full document window is `closable zoomable movable resizable\nscrollbars=\"both\"`, a modeless dialog box is `closable movable`, a utility\nwindow is `variant=\"utility\" movable`. Place inside `<vf-desktop>` to get\nclick-to-front stacking and automatic `active` management (utility windows\nfloat above the document tier).\n\nEvery recipe also declares width AND height, in whole system\npx: a window is a fixed box in both axes, and content taller than it is\nclipped at the frame the way the classic content region was.\n---\n\n\n### **Events:**\n - **vf-close** - Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.\n- **vf-zoom** - Zoom box clicked. Detail `{}`.\n\n### **Slots:**\n - _default_ - Default slot: window body content.\n\n### **CSS Properties:**\n - **--vf-dots-pattern** - the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) _(default: undefined)_\n- **--vf-titlebar-height** - window/dialog title bars _(default: undefined)_\n- **--vf-titlebar-height-utility** - the slim `vf-window[variant=\"utility\"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` _(default: 12px)_\n\n### **CSS Parts:**\n - **frame** - The outer chrome frame.\n- **title-bar** - The striped (or dithered) title bar.\n- **title** - The centered title patch (hidden on the utility bar).\n- **close-box** - The close widget (left).\n- **zoom-box** - The zoom widget (right).\n- **body** - The content area.\n- **grow-box** - The resize widget (bottom-right, when `resizable`).\n- **viewport** - The built-in scroll area's viewport (when `scrollbars`; re-exported from vf-scroll-area).",
+          "doc-url": "",
+          "attributes": [
+            {
+              "name": "variant",
+              "description": "Chrome variant. Omit for the standard 18px striped bar; `'utility'` for\nthe slim windoid bar (dot-grid dither, 7×7 widgets, no title patch — the\nheading still names the widgets). Inside a `vf-desktop`, utility windows\nfloat above the document tier and never take the single-active state.",
+              "value": { "type": "'utility' | undefined" }
+            },
+            {
+              "name": "heading",
+              "description": "Title text shown centered in the title bar.",
+              "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "width",
+              "description": "Window width in whole system px — the art's own unit, so the window keeps\nits proportions to the chrome inside it at every display density (a CSS-px\nwidth does not: it stays put while the components in it triple).\n\n**Declare it,** with height. A window owns its size the way a real\none does; left to layout it takes whatever width its container or its\ncontent hands it, which is how a title bar ends up wider than the screen or\na dialog reflows as it moves. Unset, the window still renders — normal\nblock layout, as before — and says so once in the console.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "Window height in whole system px.\n\n**Declare it,** with width. A window is a fixed box, not a shape\nits contents fall into: System 7 carried both dimensions in the WIND\nresource, and a window that grows with its body is one the user can neither\npredict nor (via the grow box) own. Unset, the body sizes to its content —\nthe old behavior — and the window says so once in the console.\n\nContent taller than the declared box is clipped at the frame, as the\nclassic content region was; give the window `scrollbars` to let the user\nreach the rest.",
+              "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "active",
+              "description": "Whether this is the frontmost (active) window: stripes and widgets show.\nManaged automatically by an enclosing `vf-desktop`.",
+              "value": { "type": "boolean", "default": "true" }
+            },
+            {
+              "name": "closable",
+              "description": "Show the close box (left side of the title bar).",
+              "value": { "type": "boolean", "default": "true" }
+            },
+            {
+              "name": "zoomable",
+              "description": "Show the zoom box (right side of the title bar).",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "movable",
+              "description": "Allow dragging the window by its title bar.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "resizable",
+              "description": "Show a grow box at the bottom-right corner for resizing.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "flush",
+              "description": "Remove the default 12px body padding.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "scrollbars",
+              "description": "Put System 7 scroll rails on the window edge — the classic document\nwindow. The body slot renders inside a built-in `vf-scroll-area` pulled\none system pixel under the frame on every side, so the rails repaint the\nborder lines and a `resizable` window's grow box lands in the corner\ncell. Values mirror `vf-scroll-area`'s `axis`; the `heading` names the\nscroll region; the viewport part is re-exported. Implies `flush` (the\nviewport carries its own padding). The slotted composition (SPEC §5\nvf-scroll-area) still works for windows that want an inset well instead.",
+              "value": {
+                "type": "'vertical' | 'horizontal' | 'both' | undefined"
+              }
+            }
+          ],
+          "slots": [
+            { "name": "", "description": "Default slot: window body content." }
+          ],
+          "events": [
+            {
+              "name": "vf-close",
+              "description": "Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT remove itself; the consumer decides what closing means."
+            },
+            {
+              "name": "vf-zoom",
+              "description": "Zoom box clicked. Detail `{}`."
+            }
+          ],
+          "js": {
+            "properties": [
+              {
+                "name": "variant",
+                "description": "Chrome variant. Omit for the standard 18px striped bar; `'utility'` for\nthe slim windoid bar (dot-grid dither, 7×7 widgets, no title patch — the\nheading still names the widgets). Inside a `vf-desktop`, utility windows\nfloat above the document tier and never take the single-active state.",
+                "type": "'utility' | undefined"
+              },
+              {
+                "name": "heading",
+                "description": "Title text shown centered in the title bar.",
+                "type": "string"
+              },
+              {
+                "name": "width",
+                "description": "Window width in whole system px — the art's own unit, so the window keeps\nits proportions to the chrome inside it at every display density (a CSS-px\nwidth does not: it stays put while the components in it triple).\n\n**Declare it,** with height. A window owns its size the way a real\none does; left to layout it takes whatever width its container or its\ncontent hands it, which is how a title bar ends up wider than the screen or\na dialog reflows as it moves. Unset, the window still renders — normal\nblock layout, as before — and says so once in the console.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "height",
+                "description": "Window height in whole system px.\n\n**Declare it,** with width. A window is a fixed box, not a shape\nits contents fall into: System 7 carried both dimensions in the WIND\nresource, and a window that grows with its body is one the user can neither\npredict nor (via the grow box) own. Unset, the body sizes to its content —\nthe old behavior — and the window says so once in the console.\n\nContent taller than the declared box is clipped at the frame, as the\nclassic content region was; give the window `scrollbars` to let the user\nreach the rest.",
+                "type": "number | undefined"
+              },
+              {
+                "name": "active",
+                "description": "Whether this is the frontmost (active) window: stripes and widgets show.\nManaged automatically by an enclosing `vf-desktop`.",
+                "type": "boolean"
+              },
+              {
+                "name": "closable",
+                "description": "Show the close box (left side of the title bar).",
+                "type": "boolean"
+              },
+              {
+                "name": "zoomable",
+                "description": "Show the zoom box (right side of the title bar).",
+                "type": "boolean"
+              },
+              {
+                "name": "movable",
+                "description": "Allow dragging the window by its title bar.",
+                "type": "boolean"
+              },
+              {
+                "name": "resizable",
+                "description": "Show a grow box at the bottom-right corner for resizing.",
+                "type": "boolean"
+              },
+              {
+                "name": "flush",
+                "description": "Remove the default 12px body padding.",
+                "type": "boolean"
+              },
+              {
+                "name": "scrollbars",
+                "description": "Put System 7 scroll rails on the window edge — the classic document\nwindow. The body slot renders inside a built-in `vf-scroll-area` pulled\none system pixel under the frame on every side, so the rails repaint the\nborder lines and a `resizable` window's grow box lands in the corner\ncell. Values mirror `vf-scroll-area`'s `axis`; the `heading` names the\nscroll region; the viewport part is re-exported. Implies `flush` (the\nviewport carries its own padding). The slotted composition (SPEC §5\nvf-scroll-area) still works for windows that want an inset well instead.",
+                "type": "'vertical' | 'horizontal' | 'both' | undefined"
+              }
+            ],
+            "events": [
+              {
+                "name": "vf-close",
+                "description": "Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT remove itself; the consumer decides what closing means."
+              },
+              {
+                "name": "vf-zoom",
+                "description": "Zoom box clicked. Detail `{}`."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

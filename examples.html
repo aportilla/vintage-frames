@@ -55,7 +55,6 @@
             </vf-img>
             <vf-label>Vintage Frames</vf-label>
           </p>
-          <p class="sidebar__tagline">Component reference</p>
           <nav class="sidebar__links" aria-label="Other demo pages">
             <a href="/">Showcase</a>
             <a href="/blog.html">Integration example</a>
@@ -70,7 +69,7 @@
              GUIDE
              ============================================================= -->
 
-        <section class="doc" id="overview" data-group="Guide" data-toc="Overview">
+        <section class="doc" id="overview" data-toc="Overview">
           <!-- The manual's one heading that is also a signature, so it is set
                in the kit rather than described by it: the logo as pixel art at
                the size it was drawn (vf-img — 19×16 source px to 19×16 system
@@ -147,7 +146,7 @@ import 'vintage-frames/vintage.css' // OPTIONAL page defaults (desktop bg, body 
           </p>
         </section>
 
-        <section class="doc" id="grid" data-group="Guide" data-toc="Device-pixel grid">
+        <section class="doc" id="grid" data-toc="Device-pixel grid">
           <h2>Staying on the device-pixel grid</h2>
           <p>
             A component is built entirely from whole system pixels, so every edge
@@ -210,7 +209,7 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
           </p>
         </section>
 
-        <section class="doc" id="conformity" data-group="Guide" data-toc="Standards &amp; conventions">
+        <section class="doc" id="conformity" data-toc="Standards &amp; conventions">
           <h2>Standards &amp; conventions</h2>
           <p>
             The rest of this page documents what the kit <em>adds</em>. Everything a
@@ -783,7 +782,7 @@ vf-button::part(button) { min-width: 96px; }
             both.
           </p>
 
-          <template data-example data-caption="variant='caution' renders the classic triangle as inline 1-bit SVG.">
+          <template data-example data-caption="variant='caution' draws the real 32×32 System 7 icon, not a redrawing of it.">
             <vf-button data-show="#ex-alert">Erase Disk…</vf-button>
 
             <vf-alert id="ex-alert" variant="caution" label="Erase disk" width="340" height="118">
@@ -793,6 +792,21 @@ vf-button::part(button) { min-width: 96px; }
             </vf-alert>
           </template>
 
+          <p>
+            The icon is the one place the library ships raster art of its own.
+            An alert icon is a <em>picture</em>, so it is not vectorized the way
+            the sprite glyphs are — it is the sheet's own 32×32 pixels, inlined
+            as a data URI like the two bitmap faces and magnified
+            nearest-neighbor, one image px to one system px. Being black ink on
+            transparency it is exactly an alpha mask, so it paints as one over
+            <code>--vf-black</code>: the ink retints with the token, and the
+            triangle's interior shows the alert's own surface rather than a
+            baked-in white. The <code>icon</code> slot takes any 32×32 art of
+            your own in its place — the column is a System 7 large icon
+            exactly — and doing so also drops the accessible name the variant
+            would have supplied, so state <code>label</code> alongside it.
+          </p>
+
           <table class="api">
             <caption>Properties</caption>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
@@ -800,8 +814,8 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; synced with the native dialog</td></tr>
               <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it,</strong> with <code>height</code>. Whole system px — the same requirement, fallback and warning as <a href="#vf-dialog"><code>vf-dialog</code></a>; both modals inherit it from the same base</td></tr>
               <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it too.</strong> Whole system px, the same fixed box the other two shells are. Content taller than the box is clipped at the frame. Unset, the body sizes to its content and it says so once in the console</td></tr>
-              <tr><td><code>variant</code></td><td class="wrap"><code>'caution'</code></td><td>—</td><td class="wrap">The black/white triangle-with-! icon. Omit for none, or slot your own</td></tr>
-              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name — an alert has no title bar to take one from</td></tr>
+              <tr><td><code>variant</code></td><td class="wrap"><code>'caution'</code></td><td>—</td><td class="wrap">The 32×32 System 7 caution icon, inlined as raster art and painted as a mask over <code>--vf-black</code>. Omit for none, or slot your own</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name — an alert has no title bar to take one from. Defaults to <code>Caution</code> under <code>variant="caution"</code> and <code>Alert</code> otherwise, so state it when you slot your own icon</td></tr>
             </tbody>
           </table>
 
@@ -811,7 +825,7 @@ vf-button::part(button) { min-width: 96px; }
             <tbody>
               <tr><td>Methods</td><td class="wrap"><code>show()</code>, <code>close()</code></td><td class="wrap">As <code>vf-dialog</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' }</code></td></tr>
-              <tr><td>Slots</td><td class="wrap"><code>icon</code>, (default), <code>buttons</code></td><td class="wrap">32px icon column left, message right, button group bottom right</td></tr>
+              <tr><td>Slots</td><td class="wrap"><code>icon</code>, (default), <code>buttons</code></td><td class="wrap">32px icon column left, message right, button group bottom right; a slotted <code>icon</code> replaces the <code>variant</code>'s and shows the column on its own</td></tr>
               <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>icon</code>, <code>message</code>, <code>buttons</code></td><td class="wrap">Role is <code>alertdialog</code></td></tr>
             </tbody>
           </table>

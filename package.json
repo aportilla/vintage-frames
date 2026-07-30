@@ -4,20 +4,41 @@
   "description": "Lit web components that emulate the look and feel of classic Mac OS System 7",
   "type": "module",
   "license": "MIT",
-  "sideEffects": true,
-  "main": "./dist/vintage-frames.js",
-  "module": "./dist/vintage-frames.js",
+  "sideEffects": [
+    "**/components/*.js",
+    "**/components/*.ts",
+    "**/chikarego-font.js",
+    "**/chikarego-font.ts",
+    "**/finders-keepers-font.js",
+    "**/finders-keepers-font.ts",
+    "**/*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "customElements": "custom-elements.json",
+  "web-types": "editor/web-types.json",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/vintage-frames.js"
+      "import": "./dist/index.js"
     },
-    "./vintage.css": "./src/styles/vintage.css"
+    "./vf-*.js": {
+      "types": "./dist/components/vf-*.d.ts",
+      "import": "./dist/components/vf-*.js"
+    },
+    "./styles/*.js": {
+      "types": "./dist/styles/*.d.ts",
+      "import": "./dist/styles/*.js"
+    },
+    "./vintage.css": "./src/styles/vintage.css",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "src",
+    "editor",
+    "custom-elements.json",
     "SPEC.md"
   ],
   "keywords": [
@@ -30,7 +51,9 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsc -p tsconfig.build.json",
+    "build": "vite build && tsc -p tsconfig.build.json && npm run analyze",
+    "analyze": "cem analyze",
+    "verify:manifest": "node scripts/verify-manifest.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "extract:buttons": "python3 scripts/extract-button-pixels.py",
@@ -60,6 +83,8 @@
     "verify:stack": "node scripts/verify-stack.mjs",
     "verify:updates": "node scripts/verify-updates.mjs",
     "verify:baseline": "node scripts/verify-baseline.mjs",
+    "verify:define": "node scripts/verify-define.mjs",
+    "verify:caution": "node scripts/verify-caution.mjs",
     "verify:focus": "node scripts/verify-focus.mjs",
     "verify:grid": "node scripts/verify-grid.mjs",
     "verify:snap": "node scripts/verify-snap.mjs",
@@ -69,6 +94,10 @@
     "lit": "^3.2.0"
   },
   "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.11.0",
+    "custom-element-jet-brains-integration": "^1.7.0",
+    "custom-element-vs-code-integration": "^1.5.0",
+    "playwright": "^1.62.1",
     "typescript": "^5.6.0",
     "vite": "^6.0.0"
   }

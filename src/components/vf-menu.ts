@@ -1,10 +1,10 @@
 import { css, html, LitElement, nothing } from 'lit'
 import {
-  customElement,
   property,
   query,
   queryAssignedElements,
 } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -37,8 +37,9 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *   the visible title is an image.
  * @csspart label - The menu title in the bar (inverts while open).
  * @csspart panel - The dropped `.vf-panel` containing the items.
+ * @cssprop [--vf-menubar-height=24px] - `vf-menu-bar`
  */
-@customElement('vf-menu')
+@vfElement('vf-menu')
 export class VfMenu extends LitElement {
   static override styles = [
     vfBase,

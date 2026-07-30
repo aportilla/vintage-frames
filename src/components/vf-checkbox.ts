@@ -1,5 +1,6 @@
 import { css, html, type PropertyValues } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
@@ -22,7 +23,7 @@ import { emit } from '../events.js'
  * @csspart label - The label wrapper around the slot.
  * @fires vf-change - When toggled by user interaction. `detail: { checked: boolean }`.
  */
-@customElement('vf-checkbox')
+@vfElement('vf-checkbox')
 export class VfCheckbox extends VfToggleControl(VfFormControl) {
   static override styles = [
     vfBase,

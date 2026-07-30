@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import {
   vfBase,
   vfStripes,
@@ -58,8 +59,15 @@ interface ResizeState {
  *   compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT
  *   remove itself; the consumer decides what closing means.
  * @fires vf-zoom - Zoom box clicked. Detail `{}`.
+ * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,
+ *   one black pixel at the origin (`vfDots`; override the whole pattern like
+ *   `--vf-desktop-pattern`)
+ * @cssprop --vf-titlebar-height - window/dialog title bars
+ * @cssprop [--vf-titlebar-height-utility=12px] - the slim
+ *   `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom
+ *   rule, traced from `Windows/utility-window.png`
  */
-@customElement('vf-window')
+@vfElement('vf-window')
 export class VfWindow extends LitElement {
   static override styles = [
     vfBase,

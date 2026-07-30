@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js'
 import {
@@ -28,7 +29,7 @@ import { emit } from '../events.js'
  * @csspart label - The label wrapper around the slot.
  * @fires vf-change - When selected by user interaction. `detail: { value: string }`.
  */
-@customElement('vf-radio')
+@vfElement('vf-radio')
 export class VfRadio extends VfToggleControl(LitElement) {
   static override styles = [
     vfBase,

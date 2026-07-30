@@ -1,6 +1,7 @@
 import { css, html } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { ScaleController } from '../scale.js'
 import { vfBase } from '../styles/base.js'
 import { VfFormControl } from '../form-control.js'
@@ -25,7 +26,7 @@ import { VfRadio } from './vf-radio.js'
  * @slot - `vf-radio` elements, or arbitrary markup containing them.
  * @fires vf-change - When the selection changes via user interaction. `detail: { value: string }`.
  */
-@customElement('vf-radio-group')
+@vfElement('vf-radio-group')
 export class VfRadioGroup extends VfFormControl {
   static override styles = [
     vfBase,

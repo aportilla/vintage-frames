@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, queryAssignedElements } from 'lit/decorators.js'
+import { queryAssignedElements } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -25,8 +26,9 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *
  * @slot - `vf-menu` elements.
  * @csspart bar - The horizontal layout container.
+ * @cssprop [--vf-menubar-height=24px] - `vf-menu-bar`
  */
-@customElement('vf-menu-bar')
+@vfElement('vf-menu-bar')
 export class VfMenuBar extends LitElement {
   static override styles = [
     vfBase,

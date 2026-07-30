@@ -1,5 +1,6 @@
 import { css, html, LitElement, nothing } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -154,7 +155,7 @@ const scaled = (systemPx: number): string =>
  * @csspart rules - The lattice overlay painting the rules.
  * @cssprop --vf-surface - The surface behind the cells (default white).
  */
-@customElement('vf-grid')
+@vfElement('vf-grid')
 export class VfGrid extends LitElement {
   static override styles = [
     vfBase,

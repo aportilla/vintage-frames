@@ -1,37 +1,22 @@
-import { html, css, nothing } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { html, css, nothing, unsafeCSS } from 'lit'
+import { property, state } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { styleMap } from 'lit/directives/style-map.js'
+import { CAUTION_ICON } from '../icons.js'
 import { vfBase, vfDisplay, vfHardShadowDecls } from '../styles/base.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
 /**
- * The classic black/white caution icon — a triangle enclosing an exclamation
- * mark, authored as a self-contained 1-bit inline SVG in the spirit of the
- * sprite glyphs in glyphs.ts: integer-coordinate *filled* geometry (a white
- * face under a black border, like the radio/slider handle) rendered with
- * `shape-rendering: crispEdges`, so its edges stay hard 1-bit steps and it
- * scales as whole pixels with `--vf-scale` instead of the old anti-aliased 2px
- * stroke. Sized in CSS off `--vf-scale` (see `.caution`); colors are themeable
- * via `.caution-face`, `.caution-tri` (border) and `.caution-mark`.
+ * The classic caution icon — the one piece of raster art the library itself
+ * ships. An alert icon is a *picture*, not geometry, so it is not vectorized
+ * into glyphs.ts the way the checkmark and the little arrows are: this is the
+ * reference sheet's own 32x32 pixels (`src/icons.ts`, cut by
+ * `npm run extract:icons` from the same crop as the demo copy, so the two
+ * cannot drift). Being black ink on transparency it is precisely an alpha
+ * mask, which is how `.caution` paints it — see the note there.
  */
-const cautionIcon = html`
-  <svg
-    class="caution"
-    viewBox="0 0 32 32"
-    shape-rendering="crispEdges"
-    aria-hidden="true"
-  >
-    <path class="caution-face" d="M16 3 29 28 3 28Z" />
-    <path
-      class="caution-tri"
-      fill-rule="evenodd"
-      d="M16 3 29 28 3 28Z M16 10 24 25 8 25Z"
-    />
-    <rect class="caution-mark" x="15" y="12" width="3" height="8" />
-    <rect class="caution-mark" x="15" y="22" width="3" height="3" />
-  </svg>
-`
+const cautionIcon = html`<span class="caution" aria-hidden="true"></span>`
 
 /**
  * `<vf-alert>` — the classic fixed modal alert.
@@ -55,7 +40,7 @@ const cautionIcon = html`
  * @csspart buttons - The button group.
  * @fires vf-close - Alert closed. Detail `{ reason: 'escape' | 'close' }`.
  */
-@customElement('vf-alert')
+@vfElement('vf-alert')
 export class VfAlert extends VfModalDialog {
   static override styles = [
     vfBase,
@@ -117,21 +102,29 @@ export class VfAlert extends VfModalDialog {
       .content.no-icon .icon {
         display: none;
       }
-      /* Sized off --vf-scale so the icon scales with the rest of the chrome
-         (its 32px grid = the grid column width), staying whole-pixel crisp. */
+      /* The 32x32 reference bitmap, painted as an alpha mask over --vf-black
+         (the vf-grid rules idiom) rather than as an <img>: the ink then follows
+         the token like every other 1-bit surface, and the triangle's interior
+         shows the alert's own surface instead of a baked-in white. Sized off
+         --vf-scale so it scales with the rest of the chrome (its 32px box is
+         the grid column width) — one image pixel per system pixel, on a whole
+         number of device px, so mask-size 100% magnifies bit-exactly with no
+         resampling. */
       .caution {
         display: block;
         width: calc(var(--vf-scale, 1) * 32px);
         height: calc(var(--vf-scale, 1) * 32px);
-      }
-      .caution-face {
-        fill: var(--vf-white, #ffffff);
-      }
-      .caution-tri {
-        fill: var(--vf-black, #000000);
-      }
-      .caution-mark {
-        fill: var(--vf-black, #000000);
+        background: var(--vf-black, #000000);
+        /* Nearest-neighbor, as vf-img does for a consumer's art: without it the
+           browser smooths the 32px source up to the scaled box and the 1-bit
+           edges go gray (verify:caution's PURITY check). */
+        image-rendering: pixelated;
+        -webkit-mask-image: url(${unsafeCSS(CAUTION_ICON)});
+        mask-image: url(${unsafeCSS(CAUTION_ICON)});
+        -webkit-mask-size: 100% 100%;
+        mask-size: 100% 100%;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
       }
       .message {
         grid-area: message;

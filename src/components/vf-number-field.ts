@@ -1,5 +1,6 @@
 import { css, html, nothing } from 'lit'
-import { customElement, property, query, state } from 'lit/decorators.js'
+import { property, query, state } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfField } from '../styles/base.js'
@@ -26,8 +27,12 @@ import { decimalsOf } from '../number.js'
  *
  * @csspart input - The inner native `<input>`.
  * @csspart stepper - The little-arrows control.
+ * @cssprop [--vf-control-height=22px] - text fields — `vf-text-field`,
+ *   `vf-text-area`, the `vf-number-field` well
+ * @cssprop [--vf-number-field-width=4em] - width of `vf-number-field`'s input,
+ *   in its own text (an em, not a system px length — it sizes to the digits)
  */
-@customElement('vf-number-field')
+@vfElement('vf-number-field')
 export class VfNumberField extends VfTextControlBase {
   static override styles = [
     vfBase,

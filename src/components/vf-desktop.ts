@@ -1,5 +1,6 @@
 import { html, css, LitElement } from 'lit'
-import { customElement, queryAssignedElements } from 'lit/decorators.js'
+import { queryAssignedElements } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -36,8 +37,13 @@ const UTILITY_Z_BAND = 1_000_000
  *
  * @slot - Default slot: menu bar, windows, anything.
  * @csspart desktop - The full-size desktop surface.
+ * @cssprop [--vf-desktop=#808080] - base color under the desktop dither —
+ *   occluded by the default (opaque) tile, so it only shows through a custom
+ *   `--vf-desktop-pattern`
+ * @cssprop --vf-desktop-pattern - `vf-desktop`'s background-image layer — a 50%
+ *   checker drawn as opaque black-on-white rects (override the whole pattern)
  */
-@customElement('vf-desktop')
+@vfElement('vf-desktop')
 export class VfDesktop extends LitElement {
   static override styles = [
     vfBase,

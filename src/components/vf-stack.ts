@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sysLength, sysLengths } from '../scale.js'
@@ -107,7 +108,7 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  *
  * @slot - The children to arrange. `fill-width` / `fill-height` on any of them.
  */
-@customElement('vf-stack')
+@vfElement('vf-stack')
 export class VfStack extends LitElement {
   static override styles = [
     vfBase,

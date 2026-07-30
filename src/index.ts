@@ -138,6 +138,9 @@ export {
 } from './glyphs.js'
 export type { Glyph } from './glyphs.js'
 
+/** The raster half of the sprite set — the 32x32 alert icon, as a data URI. */
+export { CAUTION_ICON } from './icons.js'
+
 /** Pixel-stepped corner profiles and the clip-paths traced from them. */
 export {
   steppedRectClip,
@@ -168,6 +171,13 @@ export {
   PRESS_HOLD_MS,
 } from './motion.js'
 export type { BlinkHandle } from './motion.js'
+
+/**
+ * Element registration. `vfElement` is the kit's `@customElement`: it registers
+ * through `defineElement`, which skips (and warns) rather than throwing when a
+ * second copy of the library claims a tag the page already has.
+ */
+export { defineElement, vfElement } from './define.js'
 
 /** Base classes — extend these to author a custom `vf-*` control. */
 export { VfFormControl } from './form-control.js'

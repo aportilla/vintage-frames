@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 
@@ -21,7 +22,7 @@ import { ScaleController } from '../scale.js'
  *   as-is — System 7 left color icons unfiltered on the highlight.
  * @csspart text - The text span beside the icon gutter (ellipsizes).
  */
-@customElement('vf-list-item')
+@vfElement('vf-list-item')
 export class VfListItem extends LitElement {
   static override styles = [
     vfBase,

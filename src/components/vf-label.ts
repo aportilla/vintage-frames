@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfDisplayDecls, vfStaticText } from '../styles/base.js'
 import { ScaleController, sysLength } from '../scale.js'
@@ -39,8 +40,10 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  * @csspart label - The inner text box.
  * @cssprop --vf-label-line-height - Line box, in system px (default `16px`).
  *   Keep it a whole number — a ratio puts every following line off the grid.
+ * @cssprop --vf-font-size-small - fine print (disk-space captions,
+ *   `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table
  */
-@customElement('vf-label')
+@vfElement('vf-label')
 export class VfLabel extends LitElement {
   static override styles = [
     vfBase,

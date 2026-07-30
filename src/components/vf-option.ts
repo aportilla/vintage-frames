@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
@@ -18,8 +19,13 @@ import { ScaleController } from '../scale.js'
  * The host carries `role="option"` with `aria-selected`/`aria-disabled`.
  *
  * @csspart check - The ✓ checkmark shown in the left gutter when selected.
+ * @cssprop [--vf-popup-height=18px] - `vf-select` pill (border box; its 1px
+ *   hard shadow makes the sheet's 157×19 ink box)
+ * @cssprop [--vf-select-gutter=16px] - checkmark column: `vf-select` left inset
+ *   / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift
+ *   on open)
  */
-@customElement('vf-option')
+@vfElement('vf-option')
 export class VfOption extends LitElement {
   static override styles = [
     vfBase,

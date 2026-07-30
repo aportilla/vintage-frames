@@ -1,6 +1,7 @@
 import { css, html } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property, query } from 'lit/decorators.js'
+import { property, query } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfFocusUnderline } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
@@ -68,7 +69,7 @@ function railPath(w: number, pos: number): string {
  * @csspart rail - The `<svg>` capsule (fill + hollow).
  * @csspart thumb - The shield-shaped drag handle.
  */
-@customElement('vf-slider')
+@vfElement('vf-slider')
 export class VfSlider extends VfFormControl {
   static override styles = [
     vfBase,

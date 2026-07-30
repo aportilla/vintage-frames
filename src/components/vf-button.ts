@@ -1,5 +1,6 @@
 import { css, html, unsafeCSS } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -38,8 +39,11 @@ import {
  *
  * @slot - The button label.
  * @csspart button - The inner native `<button>` element.
+ * @cssprop [--vf-button-height=20px] - `vf-button` face (the default ring's
+ *   inner box is 80×20)
+ * @cssprop [--vf-control-height-small=16px] - `size="small"` buttons
  */
-@customElement('vf-button')
+@vfElement('vf-button')
 export class VfButton extends VfFormControl {
   static override shadowRootOptions: ShadowRootInit = {
     ...VfFormControl.shadowRootOptions,

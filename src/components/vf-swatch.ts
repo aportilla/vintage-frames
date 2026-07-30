@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -38,8 +39,11 @@ import { GridSnapController } from '../grid-snap.js'
  * @csspart button - The inner native `<button>` (border, inset and, with
  *   `shadow`, the drop shadow).
  * @csspart fill - The color area inside the inset.
+ * @cssprop --vf-swatch-checker - `vf-swatch`'s no-color transparency checker —
+ *   a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like
+ *   `--vf-desktop-pattern`)
  */
-@customElement('vf-swatch')
+@vfElement('vf-swatch')
 export class VfSwatch extends LitElement {
   static override shadowRootOptions: ShadowRootInit = {
     ...LitElement.shadowRootOptions,

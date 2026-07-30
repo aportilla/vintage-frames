@@ -1,5 +1,6 @@
 import { html, css, nothing } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { property, state } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import {
   vfBase,
@@ -52,8 +53,12 @@ import './vf-button-group.js'
  * @csspart footer - The action row wrapping the buttons.
  * @csspart buttons - The button group inside the footer.
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' }`.
+ * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,
+ *   one black pixel at the origin (`vfDots`; override the whole pattern like
+ *   `--vf-desktop-pattern`)
+ * @cssprop --vf-titlebar-height - window/dialog title bars
  */
-@customElement('vf-dialog')
+@vfElement('vf-dialog')
 export class VfDialog extends VfModalDialog {
   static override styles = [
     vfBase,

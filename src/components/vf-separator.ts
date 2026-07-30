@@ -1,5 +1,6 @@
 import { html, css, LitElement } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { property } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -17,8 +18,12 @@ import { GridSnapController } from '../grid-snap.js'
  * - `--vf-separator-style` — line style, e.g. `dotted` (default `solid`).
  *   `vf-menu` sets these so slotted separators render as the classic dimmed
  *   dotted menu rule (see Menus.png).
+ * @cssprop --vf-separator-color - `vf-separator` rule color — `vf-menu` sets it
+ *   to `--vf-disabled` for the dimmed menu rule
+ * @cssprop [--vf-separator-style=solid] - `vf-separator` rule style — `vf-menu`
+ *   sets `dotted` (see `Menus.png`)
  */
-@customElement('vf-separator')
+@vfElement('vf-separator')
 export class VfSeparator extends LitElement {
   static override styles = [
     vfBase,

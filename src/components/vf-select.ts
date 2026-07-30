@@ -1,6 +1,7 @@
 import { css, html, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property, query, queryAssignedElements, state } from 'lit/decorators.js'
+import { property, query, queryAssignedElements, state } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfPanel, vfScrollbars } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
@@ -57,8 +58,17 @@ import { emit } from '../events.js'
  * @csspart label - The selected-option label inside the control.
  * @csspart arrow - The black ▼ triangle.
  * @csspart panel - The popup panel (listbox).
+ * @cssprop [--vf-popup-height=18px] - `vf-select` pill (border box; its 1px
+ *   hard shadow makes the sheet's 157×19 ink box)
+ * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
+ * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
+ *   the WebKit path draws the dot-dither tile instead, and this is its flat
+ *   25%-black average
+ * @cssprop [--vf-select-gutter=16px] - checkmark column: `vf-select` left inset
+ *   / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift
+ *   on open)
  */
-@customElement('vf-select')
+@vfElement('vf-select')
 export class VfSelect extends VfFormControl {
   /**
    * Fallback height of one option row — the pill's *content* height

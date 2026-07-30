@@ -1,5 +1,6 @@
 import { css, html, nothing } from 'lit'
-import { customElement, property, query } from 'lit/decorators.js'
+import { property, query } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfField, vfScrollbars } from '../styles/base.js'
 import { VfTextControlBase } from '../text-control.js'
@@ -28,8 +29,14 @@ import { ScrollStateController } from '../scroll-state.js'
  * @fires vf-change - On commit (native `change`). `detail: { value: string }`.
  *
  * @csspart textarea - The inner native `<textarea>` element.
+ * @cssprop [--vf-field-width=180px] - default width of `vf-text-field` /
+ *   `vf-text-area`
+ * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
+ * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
+ *   the WebKit path draws the dot-dither tile instead, and this is its flat
+ *   25%-black average
  */
-@customElement('vf-text-area')
+@vfElement('vf-text-area')
 export class VfTextArea extends VfTextControlBase {
   static override styles = [
     vfBase,

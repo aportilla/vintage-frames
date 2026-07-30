@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
-import { customElement, property, query } from 'lit/decorators.js'
+import { property, query } from 'lit/decorators.js'
+import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sys, toSys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -21,8 +22,14 @@ import { TrackWidthController } from '../track-width.js'
  *
  * @csspart track - The outer bordered track.
  * @csspart fill - The determinate fill or the indeterminate stripe layer.
+ * @cssprop [--vf-progress-fill=#000000] - determinate progress fill (solid
+ *   black)
+ * @cssprop --vf-progress-stripes - the indeterminate barber-stripe tile, drawn
+ *   as rects so the staircase stays whole system px at any scale (override the
+ *   whole pattern)
+ * @cssprop [--vf-progress-track=#ffffff] - progress track (white)
  */
-@customElement('vf-progress-bar')
+@vfElement('vf-progress-bar')
 export class VfProgressBar extends LitElement {
   static override styles = [
     vfBase,

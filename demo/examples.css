@@ -97,11 +97,21 @@ code {
   border-bottom: 1px solid var(--rule);
 }
 
+/* Mark and wordmark are both components, so they bring their own type; the page
+   contributes only the row. Flex rather than a line box — inline components
+   would sit on the paragraph's baseline and stretch it. Both boxes are 16
+   system px tall, so the cross axis has nothing to resolve. */
 .sidebar__brand {
   margin: 0;
-  font-size: 17px;
-  line-height: 24px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* One line where it fits; the mark over the wordmark where it doesn't. The
+     row is the widest thing in this column, and without a wrap point its
+     min-content width — measured from bitmap glyphs, so fractional — would
+     size the sidebar and hand that fraction to every component on the page
+     (layout contract rule 3). Wrapping keeps the column its declared 264. */
+  flex-wrap: wrap;
 }
 
 .sidebar__tagline {
@@ -194,6 +204,17 @@ h1 {
   margin: 0 0 16px;
   font-size: 30px;
   line-height: 40px;
+}
+
+/* The signature heading: two components, so the page contributes only the row.
+   Flex rather than a line box — the h1's 40px leading has nothing to lead here,
+   and an inline vf-img would sit on its baseline and stretch it. Mark and
+   wordmark are both 16 system px tall, so the row needs no centering to
+   resolve. */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 h2 {

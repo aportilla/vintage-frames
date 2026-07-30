@@ -807,11 +807,22 @@ shrink it and watch the arrows come back.
       </vf-window>
 
       <!-- ===================== About dialog (modal) ===================== -->
-      <vf-dialog id="dlg-about" heading="About This Macintosh" width="400" height="166">
+      <!-- The About box is where a program signs its name, so it gets the
+           kit's own: the logo as pixel art in a vf-img, at the size it was
+           drawn — 19×16 source px to 19×16 system px — beside the product name
+           in Chicago, which is what vf-label is for. Both are 16 system px
+           tall, so the row lines up with nothing to center. The mark is black
+           ink on transparency, so the dialog's white panel shows through the
+           window it draws. -->
+      <vf-dialog id="dlg-about" heading="About This Macintosh" width="400" height="192">
         <vf-stack width="360" gap="10">
-          <vf-paragraph
-            >Vintage Frames — a System 7 UI kit built with Lit 3.</vf-paragraph
-          >
+          <vf-stack fill-width direction="row" gap="10">
+            <vf-img width="19" height="16">
+              <img src="/demo/icons/vintage-frames.png" alt="" />
+            </vf-img>
+            <vf-label>Vintage Frames</vf-label>
+          </vf-stack>
+          <vf-paragraph>A System 7 UI kit built with Lit 3.</vf-paragraph>
           <vf-paragraph>
             System Software 7.5.5 · Total Memory: 8,192K · Largest Unused
             Block: 7,168K

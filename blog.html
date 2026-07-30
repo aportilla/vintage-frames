@@ -439,11 +439,28 @@
       <vf-button slot="buttons" id="sub-confirm" variant="default">Subscribe</vf-button>
     </vf-dialog>
 
-    <vf-dialog id="dlg-about" heading="About This Blog" width="320" height="156">
+    <!-- The height covers the three rows below plus the scale readout blog.ts
+         fills in when the box opens. A dialog is a fixed box and anything
+         taller than it is clipped at the frame — which this one was quietly
+         doing to its own first line, before the box was measured against what
+         it actually holds. -->
+    <vf-dialog id="dlg-about" heading="About This Blog" width="320" height="248">
       <vf-paragraph class="dialog__copy">
-        Notes on small software, written since 2024. Built with
-        <strong>Vintage Frames</strong> — Lit web components in the style of
-        classic Mac OS System 7.
+        Notes on small software, written since 2024. Built with:
+      </vf-paragraph>
+      <!-- The toolkit credit is the one place on this page where Vintage
+           Frames signs its own name, and the inside of a dialog is kit
+           territory already — so it takes the kit's mark (vf-img, one image px
+           per system px) and the kit's face (vf-label, Chicago) rather than
+           the page's Georgia. The prose on either side of it does not. -->
+      <vf-stack class="dialog__credit" direction="row" gap="8">
+        <vf-img width="19" height="16">
+          <img src="/demo/icons/vintage-frames.png" alt="" />
+        </vf-img>
+        <vf-label>Vintage Frames</vf-label>
+      </vf-stack>
+      <vf-paragraph class="dialog__copy">
+        Lit web components in the style of classic Mac OS System 7.
       </vf-paragraph>
       <vf-paragraph class="dialog__copy" id="about-scale"></vf-paragraph>
       <vf-button slot="buttons" id="about-ok" variant="default">OK</vf-button>

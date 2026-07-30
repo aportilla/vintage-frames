@@ -487,6 +487,13 @@ code {
   max-width: 42ch;
 }
 
+/* The toolkit credit, on the same em-based rhythm as the copy above it — the
+   stack states its own internal gap in system px, so all the page has to say
+   is how far the next paragraph sits below it. */
+.dialog__credit {
+  margin: 0 0 0.75em;
+}
+
 /* ── Footer ───────────────────────────────────────────────────────────── */
 
 .site-footer {

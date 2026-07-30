@@ -26,9 +26,11 @@
         the "Standards & conventions" section states the conformity once, with
         links to the specs, rather than paraphrasing them per component.
 
-      * The page pins --vf-scale: 1 (in examples.css, from a <link> so it is
-        in scope before the components upgrade) and calls applyGridSnap().
-        Load it with ?nosnap to turn the second one off.
+      * The page declares no --vf-scale at all (examples.css says so itself):
+        every component sizes itself to true ~72dpi, three device px per system
+        px, so a specimen is physically the size it was in 1991 on whatever
+        display you are reading it on. It does call applyGridSnap(); load the
+        page with ?nosnap to turn that off.
     -->
     <link rel="stylesheet" href="/demo/examples.css" />
     <script type="module" src="/demo/examples.ts"></script>
@@ -43,7 +45,16 @@
     <div class="shell">
       <aside class="sidebar">
         <header class="sidebar__head">
-          <p class="sidebar__brand">Vintage Frames</p>
+          <!-- The masthead signs the page in the kit's own voice: the logo as
+               pixel art at the size it was drawn (vf-img — 19×16 source px to
+               19×16 system px) and the name in Chicago (vf-label). The tagline
+               and everything below it stay in the page's type. -->
+          <p class="sidebar__brand">
+            <vf-img width="19" height="16">
+              <img src="/demo/icons/vintage-frames.png" alt="" />
+            </vf-img>
+            <vf-label>Vintage Frames</vf-label>
+          </p>
           <p class="sidebar__tagline">Component reference</p>
           <nav class="sidebar__links" aria-label="Other demo pages">
             <a href="/">Showcase</a>
@@ -60,7 +71,18 @@
              ============================================================= -->
 
         <section class="doc" id="overview" data-group="Guide" data-toc="Overview">
-          <h1>Vintage Frames</h1>
+          <!-- The manual's one heading that is also a signature, so it is set
+               in the kit rather than described by it: the logo as pixel art at
+               the size it was drawn (vf-img — 19×16 source px to 19×16 system
+               px) beside the name in Chicago (vf-label). The heading text is
+               still "Vintage Frames", so the accessible name is unchanged;
+               every other word on this page stays in the page's own type. -->
+          <h1 class="hero">
+            <vf-img width="19" height="16">
+              <img src="/demo/icons/vintage-frames.png" alt="" />
+            </vf-img>
+            <vf-label>Vintage Frames</vf-label>
+          </h1>
           <p class="lede">
             Lit web components that emulate classic Mac OS System 7 — racing-stripe
             title bars, 1px black borders, hard offset shadows, Chicago-style bold

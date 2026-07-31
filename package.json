@@ -27,16 +27,11 @@
       "types": "./dist/components/vf-*.d.ts",
       "import": "./dist/components/vf-*.js"
     },
-    "./styles/*.js": {
-      "types": "./dist/styles/*.d.ts",
-      "import": "./dist/styles/*.js"
-    },
-    "./vintage.css": "./src/styles/vintage.css",
+    "./vintage.css": "./dist/vintage.css",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "src",
     "editor",
     "custom-elements.json",
     "SPEC.md"
@@ -51,7 +46,8 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsc -p tsconfig.build.json && npm run analyze",
+    "build": "vite build && tsc -p tsconfig.build.json && cp src/styles/vintage.css dist/vintage.css && npm run analyze",
+    "prepack": "npm run build && npm run verify:manifest",
     "analyze": "cem analyze",
     "verify:manifest": "node scripts/verify-manifest.mjs",
     "typecheck": "tsc --noEmit",

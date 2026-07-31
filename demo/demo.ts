@@ -12,6 +12,7 @@ import type {
   VfAlert,
   VfDesktop,
   VfDialog,
+  VfIcon,
   VfMenu,
   VfMenuItem,
   VfProgressBar,
@@ -129,12 +130,19 @@ $<VfMenu>('#menu-file').addEventListener('vf-menu-select', (event) => {
   }
 })
 
-// View: exclusive check between "by Icon" and "by Name".
+// View: an exclusive check across the three, and the two icon views really do
+// switch the desktop between the icon family's two members — the 32×32 ICN#
+// and the 16×16 ics#, both already slotted on every vf-icon.
 const viewMenu = $<VfMenu>('#menu-view')
 viewMenu.addEventListener('vf-menu-select', (event) => {
-  const { item } = menuDetail(event)
+  const { item, value } = menuDetail(event)
   for (const entry of viewMenu.querySelectorAll('vf-menu-item')) {
     entry.checked = entry === item
+  }
+  if (value === 'by-icon' || value === 'by-small-icon') {
+    for (const icon of document.querySelectorAll<VfIcon>('vf-icon')) {
+      icon.size = value === 'by-small-icon' ? 'small' : 'large'
+    }
   }
 })
 

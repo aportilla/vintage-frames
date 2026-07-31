@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Working page for vf-icon — the Finder icon. Two panels:
+
+    - a white "window" well, where the label plate is invisible because it
+      matches the surface (the in-window Finder view);
+    - a desktop dither, where the plate is the whole point — the name reads
+      only because it sits on opaque white (see the reference sheet's
+      "Macintosh HD" icon on `Example screen (1-bit).png`).
+
+    Scale is left at the kit default, so the icons render at true 72dpi size.
+    Add ?scale=1 to pin the authored size for pixel measurement.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <title>vf-icon</title>
+    <style>
+      body {
+        margin: 0;
+        font: 13px/20px ui-sans-serif, system-ui, sans-serif;
+        background: #fff;
+      }
+      h2 {
+        font-size: 13px;
+        line-height: 20px;
+        margin: 24px 16px 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #666;
+      }
+      .surface {
+        position: relative;
+        margin: 0 16px;
+        padding: 24px;
+        min-height: 180px;
+        border: 1px solid #000;
+      }
+      /* The in-window view: the plate matches the well and vanishes. */
+      .surface--window {
+        background: #fff;
+      }
+      /* The desktop: the 50% dither vf-desktop paints, so the plate shows. */
+      .surface--desktop {
+        background-color: #808080;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23ffffff'/%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000000'/%3E%3C/svg%3E");
+        background-size: 6px 6px;
+      }
+      .row {
+        display: flex;
+        align-items: flex-start;
+        gap: 48px;
+      }
+      #log {
+        margin: 8px 16px 32px;
+        padding: 8px;
+        height: 120px;
+        overflow: auto;
+        background: #f4f4f4;
+        border: 1px solid #ddd;
+        font: 11px/16px ui-monospace, monospace;
+        white-space: pre;
+      }
+      button {
+        font: inherit;
+        margin: 0 16px;
+      }
+    </style>
+    <script type="module" src="/src/index.ts"></script>
+  </head>
+  <body>
+    <h2>In a window — selectable, editable (click a selected name to rename)</h2>
+    <div class="surface surface--window">
+      <div class="row">
+        <vf-icon label="SimpleText" width="64" selectable editable>
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+
+        <vf-icon label="Read Me" width="64" selectable editable selected>
+          <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+
+        <vf-icon label="A rather long document name" width="64" selectable editable>
+          <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+
+        <vf-icon size="small" label="SimpleText" width="64" selectable editable>
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+
+        <vf-icon size="small" label="Read Me" width="64" selectable editable selected>
+          <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+
+        <vf-icon>
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="An application" /></vf-img>
+        </vf-icon>
+      </div>
+    </div>
+
+    <h2>On the desktop — movable (drag, or focus and use the arrow keys)</h2>
+    <div class="surface surface--desktop" id="desktop">
+      <vf-icon
+        label="Macintosh HD" width="64"
+        selectable
+        movable
+        editable
+        style="position: absolute; left: 24px; top: 24px"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+
+      <vf-icon
+        label="untitled folder" width="64"
+        selectable
+        movable
+        editable
+        style="position: absolute; left: 160px; top: 24px"
+      >
+        <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+
+      <vf-icon
+        label="Trash" width="64"
+        selectable
+        movable
+        editable
+        selected
+        style="position: absolute; left: 300px; top: 24px"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+    </div>
+
+    <button id="toggle-size">Toggle every icon between large and small</button>
+    <div id="log"></div>
+
+    <script type="module">
+      if (new URLSearchParams(location.search).has('scale')) {
+        document.documentElement.style.setProperty('--vf-scale', '1')
+      }
+
+      const log = document.getElementById('log')
+      const line = (text) => {
+        log.textContent += text + '\n'
+        log.scrollTop = log.scrollHeight
+      }
+      for (const type of ['vf-select', 'vf-change', 'vf-open']) {
+        document.addEventListener(type, (event) => {
+          if (event.target.tagName !== 'VF-ICON') return
+          line(`${type}  ${event.target.label || '(no label)'}  ${JSON.stringify(event.detail)}`)
+        })
+      }
+
+      document.getElementById('toggle-size').addEventListener('click', () => {
+        for (const icon of document.querySelectorAll('vf-icon')) {
+          icon.size = icon.size === 'small' ? 'large' : 'small'
+        }
+      })
+    </script>
+  </body>
+</html>

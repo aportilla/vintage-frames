@@ -138,6 +138,10 @@ const VF_EVENTS = [
   'vf-close',
   'vf-zoom',
   'vf-menu-select',
+  'vf-select',
+  'vf-open',
+  'vf-name-too-long',
+  'vf-name-rejected',
 ] as const
 
 /** A modal shell — `vf-dialog` and `vf-alert` share this much. */

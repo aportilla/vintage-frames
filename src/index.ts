@@ -39,6 +39,8 @@ export { VfSlider } from './components/vf-slider.js'
 export { VfLabel } from './components/vf-label.js'
 export { VfParagraph } from './components/vf-paragraph.js'
 export { VfImg } from './components/vf-img.js'
+export { VfIcon } from './components/vf-icon.js'
+export type { VfIconSize } from './components/vf-icon.js'
 
 // Menus, lists, containers
 export { VfMenuBar } from './components/vf-menu-bar.js'

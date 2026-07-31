@@ -1929,7 +1929,7 @@ vf-button::part(button) { min-width: 96px; }
              GROUP E/F — STATIC TEXT & IMAGES
              ============================================================= -->
 
-        <section class="doc" id="vf-label" data-group="Static text &amp; images" data-toc="vf-label">
+        <section class="doc" id="vf-label" data-group="Text, images &amp; icons" data-toc="vf-label">
           <h2><code>vf-label</code></h2>
           <p>
             The static caption: "Name:" beside a field, "Mode" over a radio group, a
@@ -1971,7 +1971,7 @@ vf-button::part(button) { min-width: 96px; }
           </table>
         </section>
 
-        <section class="doc" id="vf-paragraph" data-group="Static text &amp; images" data-toc="vf-paragraph">
+        <section class="doc" id="vf-paragraph" data-group="Text, images &amp; icons" data-toc="vf-paragraph">
           <h2><code>vf-paragraph</code></h2>
           <p>
             A run of copy on the kit's body face and a 20px line box — the same pitch as
@@ -1998,7 +1998,7 @@ vf-button::part(button) { min-width: 96px; }
           </table>
         </section>
 
-        <section class="doc" id="vf-img" data-group="Static text &amp; images" data-toc="vf-img">
+        <section class="doc" id="vf-img" data-group="Text, images &amp; icons" data-toc="vf-img">
           <h2><code>vf-img</code></h2>
           <p>
             Pixel art on the kit's grid: it sizes a slotted <code>&lt;img&gt;</code> to
@@ -2021,6 +2021,160 @@ vf-button::part(button) { min-width: 96px; }
             <tbody>
               <tr><td><code>width</code>, <code>height</code></td><td>number</td><td class="wrap">the image's natural size</td><td class="wrap">Whole system px. Stated up front they reserve the box before the file loads; the box is 0×0 until a size is known, so there is never a flash at some other scale</td></tr>
               <tr><td colspan="4" class="wrap">Slot: default (a single <code>&lt;img&gt;</code> — use <code>alt=""</code> when it is decorative, as in a list row or a menu title that already carries a name). Part: <code>frame</code>.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="doc" id="vf-icon" data-group="Text, images &amp; icons" data-toc="vf-icon">
+          <h2><code>vf-icon</code></h2>
+          <p>
+            The Finder icon. <code>vf-img</code> puts a picture on the grid; this makes
+            it the unit the Finder actually manipulates — a picture and a caption that
+            select, move and rename together.
+          </p>
+          <p>
+            The art arrives by slot, one per icon-resource size:
+            <code>large</code> is the 32×32 <code>ICN#</code> and <code>small</code> the
+            16×16 <code>ics#</code>. <code>size</code> picks which one paints
+            <em>and</em> the cell it paints in, and the cell is reserved whether or not
+            there is art for it — a folder is 32×20 of ink and a document 25×32, and a
+            row of them keeps one baseline only because the cell, not the ink, is the
+            unit.
+          </p>
+
+          <template data-example data-caption="Click to select; the art inverts because a 1-bit icon is ink and opaque white on a transparent surround — precisely an image plus its mask. Shift adds, and a press anywhere else clears: single selection with no container managing the set.">
+            <vf-icon label="SimpleText" width="64" selectable>
+              <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+              <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+            </vf-icon>
+            <vf-icon label="Read Me" width="64" selectable selected>
+              <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+              <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+            </vf-icon>
+            <vf-icon label="A rather long document name" width="64" selectable>
+              <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+              <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+            </vf-icon>
+            <vf-icon>
+              <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="An application" /></vf-img>
+            </vf-icon>
+          </template>
+
+          <p>
+            A name is <strong>never abbreviated, and never folded</strong> — no
+            ellipsis, no clipping, no wrapping. System 7 solved the long-name problem
+            at the other end — HFS capped a filename at 31 characters — so the Finder
+            could afford to always draw the name in full, and did. Wider than its cell,
+            a name simply overflows it, centered, the way a name wider than a 32-pixel
+            icon always did. <code>width</code> is the cell — the grid pitch — not a
+            bound on the name.
+          </p>
+          <p>
+            It is also what keeps the name crisp. The frame centers two things over one
+            axis, and a centered child sits at <code>(box − child) / 2</code>, whole
+            exactly when the two share a parity; half a system pixel smears a 1-bit stem
+            across two device columns and greys it, while the plate behind it stays
+            sharp — backgrounds are pixel-snapped by the compositor and glyphs are not.
+            So the plate is measured from its text and sized to a whole
+            <strong>even</strong> number of system px, which makes every offset whole by
+            construction. One line is part of that argument: one run, one width, one
+            parity. Your side of it is a single rule — <strong>a declared
+            <code>width</code> must be even</strong>, since the component cannot round a
+            number you chose.
+          </p>
+
+          <template data-example data-caption="A 31-character name at the limit: it overflows the 64px cell on one line rather than folding into it. Type past the limit in a rename and vf-name-too-long carries what was tried, so a host can raise the alert System 7 raised instead of dropping the characters silently.">
+            <vf-icon label="Quarterly Results Final v2 (2)!" width="64" selectable editable>
+              <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+              <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+            </vf-icon>
+            <vf-icon label="System Folder" width="64" selectable editable selected>
+              <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+              <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+            </vf-icon>
+            <pre class="log" data-log></pre>
+          </template>
+
+          <template data-example data-caption='size="small" swaps to the 16×16 member of the family. An empty label draws no plate at all — the state a freshly made icon starts in. It stays selectable and renameable: focus the last one and press Return to name it. Commit an empty name over a real one and the edit is refused, as System 7 refused it.'>
+            <vf-icon size="small" label="SimpleText" width="64" selectable>
+              <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+              <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+            </vf-icon>
+            <vf-icon size="small" label="Read Me" width="64" selectable selected>
+              <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+              <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+            </vf-icon>
+            <vf-icon size="small">
+              <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="A document" /></vf-img>
+            </vf-icon>
+            <vf-icon selectable editable>
+              <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="An unnamed document" /></vf-img>
+            </vf-icon>
+          </template>
+
+          <template
+            data-example
+            data-stage="desktop"
+            data-caption="movable — drag one, or Tab to it and use the arrow keys (Shift for eight). editable — click the name of an icon that is already selected to rename it; Return commits, Escape reverts, and the plate widens as you type. On the dither you can see why the plate is opaque white in its own right."
+          >
+            <vf-desktop style="width: 32em; height: 12em">
+              <vf-icon
+                label="Macintosh HD"
+                width="64"
+                selectable
+                movable
+                editable
+                style="position: absolute; left: 1em; top: 1em"
+              >
+                <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+                <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+              </vf-icon>
+              <vf-icon
+                label="untitled folder"
+                width="64"
+                selectable
+                movable
+                editable
+                style="position: absolute; left: 8em; top: 1em"
+              >
+                <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+              </vf-icon>
+              <vf-icon
+                label="Read Me"
+                width="64"
+                selectable
+                movable
+                editable
+                style="position: absolute; left: 15em; top: 1em"
+              >
+                <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+              </vf-icon>
+            </vf-desktop>
+            <pre class="log" data-log></pre>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">The name. A property rather than slotted content because it is editable — renaming means the component owns the string. Empty draws no plate</td></tr>
+              <tr><td><code>size</code></td><td><code>large</code> | <code>small</code></td><td><code>large</code></td><td class="wrap">Picks the slot that paints and the cell it paints in: 32×32 or 16×16</td></tr>
+              <tr><td><code>selectable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Clicking selects. Set <code>selected</code> yourself to drive selection some other way</td></tr>
+              <tr><td><code>selected</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; the art inverts and the plate takes the <code>--vf-highlight</code> pair</td></tr>
+              <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag to move, plus arrow keys. <strong>Not</strong> <code>draggable</code>, which is a global HTML attribute <em>and</em> an <code>HTMLElement</code> accessor — the <code>align</code> trap again</td></tr>
+              <tr><td><code>editable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Click the plate of an already-selected icon to rename; the press that does the selecting never does</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td class="wrap">the wider of cell and name</td><td class="wrap">System px, and <strong>even</strong> — the one rounding the component can't do for you. The cell/grid pitch, which a longer name overflows rather than being bound by</td></tr>
+              <tr><td><code>maxlength</code></td><td>number</td><td><code>31</code></td><td class="wrap">The HFS filename limit, applied to the rename field. A <code>label</code> set from your own data is never truncated</td></tr>
+              <tr><td><code>vf-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ selected }</code></td></tr>
+              <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ label, previous }</code> — the name was committed</td></tr>
+              <tr><td><code>vf-open</code></td><td>Event</td><td>—</td><td class="wrap"><code>{}</code> — double-clicked, or Return on a non-editable icon</td></tr>
+              <tr><td><code>vf-name-too-long</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, accepted, limit }</code> — a rename went past <code>maxlength</code>; raise the alert System 7 raised rather than let the characters vanish</td></tr>
+              <tr><td><code>vf-name-rejected</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, kept, reason }</code> — a rename was committed with no name in it, so the edit was dropped and the old name put back. No <code>vf-change</code> fires alongside it</td></tr>
+              <tr><td><code>--vf-icon-gap</code></td><td>Token</td><td><code>2px</code></td><td class="wrap">Cell to plate</td></tr>
+              <tr><td><code>--vf-icon-label-height</code></td><td>Token</td><td><code>16px</code></td><td class="wrap">The plate's line box</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: <code>large</code> (32×32 art, normally a <code>vf-img</code>), <code>small</code> (16×16). Parts: <code>frame</code>, <code>icon</code>, <code>label</code>, <code>plate</code>, <code>input</code>. Both files fetch even though one paints — pay it with two data URIs, or slot only the size that view uses.</td></tr>
             </tbody>
           </table>
         </section>

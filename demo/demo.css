@@ -124,6 +124,27 @@ vf-desktop {
   white-space: pre;
 }
 
+/* -------------------------- Finder desktop icons ------------------------- */
+/* Placement only — everything an icon looks like is the component's.
+   Left/top in system px like every window here, NOT the right/bottom anchor a
+   real Trash would use: the desktop is the viewport, so a far-edge anchor
+   lands somewhere different at every density and drops the icons into the
+   window pile (see the vf-desktop note above). This column — left of the New
+   HTML Document window and below the installer — is the only 64×52 slot the
+   window pile leaves anywhere on the canvas, which is also why two icons
+   stacked there read as the Finder's auto-arrange-along-an-edge. They sit
+   UNDER the windows, as desktop icons do. */
+.desktop-icon {
+  position: absolute;
+  left: calc(var(--vf-scale, 1) * 24px);
+}
+#icon-hd {
+  top: calc(var(--vf-scale, 1) * 436px);
+}
+#icon-trash {
+  top: calc(var(--vf-scale, 1) * 496px);
+}
+
 /* ----------------------- Desk Accessories palette ----------------------- */
 /* The utility windoid floats over the Read Me's top-right corner, the way
    HIG Figure 5-6 parks its tool palette over the document (and inside the

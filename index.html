@@ -41,6 +41,7 @@
         </vf-menu>
         <vf-menu id="menu-view" label="View">
           <vf-menu-item checked value="by-icon">by Icon</vf-menu-item>
+          <vf-menu-item value="by-small-icon">by Small Icon</vf-menu-item>
           <vf-menu-item value="by-name">by Name</vf-menu-item>
         </vf-menu>
         <vf-menu id="menu-special" label="Special">
@@ -725,6 +726,43 @@ its axis actually overflows — grow the window until a rail empties out,
 shrink it and watch the arrows come back.
 </pre>
       </vf-window>
+
+      <!-- ==================== Finder icons on the desktop ================ -->
+      <!-- What the desktop is FOR, in Example screen (1-bit).png: the volume
+           and the Trash, sitting on the dither. Each is a vf-icon — the art
+           slotted as vf-img at both resource sizes (32×32 ICN#, 16×16 ics#),
+           the name as a property because it is editable.
+           `movable` and not `draggable`, which is a global HTML attribute and
+           an HTMLElement accessor. Click to select — the art inverts, because a 1-bit icon is ink and
+           opaque white on a transparent surround, i.e. an image and its mask,
+           so inverting flips the two and leaves the surround alone. Click the
+           name of a selected icon to rename it. The plate is opaque white in
+           its own right, which is the only reason a name reads on the dither.
+           View → "by Small Icon" swaps every one to its 16×16 member. -->
+      <vf-icon
+        id="icon-hd"
+        class="desktop-icon"
+        label="Macintosh HD"
+        width="64"
+        selectable
+        movable
+        editable
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-trash"
+        class="desktop-icon"
+        label="Trash"
+        width="64"
+        selectable
+        movable
+        editable
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
 
       <!-- ============== "Desk Accessories" utility palette ============== -->
       <!-- The utility-window archetype: vf-window variant="utility" movable —

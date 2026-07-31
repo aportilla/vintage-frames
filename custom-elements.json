@@ -2504,6 +2504,513 @@
     },
     {
       "kind": "javascript-module",
+      "path": "src/components/vf-icon.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-alert`'s `icon` slot and `vf-list-item`'s make the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n`scripts/extract-da-icons.py` bakes the same registration into the assets it\ncuts.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart inverts too, into a photographic negative rather than the darkening\nSystem 7 gave it; that is the case to revisit if the kit ever grows a\nselected-state treatment of its own. The label plate inverts to the\n`--vf-highlight` pair, sharing one selection color with `vf-list-item`.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` seeds absolute positioning from the\nin-flow offset on the first drag and writes back `left`/`top` snapped onto\nthe system-pixel grid, whole art pixels the way QuickDraw moved things.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box, as the Finder's does, with Return\ncommitting, Escape reverting, and the plate widening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
+          "name": "VfIcon",
+          "cssProperties": [
+            {
+              "description": "Space between the art cell and the name plate",
+              "name": "--vf-icon-gap"
+            },
+            {
+              "description": "The name plate's line box",
+              "name": "--vf-icon-label-height"
+            }
+          ],
+          "cssParts": [
+            {
+              "description": "The icon and its label plate, stacked.",
+              "name": "frame"
+            },
+            {
+              "description": "The reserved art cell.",
+              "name": "icon"
+            },
+            {
+              "description": "The name block; its lines are centered under the art.",
+              "name": "label"
+            },
+            {
+              "description": "The inked run behind the name, which each wrapped line gets its own of (inverts when selected).",
+              "name": "plate"
+            },
+            {
+              "description": "The rename field, while editing.",
+              "name": "input"
+            }
+          ],
+          "slots": [
+            {
+              "description": "The 32×32 art, normally a `vf-img` around an `<img>`.",
+              "name": "large"
+            },
+            {
+              "description": "The 16×16 art, shown under `size=\"small\"`.",
+              "name": "small"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The icon's name. Empty draws no plate — that is the \"no label\" setting.",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "type": {
+                "text": "VfIconSize"
+              },
+              "default": "'large'",
+              "description": "Which member of the icon family paints, and the cell it is registered in:\n`large` (32×32) or `small` (16×16).",
+              "attribute": "size",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "selectable",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Clicking selects. Set `selected` yourself to drive selection some other way.",
+              "attribute": "selectable",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the icon is selected: the art inverts and the plate goes black.",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "movable",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Drag to move — `movable`, never `draggable`, which is a platform attribute\nand accessor (see the class doc). Arrow keys move a focused icon too.",
+              "attribute": "movable",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "editable",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The name can be renamed in place: click a selected plate, or press Return.",
+              "attribute": "editable",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "width",
+              "type": {
+                "text": "number | undefined"
+              },
+              "description": "The cell width in whole system px — the grid pitch, and it must be\n**even**: the component rounds its own plate to keep every centered offset\nwhole, but it cannot round a number you chose (see the class doc).\n\nIt is not a bound on the name. Left off, the box is as wide as the wider of\nthe art cell and the name; set, a longer name overflows it, centered.\nDeclaring one is what keeps a field of icons on a single pitch, and what\nkeeps a text-sized box off a fractional origin (contract rule 3).",
+              "attribute": "width"
+            },
+            {
+              "kind": "field",
+              "name": "maxlength",
+              "type": {
+                "text": "number"
+              },
+              "default": "31",
+              "description": "The most characters the rename field will accept — 31, the HFS filename\nlimit every System 7 name was cut to, which is also why the Finder could\nafford to always draw the whole name. Going past it fires\n`vf-name-too-long` with what was tried, so a host can say so rather than\nlet characters vanish.\n\nIt bounds *typing* only: a `label` set from your own data is displayed as\ngiven and fires nothing, since the name belongs to your model and silently\ntruncating it would lose data.",
+              "attribute": "maxlength"
+            },
+            {
+              "kind": "field",
+              "name": "scale",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new ScaleController(this)",
+              "description": "Default-on display scaling (true 72dpi size); see src/scale.ts."
+            },
+            {
+              "kind": "field",
+              "name": "gridSnap",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new GridSnapController(this)",
+              "description": "Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts."
+            },
+            {
+              "kind": "field",
+              "name": "focusRule",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new FocusRuleController(this)",
+              "description": "Whether to wear the dashed focus rule; see src/focus-modality.ts."
+            },
+            {
+              "kind": "field",
+              "name": "_editing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "True while the rename field is open."
+            },
+            {
+              "kind": "field",
+              "name": "_draft",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "default": "''",
+              "description": "The name as typed. The hidden plate renders it, so the box tracks it."
+            },
+            {
+              "kind": "field",
+              "name": "_plateWidth",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0",
+              "description": "The plate's width in whole, EVEN system px — 0 until the text is measured.\nSee #measurePlate; this is what keeps every name on the grid."
+            },
+            {
+              "kind": "field",
+              "name": "#committed",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The name editing started from, for Escape to put back."
+            },
+            {
+              "kind": "field",
+              "name": "#outside",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new DocumentListenersController(this, () => [ [document, 'pointerdown', this.#onOutsidePointerDown, true], ])",
+              "description": "Clicking elsewhere deselects, the way it does on a real desktop. Attached\nonly while this icon is both selectable and selected, so an unselected\nfield of icons costs nothing. Capture phase, so a handler that stops the\npress still deselects — and so the icon being clicked *into* selects after\nthis runs, which is what makes plain clicks single-select with no container\nmanaging the set. A container that wants multi-select suppresses it by\nowning `selected` and leaving `selectable` off."
+            },
+            {
+              "kind": "field",
+              "name": "#drag",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null return this.#seedPosition() }, onDrag: (x: number, y: number): void => this.#moveTo(x, y), })",
+              "description": "Drag-to-move, on the same delegate shape as `vf-window`: seed absolute\npositioning from the in-flow offset on the first drag, then write back the\norigin the controller has already snapped onto the system-pixel grid."
+            },
+            {
+              "kind": "method",
+              "name": "#measurePlate",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Size the plate to a whole, EVEN number of system pixels.\n\nThis is the whole alignment argument, so it is worth stating plainly. The\nframe centers two things over one axis — the art cell and the name — and a\ncentered child's offset is `(box − child) / 2`. That is a whole number\nexactly when the box and the child have the SAME PARITY. The cell is 32 or\n16 and a declared `width` is required even, so if the plate is even too,\nevery offset in the component is whole by construction: no correction, no\nsnapping, nothing for the compositor to round.\n\nThe text is measured rather than the plate, with a Range over its own\ncontents — the plate already carries the width this computed last time, so\nreading the element back would just return it. The measurement is in\nsystem px and so is scale-invariant: the same name is the same number of\nart pixels wide at every display density, which is why nothing here\nre-runs when the scale changes.\n\nRounding UP to even (never down) means the plate never clips the run it\nwas measured from; the leftover is at most one system pixel of extra plate\nafter the text, since the embedded faces advance in whole pixels and only\na fallback face measures fractionally."
+            },
+            {
+              "kind": "method",
+              "name": "startEditing",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Open the rename field. The whole name starts selected, as the Finder's did\n— the common rename is a replacement, not an edit."
+            },
+            {
+              "kind": "method",
+              "name": "commitEditing",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Keep the typed name and close the field — unless there is no name left, in\nwhich case the edit is refused and the old one comes back.\n\nA file has to be called something: System 7 would not let you commit an\nempty name, and this does the same, treating a run of nothing but spaces\nas empty too (the plate would read as blank either way). The refusal is\nreported as `vf-name-rejected` for the same reason `vf-name-too-long` is —\nso a host can say why instead of leaving the name to silently snap back."
+            },
+            {
+              "kind": "method",
+              "name": "cancelEditing",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Put the previous name back and close the field."
+            },
+            {
+              "kind": "field",
+              "name": "#interactive",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Focusable exactly when there is something to do with it.",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#syncTabIndex",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#setSelected",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "next",
+                  "type": {
+                    "text": "boolean"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#onPointerDown",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#onDoubleClick",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#onOutsidePointerDown",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#onBeforeInput",
+              "privacy": "private",
+              "description": "Report a name the limit will not take, before the field refuses it.\n\n`beforeinput` rather than `input`, because by the time `input` fires the\nattempt is gone: with `maxlength` on the field a blocked keystroke fires\n`beforeinput` and then NO `input` at all, and an overshooting paste\nreaches `input` already trimmed to fit. Only the \"about to change\" event\nstill knows what was tried, which is the thing an integrator wants to put\nin an alert — as System 7 did, rather than silently dropping characters."
+            },
+            {
+              "kind": "field",
+              "name": "#onInput",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#reportTooLong",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "attempted",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#onInputKeyDown",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#onKeyDown",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#seedPosition",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ x: number; y: number }"
+                }
+              },
+              "description": "The origin future moves add to, in the host's own `left`/`top` space.\nSeeds absolute positioning from the in-flow offset the first time, then\nre-reads the COMPUTED coordinates each time after — an author's `left: 10%`\nis a perfectly good way to place an icon, and reading `style.left` back\nwould parse it as a bare number and jump. (Same delegate as `vf-window`.)"
+            },
+            {
+              "kind": "method",
+              "name": "#moveTo",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Write a new origin, kept inside the positioning parent and re-snapped onto\nthe system-pixel grid after the clamp, so the clamped edge is a whole art\npixel too. Unlike `vf-window`, which only keeps a grabbable strip on\nscreen, an icon is small enough to hold whole — losing half of one to an\nedge reads as a bug rather than as a window pushed aside."
+            }
+          ],
+          "events": [
+            {
+              "description": "Selection changed by user interaction. `detail: { selected: boolean }`.",
+              "name": "vf-select"
+            },
+            {
+              "description": "The name was committed. `detail: { label: string, previous: string }`.",
+              "name": "vf-change"
+            },
+            {
+              "description": "The icon was opened — double-clicked, or Return on a non-editable icon. `detail: {}`.",
+              "name": "vf-open"
+            },
+            {
+              "description": "A rename was typed or pasted past `maxlength`, and the field refused the excess. `detail: { attempted, accepted, limit }` — enough to raise the alert System 7 raised rather than drop the characters silently. Not fired for a `label` set from your own code, which is never truncated in the first place.",
+              "name": "vf-name-too-long"
+            },
+            {
+              "description": "A rename was committed with no name in it, so the edit was dropped and the old name put back. `detail: { attempted, kept, reason: 'empty' }`. A `vf-change` is *not* fired alongside it — nothing changed.",
+              "name": "vf-name-rejected"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The icon's name. Empty draws no plate — that is the \"no label\" setting.",
+              "fieldName": "label"
+            },
+            {
+              "name": "size",
+              "type": {
+                "text": "VfIconSize"
+              },
+              "default": "'large'",
+              "description": "Which member of the icon family paints, and the cell it is registered in:\n`large` (32×32) or `small` (16×16).",
+              "fieldName": "size"
+            },
+            {
+              "name": "selectable",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Clicking selects. Set `selected` yourself to drive selection some other way.",
+              "fieldName": "selectable"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the icon is selected: the art inverts and the plate goes black.",
+              "fieldName": "selected"
+            },
+            {
+              "name": "movable",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Drag to move — `movable`, never `draggable`, which is a platform attribute\nand accessor (see the class doc). Arrow keys move a focused icon too.",
+              "fieldName": "movable"
+            },
+            {
+              "name": "editable",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The name can be renamed in place: click a selected plate, or press Return.",
+              "fieldName": "editable"
+            },
+            {
+              "name": "width",
+              "type": {
+                "text": "number | undefined"
+              },
+              "description": "The cell width in whole system px — the grid pitch, and it must be\n**even**: the component rounds its own plate to keep every centered offset\nwhole, but it cannot round a number you chose (see the class doc).\n\nIt is not a bound on the name. Left off, the box is as wide as the wider of\nthe art cell and the name; set, a longer name overflows it, centered.\nDeclaring one is what keeps a field of icons on a single pitch, and what\nkeeps a text-sized box off a fractional origin (contract rule 3).",
+              "fieldName": "width"
+            },
+            {
+              "name": "maxlength",
+              "type": {
+                "text": "number"
+              },
+              "default": "31",
+              "description": "The most characters the rename field will accept — 31, the HFS filename\nlimit every System 7 name was cut to, which is also why the Finder could\nafford to always draw the whole name. Going past it fires\n`vf-name-too-long` with what was tried, so a host can say so rather than\nlet characters vanish.\n\nIt bounds *typing* only: a `label` set from your own data is displayed as\ngiven and fires nothing, since the name belongs to your model and silently\ntruncating it would lose data.",
+              "fieldName": "maxlength"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "vf-icon",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "VfIcon",
+          "declaration": {
+            "name": "VfIcon",
+            "module": "src/components/vf-icon.ts"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "vf-icon",
+          "declaration": {
+            "name": "VfIcon",
+            "module": "src/components/vf-icon.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
       "path": "src/components/vf-img.ts",
       "declarations": [
         {

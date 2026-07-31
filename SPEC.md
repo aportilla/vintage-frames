@@ -124,6 +124,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) |
 | `--vf-label-line-height` | `16px` | `vf-label` line box — the faces' own em, so a caption sits on the menu/popup rhythm |
 | `--vf-paragraph-line-height` | `20px` | `vf-paragraph` line box — the same pitch as a `vf-list-item` row |
+| `--vf-icon-label-height` | `16px` | `vf-icon`'s name plate line box — the faces' own em, so a field of icons sits on the caption rhythm |
+| `--vf-icon-gap` | `2px` | space between a `vf-icon`'s art cell and its name plate |
 | `--vf-paragraph-line-height-small` | `16px` | `vf-paragraph` line box under `size="small"` |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
@@ -1541,6 +1543,107 @@ one image pixel as one system pixel.
   `ScaleController` and a `GridSnapController` like every painted host.
 - **Slots:** default (a single `<img>`). **Parts:** `frame`.
 
+#### `vf-icon` (`VfIcon`, vf-icon.ts)
+The Finder icon — pixel art in a reserved cell with its name on a plate below,
+as one selectable, movable, renameable unit. `vf-img` puts a picture on the
+grid; this makes it the thing the Finder manipulates.
+- **Attributes/props:** `label`: string (the name; empty draws no plate — that
+  is the "no label" setting, rather than a second attribute that could disagree
+  with it). `size`: `large` (default, 32×32) | `small` (16×16) — picks the slot
+  that paints *and* the cell it paints in. `selectable`, `selected`, `movable`,
+  `editable`: boolean. `width`: number (system px, **even**; the cell/grid
+  pitch, which a longer name overflows rather than being bound by).
+  `maxlength`: number (31).
+- **Visual:** `display: inline-block`. A column: the art cell (`--_cell` system
+  px square, `overflow: hidden`, art centered), `--vf-icon-gap` (2px), then the
+  name plate — body face on a `--vf-icon-label-height` (16px) line box, 1px
+  horizontal padding, **opaque `--vf-white`** in its own right rather than
+  `--vf-surface`: on the desktop dither the name reads because it sits on a
+  plate, and `--vf-surface` is unset out there (`Example screen (1-bit).png`,
+  the "Macintosh HD" icon). Selected: the plate takes the `--vf-highlight` pair
+  and the art takes `filter: invert(1)` — a System 7 icon is ink and opaque
+  white on a transparent surround, i.e. precisely an image plus its mask, so
+  inverting flips the two and leaves the surround alone. That is the whole of
+  the classic selected appearance for 1-bit art; color art inverts into a
+  photographic negative rather than the darkening System 7 gave it.
+- **Behavior:** clicking selects, Shift/⌘ toggles, and a press outside every
+  icon clears — a `DocumentListenersController` capture-phase listener attached
+  only while selectable *and* selected, which is what makes single-selection
+  work with no container owning the set. Double-click (or Return on a
+  non-editable icon) fires `vf-open`. `editable`: a press on the plate of an
+  ALREADY-selected icon opens a rename field overlaying it (the press that does
+  the selecting never does); the whole name starts selected, Return commits,
+  Escape reverts, and the hidden plate keeps rendering the draft so the box
+  widens as you type. `movable` — **not `draggable`**, which is a global HTML
+  attribute and an `HTMLElement` accessor (the `align` trap of §5 Group G in a
+  second costume) — drags via `DragController` on the `vf-window` delegate
+  shape, plus arrow-key nudging (1 system px, 8 with Shift) because a
+  pointer-only gesture is the kind of gap the kit closes (§1). Focus is the
+  dashed rule below the plate, gated on `FocusRuleController` rather than
+  `:focus-visible`: the host focuses itself so the press-drag can own the
+  pointer. `role="option"` + `aria-selected` only under `selectable`.
+- **A name is never abbreviated, and never folded:** no ellipsis, no clipping,
+  no wrapping — `white-space: nowrap`, one line always. System 7 solved the
+  long-name problem at the other end — HFS capped a filename at 31 characters —
+  so the Finder always drew the name in full. Wider than its cell, it overflows
+  it, centered. `width` is therefore the cell (the grid pitch), not a bound on
+  the name.
+- **Every centered offset is whole, by parity.** The frame centers two things
+  over one axis, and a centered child sits at `(box − child) / 2` — whole
+  exactly when box and child share a parity. Half a system pixel is what
+  fringes 1-bit art: glyph stems smear across two device columns and go gray
+  while the plate behind them stays sharp, since backgrounds are pixel-snapped
+  by the compositor and glyphs are not (a crisp plate under a grey name is the
+  signature). So the component makes the parities agree rather than correcting
+  afterwards. The cell is 32 or 16; `#measurePlate()` measures the text with a
+  `Range` over the plate's own contents — the plate already carries the width
+  this last computed, so reading the element back would only return it — and
+  sizes the plate (an `inline-block`) to that plus its 1px padding, rounded UP
+  to a whole **even** number of system px, so it never clips the run it was
+  measured from. The measurement is in system px and therefore scale-invariant,
+  which is why nothing re-runs on a density change; it re-runs on `label`,
+  `_draft`, `_editing`, and once on `document.fonts.ready`, since a name
+  measured against the fallback face is a different width. The text is NOT
+  centered inside its own plate (`text-align: left` against the block's
+  `center`) — that would re-introduce the half pixel one level down; it starts
+  at the 1px padding edge, so its x is the plate's plus one whole pixel, and
+  the rounding slack lands after it as a hairline of extra plate. The rename
+  field matches the plate's padding and left alignment, so the name does not
+  shift when editing starts. Staying on one line is part of the same argument:
+  one run, one measured width, one parity. Nothing is snapped and nothing leans
+  on the rasterizer — the kit's normal antialiasing stays on, and `verify:icon`
+  asserts both the geometry and zero gray pixels across a field of names at dpr
+  1/2/3, declared width and auto, with a control that forces an odd plate and
+  requires the fringe to return. The one thing the component cannot round is a
+  `width` the consumer chose, so that must be even.
+- **The 31-char cap** is `maxlength` on the rename field, and exceeding it
+  fires `vf-name-too-long` rather than dropping characters silently. Detected
+  in `beforeinput`, not `input`: with `maxlength` set, a blocked keystroke
+  fires `beforeinput` and then *no* `input` at all, while an overshooting paste
+  reaches `input` already trimmed — only the "about to change" event still
+  knows what was attempted. `input` carries a trimming backstop for any route
+  that skips it. The cap bounds typing only; a `label` set from consumer code
+  is displayed as given and fires nothing (the name is the consumer's data).
+- **An empty name is refused, not applied.** A file has to be called something,
+  and System 7 would not commit a nameless one: a rename committed empty — or
+  as nothing but spaces, which would read as blank either way — drops the edit
+  and restores the previous name, firing `vf-name-rejected` and deliberately no
+  `vf-change`. An empty `label` remains a valid *starting* state (a freshly
+  made icon has no name yet): it draws no plate but stays selectable, focusable
+  and renameable. The caption element is therefore rendered whenever there is a
+  name **or** an edit is open — without that an unnamed icon has nowhere to put
+  the field and could never be named at all. The plate hugs its text in BOTH
+  states, which is what keeps a commit from moving the name: it is the same box
+  either side, so the glyphs do not shift. The single exception is an edit with
+  no text in it at all, which reserves the cell width so the field is usable
+  rather than a 2px sliver, and goes back to hugging on the first character.
+  That floor is the cell, which is even, so the parity rule holds.
+- **Slots:** `large` (32×32 art, normally a `vf-img`), `small` (16×16).
+  **Parts:** `frame`, `icon`, `label`, `plate`, `input`.
+- **Events:** `vf-select` `{ selected }`, `vf-change` `{ label, previous }`,
+  `vf-open` `{}`, `vf-name-too-long` `{ attempted, accepted, limit }`,
+  `vf-name-rejected` `{ attempted, kept, reason }`.
+
 ## 6. Exports
 
 `src/index.ts` (already written — do not change without reason) exports every
@@ -1555,8 +1658,10 @@ screenshots:
 1. Full-viewport `vf-desktop` with a `vf-menu-bar` on top: Apple menu (its bar
    title a slotted 16-px `vf-img` apple icon; about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, Page Setup…,
    disabled Print, sep, Quit ⌘Q), Edit (Undo ⌘Z, sep, Cut/Copy/Paste), View
-   (checked item "by Icon", "by Name"), Special (Restart, Shut Down, sep,
-   "Show All Windows" — reopens closed demo windows).
+   (an exclusive check across "by Icon", "by Small Icon" and "by Name"; the two
+   icon views really do switch every `vf-icon` between the family's two
+   members), Special (Restart, Shut Down, sep, "Show All Windows" — reopens
+   closed demo windows).
 2. **"DragThing 2.9 Installer" window** — faithful to the screenshot: white
    content well (bordered) with welcome copy + bullet list, "Disk space
    available: 58,616K / Approximate disk space needed: 4,584K" caption row
@@ -1596,6 +1701,14 @@ screenshots:
    document-window archetype at full anatomy: `movable resizable
    scrollbars="both"`, the rails in the frame and the grow box in the corner
    cell.
+10. **Finder icons on the desktop** — "Macintosh HD" and "Trash" as `vf-icon`,
+    each slotting its art at both resource sizes, `selectable movable
+    editable`. They sit under the windows the way desktop icons do, and are
+    placed in the one 64×52 slot the window pile leaves clear (left column,
+    below the installer) — with `left`/`top` in system px like every window
+    here, never a `right`/`bottom` anchor, which lands somewhere different at
+    each density since the desktop is the viewport. View → "by Small Icon"
+    drives them.
 
 Demo may use small amounts of layout CSS (positioning windows on the desktop)
 but NO aesthetic CSS — looks must come from the components. That includes the

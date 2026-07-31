@@ -91,7 +91,7 @@ import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
 
 ### Taking only what you use
 
-The root import registers all 30 elements. To ship less, import the ones you
+The root import registers all 31 elements. To ship less, import the ones you
 use by name — same elements, same self-registration, one module each:
 
 ```ts
@@ -124,7 +124,7 @@ What that costs, bundled and minified with `lit` external:
 | `vf-separator.js` — sets no chrome type, so it carries no Chicago face | 11.9 KB | 6.7 KB |
 | `vf-button.js` | 24.3 KB | 12.7 KB |
 | …plus `vf-checkbox.js` | 29.8 KB | 14.4 KB |
-| the root import — all 30 elements | 218 KB | 66 KB |
+| the root import — all 31 elements | 229 KB | 69 KB |
 
 The first component pays for the shared floor (the body face, `scale.ts`,
 `grid-snap.ts`, the recipes it composes); each one after it costs a couple of
@@ -193,6 +193,7 @@ class keeps the tag, and that the elements still render afterwards.
 | `vf-label` | Static caption ("Name:", "Mode") in the chrome face; `for` focuses and names a control the way `<label for>` does, and `width` (system px) gives a caption column one whole-pixel x |
 | `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box |
 | `vf-img` | Pixel art on the kit's grid — sizes a slotted `<img>` to one system pixel per image pixel and keeps the nearest-neighbor magnification on whole device pixels; `width`/`height` (system px) reserve the box before the file loads |
+| `vf-icon` | The Finder icon: art in a reserved 32×32 or 16×16 cell with its name on a plate below — wrapped, never abbreviated, and capped at HFS's 31 characters. `selectable` (the art inverts), `movable` (drag or arrow keys) and `editable` (rename in place) — see [The Finder icon](#the-finder-icon--vf-icon) |
 
 All visual constants are CSS custom properties (`--vf-*`) with inlined
 fallbacks — components need **no global CSS**, and everything is themeable.
@@ -229,7 +230,7 @@ SPEC §3 table so the two can't disagree — 45 tags across 22 components, and
 `verify:manifest` fails if a component gains such a token without one, if a tag
 has no SPEC row, or if SPEC lists a token nothing reads. The 17 kit-wide knobs
 (`--vf-scale`, the palette, both type stacks, the focus rule) are described once
-in [SPEC.md](./SPEC.md) and `vintage.css` rather than repeated on all 30
+in [SPEC.md](./SPEC.md) and `vintage.css` rather than repeated on all 31
 elements. Three kinds of token are deliberately undocumented: the
 controller-owned grid-snap offsets, the private channels `vf-button-group` uses
 to drive `vf-button`, and geometry a component sets on itself.
@@ -669,6 +670,114 @@ The crop lives in `scripts/extract-da-icons.py`, which writes both the demo copy
 (`demo/icons/alert.png`) and the shipped constant (`src/icons.ts`) so the two
 can't drift. Slot your own 32×32 art into `vf-alert`'s `icon` slot to replace it
 — that also drops the accessible name the variant supplies, so state `label`.
+
+## The Finder icon — `vf-icon`
+
+`vf-img` puts a picture on the grid. `vf-icon` makes it a **control**: the unit
+the Finder actually manipulates, where a picture and a caption select together,
+move together and rename together.
+
+```html
+<vf-icon label="Macintosh HD" width="64" selectable movable editable>
+  <vf-img slot="large"><img src="hd-32.png" alt=""></vf-img>
+  <vf-img slot="small"><img src="hd-16.png" alt=""></vf-img>
+</vf-icon>
+```
+
+**The art arrives by slot, not as a `src` property** — for the reason `vf-img`
+exists at all. The kit ships no raster files and never builds an `<img>` on your
+behalf, so the graphic stays a real element in your own DOM with its `alt`,
+`srcset`, loading behavior and asset URLs intact; a `src` string can express none
+of that, and could not hold an inline `<svg>` or a `<canvas>` either. It is the
+same trade `vf-alert`'s `icon` slot and `vf-list-item`'s already make. The cost
+is that both files fetch even though one paints — pay it with two data URIs, or
+slot only the size that view uses.
+
+**Two slots, because an icon family is two rasters.** `large` is the 32×32
+`ICN#` and `small` the 16×16 `ics#`; `size` picks which one paints *and* the
+cell it paints in. The cell is held whether or not there is art for it: a folder
+is 32×20 of ink and a document 25×32, and a row of them keeps one baseline only
+because the cell — not the ink — is the unit, which is what an icon resource
+always was.
+
+**Selection inverts, because the art already is a mask.** A System 7 icon is
+black ink and opaque white on a transparent surround, so inverting flips ink and
+fill and leaves the surround alone — the whole of the classic selected
+appearance, exactly. The name plate takes the `--vf-highlight` pair, sharing one
+selection color with `vf-list-item`. Clicking selects, Shift adds, and a press
+anywhere else clears — single-selection works with no container managing the
+set, which is what the outside-press listener buys.
+
+**The parameter is `movable`, never `draggable`.** `draggable` is a global HTML
+attribute *and* an `HTMLElement` accessor, so declaring it would both shadow a
+platform member and hand the element to the browser's own drag-and-drop
+machinery — the [`align` trap](#laying-out-inside-a-window--vf-stack) in a second
+costume. `align`, `hidden`, `dir`, `title` and `draggable` all carry behavior a
+custom element never asked for. `vf-window` already spells this one `movable`,
+so the icon does too, and moves the same way: whole art pixels, the way QuickDraw
+moved things. Dragging is a pointer gesture with no keyboard equivalent, so a
+focused movable icon also moves under the arrow keys — one system px, eight with
+Shift.
+
+**The label is a property because it is editable.** Renaming means the component
+owns the string and hands it back on `vf-change`, and it cannot own text living
+in your DOM. An empty `label` draws no plate at all — that *is* the "no label"
+setting, in preference to a second attribute that could disagree with it. With
+`editable`, a click on the plate of an already-selected icon opens the rename
+box, Return commits, Escape reverts, and the plate widens as you type.
+
+**A name is never abbreviated, and never folded.** No ellipsis, no clipping, no
+wrapping — one line, always. System 7 solved the long-name problem at the
+*other* end — HFS capped a filename at 31 characters — so the Finder could
+afford to always draw the name in full, and did. Wider than its cell, a name
+simply overflows it, centered, the way a name wider than a 32-pixel icon always
+did. So `width` is the cell, the grid pitch, not a bound on the name.
+
+**Everything centered lands on a whole pixel, by parity.** The frame centers two
+things over one axis — the art cell and the name — and a centered child sits at
+`(box − child) / 2`, which is whole exactly when the box and the child share a
+parity. Half a system pixel is what fringes 1-bit art: the glyph stems smear
+across two device columns and go gray while the plate behind them stays sharp,
+because backgrounds are pixel-snapped by the compositor and glyphs are not. A
+crisp plate under a grey name is the signature of exactly that.
+
+So the component makes the parities agree rather than correcting afterwards: the
+cell is 32 or 16, and the name plate is measured from its text and sized to a
+whole **even** number of system px. Both children are even, so every offset is
+whole — at every density, declared `width` or not. Nothing is snapped and
+nothing leans on the rasterizer, which is why the kit's normal antialiasing
+stays on: a run that starts on a whole pixel gives it nothing to smooth.
+Staying on one line is part of the same argument — a single run has one measured
+width, rather than one per line each with its own parity.
+
+Your side of it is one rule: **a declared `width` must be even.** The component
+rounds its own plate, but it cannot round a number you chose.
+
+`maxlength` (31) bounds the rename field, and going past it fires
+**`vf-name-too-long`** with `{ attempted, accepted, limit }` — enough to raise
+the alert System 7 raised rather than let characters vanish silently. It bounds
+typing only: a `label` set from your own data is displayed as given and fires
+nothing, since the name belongs to your model and truncating it would lose data.
+
+**A file has to be called something**, so a rename committed empty — or as
+nothing but spaces — is refused and the previous name comes back, as System 7
+refused it. That fires **`vf-name-rejected`** with `{ attempted, kept, reason }`
+and deliberately *no* `vf-change`, since nothing changed. An empty `label` is
+still a fine state to *start* in: a freshly made icon has no name until it is
+given one, draws no plate, and stays selectable, focusable and renameable via
+Return. The box hugs its text while you type it, not just once you're done, so
+committing never moves the name — the one exception being an edit with nothing
+in it yet, which reserves a cell's width because a field you can't see is one
+you can't type into.
+
+```sh
+npm run verify:icon   # the cell metrics at dpr 1/2/3; art, plate and text all on
+                      # whole system px with the plate even, and not one gray
+                      # pixel in a field of names; one-line names that overflow
+                      # rather than abbreviate; the 31-char cap and its event;
+                      # single-selection with no container; the rename gesture;
+                      # that `draggable` is never touched; keyboard-only focus
+```
 
 ## Utilities & style toolkit
 

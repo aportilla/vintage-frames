@@ -83,16 +83,183 @@
             <vf-label>Vintage Frames</vf-label>
           </h1>
           <p class="lede">
-            Lit web components that emulate classic Mac OS System 7 — racing-stripe
-            title bars, 1px black borders, hard offset shadows, Chicago-style bold
-            type. Every demo on this page is a live component.
+            The component reference for a System 7 UI kit: every element, the
+            parameters it takes, and a live specimen of each state. It opens with
+            the components introducing themselves.
           </p>
 
-          <template data-example data-caption="Not a screenshot. Press one; then Tab to it and watch the focus mark change language.">
-            <vf-button-group>
-              <vf-button>Quit</vf-button>
-              <vf-button variant="default">Install</vf-button>
-            </vf-button-group>
+          <!-- The page's one demo that is an argument rather than a specimen: a
+               working desktop whose windows say what the library is, in the
+               library's own chrome. The copy is written to be true of the box
+               printing it — the striped bar the About window names is the bar
+               directly above that sentence, and "the controls below" are the
+               controls below it. Nothing here states the pitch in the page's own
+               type, because the point is that it doesn't have to.
+
+               Every element used here has its own section further down, so this
+               is the one place they appear composed rather than isolated. Which
+               is also why the markup block is collapsed (data-source="hidden"):
+               the composition is the lesson here, and opening with ~90 lines of
+               source would bury the install instructions under it.
+
+               Geometry notes, since none of it is free-hand. Sizes are in system
+               px (the attributes take that unit) and positions in em, which on a
+               vf-* host is the kit's 16-system-pixel face — the same reason
+               blog.css works in em: the page never has to name --vf-scale. The
+               desktop is 36em × 25em, so 576 × 400 system px, which is 864 CSS
+               px wide on a 2× display — about what this column gives it.
+
+               Three things are placed rather than dropped. The About window is
+               LAST in the source because vf-desktop marks its topmost document
+               window active, and the window carrying the pitch should be the one
+               wearing the stripes. It also sits top-left, because at 1× a system
+               pixel is 3 CSS px and the desktop is 1728 wide — wider than the
+               column, so the stage scrolls, and whatever is leftmost is what a
+               1× reader sees first. And it laps the Read Me by 8 system px,
+               which is inside that window's 18.67px text inset: the overlap
+               takes frame, never a glyph. The Read Me's own body is likewise
+               sized so its two paragraphs fit whole rather than being clipped
+               mid-line at the frame — its rail is there reserved, as System 7
+               drew one whether or not it had anything to scroll. -->
+          <template
+            data-example
+            data-stage="desktop"
+            data-source="hidden"
+            data-caption="Not a screenshot. Pull down a menu, drag a title bar, click a window to bring it forward, tab into a control."
+          >
+            <vf-desktop style="width: 36em; height: 25em">
+              <vf-menu-bar>
+                <vf-menu label="File">
+                  <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
+                  <vf-menu-item value="open" shortcut="⌘O">Open…</vf-menu-item>
+                  <vf-separator></vf-separator>
+                  <vf-menu-item value="print" shortcut="⌘P" disabled>Print</vf-menu-item>
+                  <vf-menu-item value="quit" shortcut="⌘Q">Quit</vf-menu-item>
+                </vf-menu>
+                <vf-menu label="Edit">
+                  <vf-menu-item value="undo" shortcut="⌘Z">Undo</vf-menu-item>
+                  <vf-separator></vf-separator>
+                  <vf-menu-item value="cut" shortcut="⌘X">Cut</vf-menu-item>
+                  <vf-menu-item value="copy" shortcut="⌘C">Copy</vf-menu-item>
+                </vf-menu>
+                <vf-menu label="View">
+                  <vf-menu-item value="by-icon" checked>by Icon</vf-menu-item>
+                  <vf-menu-item value="by-name" checkable>by Name</vf-menu-item>
+                </vf-menu>
+              </vf-menu-bar>
+
+              <vf-window
+                heading="Find"
+                closable
+                movable
+                width="192"
+                height="104"
+                style="position: absolute; left: 2em; top: 17em"
+              >
+                <vf-stack fill-width gap="10">
+                  <vf-stack fill-width direction="row" gap="8">
+                    <vf-label for="hero-find">Find:</vf-label>
+                    <vf-text-field fill-width id="hero-find" value="System 7"></vf-text-field>
+                  </vf-stack>
+                  <vf-stack fill-width place="end">
+                    <vf-button variant="default">Find</vf-button>
+                  </vf-stack>
+                </vf-stack>
+              </vf-window>
+
+              <vf-window
+                variant="utility"
+                heading="Desk Accessories"
+                movable
+                flush
+                width="82"
+                height="67"
+                style="position: absolute; left: 29em; top: 4em"
+              >
+                <vf-grid
+                  columns="3"
+                  rows="2"
+                  cell-width="26"
+                  cell-height="26"
+                  frameless
+                  role="group"
+                  aria-label="Desk accessories"
+                >
+                  <vf-img width="16" height="16"><img src="/demo/icons/alarm-clock.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/calculator.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/chooser.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/key-caps.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/note-pad.png" alt="" /></vf-img>
+                  <vf-img width="16" height="16"><img src="/demo/icons/puzzle.png" alt="" /></vf-img>
+                </vf-grid>
+              </vf-window>
+
+              <vf-window
+                heading="Read Me"
+                movable
+                scrollbars="vertical"
+                width="240"
+                height="208"
+                style="position: absolute; left: 18.5em; top: 7em"
+              >
+                <vf-stack fill-width gap="10" pad="10">
+                  <vf-paragraph>
+                    Every component is drawn in system pixels and renders each one
+                    as three device pixels, so it is true ~72dpi size on any
+                    display.
+                  </vf-paragraph>
+                  <vf-paragraph>
+                    Drop one on a blank page and it brings its own artwork, its own
+                    bitmap type and its own scaling. No global CSS.
+                  </vf-paragraph>
+                </vf-stack>
+              </vf-window>
+
+              <!-- Last, so the desktop seeds it topmost — and the topmost
+                   document window is the one it marks active. The pitch should
+                   be the window wearing the stripes. -->
+              <vf-window
+                heading="Vintage Frames"
+                movable
+                width="288"
+                height="224"
+                style="position: absolute; left: 1em; top: 2em"
+              >
+                <!-- A declared width rather than fill-width: the panel is 256 of
+                     the 262 system px the body offers, so the strip this window
+                     overlaps of the Read Me behind it stays clear of ink on both
+                     sides. -->
+                <vf-stack width="256" gap="12">
+                  <vf-stack direction="row" gap="8">
+                    <vf-img width="19" height="16">
+                      <img src="/demo/icons/vintage-frames.png" alt="" />
+                    </vf-img>
+                    <vf-label>Vintage Frames</vf-label>
+                  </vf-stack>
+                  <vf-paragraph>
+                    Lit web components that rebuild the Mac OS System 7 interface:
+                    the window you are reading this in, the striped bar above it,
+                    and the controls below.
+                  </vf-paragraph>
+                  <vf-separator fill-width></vf-separator>
+                  <vf-stack fill-width direction="row" gap="12">
+                    <vf-checkbox checked>Crisp</vf-checkbox>
+                    <vf-select value="Chicago" label="Face">
+                      <vf-option>Chicago</vf-option>
+                      <vf-option>Geneva</vf-option>
+                      <vf-option>Monaco</vf-option>
+                    </vf-select>
+                    <vf-slider fill-width value="60" label="Level"></vf-slider>
+                  </vf-stack>
+                  <vf-stack fill-width place="end">
+                    <vf-button-group>
+                      <vf-button>Cancel</vf-button>
+                      <vf-button variant="default">OK</vf-button>
+                    </vf-button-group>
+                  </vf-stack>
+                </vf-stack>
+              </vf-window>
+            </vf-desktop>
           </template>
 
           <h2>Install</h2>
@@ -113,9 +280,18 @@ import 'vintage-frames/vintage.css' // OPTIONAL page defaults (desktop bg, body 
           </p>
 
           <p>
-            Individual components can be imported from their own modules
-            (<code>vintage-frames/dist/components/vf-button.js</code>) when you want
-            finer-grained loading; the package root registers all of them.
+            The root import registers all 30 elements. To ship less, import the ones
+            you use by name — same elements, same self-registration, one module
+            each:
+          </p>
+          <pre class="snippet"><code>import 'vintage-frames/vf-button.js'
+import 'vintage-frames/vf-checkbox.js'</code></pre>
+          <p>
+            Those subpaths and <code>vintage.css</code> are the whole export surface;
+            a deeper path into the package fails at resolve time rather than as a
+            404 in production. It stays one npm package on purpose — the scaling,
+            grid snapping, focus modality and font registration are module-scoped
+            singletons, so one package is what guarantees one copy of them.
           </p>
 
           <h3>Sizing takes care of itself</h3>

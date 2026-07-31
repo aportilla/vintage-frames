@@ -108,6 +108,15 @@ mirrors `src/` one file per module, so a subpath resolves to a real file a
 bundler can shake — and one a `<script type="module">` or an import map can
 fetch directly, with no build step at all.
 
+**Those are also the only doors.** The package exports exactly three entries —
+the root, one `vf-*.js` per element, and `vintage.css`. The shared modules
+behind them (the style recipes, the controllers, the fonts) are real files in
+`dist/`, which is what the per-component graphs import — but *your* imports of
+them go through the root (see [Utilities & style toolkit](#utilities--style-toolkit)),
+never a deeper path, so `dist/`'s internal layout stays an implementation
+detail rather than API. A path outside the three fails at resolve time, in the
+bundler or the typechecker, not as a 404 in production.
+
 What that costs, bundled and minified with `lit` external:
 
 | Imported | min | gzip |

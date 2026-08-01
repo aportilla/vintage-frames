@@ -237,9 +237,14 @@ export class VfIcon extends LitElement {
       .label {
         ${vfBodyDecls}
         font-weight: var(--vf-font-weight, 700);
-        /* Whole system px, never a ratio — layout contract rule 2. */
+        /* Whole system px, never a ratio — layout contract rule 2. 12, not
+           the face's 16px em: the Finder's plate is 12 system px tall, and
+           the em centered in it lands the ink exactly where the Finder put
+           it — 3px above the ascenders, descenders on the bottom edge. The
+           half-leading is (12 − 16) / 2, so an override must keep the box's
+           parity even for the baseline to stay on a whole pixel. */
         line-height: calc(
-          var(--vf-scale, 1) * var(--vf-icon-label-height, 16px)
+          var(--vf-scale, 1) * var(--vf-icon-label-height, 12px)
         );
         /* One line, always. A name is never abbreviated and never wrapped: it
            is at most 31 characters, and it overflows its cell rather than
@@ -283,39 +288,54 @@ export class VfIcon extends LitElement {
         visibility: hidden;
         white-space: pre;
       }
-      .rename {
+      /* The rename box: a 1px border with a 1px white well inside it, boxing
+         the highlighted name rather than letting it touch the rule, the way
+         the classic rename box did. The border and well are a wrapper rather
+         than the input's own border and padding, because the selection behind
+         a highlighted name paints at the face's full 16px em and is clipped
+         only at the input's own edge — on one element the em-tall selection
+         floods the padding and lands on the border. Splitting them sizes the
+         input to the plate's line box, which clips the selection to the same
+         12px the plate stands, and keeps the well white outside it.
+         Out by the border sideways, and by border-plus-well top and bottom:
+         border + well comes to 1px in from the caption horizontally against
+         the plate's 1px padding, and 2px in vertically against the 2px it
+         was pushed out by, so the run sits exactly where the plate put it
+         and nothing shifts when the field opens. */
+      .rename-box {
         position: absolute;
-        /* Out by the border sideways, and by the border PLUS a row top and
-           bottom, so the well clears the selected run on all four sides — a
-           1px white margin inside the frame, the way the classic rename box
-           boxed a highlighted name rather than letting it touch the rule.
-           Both numbers are chosen to leave the text exactly where the plate
-           puts it: border + padding comes to 1px in from the caption
-           horizontally, and 2px in vertically against the 2px it was pushed
-           out by, so nothing shifts when the field opens. */
         inset: calc(var(--vf-scale, 1) * -2px) calc(var(--vf-scale, 1) * -1px);
-        width: auto;
+        background: var(--vf-white, #fff);
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        padding: calc(var(--vf-scale, 1) * 1px);
+      }
+      .rename {
+        display: block;
+        width: 100%;
+        /* The plate's own line box, stated as height too: the input clips its
+           selection paint at this edge, which is the whole reason it has no
+           border of its own (see .rename-box). */
+        height: calc(var(--vf-scale, 1) * var(--vf-icon-label-height, 12px));
         ${vfBodyDecls}
         font-weight: var(--vf-font-weight, 700);
         line-height: calc(
-          var(--vf-scale, 1) * var(--vf-icon-label-height, 16px)
+          var(--vf-scale, 1) * var(--vf-icon-label-height, 12px)
         );
         /* Hand-rolled rather than composed from vfField: that recipe sets the
            Chicago display face, and pulling it in would ship the whole chrome
            WOFF2 with an element that otherwise sets only body type (see the
            note at the top of styles/base.ts). The Finder renamed in the same
            face it labelled in, so this is the faithful reading too. */
-        background: var(--vf-white, #fff);
+        background: none;
         color: var(--vf-black, #000);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        border: none;
         border-radius: 0;
-        /* One whole pixel of well on every side of the run (see inset above). */
-        padding: calc(var(--vf-scale, 1) * 1px);
+        padding: 0;
         margin: 0;
-        /* Left, matching the plate it overlays: same padding, same text x, so
-           the name does not shift by half a pixel the moment you start typing
-           — and the field's own run stays on the grid for the same reason the
-           plate's does. */
+        /* Left, matching the plate it overlays: same text x, so the name does
+           not shift by half a pixel the moment you start typing — and the
+           field's own run stays on the grid for the same reason the plate's
+           does. */
         text-align: left;
         user-select: text;
         -webkit-user-select: text;
@@ -655,17 +675,19 @@ export class VfIcon extends LitElement {
               >${caption}</span
             ></div>
             ${editing
-              ? html`<input
-                  class="rename"
-                  part="input"
-                  type="text"
-                  maxlength=${this.maxlength}
-                  .value=${this._draft}
-                  @beforeinput=${this.#onBeforeInput}
-                  @input=${this.#onInput}
-                  @keydown=${this.#onInputKeyDown}
-                  @blur=${this.commitEditing}
-                />`
+              ? html`<div class="rename-box">
+                  <input
+                    class="rename"
+                    part="input"
+                    type="text"
+                    maxlength=${this.maxlength}
+                    .value=${this._draft}
+                    @beforeinput=${this.#onBeforeInput}
+                    @input=${this.#onInput}
+                    @keydown=${this.#onInputKeyDown}
+                    @blur=${this.commitEditing}
+                  />
+                </div>`
               : nothing}
           </div>`
         : nothing}

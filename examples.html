@@ -2173,7 +2173,7 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>vf-name-too-long</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, accepted, limit }</code> — a rename went past <code>maxlength</code>; raise the alert System 7 raised rather than let the characters vanish</td></tr>
               <tr><td><code>vf-name-rejected</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, kept, reason }</code> — a rename was committed with no name in it, so the edit was dropped and the old name put back. No <code>vf-change</code> fires alongside it</td></tr>
               <tr><td><code>--vf-icon-gap</code></td><td>Token</td><td><code>2px</code></td><td class="wrap">Cell to plate</td></tr>
-              <tr><td><code>--vf-icon-label-height</code></td><td>Token</td><td><code>16px</code></td><td class="wrap">The plate's line box</td></tr>
+              <tr><td><code>--vf-icon-label-height</code></td><td>Token</td><td><code>12px</code></td><td class="wrap">The plate's line box</td></tr>
               <tr><td colspan="4" class="wrap">Slots: <code>large</code> (32×32 art, normally a <code>vf-img</code>), <code>small</code> (16×16). Parts: <code>frame</code>, <code>icon</code>, <code>label</code>, <code>plate</code>, <code>input</code>. Both files fetch even though one paints — pay it with two data URIs, or slot only the size that view uses.</td></tr>
             </tbody>
           </table>

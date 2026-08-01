@@ -111,8 +111,8 @@ for (const dpr of [1, 2, 3]) {
     `${small.art.w}×${small.art.h} css`
   )
   check(
-    `CELL dpr${dpr}  plate line box is 16 system px`,
-    large.label.h === 16 * large.scale,
+    `CELL dpr${dpr}  plate line box is 12 system px (the Finder's plate)`,
+    large.label.h === 12 * large.scale,
     `${large.label.h} css`
   )
   check(
@@ -183,7 +183,7 @@ for (const dpr of [1, 2, 3]) {
       const cs = getComputedStyle(label)
       return {
         text: label.textContent,
-        lines: Math.round(label.getBoundingClientRect().height / (16 * s)),
+        lines: Math.round(label.getBoundingClientRect().height / (12 * s)),
         plateW: plate.getBoundingClientRect().width / s,
         overflow: cs.textOverflow,
         wrap: cs.whiteSpace,
@@ -244,7 +244,8 @@ for (const dpr of [1, 2, 3]) {
         focused: document.activeElement === i,
         plate: !!i.shadowRoot.querySelector('.name'),
         input: !!i.shadowRoot.querySelector('input'),
-        inputW: i.shadowRoot.querySelector('input')?.getBoundingClientRect().width ?? 0,
+        // The visible box is the bordered wrapper, not the bare input inside it.
+        inputW: i.shadowRoot.querySelector('.rename-box')?.getBoundingClientRect().width ?? 0,
         scale: parseFloat(getComputedStyle(i).getPropertyValue('--vf-scale')),
       }
     })
@@ -368,9 +369,11 @@ for (const dpr of [1, 2, 3]) {
         plateW: sys(plate.getBoundingClientRect().width),
         plateX: sys(plate.getBoundingClientRect().x - frame.x),
         textX: plate.firstChild ? sys(r.getBoundingClientRect().x - frame.x) : null,
-        // Where the field's own run starts — what you actually see while typing.
+        // Where the field's own run starts — what you actually see while
+        // typing. The input carries no border or padding of its own (the
+        // rename-box wrapper does), so its edge IS the text's x.
         fieldTextX: input
-          ? sys(input.getBoundingClientRect().x - frame.x) + 2
+          ? sys(input.getBoundingClientRect().x - frame.x)
           : null,
       }
     })
@@ -428,9 +431,11 @@ for (const dpr of [1, 2, 3]) {
   await page.waitForTimeout(120)
 
   const rect = await page.evaluate(() => {
+    // The border and well live on the wrapper, not the input (the input's own
+    // edge is what clips the em-tall selection paint to the plate's line box).
     const b = document
       .querySelector('vf-icon')
-      .shadowRoot.querySelector('input')
+      .shadowRoot.querySelector('.rename-box')
       .getBoundingClientRect()
     return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }
   })
@@ -473,6 +478,11 @@ for (const dpr of [1, 2, 3]) {
     'WELL  and a whole white column inside it either side',
     scan.leftBorder && scan.leftWell,
     JSON.stringify(scan)
+  )
+  check(
+    'WELL  the whole edit box is the 12px plate plus border and well — 16, not the em',
+    rect.h === 16,
+    `${rect.h} system px at scale 1`
   )
   await page.close()
 }

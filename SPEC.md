@@ -124,7 +124,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) |
 | `--vf-label-line-height` | `16px` | `vf-label` line box — the faces' own em, so a caption sits on the menu/popup rhythm |
 | `--vf-paragraph-line-height` | `20px` | `vf-paragraph` line box — the same pitch as a `vf-list-item` row |
-| `--vf-icon-label-height` | `16px` | `vf-icon`'s name plate line box — the faces' own em, so a field of icons sits on the caption rhythm |
+| `--vf-icon-label-height` | `12px` | `vf-icon`'s name plate line box — the Finder's own plate height, tighter than the face's 16px em, which centers in it (keep an override even, or the baseline lands on a half pixel) |
 | `--vf-icon-gap` | `2px` | space between a `vf-icon`'s art cell and its name plate |
 | `--vf-paragraph-line-height-small` | `16px` | `vf-paragraph` line box under `size="small"` |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
@@ -1556,7 +1556,10 @@ grid; this makes it the thing the Finder manipulates.
   `maxlength`: number (31).
 - **Visual:** `display: inline-block`. A column: the art cell (`--_cell` system
   px square, `overflow: hidden`, art centered), `--vf-icon-gap` (2px), then the
-  name plate — body face on a `--vf-icon-label-height` (16px) line box, 1px
+  name plate — body face on a `--vf-icon-label-height` (12px) line box, the
+  Finder's own plate height: the face's 16px em centers in it, 3px above the
+  ascenders and descenders on the bottom edge, exactly as the Finder drew it —
+  1px
   horizontal padding, **opaque `--vf-white`** in its own right rather than
   `--vf-surface`: on the desktop dither the name reads because it sits on a
   plate, and `--vf-surface` is unset out there (`Example screen (1-bit).png`,
@@ -1608,8 +1611,13 @@ grid; this makes it the thing the Finder manipulates.
   `center`) — that would re-introduce the half pixel one level down; it starts
   at the 1px padding edge, so its x is the plate's plus one whole pixel, and
   the rounding slack lands after it as a hairline of extra plate. The rename
-  field matches the plate's padding and left alignment, so the name does not
-  shift when editing starts. Staying on one line is part of the same argument:
+  field puts its run exactly where the plate's is, so the name does not shift
+  when editing starts; its 1px border and 1px white well are a wrapper around
+  the input rather than the input's own border and padding, because the
+  selection behind a highlighted name paints at the face's full 16px em and is
+  clipped only at the input's own edge — split, the input stands the plate's
+  12px line box (clipping the selection to it) and the well stays white, for
+  an edit box 16 system px tall in all, not the em plus trim. Staying on one line is part of the same argument:
   one run, one measured width, one parity. Nothing is snapped and nothing leans
   on the rasterizer — the kit's normal antialiasing stays on, and `verify:icon`
   asserts both the geometry and zero gray pixels across a field of names at dpr

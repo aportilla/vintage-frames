@@ -6,7 +6,7 @@ import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
 import { VfFormControl } from '../form-control.js'
 import { VfToggleControl } from '../toggle-control.js'
-import { emit } from '../events.js'
+import { emit, emitNative } from '../events.js'
 
 /**
  * The classic System 7 checkbox: a 13×13 white square with a 1px black
@@ -22,6 +22,11 @@ import { emit } from '../events.js'
  * @csspart box - The 13×13 checkbox square.
  * @csspart label - The label wrapper around the slot.
  * @fires vf-change - When toggled by user interaction. `detail: { checked: boolean }`.
+ * @fires input - Native event, dispatched from the host per user toggle (with
+ *   `change`, the pair a native checkbox fires). A programmatic `checked` set
+ *   fires nothing, as on a native checkbox.
+ * @fires change - Native event, dispatched from the host per user toggle so
+ *   form delegation and framework bindings hear it.
  */
 @vfElement('vf-checkbox')
 export class VfCheckbox extends VfToggleControl(VfFormControl) {
@@ -150,6 +155,8 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
     this.checked = !this.checked
     this.focus()
     emit(this, 'vf-change', { checked: this.checked })
+    emitNative(this, 'input')
+    emitNative(this, 'change')
   }
 }
 

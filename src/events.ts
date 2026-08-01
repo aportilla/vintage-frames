@@ -36,3 +36,26 @@ export function emit<T = unknown>(
     })
   )
 }
+
+/**
+ * Dispatch the *native* `input`/`change` event a form control's host owes the
+ * platform, alongside the kit's `vf-input`/`vf-change`.
+ *
+ * A form-associated custom element that contributes to `FormData` but never
+ * fires `change` is half a native control: `form.addEventListener('change')`
+ * delegation hears nothing, and framework bindings (React's `onChange`, Vue's
+ * `v-model`) have nothing to bind to. Each control calls this from its **user
+ * interaction** paths only — a programmatic `value` set fires nothing, exactly
+ * as a native control fires nothing.
+ *
+ * The flags mirror the platform's own: both bubble; `input` is composed and
+ * `change` is not (UI Events). That composed split is also why the kit's
+ * *fields* only bridge `change`: their inner native control's own `input`
+ * already crosses the shadow boundary and retargets to the host, so
+ * re-dispatching it would double-fire every keystroke.
+ */
+export function emitNative(host: EventTarget, type: 'input' | 'change'): void {
+  host.dispatchEvent(
+    new Event(type, { bubbles: true, composed: type === 'input' })
+  )
+}

@@ -1,10 +1,11 @@
-import { css, html, LitElement } from 'lit'
+import { css, html } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { VfFormControl } from '../form-control.js'
 
 /**
  * `<vf-swatch>` — a color-swatch button: the color well of a palette cell.
@@ -31,10 +32,14 @@ import { GridSnapController } from '../grid-snap.js'
  * to the host, Enter/Space activate it, and pressing inverts the white inset
  * to black — the inset counterpart of vf-button's face inversion. Keyboard
  * focus is marked with the kit's 1px dashed rule under the box
- * (`vfFocusUnderline`) rather than a ring around it. It is not
- * form-associated (a palette cell picks, it doesn't submit); `disabled` only
- * stops interaction, dimming nothing — the kit dims *labels* when disabled,
- * and a swatch's only label is its fill, which must keep reading as its color.
+ * (`vfFocusUnderline`) rather than a ring around it. It is form-associated
+ * for the *disabled* contract alone — an ancestor `<fieldset disabled>` must
+ * reach a palette the way it reaches every other control, and only the
+ * form-associated lifecycle delivers that across the shadow boundary — but it
+ * submits nothing (a palette cell picks, it doesn't submit; no `name`, no
+ * value, no `FormData` entry). `disabled` only stops interaction, dimming
+ * nothing — the kit dims *labels* when disabled, and a swatch's only label is
+ * its fill, which must keep reading as its color.
  *
  * @csspart button - The inner native `<button>` (border, inset and, with
  *   `shadow`, the drop shadow).
@@ -44,9 +49,9 @@ import { GridSnapController } from '../grid-snap.js'
  *   `--vf-desktop-pattern`)
  */
 @vfElement('vf-swatch')
-export class VfSwatch extends LitElement {
+export class VfSwatch extends VfFormControl {
   static override shadowRootOptions: ShadowRootInit = {
-    ...LitElement.shadowRootOptions,
+    ...VfFormControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -163,7 +168,7 @@ export class VfSwatch extends LitElement {
   @property() label = ''
 
   /** Disables the control: it stops responding. Nothing dims (see class doc). */
-  @property({ type: Boolean, reflect: true }) disabled = false
+  @property({ type: Boolean, reflect: true }) override disabled = false
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -189,7 +194,7 @@ export class VfSwatch extends LitElement {
         type="button"
         style="width: calc(var(--vf-scale, 1) * ${this.width}px); height: calc(var(--vf-scale, 1) * ${this.height}px)"
         aria-label=${this.label || this.color || 'transparent'}
-        ?disabled=${this.disabled}
+        ?disabled=${this.isDisabled}
       >
         <span class="fill" part="fill" style=${fill}></span>
       </button>

@@ -1,19 +1,22 @@
 import { html, css, nothing } from 'lit'
-import { property, state } from 'lit/decorators.js'
+import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import {
   vfBase,
   vfStripes,
   vfFocus,
+  vfFocusRing,
   vfChromeFrame,
   vfModalFrame,
   vfTitleBar,
   vfWindowWidgets,
   vfDisplayDecls,
+  vfScrollbars,
 } from '../styles/base.js'
 import { snapToSystemPx, sys } from '../scale.js'
 import { DragController } from '../drag.js'
+import { ScrollStateController } from '../scroll-state.js'
 import { chromeTitleBar, widgetLabel, closeBox } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
@@ -50,6 +53,9 @@ import './vf-button-group.js'
  * @csspart title - The centered title patch (or the plain-frame heading).
  * @csspart close-box - The close widget (`closable`, default chrome only).
  * @csspart body - The white content area.
+ * @csspart content - The scrolling region inside the body (heading + slotted
+ *   content, not the footer). Inert while the content fits; over-stuffed, it
+ *   scrolls under a System 7 rail and becomes a keyboard stop.
  * @csspart footer - The action row wrapping the buttons.
  * @csspart buttons - The button group inside the footer.
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' }`.
@@ -68,23 +74,26 @@ export class VfDialog extends VfModalDialog {
     vfModalFrame,
     vfTitleBar,
     vfWindowWidgets,
+    vfScrollbars,
     modalDialogStyles,
     css`
       :host {
         display: contents;
       }
       /* A declared height lands on the <dialog> (dialogSize), so the frame has
-         to be told to fill it — vfChromeFrame is skin only, and a plain block
-         child of a taller box just stays content-tall, leaving the white frame
-         floating in a transparent dialog. Both chromes are full-height flex
-         columns for the same reason vf-window's is: the body takes the slack
-         the title bar doesn't. Unset height leaves the <dialog> auto, where
-         100% resolves to the content and this is a no-op. */
+         to be told to fill it — vfChromeFrame is skin only. Both chromes are
+         full-height flex columns for the same reason vf-window's is: the body
+         takes the slack the title bar doesn't. The frame is the flex child of
+         the <dialog> itself (modalDialogStyles), not a height: 100% block —
+         a percentage can't resolve against the undeclared-height dialog that
+         only the UA's dialog:modal max-height caps, and that spill was
+         exactly how a tall modal used to strand its buttons off-screen. */
       .vf-frame,
       .vf-modal-frame {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
       }
       .vf-modal-frame-inner {
         display: flex;
@@ -104,18 +113,62 @@ export class VfDialog extends VfModalDialog {
       :host([closable]) .vf-title {
         --vf-title-inset: 60px;
       }
-      /* Takes the slack under the title bar, and clips at the frame the way
-         vf-window's body does — a modal is a fixed box, so content taller than
-         the declared height is over-stuffed content, not something that paints
-         out past the border. A slotted vf-select's list still escapes: it is
+      /* Takes the slack under the title bar. A modal is a fixed box — the
+         frame never grows with its body — but content taller than the box is
+         no longer silently clipped: the .content region below scrolls it
+         under a System 7 rail, with the footer pinned outside the scroll so
+         the action buttons stay reachable. overflow: hidden stays as the
+         frame-level backstop. A slotted vf-select's list still escapes: it is
          position:fixed off the control's own rect (see vf-select.ts). */
       .body {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
+        display: flex;
+        flex-direction: column;
         flex: 1 1 auto;
         min-height: 0;
         overflow: hidden;
         padding: calc(var(--vf-scale, 1) * 16px);
+      }
+      /* The scroll region's positioned wrapper (the .vf-scroll-frame overlay
+         insets against it). Shrink-only (flex-grow 0): with slack in the box
+         the footer sits right after the content, exactly where block flow put
+         it before this wrapper existed — the wrap only gives height back when
+         the content doesn't fit. */
+      .content-wrap {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        flex: 0 1 auto;
+        min-height: 0;
+      }
+      .content {
+        flex: 0 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      /* Only while genuinely over-stuffed (ScrollStateController's measured
+         signal): reserve the real 16px channel — modern Chromium draws a
+         zero-width overlay bar for a styled ::-webkit-scrollbar otherwise —
+         and box the rail with the recipe's frame overlay, which also draws
+         the bar's outer line. While the content fits, none of this matches
+         and the body renders exactly as it always has. */
+      .content[data-overflow-y='true'] {
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
+      }
+      .content-wrap .vf-scroll-frame {
+        display: none;
+      }
+      .content[data-overflow-y='true'] + .vf-scroll-frame {
+        display: block;
+      }
+      /* A scrollable region is a keyboard stop (tabindex in the template);
+         mark it with the kit's dotted ring, inset to stay in-box — the same
+         treatment as vf-scroll-area's viewport. */
+      .content:focus-visible {
+        --vf-focus-offset: -2px;
+        ${vfFocusRing}
       }
       /* The plain frame's heading: centered chrome type at the top of the
          body, the way dBoxProc dialogs drew their title in content (see
@@ -218,6 +271,29 @@ export class VfDialog extends VfModalDialog {
   /** Whether the `buttons` slot has assigned content (drives the footer). */
   @state() private _hasButtons = false
 
+  @query('.content') private _content!: HTMLElement | null
+
+  /** Whether the body content overflows its box (drives the content stop). */
+  @state() private _scrollable = false
+
+  /**
+   * Activates the System 7 rail — and the content region's keyboard stop —
+   * once the body content overflows the declared (or viewport-capped) box.
+   */
+  private readonly _scrollState = new ScrollStateController(
+    this,
+    () => this._content,
+    undefined,
+    (overflow) => {
+      this._scrollable = overflow.y
+    }
+  )
+
+  /** Content changed under the fixed box — re-measure the overflow. */
+  private _onBodySlotChange(): void {
+    this._scrollState.measure()
+  }
+
   private _onCloseClick(): void {
     this.close()
   }
@@ -233,12 +309,22 @@ export class VfDialog extends VfModalDialog {
     const plain = this.frame === 'plain'
     const body = html`
       <div class="body" part="body">
-        ${plain && this.heading !== ''
-          ? html`<span class="plain-heading" part="title" id="title"
-              >${this.heading}</span
-            >`
-          : nothing}
-        <slot></slot>
+        <div class="content-wrap">
+          <div
+            class="content vf-scroll"
+            part="content"
+            tabindex=${this._scrollable ? '0' : nothing}
+            role=${this._scrollable ? 'group' : nothing}
+          >
+            ${plain && this.heading !== ''
+              ? html`<span class="plain-heading" part="title" id="title"
+                  >${this.heading}</span
+                >`
+              : nothing}
+            <slot @slotchange=${this._onBodySlotChange}></slot>
+          </div>
+          <div class="vf-scroll-frame" aria-hidden="true"></div>
+        </div>
         <div class="footer ${this._hasButtons ? '' : 'empty'}" part="footer">
           <vf-button-group class="buttons" part="buttons">
             <slot

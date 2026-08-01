@@ -73,6 +73,43 @@
               "description": "True when the consumer slotted custom icon content."
             },
             {
+              "kind": "field",
+              "name": "_messageScroll",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "_scrollable",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether the message overflows its cell (drives the scroll stop)."
+            },
+            {
+              "kind": "field",
+              "name": "_scrollState",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new ScrollStateController( this, () => this._messageScroll, undefined, (overflow) => { this._scrollable = overflow.y } )",
+              "description": "Activates the System 7 rail — and the message region's keyboard stop —\nonce the message overflows the declared (or viewport-capped) box."
+            },
+            {
+              "kind": "method",
+              "name": "_onMessageSlotChange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Message content changed under the fixed box — re-measure the overflow."
+            },
+            {
               "kind": "method",
               "name": "_onIconSlotChange",
               "privacy": "private",
@@ -213,6 +250,20 @@
               }
             },
             {
+              "kind": "field",
+              "name": "#invoker",
+              "privacy": "private",
+              "type": {
+                "text": "Element | null"
+              },
+              "default": "null",
+              "description": "The element that was focused when the modal opened. The normal close path\nrestores focus natively, but the removal path (see the class doc) skips\nthe close algorithm, and by the time `disconnectedCallback` runs, focus\nhas already fallen to `<body>` — so we keep our own record.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "show",
               "return": {
@@ -250,6 +301,65 @@
                 }
               },
               "description": "Reconcile the native `<dialog>` with `open`. Opening pins the UA's\nauto-centering onto the device-pixel grid (half-pixel offsets fringe the\n1-bit chrome — see scale.ts). Closing just calls `dialog.close()`, routing\nteardown through the native `close` event so _onNativeClose is the\none place margins are cleared and `vf-close` is fired.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#repin",
+              "privacy": "private",
+              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (vf-alert, frame=\"plain\") is not.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#resizeObserver",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              },
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#watchGeometry",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "dialog",
+                  "type": {
+                    "text": "HTMLDialogElement"
+                  }
+                }
+              ],
+              "description": "While open, watch the two signals that invalidate the pin: the dialog's\nown box changing (content upgrade/growth, `--vf-scale` moving under a\nzoom or density change — every metric resizes with it) and the viewport\nresizing. Undone in _onNativeClose / `disconnectedCallback`.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#unwatchGeometry",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -1476,6 +1586,14 @@
             {
               "description": "When toggled by user interaction. `detail: { checked: boolean }`.",
               "name": "vf-change"
+            },
+            {
+              "description": "Native event, dispatched from the host per user toggle (with `change`, the pair a native checkbox fires). A programmatic `checked` set fires nothing, as on a native checkbox.",
+              "name": "input"
+            },
+            {
+              "description": "Native event, dispatched from the host per user toggle so form delegation and framework bindings hear it.",
+              "name": "change"
             }
           ],
           "attributes": [
@@ -1870,6 +1988,10 @@
               "name": "body"
             },
             {
+              "description": "The scrolling region inside the body (heading + slotted content, not the footer). Inert while the content fits; over-stuffed, it scrolls under a System 7 rail and becomes a keyboard stop.",
+              "name": "content"
+            },
+            {
               "description": "The action row wrapping the buttons.",
               "name": "footer"
             },
@@ -1947,6 +2069,43 @@
               "privacy": "private",
               "default": "false",
               "description": "Whether the `buttons` slot has assigned content (drives the footer)."
+            },
+            {
+              "kind": "field",
+              "name": "_content",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "_scrollable",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether the body content overflows its box (drives the content stop)."
+            },
+            {
+              "kind": "field",
+              "name": "_scrollState",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new ScrollStateController( this, () => this._content, undefined, (overflow) => { this._scrollable = overflow.y } )",
+              "description": "Activates the System 7 rail — and the content region's keyboard stop —\nonce the body content overflows the declared (or viewport-capped) box."
+            },
+            {
+              "kind": "method",
+              "name": "_onBodySlotChange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Content changed under the fixed box — re-measure the overflow."
             },
             {
               "kind": "method",
@@ -2099,6 +2258,20 @@
               }
             },
             {
+              "kind": "field",
+              "name": "#invoker",
+              "privacy": "private",
+              "type": {
+                "text": "Element | null"
+              },
+              "default": "null",
+              "description": "The element that was focused when the modal opened. The normal close path\nrestores focus natively, but the removal path (see the class doc) skips\nthe close algorithm, and by the time `disconnectedCallback` runs, focus\nhas already fallen to `<body>` — so we keep our own record.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "show",
               "return": {
@@ -2136,6 +2309,65 @@
                 }
               },
               "description": "Reconcile the native `<dialog>` with `open`. Opening pins the UA's\nauto-centering onto the device-pixel grid (half-pixel offsets fringe the\n1-bit chrome — see scale.ts). Closing just calls `dialog.close()`, routing\nteardown through the native `close` event so _onNativeClose is the\none place margins are cleared and `vf-close` is fired.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#repin",
+              "privacy": "private",
+              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (vf-alert, frame=\"plain\") is not.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#resizeObserver",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              },
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#watchGeometry",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "dialog",
+                  "type": {
+                    "text": "HTMLDialogElement"
+                  }
+                }
+              ],
+              "description": "While open, watch the two signals that invalidate the pin: the dialog's\nown box changing (content upgrade/growth, `--vf-scale` moving under a\nzoom or density change — every metric resizes with it) and the viewport\nresizing. Undone in _onNativeClose / `disconnectedCallback`.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#unwatchGeometry",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -3398,6 +3630,15 @@
               "description": "The name we handed the target, so we can take back exactly that."
             },
             {
+              "kind": "field",
+              "name": "#textObserver",
+              "privacy": "private",
+              "type": {
+                "text": "MutationObserver | undefined"
+              },
+              "description": "Re-derives the pushed name when the caption's text mutates *in place*.\n`slotchange` only fires when the assigned nodes change — and frameworks\n(Lit's ChildPart, React) update text by writing `.data` on the existing\nText node, which assigns nothing. Without this, a re-rendered caption\nchanged on screen while the control kept the old accessible name forever.\nWatching the target's own property back is safe: `#link` writes to the\n*target*, never into this label's subtree, so the observer can't loop."
+            },
+            {
               "kind": "method",
               "name": "#target",
               "privacy": "private",
@@ -3418,7 +3659,7 @@
               "kind": "field",
               "name": "#relink",
               "privacy": "private",
-              "description": "Retry the wiring once the document has finished parsing (see #link)."
+              "description": "Re-run the wiring: mid-parse retry (see #link) and in-place text edits\n(see #textObserver) both land here."
             },
             {
               "kind": "method",
@@ -5501,6 +5742,45 @@
             },
             {
               "kind": "field",
+              "name": "forwardedAttributes",
+              "type": {
+                "text": "readonly string[]"
+              },
+              "privacy": "protected",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'autocomplete', 'inputmode', 'enterkeyhint', 'maxlength', 'spellcheck', 'autocapitalize', ]",
+              "description": "Host attributes forwarded verbatim onto the inner native control — the\ninput-behavior vocabulary the platform only honors on the element that\nactually takes the input. `<vf-text-field autocomplete=\"email\">` used to\nput the token on a custom element the browser ignores for autofill while\nthe shadow `<input>` never received it; same story for the mobile-keyboard\npair (`inputmode`, `enterkeyhint`) and the rest. These are deliberately\n*not* reactive properties: four of them are global attributes with IDL\naccessors already on `HTMLElement` (`spellcheck`, `autocapitalize`,\n`inputMode`, `enterKeyHint`), and a Lit `@property` would shadow the\nplatform member — the kit's own `align`/`draggable` trap. Instead the\nattributes are observed (see `observedAttributes`) and read at render\ntime via forwardedAttr. Subclasses may extend the list\n(`vf-text-field` adds `pattern`) or override a default in their template\n(`vf-number-field` keeps `inputmode=\"decimal\"` unless told otherwise).",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "forwardedAttr",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string | typeof nothing"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "name",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The forwarded value of a host attribute for the inner control's template\nbinding, or `nothing` (remove the attribute) while the host doesn't\ncarry it.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "scale",
               "privacy": "protected",
               "readonly": true,
@@ -5947,6 +6227,14 @@
             {
               "description": "On commit or step. `detail: { value, valueAsNumber }`.",
               "name": "vf-change"
+            },
+            {
+              "description": "The native event: the inner input's own on a keystroke (composed, crosses the boundary itself), dispatched from the host on a step — a native number input's spinner fires it per click too.",
+              "name": "input"
+            },
+            {
+              "description": "The native commit event, dispatched from the host on a typed commit and on every step, as a native spinner does. The input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`, `maxlength`, `spellcheck`, `autocapitalize` — are forwarded from the host onto the inner input; unset, `inputmode` stays the numeric keypad's `decimal` and `autocomplete` stays `off`.",
+              "name": "change"
             }
           ],
           "attributes": [
@@ -7013,6 +7301,14 @@
             {
               "description": "When the selection changes via user interaction. `detail: { value: string }`.",
               "name": "vf-change"
+            },
+            {
+              "description": "Native event, dispatched from the group (the form-associated surface) per user pick. A programmatic `value` set fires nothing.",
+              "name": "input"
+            },
+            {
+              "description": "Native event, dispatched from the group per user pick so form delegation and framework bindings hear it.",
+              "name": "change"
             }
           ],
           "attributes": [
@@ -8512,6 +8808,14 @@
             {
               "description": "After a selection commits. `detail: { value: string }`.",
               "name": "vf-change"
+            },
+            {
+              "description": "Native event, dispatched from the host per committed pick (with `change`, the pair a native `<select>` fires). A programmatic `value` set fires nothing.",
+              "name": "input"
+            },
+            {
+              "description": "Native event, dispatched from the host per committed pick so form delegation and framework bindings hear it.",
+              "name": "change"
             }
           ],
           "attributes": [
@@ -9271,6 +9575,14 @@
             {
               "description": "On commit (pointer release, or key change). `detail: { value: number }`.",
               "name": "vf-change"
+            },
+            {
+              "description": "Native event, dispatched from the host on every user value move — a native range input's cadence. A programmatic `value` set fires nothing.",
+              "name": "input"
+            },
+            {
+              "description": "Native event, dispatched from the host on commit (release, or a key change) so form delegation and framework bindings hear it.",
+              "name": "change"
             }
           ],
           "attributes": [
@@ -9536,7 +9848,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-swatch>` — a color-swatch button: the color well of a palette cell.\n\nA solid rectangle with a 1px black border and a 1px white inset ring, filled\nedge-to-edge with a solid color. Given no `color` at all it shows the\ntransparency checker instead — the \"this cell holds nothing\" grid every\npaint program draws behind an empty fill.\n\n`width`/`height` state the border box in whole system pixels (the fill is\nwhat remains inside the border and inset), multiplied by `--vf-scale` like\nevery other metric, so the swatch holds the device-pixel grid wherever a\npalette puts it.\n\n`shadow` opts into the kit's hard drop shadow — the shared\n`--vf-shadow-offset` token, the same depth cue as windows, menus and alerts,\npainted outside the box like theirs. It is off by default because the\nswatch's usual home is a table of them (a `vf-grid`, a picker row), where\nevery cell shadowing its neighbour reads as noise rather than depth; a lone\nwell standing in for a current color — the one a dialog asks you to click —\nis the case that wants it.\n\nIt is \"basically a button\": a native `<button>` inside, so `click` retargets\nto the host, Enter/Space activate it, and pressing inverts the white inset\nto black — the inset counterpart of vf-button's face inversion. Keyboard\nfocus is marked with the kit's 1px dashed rule under the box\n(`vfFocusUnderline`) rather than a ring around it. It is not\nform-associated (a palette cell picks, it doesn't submit); `disabled` only\nstops interaction, dimming nothing — the kit dims *labels* when disabled,\nand a swatch's only label is its fill, which must keep reading as its color.",
+          "description": "`<vf-swatch>` — a color-swatch button: the color well of a palette cell.\n\nA solid rectangle with a 1px black border and a 1px white inset ring, filled\nedge-to-edge with a solid color. Given no `color` at all it shows the\ntransparency checker instead — the \"this cell holds nothing\" grid every\npaint program draws behind an empty fill.\n\n`width`/`height` state the border box in whole system pixels (the fill is\nwhat remains inside the border and inset), multiplied by `--vf-scale` like\nevery other metric, so the swatch holds the device-pixel grid wherever a\npalette puts it.\n\n`shadow` opts into the kit's hard drop shadow — the shared\n`--vf-shadow-offset` token, the same depth cue as windows, menus and alerts,\npainted outside the box like theirs. It is off by default because the\nswatch's usual home is a table of them (a `vf-grid`, a picker row), where\nevery cell shadowing its neighbour reads as noise rather than depth; a lone\nwell standing in for a current color — the one a dialog asks you to click —\nis the case that wants it.\n\nIt is \"basically a button\": a native `<button>` inside, so `click` retargets\nto the host, Enter/Space activate it, and pressing inverts the white inset\nto black — the inset counterpart of vf-button's face inversion. Keyboard\nfocus is marked with the kit's 1px dashed rule under the box\n(`vfFocusUnderline`) rather than a ring around it. It is form-associated\nfor the *disabled* contract alone — an ancestor `<fieldset disabled>` must\nreach a palette the way it reaches every other control, and only the\nform-associated lifecycle delivers that across the shadow boundary — but it\nsubmits nothing (a palette cell picks, it doesn't submit; no `name`, no\nvalue, no `FormData` entry). `disabled` only stops interaction, dimming\nnothing — the kit dims *labels* when disabled, and a swatch's only label is\nits fill, which must keep reading as its color.",
           "name": "VfSwatch",
           "cssProperties": [
             {
@@ -9562,7 +9874,7 @@
                 "text": "ShadowRootInit"
               },
               "static": true,
-              "default": "{ ...LitElement.shadowRootOptions, delegatesFocus: true, }"
+              "default": "{ ...VfFormControl.shadowRootOptions, delegatesFocus: true, }"
             },
             {
               "kind": "field",
@@ -9623,7 +9935,11 @@
               "default": "false",
               "description": "Disables the control: it stops responding. Nothing dims (see class doc).",
               "attribute": "disabled",
-              "reflects": true
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
             },
             {
               "kind": "field",
@@ -9640,6 +9956,252 @@
               "readonly": true,
               "default": "new GridSnapController(this)",
               "description": "Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts."
+            },
+            {
+              "kind": "field",
+              "name": "formAssociated",
+              "type": {
+                "text": "boolean"
+              },
+              "static": true,
+              "default": "true",
+              "description": "Participates in native forms via ElementInternals.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "internals",
+              "type": {
+                "text": "ElementInternals"
+              },
+              "privacy": "protected",
+              "readonly": true,
+              "description": "Form + ARIA internals; attached once here for every subclass.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "formDisabled",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "default": "false",
+              "description": "True while an ancestor `<fieldset disabled>` disables this control.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "isDisabled",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formDisabledCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "disabled",
+                  "type": {
+                    "text": "boolean"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncFormValue",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "value",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                }
+              ],
+              "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#formDefault",
+              "privacy": "private",
+              "type": {
+                "text": "unknown"
+              },
+              "description": "The value formDefault hands back for the subclass's\n`formResetCallback`. `unknown` because each control latches its own value\ntype (string, number, boolean); formDefault casts it back out.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#formDefaultLatched",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "latchFormDefault",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "value",
+                  "type": {
+                    "text": "unknown"
+                  }
+                }
+              ],
+              "description": "Capture the control's form-reset default. Only the first call latches, so\nlifecycle paths that can run more than once — reconnects, repeated\nslotchanges — may call it unconditionally. WHEN to call it is each\ncontrol's own contract: most latch on first connect, `vf-select` waits\nuntil options exist, `vf-radio-group` lets a pre-checked radio adopted on\nslotchange claim an unauthored default.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formDefault",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "T"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "fallback",
+                  "type": {
+                    "text": "T"
+                  }
+                }
+              ],
+              "description": "The latched form-reset default, or `fallback` while nothing has latched.\nThe cast is sound because a control only ever latches its own value type.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "disabledChanged",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "changed",
+                  "type": {
+                    "text": "PropertyValues"
+                  }
+                }
+              ],
+              "description": "True when this update changed the *resolved* disabled state — the gate a\nsubclass's `updated()` should use before re-running its form value, ARIA\nor tab-stop writes.\n\nIt exists because formDisabled is protected, so `keyof this` can't\nname it and a `PropertyValues<this>` gate silently can't test for it: a\n`changed.has('disabled')` check compiles, reads as complete, and misses\nevery ancestor `<fieldset disabled>` — which is the path that must clear a\ncontrol's submitted value. One named predicate keeps that trap in one\nplace instead of in each subclass's gate.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
             }
           ],
           "attributes": [
@@ -9694,12 +10256,16 @@
               },
               "default": "false",
               "description": "Disables the control: it stops responding. Nothing dims (see class doc).",
-              "fieldName": "disabled"
+              "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
             }
           ],
           "superclass": {
-            "name": "LitElement",
-            "package": "lit"
+            "name": "VfFormControl",
+            "module": "/src/form-control.js"
           },
           "tagName": "vf-swatch",
           "customElement": true
@@ -9889,6 +10455,45 @@
               "default": "''",
               "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
               "attribute": "label",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "forwardedAttributes",
+              "type": {
+                "text": "readonly string[]"
+              },
+              "privacy": "protected",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'autocomplete', 'inputmode', 'enterkeyhint', 'maxlength', 'spellcheck', 'autocapitalize', ]",
+              "description": "Host attributes forwarded verbatim onto the inner native control — the\ninput-behavior vocabulary the platform only honors on the element that\nactually takes the input. `<vf-text-field autocomplete=\"email\">` used to\nput the token on a custom element the browser ignores for autofill while\nthe shadow `<input>` never received it; same story for the mobile-keyboard\npair (`inputmode`, `enterkeyhint`) and the rest. These are deliberately\n*not* reactive properties: four of them are global attributes with IDL\naccessors already on `HTMLElement` (`spellcheck`, `autocapitalize`,\n`inputMode`, `enterKeyHint`), and a Lit `@property` would shadow the\nplatform member — the kit's own `align`/`draggable` trap. Instead the\nattributes are observed (see `observedAttributes`) and read at render\ntime via forwardedAttr. Subclasses may extend the list\n(`vf-text-field` adds `pattern`) or override a default in their template\n(`vf-number-field` keeps `inputmode=\"decimal\"` unless told otherwise).",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "forwardedAttr",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string | typeof nothing"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "name",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The forwarded value of a host attribute for the inner control's template\nbinding, or `nothing` (remove the attribute) while the host doesn't\ncarry it.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -10319,6 +10924,14 @@
             {
               "description": "On commit (native `change`). `detail: { value: string }`.",
               "name": "vf-change"
+            },
+            {
+              "description": "The native keystroke event: the inner textarea's own, composed, so it crosses the shadow boundary and retargets to the host.",
+              "name": "input"
+            },
+            {
+              "description": "The native commit event, re-dispatched from the host (the inner one is `composed: false` and never leaves the shadow root). The input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`, `maxlength`, `spellcheck`, `autocapitalize` — are forwarded from the host onto the inner textarea, where the platform actually honors them (`pattern` is not: only an `<input>` takes it).",
+              "name": "change"
             }
           ],
           "attributes": [
@@ -10480,6 +11093,22 @@
               "attribute": "type"
             },
             {
+              "kind": "field",
+              "name": "forwardedAttributes",
+              "type": {
+                "text": "readonly string[]"
+              },
+              "privacy": "protected",
+              "static": true,
+              "readonly": true,
+              "default": "[ ...VfTextControlBase.forwardedAttributes, 'pattern', ]",
+              "description": "The shared forwarded set plus `pattern`, which only an `<input>` takes.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "handleKeydown",
               "privacy": "private",
@@ -10579,6 +11208,29 @@
               "default": "''",
               "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
               "attribute": "label",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "forwardedAttr",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string | typeof nothing"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "name",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The forwarded value of a host attribute for the inner control's template\nbinding, or `nothing` (remove the attribute) while the host doesn't\ncarry it.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -11032,6 +11684,14 @@
             {
               "description": "On commit (native `change`). `detail: { value: string }`.",
               "name": "vf-change"
+            },
+            {
+              "description": "The native keystroke event: the inner input's own, composed, so it crosses the shadow boundary and retargets to the host by itself.",
+              "name": "input"
+            },
+            {
+              "description": "The native commit event, re-dispatched from the host (the inner one is `composed: false` and never leaves the shadow root), so form delegation and framework bindings hear it. The input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`, `maxlength`, `pattern`, `spellcheck`, `autocapitalize` — are forwarded from the host onto the inner input, where the platform actually honors them.",
+              "name": "change"
             }
           ],
           "attributes": [
@@ -11909,6 +12569,37 @@
             },
             {
               "kind": "field",
+              "name": "forwardedAttributes",
+              "type": {
+                "text": "readonly string[]"
+              },
+              "privacy": "protected",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'autocomplete', 'inputmode', 'enterkeyhint', 'maxlength', 'spellcheck', 'autocapitalize', ]",
+              "description": "Host attributes forwarded verbatim onto the inner native control — the\ninput-behavior vocabulary the platform only honors on the element that\nactually takes the input. `<vf-text-field autocomplete=\"email\">` used to\nput the token on a custom element the browser ignores for autofill while\nthe shadow `<input>` never received it; same story for the mobile-keyboard\npair (`inputmode`, `enterkeyhint`) and the rest. These are deliberately\n*not* reactive properties: four of them are global attributes with IDL\naccessors already on `HTMLElement` (`spellcheck`, `autocapitalize`,\n`inputMode`, `enterKeyHint`), and a Lit `@property` would shadow the\nplatform member — the kit's own `align`/`draggable` trap. Instead the\nattributes are observed (see `observedAttributes`) and read at render\ntime via forwardedAttr. Subclasses may extend the list\n(`vf-text-field` adds `pattern`) or override a default in their template\n(`vf-number-field` keeps `inputmode=\"decimal\"` unless told otherwise)."
+            },
+            {
+              "kind": "method",
+              "name": "forwardedAttr",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string | typeof nothing"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "name",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The forwarded value of a host attribute for the inner control's template\nbinding, or `nothing` (remove the attribute) while the host doesn't\ncarry it."
+            },
+            {
+              "kind": "field",
               "name": "scale",
               "privacy": "protected",
               "readonly": true,
@@ -12622,12 +13313,12 @@
         {
           "kind": "variable",
           "name": "modalDialogStyles",
-          "default": "css` dialog { padding: 0; margin: auto; border: none; background: transparent; overflow: visible; color: inherit; font: inherit; } dialog::backdrop { background: transparent; } `",
+          "default": "css` dialog { padding: 0; margin: auto; border: none; background: transparent; overflow: visible; color: inherit; font: inherit; } /* Scoped to [open]: an unqualified display here would out-cascade the UA's dialog:not([open]) { display: none } (author origin beats UA origin) and paint every closed dialog. Flex, so the frame child can resolve against the dialog's real box even when no height is declared and the UA's dialog:modal max-height is what caps it — a percentage height resolves to auto against that (indefinite) box, which left the frame content-tall and spilling past the border with its buttons unreachable; a flex child with min-height: 0 shrinks to the capped box instead, and the shells' inner scroll region takes over from there. */ dialog[open] { display: flex; flex-direction: column; } dialog::backdrop { background: transparent; } `",
           "description": "Shared native-`<dialog>` styles for the modal shells: a chromeless top-layer\ndialog (the frame is drawn by the subclass) with a fully transparent\nbackdrop — pure System 7, no dimming."
         },
         {
           "kind": "class",
-          "description": "Base class for the movable-modal `vf-dialog` and fixed-modal `vf-alert`.\n\nOwns the native `<dialog>` lifecycle both share: `open` sync, `show()` /\n`close()`, the device-grid pin on open, and the single `close` funnel that\nclears the grid-pinned margins (unsnapDialog) and fires `vf-close`\nwith the reason. Because every close path — Escape, `close()`, backdrop —\nroutes through the native `close` event, an Escape-close no longer leaves\nstale margins behind, so the next open re-centers.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
+          "description": "Base class for the movable-modal `vf-dialog` and fixed-modal `vf-alert`.\n\nOwns the native `<dialog>` lifecycle both share: `open` sync, `show()` /\n`close()`, the device-grid pin on open, and the single `close` funnel that\nclears the grid-pinned margins (unsnapDialog) and fires `vf-close`\nwith the reason. Because every close path — Escape, `close()`, backdrop —\nroutes through the native `close` event, an Escape-close no longer leaves\nstale margins behind, so the next open re-centers.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
           "name": "VfModalDialog",
           "members": [
             {
@@ -12717,6 +13408,16 @@
               "description": "Close reason pending for the next native `close` event."
             },
             {
+              "kind": "field",
+              "name": "#invoker",
+              "privacy": "private",
+              "type": {
+                "text": "Element | null"
+              },
+              "default": "null",
+              "description": "The element that was focused when the modal opened. The normal close path\nrestores focus natively, but the removal path (see the class doc) skips\nthe close algorithm, and by the time `disconnectedCallback` runs, focus\nhas already fallen to `<body>` — so we keep our own record."
+            },
+            {
               "kind": "method",
               "name": "show",
               "return": {
@@ -12746,6 +13447,49 @@
                 }
               },
               "description": "Reconcile the native `<dialog>` with `open`. Opening pins the UA's\nauto-centering onto the device-pixel grid (half-pixel offsets fringe the\n1-bit chrome — see scale.ts). Closing just calls `dialog.close()`, routing\nteardown through the native `close` event so _onNativeClose is the\none place margins are cleared and `vf-close` is fired."
+            },
+            {
+              "kind": "field",
+              "name": "#repin",
+              "privacy": "private",
+              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (vf-alert, frame=\"plain\") is not."
+            },
+            {
+              "kind": "field",
+              "name": "#resizeObserver",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#watchGeometry",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "dialog",
+                  "type": {
+                    "text": "HTMLDialogElement"
+                  }
+                }
+              ],
+              "description": "While open, watch the two signals that invalidate the pin: the dialog's\nown box changing (content upgrade/growth, `--vf-scale` moving under a\nzoom or density change — every metric resizes with it) and the viewport\nresizing. Undone in _onNativeClose / `disconnectedCallback`."
+            },
+            {
+              "kind": "method",
+              "name": "#unwatchGeometry",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
             },
             {
               "kind": "method",

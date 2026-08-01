@@ -90,6 +90,16 @@ Modern requirements that we deliberately keep (accessibility over purity):
   list's `vf-list-item-disabled-change` pass `composed: false` — parent and
   child share one light tree, and a private, cancelable protocol must not leak
   out of a consumer's shadow boundary into their delegated listeners.
+- **Form controls also fire the native `input`/`change` pair** (`emitNative`,
+  src/events.ts), alongside `vf-input`/`vf-change` — a form-associated element
+  that contributes to `FormData` but never fires `change` is half a native
+  control: form-level delegation hears nothing and framework bindings (React
+  `onChange`, Vue `v-model`) have nothing to bind to. Native semantics hold:
+  fired from **user interaction only** (a programmatic value write fires
+  nothing), with native flags (`input` composed, `change` not). The fields
+  re-dispatch only `change` from the host — their inner control's own `input`
+  is composed and retargets across the shadow boundary by itself, so a host
+  re-dispatch would double-fire every keystroke.
 - Disabled pattern: reflected `disabled` attr; the **label/text** dims to
   `--vf-disabled` gray while borders, boxes and glyphs stay black; interaction
   handlers early-return; set `aria-disabled`/`disabled` on internals.
@@ -548,6 +558,17 @@ striped title bar over a white body), the dBoxProc modal dialog box with
   Escape → close + `vf-close` detail `{ reason: 'escape' }`;
   close box/programmatic/close() → `{ reason: 'close' }`. No backdrop dimming:
   `::backdrop { background: transparent; }`.
+  **Removal while open is a close path** (`VfModalDialog.disconnectedCallback`):
+  HTML's dialog removing steps skip the close algorithm entirely, which is
+  exactly what a framework unmount does — the teardown routes through the same
+  native-`close` funnel (`vf-close` fires on the removed element; nothing
+  bubbles, it left the tree), `open` and the pinned margins reconcile so a
+  re-append mounts closed, and focus returns to the element focused at open
+  time. **The grid pin re-derives while open** (unsnap → re-snap off the live,
+  re-centered rect) whenever the dialog's own box resizes — slotted content
+  upgrading after `showModal()`, `--vf-scale` moving under zoom — or the
+  viewport resizes; a dragged position re-centers on those signals, which is
+  recoverable where a stranded modal is not.
 - **Visual (default chrome):** `vfChromeFrame` + `vfTitleBar` (§4) — literally
   the same two recipes `vf-window` uses, so the bar is identical by
   construction (stripes + centered title) rather than by matching copies. It
@@ -563,12 +584,22 @@ striped title bar over a white body), the dBoxProc modal dialog box with
   faces aligned).
   Both chromes are full-height flex columns and the body takes the slack, for
   the same reason `vf-window`'s frame is: the declared `height` lands on the
-  `<dialog>` (see `dialogSize`), and the recipes are skin only — a plain block
-  child of a taller box stays content-tall and leaves the white frame floating
-  inside a transparent dialog. With no declared height the `<dialog>` is auto,
-  `height: 100%` resolves to the content, and the chain is a no-op. The body
-  clips (`overflow: hidden`) like `vf-window`'s, with the same drop-open
-  exemption.
+  `<dialog>` (see `dialogSize`), and the recipes are skin only. The frame is
+  the flex child of the `<dialog>` itself (`dialog[open]` is a flex column in
+  `modalDialogStyles` — `[open]`-scoped, or it would out-cascade the UA's
+  `dialog:not([open]) { display: none }`), not a `height: 100%` block: a
+  percentage can't resolve against the undeclared-height dialog that only the
+  UA's `dialog:modal` max-height caps, and that spill was how a viewport-tall
+  modal stranded its buttons off-screen. **The box never grows, but
+  over-stuffed content scrolls instead of clipping**: the body is a flex
+  column of a `.content` scroll region (heading + default slot; part
+  `content`) over the pinned footer. While the content fits, nothing matches —
+  rendering is pixel-identical to the old block flow. Once it overflows
+  (`ScrollStateController`, the always-a-rail machinery), the region reserves
+  the 16px channel, wears the `vfScrollbars` System 7 rail boxed by a
+  `.vf-scroll-frame` overlay, and becomes a keyboard stop (`tabindex="0"`,
+  `role="group"`, the kit's dotted ring) so the copy is scrollable without a
+  pointer. The drop-open exemption is unchanged.
 - **Visual (`frame="plain"`):** `vfModalFrame` (§4 — 1px outer, 2px gap, 2px
   inner band, no shadow, per `Windows/modal dialog.png`), no title bar, and
   immovable like the original dBoxProc dialog (nothing renders a drag handle).
@@ -585,7 +616,7 @@ striped title bar over a white body), the dBoxProc modal dialog box with
   labeled `Close ${heading}` like `vf-window`'s.
 - **Slots:** default, `buttons`.
 - **Parts:** `frame`, `title-bar` (default chrome), `title`, `close-box`
-  (when `closable`), `body`, `footer`, `buttons`.
+  (when `closable`), `body`, `content`, `footer`, `buttons`.
 - **Events:** `vf-close`.
 
 #### `vf-alert` (`VfAlert`, vf-alert.ts)
@@ -605,9 +636,15 @@ see §4.)
   (32px) left, message right; the `buttons` slot is a bottom-right
   `vf-button-group` (equal-width, faces aligned; classic 12px gap).
   Each ring of the double frame is a flex column passing the declared `height`
-  inward (outer `height: 100%`, inner and content `flex: 1 1 auto`), for the
-  reason given under `vf-dialog` — otherwise the framed art stays content-tall
-  inside a taller `<dialog>`. The content grid clips (`overflow: hidden`).
+  inward (the outer ring is the `<dialog>`'s flex child, inner and content
+  `flex: 1 1 auto`), for the reason given under `vf-dialog` — otherwise the
+  framed art stays content-tall inside a taller (or UA-capped) `<dialog>`.
+  The box never grows, but an over-stuffed message scrolls instead of
+  clipping: the message row shrinks (`minmax(0, auto)`) while the button row
+  holds, and the message cell's scroller takes the same
+  rail-on-overflow-plus-keyboard-stop treatment as `vf-dialog`'s `.content`.
+  Removal-while-open teardown and the live grid re-pin are inherited from
+  `VfModalDialog` (see `vf-dialog`).
   The `variant="caution"` icon is the **only raster art the library itself
   ships**: an alert icon is a picture, not geometry, so it is not vectorized
   into glyphs.ts — it is the reference sheet's own 32×32 pixels, inlined as a
@@ -757,10 +794,14 @@ The color-swatch button: a well of solid color — a palette cell.
   - `disabled`: interaction stops; nothing dims. The kit dims *labels* when
     disabled, and a swatch's only label is its fill, which must keep reading
     as its color.
-- **Behavior:** "basically a button", not form-associated (a palette cell
-  picks, it doesn't submit): native `click` retargets to the host, Enter/Space
-  activate via the inner button, `delegatesFocus`. `label` feeds the inner
-  button's `aria-label`, so `vf-label for` reaches it like every control.
+- **Behavior:** "basically a button": native `click` retargets to the host,
+  Enter/Space activate via the inner button, `delegatesFocus`. `label` feeds
+  the inner button's `aria-label`, so `vf-label for` reaches it like every
+  control. Form-associated (`VfFormControl`) **for the disabled contract
+  alone**: an ancestor `<fieldset disabled>` reaches the palette through
+  `formDisabledCallback` (and `:state(form-disabled)`) like every other
+  control — but it submits nothing (a palette cell picks, it doesn't submit;
+  no value is ever set, so no `FormData` entry and no `formResetCallback`).
   Carries a `ScaleController` and a `GridSnapController`.
 - **Slots:** none. **Parts:** `button`, `fill`. **Events:** none custom.
 
@@ -781,7 +822,8 @@ The color-swatch button: a well of solid color — a palette cell.
   growth both count that 1px border, which an absolutely positioned pseudo
   sizes inside of. `npm run verify:focus`.
 - **Slots:** default (label). **Parts:** `box`, `label`.
-- **Events:** `vf-change` detail `{ checked: boolean }`.
+- **Events:** `vf-change` detail `{ checked: boolean }`, plus the native
+  `input`/`change` pair per user toggle (§2).
 
 #### `vf-radio` (`VfRadio`, vf-radio.ts)
 - **Attributes/props:** `checked`, `disabled`, `value: string`.
@@ -820,13 +862,22 @@ The color-swatch button: a well of solid color — a palette cell.
   Roving tabindex; ArrowUp/ArrowLeft & ArrowDown/ArrowRight move selection AND
   select (classic Mac behavior). Child click updates group `value`.
 - **Slots:** default (vf-radio elements, or arbitrary markup containing them).
-- **Events:** `vf-change` detail `{ value }`.
+- **Events:** `vf-change` detail `{ value }`, plus the native `input`/`change`
+  pair per user pick (§2) — fired from the group, the form-associated surface,
+  not the radio.
 
 ### Group C — text & value inputs
 
 #### `vf-text-field` (`VfTextField`, vf-text-field.ts)
 - **Attributes/props:** `value`, `placeholder`, `disabled`, `readonly`,
-  `type: string` (default `'text'`; pass through to input), `name`.
+  `type: string` (default `'text'`; pass through to input), `name`. The
+  input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`,
+  `maxlength`, `pattern`, `spellcheck`, `autocapitalize` — are **forwarded
+  verbatim** from the host onto the inner input (observed attributes, not
+  reactive properties: four of them are globals with IDL accessors already on
+  `HTMLElement`, and a Lit `@property` would shadow the platform member — the
+  `align`/`draggable` trap). The platform only honors them on the element that
+  actually takes the input, which is in the shadow root.
 - **Visual:** inner `<input>`: white bg, `1px solid black`, NO radius,
   height `var(--vf-control-height, 22px)`, `padding: 0 6px`, font tokens but
   `font-weight: var(--vf-font-weight, 700)`. `user-select: text`. Focus: for a
@@ -860,7 +911,9 @@ The color-swatch button: a well of solid color — a palette cell.
   a bare `requestSubmit()` (`requestImplicitSubmit`, text-control.ts).
 - **Parts:** `input`.
 - **Events:** `vf-input` detail `{ value }` on every keystroke; `vf-change`
-  detail `{ value }` on commit (native change).
+  detail `{ value }` on commit (native change). Plus the native pair per §2:
+  the inner input's own composed `input` crosses the boundary itself; `change`
+  is re-dispatched from the host.
 
 #### `vf-text-area` (`VfTextArea`, vf-text-area.ts)
 Same as vf-text-field but wrapping `<textarea>`; extra prop `rows: number`
@@ -876,8 +929,10 @@ reason), with `padding: 4px 7px` — vf-text-field's `3px/6px` plus the 1px the
 dropped border occupied — holding the text and the outer box where the
 bordered field put them. The `.vf-field-well` wrapper is the same one
 vf-text-field uses, doing double duty as the positioned box that overlay insets
-against; the focus rule spans the full frame, scroll rail included.
-Parts: `textarea`. Events: `vf-input`, `vf-change`.
+against; the focus rule spans the full frame, scroll rail included. Forwards
+the same input-behavior attributes as vf-text-field, minus `pattern` (only an
+`<input>` takes it).
+Parts: `textarea`. Events: `vf-input`, `vf-change`, plus the native pair (§2).
 
 #### `vf-number-field` (`VfNumberField`, vf-number-field.ts)
 A numeric text field paired with the classic "little arrows" stepper.
@@ -908,7 +963,12 @@ A numeric text field paired with the classic "little arrows" stepper.
   stepping and editing.
 - **Parts:** `input`, `stepper`.
 - **Events:** `vf-input` detail `{ value, valueAsNumber }` on every keystroke;
-  `vf-change` detail `{ value, valueAsNumber }` on commit or step.
+  `vf-change` detail `{ value, valueAsNumber }` on commit or step. Plus the
+  native pair (§2): a step dispatches both from the host (a native spinner's
+  pair — a step has no inner native event at all), a typed commit re-dispatches
+  `change`. Forwards the input-behavior attributes like vf-text-field (no
+  `pattern`); `inputmode`/`autocomplete` default to `decimal`/`off` when the
+  host doesn't say otherwise.
 
 #### `vf-select` (`VfSelect`, vf-option.ts children) (vf-select.ts)
 The classic popup menu control ("Macintosh HD ▼").
@@ -980,7 +1040,8 @@ The classic popup menu control ("Macintosh HD ▼").
   and the menus use), moving the highlight to the match. On select: classic
   blink (invert toggles ~3 times in ~250ms) then close + `vf-change`.
 - **Parts:** `control`, `label`, `arrow`, `panel`.
-- **Events:** `vf-change` detail `{ value }`.
+- **Events:** `vf-change` detail `{ value }`, plus the native `input`/`change`
+  pair per committed pick (§2).
 
 #### `vf-progress-bar` (`VfProgressBar`, vf-progress-bar.ts)
 - **Attributes/props:** `value: number` (0–100), `max: number` (default 100),
@@ -1040,7 +1101,8 @@ The classic popup menu control ("Macintosh HD ▼").
     then nudged with the keys starts showing its rule. `npm run verify:focus`.
 - **Events:** `vf-input` detail `{ value: number }` on every drag move / key
   change; `vf-change` detail `{ value: number }` on commit (pointer release or
-  key change).
+  key change). Plus the native pair (§2), mapped 1:1 — `input` per user value
+  move, `change` per commit, a native range input's cadence.
 - **Parts:** `track`, `rail`, `thumb`.
 
 ### Group D — menus, lists, containers

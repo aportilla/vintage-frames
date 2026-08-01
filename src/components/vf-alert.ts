@@ -1,9 +1,16 @@
 import { html, css, nothing, unsafeCSS } from 'lit'
-import { property, state } from 'lit/decorators.js'
+import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { CAUTION_ICON } from '../icons.js'
-import { vfBase, vfDisplay, vfHardShadowDecls } from '../styles/base.js'
+import {
+  vfBase,
+  vfDisplay,
+  vfFocusRing,
+  vfHardShadowDecls,
+  vfScrollbars,
+} from '../styles/base.js'
+import { ScrollStateController } from '../scroll-state.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
@@ -45,6 +52,7 @@ export class VfAlert extends VfModalDialog {
   static override styles = [
     vfBase,
     vfDisplay,
+    vfScrollbars,
     modalDialogStyles,
     css`
       :host {
@@ -63,7 +71,12 @@ export class VfAlert extends VfModalDialog {
         background: var(--vf-white, #ffffff);
         display: flex;
         flex-direction: column;
-        height: 100%;
+        /* The flex child of the <dialog> itself (modalDialogStyles), not a
+           height: 100% block — a percentage can't resolve against the
+           undeclared-height dialog that only the UA's max-height caps, and
+           that spill is how a tall alert stranded its buttons off-screen. */
+        flex: 1 1 auto;
+        min-height: 0;
         border: calc(var(--vf-scale, 1) * 2px) solid var(--vf-black, #000000);
         ${vfHardShadowDecls}
       }
@@ -75,13 +88,18 @@ export class VfAlert extends VfModalDialog {
         margin: calc(var(--vf-scale, 1) * 2px);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
       }
-      /* Clips at the frame, as vf-window's and vf-dialog's bodies do. */
+      /* The frame never grows with its body — but an over-stuffed message no
+         longer clips silently: the message row shrinks (minmax(0, auto) —
+         content-sized with slack, giving height back when the box is short)
+         while the button row holds, and the .message-scroll below scrolls the
+         copy under a System 7 rail. overflow: hidden stays as the backstop. */
       .content {
         flex: 1 1 auto;
         min-height: 0;
         overflow: hidden;
         display: grid;
         grid-template-columns: calc(var(--vf-scale, 1) * 32px) 1fr;
+        grid-template-rows: minmax(0, auto) auto;
         grid-template-areas:
           'icon message'
           'buttons buttons';
@@ -126,9 +144,41 @@ export class VfAlert extends VfModalDialog {
         -webkit-mask-repeat: no-repeat;
         mask-repeat: no-repeat;
       }
+      /* A flex column centering its scroller replaces the old align-self:
+         center — same centered look for the short message, but the cell can
+         now shrink (min-height: 0) instead of overflowing the row, which
+         align-self: center's content-sized item could not. Positioned so the
+         .vf-scroll-frame overlay insets against it. */
       .message {
         grid-area: message;
-        align-self: center;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 0;
+      }
+      .message-scroll {
+        flex: 0 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      /* Only while genuinely over-stuffed (ScrollStateController's measured
+         signal) — see vf-dialog's .content for the Chromium overlay-bar
+         reason the channel is reserved here. */
+      .message-scroll[data-overflow-y='true'] {
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
+      }
+      .message .vf-scroll-frame {
+        display: none;
+      }
+      .message-scroll[data-overflow-y='true'] + .vf-scroll-frame {
+        display: block;
+      }
+      /* A scrollable message is a keyboard stop (tabindex in the template). */
+      .message-scroll:focus-visible {
+        --vf-focus-offset: -2px;
+        ${vfFocusRing}
       }
       /* The action row is a vf-button-group: it equalizes the button widths and
          aligns their faces. It shrink-wraps, so justify-self pins it to the
@@ -156,6 +206,29 @@ export class VfAlert extends VfModalDialog {
   /** True when the consumer slotted custom icon content. */
   @state() private _hasSlottedIcon = false
 
+  @query('.message-scroll') private _messageScroll!: HTMLElement | null
+
+  /** Whether the message overflows its cell (drives the scroll stop). */
+  @state() private _scrollable = false
+
+  /**
+   * Activates the System 7 rail — and the message region's keyboard stop —
+   * once the message overflows the declared (or viewport-capped) box.
+   */
+  private readonly _scrollState = new ScrollStateController(
+    this,
+    () => this._messageScroll,
+    undefined,
+    (overflow) => {
+      this._scrollable = overflow.y
+    }
+  )
+
+  /** Message content changed under the fixed box — re-measure the overflow. */
+  private _onMessageSlotChange(): void {
+    this._scrollState.measure()
+  }
+
   private _onIconSlotChange(event: Event): void {
     const slot = event.target as HTMLSlotElement
     this._hasSlottedIcon = slot.assignedElements().length > 0
@@ -182,7 +255,14 @@ export class VfAlert extends VfModalDialog {
                 </slot>
               </span>
               <div class="message" part="message" id="message">
-                <slot></slot>
+                <div
+                  class="message-scroll vf-scroll"
+                  tabindex=${this._scrollable ? '0' : nothing}
+                  role=${this._scrollable ? 'group' : nothing}
+                >
+                  <slot @slotchange=${this._onMessageSlotChange}></slot>
+                </div>
+                <div class="vf-scroll-frame" aria-hidden="true"></div>
               </div>
               <vf-button-group class="buttons" part="buttons">
                 <slot name="buttons"></slot>

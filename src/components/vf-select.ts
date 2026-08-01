@@ -13,7 +13,7 @@ import { runSelectionBlink, PRESS_HOLD_MS, type BlinkHandle } from '../motion.js
 import { VfFormControl } from '../form-control.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
-import { emit } from '../events.js'
+import { emit, emitNative } from '../events.js'
 
 /**
  * `<vf-select>` — the classic System 7 popup menu control ("Macintosh HD ▼").
@@ -52,6 +52,11 @@ import { emit } from '../events.js'
  * Form-associated: submits `value` under `name`.
  *
  * @fires vf-change - After a selection commits. `detail: { value: string }`.
+ * @fires input - Native event, dispatched from the host per committed pick
+ *   (with `change`, the pair a native `<select>` fires). A programmatic
+ *   `value` set fires nothing.
+ * @fires change - Native event, dispatched from the host per committed pick
+ *   so form delegation and framework bindings hear it.
  *
  * @slot - `<vf-option>` elements.
  *
@@ -565,6 +570,8 @@ export class VfSelect extends VfFormControl {
     const value = this.optionValue(option)
     this.value = value
     emit(this, 'vf-change', { value })
+    emitNative(this, 'input')
+    emitNative(this, 'change')
   }
 
   // ---------------------------------------------------------------- events

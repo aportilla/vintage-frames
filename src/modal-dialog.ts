@@ -35,6 +35,19 @@ export const modalDialogStyles = css`
     color: inherit;
     font: inherit;
   }
+  /* Scoped to [open]: an unqualified display here would out-cascade the UA's
+     dialog:not([open]) { display: none } (author origin beats UA origin) and
+     paint every closed dialog. Flex, so the frame child can resolve against
+     the dialog's real box even when no height is declared and the UA's
+     dialog:modal max-height is what caps it — a percentage height resolves
+     to auto against that (indefinite) box, which left the frame content-tall
+     and spilling past the border with its buttons unreachable; a flex child
+     with min-height: 0 shrinks to the capped box instead, and the shells'
+     inner scroll region takes over from there. */
+  dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
   dialog::backdrop {
     background: transparent;
   }
@@ -49,6 +62,17 @@ export const modalDialogStyles = css`
  * with the reason. Because every close path — Escape, `close()`, backdrop —
  * routes through the native `close` event, an Escape-close no longer leaves
  * stale margins behind, so the next open re-centers.
+ *
+ * Removing an open modal from the DOM is a close path too. HTML's dialog
+ * *removing steps* take the element out of the top layer **without** running
+ * the close algorithm — no `close` event, no focus restoration — which is
+ * exactly what the standard framework pattern of unmounting a dialog instead
+ * of calling `close()` does. `disconnectedCallback` routes that path through
+ * the same funnel: the removed element still fires `vf-close` (heard by
+ * listeners on the element itself — it has left the tree, so nothing
+ * bubbles), `open` and the pinned margins reconcile so a re-append mounts it
+ * closed and re-centered, and focus returns to the element that was focused
+ * when the modal opened.
  *
  * Subclasses supply only the frame chrome: a `render()` returning
  * `<dialog @cancel=${this._onNativeCancel} @close=${this._onNativeClose}>` with
@@ -143,6 +167,14 @@ export class VfModalDialog extends LitElement {
   /** Close reason pending for the next native `close` event. */
   #closeReason: VfCloseReason | null = null
 
+  /**
+   * The element that was focused when the modal opened. The normal close path
+   * restores focus natively, but the removal path (see the class doc) skips
+   * the close algorithm, and by the time `disconnectedCallback` runs, focus
+   * has already fallen to `<body>` — so we keep our own record.
+   */
+  #invoker: Element | null = null
+
   /** Open the modal (native `showModal()`), pinned onto the device grid. */
   show(): void {
     this.open = true
@@ -171,11 +203,79 @@ export class VfModalDialog extends LitElement {
     const dialog = this._dialog
     if (!dialog) return
     if (this.open && !dialog.open) {
+      this.#invoker = document.activeElement
       dialog.showModal()
       snapDialogToGrid(dialog)
+      this.#watchGeometry(dialog)
     } else if (!this.open && dialog.open) {
       dialog.close()
     }
+  }
+
+  /**
+   * Re-derive the pin rather than keep the latch: clear the pinned margins
+   * (restoring the UA's `margin: auto` centering) and re-pin from the live,
+   * re-centered rect. Without this the margins latched at open time forever —
+   * and the open-time rect can be wrong by the next frame: slotted content
+   * upgrading after `showModal()` grows the box (the pin then holds a
+   * viewport-tall dialog at the offset its small first render centered at,
+   * stranding its bottom off-screen), and a browser zoom rescales every
+   * metric while the old margins hold the stale origin. A dragged position is
+   * traded for re-centering on these signals — recoverable, where a stranded
+   * modal with no drag handle (vf-alert, frame="plain") is not.
+   */
+  #repin = (): void => {
+    const dialog = this._dialog
+    if (!dialog?.open) return
+    unsnapDialog(dialog)
+    snapDialogToGrid(dialog)
+  }
+
+  #resizeObserver?: ResizeObserver
+
+  /**
+   * While open, watch the two signals that invalidate the pin: the dialog's
+   * own box changing (content upgrade/growth, `--vf-scale` moving under a
+   * zoom or density change — every metric resizes with it) and the viewport
+   * resizing. Undone in {@link _onNativeClose} / `disconnectedCallback`.
+   */
+  #watchGeometry(dialog: HTMLDialogElement): void {
+    if (typeof ResizeObserver !== 'undefined' && !this.#resizeObserver) {
+      this.#resizeObserver = new ResizeObserver(this.#repin)
+      this.#resizeObserver.observe(dialog)
+    }
+    window.addEventListener('resize', this.#repin)
+  }
+
+  #unwatchGeometry(): void {
+    this.#resizeObserver?.disconnect()
+    this.#resizeObserver = undefined
+    window.removeEventListener('resize', this.#repin)
+  }
+
+  /**
+   * Torn out of the DOM while open (the framework-unmount path — see the
+   * class doc). `close()` routes the teardown through the same native-`close`
+   * funnel every other path uses; the focus restore is ours to do, since the
+   * removing steps already dropped focus to `<body>` before this ran.
+   */
+  override disconnectedCallback(): void {
+    super.disconnectedCallback()
+    this.#unwatchGeometry()
+    const dialog = this._dialog
+    if (dialog?.open) {
+      dialog.close()
+      const invoker = this.#invoker
+      const active = document.activeElement
+      if (
+        invoker instanceof HTMLElement &&
+        invoker.isConnected &&
+        (active === null || active === document.body)
+      ) {
+        invoker.focus()
+      }
+    }
+    this.#invoker = null
   }
 
   /** Native `cancel` (Escape): remember the reason; `close` follows. */
@@ -191,6 +291,8 @@ export class VfModalDialog extends LitElement {
   protected _onNativeClose(): void {
     const reason = this.#closeReason ?? 'close'
     this.#closeReason = null
+    this.#invoker = null
+    this.#unwatchGeometry()
     this.open = false
     unsnapDialog(this._dialog)
     emit(this, 'vf-close', { reason })

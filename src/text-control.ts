@@ -1,10 +1,11 @@
+import { nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { ScaleController } from './scale.js'
 import { GridSnapController } from './grid-snap.js'
 import { VfFormControl } from './form-control.js'
 import { FocusRuleController } from './focus-modality.js'
-import { emit } from './events.js'
+import { emit, emitNative } from './events.js'
 
 /**
  * Shared base for the kit's editable text fields — `vf-text-field`,
@@ -45,6 +46,55 @@ export class VfTextControlBase extends VfFormControl {
    * host does not reach into the shadow DOM).
    */
   @property() label = ''
+
+  /**
+   * Host attributes forwarded verbatim onto the inner native control — the
+   * input-behavior vocabulary the platform only honors on the element that
+   * actually takes the input. `<vf-text-field autocomplete="email">` used to
+   * put the token on a custom element the browser ignores for autofill while
+   * the shadow `<input>` never received it; same story for the mobile-keyboard
+   * pair (`inputmode`, `enterkeyhint`) and the rest. These are deliberately
+   * *not* reactive properties: four of them are global attributes with IDL
+   * accessors already on `HTMLElement` (`spellcheck`, `autocapitalize`,
+   * `inputMode`, `enterKeyHint`), and a Lit `@property` would shadow the
+   * platform member — the kit's own `align`/`draggable` trap. Instead the
+   * attributes are observed (see `observedAttributes`) and read at render
+   * time via {@link forwardedAttr}. Subclasses may extend the list
+   * (`vf-text-field` adds `pattern`) or override a default in their template
+   * (`vf-number-field` keeps `inputmode="decimal"` unless told otherwise).
+   */
+  protected static readonly forwardedAttributes: readonly string[] = [
+    'autocomplete',
+    'inputmode',
+    'enterkeyhint',
+    'maxlength',
+    'spellcheck',
+    'autocapitalize',
+  ]
+
+  static override get observedAttributes(): string[] {
+    return [...super.observedAttributes, ...this.forwardedAttributes]
+  }
+
+  override attributeChangedCallback(
+    name: string,
+    old: string | null,
+    value: string | null
+  ): void {
+    super.attributeChangedCallback(name, old, value)
+    const forwarded = (this.constructor as typeof VfTextControlBase)
+      .forwardedAttributes
+    if (forwarded.includes(name)) this.requestUpdate()
+  }
+
+  /**
+   * The forwarded value of a host attribute for the inner control's template
+   * binding, or `nothing` (remove the attribute) while the host doesn't
+   * carry it.
+   */
+  protected forwardedAttr(name: string): string | typeof nothing {
+    return this.getAttribute(name) ?? nothing
+  }
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   protected readonly scale = new ScaleController(this)
@@ -165,5 +215,9 @@ export class VfTextControlBase extends VfFormControl {
   protected handleChange(event: Event): void {
     this.value = (event.target as HTMLInputElement | HTMLTextAreaElement).value
     this.emitValue('vf-change')
+    // The inner control's own `change` never leaves the shadow root (native
+    // change is composed: false, unlike input's) — re-dispatch it from the
+    // host so form-level delegation and framework bindings hear the commit.
+    emitNative(this, 'change')
   }
 }

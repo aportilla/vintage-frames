@@ -87,7 +87,8 @@
     "verify:focus": "node scripts/verify-focus.mjs",
     "verify:grid": "node scripts/verify-grid.mjs",
     "verify:snap": "node scripts/verify-snap.mjs",
-    "verify:blog": "node scripts/verify-blog.mjs"
+    "verify:blog": "node scripts/verify-blog.mjs",
+    "verify:contract": "node scripts/verify-contract.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"

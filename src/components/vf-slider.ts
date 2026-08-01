@@ -9,7 +9,7 @@ import { GridSnapController } from '../grid-snap.js'
 import { TrackWidthController } from '../track-width.js'
 import { VfFormControl } from '../form-control.js'
 import { FocusRuleController } from '../focus-modality.js'
-import { emit } from '../events.js'
+import { emit, emitNative } from '../events.js'
 import { decimalsOf } from '../number.js'
 
 /** Native pixel size of the {@link SLIDER_THUMB} sprite. */
@@ -64,6 +64,11 @@ function railPath(w: number, pos: number): string {
  *
  * @fires vf-input - On every drag move or key change. `detail: { value: number }`.
  * @fires vf-change - On commit (pointer release, or key change). `detail: { value: number }`.
+ * @fires input - Native event, dispatched from the host on every user value
+ *   move — a native range input's cadence. A programmatic `value` set fires
+ *   nothing.
+ * @fires change - Native event, dispatched from the host on commit (release,
+ *   or a key change) so form delegation and framework bindings hear it.
  *
  * @csspart track - The full-width rail row (the pointer target).
  * @csspart rail - The `<svg>` capsule (fill + hollow).
@@ -289,6 +294,10 @@ export class VfSlider extends VfFormControl {
 
   #emit(type: 'vf-input' | 'vf-change'): void {
     emit(this, type, { value: this.value })
+    // Every #emit call site is a user gesture (drag step, release, key), and
+    // the slider has no inner native control firing its own — so the native
+    // counterpart maps 1:1 here, matching a native range input's cadence.
+    emitNative(this, type === 'vf-input' ? 'input' : 'change')
   }
 
   // -------------------------------------------------------------- pointer

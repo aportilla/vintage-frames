@@ -27,6 +27,15 @@ import { ScrollStateController } from '../scroll-state.js'
  *
  * @fires vf-input - On every keystroke. `detail: { value: string }`.
  * @fires vf-change - On commit (native `change`). `detail: { value: string }`.
+ * @fires input - The native keystroke event: the inner textarea's own,
+ *   composed, so it crosses the shadow boundary and retargets to the host.
+ * @fires change - The native commit event, re-dispatched from the host (the
+ *   inner one is `composed: false` and never leaves the shadow root).
+ *
+ * The input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`,
+ * `maxlength`, `spellcheck`, `autocapitalize` — are forwarded from the host
+ * onto the inner textarea, where the platform actually honors them
+ * (`pattern` is not: only an `<input>` takes it).
  *
  * @csspart textarea - The inner native `<textarea>` element.
  * @cssprop [--vf-field-width=180px] - default width of `vf-text-field` /
@@ -99,6 +108,12 @@ export class VfTextArea extends VfTextControlBase {
           class="vf-field vf-scroll"
           rows=${this.rows}
           aria-label=${this.label || nothing}
+          autocomplete=${this.forwardedAttr('autocomplete')}
+          inputmode=${this.forwardedAttr('inputmode')}
+          enterkeyhint=${this.forwardedAttr('enterkeyhint')}
+          maxlength=${this.forwardedAttr('maxlength')}
+          spellcheck=${this.forwardedAttr('spellcheck')}
+          autocapitalize=${this.forwardedAttr('autocapitalize')}
           .value=${live(this.value)}
           placeholder=${this.placeholder}
           ?disabled=${this.isDisabled}

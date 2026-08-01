@@ -17,6 +17,15 @@ import { VfTextControlBase } from '../text-control.js'
  *
  * @fires vf-input - On every keystroke. `detail: { value: string }`.
  * @fires vf-change - On commit (native `change`). `detail: { value: string }`.
+ * @fires input - The native keystroke event: the inner input's own, composed,
+ *   so it crosses the shadow boundary and retargets to the host by itself.
+ * @fires change - The native commit event, re-dispatched from the host (the
+ *   inner one is `composed: false` and never leaves the shadow root), so form
+ *   delegation and framework bindings hear it.
+ *
+ * The input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`,
+ * `maxlength`, `pattern`, `spellcheck`, `autocapitalize` — are forwarded from
+ * the host onto the inner input, where the platform actually honors them.
  *
  * @csspart input - The inner native `<input>` element.
  * @cssprop [--vf-control-height=22px] - text fields — `vf-text-field`,
@@ -56,6 +65,12 @@ export class VfTextField extends VfTextControlBase {
   /** Input type, passed through to the native input (e.g. `password`). */
   @property() type = 'text'
 
+  /** The shared forwarded set plus `pattern`, which only an `<input>` takes. */
+  protected static override readonly forwardedAttributes: readonly string[] = [
+    ...VfTextControlBase.forwardedAttributes,
+    'pattern',
+  ]
+
   /**
    * Enter in a single-line field triggers the associated form's implicit
    * submission. The native `<input>` is shadow-encapsulated, so its form owner
@@ -73,6 +88,13 @@ export class VfTextField extends VfTextControlBase {
           class="vf-field"
           type=${this.type}
           aria-label=${this.label || nothing}
+          autocomplete=${this.forwardedAttr('autocomplete')}
+          inputmode=${this.forwardedAttr('inputmode')}
+          enterkeyhint=${this.forwardedAttr('enterkeyhint')}
+          maxlength=${this.forwardedAttr('maxlength')}
+          pattern=${this.forwardedAttr('pattern')}
+          spellcheck=${this.forwardedAttr('spellcheck')}
+          autocapitalize=${this.forwardedAttr('autocapitalize')}
           .value=${live(this.value)}
           placeholder=${this.placeholder}
           ?disabled=${this.isDisabled}

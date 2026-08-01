@@ -5,7 +5,7 @@ import { vfElement } from '../define.js'
 import { ScaleController } from '../scale.js'
 import { vfBase } from '../styles/base.js'
 import { VfFormControl } from '../form-control.js'
-import { emit } from '../events.js'
+import { emit, emitNative } from '../events.js'
 import { VfRadio } from './vf-radio.js'
 
 /**
@@ -25,6 +25,10 @@ import { VfRadio } from './vf-radio.js'
  *
  * @slot - `vf-radio` elements, or arbitrary markup containing them.
  * @fires vf-change - When the selection changes via user interaction. `detail: { value: string }`.
+ * @fires input - Native event, dispatched from the group (the form-associated
+ *   surface) per user pick. A programmatic `value` set fires nothing.
+ * @fires change - Native event, dispatched from the group per user pick so
+ *   form delegation and framework bindings hear it.
  */
 @vfElement('vf-radio-group')
 export class VfRadioGroup extends VfFormControl {
@@ -202,7 +206,14 @@ export class VfRadioGroup extends VfFormControl {
     this.value = radio.value
     this.syncRadios()
     if (focus) radio.focus()
-    if (changed) emit(this, 'vf-change', { value: this.value })
+    if (changed) {
+      emit(this, 'vf-change', { value: this.value })
+      // The native pair fires from the group, not the radio: the group is the
+      // form-associated surface, so it is the target a form's change
+      // delegation should see carrying name/value.
+      emitNative(this, 'input')
+      emitNative(this, 'change')
+    }
   }
 
   /** A child radio was clicked or Space-selected: adopt it. */

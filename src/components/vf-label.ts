@@ -136,6 +136,17 @@ export class VfLabel extends LitElement {
   /** The name we handed the target, so we can take back exactly that. */
   #named: { target: Nameable; via: 'property' | 'aria'; value: string } | null = null
 
+  /**
+   * Re-derives the pushed name when the caption's text mutates *in place*.
+   * `slotchange` only fires when the assigned nodes change — and frameworks
+   * (Lit's ChildPart, React) update text by writing `.data` on the existing
+   * Text node, which assigns nothing. Without this, a re-rendered caption
+   * changed on screen while the control kept the old accessible name forever.
+   * Watching the target's own property back is safe: `#link` writes to the
+   * *target*, never into this label's subtree, so the observer can't loop.
+   */
+  #textObserver?: MutationObserver
+
   constructor() {
     super()
     this.addEventListener('click', this.#handleClick)
@@ -143,11 +154,20 @@ export class VfLabel extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback()
+    this.#textObserver ??= new MutationObserver(() => {
+      if (this.for) this.#relink()
+    })
+    this.#textObserver.observe(this, {
+      characterData: true,
+      childList: true,
+      subtree: true,
+    })
     this.#link()
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
+    this.#textObserver?.disconnect()
     this.#unlink()
   }
 
@@ -181,7 +201,8 @@ export class VfLabel extends LitElement {
     if (this.for) this.#link()
   }
 
-  /** Retry the wiring once the document has finished parsing (see #link). */
+  /** Re-run the wiring: mid-parse retry (see #link) and in-place text edits
+   * (see #textObserver) both land here. */
   #relink = (): void => {
     if (this.isConnected) this.#link()
   }

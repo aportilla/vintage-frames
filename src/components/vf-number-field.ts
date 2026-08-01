@@ -7,6 +7,7 @@ import { vfBase, vfField } from '../styles/base.js'
 import { STEPPER, STEPPER_DOWN_FILL, STEPPER_UP_FILL } from '../glyphs.js'
 import { VfTextControlBase } from '../text-control.js'
 import { decimalsOf } from '../number.js'
+import { emitNative } from '../events.js'
 
 /**
  * `<vf-number-field>` — a System 7 numeric entry field paired with the classic
@@ -24,6 +25,16 @@ import { decimalsOf } from '../number.js'
  *
  * @fires vf-input - On every keystroke. `detail: { value, valueAsNumber }`.
  * @fires vf-change - On commit or step. `detail: { value, valueAsNumber }`.
+ * @fires input - The native event: the inner input's own on a keystroke
+ *   (composed, crosses the boundary itself), dispatched from the host on a
+ *   step — a native number input's spinner fires it per click too.
+ * @fires change - The native commit event, dispatched from the host on a
+ *   typed commit and on every step, as a native spinner does.
+ *
+ * The input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`,
+ * `maxlength`, `spellcheck`, `autocapitalize` — are forwarded from the host
+ * onto the inner input; unset, `inputmode` stays the numeric keypad's
+ * `decimal` and `autocomplete` stays `off`.
  *
  * @csspart input - The inner native `<input>`.
  * @csspart stepper - The little-arrows control.
@@ -162,6 +173,11 @@ export class VfNumberField extends VfTextControlBase {
     if (next === this.value) return
     this.value = next
     this.#emit('vf-change')
+    // A step writes the value programmatically, so unlike typing there is no
+    // inner native event at all — dispatch both from the host, the pair a
+    // native number input's spinner fires per click.
+    emitNative(this, 'input')
+    emitNative(this, 'change')
   }
 
   #stepBy(dir: 1 | -1): void {
@@ -281,6 +297,8 @@ export class VfNumberField extends VfTextControlBase {
       ? raw
       : String(Number(this.#clamp(parsed).toFixed(decimalsOf(this.step))))
     this.#emit('vf-change')
+    // See VfTextControlBase.handleChange: the inner change is composed: false.
+    emitNative(this, 'change')
   }
 
   protected override render() {
@@ -292,9 +310,13 @@ export class VfNumberField extends VfTextControlBase {
           part="input"
           class="vf-field"
           type="text"
-          inputmode="decimal"
+          inputmode=${this.getAttribute('inputmode') ?? 'decimal'}
           role="spinbutton"
-          autocomplete="off"
+          autocomplete=${this.getAttribute('autocomplete') ?? 'off'}
+          enterkeyhint=${this.forwardedAttr('enterkeyhint')}
+          maxlength=${this.forwardedAttr('maxlength')}
+          spellcheck=${this.forwardedAttr('spellcheck')}
+          autocapitalize=${this.forwardedAttr('autocapitalize')}
           aria-label=${this.label || nothing}
           aria-valuenow=${Number.isNaN(current) ? nothing : current}
           aria-valuemin=${this.min ?? nothing}

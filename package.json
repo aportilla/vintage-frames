@@ -68,6 +68,7 @@
     "verify:list-focus": "node scripts/verify-list-focus.mjs",
     "verify:control-heights": "node scripts/verify-control-heights.mjs",
     "verify:list-typeahead": "node scripts/verify-list-typeahead.mjs",
+    "verify:key-models": "node scripts/verify-key-models.mjs",
     "verify:menu-select": "node scripts/verify-menu-select.mjs",
     "verify:menu-press": "node scripts/verify-menu-press.mjs",
     "verify:low-sweep": "node scripts/verify-low-sweep.mjs",

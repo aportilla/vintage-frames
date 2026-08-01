@@ -62,7 +62,7 @@ export class VfTextField extends VfTextControlBase {
    * is null and the browser won't do this itself.
    */
   private handleKeydown(event: KeyboardEvent): void {
-    if (this.isSubmitEnter(event)) this.internals.form?.requestSubmit()
+    if (this.isSubmitEnter(event)) this.requestImplicitSubmit()
   }
 
   protected override render() {

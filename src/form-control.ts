@@ -39,11 +39,60 @@ export class VfFormControl extends LitElement {
   }
 
   /**
-   * Form-associated lifecycle: the browser calls this when an ancestor (e.g.
-   * `<fieldset disabled>`) disables or re-enables this control.
+   * Form-associated lifecycle: the browser calls this when this control's
+   * disabled state changes — an ancestor `<fieldset disabled>`, or the
+   * element's OWN `disabled` attribute (the browser counts both).
+   *
+   * Also mirrored as the `form-disabled` custom state: `disabled` reflects as
+   * an attribute a stylesheet can see, but a `<fieldset disabled>` ancestor
+   * lands here in otherwise-private state — `:state(form-disabled)` is the
+   * one selector that lets consumer CSS style that case. Optional-chained for
+   * engines without `CustomStateSet`.
    */
   formDisabledCallback(disabled: boolean): void {
+    const changed = this.formDisabled !== disabled
     this.formDisabled = disabled
+    if (disabled) this.internals.states?.add('form-disabled')
+    else this.internals.states?.delete('form-disabled')
+    // The own-attribute path arrives at the worst possible moment: Lit's
+    // attribute reflection runs INSIDE ReactiveElement.update() — after the
+    // template was computed, inside the window where Lit's contract is that
+    // property sets do not schedule another update (__markUpdated wipes
+    // them). So the `formDisabled` write above is silently dropped from
+    // reactivity, and a control re-enabled via `el.disabled = false` kept
+    // its shadow control rendered disabled until some unrelated re-render.
+    // Re-request from a microtask, outside the doomed window. Argument-less
+    // on purpose: the follow-up update re-renders with the (already
+    // correct) live fields but carries an empty changed-map, so the
+    // `updated()` gates don't re-run form work a second time.
+    if (changed && this.isUpdatePending) {
+      queueMicrotask(() => this.requestUpdate())
+    }
+  }
+
+  /**
+   * Form-associated lifecycle: the browser hands back state it stored for
+   * this control — a bfcache/session restore, or a browser autofill pass.
+   * The kit's controls all submit through single-argument `setFormValue`, so
+   * the stored state IS the last submitted string. Without this callback,
+   * every native input in the form repopulates on restore while the `vf-*`
+   * controls silently keep their defaults.
+   */
+  formStateRestoreCallback(
+    state: string | File | FormData | null,
+    _mode: 'restore' | 'autofill'
+  ): void {
+    if (typeof state === 'string') this.applyFormState(state)
+  }
+
+  /**
+   * Maps stored form state back onto the control's own value semantics. The
+   * default covers the string-valued majority (the fields, `vf-select`,
+   * `vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a
+   * number) override.
+   */
+  protected applyFormState(state: string): void {
+    ;(this as { value?: string }).value = state
   }
 
   /**

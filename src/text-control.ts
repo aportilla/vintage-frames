@@ -113,6 +113,37 @@ export class VfTextControlBase extends VfFormControl {
   }
 
   /**
+   * Emulates the form's implicit submission for a plain Enter press. HTML
+   * defines it as *activating the form's default button* — the first submit
+   * button in tree order — so the submission carries that button's submitter
+   * identity and name/value. A bare `requestSubmit()` carries neither
+   * (`event.submitter === null`), which made Enter and a click on the same
+   * form produce different payloads. `click()` is the activation: a native
+   * button becomes the real submitter, and a `vf-button` forwards it to its
+   * inner button, which runs the same transient-proxy path a pointer does. A
+   * disabled default button means no submission at all, as in HTML; a form
+   * with no submit button falls back to the bare call, also as in HTML.
+   */
+  protected requestImplicitSubmit(): void {
+    const form = this.internals.form
+    if (!form) return
+    const defaultButton = [...form.elements].find(
+      (el) =>
+        (el instanceof HTMLButtonElement && el.type === 'submit') ||
+        (el instanceof HTMLInputElement &&
+          (el.type === 'submit' || el.type === 'image')) ||
+        (el.localName === 'vf-button' &&
+          (el as { type?: string }).type === 'submit')
+    )
+    if (defaultButton) {
+      if (defaultButton.matches(':disabled')) return
+      ;(defaultButton as HTMLElement).click()
+      return
+    }
+    form.requestSubmit()
+  }
+
+  /**
    * Dispatch a bubbling, composed value event (SPEC §4). Text fields use the
    * default `{ value }` detail; `vf-number-field` passes an enriched detail that
    * also carries `valueAsNumber`.

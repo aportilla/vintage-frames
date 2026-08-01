@@ -85,9 +85,20 @@ Modern requirements that we deliberately keep (accessibility over purity):
 - Boolean public props reflect: `@property({ type: Boolean, reflect: true })`.
 - Events: `CustomEvent` with `{ bubbles: true, composed: true }` and an object
   `detail`. Names are listed per component (`vf-change`, `vf-close`, …).
+  **Internal coordination events are the exception**: the menu handshakes
+  (`vf-menu-toggle-request`, `vf-menu-hover`, `vf-menu-close-request`) and the
+  list's `vf-list-item-disabled-change` pass `composed: false` — parent and
+  child share one light tree, and a private, cancelable protocol must not leak
+  out of a consumer's shadow boundary into their delegated listeners.
 - Disabled pattern: reflected `disabled` attr; the **label/text** dims to
   `--vf-disabled` gray while borders, boxes and glyphs stay black; interaction
   handlers early-return; set `aria-disabled`/`disabled` on internals.
+- Form-associated controls (`VfFormControl`) also implement
+  `formStateRestoreCallback` — the stored state is the last submitted string,
+  mapped back onto each control's own value semantics (`applyFormState`;
+  checkbox restores the flag, slider parses the number) — and expose
+  `:state(form-disabled)` while an ancestor `<fieldset disabled>` disables
+  them, the one disabled state consumer CSS can't otherwise see.
 - Components must render nothing surprising outside their box: no margins on
   `:host` by default.
 - Do NOT run repo-wide `tsc` while building an individual component group —
@@ -670,8 +681,15 @@ see §4.)
   `4px`) and the inner button's flex reads `--vf-button-flex` (default
   `0 1 auto`); `vf-button-group` sets these to `0` and `1 1 auto` so grouped
   faces align and stretch to a shared width. Standalone, both defaults are inert.
-- **Behavior:** form-associated. `type="submit"` → `this.internals.form?.requestSubmit()`;
-  `reset` → `form?.reset()`. Enter/Space work natively via inner button.
+- **Behavior:** form-associated. `type="submit"` submits by inserting a
+  transient native proxy button carrying this button's `name`/`value` and
+  clicking it — a form-associated custom element can't be a native submitter
+  itself, and a bare `requestSubmit()` would submit with `event.submitter ===
+  null` and no name/value; `reset` → the same proxy path. Enter/Space work
+  natively via the inner button, and the host overrides `click()` to forward
+  to it (a click dispatched at the host propagates up, never down into the
+  shadow tree) — which is also how the fields' Enter reaches this button as
+  the form's default button (see `requestImplicitSubmit`, text-control.ts).
 - **Slots:** default (label). **Parts:** `button`.
 - **Events:** none custom (native `click` suffices).
 
@@ -829,7 +847,12 @@ The color-swatch button: a well of solid color — a palette cell.
   moving the wrapper the rule spans — a field's width belongs on the host or
   on `--vf-field-width`.
 - **Behavior:** form-associated; syncs `value` on input; `formResetCallback`
-  restores default.
+  restores default. A plain Enter runs the form's **implicit submission** the
+  way HTML defines it — activating the form's default button (first submit
+  button in tree order, `vf-button` included), so the submission carries a
+  real `submitter` and that button's `name`/`value`, a disabled default
+  button submits nothing, and only a form with no submit button falls back to
+  a bare `requestSubmit()` (`requestImplicitSubmit`, text-control.ts).
 - **Parts:** `input`.
 - **Events:** `vf-input` detail `{ value }` on every keystroke; `vf-change`
   detail `{ value }` on commit (native change).
@@ -947,8 +970,10 @@ The classic popup menu control ("Macintosh HD ▼").
   positioned `position: fixed` from `getBoundingClientRect()` so it escapes
   clipping containers; closes on outside pointerdown, Escape, blur, scroll.
   Keyboard while open: arrows move active item, Enter/Space select, Escape
-  cancels, Home/End jump. On select: classic blink (invert toggles ~3 times in
-  ~250ms) then close + `vf-change`.
+  cancels, Home/End jump, and printable keys run the shared Finder
+  first-letter type-ahead (`src/type-ahead.ts` — the same buffer `vf-list`
+  and the menus use), moving the highlight to the match. On select: classic
+  blink (invert toggles ~3 times in ~250ms) then close + `vf-change`.
 - **Parts:** `control`, `label`, `arrow`, `panel`.
 - **Events:** `vf-change` detail `{ value }`.
 
@@ -1016,18 +1041,29 @@ The classic popup menu control ("Macintosh HD ▼").
 ### Group D — menus, lists, containers
 
 #### `vf-menu-bar` (`VfMenuBar`, vf-menu-bar.ts)
+- **Attributes/props:** `label: string` — accessible name for the menubar,
+  mirrored as host `aria-label` (guarded: a consumer's own
+  `aria-label`/`aria-labelledby` is left alone).
 - **Visual:** `display: block/flex`, height `var(--vf-menubar-height, 24px)`,
   white bg, `border-bottom: 1px solid var(--vf-black, #000)`, children laid out
   horizontally from left with `padding: 0 10px` per label.
 - **Behavior:** container/controller for slotted `vf-menu` children. Pressing a
   menu label → opens it (label inverts while open). While any menu is open,
   hovering another label switches to it (classic behavior). Escape / outside
-  click / item selection closes. `role="menubar"`. ArrowLeft/Right move between
-  menus when open. The bar also **owns the press-drag-release gesture** across
-  its menus (`MenuPressController`, `src/menu-press.ts` — see `vf-menu`), since
-  one press may travel over several of them: it binds the opening `pointerdown`
-  and hands the controller its own open/close rules, so the gesture changes
-  *when* a menu opens, never *how*.
+  click / item selection closes. `role="menubar"`, behind a first-connect
+  ownership latch so a consumer's own role survives upgrade; the shadow `.bar`
+  is `role="presentation"` and each slotted `vf-menu` host `role="none"`, so
+  the `menubar → menuitem` ownership chain has no generics in it. While a menu
+  is open: ArrowLeft/Right move between menus, ArrowDown/Up walk the open
+  menu's items, Home/End jump to its first/last enabled item, and printable
+  keys run the shared Finder first-letter type-ahead over the items
+  (`src/type-ahead.ts`; Space stays the focused item's activation key, and the
+  prefix resets on menu switch or close). The bar also **owns the
+  press-drag-release gesture** across its menus (`MenuPressController`,
+  `src/menu-press.ts` — see `vf-menu`), since one press may travel over
+  several of them: it binds the opening `pointerdown` and hands the controller
+  its own open/close rules, so the gesture changes *when* a menu opens, never
+  *how*.
 - **Slots:** default (vf-menu elements). **Parts:** `bar`.
 
 #### `vf-menu` (`VfMenu`, vf-menu.ts)
@@ -1035,9 +1071,14 @@ The classic popup menu control ("Macintosh HD ▼").
   e.g. an apple glyph), `open: boolean` (reflect, managed by menu-bar or self).
 - **Visual:** label: bold, height of menubar, `padding: 0 10px`; open → inverted
   (black bg / white text). The title itself sits in a `.title` box inside that
-  cell, so the focus rule can span the title and not the padding. Panel:
-  `.vf-panel`, `position: absolute` below the label (`top: 100%; left: 0;`),
-  `min-width: 180px`, `padding: 2px 0`; `role="menu"`.
+  cell, so the focus rule can span the title and not the padding. In a bar the
+  label is `role="menuitem"`; standalone it is `role="button"` — a collapsed
+  standalone dropdown *is* the APG menu-button pattern, and `aria-haspopup` +
+  `aria-expanded` are already right for it (the host itself is `role="none"`
+  in a bar and role-less standalone, behind vf-menu-item's first-connect
+  ownership latch). Panel: `.vf-panel`, `position: absolute` below the label
+  (`top: 100%; left: 0;`), `min-width: 180px`, `padding: 2px 0`;
+  `role="menu"`.
   - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
     `--vf-focus-underline-offset: -2px`, a dashed rule one blank system px row
     under the `.title` box. That box is `line-height: 1`, i.e. the face's own
@@ -1059,9 +1100,16 @@ The classic popup menu control ("Macintosh HD ▼").
     still drops the mark, as does mousing into the dropped panel.
     `npm run verify:focus`.
 - **Behavior:** delegates open-state coordination to parent `vf-menu-bar` when
-  present (only one open at a time). Sets
-  `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so slotted
-  `vf-separator`s render dimmed with 2px vertical margin.
+  present (only one open at a time; standalone, `#requestToggle` doesn't emit
+  the coordination event at all — see the events convention in §2). Keyboard
+  on the label: Enter, Space and ArrowDown all open **and move focus to the
+  first enabled item** (APG, menubar and menu-button patterns alike — opening
+  without entering would park the keyboard on the title with the panel
+  dropped). While open standalone the menu runs its own item keyboard:
+  ArrowDown/Up wrap, Home/End jump, printable keys run the shared first-letter
+  type-ahead (`src/type-ahead.ts`), Escape closes and refocuses the label.
+  Sets `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so
+  slotted `vf-separator`s render dimmed with 2px vertical margin.
   **Pointer:** the two styles `vf-select` supports, on the same terms and the
   same `PRESS_HOLD_MS` threshold (`src/motion.ts`) — the menus get theirs from
   `MenuPressController` (`src/menu-press.ts`), which a standalone menu hosts
@@ -1157,13 +1205,25 @@ Classic list box.
   onto every row (as `vf-radio-group` does), so AT is never shown enabled-looking
   options inside a disabled listbox; the flag is tracked separately from each
   row's own `disabled`, so re-enabling the list leaves individually disabled rows
-  disabled. Click selects (Shift/Cmd extend when `multiple`). Roving tabindex, Arrow keys move selection, Space toggles in
-  multiple mode. Printable keys drive classic Finder **first-letter type-ahead**:
-  keystrokes accumulate into a prefix matched against each row's text, jumping to
-  (and selecting) the next match, wrapping and skipping disabled rows. The prefix
-  resets after 1s of silence; repeating a single character cycles the rows
-  starting with it. Modified keys are left to the consumer, and Space stays the
-  multiple-mode toggle, so neither joins the prefix.
+  disabled. Click selects (Shift/Cmd extend when `multiple`). Roving tabindex;
+  Arrow keys move the selection, Space toggles in multiple mode. The full
+  multiple-mode model: Shift+Arrow extends from the anchor, Ctrl+Arrow moves
+  the cursor without touching the selection, plain Home/End and type-ahead
+  jumps are cursor-only moves too (a jump that rewrote a hand-built selection
+  would destroy it — Space is how the reached row joins it; in single mode
+  they select, since there the selection *is* the cursor), Shift(+Ctrl)+
+  Home/End extend through to the ends, Shift+Space selects the contiguous run
+  from the anchor to the cursor, and Ctrl/Cmd+A selects every enabled row.
+  Printable keys drive classic Finder **first-letter type-ahead**
+  (`src/type-ahead.ts`, the shared buffer `vf-select` and the menus also run):
+  keystrokes accumulate into a prefix matched against each row's text, jumping
+  to the next match, wrapping and skipping disabled rows. The prefix resets
+  after 1s of silence; repeating a single character cycles the rows starting
+  with it. Modified keys are left to the consumer, and Space stays the
+  multiple-mode toggle, so neither joins the prefix. A **disabled** list keeps
+  its rows rendered and readable (System 7 dims a list, it doesn't hide it) —
+  when they overflow the box, the viewport itself becomes the Tab stop so the
+  dimmed rows stay reachable by keyboard scroll.
 - **Parts:** `list`. **Events:** `vf-change` detail `{ value, values }`.
 
 #### `vf-scroll-area` (`VfScrollArea`, vf-scroll-area.ts)
@@ -1171,10 +1231,14 @@ A container whose scrollbars look like System 7.
 - **Attributes/props:** `axis: 'vertical' | 'horizontal' | 'both'` (default
   `'vertical'`, reflected) — which scroll rails to reserve as permanent
   placeholders (see "always-a-rail" below); `label: string` — accessible name
-  for the keyboard-focusable viewport (`aria-label` on the viewport, since an
-  `aria-label` on the host cannot reach into the shadow DOM). A non-empty
-  `label` also promotes the viewport to `role="region"`; the role is omitted
-  while it is empty, because an unnamed region is inert.
+  for the viewport (`aria-label` on the viewport, since an `aria-label` on the
+  host cannot reach into the shadow DOM). The viewport is a **Tab stop only
+  while its content actually overflows** — the same state
+  `ScrollStateController` measures for the rails; a fitting scroll area used
+  to be a focusable stop with `role: generic` and no name, a dead Tab press.
+  Whenever it is a stop it carries a role: `role="region"` when `label` names
+  it (a named landmark), `role="group"` when not (an unnamed region is inert,
+  so that role is reserved for the labelled case).
 - **Visual:** `display: block`, white bg; the 1px black frame is a
   `.vf-scroll-frame` overlay above the borderless inner viewport, whose
   `padding: 9px` (the old 8px + the 1px the dropped border occupied) keeps the
@@ -1543,8 +1607,13 @@ one image pixel as one system pixel.
 - **Behavior:** the graphic stays a native `<img>` in the consumer's light DOM
   (native loading, `alt` semantics — `alt=""` when decorative; the kit ships no
   raster files). The component watches the slotted image's `load`/`error` to
-  pick up its natural size and any later `src` swap. Carries a
-  `ScaleController` and a `GridSnapController` like every painted host.
+  pick up its natural size and any later `src` swap. A **failed** load
+  (settled, no natural size) releases an undeclared box instead of clamping it
+  to 0×0 — a native `<img alt="…">` that fails renders its alt text, and
+  stretching the image into a 0×0 frame erased it; declared `width`/`height`
+  still hold the box, exactly as a sized native `<img>` reserves its box
+  around the alt text. Carries a `ScaleController` and a `GridSnapController`
+  like every painted host.
 - **Slots:** default (a single `<img>`). **Parts:** `frame`.
 
 #### `vf-icon` (`VfIcon`, vf-icon.ts)

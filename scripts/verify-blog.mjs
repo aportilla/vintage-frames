@@ -77,7 +77,12 @@ await page.evaluate(() => document.querySelector('#menu-topics').focusLabel())
 await page.keyboard.press('Enter')
 await page.waitForTimeout(200)
 check('Enter opens the menu', await page.evaluate(() => document.querySelector('#menu-topics').open), true)
-await page.keyboard.press('ArrowDown')
+check(
+  'Enter also enters it — focus is on the first item (APG)',
+  await page.evaluate(() => document.activeElement?.getAttribute('value')),
+  'craft'
+)
+// Focus starts on Craft, so ONE ArrowDown reaches Engineering.
 await page.keyboard.press('ArrowDown')
 await page.keyboard.press('Enter')
 await page.waitForTimeout(500)

@@ -1,5 +1,5 @@
 import { css, html, LitElement, nothing } from 'lit'
-import { property, query } from 'lit/decorators.js'
+import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase, vfScrollbars, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -49,10 +49,11 @@ export class VfScrollArea extends LitElement {
   /**
    * Accessible name for the scrolling viewport, applied as its `aria-label`
    * (an `aria-label` on the host would not reach into the shadow DOM). The
-   * viewport is keyboard-focusable, so without a name it is announced only as
-   * an anonymous scrollable group; setting `label` also promotes it to a named
-   * `role="region"` landmark. The role is omitted while `label` is empty,
-   * since an unnamed region is inert.
+   * viewport is keyboard-focusable while its content overflows, so without a
+   * name it is announced only as an anonymous scrollable group; setting
+   * `label` also promotes it to a named `role="region"` landmark. While
+   * `label` is empty the viewport is a plain `group` when scrollable (an
+   * unnamed region is inert) and role-less when not.
    */
   @property() label = ''
 
@@ -63,8 +64,14 @@ export class VfScrollArea extends LitElement {
   private readonly scrollState = new ScrollStateController(
     this,
     () => this.viewport,
-    () => this.content
+    () => this.content,
+    (overflow) => {
+      this._scrollable = overflow.x || overflow.y
+    }
   )
+
+  /** Whether the content actually overflows the viewport (either axis). */
+  @state() private _scrollable = false
 
   /**
    * Moves keyboard focus to the scrolling viewport — the focusable element
@@ -141,13 +148,18 @@ export class VfScrollArea extends LitElement {
   ]
 
   protected override render() {
+    // The viewport is a Tab stop only while there is actually something to
+    // scroll — the state ScrollStateController already measures for the rails.
+    // A fitting scroll area used to be a focusable stop with role: generic and
+    // no name, a dead Tab press. Whenever it IS a stop it carries a role:
+    // `region` when labelled (a named landmark), `group` when not.
     return html`
       <div class="box vf-snap">
         <div
           class="viewport vf-scroll"
           part="viewport"
-          tabindex="0"
-          role=${this.label ? 'region' : nothing}
+          tabindex=${this._scrollable ? '0' : nothing}
+          role=${this.label ? 'region' : this._scrollable ? 'group' : nothing}
           aria-label=${this.label || nothing}
         >
           <div class="content"><slot></slot></div>

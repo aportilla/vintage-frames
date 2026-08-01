@@ -606,6 +606,24 @@
             },
             {
               "kind": "field",
+              "name": "buttonEl",
+              "type": {
+                "text": "HTMLButtonElement | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "click",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Forwards a synthetic activation to the real `<button>` in the shadow\nroot. A `click()` on the host dispatches at the host and propagates *up*,\nnever down to the inner button's listener — so the native control, the\nactual activation surface, is handed the call instead. Its click then\nbubbles back out composed, exactly as a pointer's does. This is what the\nfields' implicit submission (Enter) activates as the form's default\nbutton; a disabled button swallows it natively, as it should."
+            },
+            {
+              "kind": "field",
               "name": "handleClick",
               "privacy": "private"
             },
@@ -695,7 +713,58 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -1006,6 +1075,29 @@
             },
             {
               "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Restored form state means the flag, not `value`: a checkbox only ever\nstores its submission string while checked, so getting one back IS\n\"checked\" (the base default would have overwritten `value` instead).",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "activate",
               "privacy": "protected",
               "return": {
@@ -1227,7 +1319,35 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -3085,6 +3205,16 @@
             },
             {
               "kind": "field",
+              "name": "_failed",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "True when the slotted image has settled with no natural size (a failed\nload); see #measure."
+            },
+            {
+              "kind": "field",
               "name": "#img",
               "privacy": "private",
               "type": {
@@ -3590,8 +3720,18 @@
               "name": "scrollState",
               "privacy": "private",
               "readonly": true,
-              "default": "new ScrollStateController( this, () => this.viewport, () => this.content )",
+              "default": "new ScrollStateController( this, () => this.viewport, () => this.content, (overflow) => { this._scrollable = overflow.x || overflow.y } )",
               "description": "Reserves the vertical rail and toggles it active on overflow."
+            },
+            {
+              "kind": "field",
+              "name": "_scrollable",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether the rows actually overflow the box (either axis)."
             },
             {
               "kind": "field",
@@ -3676,19 +3816,9 @@
               "kind": "field",
               "name": "#typeAhead",
               "privacy": "private",
-              "type": {
-                "text": "string"
-              },
-              "default": "''",
-              "description": "Accumulated first-letter type-ahead prefix (lowercased)."
-            },
-            {
-              "kind": "field",
-              "name": "#typeAheadTimer",
-              "privacy": "private",
-              "type": {
-                "text": "number | undefined"
-              }
+              "readonly": true,
+              "default": "new TypeAheadBuffer()",
+              "description": "First-letter type-ahead over the rows; see src/type-ahead.ts."
             },
             {
               "kind": "field",
@@ -3717,7 +3847,7 @@
                   }
                 }
               ],
-              "description": "Moves keyboard focus to the row holding the roving tab stop. Overridden\nbecause the platform's `focus()` is a silent no-op on this host — no\n`delegatesFocus`, no host tabindex — so `vf-label for` (which calls\n`target.focus()`) never reached the list."
+              "description": "Moves keyboard focus to the row holding the roving tab stop — or, while\nthe list is disabled, to the scrolling viewport (the disabled list's own\nTab stop; the rows are all at -1 then). Overridden because the platform's\n`focus()` is a silent no-op on this host — no `delegatesFocus`, no host\ntabindex — so `vf-label for` (which calls `target.focus()`) never reached\nthe list."
             },
             {
               "kind": "method",
@@ -3796,7 +3926,7 @@
             },
             {
               "kind": "method",
-              "name": "#typeAheadTo",
+              "name": "#cursorTo",
               "privacy": "private",
               "return": {
                 "type": {
@@ -3805,29 +3935,38 @@
               },
               "parameters": [
                 {
-                  "name": "key",
-                  "type": {
-                    "text": "string"
-                  }
-                },
-                {
-                  "name": "current",
+                  "name": "index",
                   "type": {
                     "text": "number"
                   }
                 }
               ],
-              "description": "Classic Finder first-letter type-ahead. Keystrokes accumulate into a prefix\nthat jumps to the next row whose text starts with it; the prefix resets\nafter TYPEAHEAD_TIMEOUT_MS of silence. The search wraps, skips\ndisabled rows, and selects the row it lands on (as Finder does), so a\nfollowing Shift+Arrow extends from there."
+              "description": "Moves the keyboard cursor (roving tab stop + focus) to `index` without\ntouching the selection — the multiple-mode focus move (Ctrl+Arrow, plain\nHome/End, type-ahead), where Space then acts on the row it reached."
             },
             {
               "kind": "method",
-              "name": "#resetTypeAhead",
+              "name": "#extendTo",
               "privacy": "private",
               "return": {
                 "type": {
                   "text": "void"
                 }
-              }
+              },
+              "parameters": [
+                {
+                  "name": "index",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "from",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Selects exactly the contiguous run from the anchor to `index` — adopting\n`from` as the anchor when none is set — and moves the cursor there. The\nshape every Shift extension shares: Shift+Arrow, Shift(+Ctrl)+Home/End,\nShift+Space."
             },
             {
               "kind": "method",
@@ -3970,7 +4109,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items.\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.",
+          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items, Home/End jump to its first/last, and typed letters\nrun the shared Finder first-letter type-ahead (src/type-ahead.ts).\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.",
           "name": "VfMenuBar",
           "cssProperties": [
             {
@@ -4009,6 +4148,16 @@
             },
             {
               "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"menubar\"`). Without it the menubar computes with an empty\nname. A consumer-supplied `aria-label`/`aria-labelledby` attribute is\nleft alone.",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
               "name": "_menus",
               "type": {
                 "text": "VfMenu[]"
@@ -4024,6 +4173,23 @@
               },
               "default": "null",
               "description": "The currently-open slotted menu, if any."
+            },
+            {
+              "kind": "field",
+              "name": "#ownsRole",
+              "privacy": "private",
+              "type": {
+                "text": "boolean | undefined"
+              },
+              "description": "Whether this component owns the host `role`. Decided on the FIRST connect\nonly (vf-menu-item's latch): our own `role=\"menubar\"` write persists on\nthe element, so re-testing `hasAttribute('role')` on a reconnect would\nread that write back as consumer-supplied and freeze it — while testing\nnothing would overwrite a consumer's own `role=\"toolbar\"` on upgrade."
+            },
+            {
+              "kind": "field",
+              "name": "#typeAhead",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new TypeAheadBuffer()",
+              "description": "First-letter type-ahead over the open menu's items; see src/type-ahead.ts."
             },
             {
               "kind": "field",
@@ -4212,6 +4378,17 @@
                 }
               ],
               "description": "Moves keyboard focus through the open menu's enabled items, wrapping."
+            }
+          ],
+          "attributes": [
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"menubar\"`). Without it the menubar computes with an empty\nname. A consumer-supplied `aria-label`/`aria-labelledby` attribute is\nleft alone.",
+              "fieldName": "label"
             }
           ],
           "superclass": {
@@ -4617,7 +4794,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End) while\nopen.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.",
+          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.",
           "name": "VfMenu",
           "cssProperties": [
             {
@@ -4763,6 +4940,23 @@
             },
             {
               "kind": "field",
+              "name": "#ownsRole",
+              "privacy": "private",
+              "type": {
+                "text": "boolean | undefined"
+              },
+              "description": "Whether this component owns the host `role`. Decided on the FIRST connect\nonly (vf-menu-item's latch): our own write persists on the element, so\nre-testing `hasAttribute('role')` on a reconnect would read it back as\nconsumer-supplied and freeze it."
+            },
+            {
+              "kind": "field",
+              "name": "#typeAhead",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new TypeAheadBuffer()",
+              "description": "First-letter type-ahead while open standalone; see src/type-ahead.ts."
+            },
+            {
+              "kind": "field",
               "name": "#swallowClick",
               "privacy": "private",
               "type": {
@@ -4814,6 +5008,17 @@
               "description": "Outside dismissal + item keyboard nav while open standalone."
             },
             {
+              "kind": "method",
+              "name": "#syncRole",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "In a bar the host is `role=\"none\"`: the `menubar`'s items are the shadow\n`.label`s (`menuitem`), and while browsers do compute that ownership\nthrough a role-less generic, declaring it keeps the chain explicit.\nStandalone, the host stays role-less — the label is a `button` there.\nSkipped when the consumer supplied their own role."
+            },
+            {
               "kind": "field",
               "name": "#onHostFocusOut",
               "privacy": "private",
@@ -4863,7 +5068,7 @@
                   "text": "void"
                 }
               },
-              "description": "Requests a toggle. A parent `vf-menu-bar` cancels the internal\n`vf-menu-toggle-request` event and coordinates; otherwise the menu\ntoggles itself."
+              "description": "Requests a toggle. A parent `vf-menu-bar` cancels the internal\n`vf-menu-toggle-request` event and coordinates; otherwise the menu\ntoggles itself.\n\nStandalone, no event is emitted at all: the cancelable request exists for\nthe bar's benefit, and letting it bubble on to the page meant a\nconsumer's delegated handler calling `preventDefault()` on an\nunrecognised event silently kept the menu from ever opening."
             },
             {
               "kind": "method",
@@ -5383,6 +5588,21 @@
             },
             {
               "kind": "method",
+              "name": "requestImplicitSubmit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "emitValue",
               "privacy": "protected",
               "return": {
@@ -5543,7 +5763,58 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -6562,7 +6833,58 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -7139,7 +7461,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable, so without a name it is announced only as\nan anonymous scrollable group; setting `label` also promotes it to a named\n`role=\"region\"` landmark. The role is omitted while `label` is empty,\nsince an unnamed region is inert.",
+              "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable while its content overflows, so without a\nname it is announced only as an anonymous scrollable group; setting\n`label` also promotes it to a named `role=\"region\"` landmark. While\n`label` is empty the viewport is a plain `group` when scrollable (an\nunnamed region is inert) and role-less when not.",
               "attribute": "label"
             },
             {
@@ -7163,8 +7485,18 @@
               "name": "scrollState",
               "privacy": "private",
               "readonly": true,
-              "default": "new ScrollStateController( this, () => this.viewport, () => this.content )",
+              "default": "new ScrollStateController( this, () => this.viewport, () => this.content, (overflow) => { this._scrollable = overflow.x || overflow.y } )",
               "description": "Reports overflow per axis so the reserved rail(s) activate on overflow."
+            },
+            {
+              "kind": "field",
+              "name": "_scrollable",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether the content actually overflows the viewport (either axis)."
             },
             {
               "kind": "method",
@@ -7202,7 +7534,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable, so without a name it is announced only as\nan anonymous scrollable group; setting `label` also promotes it to a named\n`role=\"region\"` landmark. The role is omitted while `label` is empty,\nsince an unnamed region is inert.",
+              "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable while its content overflows, so without a\nname it is announced only as an anonymous scrollable group; setting\n`label` also promotes it to a named `role=\"region\"` landmark. While\n`label` is empty the viewport is a plain `group` when scrollable (an\nunnamed region is inert) and role-less when not.",
               "fieldName": "label"
             }
           ],
@@ -7518,6 +7850,14 @@
                 "text": "BlinkHandle | undefined"
               },
               "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "typeAhead",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new TypeAheadBuffer()",
+              "description": "First-letter type-ahead over the open list; see src/type-ahead.ts."
             },
             {
               "kind": "method",
@@ -8000,6 +8340,57 @@
             },
             {
               "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "syncFormValue",
               "privacy": "protected",
               "return": {
@@ -8442,6 +8833,29 @@
               "description": "Restores the initial value when the associated form resets."
             },
             {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Restored form state parses back to the numeric `value` (the stored state\nis `String(clampedValue)`; the base default would assign the string).",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "field",
               "name": "#range",
               "privacy": "private",
@@ -8696,7 +9110,35 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -9541,6 +9983,21 @@
             },
             {
               "kind": "method",
+              "name": "requestImplicitSubmit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "emitValue",
               "privacy": "protected",
               "return": {
@@ -9678,7 +10135,58 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -10165,6 +10673,21 @@
             },
             {
               "kind": "method",
+              "name": "requestImplicitSubmit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "emitValue",
               "privacy": "protected",
               "return": {
@@ -10325,7 +10848,58 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -11093,7 +11667,50 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control."
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`."
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults."
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override."
             },
             {
               "kind": "method",
@@ -11355,6 +11972,17 @@
             },
             {
               "kind": "method",
+              "name": "requestImplicitSubmit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML."
+            },
+            {
+              "kind": "method",
               "name": "emitValue",
               "privacy": "protected",
               "return": {
@@ -11503,7 +12131,58 @@
                   }
                 }
               ],
-              "description": "Form-associated lifecycle: the browser calls this when an ancestor (e.g.\n`<fieldset disabled>`) disables or re-enables this control.",
+              "description": "Form-associated lifecycle: the browser calls this when this control's\ndisabled state changes — an ancestor `<fieldset disabled>`, or the\nelement's OWN `disabled` attribute (the browser counts both).\n\nAlso mirrored as the `form-disabled` custom state: `disabled` reflects as\nan attribute a stylesheet can see, but a `<fieldset disabled>` ancestor\nlands here in otherwise-private state — `:state(form-disabled)` is the\none selector that lets consumer CSS style that case. Optional-chained for\nengines without `CustomStateSet`.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formStateRestoreCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string | File | FormData | null"
+                  }
+                },
+                {
+                  "name": "_mode",
+                  "type": {
+                    "text": "'restore' | 'autofill'"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the browser hands back state it stored for\nthis control — a bfcache/session restore, or a browser autofill pass.\nThe kit's controls all submit through single-argument `setFormValue`, so\nthe stored state IS the last submitted string. Without this callback,\nevery native input in the form repopulates on restore while the `vf-*`\ncontrols silently keep their defaults.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "applyFormState",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Maps stored form state back onto the control's own value semantics. The\ndefault covers the string-valued majority (the fields, `vf-select`,\n`vf-radio-group`); `vf-checkbox` (a checked flag) and `vf-slider` (a\nnumber) override.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"

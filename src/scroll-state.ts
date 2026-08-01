@@ -68,7 +68,18 @@ export class ScrollStateController implements ReactiveController {
   constructor(
     private readonly host: ReactiveControllerHost & HTMLElement,
     private readonly getScroll: () => HTMLElement | null | undefined,
-    private readonly getContent?: () => Element | null | undefined
+    private readonly getContent?: () => Element | null | undefined,
+    /**
+     * Invoked whenever the measured overflow state changes (including the
+     * first measurement), with the per-axis result. Components that gate
+     * *rendered* state on scrollability — vf-scroll-area's conditional tab
+     * stop — hang a reactive property off this; the data attributes alone
+     * are written outside Lit's render and would never re-render the host.
+     */
+    private readonly onOverflowChange?: (overflow: {
+      x: boolean
+      y: boolean
+    }) => void
   ) {
     host.addController(this)
   }
@@ -179,7 +190,10 @@ export class ScrollStateController implements ReactiveController {
       el.getAttribute('data-overflow-x') !== String(overX)
     el.setAttribute('data-overflow-y', String(overY))
     el.setAttribute('data-overflow-x', String(overX))
-    if (changed) refreshWebKitScrollbars(el)
+    if (changed) {
+      refreshWebKitScrollbars(el)
+      this.onOverflowChange?.({ x: overX, y: overY })
+    }
   }
 }
 

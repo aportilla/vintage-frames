@@ -14,6 +14,7 @@ import {
 } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { MenuPressController } from '../menu-press.js'
+import { TypeAheadBuffer } from '../type-ahead.js'
 import { emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -25,8 +26,8 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * hover-switching, outside-click/Escape dismissal) and owns the pointer
  * gesture, which may travel between its menus. Used standalone, the menu
  * toggles itself on label click and manages its own dismissal, its own press
- * gesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End) while
- * open.
+ * gesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the
+ * shared first-letter type-ahead — src/type-ahead.ts) while open.
  *
  * Pointer — the two styles `vf-select` supports, on the same terms (see
  * src/menu-press.ts): the System 7 press-drag-release (press the title, slide
@@ -223,6 +224,17 @@ export class VfMenu extends LitElement {
   }
 
   /**
+   * Whether this component owns the host `role`. Decided on the FIRST connect
+   * only (vf-menu-item's latch): our own write persists on the element, so
+   * re-testing `hasAttribute('role')` on a reconnect would read it back as
+   * consumer-supplied and freeze it.
+   */
+  #ownsRole: boolean | undefined
+
+  /** First-letter type-ahead while open standalone; see src/type-ahead.ts. */
+  readonly #typeAhead = new TypeAheadBuffer()
+
+  /**
    * Swallows the one `click` the browser synthesises after a pointer press, so
    * the gesture that just dropped the menu isn't immediately toggled shut by
    * its own trailing click. A `click` with no preceding pointerdown (keyboard /
@@ -270,6 +282,35 @@ export class VfMenu extends LitElement {
         items[event.key === 'Home' ? 0 : items.length - 1]?.focus()
         break
       }
+      default: {
+        // Printable keys run the shared Finder type-ahead over the items, as
+        // the bar's handler does for its open menu. Space stays out of the
+        // prefix — it is the focused item's activation key — and modified
+        // keys stay the consumer's.
+        if (
+          event.key.length !== 1 ||
+          event.key === ' ' ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey
+        ) {
+          break
+        }
+        event.preventDefault()
+        const items = this.items
+        const current = items.indexOf(document.activeElement as VfMenuItem)
+        const index = this.#typeAhead.feed(
+          event.key,
+          current,
+          // Already the enabled rows only, so nothing here is disabled.
+          items.map((item) => ({
+            text: item.textContent ?? '',
+            disabled: false,
+          }))
+        )
+        items[index]?.focus()
+        break
+      }
     }
   }
 
@@ -292,9 +333,28 @@ export class VfMenu extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback()
+    this.#ownsRole ??= !this.hasAttribute('role')
+    this.#syncRole()
+    // The bar/standalone split also drives the label's rendered role, and a
+    // reconnect alone schedules no re-render — re-parenting between the two
+    // contexts must re-evaluate it.
+    this.requestUpdate()
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.addEventListener('pointerdown', this.#onHostPointerDown)
     this.addEventListener('focusout', this.#onHostFocusOut)
+  }
+
+  /**
+   * In a bar the host is `role="none"`: the `menubar`'s items are the shadow
+   * `.label`s (`menuitem`), and while browsers do compute that ownership
+   * through a role-less generic, declaring it keeps the chain explicit.
+   * Standalone, the host stays role-less — the label is a `button` there.
+   * Skipped when the consumer supplied their own role.
+   */
+  #syncRole(): void {
+    if (!this.#ownsRole) return
+    if (this.#inBar) this.setAttribute('role', 'none')
+    else this.removeAttribute('role')
   }
 
   override disconnectedCallback(): void {
@@ -329,6 +389,8 @@ export class VfMenu extends LitElement {
       // flag once the panel is gone, so a reopened menu never shows a stale
       // highlight.
       if (!this.open) for (const item of this.allItems) item.active = false
+      // A type-ahead prefix doesn't survive the panel it was typed into.
+      if (!this.open) this.#typeAhead.reset()
     }
   }
 
@@ -373,7 +435,7 @@ export class VfMenu extends LitElement {
       <div
         class="label vf-snap ${this.#focusRule.marked ? 'vf-focus-rule' : ''}"
         part="label"
-        role="menuitem"
+        role=${this.#inBar ? 'menuitem' : 'button'}
         tabindex=${this.barTabIndex}
         aria-haspopup="menu"
         aria-expanded=${this.open ? 'true' : 'false'}
@@ -400,9 +462,23 @@ export class VfMenu extends LitElement {
    * Requests a toggle. A parent `vf-menu-bar` cancels the internal
    * `vf-menu-toggle-request` event and coordinates; otherwise the menu
    * toggles itself.
+   *
+   * Standalone, no event is emitted at all: the cancelable request exists for
+   * the bar's benefit, and letting it bubble on to the page meant a
+   * consumer's delegated handler calling `preventDefault()` on an
+   * unrecognised event silently kept the menu from ever opening.
    */
   #requestToggle(): void {
-    const proceed = emit(this, 'vf-menu-toggle-request', { menu: this }, { cancelable: true })
+    if (!this.#inBar) {
+      this.open = !this.open
+      return
+    }
+    const proceed = emit(
+      this,
+      'vf-menu-toggle-request',
+      { menu: this },
+      { cancelable: true, composed: false }
+    )
     if (proceed) this.open = !this.open
   }
 
@@ -435,13 +511,19 @@ export class VfMenu extends LitElement {
 
   #onLabelEnter(): void {
     // Internal event: while a sibling menu is open, the bar switches to us.
-    emit(this, 'vf-menu-hover', { menu: this })
+    emit(this, 'vf-menu-hover', { menu: this }, { composed: false })
   }
 
   #onLabelKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
+      const wasOpen = this.open
       this.#requestToggle()
+      // APG, menubar and menu-button patterns alike: opening from the
+      // keyboard moves focus to the first item, as ArrowDown always did here.
+      // Opening without entering parked the keyboard on the title with the
+      // panel dropped.
+      if (!wasOpen && this.open) void this.#focusFirstItem()
     } else if (event.key === 'ArrowDown' && !this.open) {
       event.preventDefault()
       this.#requestToggle()

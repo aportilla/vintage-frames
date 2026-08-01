@@ -231,6 +231,15 @@ export class VfSlider extends VfFormControl {
     this.value = this.formDefault(0)
   }
 
+  /**
+   * Restored form state parses back to the numeric `value` (the stored state
+   * is `String(clampedValue)`; the base default would assign the string).
+   */
+  protected override applyFormState(state: string): void {
+    const parsed = Number(state)
+    if (!Number.isNaN(parsed)) this.value = parsed
+  }
+
   // ------------------------------------------------------------- value math
 
   get #range(): number {

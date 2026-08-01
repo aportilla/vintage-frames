@@ -420,7 +420,7 @@ export class VfMenuItem extends LitElement {
     const value = this.value ?? (this.textContent ?? '').trim()
     emit(this, 'vf-menu-select', { value, item: this })
     // Internal coordination event: `vf-menu` / `vf-menu-bar` listen and close.
-    emit(this, 'vf-menu-close-request', { item: this })
+    emit(this, 'vf-menu-close-request', { item: this }, { composed: false })
   }
 }
 

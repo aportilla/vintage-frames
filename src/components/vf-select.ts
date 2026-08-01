@@ -12,6 +12,7 @@ import { DocumentListenersController } from '../document-listeners.js'
 import { runSelectionBlink, PRESS_HOLD_MS, type BlinkHandle } from '../motion.js'
 import { VfFormControl } from '../form-control.js'
 import { FocusRuleController } from '../focus-modality.js'
+import { TypeAheadBuffer } from '../type-ahead.js'
 import { emit } from '../events.js'
 
 /**
@@ -309,6 +310,9 @@ export class VfSelect extends VfFormControl {
 
   private blinkHandle: BlinkHandle | undefined
 
+  /** First-letter type-ahead over the open list; see src/type-ahead.ts. */
+  private readonly typeAhead = new TypeAheadBuffer()
+
   constructor() {
     super()
     this.addEventListener('pointerdown', this.handleHostPointerDown)
@@ -472,6 +476,8 @@ export class VfSelect extends VfFormControl {
     this.cancelBlink()
     this.endPress()
     this.clearActive()
+    // A type-ahead prefix doesn't survive the panel it was typed into.
+    this.typeAhead.reset()
     this.panelListeners.detach()
     if (refocusControl) this.controlEl?.focus()
   }
@@ -759,8 +765,32 @@ export class VfSelect extends VfFormControl {
         // Let focus move on; close without cancelling the tab.
         this.closePanel(false)
         break
-      default:
+      default: {
+        // Printable keys run the shared Finder type-ahead over the open list
+        // (src/type-ahead.ts), moving the highlight to the matched option —
+        // native <select> and the APG select-only combobox both do. Space
+        // never reaches here (it commits, above); modified keys stay the
+        // consumer's shortcuts.
+        if (
+          event.key.length !== 1 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey
+        ) {
+          break
+        }
+        event.preventDefault()
+        const index = this.typeAhead.feed(
+          event.key,
+          this.activeIndex,
+          this.optionItems.map((o) => ({
+            text: o.textContent ?? '',
+            disabled: o.disabled,
+          }))
+        )
+        if (index !== -1) this.setActive(index)
         break
+      }
     }
   }
 

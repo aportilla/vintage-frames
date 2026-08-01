@@ -122,7 +122,7 @@ export class VfListItem extends LitElement {
     // the old value is the class-field default there, and the list's own
     // slotchange sync already covers newly arrived rows.
     if (changed.has('disabled') && changed.get('disabled') !== undefined) {
-      emit(this, 'vf-list-item-disabled-change', { item: this })
+      emit(this, 'vf-list-item-disabled-change', { item: this }, { composed: false })
     }
   }
 

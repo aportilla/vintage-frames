@@ -1,25 +1,21 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, nothing } from 'lit'
 import {
   property,
   query,
   queryAssignedElements,
+  state,
 } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { vfBase, vfScrollbars } from '../styles/base.js'
+import { vfBase, vfFocusRing, vfScrollbars } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { ScrollStateController } from '../scroll-state.js'
+import { TypeAheadBuffer } from '../type-ahead.js'
 import { emit } from '../events.js'
 import type { VfListItem } from './vf-list-item.js'
 
 const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((v, i) => v === b[i])
-
-/**
- * How long a first-letter type-ahead prefix stays open before the buffer
- * resets, so the next keystroke starts a fresh search.
- */
-const TYPEAHEAD_TIMEOUT_MS = 1000
 
 /**
  * `<vf-list>` — the classic System 7 list box.
@@ -87,6 +83,12 @@ export class VfList extends LitElement {
         overflow-y: scroll;
         scrollbar-gutter: stable;
       }
+      /* The viewport is itself the Tab stop while the list is disabled (see
+         render()); the ring keeps that stop visible, inset to stay in-box. */
+      .list:focus-visible {
+        --vf-focus-offset: -2px;
+        ${vfFocusRing}
+      }
     `,
   ]
 
@@ -102,8 +104,14 @@ export class VfList extends LitElement {
   private readonly scrollState = new ScrollStateController(
     this,
     () => this.viewport,
-    () => this.content
+    () => this.content,
+    (overflow) => {
+      this._scrollable = overflow.x || overflow.y
+    }
   )
+
+  /** Whether the rows actually overflow the box (either axis). */
+  @state() private _scrollable = false
 
   /** Allows multiple selection (Shift extends, Cmd/Ctrl toggles). */
   @property({ type: Boolean, reflect: true }) multiple = false
@@ -134,9 +142,8 @@ export class VfList extends LitElement {
   /** Index the next Shift+click extends from. */
   #anchorIndex = -1
 
-  /** Accumulated first-letter type-ahead prefix (lowercased). */
-  #typeAhead = ''
-  #typeAheadTimer?: number
+  /** First-letter type-ahead over the rows; see src/type-ahead.ts. */
+  readonly #typeAhead = new TypeAheadBuffer()
 
   /** The selection last pushed onto the rows; see {@link #applyIfStale}. */
   #appliedValues: string[] = []
@@ -153,12 +160,18 @@ export class VfList extends LitElement {
   }
 
   /**
-   * Moves keyboard focus to the row holding the roving tab stop. Overridden
-   * because the platform's `focus()` is a silent no-op on this host — no
-   * `delegatesFocus`, no host tabindex — so `vf-label for` (which calls
-   * `target.focus()`) never reached the list.
+   * Moves keyboard focus to the row holding the roving tab stop — or, while
+   * the list is disabled, to the scrolling viewport (the disabled list's own
+   * Tab stop; the rows are all at -1 then). Overridden because the platform's
+   * `focus()` is a silent no-op on this host — no `delegatesFocus`, no host
+   * tabindex — so `vf-label for` (which calls `target.focus()`) never reached
+   * the list.
    */
   override focus(options?: FocusOptions): void {
+    if (this.disabled) {
+      this.viewport?.focus(options)
+      return
+    }
     this._items?.find((i) => i.tabIndex === 0)?.focus(options)
   }
 
@@ -169,7 +182,7 @@ export class VfList extends LitElement {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
-    this.#resetTypeAhead()
+    this.#typeAhead.reset()
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
@@ -221,9 +234,19 @@ export class VfList extends LitElement {
   }
 
   protected override render() {
+    // While the list is disabled every row goes to -1 and #onKeydown returns
+    // early — but the rows stay rendered and readable (System 7 dims a list,
+    // it doesn't hide it), and the box still clips at its max height. The
+    // viewport itself becomes the Tab stop then, so a keyboard user can
+    // scroll the dimmed rows the browser's own way; only when there is
+    // actually something to scroll, matching vf-scroll-area.
     return html`
       <div class="box vf-snap">
-        <div class="list vf-scroll" part="list">
+        <div
+          class="list vf-scroll"
+          part="list"
+          tabindex=${this.disabled && this._scrollable ? '0' : nothing}
+        >
           <div class="list-content">
             <slot @slotchange=${this.#onSlotChange}></slot>
           </div>
@@ -351,6 +374,25 @@ export class VfList extends LitElement {
       if (current < 0) current = items.indexOf(enabled[0] as VfListItem)
     }
 
+    // Select-all, before the switch: `event.key` is the letter, so it would
+    // otherwise fall into the type-ahead default and be dropped as modified.
+    // Multiple mode only — single mode has no "all" to select, and the page
+    // keeps its own select-all there.
+    if (
+      this.multiple &&
+      (event.key === 'a' || event.key === 'A') &&
+      (event.metaKey || event.ctrlKey) &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      event.preventDefault()
+      this.#applySelection(
+        enabled.map((i) => i.value),
+        true
+      )
+      return
+    }
+
     switch (event.key) {
       case 'ArrowDown':
       case 'ArrowUp': {
@@ -358,24 +400,10 @@ export class VfList extends LitElement {
         const dir = event.key === 'ArrowDown' ? 1 : -1
         if (this.multiple && event.shiftKey) {
           // Extend the selection from the anchor to the moved-to row.
-          const next = this.#step(current, dir)
-          if (this.#anchorIndex < 0 || this.#anchorIndex >= items.length) {
-            this.#anchorIndex = current
-          }
-          const start = Math.min(this.#anchorIndex, next)
-          const end = Math.max(this.#anchorIndex, next)
-          const vals = items
-            .slice(start, end + 1)
-            .filter((i) => !i.disabled)
-            .map((i) => i.value)
-          this.#activeIndex = next
-          this.#applySelection(vals, true)
-          this.#focusTo(next)
+          this.#extendTo(this.#step(current, dir), current)
         } else if (this.multiple && (event.metaKey || event.ctrlKey)) {
           // Move the cursor without touching the selection (Space toggles).
-          this.#activeIndex = this.#step(current, dir)
-          this.#syncItems()
-          this.#focusTo(this.#activeIndex)
+          this.#cursorTo(this.#step(current, dir))
         } else {
           const anySelected = items.some((i) => i.selected)
           const next = anySelected ? this.#step(current, dir) : current
@@ -383,21 +411,37 @@ export class VfList extends LitElement {
         }
         break
       }
-      case 'Home': {
-        event.preventDefault()
-        this.#moveTo(items.indexOf(enabled[0] as VfListItem))
-        break
-      }
+      case 'Home':
       case 'End': {
         event.preventDefault()
-        this.#moveTo(items.indexOf(enabled[enabled.length - 1] as VfListItem))
+        const index = items.indexOf(
+          (event.key === 'Home'
+            ? enabled[0]
+            : enabled[enabled.length - 1]) as VfListItem
+        )
+        if (this.multiple && event.shiftKey) {
+          // Shift(+Ctrl)+Home/End: extend the selection through to the end.
+          this.#extendTo(index, current)
+        } else if (this.multiple) {
+          // A plain jump moves the cursor only. Selecting here would rewrite
+          // a hand-built multi-selection with one keystroke (single mode has
+          // nothing to lose — the selection IS the cursor and moves with it,
+          // below). Finder's Home never selected either; it scrolled.
+          this.#cursorTo(index)
+        } else {
+          this.#moveTo(index)
+        }
         break
       }
       case ' ': {
         event.preventDefault()
         const item = items[current]
         if (!item) return
-        if (this.multiple) {
+        if (this.multiple && event.shiftKey) {
+          // Shift+Space: select the contiguous run from the anchor to the
+          // cursor (the keyboard's Shift+click).
+          this.#extendTo(current, current)
+        } else if (this.multiple) {
           const set = new Set(
             items.filter((i) => i.selected).map((i) => i.value)
           )
@@ -412,9 +456,10 @@ export class VfList extends LitElement {
         break
       }
       default: {
-        // Printable keys drive first-letter type-ahead. Modified keys are the
-        // consumer's shortcuts, and Space is the selection toggle handled above,
-        // so neither ever joins the prefix.
+        // Printable keys drive the shared first-letter type-ahead
+        // (src/type-ahead.ts). Modified keys are the consumer's shortcuts,
+        // and Space is the selection toggle handled above, so neither ever
+        // joins the prefix.
         if (
           event.key.length !== 1 ||
           event.metaKey ||
@@ -426,59 +471,56 @@ export class VfList extends LitElement {
         // Consumed either way, so a stray letter can't trigger the browser's
         // own quick-find while the list has focus.
         event.preventDefault()
-        this.#typeAheadTo(event.key, current)
+        const index = this.#typeAhead.feed(
+          event.key,
+          current,
+          items.map((i) => ({ text: i.textContent ?? '', disabled: i.disabled }))
+        )
+        if (index < 0) break
+        // Single mode selects the row it lands on (as Finder does), so a
+        // following Shift+Arrow extends from there. Multiple mode only moves
+        // the cursor — the same jump would rewrite a hand-built selection —
+        // and Space is how the reached row joins it.
+        if (this.multiple) this.#cursorTo(index)
+        else this.#moveTo(index)
         break
       }
     }
   }
 
   /**
-   * Classic Finder first-letter type-ahead. Keystrokes accumulate into a prefix
-   * that jumps to the next row whose text starts with it; the prefix resets
-   * after {@link TYPEAHEAD_TIMEOUT_MS} of silence. The search wraps, skips
-   * disabled rows, and selects the row it lands on (as Finder does), so a
-   * following Shift+Arrow extends from there.
+   * Moves the keyboard cursor (roving tab stop + focus) to `index` without
+   * touching the selection — the multiple-mode focus move (Ctrl+Arrow, plain
+   * Home/End, type-ahead), where Space then acts on the row it reached.
    */
-  #typeAheadTo(key: string, current: number): void {
-    const items = this._items
-    if (items.length === 0) return
-
-    this.#typeAhead += key.toLowerCase()
-    if (this.#typeAheadTimer !== undefined) {
-      window.clearTimeout(this.#typeAheadTimer)
-    }
-    this.#typeAheadTimer = window.setTimeout(
-      () => this.#resetTypeAhead(),
-      TYPEAHEAD_TIMEOUT_MS
-    )
-
-    const prefix = this.#typeAhead
-    // Repeating one character cycles the rows starting with it, rather than
-    // hunting for a literal "aaa" that no label has.
-    const cycling =
-      prefix.length > 1 && [...prefix].every((c) => c === prefix[0])
-    const needle = cycling ? (prefix[0] as string) : prefix
-    // A fresh prefix (or a cycle step) looks past the cursor; a growing prefix
-    // re-tests the current row so it can keep matching as the user types.
-    const from = prefix.length === 1 || cycling ? current + 1 : current
-
-    for (let i = 0; i < items.length; i++) {
-      const index = (from + i) % items.length
-      const item = items[index]
-      if (!item || item.disabled) continue
-      if ((item.textContent ?? '').trim().toLowerCase().startsWith(needle)) {
-        this.#moveTo(index)
-        return
-      }
-    }
+  #cursorTo(index: number): void {
+    if (index < 0) return
+    this.#activeIndex = index
+    this.#syncItems()
+    this.#focusTo(index)
   }
 
-  #resetTypeAhead(): void {
-    if (this.#typeAheadTimer !== undefined) {
-      window.clearTimeout(this.#typeAheadTimer)
+  /**
+   * Selects exactly the contiguous run from the anchor to `index` — adopting
+   * `from` as the anchor when none is set — and moves the cursor there. The
+   * shape every Shift extension shares: Shift+Arrow, Shift(+Ctrl)+Home/End,
+   * Shift+Space.
+   */
+  #extendTo(index: number, from: number): void {
+    const items = this._items
+    if (index < 0) return
+    if (this.#anchorIndex < 0 || this.#anchorIndex >= items.length) {
+      this.#anchorIndex = from
     }
-    this.#typeAheadTimer = undefined
-    this.#typeAhead = ''
+    const start = Math.min(this.#anchorIndex, index)
+    const end = Math.max(this.#anchorIndex, index)
+    const vals = items
+      .slice(start, end + 1)
+      .filter((i) => !i.disabled)
+      .map((i) => i.value)
+    this.#activeIndex = index
+    this.#applySelection(vals, true)
+    this.#focusTo(index)
   }
 
   /** Next enabled index from `from` in `dir`, without wrapping. */

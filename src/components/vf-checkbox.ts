@@ -136,6 +136,15 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
     this.checked = this.formDefault(false)
   }
 
+  /**
+   * Restored form state means the flag, not `value`: a checkbox only ever
+   * stores its submission string while checked, so getting one back IS
+   * "checked" (the base default would have overwritten `value` instead).
+   */
+  protected override applyFormState(): void {
+    this.checked = true
+  }
+
   /** Click/Space on an enabled checkbox flips it. */
   protected override activate(): void {
     this.checked = !this.checked

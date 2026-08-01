@@ -1,11 +1,12 @@
 import { css, html, LitElement } from 'lit'
-import { queryAssignedElements } from 'lit/decorators.js'
+import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { MenuPressController } from '../menu-press.js'
+import { TypeAheadBuffer } from '../type-ahead.js'
 import type { VfMenu } from './vf-menu.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
@@ -17,7 +18,8 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * label); while any menu is open, hovering another label switches to it;
  * Escape, an outside click, or item selection closes. ArrowLeft/ArrowRight
  * move between menus while one is open; ArrowDown/ArrowUp move focus through
- * the open menu's items.
+ * the open menu's items, Home/End jump to its first/last, and typed letters
+ * run the shared Finder first-letter type-ahead (src/type-ahead.ts).
  *
  * The bar also owns the **press-drag-release** gesture (see src/menu-press.ts)
  * — press a title, slide onto a command, release over it — because one press
@@ -56,11 +58,31 @@ export class VfMenuBar extends LitElement {
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
+  /**
+   * Accessible name for the bar, applied as `aria-label` on the host (which
+   * carries `role="menubar"`). Without it the menubar computes with an empty
+   * name. A consumer-supplied `aria-label`/`aria-labelledby` attribute is
+   * left alone.
+   */
+  @property() label = ''
+
   @queryAssignedElements({ selector: 'vf-menu', flatten: true })
   private _menus!: VfMenu[]
 
   /** The currently-open slotted menu, if any. */
   #openMenu: VfMenu | null = null
+
+  /**
+   * Whether this component owns the host `role`. Decided on the FIRST connect
+   * only (vf-menu-item's latch): our own `role="menubar"` write persists on
+   * the element, so re-testing `hasAttribute('role')` on a reconnect would
+   * read that write back as consumer-supplied and freeze it — while testing
+   * nothing would overwrite a consumer's own `role="toolbar"` on upgrade.
+   */
+  #ownsRole: boolean | undefined
+
+  /** First-letter type-ahead over the open menu's items; see src/type-ahead.ts. */
+  readonly #typeAhead = new TypeAheadBuffer()
 
   /**
    * The menu that currently holds the bar's single Tab stop (roving
@@ -88,7 +110,8 @@ export class VfMenuBar extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback()
-    this.setAttribute('role', 'menubar')
+    this.#ownsRole ??= !this.hasAttribute('role')
+    if (this.#ownsRole) this.setAttribute('role', 'menubar')
     this.addEventListener('vf-menu-toggle-request', this.#onToggleRequest)
     this.addEventListener('vf-menu-hover', this.#onMenuHover)
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
@@ -136,9 +159,23 @@ export class VfMenuBar extends LitElement {
     this.#closeAll()
   }
 
+  protected override updated(changed: Map<PropertyKey, unknown>): void {
+    // Only clear the attribute when a non-empty label is emptied — on the first
+    // update `changed` carries the class-field default (old value `undefined`),
+    // and blowing away a consumer's own aria-label there would be wrong.
+    // The same guarded shape as vf-list's label.
+    if (changed.has('label')) {
+      if (this.label) this.setAttribute('aria-label', this.label)
+      else if (changed.get('label')) this.removeAttribute('aria-label')
+    }
+  }
+
   protected override render() {
+    // role="presentation" keeps the menubar→menuitem ownership chain free of
+    // the layout div: the menubar's items are the slotted menus' labels, and
+    // this generic sits between them in the AX tree otherwise.
     return html`
-      <div class="bar vf-snap" part="bar">
+      <div class="bar vf-snap" part="bar" role="presentation">
         <slot @slotchange=${this.#onSlotChange}></slot>
       </div>
     `
@@ -206,6 +243,8 @@ export class VfMenuBar extends LitElement {
     menu.open = true
     this.#openMenu = menu
     this.#rovingMenu = menu
+    // A prefix typed in one menu means nothing in the next.
+    this.#typeAhead.reset()
     this.#syncMenus()
     this.#docListeners.attach()
   }
@@ -213,6 +252,7 @@ export class VfMenuBar extends LitElement {
   #closeAll(): void {
     for (const menu of this._menus) menu.open = false
     this.#openMenu = null
+    this.#typeAhead.reset()
     this.#docListeners.detach()
     // Keep the Tab stop on the last-active menu so re-tabbing lands there.
     this.#syncMenus()
@@ -247,6 +287,44 @@ export class VfMenuBar extends LitElement {
       case 'ArrowUp': {
         event.preventDefault()
         this.#moveItemFocus(event.key === 'ArrowDown' ? 1 : -1)
+        break
+      }
+      case 'Home':
+      case 'End': {
+        // Jump to the open menu's first/last enabled item — the same case the
+        // standalone menu's own handler has; #onBarKeydown's Home/End only
+        // runs while no menu is open.
+        event.preventDefault()
+        const items = this.#openMenu.items
+        items[event.key === 'Home' ? 0 : items.length - 1]?.focus()
+        break
+      }
+      default: {
+        // Printable keys run the shared Finder type-ahead over the open
+        // menu's items. Space stays out of the prefix — it is the focused
+        // item's activation key — and modified keys stay the consumer's.
+        if (
+          event.key.length !== 1 ||
+          event.key === ' ' ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey
+        ) {
+          break
+        }
+        event.preventDefault()
+        const items = this.#openMenu.items
+        const current = items.indexOf(document.activeElement as VfMenuItem)
+        const index = this.#typeAhead.feed(
+          event.key,
+          current,
+          // Already the enabled rows only, so nothing here is disabled.
+          items.map((item) => ({
+            text: item.textContent ?? '',
+            disabled: false,
+          }))
+        )
+        items[index]?.focus()
         break
       }
     }

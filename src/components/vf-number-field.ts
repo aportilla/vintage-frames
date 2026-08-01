@@ -217,7 +217,7 @@ export class VfNumberField extends VfTextControlBase {
 
   #onKeydown = (event: KeyboardEvent): void => {
     if (this.isSubmitEnter(event)) {
-      this.internals.form?.requestSubmit()
+      this.requestImplicitSubmit()
       return
     }
     if (this.isDisabled || this.readonly) return

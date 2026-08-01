@@ -1,5 +1,5 @@
 import { css, html, unsafeCSS } from 'lit'
-import { property } from 'lit/decorators.js'
+import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -217,6 +217,21 @@ export class VfButton extends VfFormControl {
 
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
+
+  @query('button') private buttonEl!: HTMLButtonElement | null
+
+  /**
+   * Forwards a synthetic activation to the real `<button>` in the shadow
+   * root. A `click()` on the host dispatches at the host and propagates *up*,
+   * never down to the inner button's listener — so the native control, the
+   * actual activation surface, is handed the call instead. Its click then
+   * bubbles back out composed, exactly as a pointer's does. This is what the
+   * fields' implicit submission (Enter) activates as the form's default
+   * button; a disabled button swallows it natively, as it should.
+   */
+  override click(): void {
+    this.buttonEl?.click()
+  }
 
   override render() {
     return html`

@@ -891,12 +891,27 @@
         },
         {
           "name": "vf-menu-bar",
-          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items.\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.\n---\n\n\n### **Slots:**\n - _default_ - `vf-menu` elements.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 24px)_\n\n### **CSS Parts:**\n - **bar** - The horizontal layout container.",
+          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items, Home/End jump to its first/last, and typed letters\nrun the shared Finder first-letter type-ahead (src/type-ahead.ts).\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.\n---\n\n\n### **Slots:**\n - _default_ - `vf-menu` elements.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 24px)_\n\n### **CSS Parts:**\n - **bar** - The horizontal layout container.",
           "doc-url": "",
-          "attributes": [],
+          "attributes": [
+            {
+              "name": "label",
+              "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"menubar\"`). Without it the menubar computes with an empty\nname. A consumer-supplied `aria-label`/`aria-labelledby` attribute is\nleft alone.",
+              "value": { "type": "string", "default": "''" }
+            }
+          ],
           "slots": [{ "name": "", "description": "`vf-menu` elements." }],
           "events": [],
-          "js": { "properties": [], "events": [] }
+          "js": {
+            "properties": [
+              {
+                "name": "label",
+                "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"menubar\"`). Without it the menubar computes with an empty\nname. A consumer-supplied `aria-label`/`aria-labelledby` attribute is\nleft alone.",
+                "type": "string"
+              }
+            ],
+            "events": []
+          }
         },
         {
           "name": "vf-menu-item",
@@ -984,7 +999,7 @@
         },
         {
           "name": "vf-menu",
-          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End) while\nopen.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n---\n\n\n### **Slots:**\n - _default_ - Menu contents: `vf-menu-item` and `vf-separator` elements.\n- **label** - Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 24px)_\n\n### **CSS Parts:**\n - **label** - The menu title in the bar (inverts while open).\n- **panel** - The dropped `.vf-panel` containing the items.",
+          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n---\n\n\n### **Slots:**\n - _default_ - Menu contents: `vf-menu-item` and `vf-separator` elements.\n- **label** - Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 24px)_\n\n### **CSS Parts:**\n - **label** - The menu title in the bar (inverts while open).\n- **panel** - The dropped `.vf-panel` containing the items.",
           "doc-url": "",
           "attributes": [
             {
@@ -1476,7 +1491,7 @@
             },
             {
               "name": "label",
-              "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable, so without a name it is announced only as\nan anonymous scrollable group; setting `label` also promotes it to a named\n`role=\"region\"` landmark. The role is omitted while `label` is empty,\nsince an unnamed region is inert.",
+              "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable while its content overflows, so without a\nname it is announced only as an anonymous scrollable group; setting\n`label` also promotes it to a named `role=\"region\"` landmark. While\n`label` is empty the viewport is a plain `group` when scrollable (an\nunnamed region is inert) and role-less when not.",
               "value": { "type": "string", "default": "''" }
             }
           ],
@@ -1491,7 +1506,7 @@
               },
               {
                 "name": "label",
-                "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable, so without a name it is announced only as\nan anonymous scrollable group; setting `label` also promotes it to a named\n`role=\"region\"` landmark. The role is omitted while `label` is empty,\nsince an unnamed region is inert.",
+                "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable while its content overflows, so without a\nname it is announced only as an anonymous scrollable group; setting\n`label` also promotes it to a named `role=\"region\"` landmark. While\n`label` is empty the viewport is a plain `group` when scrollable (an\nunnamed region is inert) and role-less when not.",
                 "type": "string"
               }
             ],

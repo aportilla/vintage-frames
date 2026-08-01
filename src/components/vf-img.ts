@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, nothing } from 'lit'
 import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
@@ -58,6 +58,13 @@ export class VfImg extends LitElement {
         /* Chrome, not content: System 7 icons don't drag out of the UI. */
         -webkit-user-drag: none;
       }
+      /* A failed, undeclared image (see render()): released from the stretch
+         so the browser renders it as a native broken <img> — alt text at its
+         own size — instead of scaling it into a 0×0 frame. */
+      .frame.failed ::slotted(img) {
+        width: auto;
+        height: auto;
+      }
     `,
   ]
 
@@ -81,16 +88,28 @@ export class VfImg extends LitElement {
   @state() private _naturalWidth = 0
   @state() private _naturalHeight = 0
 
+  /** True when the slotted image has settled with no natural size (a failed
+   *  load); see {@link #measure}. */
+  @state() private _failed = false
+
   /** The image whose load we're watching, so a rehome moves the listener. */
   #img: HTMLImageElement | null = null
 
   protected override render() {
     const w = this.width ?? this._naturalWidth
     const h = this.height ?? this._naturalHeight
+    // A failed load leaves no natural size, and clamping an undeclared box to
+    // the 0×0 fallback erased the one thing still worth rendering: a native
+    // <img alt="…"> that fails shows its alt text. Release the box instead so
+    // the text can occupy it. Declared dimensions still hold — a sized native
+    // <img> reserves its box around the alt text the same way.
+    const released = this._failed && this.width == null && this.height == null
     return html`<span
-      class="frame vf-snap"
+      class="frame vf-snap ${released ? 'failed' : ''}"
       part="frame"
-      style="width: calc(var(--vf-scale, 1) * ${w}px); height: calc(var(--vf-scale, 1) * ${h}px)"
+      style=${released
+        ? nothing
+        : `width: calc(var(--vf-scale, 1) * ${w}px); height: calc(var(--vf-scale, 1) * ${h}px)`}
       ><slot @slotchange=${this.#onSlotChange}></slot
     ></span>`
   }
@@ -121,8 +140,14 @@ export class VfImg extends LitElement {
 
   /** Natural size if the image has one; 0×0 (an empty box) otherwise. */
   #measure(): void {
-    this._naturalWidth = this.#img?.naturalWidth ?? 0
-    this._naturalHeight = this.#img?.naturalHeight ?? 0
+    const img = this.#img
+    this._naturalWidth = img?.naturalWidth ?? 0
+    this._naturalHeight = img?.naturalHeight ?? 0
+    // `complete` with a src but no natural size is the settled-failed state.
+    // Derived here rather than from the `error` event alone, because an image
+    // that failed before it was slotted fires no further event to catch.
+    this._failed =
+      img != null && img.complete && img.naturalWidth === 0 && img.src !== ''
   }
 }
 

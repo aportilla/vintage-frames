@@ -125,7 +125,7 @@ export class MenuPressController implements ReactiveController {
       this.#highlight(hit.item)
       return
     }
-    hit.menu.focusLabel()
+    hit.menu.focus()
     if (this.#openedByPress) this.target.open(hit.menu)
   }
 

@@ -3,6 +3,7 @@ import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
+import { emit } from '../events.js'
 
 /**
  * `<vf-list-item>` — a row inside a `<vf-list>` list box.
@@ -57,9 +58,11 @@ export class VfListItem extends LitElement {
          preceded by a keyboard event doesn't match :focus-visible, so a
          mouse-clicked cursor row would show no ring until the next Arrow key.
          The roving tabindex guarantees only the cursor row is focusable, so
-         :focus is exactly the cursor. Matches sibling vf-menu-item. (On a
-         *selected* row the ring lands on the inverted black fill and reads as
-         absent — correct: there the inversion is itself the indicator.) */
+         :focus is exactly the cursor. Matches sibling vf-menu-item. On a
+         *selected* row the ring rides currentColor (see vfFocusRing) and
+         inverts to white on the highlight bar — it has to stay legible there,
+         because in multiple mode Ctrl+Arrow deliberately moves the cursor
+         across selected rows while Space still acts on it. */
       :host(:focus) {
         --vf-focus-offset: -1px;
         ${vfFocusRing}
@@ -112,6 +115,14 @@ export class VfListItem extends LitElement {
       if (this.disabled || this.listDisabled) {
         this.setAttribute('aria-disabled', 'true')
       } else this.removeAttribute('aria-disabled')
+    }
+    // Internal coordination event: the parent list's roving tab stop may be
+    // resting on this very row, so it has to re-sync or the stop goes stale
+    // (or vanishes entirely — see VfList.#syncItems). First update excluded:
+    // the old value is the class-field default there, and the list's own
+    // slotchange sync already covers newly arrived rows.
+    if (changed.has('disabled') && changed.get('disabled') !== undefined) {
+      emit(this, 'vf-list-item-disabled-change', { item: this })
     }
   }
 

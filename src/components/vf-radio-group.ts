@@ -181,6 +181,16 @@ export class VfRadioGroup extends VfFormControl {
   }
 
   /**
+   * Moves keyboard focus to the group's roving tab stop — the checked radio,
+   * else the first enabled one. Overridden because the platform's `focus()`
+   * is a silent no-op on this host (no `delegatesFocus`, no host tabindex),
+   * so `vf-label for` (which calls `target.focus()`) never reached the group.
+   */
+  override focus(options?: FocusOptions): void {
+    this.radios.find((radio) => radio.tabIndex === 0)?.focus(options)
+  }
+
+  /**
    * Select a radio, sync everything, and fire `vf-change` if value changed.
    *
    * The sync stays synchronous — a `vf-change` listener must see the children

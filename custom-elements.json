@@ -3702,6 +3702,25 @@
             },
             {
               "kind": "method",
+              "name": "focus",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "options",
+                  "optional": true,
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ],
+              "description": "Moves keyboard focus to the row holding the roving tab stop. Overridden\nbecause the platform's `focus()` is a silent no-op on this host — no\n`delegatesFocus`, no host tabindex — so `vf-label for` (which calls\n`target.focus()`) never reached the list."
+            },
+            {
+              "kind": "method",
               "name": "#applyIfStale",
               "privacy": "private",
               "return": {
@@ -4034,6 +4053,31 @@
             },
             {
               "kind": "method",
+              "name": "focus",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "options",
+                  "optional": true,
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ],
+              "description": "Moves keyboard focus to the bar's single Tab stop — the open menu's label,\nelse the roving one's, else the first. Overridden because the platform's\n`focus()` was a silent no-op on this host (no `delegatesFocus`, no\ntabindex), so `vf-label for` and consumer scripts couldn't reach the bar."
+            },
+            {
+              "kind": "field",
+              "name": "#onHostFocusOut",
+              "privacy": "private",
+              "description": "Focus left the bar entirely while a menu was open: close it, so an open\npanel can't outlive the focus that operates it and go on capturing every\narrow key on the page. Modeled on `VfSelect.handleHostFocusOut`; the\nrelatedTarget is retargeted to light-DOM scope, so slotted menus (and\ntheir panels' items) read as contained."
+            },
+            {
+              "kind": "method",
               "name": "#onSlotChange",
               "privacy": "private",
               "return": {
@@ -4300,7 +4344,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Right-aligned keyboard shortcut text, e.g. `\"⌘H\"`. Display only.",
+              "description": "Right-aligned keyboard shortcut text, e.g. `\"⌘H\"`. Display only in the\nvisual sense — the span is `aria-hidden` so the glyphs never concatenate\ninto the item's accessible name (\"Print… place of interest sign P\") —\nwhile the host mirrors it as `aria-keyshortcuts` (\"Meta+H\"), so AT\nannounces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.",
               "attribute": "shortcut"
             },
             {
@@ -4360,13 +4404,22 @@
             },
             {
               "kind": "field",
+              "name": "#ownsKeyshortcuts",
+              "privacy": "private",
+              "type": {
+                "text": "boolean | undefined"
+              },
+              "description": "Same first-connect latch, for the host `aria-keyshortcuts` mirror."
+            },
+            {
+              "kind": "field",
               "name": "#swallowClick",
               "privacy": "private",
               "type": {
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Swallows the one `click` the browser synthesises after a pointer press: the\nmenu's press gesture (src/menu-press.ts) already resolved it, and under\n`prefers-reduced-motion` — where activation completes synchronously and the\nblink guard is back down by the time the click lands — the row would\notherwise fire `vf-menu-select` twice. Set only inside a `vf-menu`, where\nthat gesture is running; a row used outside one keeps plain click\nactivation. A `click` with no preceding pointerdown (keyboard /\nassistive tech) always activates."
+              "description": "Swallows the one `click` the browser synthesises after a pointer press: the\nmenu's press gesture (src/menu-press.ts) already resolved it, and under\n`prefers-reduced-motion` — where activation completes synchronously and the\nblink guard is back down by the time the click lands — the row would\notherwise fire `vf-menu-select` twice. Set only inside a `vf-menu`, where\nthat gesture is running; a row used outside one keeps plain click\nactivation. A `click` with no preceding pointerdown (keyboard /\nassistive tech) always activates — which is exactly why the click listener\nlives on the HOST (see the constructor): a synthetic `element.click()`\ntargets the node carrying the role, and events dispatched at the host\npropagate up, never down into its own shadow tree. Cleared by the\ngesture's trailing click wherever it lands (see releaseAfterGesture) — a\npress-drag-release dispatches it at an ancestor, above this element."
             },
             {
               "kind": "field",
@@ -4377,6 +4430,17 @@
               },
               "description": "True when the item should announce as a toggle, not a plain command.",
               "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#syncKeyshortcuts",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Mirrors shortcut onto the host as `aria-keyshortcuts`, normalised\nfrom the Mac display glyphs to the ARIA grammar (\"⌘⇧S\" → \"Meta+Shift+S\").\nSkipped when the consumer supplied their own value."
             },
             {
               "kind": "method",
@@ -4508,7 +4572,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Right-aligned keyboard shortcut text, e.g. `\"⌘H\"`. Display only.",
+              "description": "Right-aligned keyboard shortcut text, e.g. `\"⌘H\"`. Display only in the\nvisual sense — the span is `aria-hidden` so the glyphs never concatenate\ninto the item's accessible name (\"Print… place of interest sign P\") —\nwhile the host mirrors it as `aria-keyshortcuts` (\"Meta+H\"), so AT\nannounces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.",
               "fieldName": "shortcut"
             },
             {
@@ -4751,9 +4815,34 @@
             },
             {
               "kind": "field",
+              "name": "#onHostFocusOut",
+              "privacy": "private",
+              "description": "Focus left the menu entirely while open standalone: close, so an open\npanel can't outlive the focus that operates it and go on capturing the\ndocument's keyboard. Modeled on `VfSelect.handleHostFocusOut`. In a bar,\nthe bar's own focusout listener coordinates instead."
+            },
+            {
+              "kind": "field",
               "name": "#onHostPointerDown",
               "privacy": "private",
               "description": "A press anywhere in the menu — the title, or a row inside the dropped panel\n(both bubble up composed). Inside a bar the bar's own listener drives the\ngesture instead, since it may travel between menus."
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "options",
+                  "optional": true,
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ],
+              "description": "Moves keyboard focus to the menu's bar label — the host's one focusable\npoint. Overridden because the platform's `focus()` is a silent no-op here:\nno `delegatesFocus`, no host tabindex, so the standard method did nothing\nand `vf-label for` (which calls `target.focus()`) couldn't reach the menu."
             },
             {
               "kind": "method",
@@ -4763,7 +4852,7 @@
                   "text": "void"
                 }
               },
-              "description": "Moves keyboard focus to the menu's bar label."
+              "deprecated": "Use `focus()` — the standard method now does this. (Spelled\nwithout a link: a `{@link}` inside a deprecated tag makes the cem\nanalyzer attach the parsed AST node to the manifest, which then fails\nto serialize — \"Converting circular structure to JSON\".)"
             },
             {
               "kind": "method",
@@ -4785,7 +4874,7 @@
                   "text": "void"
                 }
               },
-              "description": "Arms #swallowClick: the pointer gesture owns this press."
+              "description": "Arms #swallowClick: the pointer gesture owns this press. Released\nwhen the gesture's trailing click lands — a press-drag-release onto a row\ndispatches that click at the common ancestor, above this label, so the\nclearing in #onLabelClick alone would leave the latch stuck and\nsilently swallow the next assistive-tech click on the title."
             },
             {
               "kind": "method",
@@ -4903,6 +4992,11 @@
               "description": "width of `vf-number-field`'s input, in its own text (an em, not a system px length — it sizes to the digits)",
               "name": "--vf-number-field-width",
               "default": "4em"
+            },
+            {
+              "description": "placeholder text in the editable fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well and holds AA contrast, where the disabled gray is exempt",
+              "name": "--vf-field-placeholder",
+              "default": "#767676"
             }
           ],
           "cssParts": [
@@ -6304,6 +6398,25 @@
             },
             {
               "kind": "method",
+              "name": "focus",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "options",
+                  "optional": true,
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ],
+              "description": "Moves keyboard focus to the group's roving tab stop — the checked radio,\nelse the first enabled one. Overridden because the platform's `focus()`\nis a silent no-op on this host (no `delegatesFocus`, no host tabindex),\nso `vf-label for` (which calls `target.focus()`) never reached the group."
+            },
+            {
+              "kind": "method",
               "name": "selectRadio",
               "privacy": "private",
               "return": {
@@ -7052,6 +7165,25 @@
               "readonly": true,
               "default": "new ScrollStateController( this, () => this.viewport, () => this.content )",
               "description": "Reports overflow per axis so the reserved rail(s) activate on overflow."
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "options",
+                  "optional": true,
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ],
+              "description": "Moves keyboard focus to the scrolling viewport — the focusable element\nlives inside the shadow root, where the platform's `focus()` can't reach\n(no `delegatesFocus`, no host tabindex), so `vf-label for` and consumer\nscripts silently no-opped on the host."
             }
           ],
           "attributes": [
@@ -9165,6 +9297,11 @@
               "default": "180px"
             },
             {
+              "description": "placeholder text in the editable fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well and holds AA contrast, where the disabled gray is exempt",
+              "name": "--vf-field-placeholder",
+              "default": "#767676"
+            },
+            {
               "description": "scrollbar thumb/elevator (white)",
               "name": "--vf-scrollbar-thumb"
             },
@@ -9810,6 +9947,11 @@
               "description": "default width of `vf-text-field` / `vf-text-area`",
               "name": "--vf-field-width",
               "default": "180px"
+            },
+            {
+              "description": "placeholder text in the editable fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well and holds AA contrast, where the disabled gray is exempt",
+              "name": "--vf-field-placeholder",
+              "default": "#767676"
             }
           ],
           "cssParts": [

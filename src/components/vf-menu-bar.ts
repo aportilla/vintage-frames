@@ -94,6 +94,7 @@ export class VfMenuBar extends LitElement {
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.addEventListener('keydown', this.#onBarKeydown)
     this.addEventListener('pointerdown', this.#press.onPointerDown)
+    this.addEventListener('focusout', this.#onHostFocusOut)
   }
 
   override disconnectedCallback(): void {
@@ -103,8 +104,36 @@ export class VfMenuBar extends LitElement {
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.removeEventListener('keydown', this.#onBarKeydown)
     this.removeEventListener('pointerdown', this.#press.onPointerDown)
+    this.removeEventListener('focusout', this.#onHostFocusOut)
     this.#openMenu = null
     this.#rovingMenu = null
+  }
+
+  /**
+   * Moves keyboard focus to the bar's single Tab stop — the open menu's label,
+   * else the roving one's, else the first. Overridden because the platform's
+   * `focus()` was a silent no-op on this host (no `delegatesFocus`, no
+   * tabindex), so `vf-label for` and consumer scripts couldn't reach the bar.
+   */
+  override focus(options?: FocusOptions): void {
+    const target = this.#openMenu ?? this.#rovingMenu ?? this._menus[0]
+    target?.focus(options)
+  }
+
+  /**
+   * Focus left the bar entirely while a menu was open: close it, so an open
+   * panel can't outlive the focus that operates it and go on capturing every
+   * arrow key on the page. Modeled on `VfSelect.handleHostFocusOut`; the
+   * relatedTarget is retargeted to light-DOM scope, so slotted menus (and
+   * their panels' items) read as contained.
+   */
+  #onHostFocusOut = (event: FocusEvent): void => {
+    if (!this.#openMenu) return
+    const next = event.relatedTarget
+    if (next instanceof Node && (this.contains(next) || this.renderRoot.contains(next))) {
+      return
+    }
+    this.#closeAll()
   }
 
   protected override render() {
@@ -166,7 +195,7 @@ export class VfMenuBar extends LitElement {
     // The originating vf-menu already set itself closed; sync bar state.
     // Closing hides the focused slotted item, which would drop focus to
     // <body> — return it to the menu's bar label (as the Escape path does).
-    this.#openMenu?.focusLabel()
+    this.#openMenu?.focus()
     this.#closeAll()
   }
 
@@ -198,7 +227,13 @@ export class VfMenuBar extends LitElement {
     switch (event.key) {
       case 'Escape': {
         event.preventDefault()
-        this.#openMenu.focusLabel()
+        this.#openMenu.focus()
+        this.#closeAll()
+        break
+      }
+      case 'Tab': {
+        // Let focus move on; close without cancelling the tab, as vf-select
+        // does. The focusout listener is the belt for this suspender.
         this.#closeAll()
         break
       }
@@ -252,7 +287,7 @@ export class VfMenuBar extends LitElement {
     event.preventDefault()
     if (target) {
       this.#setRovingMenu(target)
-      target.focusLabel()
+      target.focus()
     }
   }
 
@@ -267,7 +302,7 @@ export class VfMenuBar extends LitElement {
       // Closing the old menu hides any focused item in it; move focus to the
       // new menu's label so keyboard users keep their place (ArrowDown then
       // walks into the items).
-      next.focusLabel()
+      next.focus()
     }
   }
 

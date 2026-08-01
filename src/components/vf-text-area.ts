@@ -31,6 +31,9 @@ import { ScrollStateController } from '../scroll-state.js'
  * @csspart textarea - The inner native `<textarea>` element.
  * @cssprop [--vf-field-width=180px] - default width of `vf-text-field` /
  *   `vf-text-area`
+ * @cssprop [--vf-field-placeholder=#767676] - placeholder text in the editable
+ *   fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well
+ *   and holds AA contrast, where the disabled gray is exempt
  * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
  * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
  *   the WebKit path draws the dot-dither tile instead, and this is its flat

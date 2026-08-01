@@ -66,6 +66,16 @@ export class VfScrollArea extends LitElement {
     () => this.content
   )
 
+  /**
+   * Moves keyboard focus to the scrolling viewport — the focusable element
+   * lives inside the shadow root, where the platform's `focus()` can't reach
+   * (no `delegatesFocus`, no host tabindex), so `vf-label for` and consumer
+   * scripts silently no-opped on the host.
+   */
+  override focus(options?: FocusOptions): void {
+    this.viewport?.focus(options)
+  }
+
   static override styles = [
     vfBase,
     vfScrollbars,

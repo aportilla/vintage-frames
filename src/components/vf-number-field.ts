@@ -31,6 +31,9 @@ import { decimalsOf } from '../number.js'
  *   `vf-text-area`, the `vf-number-field` well
  * @cssprop [--vf-number-field-width=4em] - width of `vf-number-field`'s input,
  *   in its own text (an em, not a system px length — it sizes to the digits)
+ * @cssprop [--vf-field-placeholder=#767676] - placeholder text in the editable
+ *   fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well
+ *   and holds AA contrast, where the disabled gray is exempt
  */
 @vfElement('vf-number-field')
 export class VfNumberField extends VfTextControlBase {
@@ -64,9 +67,12 @@ export class VfNumberField extends VfTextControlBase {
         min-width: 2em;
         /* The reference sheets measure text fields at 22px and the little-arrows
            sprite at 15×25 — the well and the stepper are authentically different
-           heights, so the well is pinned to the shared control token and the
-           sprite keeps its native 1:1 size (the host ends up stepper-tall). */
-        height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
+           heights, so the well sits on the shared control token and the
+           sprite keeps its native 1:1 size (the host ends up stepper-tall).
+           min-, not height, as in vf-text-field: the default line box exactly
+           fills it, and a user stylesheet raising line-height grows the well
+           instead of clipping the digits. */
+        min-height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
         padding: 0 calc(var(--vf-scale, 1) * 6px);
         text-align: right;
       }
@@ -215,6 +221,22 @@ export class VfNumberField extends VfTextControlBase {
       return
     }
     if (this.isDisabled || this.readonly) return
+    // Bare keys only — the APG spinbutton model. With a modifier held these
+    // keys are *editing* commands in a text input (Shift+Home selects to the
+    // start; the others move the caret or belong to the OS), so stepping on
+    // them both rewrote the value and swallowed the edit. And while an IME
+    // composition is open the arrows navigate the candidate list — stepping
+    // there rewrote the input mid-composition. `isSubmitEnter` already knows
+    // the composition half of this guard (see text-control.ts).
+    if (
+      event.isComposing ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    ) {
+      return
+    }
     switch (event.key) {
       case 'ArrowUp':
         event.preventDefault()
@@ -235,6 +257,11 @@ export class VfNumberField extends VfTextControlBase {
           event.preventDefault()
           this.#commit(this.max)
         }
+        break
+      case ' ':
+        // The one printable key that can never parse as a number: don't let
+        // it type, or the field commits values like `'20 '` as text.
+        event.preventDefault()
         break
       default:
         break

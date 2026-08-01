@@ -23,6 +23,9 @@ import { VfTextControlBase } from '../text-control.js'
  *   `vf-text-area`, the `vf-number-field` well
  * @cssprop [--vf-field-width=180px] - default width of `vf-text-field` /
  *   `vf-text-area`
+ * @cssprop [--vf-field-placeholder=#767676] - placeholder text in the editable
+ *   fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well
+ *   and holds AA contrast, where the disabled gray is exempt
  */
 @vfElement('vf-text-field')
 export class VfTextField extends VfTextControlBase {
@@ -40,7 +43,11 @@ export class VfTextField extends VfTextControlBase {
       input {
         display: block;
         width: 100%;
-        height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
+        /* min-, not height: the default line box exactly fills the 22px well,
+           so nothing moves — but a user stylesheet raising line-height (the
+           WCAG 1.4.12 text-spacing condition) grows the well instead of
+           clipping the text inside a pinned one. */
+        min-height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
         padding: 0 calc(var(--vf-scale, 1) * 6px);
       }
     `,

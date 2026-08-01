@@ -42,7 +42,7 @@
    * --vf-titlebar-height: 18px;
    * --vf-titlebar-height-utility: 12px;      // the slim windoid bar
    * --vf-menubar-height: 24px;
-   * --vf-focus-outline: 1px dotted #000;
+   * --vf-focus-outline: 1px dotted currentColor;
    * --vf-progress-fill: #000000;
    * --vf-progress-track: #ffffff;
    * --vf-scrollbar-thumb: #ffffff;

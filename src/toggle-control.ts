@@ -179,7 +179,14 @@ export const VfToggleControl = <T extends Constructor<LitElement>>(Base: T) => {
       event.preventDefault()
       // Ignore auto-repeat: holding Space must not re-activate on every tick.
       if (event.repeat) return
-      this.#interact()
+      // Native controls run keyboard activation *through* a synthesised click
+      // — which is why `onclick` catches Space on a real checkbox. Dispatch
+      // the same so the two modalities are interchangeable for any consumer
+      // bound to `click`; {@link #handleClick} receives it and the disabled
+      // gate in {@link #interact} still guards the activation itself.
+      this.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, composed: true })
+      )
     }
   }
 

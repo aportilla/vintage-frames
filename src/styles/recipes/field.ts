@@ -53,8 +53,15 @@ export const vfField = css`
     --vf-focus-underline-offset: -2px;
     ${vfFocusUnderline}
   }
+  /* Its own token, deliberately not --vf-disabled: the disabled rule below is
+     an inactive control and exempt from contrast requirements, but a
+     placeholder sits in an ENABLED, operable field and isn't — and the dim
+     gray is 1.82:1 on the white well. #767676 is 4.54:1 (AA). System 7 had no
+     placeholder text at all, so like the focus rule this is a modern
+     affordance the kit adds, and it gets a color the modern requirement can
+     accept rather than a traced gray it must match. */
   .vf-field::placeholder {
-    color: var(--vf-disabled, #c0c0c0);
+    color: var(--vf-field-placeholder, #767676);
     font-weight: inherit;
     opacity: 1;
   }

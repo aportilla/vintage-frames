@@ -50,7 +50,7 @@ The System 7 look, distilled:
 
 Modern requirements that we deliberately keep (accessibility over purity):
 
-- `:focus-visible` gets `outline: var(--vf-focus-outline, 1px dotted #000); outline-offset: 2px;`
+- `:focus-visible` gets `outline: var(--vf-focus-outline, 1px dotted currentColor); outline-offset: 2px;`
   — but only where the control has no face to carry the mark instead. The kit
   prefers a **1px dashed rule** (`vfFocusUnderline`, §4) and reaches for the
   ring last: `vf-button`, `vf-checkbox`, `vf-radio`, the three editable fields
@@ -130,6 +130,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
+| `--vf-field-placeholder` | `#767676` | placeholder text in the editable fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well and holds AA contrast (4.54:1 on white), where the disabled gray's 1.82:1 is exempt as an inactive control |
 | `--vf-number-field-width` | `4em` | width of `vf-number-field`'s input, in its own text (an em, not a system px length — it sizes to the digits) |
 | `--vf-list-max-height` | `200px` | `vf-list` max height before its rail takes over (the host adds the 2px frame) |
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
@@ -139,7 +140,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-menubar-height` | `24px` | `vf-menu-bar` |
 | `--vf-separator-color` | `var(--vf-black, #000)` | `vf-separator` rule color — `vf-menu` sets it to `--vf-disabled` for the dimmed menu rule |
 | `--vf-separator-style` | `solid` | `vf-separator` rule style — `vf-menu` sets `dotted` (see `Menus.png`) |
-| `--vf-focus-outline` | `1px dotted #000` | focus-visible outline |
+| `--vf-focus-outline` | `1px dotted currentColor` | focus-visible outline — `currentColor`, not black, so the multi-select keyboard cursor stays visible riding a selected row's inverted bar |
 | `--vf-focus-offset` | `2px` | its `outline-offset` (negative to inset the ring) |
 | `--vf-focus-underline-offset` | `4px` | where the dashed focus rule sits, from the underlined element's padding-box bottom (negative drops it below) — see §4 |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
@@ -269,10 +270,13 @@ right.
   Neither is a System 7 reproduction: the machine drew no keyboard focus at all
   (see §1), so both are additions rendered in its vocabulary.
   - `vfFocusRing` is the dotted-outline declaration pair — `outline:
-    var(--vf-focus-outline, 1px dotted #000)` plus a scaled `--vf-focus-offset`
-    (default +2px) — interpolated into whatever selector a component focuses
-    on; `vfFocus` wraps it as a `.vf-focus:focus-visible` class for the
-    controls where focus and ring share one element.
+    var(--vf-focus-outline, 1px dotted currentColor)` plus a scaled
+    `--vf-focus-offset` (default +2px) — interpolated into whatever selector a
+    component focuses on; `vfFocus` wraps it as a `.vf-focus:focus-visible`
+    class for the controls where focus and ring share one element.
+    `currentColor`, not black, for the same reason the underline uses it: the
+    ring must invert with the ink it sits on, or the multi-select keyboard
+    cursor disappears riding a selected list row's black bar.
   - `vfFocusUnderline` is the alternative for a control that can carry the mark
     on its own face: an `::after` on that element, 1 system px tall, spanning
     its box, dashed 1px on / 1px off via a `repeating-linear-gradient` in

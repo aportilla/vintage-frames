@@ -37,6 +37,29 @@ export type DocumentListenerSpec = readonly [
  * reconnect: the state that warranted them (an open panel, a pressed pointer)
  * is itself torn down by the host on disconnect.
  */
+/**
+ * Runs `release` once the in-flight press gesture is over — its trailing
+ * `click`, wherever that lands, or a `pointercancel` if no click ever comes.
+ *
+ * A swallow-click latch armed on `pointerdown` cannot be cleared by the
+ * element's own click handler alone: per UI Events, the click after a
+ * press-drag-release is dispatched at the nearest common inclusive ancestor of
+ * the pointerdown and pointerup targets, so a press that releases elsewhere
+ * lands it *above* the pressed element, the clearing handler never runs, and
+ * the stuck latch silently swallows the next synthetic (assistive-tech)
+ * click. One-shot and bubble-phase, so the element's own click handler — the
+ * swallow itself — always runs first.
+ */
+export function releaseAfterGesture(release: () => void): void {
+  const done = (): void => {
+    document.removeEventListener('click', done)
+    document.removeEventListener('pointercancel', done)
+    release()
+  }
+  document.addEventListener('click', done)
+  document.addEventListener('pointercancel', done)
+}
+
 export class DocumentListenersController implements ReactiveController {
   /** The specs currently attached; null while detached. */
   private active: readonly DocumentListenerSpec[] | null = null

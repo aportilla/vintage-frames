@@ -6,7 +6,38 @@ import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
+import { releaseAfterGesture } from '../document-listeners.js'
 import { emit } from '../events.js'
+
+/** The Mac modifier glyphs, in the order System 7 printed them.
+ *
+ * Declared ABOVE the class on purpose: `@vfElement` registers the element at
+ * class-definition time, which synchronously upgrades any `<vf-menu-item>`
+ * already in the document — running `connectedCallback` (and so
+ * {@link toAriaKeyshortcuts}) before any statement written below the class
+ * has executed. Below, this const was still in its temporal dead zone. */
+const MODIFIER_GLYPHS: ReadonlyMap<string, string> = new Map([
+  ['⌃', 'Control'],
+  ['⌥', 'Alt'],
+  ['⇧', 'Shift'],
+  ['⌘', 'Meta'],
+])
+
+/**
+ * Maps a display shortcut ("⌘⇧S") to an `aria-keyshortcuts` value
+ * ("Meta+Shift+S"): leading modifier glyphs become ARIA modifier names,
+ * whatever follows is the key itself — so "F1" passes through untouched.
+ * Empty when there is no key to announce.
+ */
+function toAriaKeyshortcuts(shortcut: string): string {
+  const chars = [...shortcut.trim()]
+  const modifiers: string[] = []
+  while (chars.length > 0 && MODIFIER_GLYPHS.has(chars[0]!)) {
+    modifiers.push(MODIFIER_GLYPHS.get(chars.shift()!)!)
+  }
+  const key = chars.join('')
+  return key ? [...modifiers, key].join('+') : ''
+}
 
 /**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
@@ -161,7 +192,13 @@ export class VfMenuItem extends LitElement {
    */
   @property({ type: Boolean, reflect: true }) checkable = false
 
-  /** Right-aligned keyboard shortcut text, e.g. `"⌘H"`. Display only. */
+  /**
+   * Right-aligned keyboard shortcut text, e.g. `"⌘H"`. Display only in the
+   * visual sense — the span is `aria-hidden` so the glyphs never concatenate
+   * into the item's accessible name ("Print… place of interest sign P") —
+   * while the host mirrors it as `aria-keyshortcuts` ("Meta+H"), so AT
+   * announces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.
+   */
   @property() shortcut = ''
 
   /**
@@ -192,6 +229,9 @@ export class VfMenuItem extends LitElement {
    */
   #ownsRole: boolean | undefined
 
+  /** Same first-connect latch, for the host `aria-keyshortcuts` mirror. */
+  #ownsKeyshortcuts: boolean | undefined
+
   /**
    * Swallows the one `click` the browser synthesises after a pointer press: the
    * menu's press gesture (src/menu-press.ts) already resolved it, and under
@@ -200,7 +240,12 @@ export class VfMenuItem extends LitElement {
    * otherwise fire `vf-menu-select` twice. Set only inside a `vf-menu`, where
    * that gesture is running; a row used outside one keeps plain click
    * activation. A `click` with no preceding pointerdown (keyboard /
-   * assistive tech) always activates.
+   * assistive tech) always activates — which is exactly why the click listener
+   * lives on the HOST (see the constructor): a synthetic `element.click()`
+   * targets the node carrying the role, and events dispatched at the host
+   * propagate up, never down into its own shadow tree. Cleared by the
+   * gesture's trailing click wherever it lands (see releaseAfterGesture) — a
+   * press-drag-release dispatches it at an ancestor, above this element.
    */
   #swallowClick = false
 
@@ -208,8 +253,13 @@ export class VfMenuItem extends LitElement {
     super()
     // Bound on the host: keydown targets the focused host element and never
     // enters the shadow tree, so a shadow-internal binding would not fire.
+    // click for the same reason — `element.click()`, the activation a screen
+    // reader or voice control dispatches, targets the host too. A real
+    // pointer click bubbles up here from the shadow row, so one listener
+    // serves both.
     this.addEventListener('keydown', this.#onKeydown)
     this.addEventListener('pointerdown', this.#onPointerDown)
+    this.addEventListener('click', this.#onClick)
   }
 
   /** True when the item should announce as a toggle, not a plain command. */
@@ -220,10 +270,12 @@ export class VfMenuItem extends LitElement {
   override connectedCallback(): void {
     super.connectedCallback()
     this.#ownsRole ??= !this.hasAttribute('role')
+    this.#ownsKeyshortcuts ??= !this.hasAttribute('aria-keyshortcuts')
     // Re-derived (not blindly reset) so re-parenting a checkable item keeps its
     // menuitemcheckbox role and aria-checked — updated() does not re-fire on a
     // reconnect, so an unconditional write here stranded it as a plain command.
     this.#syncRole()
+    this.#syncKeyshortcuts()
     if (!this.hasAttribute('tabindex')) this.tabIndex = -1
   }
 
@@ -244,6 +296,19 @@ export class VfMenuItem extends LitElement {
     }
     if (changed.has('checked') && this.checked) this.#everChecked = true
     if (changed.has('checked') || changed.has('checkable')) this.#syncRole()
+    if (changed.has('shortcut')) this.#syncKeyshortcuts()
+  }
+
+  /**
+   * Mirrors {@link shortcut} onto the host as `aria-keyshortcuts`, normalised
+   * from the Mac display glyphs to the ARIA grammar ("⌘⇧S" → "Meta+Shift+S").
+   * Skipped when the consumer supplied their own value.
+   */
+  #syncKeyshortcuts(): void {
+    if (!this.#ownsKeyshortcuts) return
+    const normalized = toAriaKeyshortcuts(this.shortcut)
+    if (normalized) this.setAttribute('aria-keyshortcuts', normalized)
+    else this.removeAttribute('aria-keyshortcuts')
   }
 
   /**
@@ -270,11 +335,7 @@ export class VfMenuItem extends LitElement {
       'blink-off': this._blinkPhase === 'off',
     }
     return html`
-      <div
-        class=${classMap(classes)}
-        part="item"
-        @click=${this.#onClick}
-      >
+      <div class=${classMap(classes)} part="item">
         ${this.checked
           ? html`<span class="check" part="check" aria-hidden="true"
               >${glyphSvg(CHECKMARK, 'checkmark')}</span
@@ -282,7 +343,9 @@ export class VfMenuItem extends LitElement {
           : nothing}
         <span class="label" part="label"><slot></slot></span>
         ${this.shortcut
-          ? html`<span class="shortcut" part="shortcut">${this.shortcut}</span>`
+          ? html`<span class="shortcut" part="shortcut" aria-hidden="true"
+              >${this.shortcut}</span
+            >`
           : nothing}
       </div>
     `
@@ -290,6 +353,11 @@ export class VfMenuItem extends LitElement {
 
   #onPointerDown(): void {
     this.#swallowClick = this.closest('vf-menu') !== null
+    if (this.#swallowClick) {
+      releaseAfterGesture(() => {
+        this.#swallowClick = false
+      })
+    }
   }
 
   #onClick(): void {

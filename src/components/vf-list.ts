@@ -145,6 +145,21 @@ export class VfList extends LitElement {
     super()
     this.addEventListener('click', this.#onClick)
     this.addEventListener('keydown', this.#onKeydown)
+    // A row disabled in place may be the very row holding the roving tab
+    // stop; re-sync so the stop moves somewhere reachable.
+    this.addEventListener('vf-list-item-disabled-change', () => {
+      this.#syncItems()
+    })
+  }
+
+  /**
+   * Moves keyboard focus to the row holding the roving tab stop. Overridden
+   * because the platform's `focus()` is a silent no-op on this host — no
+   * `delegatesFocus`, no host tabindex — so `vf-label for` (which calls
+   * `target.focus()`) never reached the list.
+   */
+  override focus(options?: FocusOptions): void {
+    this._items?.find((i) => i.tabIndex === 0)?.focus(options)
   }
 
   override connectedCallback(): void {
@@ -267,14 +282,23 @@ export class VfList extends LitElement {
     if (!items) return
     let active: VfListItem | undefined
     if (!this.disabled) {
+      // Discard a stale cursor BEFORE the fallbacks: `??` only falls through
+      // on nullish, so a cursor resting on a row that has since been disabled
+      // would otherwise win the chain here and then fail the enabled test
+      // below — leaving every row at -1 and the listbox unreachable by Tab.
+      const cursor =
+        this.#activeIndex >= 0 ? items[this.#activeIndex] : undefined
       active =
-        (this.#activeIndex >= 0 ? items[this.#activeIndex] : undefined) ??
+        (cursor && !cursor.disabled ? cursor : undefined) ??
         items.find((i) => i.selected && !i.disabled) ??
         items.find((i) => !i.disabled)
+      // Keep the cursor pointing at the row that actually holds the tab stop,
+      // so the next keyboard move starts from where focus really is.
+      this.#activeIndex = active ? items.indexOf(active) : -1
     }
     for (const item of items) {
       item.listDisabled = this.disabled
-      item.tabIndex = item === active && !item.disabled ? 0 : -1
+      item.tabIndex = item === active ? 0 : -1
     }
   }
 

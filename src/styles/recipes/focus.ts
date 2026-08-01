@@ -10,9 +10,18 @@ import { css } from 'lit'
  * `--vf-focus-offset` in the same rule to inset it (negative, to stay in-box) or
  * widen it. Keeps the outline default (`--vf-focus-outline`) authoritative in one
  * place so a ring-style change is a single edit.
+ *
+ * Drawn in `currentColor` — the same mechanism as {@link vfFocusUnderline} —
+ * so the ring inverts with the ink it sits on. This is load-bearing for
+ * `vf-list-item` in a `multiple` list: Ctrl+Arrow deliberately walks the
+ * cursor across already-selected rows, and a hard-coded black ring on the
+ * inverted black selection bar left that cursor genuinely invisible while
+ * Space still acted on it. On the highlight bar `currentColor` is
+ * `--vf-highlight-text`, so the ring reads white there and black everywhere
+ * else — no unselected artwork changes.
  */
 export const vfFocusRing = css`
-  outline: var(--vf-focus-outline, 1px dotted #000);
+  outline: var(--vf-focus-outline, 1px dotted currentColor);
   outline-offset: calc(var(--vf-scale, 1) * var(--vf-focus-offset, 2px));
 `
 

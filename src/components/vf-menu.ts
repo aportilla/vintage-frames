@@ -8,7 +8,10 @@ import { vfElement } from '../define.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
-import { DocumentListenersController } from '../document-listeners.js'
+import {
+  DocumentListenersController,
+  releaseAfterGesture,
+} from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { MenuPressController } from '../menu-press.js'
 import { emit } from '../events.js'
@@ -88,7 +91,7 @@ export class VfMenu extends LitElement {
 
          Gated on a class, not :focus-visible, exactly as vf-select is: the
          press-drag gesture suppresses the browser's own mouse focus and
-         MenuPressController calls focusLabel() instead, and Blink reads a
+         MenuPressController calls focus() instead, and Blink reads a
          scripted focus as a visible one. So :focus-visible is true after a
          plain mouse press on a title. FocusRuleController consults the page's
          last input modality instead (see src/focus-modality.ts).
@@ -229,6 +232,11 @@ export class VfMenu extends LitElement {
   #swallowClick = false
 
   #onCloseRequest = (): void => {
+    // Closing hides the focused slotted item, which would drop focus to
+    // <body> — return it to the bar label first, exactly what VfMenuBar's own
+    // close-request handler does for its menus. In a bar, the bar's handler
+    // owns that move, so only self-manage standalone.
+    if (!this.#inBar) this.focus()
     this.open = false
   }
 
@@ -238,11 +246,17 @@ export class VfMenu extends LitElement {
 
   // Attached only when standalone (a parent vf-menu-bar handles these itself).
   #onDocKeydown = (event: KeyboardEvent): void => {
+    if (event.defaultPrevented) return
     switch (event.key) {
       case 'Escape':
         event.preventDefault()
         this.open = false
-        this.focusLabel()
+        this.focus()
+        break
+      case 'Tab':
+        // Let focus move on; close without cancelling the tab, as vf-select
+        // does. The host focusout listener is the belt for this suspender.
+        this.open = false
         break
       case 'ArrowDown':
       case 'ArrowUp':
@@ -280,12 +294,29 @@ export class VfMenu extends LitElement {
     super.connectedCallback()
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.addEventListener('pointerdown', this.#onHostPointerDown)
+    this.addEventListener('focusout', this.#onHostFocusOut)
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
     this.removeEventListener('pointerdown', this.#onHostPointerDown)
+    this.removeEventListener('focusout', this.#onHostFocusOut)
+  }
+
+  /**
+   * Focus left the menu entirely while open standalone: close, so an open
+   * panel can't outlive the focus that operates it and go on capturing the
+   * document's keyboard. Modeled on `VfSelect.handleHostFocusOut`. In a bar,
+   * the bar's own focusout listener coordinates instead.
+   */
+  #onHostFocusOut = (event: FocusEvent): void => {
+    if (!this.open || this.#inBar) return
+    const next = event.relatedTarget
+    if (next instanceof Node && (this.contains(next) || this.renderRoot.contains(next))) {
+      return
+    }
+    this.open = false
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
@@ -317,9 +348,24 @@ export class VfMenu extends LitElement {
     this.#press.onPointerDown(event)
   }
 
-  /** Moves keyboard focus to the menu's bar label. */
+  /**
+   * Moves keyboard focus to the menu's bar label — the host's one focusable
+   * point. Overridden because the platform's `focus()` is a silent no-op here:
+   * no `delegatesFocus`, no host tabindex, so the standard method did nothing
+   * and `vf-label for` (which calls `target.focus()`) couldn't reach the menu.
+   */
+  override focus(options?: FocusOptions): void {
+    this._labelEl?.focus(options)
+  }
+
+  /**
+   * @deprecated Use `focus()` — the standard method now does this. (Spelled
+   *   without a link: a `{@link}` inside a deprecated tag makes the cem
+   *   analyzer attach the parsed AST node to the manifest, which then fails
+   *   to serialize — "Converting circular structure to JSON".)
+   */
   focusLabel(): void {
-    this._labelEl?.focus()
+    this.focus()
   }
 
   protected override render() {
@@ -339,7 +385,12 @@ export class VfMenu extends LitElement {
       >
         <span class="title"><slot name="label">${this.label}</slot></span>
       </div>
-      <div class="panel vf-panel" part="panel" role="menu" aria-label=${this.label}>
+      <div
+        class="panel vf-panel"
+        part="panel"
+        role="menu"
+        aria-label=${this.label || nothing}
+      >
         <slot></slot>
       </div>
     `
@@ -355,9 +406,18 @@ export class VfMenu extends LitElement {
     if (proceed) this.open = !this.open
   }
 
-  /** Arms {@link #swallowClick}: the pointer gesture owns this press. */
+  /**
+   * Arms {@link #swallowClick}: the pointer gesture owns this press. Released
+   * when the gesture's trailing click lands — a press-drag-release onto a row
+   * dispatches that click at the common ancestor, above this label, so the
+   * clearing in {@link #onLabelClick} alone would leave the latch stuck and
+   * silently swallow the next assistive-tech click on the title.
+   */
   #onLabelPointerDown(): void {
     this.#swallowClick = true
+    releaseAfterGesture(() => {
+      this.#swallowClick = false
+    })
   }
 
   /**

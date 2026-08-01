@@ -97,4 +97,18 @@ export const vfFocusUnderline = css`
     transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
   );
   pointer-events: none;
+  /* Forced colors deletes every non-url() background-image, this gradient
+     included — and each carrier suppresses the UA outline in the same rule
+     set, so without this branch a keyboard user in high-contrast mode has no
+     focus mark anywhere the underline serves (ACCESSIBILITY-REVIEW §2.1).
+     forced-color-adjust: none turns the same 1-on/1-off gradient back on. It
+     stays currentColor, and the ::after's color inherits from an ancestor the
+     override DID reach — so the mark lands in the user's own palette
+     (CanvasText on a face, HighlightText on a highlight bar) and still
+     inverts with the ink it marks. Bare declarations in a nested @media apply
+     to the composing rule's own selector (CSSNestedDeclarations), which every
+     forced-colors engine supports. */
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
 `

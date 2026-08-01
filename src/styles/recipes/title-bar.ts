@@ -120,4 +120,31 @@ export const vfWindowWidgets = css`
   .zoom:active::after {
     display: none;
   }
+  /* Forced colors: everything the widget draws is already token-routed —
+     Canvas face, CanvasText border — but its 2px white patch ring is a
+     box-shadow, which forced colors never paints, leaving the box pressed
+     against the (rescued — see vfStripes) stripes. forced-color-adjust: none
+     turns the widget's own paint back on; with the tokens remapped it still
+     renders entirely in the user's pair. The one literal left is the pressed
+     sunburst tile (url() images are preserved with their black ink), so that
+     repaints as a mask over the ink token — into the padding box, where the
+     sprite's 9×9 interior already draws. */
+  @media (forced-colors: active) {
+    .box {
+      forced-color-adjust: none;
+    }
+    .box:active {
+      background-image: none;
+    }
+    .box:active::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--vf-black, #000000);
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4 0h1v1h-1zM1 1h1v1h-1zM4 1h1v1h-1zM7 1h1v1h-1zM2 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM0 4h3v1h-3zM6 4h3v1h-3zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM4 8h1v1h-1z'/%3E%3C/svg%3E");
+      mask-repeat: no-repeat;
+      mask-position: center;
+      mask-size: calc(var(--vf-scale, 1) * 9px) calc(var(--vf-scale, 1) * 9px);
+    }
+  }
 `

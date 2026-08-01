@@ -63,6 +63,15 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
       :host(:active) .box:not(.dim) {
         box-shadow: inset 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
       }
+      /* Forced colors never paints box-shadow, so the press feedback above
+         goes silent. The same thickening as a real border-width change: with
+         box-sizing: border-box the 13×13 box holds and the extra pixel grows
+         inward, exactly where the inset shadow painted. */
+      @media (forced-colors: active) {
+        :host(:active) .box:not(.dim) {
+          border-width: calc(var(--vf-scale, 1) * 2px);
+        }
+      }
       /* Native 12×12 sprite — centered in the 13×13 box; the glyph's own 1px
          transparent margin lets it overhang onto the border harmlessly. Scales
          with the box; crispEdges keeps it whole-device-pixel at any dpr. */

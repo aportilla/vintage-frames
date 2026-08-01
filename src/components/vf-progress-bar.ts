@@ -88,6 +88,37 @@ export class VfProgressBar extends LitElement {
           background-position: calc(var(--vf-scale, 1) * 12px) 0;
         }
       }
+      /* Forced colors: the fill and track are the bar's whole reading, and
+         both have their own tokens with literal fallbacks the override
+         flattens to Canvas — remapped here like the palette tokens in vfBase.
+         The barber tile is a url() image, which forced colors preserves with
+         its literal black ink (invisible on a dark theme), so it repaints as
+         a mask over the ink token — same tile, same token a consumer
+         overrides — with the animation moved onto the mask's position. */
+      @media (forced-colors: active) {
+        :host {
+          --vf-progress-fill: CanvasText;
+          --vf-progress-track: Canvas;
+        }
+        .fill.stripes {
+          background-image: none;
+          background-color: var(--vf-progress-fill, CanvasText);
+          mask-image: var(
+            --vf-progress-stripes,
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' shape-rendering='crispEdges'%3E%3Crect x='0' y='0' width='6' height='1'/%3E%3Crect x='1' y='1' width='6' height='1'/%3E%3Crect x='2' y='2' width='6' height='1'/%3E%3Crect x='3' y='3' width='6' height='1'/%3E%3Crect x='4' y='4' width='6' height='1'/%3E%3Crect x='5' y='5' width='6' height='1'/%3E%3Crect x='6' y='6' width='6' height='1'/%3E%3Crect x='0' y='7' width='1' height='1'/%3E%3Crect x='7' y='7' width='5' height='1'/%3E%3Crect x='0' y='8' width='2' height='1'/%3E%3Crect x='8' y='8' width='4' height='1'/%3E%3Crect x='0' y='9' width='3' height='1'/%3E%3Crect x='9' y='9' width='3' height='1'/%3E%3Crect x='0' y='10' width='4' height='1'/%3E%3Crect x='10' y='10' width='2' height='1'/%3E%3Crect x='0' y='11' width='5' height='1'/%3E%3Crect x='11' y='11' width='1' height='1'/%3E%3C/svg%3E")
+          );
+          mask-size: calc(var(--vf-scale, 1) * 12px) calc(var(--vf-scale, 1) * 12px);
+          animation-name: vf-barber-mask;
+        }
+      }
+      @keyframes vf-barber-mask {
+        from {
+          mask-position: 0 0;
+        }
+        to {
+          mask-position: calc(var(--vf-scale, 1) * 12px) 0;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         .fill.stripes {
           animation: none;

@@ -265,6 +265,16 @@ Blink reads as a visible focus. All four gate on the page's last input modality
 (`FocusRuleController`, `src/focus-modality.ts`).
 `npm run verify:focus` asserts the rendered pixels.
 
+The same principle covers **forced-colors mode** (Windows High Contrast): a
+user who chose their own two colors is speaking the kit's native language, so
+rather than fight the override the kit re-declares its palette in system
+colors — black ink becomes `CanvasText`, white faces `Canvas`, the selection
+inversion the `Highlight` pair — and keeps drawing its own artwork: the
+button's stepped silhouette, the dashed focus rule, the racing stripes, the
+windoid dither and the barber stripes all survive on the user's palette
+(SPEC §1 has the mechanics). `npm run verify:forced-colors` asserts the
+rendered pixels on dark and light forced themes.
+
 ## Window archetypes — enabling the 1992 HIG, not enforcing it
 
 The 1992 *Macintosh Human Interface Guidelines* names five standard windows.

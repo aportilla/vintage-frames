@@ -70,6 +70,20 @@ export class VfListItem extends LitElement {
       :host([selected]) {
         background: var(--vf-highlight, #000);
         color: var(--vf-highlight-text, #fff);
+        /* Forced colors: both tokens already remap to the user's
+           Highlight/HighlightText pair (vfBase), but the mode also paints an
+           opaque Canvas READABILITY BACKPLATE behind any text run whose
+           backdrop it doesn't consider a flat opaque color — and Chromium's
+           Highlight carries alpha, so the plate lands ON the highlight bar
+           and the row's text drowns in it (measured: the bar renders as a
+           Canvas slab under HighlightText ink). Opting the inverted row out
+           of forced adjustments drops the backplate; every color in play is
+           a system pair anyway, so this changes nothing else. The same
+           exemption rides every 1-bit inversion in the kit — vf-option,
+           vf-menu-item, vf-menu's open label, vf-icon's plate. */
+        @media (forced-colors: active) {
+          forced-color-adjust: none;
+        }
       }
       :host([disabled]) {
         color: var(--vf-disabled, #c0c0c0);

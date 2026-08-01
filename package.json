@@ -88,7 +88,8 @@
     "verify:grid": "node scripts/verify-grid.mjs",
     "verify:snap": "node scripts/verify-snap.mjs",
     "verify:blog": "node scripts/verify-blog.mjs",
-    "verify:contract": "node scripts/verify-contract.mjs"
+    "verify:contract": "node scripts/verify-contract.mjs",
+    "verify:forced-colors": "node scripts/verify-forced-colors.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"

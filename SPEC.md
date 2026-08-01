@@ -64,6 +64,26 @@ Modern requirements that we deliberately keep (accessibility over purity):
 - Full ARIA roles + keyboard support per component.
 - Form-associated custom elements where noted (`static formAssociated = true`
   + `ElementInternals`).
+- **Forced-colors mode (Windows High Contrast) is honored, not fought.** A
+  two-color design meets the user's own two colors by re-declaring its palette
+  in them: `vfBase` remaps the tokens to system colors under
+  `@media (forced-colors: active)` (`--vf-black: CanvasText`,
+  `--vf-white: Canvas`, the `Highlight` pair, `GrayText`), which survive the
+  forced override and carry every token-routed paint site — borders, faces,
+  glyphs, silhouettes, inversions — at once. The three channels forcing
+  deletes get per-site care: the focus-underline and stripe *gradients* are
+  exempted with `forced-color-adjust: none` (still `currentColor`, so still
+  the user's ink); the literal-black url() *tiles* that carry meaning
+  (windoid dots, barber stripes, the pressed sunburst) repaint as masks over
+  the ink token, while the decorative desktop dither goes flat Canvas; and the
+  two press-feedback *box-shadows* are replaced (checkbox border thickening)
+  or exempted (the widget patch ring). Inverted rows are also exempted so the
+  mode's text backplate can't land a Canvas slab on the highlight bar. The
+  swatch fill is exempted as *content* — the color is the thing it exists to
+  show. Known residual: scrollbar arrow sprites can't follow the theme
+  (masks are ignored on `::-webkit-scrollbar` pseudos) and render as empty
+  bordered boxes on dark themes. `npm run verify:forced-colors` asserts the
+  rendered pixels on dark and light forced themes.
 
 ## 2. Code conventions (mandatory)
 

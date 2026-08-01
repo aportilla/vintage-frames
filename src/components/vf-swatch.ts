@@ -135,6 +135,15 @@ export class VfSwatch extends VfFormControl {
            harmless — a uniform gradient tiles invisibly. */
         background-size: calc(var(--vf-scale, 1) * 4px)
           calc(var(--vf-scale, 1) * 4px);
+        /* Forced colors would delete the color layer (a gradient) and keep
+           the checker, showing "transparent" for every color. The fill is
+           CONTENT, not chrome — the color is the one thing the control
+           exists to show, the case forced-color-adjust's own spec exempts
+           (its example is a color picker). Frame, inset and press feedback
+           stay on the forced palette like every other control's. */
+        @media (forced-colors: active) {
+          forced-color-adjust: none;
+        }
       }
     `,
   ]

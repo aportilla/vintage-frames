@@ -73,6 +73,16 @@ export class VfDesktop extends LitElement {
           url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23ffffff'/%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
         );
         background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+        /* Forced colors: the checker is opaque literal white-and-black (a
+           preserved url() tile), which ignores a dark theme entirely. A
+           backdrop is decoration, and high-contrast mode is a request for
+           less of that — so the desktop goes flat Canvas (the forced
+           background-color) rather than re-dithering in the user's pair.
+           Deliberate; the windoid dot bar, which carries meaning, IS
+           re-inked (see vfDots). */
+        @media (forced-colors: active) {
+          background-image: none;
+        }
       }
       /* Slotted windows need a positioning context so z-index applies.
          (An inline position: absolute set by a movable window wins.) */

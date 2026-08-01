@@ -29,7 +29,20 @@ import { css } from 'lit'
  *
  * Shared by `vf-scroll-area`, `vf-list` and `vf-text-area` so they never
  * drift.
- */
+ *
+ * FORCED COLORS (measured under CDP emulation, light and dark themes): author
+ * scrollbar styles ARE still consulted, with color-valued properties forced —
+ * so the rails, thumb border and channel land on the user's pair by
+ * themselves (system colors set via the vfBase token remap render
+ * identically). The trough dither self-resolves: its literal-black url() tile
+ * is preserved, correct on a light theme and invisible against the forced
+ * Canvas channel on a dark one — a clean channel, the idle-rail look. The one
+ * genuine residual is the ARROW SPRITES: url() images keep their literal
+ * black ink, and mask-image is IGNORED on ::-webkit-scrollbar pseudos (also
+ * measured), so the vf-grid re-inking idiom has no purchase here. On a dark
+ * theme the arrow buttons render as empty bordered boxes; they keep working,
+ * and dropping the sprites would draw exactly the same empty box on light
+ * themes too, so they stay. */
 export const vfScrollbars = css`
   /* The full 16px cell. The outer 1px along the component frame is covered by
      the .vf-scroll-frame overlay, so the visible bar is the 1px interior rail

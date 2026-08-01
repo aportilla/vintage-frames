@@ -86,3 +86,22 @@ body {
   background: var(--vf-highlight, #000);
   color: var(--vf-highlight-text, #fff);
 }
+
+/*
+ * Forced-colors mode: the same token remap every component carries in vfBase
+ * (see src/styles/recipes/host.ts), declared at :root for the PAGE's side of
+ * the kit — body copy, ::selection above, and any consumer CSS that reads the
+ * tokens. System-color keywords survive the forced override, so everything
+ * routed through the tokens lands on the user's own pair.
+ */
+@media (forced-colors: active) {
+  :root {
+    --vf-black: CanvasText;
+    --vf-white: Canvas;
+    --vf-surface: Canvas;
+    --vf-disabled: GrayText;
+    --vf-field-placeholder: GrayText;
+    --vf-highlight: Highlight;
+    --vf-highlight-text: HighlightText;
+  }
+}

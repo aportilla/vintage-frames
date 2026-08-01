@@ -64,6 +64,13 @@ export class VfOption extends LitElement {
          vf-select drives [active] for both pointer and keyboard so only one
          row is ever highlighted at a time. */
       :host([active]) {
+        /* Forced colors: exempt the inverted row from the mode's text
+           backplate, which would land a Canvas slab on the highlight bar —
+           see vf-list-item's forced-colors note. The pair is already the
+           user's own via the vfBase token remap. */
+        @media (forced-colors: active) {
+          forced-color-adjust: none;
+        }
         background: var(--vf-highlight, #000);
         color: var(--vf-highlight-text, #fff);
       }

@@ -16,6 +16,13 @@ export const vfStripes = css`
       transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
     );
     pointer-events: none;
+    /* Forced colors deletes gradient backgrounds, and the stripes are the
+       active window's whole signal. The layer paints nothing but this
+       gradient, already in the remapped ink token, so exempting it keeps the
+       active-window state readable in the user's own pair. */
+    @media (forced-colors: active) {
+      forced-color-adjust: none;
+    }
   }
 `
 
@@ -40,5 +47,20 @@ export const vfDots = css`
     );
     background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
     pointer-events: none;
+  }
+  /* Forced colors preserves url() tiles verbatim, so the dots would stay
+     literal black — invisible on a dark high-contrast theme. Repainted as the
+     ink token through the same tile as a mask (the vf-grid rules idiom), so
+     the windoid bar's signature follows the user's palette. */
+  @media (forced-colors: active) {
+    .vf-dots {
+      background-image: none;
+      background-color: var(--vf-black, #000);
+      mask-image: var(
+        --vf-dots-pattern,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
+      );
+      mask-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+    }
   }
 `

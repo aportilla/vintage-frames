@@ -25,7 +25,13 @@
  * a bench that imposed a scale would stop showing what a consumer's page gets;
  * `effectiveScale()` is read only to REPORT what they chose.
  */
-import { applyGridSnap, effectiveScale, requestGridSnap } from '../src/index.js'
+import {
+  applyGridSnap,
+  effectiveScale,
+  getZoom,
+  requestGridSnap,
+  truePixelRatio,
+} from '../src/index.js'
 import type {
   VfButton,
   VfCheckbox,
@@ -645,7 +651,9 @@ function edge(el: Element, property: string): number {
 
 function readoutText(): string {
   const scale = effectiveScale(stack)
-  const dpr = window.devicePixelRatio
+  // trueDpr: device px per CSS px including browser zoom (identical to
+  // devicePixelRatio at 100% zoom in every engine).
+  const dpr = truePixelRatio()
   const perSystemPx = scale * dpr
   const box = stack.getBoundingClientRect()
 
@@ -658,11 +666,11 @@ function readoutText(): string {
   const whole = (n: number): boolean => Math.abs(n - Math.round(n)) < 0.01
 
   const lines = [
-    `--vf-scale ${round(scale)} · devicePixelRatio ${dpr} · 1 system px = ` +
+    `--vf-scale ${round(scale)} · trueDpr ${round(dpr)} · zoom ${Math.round(getZoom() * 100)}% · 1 system px = ` +
       `${round(perSystemPx)} device px ` +
-      (Number.isInteger(perSystemPx)
+      (Math.abs(perSystemPx - Math.round(perSystemPx)) < 1e-6
         ? '✓'
-        : '✗ keep --vf-scale × dpr whole (rule 1)'),
+        : '✗ keep --vf-scale × trueDpr whole (rule 1)'),
     `stack box ${round(box.width)} × ${round(box.height)} CSS px = ` +
       `${round(wide)} × ${round(tall)} device px ` +
       (whole(wide) && whole(tall)

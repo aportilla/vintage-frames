@@ -27,10 +27,11 @@
         links to the specs, rather than paraphrasing them per component.
 
       * The page declares no --vf-scale at all (examples.css says so itself):
-        every component sizes itself to true ~72dpi, three device px per system
-        px, so a specimen is physically the size it was in 1991 on whatever
-        display you are reading it on. It does call applyGridSnap(); load the
-        page with ?nosnap to turn that off.
+        every component sizes itself to true ~72dpi — three device px per
+        system px at 100% zoom, and round(3 × zoom) as the reader zooms — so a
+        specimen is physically the size it was in 1991 on whatever display you
+        are reading it on, and grows in whole crisp steps under ⌘+. It does
+        call applyGridSnap(); load the page with ?nosnap to turn that off.
     -->
     <link rel="stylesheet" href="/demo/examples.css" />
     <script type="module" src="/demo/examples.ts"></script>
@@ -280,7 +281,7 @@ import 'vintage-frames/vintage.css' // OPTIONAL page defaults (desktop bg, body 
           </p>
 
           <p>
-            The root import registers all 30 elements. To ship less, import the ones
+            The root import registers all 31 elements. To ship less, import the ones
             you use by name — same elements, same self-registration, one module
             each:
           </p>
@@ -299,8 +300,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             Components are authored in <em>system pixels</em> — the 1-bit art grid —
             and each one maps a system pixel onto a whole number of device pixels by
             itself, so the artwork stays crisp at any <code>devicePixelRatio</code>
-            and re-adapts when the window moves to a different display. It is
-            internal, it needs no setup, and nesting never compounds it.
+            and re-adapts when the window moves to a different display or the
+            reader zooms the page. It is internal, it needs no setup, and nesting
+            never compounds it.
           </p>
           <p>
             What follows from that: a component's box is never stated in fixed CSS
@@ -311,6 +313,55 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             kit's 16-pixel face, so <code>15em</code> is the same box on every
             display) or as a percentage of its container. Page furniture around the
             components stays in ordinary px, as your own layout would.
+          </p>
+
+          <h3>Zoom is followed, in whole steps</h3>
+          <p>
+            Browser zoom (⌘+ / ⌘−) moves the target with the reader: the kit
+            renders <code>round(3 × zoom)</code> device pixels per system pixel,
+            so at 200% the art is 6 device px per system px — twice the size,
+            still not one gray pixel. A response that must land on whole device
+            pixels is a stepped one, and the steps are the same on every display:
+          </p>
+
+          <table class="api">
+            <thead>
+              <tr><th>zoom</th><th>device px per system px</th><th>size vs 100%</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>50–80%</td><td>2</td><td>67%</td></tr>
+              <tr><td>90–110%</td><td>3</td><td>100%</td></tr>
+              <tr><td>125%</td><td>4</td><td>133%</td></tr>
+              <tr><td>150–175%</td><td>5</td><td>167%</td></tr>
+              <tr><td>200%</td><td>6</td><td>200%</td></tr>
+              <tr><td>300%</td><td>9</td><td>300%</td></tr>
+            </tbody>
+          </table>
+
+          <p>
+            Three details worth knowing. <strong>The steps nearest 100% hold
+            still</strong> — 90% and 110% both round to 3, because below 3 device
+            px per system px there is no finer move that keeps 1-bit art crisp.
+            <strong>Ties round up</strong> — 150% renders 167% of true size, not
+            133%: a zoom is a request for larger, and the kit errs in the
+            direction the reader asked. And <strong>the response is the same in
+            every engine</strong> — Chrome and Firefox report zoom through
+            <code>devicePixelRatio</code>, Safari holds its
+            <code>devicePixelRatio</code> at the hardware and moves the viewport
+            instead, and the kit tracks both signals — so a zoomed page renders
+            the components the same size whichever browser is reading it.
+          </p>
+
+          <p>Zoom this page and watch it step:</p>
+          <pre class="snippet"><code id="zoom-readout">measuring…</code></pre>
+
+          <p>
+            Two boundaries, both deliberate. Pinch-to-zoom is not followed — it
+            magnifies pixels that are already rasterized, at compositing time, so
+            there is nothing the kit could re-draw for. And a page that pins
+            <code>--vf-scale</code> has opted out along with the rest of the
+            scaling: a value in scope always wins, and the pinned page then
+            scales under zoom the way its ordinary CSS does.
           </p>
 
           <h3>One thing a host page decides</h3>
@@ -331,7 +382,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             1-bit interior rasterizes wrong: pixel-stepped corners staircase
             asymmetrically, hairline borders and bitmap glyph stems smear across two
             device rows and go gray. Mapping a system pixel onto a whole number of
-            device pixels is the kit's own half of that and it is handled internally.
+            device pixels is the kit's own half of that and it is handled internally,
+            at any display density and any browser zoom.
             Two rules are the page's, and one call covers the first:
           </p>
 

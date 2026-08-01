@@ -164,11 +164,16 @@ Every length in this doc is a **system pixel** value; components multiply it by
 
 **`--vf-scale` (display scaling).** Every length above is authored in *system
 pixels* and multiplied by `--vf-scale`. It defaults to the true-size factor for
-the current display — `3 / devicePixelRatio`, so one system pixel maps to exactly
-3 device pixels and the 1-bit art stays crisp at any dpr — applied per component
-by a `ScaleController` (`src/scale.ts`), which re-adapts on dpr changes. A
-consumer or ancestor `--vf-scale` always wins (set it to `1` to pin the fixed
-authored sizes), and because it is a plain inherited multiplier, nesting never
+the current display **and zoom** — `round(3 × zoom) / trueDpr`, so one system
+pixel maps to a whole count of device pixels (exactly 3 at 100% zoom) and the
+1-bit art stays crisp at any density and any zoom level — applied per component
+by a `ScaleController` (`src/scale.ts`), which re-adapts on dpr and zoom
+changes. `trueDpr` is device px per CSS px *including* browser zoom
+(`truePixelRatio()`, `src/zoom.ts`): `window.devicePixelRatio` reports that
+number in Chrome/Firefox but not Safari, which pins its dpr to the hardware and
+goes stale about the rasterization density at any non-100% zoom. A consumer or
+ancestor `--vf-scale` always wins (set it to `1` to pin the fixed authored
+sizes), and because it is a plain inherited multiplier, nesting never
 compounds. JS-driven geometry (slider rail/thumb, select panel, window resize)
 converts between system and CSS px with the `sys()` / `toSys()` helpers.
 
@@ -207,7 +212,7 @@ into their insets; rows and options inside a corrected container
 (`vf-list-item`, `vf-menu-item`, `vf-option`) and layout-only hosts
 (`vf-button-group`, `vf-radio-group`) carry no target and ride their
 surroundings. It corrects the origin only: a fractional *size*, and a
-`--vf-scale × devicePixelRatio` that isn't whole, are still the page's to get
+`--vf-scale × trueDpr` that isn't whole, are still the page's to get
 right.
 
 ## 4. Shared recipes (in `src/styles/base.ts`)

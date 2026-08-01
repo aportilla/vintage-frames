@@ -56,8 +56,10 @@ const check = (ok, label, detail = '') => {
  * ride a corrected container) are skipped.
  */
 const worstOrigin = (page) =>
-  page.evaluate(() => {
-    const dpr = window.devicePixelRatio
+  page.evaluate(async () => {
+    // trueDpr, not devicePixelRatio — identical at zoom 1, correct under it.
+    const { truePixelRatio } = await import('/src/index.ts')
+    const dpr = truePixelRatio()
     const err = (css) => Math.abs(css * dpr - Math.round(css * dpr))
     let worst = 0
     let tag = ''
@@ -305,8 +307,9 @@ for (const path of PAGES) {
   console.log('\nvf-window drag  dpr 2')
 
   const state = () =>
-    page.evaluate(() => {
-      const dpr = window.devicePixelRatio
+    page.evaluate(async () => {
+      const { truePixelRatio } = await import('/src/index.ts')
+      const dpr = truePixelRatio()
       const el = document.getElementById('win')
       const frame = el.shadowRoot.querySelector('.vf-snap')
       const rect = frame.getBoundingClientRect()

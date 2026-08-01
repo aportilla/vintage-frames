@@ -121,14 +121,14 @@ What that costs, bundled and minified with `lit` external:
 
 | Imported | min | gzip |
 | --- | --- | --- |
-| `vf-separator.js` — sets no chrome type, so it carries no Chicago face | 11.9 KB | 6.7 KB |
-| `vf-button.js` | 24.3 KB | 12.7 KB |
-| …plus `vf-checkbox.js` | 29.8 KB | 14.4 KB |
-| the root import — all 31 elements | 229 KB | 69 KB |
+| `vf-separator.js` — sets no chrome type, so it carries no Chicago face | 14.3 KB | 7.6 KB |
+| `vf-button.js` | 27.2 KB | 13.7 KB |
+| …plus `vf-checkbox.js` | 32.8 KB | 15.3 KB |
+| the root import — all 31 elements | 246 KB | 72.5 KB |
 
-The first component pays for the shared floor (the body face, `scale.ts`,
-`grid-snap.ts`, the recipes it composes); each one after it costs a couple of
-KB. Cherry-picking is worth it up to roughly a third of the kit — past that,
+The first component pays for the shared floor (the body face, `scale.ts` and
+its zoom tracker, `grid-snap.ts`, the recipes it composes); each one after it
+costs a couple of KB. Cherry-picking is worth it up to roughly a third of the kit — past that,
 import the root and let the bundler keep one copy of everything.
 
 **If a second copy does get in**, the page survives it. `customElements.define()`
@@ -314,25 +314,32 @@ with the grow box in the corner cell — the TeachText composition, built in.
 ## Display scaling — true classic size, crisp on any screen
 
 Every component is authored in *system pixels* (the 1-bit art grid) and renders
-each one as exactly **3 device pixels**, so the UI reads at its original ~72 dpi
-physical size and stays pixel-crisp at any `devicePixelRatio`:
+each one as exactly **3 device pixels** at 100% zoom, so the UI reads at its
+original ~72 dpi physical size and stays pixel-crisp at any
+`devicePixelRatio` — and as the user zooms, the target moves with them
+(see [Following the user's zoom](#following-the-users-zoom)):
 
-| Display | CSS scale (`3 / dpr`) |
-| --- | --- |
-| 1× standard | 3.0 |
-| 2× retina | 1.5 |
-| 3× hi-dpi | 1.0 |
+| Display | 100% zoom: scale (`3 / dpr`) | 150% zoom: `trueDpr` | 150% zoom: scale (`5 / trueDpr`) |
+| --- | --- | --- | --- |
+| 1× standard | 3.0 | 1.5 | 3.33 |
+| 2× retina | 1.5 | 3.0 | 1.67 |
+| 3× hi-dpi | 1.0 | 4.5 | 1.11 |
+
+(`trueDpr` is device px per CSS px *including* zoom — what zooming actually
+does to the rasterization grid in every engine, whether or not
+`devicePixelRatio` reports it.)
 
 This is **on by default** — a lone `<vf-button>` renders at true size with no
 wrapper or setup, it re-adapts when the window moves to a different-density
-monitor, and nested components compose without ever double-scaling.
+monitor or the user zooms, and nested components compose without ever
+double-scaling.
 
 Override it with the inherited `--vf-scale` custom property — set it on `:root`,
 a subtree, or a single element:
 
 ```css
 :root { --vf-scale: 1; }  /* pin to the fixed authored size (no scaling) */
-.dense { --vf-scale: 2; } /* …or any factor that keeps scale × dpr whole */
+.dense { --vf-scale: 2; } /* …or any factor that keeps scale × trueDpr whole */
 ```
 
 **Decide early whether an embedded page wants this default.** Reproducing true
@@ -363,6 +370,61 @@ any element you pass) and keeps it synced as the display changes:
 import { applyScale } from 'vintage-frames'
 
 applyScale() // → returns a cleanup function that stops watching
+```
+
+### Following the user's zoom
+
+Reproducing physical size used to cut both ways: in Chrome and Firefox, page
+zoom multiplies `devicePixelRatio`, the scale divided by it, and the kit held
+its physical size while the page around it doubled — it *un-zoomed itself*,
+handing a user who zoomed because 20px chrome is too small exactly the same
+20px chrome. Now the target moves with the zoom: **`round(3 × zoom)` device
+pixels per system pixel**, always whole, because [rule 1](#staying-on-the-device-pixel-grid--the-layout-contract)
+is not negotiable. The response is quantized and identical on every display:
+
+| zoom | device px / system px | physical size vs. 100% |
+| --- | --- | --- |
+| 25–33% | 1 | 33% |
+| 50–80% | 2 | 67% |
+| 90–110% | 3 | 100% |
+| 125% | 4 | 133% |
+| 150–175% | 5 | 167% |
+| 200% | 6 | 200% |
+| 250% | 8 | 267% |
+| 300% | 9 | 300% |
+| 400% | 12 | 400% |
+| 500% | 15 | 500% |
+
+Three properties of that table are deliberate. **The nearest steps do
+nothing** — 90% and 110% both round to 3, so the kit holds still while the page
+moves; the first step that moves it is 125% up and 80% down. This is inherent:
+below 3 device px per system px there is no finer move that keeps the art
+crisp, and fractional targets are exactly what rule 1 forbids. **Ties round
+up** — 150% renders 167% of true size, not 133%, because a zoom-driven
+accessibility response should err toward larger. And **the response is the
+same in every engine**: Chrome and Firefox report zoom through
+`devicePixelRatio` while Safari pins its dpr to the hardware and moves
+`innerWidth` instead, so the kit tracks both signals (`src/zoom.ts`) and
+arrives at the same rendered size either way — including telling a zoom apart
+from the window moving to a different-density monitor, which changes the same
+dpr but must keep physical size instead (and still does).
+
+The baseline is page load, assumed to be 100%. A page that *loads*
+already-zoomed (Chrome persists zoom per origin) reads that as its 100% and
+tracks changes from there — still crisp, just offset. `resetZoomBaseline()`
+declares the current state to be 100% again; it is also the escape hatch for
+the one change the tracker cannot classify, a display-mode switch at an
+identical logical size. Pinch-to-zoom is out of scope by design:
+`visualViewport.scale` magnifies already-rasterized pixels at composite time
+and changes no rasterization density, so there is nothing for the kit to
+follow. And a pinned `--vf-scale` opts out of zoom-following the same way it
+opts out of display adaptation — a value in scope always wins, and the page
+then scales under zoom like any ordinary CSS.
+
+```sh
+npm run verify:zoom   # the quantization table, Chrome-shaped and Safari-shaped
+                      # zoom signals end to end, and that a monitor move is
+                      # still never mistaken for a zoom
 ```
 
 ## Laying out inside a window — `vf-stack`
@@ -512,10 +574,17 @@ components in a way that resizes nothing, call `requestGridSnap()`.
 
 So: three rules, of which snapping covers the second.
 
-**1. Keep `--vf-scale × devicePixelRatio` a whole number.** One system pixel
-occupies exactly that many device pixels, and it has to be countable. This is
-why the default is `3 / dpr` — the product is always 3. A hand-picked scale is
-your responsibility:
+**1. Keep `--vf-scale × trueDpr` a whole number.** One system pixel occupies
+exactly that many device pixels, and it has to be countable. `trueDpr` is
+device px per CSS px *including* browser zoom — the number
+`window.devicePixelRatio` reports in Chrome and Firefox but not in Safari,
+which pins its dpr to the hardware and goes stale about the rasterization
+density at any non-100% zoom (`truePixelRatio()` reads it correctly in both).
+This is why the default scale is `round(3 × zoom) / trueDpr` — the product is
+always a whole target, 3 at 100% zoom. A hand-picked scale is your
+responsibility, and can only be judged at 100% zoom (at, say, 150% zoom
+`trueDpr` is 1.5× the density, and no fixed scale divides into every zoom
+level — following the zoom is the default for exactly that reason):
 
 | `--vf-scale` | 1× display | 2× retina | 3× hi-dpi |
 | --- | --- | --- | --- |
@@ -523,10 +592,10 @@ your responsibility:
 | `1.5` | ✗ 1.5 | ✓ 3 | ✗ 4.5 |
 | `1.25` | ✗ 1.25 | ✗ 2.5 | ✗ 3.75 |
 
-Whole numbers are safe everywhere. Fractions are safe only where they happen to
-divide into the density, so unless you are pinning a known display, use an
-integer. Break this one and no amount of careful layout helps — the component's
-own metrics are already fractional.
+Whole numbers are safe on every display at 100% zoom. Fractions are safe only
+where they happen to divide into the density, so unless you are pinning a known
+display, use an integer. Break this one and no amount of careful layout helps —
+the component's own metrics are already fractional.
 
 **2. State every `line-height` in whole pixels, and keep `padding`, `margin` and
 `gap` on integers — or call `applyGridSnap()` and forget it.** Line boxes are
@@ -791,6 +860,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | Export | What it's for |
 | --- | --- |
 | `applyScale`, `ScaleController`, `onScaleChange` | Opt a subtree (or your own component) into true-size rendering |
+| `getZoom`, `truePixelRatio`, `onZoomChange`, `devicePxPerSystemPx`, `resetZoomBaseline` | The zoom half of display scaling: the tracked page zoom; device px per CSS px *including* it (what `devicePixelRatio` stops being in Safari under zoom — the number every "snap to the device grid" computation must divide by); a subscription to zoom changes; the zoom→target quantization; and the "current state is 100%" escape hatch |
 | `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Opt the page into automatic device-pixel-grid snapping; add it to your own component with one controller line plus the `vf-snap` class on its painted root |
 | `sys`, `toSys`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapToSystemPx`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; `sysLength`/`sysLengths` emit a system-px length (or a 1–4 value shorthand) that stays live against the display, for a size written onto an element; snap JS-written geometry onto the system-pixel grid (what window drags, grow-box resizes and dialog pins go through — whole art pixels, like QuickDraw) or onto the finer device grid |
 | `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |

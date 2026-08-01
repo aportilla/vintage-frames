@@ -73,6 +73,7 @@
     "verify:menu-press": "node scripts/verify-menu-press.mjs",
     "verify:low-sweep": "node scripts/verify-low-sweep.mjs",
     "verify:scale": "node scripts/verify-scale.mjs",
+    "verify:zoom": "tsc src/zoom.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/verify-zoom.mjs",
     "verify:chrome": "node scripts/verify-chrome.mjs",
     "verify:archetypes": "node scripts/verify-archetypes.mjs",
     "verify:toggle": "node scripts/verify-toggle.mjs",

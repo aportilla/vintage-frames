@@ -1,4 +1,11 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit'
+import {
+  DEVICE_PX_PER_SYSTEM_PX,
+  devicePxPerSystemPx,
+  getZoom,
+  onZoomChange,
+  truePixelRatio,
+} from './zoom.js'
 
 /**
  * Display scaling — replicate the classic 72 dpi "system pixel" on modern
@@ -6,33 +13,45 @@ import type { ReactiveController, ReactiveControllerHost } from 'lit'
  *
  * Vintage Frames' components are authored in *system pixels* (the 1-bit art
  * grid: a 1px border, a 13px checkbox, a 22px control). To read at their true
- * classic size — and stay pixel-crisp — each system pixel should map to a whole
- * number of device pixels. We target exactly **3 device pixels per system
- * pixel**, so the CSS scale adapts to `devicePixelRatio`:
+ * classic size — and stay pixel-crisp — each system pixel must map to a whole
+ * number of device pixels. The target is **3 × zoom device pixels per system
+ * pixel**, rounded whole (`src/zoom.ts`): at 100% zoom the scale adapts to the
+ * display alone —
  *
  *   1× display  → scale 3.0   (3 CSS px × 1 dpr = 3 device px)
  *   2× retina   → scale 1.5   (1.5 CSS px × 2 dpr = 3 device px)
  *   3× display  → scale 1.0   (1 CSS px × 3 dpr = 3 device px)
  *
- * Because it's always a whole 3 device px, the art is crisp at *every* dpr, not
- * only even ones. Components multiply their metrics by the inherited
- * `--vf-scale` custom property in `calc()`; JS geometry uses {@link sys} /
- * {@link toSys} to convert between system and CSS px. The scale is a plain
- * multiplier, so nesting never compounds: a window and a button inside it each
- * scale their own metrics once.
+ * — and as the user zooms, the target moves with them (6 device px at 200%,
+ * 2 at 50%), so the kit grows with the page instead of dividing the zoom back
+ * out and holding its physical size while the copy around it doubles. The
+ * invariant is `--vf-scale × trueDpr = a whole device-px count`, where
+ * `trueDpr` is {@link truePixelRatio} — device px per CSS px *including* zoom,
+ * which `window.devicePixelRatio` reports in Chrome/Firefox but not Safari.
+ * Because the count is always whole, the art is crisp at every density and
+ * every zoom level.
+ *
+ * Components multiply their metrics by the inherited `--vf-scale` custom
+ * property in `calc()`; JS geometry uses {@link sys} / {@link toSys} to
+ * convert between system and CSS px. The scale is a plain multiplier, so
+ * nesting never compounds: a window and a button inside it each scale their
+ * own metrics once.
  *
  * Nothing here runs automatically — a component with no `--vf-scale` in scope
  * renders at 1× (today's behavior). Opt in with {@link applyScale} or by setting
  * `--vf-scale` yourself.
  */
 
-/** Device pixels each authored system pixel should occupy. */
-export const DEVICE_PX_PER_SYSTEM_PX = 3
+export { DEVICE_PX_PER_SYSTEM_PX }
 
-/** The CSS scale factor for the current display: 3 / devicePixelRatio. */
+/**
+ * The CSS scale factor for the current display and zoom:
+ * `devicePxPerSystemPx(zoom) / trueDpr`. At 100% zoom that reduces exactly to
+ * the historical `3 / devicePixelRatio`.
+ */
 export function getScale(): number {
-  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
-  return DEVICE_PX_PER_SYSTEM_PX / dpr
+  const dpr = truePixelRatio() || 1
+  return devicePxPerSystemPx(getZoom()) / dpr
 }
 
 /**
@@ -126,7 +145,7 @@ export function toSys(value: number, el: Element): number {
  * WebKit doesn't run) keep the finest crisp grid: whole device px.
  */
 export function snapToDevicePx(value: number): number {
-  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+  const dpr = truePixelRatio() || 1
   if (Number.isInteger(dpr)) return Math.round(value)
   return Math.round(value * dpr) / dpr
 }
@@ -162,17 +181,25 @@ export function snapToSystemPx(value: number, el: Element): number {
 }
 
 /**
- * The grid {@link snapToSystemPx} rounds to: the smallest run of system px that
- * is also whole in CSS px at `el`'s scale (see the note above for why dpr 2
- * takes two).
+ * The grid {@link snapToSystemPx} rounds to: the smallest run of k ≤ 4 system
+ * px that is also whole in CSS px at `el`'s scale (see the note above for why
+ * dpr 2 takes two). Identical to the historical behavior at 100% zoom (k = 1
+ * for scales 3 and 1, k = 2 for 1.5); under zoom the scale can be a ratio like
+ * 5/3, where k = 3 is what keeps every drag step whole in CSS px — without it
+ * the step fell through to a single system px and revived the half-CSS-px edge
+ * that makes WebKit shift a scroll rail one device pixel off its frame. A
+ * scale whole in no k ≤ 4 falls back to single system px: whole device px, the
+ * finest crisp grid there. The float tolerance absorbs a scale that round-trips
+ * through a custom-property string (5/3 stringifies and parses exactly, but
+ * k × scale can land a few ulps off a whole number).
  */
 function systemPxStep(el: Element): number {
   const scale = effectiveScale(el)
-  return Number.isInteger(scale)
-    ? scale
-    : Number.isInteger(scale * 2)
-      ? scale * 2
-      : scale
+  for (let k = 1; k <= 4; k++) {
+    const step = k * scale
+    if (Math.abs(step - Math.round(step)) < 1e-9) return step
+  }
+  return scale
 }
 
 /**
@@ -205,22 +232,42 @@ export function unsnapDialog(dialog: HTMLDialogElement): void {
 }
 
 /**
- * Watch for `devicePixelRatio` changes — the window moving to a monitor with a
- * different density, or the user changing browser zoom — and invoke `callback`
- * with the new scale. Returns a cleanup function.
+ * Watch for anything that moves the scale *or* the device grid under it — the
+ * window moving to a different-density monitor (via a resolution media query),
+ * or the user changing browser zoom (via `onZoomChange`, which also carries
+ * Safari's dpr-invisible zoom) — and invoke `callback` with the new scale.
+ * Returns a cleanup function.
+ *
+ * Fires are deduped on the pair `(scale, trueDpr)`, and the pair matters: at
+ * Chrome 100% → 200% on a 2× display the scale is 1.5 both times, but the true
+ * dpr goes 2 → 4 — the *device grid* changed, and grid snapping must re-sweep
+ * even though `--vf-scale` did not move. Conversely a Chrome zoom fires both
+ * sources in one turn, and the dedupe collapses them to one callback per
+ * actual change.
  */
 export function onScaleChange(callback: (scale: number) => void): () => void {
   if (typeof window === 'undefined' || !window.matchMedia) return () => {}
+  let last = { scale: getScale(), dpr: truePixelRatio() }
+  const fire = (): void => {
+    const next = { scale: getScale(), dpr: truePixelRatio() }
+    if (next.scale === last.scale && next.dpr === last.dpr) return
+    last = next
+    callback(next.scale)
+  }
+  const stopZoom = onZoomChange(fire)
   let mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
   const handler = (): void => {
-    callback(getScale())
+    fire()
     // dpr changed, so the old query no longer matches — re-register on the new one.
     mql.removeEventListener('change', handler)
     mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
     mql.addEventListener('change', handler)
   }
   mql.addEventListener('change', handler)
-  return () => mql.removeEventListener('change', handler)
+  return () => {
+    stopZoom()
+    mql.removeEventListener('change', handler)
+  }
 }
 
 /**

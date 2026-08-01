@@ -2,10 +2,11 @@
  * Screenshots blog.html at each display density, so the effect of the
  * components' default self-scaling is visible side by side.
  *
- * The page sets no --vf-scale, so each component picks `3 / devicePixelRatio`:
- * 3 on a 1× monitor, 1.5 on a retina laptop, 1 on a 3× display. The controls
- * therefore reproduce the same *physical* size everywhere while the page's own
- * 17px copy stays put, which is exactly what these shots are for.
+ * The page sets no --vf-scale, so each component picks `round(3 × zoom) /
+ * trueDpr` — at the 100% zoom this harness runs, 3 on a 1× monitor, 1.5 on a
+ * retina laptop, 1 on a 3× display. The controls therefore reproduce the same
+ * *physical* size everywhere while the page's own 17px copy stays put, which
+ * is exactly what these shots are for.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run shot:blog  # → shots/blog-dpr{1,2,3}.png

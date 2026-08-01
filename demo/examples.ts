@@ -15,14 +15,20 @@
  *   3. wires the few generic hooks a demo can ask for by attribute
  *      (`data-show`, `data-close`, `data-value-of`, `data-log`, …).
  *
- * Page CSS is NOT imported here — examples.html loads it with a `<link>` so
- * that `:root { --vf-scale: 1 }` is in scope before the components upgrade
- * (see the note at the top of examples.css).
+ * Page CSS is NOT imported here — examples.html loads it with a `<link>`, so
+ * anything it declared in `:root` would be in scope before the components
+ * upgrade, which is what a page pinning --vf-scale would need. This page pins
+ * nothing (see the note at the top of examples.css): the specimens are shown
+ * in their default state, self-scaled to true size.
  */
 import {
   applyGridSnap,
+  effectiveScale,
+  getZoom,
+  onScaleChange,
   prefersReducedMotion,
   requestGridSnap,
+  truePixelRatio,
 } from '../src/index.js'
 import type { VfProgressBar } from '../src/index.js'
 
@@ -245,6 +251,44 @@ function replaceElements(_key: string, value: unknown): unknown {
 }
 
 /* ------------------------------------------------------------------ *
+ * The zoom readout — the one snippet on the page that rewrites itself.
+ *
+ * The Overview's "Zoom is followed, in whole steps" section invites the
+ * reader to zoom the page and watch the target move, so this line has to
+ * report the numbers the kit is actually rendering with: the resolved
+ * --vf-scale off a live component, the tracked zoom, and trueDpr (device px
+ * per CSS px INCLUDING zoom — what devicePixelRatio stops being in Safari
+ * under zoom). onScaleChange is the one subscription that covers every way
+ * these can move: a zoom in either engine's dialect, and a monitor move,
+ * which changes the grid without changing the scale.
+ * ------------------------------------------------------------------ */
+
+function wireZoomReadout(): void {
+  const readout = document.getElementById('zoom-readout')
+  if (!readout) return
+  // Any component serves as the probe — scaling is per component, and the
+  // masthead label is the first one on the page.
+  const probe = document.querySelector('vf-label')
+  const refresh = (): void => {
+    if (!probe) return
+    const zoom = getZoom()
+    const trueDpr = truePixelRatio()
+    const scale = effectiveScale(probe)
+    const density = Math.round((trueDpr / zoom) * 100) / 100
+    readout.textContent =
+      `--vf-scale ${Math.round(scale * 10000) / 10000} · ` +
+      `${Math.round(zoom * 100)}% zoom on a ${density}× display · ` +
+      `1 system px = ${Math.round(scale * trueDpr)} device px`
+  }
+  // A frame after the change, not during it: this module subscribed before
+  // the components upgraded, so its listener runs before their controllers
+  // have rewritten --vf-scale, and an immediate read reports the old scale.
+  // Page-lifetime glue; nothing to clean up.
+  onScaleChange(() => requestAnimationFrame(refresh))
+  requestAnimationFrame(refresh)
+}
+
+/* ------------------------------------------------------------------ *
  * Table of contents + scroll spy.
  * ------------------------------------------------------------------ */
 
@@ -341,6 +385,7 @@ wireWindowClosing()
 wireReadouts()
 wireEventLogs()
 wireProgress()
+wireZoomReadout()
 
 // The examples were inserted after the page's own load-time snap pass.
 requestGridSnap()

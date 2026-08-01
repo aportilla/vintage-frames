@@ -1,5 +1,6 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit'
 import { onScaleChange } from './scale.js'
+import { truePixelRatio } from './zoom.js'
 
 /**
  * Device-pixel grid snapping — hold a component's painted box on whole device
@@ -95,8 +96,12 @@ const DEADBAND_DEVICE_PX = 0.05
  */
 const LAYOUT_UNIT_CSS_PX = 1 / 64
 
-const currentDpr = (): number =>
-  (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+/**
+ * Device px per CSS px including browser zoom — `window.devicePixelRatio` is
+ * that number in Chrome/Firefox but not Safari, whose reported dpr goes stale
+ * at any non-100% zoom and had this controller snapping to the wrong lattice.
+ */
+const currentDpr = (): number => truePixelRatio() || 1
 
 /** Signed device-pixel error of a CSS-px coordinate. */
 const gridError = (css: number, dpr: number): number => {

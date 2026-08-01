@@ -34,12 +34,17 @@ const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 const PAGES = (process.env.VF_GRID_PAGES ?? '/,/blog.html?nosnap').split(',')
 const DENSITIES = (process.env.VF_GRID_DPR ?? '1,2,3').split(',').map(Number)
 
-/** Sub-device-pixel error we treat as noise rather than a fault. */
-const EPSILON = 1e-6
-
 const audit = async (page) =>
-  page.evaluate((eps) => {
-    const dpr = window.devicePixelRatio
+  page.evaluate(async () => {
+    // trueDpr, not devicePixelRatio: the same number at zoom 1 (all this
+    // harness runs), but the correct lattice if the audit is ever pointed at
+    // a zoomed Safari page. Same module instance as the components'.
+    const { truePixelRatio } = await import('/src/index.ts')
+    const dpr = truePixelRatio()
+    // Sub-device-pixel error we treat as noise rather than a fault: one
+    // 1/64-CSS-px layout unit, the best the engine can represent (under zoom
+    // the scale can be a ratio like 5/3, where exactness is unrepresentable).
+    const eps = Math.max(1e-6, dpr / 128)
     /** Signed device-pixel error of a CSS-px measurement. */
     const err = (css) => {
       const d = css * dpr
@@ -80,7 +85,7 @@ const audit = async (page) =>
       })
     }
     return { total, faults, dpr }
-  }, EPSILON)
+  })
 
 const browser = await chromium.launch()
 let failed = false

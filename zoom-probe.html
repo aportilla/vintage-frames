@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Zoom-signal probe — dev-only, like pixel-test.html.
+
+    Prints every signal the zoom tracker (src/zoom.ts) can read, live, so its
+    assumptions can be checked against real browsers: Chrome, Safari and
+    Firefox, on one 1× and one 2× display, at zoom 50/75/100/125/150/200/300%,
+    and for a window dragged between the displays at 100%.
+
+    Deliberately imports nothing from the kit: the page must observe the raw
+    signals, not the kit's response to them. The stripe block at the bottom is
+    the rasterization-density check — 1 CSS px of black, 1 of white. If the
+    engine really rasterizes at (baseline dpr × zoom), the stripes stay hard
+    black/white at every zoom; gray mush means it scaled a coarser raster.
+
+    Snapshot rows accumulate in the table; "copy as markdown" hands the whole
+    thing back as a markdown table, ready to paste wherever the results are
+    being kept.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <title>zoom probe</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        font: 13px/20px ui-monospace, Menlo, monospace;
+        background: #fff;
+        color: #000;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 12px;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 12px 0;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 2px 8px;
+        text-align: right;
+        white-space: nowrap;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      thead th {
+        background: #eee;
+      }
+      #live td {
+        min-width: 5ch;
+      }
+      button,
+      input {
+        font: inherit;
+        margin-right: 8px;
+      }
+      #stripes {
+        margin-top: 16px;
+        width: 240px;
+        height: 40px;
+        background: repeating-linear-gradient(
+          to bottom,
+          #000 0,
+          #000 1px,
+          #fff 1px,
+          #fff 2px
+        );
+        border: 1px solid #000;
+      }
+      .note {
+        color: #555;
+        max-width: 72ch;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>zoom probe — the signals src/zoom.ts reads</h1>
+    <table>
+      <tbody id="live"></tbody>
+    </table>
+
+    <label
+      >label
+      <input id="label" size="24" placeholder="chrome 150% on 2x" />
+    </label>
+    <button id="snap">snapshot</button>
+    <button id="copy">copy as markdown</button>
+    <button id="clear">clear</button>
+
+    <table id="snaps">
+      <thead>
+        <tr id="head"></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div id="stripes"></div>
+    <p class="note">
+      ↑ 1-CSS-px stripes. Crisp black/white at every zoom level ⇒ the engine
+      rasterizes at baseline&nbsp;dpr&nbsp;×&nbsp;zoom. Gray ⇒ it quantized the
+      page scale itself — the one assumption src/zoom.ts cannot verify for
+      itself.
+    </p>
+    <p class="note">
+      Per engine and display, the questions that matter: does devicePixelRatio track
+      zoom · does screen.width move with zoom · do screenX/Y move with zoom ·
+      does a resize event fire on zoom · do the stripes stay crisp. Then drag
+      the window between the two displays at 100% and snapshot again.
+    </p>
+
+    <script>
+      const FIELDS = [
+        ['devicePixelRatio', () => window.devicePixelRatio],
+        ['innerWidth', () => window.innerWidth],
+        ['innerHeight', () => window.innerHeight],
+        ['outerWidth', () => window.outerWidth],
+        ['outerHeight', () => window.outerHeight],
+        ['screen.width', () => screen.width],
+        ['screen.height', () => screen.height],
+        ['screen.availWidth', () => screen.availWidth],
+        ['screen.availHeight', () => screen.availHeight],
+        ['screenX', () => window.screenX],
+        ['screenY', () => window.screenY],
+        ['visualViewport.scale', () => window.visualViewport?.scale ?? '—'],
+        [
+          'resolution MQ matches',
+          () =>
+            matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).matches,
+        ],
+        ['resize events seen', () => resizes],
+      ]
+
+      let resizes = 0
+      window.addEventListener('resize', () => {
+        resizes++
+        render()
+      })
+
+      const live = document.getElementById('live')
+      for (const [name] of FIELDS) {
+        const tr = document.createElement('tr')
+        tr.innerHTML = `<th>${name}</th><td></td>`
+        live.appendChild(tr)
+      }
+
+      function render() {
+        FIELDS.forEach(([, read], i) => {
+          live.children[i].lastElementChild.textContent = String(read())
+        })
+      }
+      render()
+      // Nothing fires on a pure window move between displays, so poll: the
+      // probe wants truth, and a dev page can afford 4 Hz.
+      setInterval(render, 250)
+      matchMedia('(resolution: 1dppx)').addEventListener('change', render)
+
+      // ── snapshots ──
+      const head = document.getElementById('head')
+      head.innerHTML =
+        '<th>label</th>' + FIELDS.map(([n]) => `<th>${n}</th>`).join('')
+      const rows = document.getElementById('rows')
+
+      document.getElementById('snap').onclick = () => {
+        const tr = document.createElement('tr')
+        tr.innerHTML =
+          `<td>${document.getElementById('label').value || '(unlabeled)'}</td>` +
+          FIELDS.map(([, read]) => `<td>${read()}</td>`).join('')
+        rows.appendChild(tr)
+      }
+      document.getElementById('clear').onclick = () => (rows.innerHTML = '')
+      document.getElementById('copy').onclick = () => {
+        const cells = (tr) => [...tr.children].map((c) => c.textContent)
+        const line = (xs) => `| ${xs.join(' | ')} |`
+        const md = [
+          line(cells(head)),
+          line(cells(head).map(() => '---')),
+          ...[...rows.children].map((tr) => line(cells(tr))),
+        ].join('\n')
+        navigator.clipboard.writeText(md)
+      }
+    </script>
+  </body>
+</html>

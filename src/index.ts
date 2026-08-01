@@ -84,6 +84,24 @@ export {
 } from './scale.js'
 
 /**
+ * Browser-zoom tracking, the zoom half of display scaling: the kit follows the
+ * user's zoom by default (6 device px per system px at 200%), and these are
+ * the readouts a page or custom control needs to stay on the same grid —
+ * `truePixelRatio()` is device px per CSS px *including* zoom, the number
+ * `window.devicePixelRatio` stops being in Safari at any non-100% zoom.
+ * `resetZoomBaseline()` declares the current state to be 100%, for the one
+ * change the tracker cannot classify (a display-mode switch at an identical
+ * logical size).
+ */
+export {
+  getZoom,
+  truePixelRatio,
+  onZoomChange,
+  devicePxPerSystemPx,
+  resetZoomBaseline,
+} from './zoom.js'
+
+/**
  * Automatic device-pixel-grid snapping. `applyGridSnap()` is the one call an
  * app makes to have every component hold its own origin on whole device pixels
  * whatever the surrounding layout does — the half of the layout contract the

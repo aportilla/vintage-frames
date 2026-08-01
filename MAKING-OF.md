@@ -20,9 +20,31 @@ The default value of `--vf-scale` is `3 / devicePixelRatio`, chosen so that one 
 | 2× retina | 1.5 | 3 device px |
 | 3× hi-dpi | 1.0 | 3 device px |
 
-The underlying requirement is that **`--vf-scale × devicePixelRatio` is a whole number** — one system pixel must occupy a countable number of device pixels, or the art is fractional before layout even begins. The default satisfies this on every display; an integrator who sets a custom scale is responsible for keeping the product whole.
+The underlying requirement is that **`--vf-scale × trueDpr` is a whole number** — one system pixel must occupy a countable number of device pixels, or the art is fractional before layout even begins. (`trueDpr` is device pixels per CSS pixel *including* browser zoom; the distinction from `devicePixelRatio` is the subject of the next subsection, and at 100% zoom the two are the same number.) The default satisfies this on every display; an integrator who sets a custom scale is responsible for keeping the product whole.
 
 This model has a consequence worth stating: physical accuracy means the CSS size varies with the display. The same push button is 60 CSS px tall on a 1× monitor and 20 on a 3× one, while the host page's own 17px body text is the same on both. For a full-screen recreation this is correct behavior. For controls embedded in an ordinary page it changes the chrome-to-copy proportions per display, so the kit leaves the choice to the page: keep the true-size default, or pin `--vf-scale` to a whole number for a fixed relationship to the page's type. The [README](./README.md#display-scaling--true-classic-size-crisp-on-any-screen) covers both options.
+
+### Honoring browser zoom
+
+Physical accuracy as first implemented had a second consequence, and this one was a bug. Browser page zoom multiplies device-pixels-per-CSS-pixel by the zoom factor — that is what zoom *is* — and in Chrome and Firefox the multiplied value is what `devicePixelRatio` reports. `3 / devicePixelRatio` divided the zoom straight back out: at 200% zoom the components held their physical size while the page around them doubled. The kit un-zoomed itself, and a user who zoomed precisely because 20px chrome is too small got exactly the same 20px chrome. (Safari was the accidental exception — it pins `devicePixelRatio` to the hardware, so the kit grew with the page there, but at zoom levels where the product stopped being whole it grew *off the device-pixel grid*, which is the same class of bug wearing the other engine's clothes.)
+
+The fix moves the target with the user: **`round(3 × zoom)` device pixels per system pixel**, clamped to [1, 24]. The response is quantized — fractional targets are exactly what the invariant forbids — which buys three properties worth their cost: every display steps at the same zoom levels; ties round up (150% renders 167% of true size, not 133%, because an accessibility response should err toward larger); and the steps adjacent to 100% do nothing (90% and 110% both round to 3), since below 3 device px per system px no finer crisp move exists.
+
+The invariant is restated rather than weakened: `--vf-scale × trueDpr` stays whole, where `trueDpr = baseline dpr × zoom` is the density the page actually rasterizes at. The engines differ only in whether they report that number, which makes the worked values the clearest statement of the model — a 2× retina display:
+
+| zoom | `trueDpr` | Chrome `devicePixelRatio` | Safari `devicePixelRatio` | target (device px / system px) | `--vf-scale` |
+| --- | --- | --- | --- | --- | --- |
+| 50% | 1.0 | 1.0 | 2 | 2 | 2.0 |
+| 75% | 1.5 | 1.5 | 2 | 2 | 1.3333 |
+| 100% | 2.0 | 2.0 | 2 | 3 | 1.5 |
+| 125% | 2.5 | 2.5 | 2 | 4 | 1.6 |
+| 150% | 3.0 | 3.0 | 2 | 5 | 1.6667 |
+| 175% | 3.5 | 3.5 | 2 | 5 | 1.4286 |
+| 200% | 4.0 | 4.0 | 2 | 6 | 1.5 |
+
+`--vf-scale` comes out the same in both engines at the same zoom, because it is computed from `trueDpr`, which they agree on once the tracking is done — where before the fix they disagreed at every zoom level. Note also that at 100% → 200% the scale does not change at all; the kit grows purely because the CSS pixel grew. The fix, at heart, was to stop dividing the zoom back out.
+
+The engineering is in knowing the zoom at all, since no browser reports it directly (`src/zoom.ts`). Two signals are watched: `devicePixelRatio`, and the inner viewport shrinking against a stationary outer window — Safari's tell, since its dpr never moves. The hazard in the first signal is that a dpr change is ambiguous: dragging the window to a different-density monitor changes the same number, and that case already rendered perfectly — physical size holds across the move — so misreading it as zoom would regress working behavior. The discriminator is that page zoom moves neither the window nor the screen's logical geometry: a `screen.*`/`screenX/Y` signature that is unchanged (or uniformly scaled by the dpr ratio, in engines that report those members in zoom-affected CSS px) means zoom, and anything else means a display change, which rebases the baseline and reports nothing. A misclassification is bounded in a way worth stating plainly: the target is an integer by construction and `trueDpr` telescopes back to the real value however the product is split, so a wrong call costs *physical size* — visible, reportable — and never crispness. The residual holes (a display-mode switch at an identical logical size; a page that loads already-zoomed, which reads its load state as 100%) are documented, with `resetZoomBaseline()` as the escape hatch.
 
 ## 2. Stepped corners
 
@@ -125,7 +147,7 @@ Two conventions apply throughout the suite. Faults are classified, not just coun
 
 The recurring rules behind the techniques above:
 
-1. **Author in the art's unit and derive everything.** All lengths are whole system pixels multiplied by one inherited scale factor, and `scale × dpr` must stay a whole number.
+1. **Author in the art's unit and derive everything.** All lengths are whole system pixels multiplied by one inherited scale factor, and `scale × trueDpr` must stay a whole number.
 2. **No antialiased primitives.** Shapes that were pixel data in the original are shipped as pixel data — traced profiles compiled to stepped polygons — not approximated with curves.
 3. **Enforce internally what integrators will break accidentally.** The layout contract was correct but unenforceable as documentation; grid snapping moved the origin rule into the components, where it is kept mechanically.
 4. **Corrections must be invisible and reversible.** Under half a device pixel, expressed as reserved custom properties, never written to a property the component or consumer might own, and fully removable.

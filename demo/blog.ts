@@ -13,7 +13,12 @@
  * `:root { --vf-scale: 1 }` is in scope before the components upgrade. See the
  * comment at the top of blog.html.
  */
-import { applyGridSnap, effectiveScale } from '../src/index.js'
+import {
+  applyGridSnap,
+  effectiveScale,
+  getZoom,
+  truePixelRatio,
+} from '../src/index.js'
 import type {
   VfAlert,
   VfCheckbox,
@@ -85,9 +90,10 @@ if (snapping) applyGridSnap()
  * Display scale — reported, never set.
  *
  * The page declares no --vf-scale, so every component's ScaleController takes
- * over and writes `3 / devicePixelRatio` on its own host: one system pixel is
- * always exactly 3 device pixels, which is both the true ~72dpi size and the
- * reason the art stays crisp at any density. Read the resolved value off a
+ * over and writes `round(3 × zoom) / trueDpr` on its own host: one system
+ * pixel is exactly 3 device pixels at 100% zoom, and the target follows the
+ * user's zoom in whole steps — both the true ~72dpi size and the reason the
+ * art stays crisp at any density and zoom. Read the resolved value off a
  * component rather than the document root — the root does not have one.
  * ------------------------------------------------------------------ */
 
@@ -96,7 +102,11 @@ const subscribeButton = $<HTMLElement>('#subscribe')
 
 function reportScale(): void {
   const scale = effectiveScale(subscribeButton)
-  const dpr = window.devicePixelRatio
+  // Device px per CSS px including browser zoom — what devicePixelRatio stops
+  // reporting in Safari under zoom — and the display's own density behind it.
+  const zoom = getZoom()
+  const dpr = truePixelRatio()
+  const density = Math.round((dpr / zoom) * 100) / 100
   const height = subscribeButton.getBoundingClientRect().height
   if (height === 0) return // not laid out yet; the observer will call again
   // Count what is actually off the grid right now — with snapping on this
@@ -123,8 +133,8 @@ function reportScale(): void {
     if (Math.max(err(rect.left + dx), err(rect.top + dy)) > 0.05) off++
   }
   scaleReadout.textContent =
-    `Components self-scaled to --vf-scale ${scale} on this ${dpr}× display ` +
-    `(${Math.round(scale * dpr)} device px per system px). ` +
+    `Components self-scaled to --vf-scale ${scale} on this ${density}× display ` +
+    `at ${Math.round(zoom * 100)}% zoom (${Math.round(scale * dpr)} device px per system px). ` +
     `The Subscribe button is ${Math.round(height)}px tall next to 17px body copy. ` +
     `Grid snapping ${snapping ? 'ON' : 'OFF'}${params.has('offgrid') ? ', page deliberately off-grid' : ''} — ` +
     `${off} of ${hosts} components off the device-pixel grid.`
@@ -461,7 +471,9 @@ $<HTMLElement>('#menu-about').addEventListener('vf-menu-select', (event) => {
   const { value } = menuDetail(event)
   if (value !== 'about' && value !== 'colophon') return
   $<HTMLElement>('#about-scale').textContent =
-    `Rendering at --vf-scale ${effectiveScale(aboutDialog)} on a ${window.devicePixelRatio}× display.`
+    `Rendering at --vf-scale ${effectiveScale(aboutDialog)} on a ` +
+    `${Math.round((truePixelRatio() / getZoom()) * 100) / 100}× display at ` +
+    `${Math.round(getZoom() * 100)}% zoom.`
   aboutDialog.show()
 })
 $<HTMLElement>('#about-ok').addEventListener('click', () => aboutDialog.close())

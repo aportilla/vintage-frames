@@ -97,6 +97,16 @@ export class VfCheckbox extends VfToggleControl(VfFormControl) {
   /** Value submitted with the form while checked. */
   @property() value = 'on'
 
+  /** `required` on a checkbox means it must be checked, as on a native one. */
+  protected override get valueMissing(): boolean {
+    return !this.checked
+  }
+
+  /** The message a native `<input type="checkbox" required>` reports. */
+  protected override get valueMissingMessage(): string {
+    return 'Please check this box if you want to proceed.'
+  }
+
   constructor() {
     super()
     this.internals.role = 'checkbox'

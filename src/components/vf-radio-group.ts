@@ -62,6 +62,16 @@ export class VfRadioGroup extends VfFormControl {
    */
   @property() label = ''
 
+  /** No radio checked — the state `required` calls a missing value. */
+  protected override get valueMissing(): boolean {
+    return this.value === ''
+  }
+
+  /** The message a native required radio group reports. */
+  protected override get valueMissingMessage(): string {
+    return 'Please select one of these options.'
+  }
+
   private readonly scale = new ScaleController(this)
 
   // No GridSnapController: the group paints nothing of its own; the slotted
@@ -114,12 +124,15 @@ export class VfRadioGroup extends VfFormControl {
     return html`<slot @slotchange=${this.handleSlotChange}></slot>`
   }
 
-  protected override willUpdate(): void {
+  protected override willUpdate(changed: PropertyValues<this>): void {
     // Parse-time pre-checked radios must be adopted BEFORE the first update
     // finishes: updated()'s child sync runs ahead of the initial slotchange
     // dispatch, and with no value it unchecks the very radio the slotchange
-    // adoption would have looked for.
+    // adoption would have looked for. Adoption also runs before super's
+    // validity sync, so a pre-checked group is never momentarily
+    // `valueMissing` — the value it reads is the adopted one.
     if (!this.hasUpdated) this.adoptPreChecked()
+    super.willUpdate(changed)
   }
 
   protected override updated(changed: PropertyValues<this>): void {

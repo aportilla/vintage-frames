@@ -1,5 +1,25 @@
-import { LitElement, type PropertyValues } from 'lit'
+import { html, LitElement, nothing, type PropertyValues } from 'lit'
 import { property, state } from 'lit/decorators.js'
+
+/**
+ * Resolved text of a host-level IDREF attribute (`aria-labelledby` /
+ * `aria-describedby`): each id is looked up in the host's own tree scope — the
+ * scope the consumer wrote the reference in, and the one AccName itself would
+ * search — and the targets' text joined in reference order. Empty when the
+ * attribute is absent or nothing resolves.
+ */
+function idrefText(host: Element, attr: string): string {
+  const refs = host.getAttribute(attr)
+  if (!refs) return ''
+  const root = host.getRootNode()
+  if (!(root instanceof Document || root instanceof ShadowRoot)) return ''
+  return refs
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => root.getElementById(id)?.textContent?.trim() ?? '')
+    .filter(Boolean)
+    .join(' ')
+}
 
 /**
  * Shared base for the kit's form-associated controls (SPEC §4).
@@ -36,6 +56,121 @@ export class VfFormControl extends LitElement {
   /** Effective disabled state: the `disabled` prop OR an ancestor fieldset. */
   get isDisabled(): boolean {
     return this.disabled || this.formDisabled
+  }
+
+  // ------------------------------------------------- name/description bridge
+
+  /**
+   * The host-level ARIA attributes the bridge below mirrors inward, observed
+   * so a consumer writing one after upgrade re-renders the control. They are
+   * deliberately not reactive properties: each has an IDL accessor on
+   * `Element` already, and a Lit `@property` would shadow the platform member
+   * (the kit's `align`/`draggable` trap) — so they are observed by name and
+   * read at render time, the `forwardedAttributes` shape.
+   */
+  private static readonly bridgedAriaAttributes = [
+    'aria-label',
+    'aria-labelledby',
+    'aria-describedby',
+  ]
+
+  static override get observedAttributes(): string[] {
+    return [...super.observedAttributes, ...VfFormControl.bridgedAriaAttributes]
+  }
+
+  override attributeChangedCallback(
+    name: string,
+    old: string | null,
+    value: string | null
+  ): void {
+    super.attributeChangedCallback(name, old, value)
+    if (VfFormControl.bridgedAriaAttributes.includes(name)) this.requestUpdate()
+  }
+
+  /**
+   * Form-associated lifecycle: the association changed, so the `<label for>`
+   * set feeding {@link hostLabel} may have too — re-render whatever mirrors it.
+   */
+  formAssociatedCallback(_form: HTMLFormElement | null): void {
+    this.requestUpdate()
+  }
+
+  /**
+   * The accessible name the *host* carries, for controls whose role lives on a
+   * shadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a
+   * consumer's `aria-label`, `aria-labelledby` or `<label for>` used to be
+   * silently inert — the host is a generic wrapper AccName never consults, and
+   * a host-level IDREF cannot reach into a shadow tree — so the bridge
+   * resolves them to text for the control to hand to its inner focusable
+   * element. The explicit `label` property still wins: templates read
+   * `this.label || this.hostLabel`.
+   *
+   * Precedence is html-aam's — `aria-labelledby`, then `aria-label`, then the
+   * associated `<label for>` elements (`internals.labels`). Referenced text is
+   * flattened at render time, so an edit to a referenced element's *text*
+   * lands on the control's next render rather than instantly — the one
+   * divergence from a native control, recorded in SPEC §4.
+   *
+   * Controls whose role sits on the host itself (the toggles, the slider, the
+   * radio group, the bars) never need this: the platform reads their host
+   * attributes directly.
+   */
+  protected get hostLabel(): string {
+    return (
+      idrefText(this, 'aria-labelledby') ||
+      this.getAttribute('aria-label')?.trim() ||
+      [...this.internals.labels]
+        .map((label) => label.textContent?.trim() ?? '')
+        .filter(Boolean)
+        .join(' ')
+    )
+  }
+
+  /**
+   * Description for the control — hint text, a format, a unit. A host-level
+   * `aria-describedby` cannot reach a focusable element inside a shadow root,
+   * so there was structurally no way to describe a field; this property is
+   * that channel. It renders as a hidden span in the control's own shadow root
+   * with the inner control's `aria-describedby` pointing at it — the
+   * shadow-internal IDREF idiom `vf-alert` already uses. A host-level
+   * `aria-describedby` is bridged into the same span when this property is
+   * empty, and a failing constraint's {@link validationMessage} joins it too,
+   * so AT hears the error where it hears the hint.
+   */
+  @property() description = ''
+
+  /**
+   * What {@link renderDescription}'s span carries: the current validation
+   * message while the control is invalid, then the description (the property,
+   * or the bridged host `aria-describedby` text).
+   */
+  protected get descriptionText(): string {
+    return [
+      this.internals.validity.valid ? '' : this.internals.validationMessage,
+      this.description || idrefText(this, 'aria-describedby'),
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  /**
+   * `aria-describedby` value for the inner control — set only while the span
+   * has something to say, so an idle control isn't announced as described by
+   * nothing.
+   */
+  protected get describedBy(): string | typeof nothing {
+    return this.descriptionText ? 'description' : nothing
+  }
+
+  /**
+   * The hidden span the inner control's `aria-describedby` points at.
+   * `hidden` keeps it out of the page; AccName still resolves `display: none`
+   * reference targets (the fact vf-window's utility title patch leans on), so
+   * the text reaches AT without painting.
+   */
+  protected renderDescription() {
+    const text = this.descriptionText
+    return text ? html`<span id="description" hidden>${text}</span>` : nothing
   }
 
   /**
@@ -102,6 +237,108 @@ export class VfFormControl extends LitElement {
    */
   protected syncFormValue(value: string | File | FormData | null): void {
     this.internals.setFormValue(this.isDisabled ? null : value)
+  }
+
+  // ---------------------------------------------------- constraint validation
+
+  /**
+   * Requires a value before the associated form submits (SPEC §4): an empty
+   * control fails constraint validation with `valueMissing`, exactly like a
+   * native `required`. What "empty" means is each control's own
+   * {@link valueMissing}; a control with no required semantics (a slider
+   * always has a value, a swatch submits nothing) never fails it, the way a
+   * native range input never does.
+   */
+  @property({ type: Boolean, reflect: true }) required = false
+
+  /** The message {@link setCustomValidity} installed; `''` when clear. */
+  #customError = ''
+
+  /**
+   * Installs a custom validity message — the native channel: a non-empty
+   * string makes the control invalid with exactly that message, `''` clears
+   * it.
+   */
+  setCustomValidity(message: string): void {
+    this.#customError = message
+    this.syncValidity()
+    this.requestUpdate()
+  }
+
+  /** The control's current `ValidityState`, as on a native control. */
+  get validity(): ValidityState {
+    return this.internals.validity
+  }
+
+  /** The message of the currently failing constraint, `''` while valid. */
+  get validationMessage(): string {
+    return this.internals.validationMessage
+  }
+
+  /**
+   * Whether the control is a candidate for constraint validation — false
+   * while disabled or readonly, per HTML's barring rules (the browser
+   * computes this from the reflected attributes).
+   */
+  get willValidate(): boolean {
+    return this.internals.willValidate
+  }
+
+  /** True when the control satisfies its constraints; fires `invalid` if not. */
+  checkValidity(): boolean {
+    return this.internals.checkValidity()
+  }
+
+  /** {@link checkValidity} plus the browser's own error UI on failure. */
+  reportValidity(): boolean {
+    return this.internals.reportValidity()
+  }
+
+  /**
+   * Whether the control is empty for `required`'s purposes. Overridden by the
+   * controls a value can be missing from — `value === ''` on the fields, the
+   * select and the radio group, unchecked on the checkbox. The default never
+   * fails, which is what makes a bare `required` inert on the rest.
+   */
+  protected get valueMissing(): boolean {
+    return false
+  }
+
+  /** The `valueMissing` message; subclasses match their native counterpart's. */
+  protected get valueMissingMessage(): string {
+    return 'Please fill out this field.'
+  }
+
+  /**
+   * The single funnel every validity write goes through — the
+   * {@link syncFormValue} shape, one place for the contract: the flags are
+   * computed from the live properties (`required` × {@link valueMissing},
+   * plus any custom error) and installed with `setValidity`, so `:invalid`
+   * matches on the host and `form.reportValidity()` blocks exactly as it
+   * would on a native control. Runs from {@link willUpdate}, before render,
+   * so the same update's template reads fresh validity. Also mirrors
+   * `aria-required`/`aria-invalid` through internals for the controls whose
+   * role sits on the host — internals lose to a consumer's own host
+   * attribute, which is the correct precedence direction.
+   */
+  protected syncValidity(): void {
+    const valueMissing = this.required && this.valueMissing
+    const message =
+      this.#customError || (valueMissing ? this.valueMissingMessage : '')
+    this.internals.setValidity(
+      { customError: this.#customError !== '', valueMissing },
+      message || undefined
+    )
+    this.internals.ariaRequired = this.required ? 'true' : null
+    this.internals.ariaInvalid = this.internals.validity.valid ? null : 'true'
+  }
+
+  protected override willUpdate(changed: PropertyValues): void {
+    super.willUpdate(changed)
+    // Unconditional: the flags derive from whichever properties the
+    // subclass's valueMissing reads, which this base class cannot enumerate.
+    // Re-installing unchanged flags is cheap and re-renders nothing.
+    this.syncValidity()
   }
 
   /**

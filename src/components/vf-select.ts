@@ -233,10 +233,23 @@ export class VfSelect extends VfFormControl {
   @property({ reflect: true }) name = ''
 
   /**
-   * Accessible name for the combobox control (`aria-label`). Without it the
-   * control is announced by its contents, i.e. the selected value.
+   * Accessible name for the combobox control (`aria-label`). Left empty, the
+   * name falls back to whatever the host carries — `aria-labelledby`,
+   * `aria-label` or an associated `<label for>` — via
+   * {@link VfFormControl.hostLabel}; with neither, the control is announced by
+   * its contents, i.e. the selected value.
    */
   @property() label = ''
+
+  /** No option committed — the state `required` calls a missing value. */
+  protected override get valueMissing(): boolean {
+    return this.value === ''
+  }
+
+  /** The message a native `<select required>` reports. */
+  protected override get valueMissingMessage(): string {
+    return 'Please select an item in the list.'
+  }
 
   /** Whether the popup panel is open. */
   @state() private open = false
@@ -868,7 +881,10 @@ export class VfSelect extends VfFormControl {
         aria-expanded=${this.open ? 'true' : 'false'}
         aria-disabled=${disabled ? 'true' : 'false'}
         aria-controls="listbox"
-        aria-label=${this.label || nothing}
+        aria-label=${this.label || this.hostLabel || nothing}
+        aria-describedby=${this.describedBy}
+        aria-required=${this.required ? 'true' : nothing}
+        aria-invalid=${this.validity.valid ? nothing : 'true'}
         tabindex=${disabled ? '-1' : '0'}
       >
         <span class="label" part="label">
@@ -888,11 +904,12 @@ export class VfSelect extends VfFormControl {
         class="panel vf-panel vf-scroll ${this.open ? 'open' : ''}"
         part="panel"
         role="listbox"
-        aria-label=${this.label || nothing}
+        aria-label=${this.label || this.hostLabel || nothing}
         aria-hidden=${this.open ? 'false' : 'true'}
       >
         <slot @slotchange=${this.handleSlotChange}></slot>
       </div>
+      ${this.renderDescription()}
     `
   }
 }

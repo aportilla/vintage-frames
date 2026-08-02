@@ -41,11 +41,19 @@ export class VfTextControlBase extends VfFormControl {
   @property({ reflect: true }) name = ''
 
   /**
-   * Accessible name, applied as `aria-label` on the inner native control (which
-   * receives focus and is announced by screen readers — an `aria-label` on the
-   * host does not reach into the shadow DOM).
+   * Accessible name, applied as `aria-label` on the inner native control (the
+   * element that receives focus and is announced by screen readers — a host
+   * attribute cannot reach it on its own). Left empty, the name falls back to
+   * whatever the host carries — `aria-labelledby`, `aria-label` or an
+   * associated `<label for>` — via {@link VfFormControl.hostLabel}, so the
+   * platform's own labeling vocabulary works on these controls too.
    */
   @property() label = ''
+
+  /** A field is empty for `required`'s purposes when its value is `''`. */
+  protected override get valueMissing(): boolean {
+    return this.value === ''
+  }
 
   /**
    * Host attributes forwarded verbatim onto the inner native control — the

@@ -317,7 +317,10 @@ export class VfNumberField extends VfTextControlBase {
           maxlength=${this.forwardedAttr('maxlength')}
           spellcheck=${this.forwardedAttr('spellcheck')}
           autocapitalize=${this.forwardedAttr('autocapitalize')}
-          aria-label=${this.label || nothing}
+          aria-label=${this.label || this.hostLabel || nothing}
+          aria-describedby=${this.describedBy}
+          aria-required=${this.required ? 'true' : nothing}
+          aria-invalid=${this.validity.valid ? nothing : 'true'}
           aria-valuenow=${Number.isNaN(current) ? nothing : current}
           aria-valuemin=${this.min ?? nothing}
           aria-valuemax=${this.max ?? nothing}
@@ -353,6 +356,7 @@ export class VfNumberField extends VfTextControlBase {
           @lostpointercapture=${this.#onArrowUp}
         ></span>
       </span>
+      ${this.renderDescription()}
     `
   }
 }

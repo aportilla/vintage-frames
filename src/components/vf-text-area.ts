@@ -107,7 +107,10 @@ export class VfTextArea extends VfTextControlBase {
           part="textarea"
           class="vf-field vf-scroll"
           rows=${this.rows}
-          aria-label=${this.label || nothing}
+          aria-label=${this.label || this.hostLabel || nothing}
+          aria-describedby=${this.describedBy}
+          aria-required=${this.required ? 'true' : nothing}
+          aria-invalid=${this.validity.valid ? nothing : 'true'}
           autocomplete=${this.forwardedAttr('autocomplete')}
           inputmode=${this.forwardedAttr('inputmode')}
           enterkeyhint=${this.forwardedAttr('enterkeyhint')}
@@ -123,6 +126,7 @@ export class VfTextArea extends VfTextControlBase {
         ></textarea>
         <div class="vf-scroll-frame" aria-hidden="true"></div>
       </div>
+      ${this.renderDescription()}
     `
   }
 

@@ -9,6 +9,49 @@ import { GridSnapController } from '../grid-snap.js'
 /** Serial for the auto-generated id an `aria-labelledby` reference needs. */
 let labelIdSeq = 0
 
+/**
+ * Roles that take their accessible name from their contents — the ARIA
+ * name-from-content set, cut down to the roles a caption might plausibly
+ * point at. An element already named by its own visible text has a name of
+ * its own, which the aria route must not stamp over.
+ */
+const NAME_FROM_CONTENT_ROLES = new Set([
+  'button',
+  'checkbox',
+  'link',
+  'menuitem',
+  'menuitemcheckbox',
+  'menuitemradio',
+  'option',
+  'radio',
+  'switch',
+  'tab',
+  'treeitem',
+])
+
+/**
+ * Whether the target already computes its accessible name from its own
+ * content (see {@link VfLabel.for}). An explicit `role` attribute answers
+ * exactly; without one, a custom element with visible text is assumed to name
+ * itself from it — every interactive `vf-*` control that exposes no `label`
+ * property does (the toggles, buttons, rows, options) — and the native tags
+ * that do are enumerated. An element with no text has no such name, so the
+ * caption may still supply one.
+ */
+function namesFromContent(target: Element): boolean {
+  const text = (target.textContent ?? '').trim()
+  if (!text) return false
+  const role = target.getAttribute('role')
+  if (role) return NAME_FROM_CONTENT_ROLES.has(role.split(/\s+/)[0] ?? '')
+  const tag = target.localName
+  if (tag.includes('-')) return true
+  return (
+    tag === 'button' ||
+    tag === 'summary' ||
+    (tag === 'a' && target.hasAttribute('href'))
+  )
+}
+
 /** A target that may expose the kit's `label` accessible-name property. */
 type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
 
@@ -87,7 +130,16 @@ export class VfLabel extends LitElement {
    *   is what gets filled in, and only when the consumer left it empty.
    * - anything else (a native `<input>`, an element with a role) is in this
    *   label's own tree scope, so an `aria-labelledby` id reference works; it is
-   *   set only when the target has no name of its own.
+   *   set only when the target has no name of its own — and a name computed
+   *   from the target's *content* counts: a `vf-checkbox` with slotted text, a
+   *   `vf-button`, a native `<button>` are already named by what they show, and
+   *   the caption declines rather than stamping over it.
+   *
+   * The one target neither route reaches is a control whose focusable element
+   * is shadow-internal but which exposes no `label` property because it names
+   * from content — `vf-button` is the kit's case. With visible text it needs
+   * no caption; an icon-only one should carry its name on the art (`alt` on
+   * the slotted `<img>`), which name-from-content picks up the same way.
    *
    * Either way the label puts back what it found when it is removed, the id
    * changes, or the caption text does.
@@ -248,6 +300,12 @@ export class VfLabel extends LitElement {
     if (target.hasAttribute('aria-label') || target.hasAttribute('aria-labelledby')) {
       return
     }
+    // A name from content is a name of its own: stamping `aria-labelledby`
+    // on a vf-checkbox (or any name-from-content role) would replace its
+    // visible slotted text with the caption's. Attributes were the only
+    // check here once, and the class doc's "only when the target has no name
+    // of its own" was aspiration; this makes it true.
+    if (namesFromContent(target)) return
     if (!this.id) this.id = `vf-label-${++labelIdSeq}`
     target.setAttribute('aria-labelledby', this.id)
     this.#named = { target, via: 'aria', value: this.id }

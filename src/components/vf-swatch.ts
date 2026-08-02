@@ -171,8 +171,13 @@ export class VfSwatch extends VfFormControl {
 
   /**
    * Accessible name for the inner button — a swatch has no text of its own.
-   * Defaults to the `color` value (or "transparent"). `vf-label`'s `for`
-   * wiring writes this property, like every `vf-*` control's.
+   * Left empty, the name falls back to whatever the host carries
+   * (`aria-labelledby`, `aria-label`, an associated `<label for>` — see
+   * {@link VfFormControl.hostLabel}), then to the `color` value (or
+   * "transparent") as a last resort, so a palette is never nameless — but a
+   * hex literal announced as "number f f six six zero zero" is a fallback to
+   * name past, not a name. `vf-label`'s `for` wiring writes this property,
+   * like every `vf-*` control's.
    */
   @property() label = ''
 
@@ -202,7 +207,7 @@ export class VfSwatch extends VfFormControl {
         class="vf-snap"
         type="button"
         style="width: calc(var(--vf-scale, 1) * ${this.width}px); height: calc(var(--vf-scale, 1) * ${this.height}px)"
-        aria-label=${this.label || this.color || 'transparent'}
+        aria-label=${this.label || this.hostLabel || this.color || 'transparent'}
         ?disabled=${this.isDisabled}
       >
         <span class="fill" part="fill" style=${fill}></span>

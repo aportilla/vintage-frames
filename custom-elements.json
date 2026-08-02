@@ -808,6 +808,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -898,6 +1002,167 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "Whether the control is empty for `required`'s purposes. Overridden by the\ncontrols a value can be missing from — `value === ''` on the fields, the\nselect and the radio group, unchecked on the checkbox. The default never\nfails, which is what makes a bare `required` inert on the rest.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -1055,6 +1320,32 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
             }
           ],
           "superclass": {
@@ -1144,6 +1435,34 @@
               "default": "'on'",
               "description": "Value submitted with the form while checked.",
               "attribute": "value"
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "`required` on a checkbox means it must be checked, as on a native one.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The message a native `<input type=\"checkbox\" required>` reports.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
             },
             {
               "kind": "field",
@@ -1414,6 +1733,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -1481,6 +1904,139 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -1632,6 +2188,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -3661,7 +4243,7 @@
               "type": {
                 "text": "string | undefined"
               },
-              "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
+              "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own — and a name computed\n  from the target's *content* counts: a `vf-checkbox` with slotted text, a\n  `vf-button`, a native `<button>` are already named by what they show, and\n  the caption declines rather than stamping over it.\n\nThe one target neither route reaches is a control whose focusable element\nis shadow-internal but which exposes no `label` property because it names\nfrom content — `vf-button` is the kit's case. With visible text it needs\nno caption; an icon-only one should carry its name on the art (`alt` on\nthe slotted `<img>`), which name-from-content picks up the same way.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
               "attribute": "for",
               "reflects": true
             },
@@ -3781,7 +4363,7 @@
               "type": {
                 "text": "string | undefined"
               },
-              "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
+              "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own — and a name computed\n  from the target's *content* counts: a `vf-checkbox` with slotted text, a\n  `vf-button`, a native `<button>` are already named by what they show, and\n  the caption declines rather than stamping over it.\n\nThe one target neither route reaches is a control whose focusable element\nis shadow-internal but which exposes no `label` property because it names\nfrom content — `vf-button` is the kit's case. With visible text it needs\nno caption; an icon-only one should carry its name on the art (`alt` on\nthe slotted `<img>`), which name-from-content picks up the same way.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
               "fieldName": "for"
             },
             {
@@ -5819,11 +6401,25 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "attribute": "label",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "A field is empty for `required`'s purposes when its value is `''`.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
               }
             },
             {
@@ -6114,6 +6710,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -6204,6 +6904,153 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -6407,7 +7254,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "fieldName": "label",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
@@ -6422,6 +7269,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -6976,6 +7849,34 @@
             },
             {
               "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "No radio checked — the state `required` calls a missing value.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The message a native required radio group reports.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "scale",
               "privacy": "private",
               "readonly": true,
@@ -7192,6 +8093,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -7282,6 +8287,139 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -7433,6 +8571,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -8040,8 +9204,36 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the combobox control (`aria-label`). Without it the\ncontrol is announced by its contents, i.e. the selected value.",
+              "description": "Accessible name for the combobox control (`aria-label`). Left empty, the\nname falls back to whatever the host carries — `aria-labelledby`,\n`aria-label` or an associated `<label for>` — via\nVfFormControl.hostLabel; with neither, the control is announced by\nits contents, i.e. the selected value.",
               "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "No option committed — the state `required` calls a missing value.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The message a native `<select required>` reports.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
             },
             {
               "kind": "field",
@@ -8721,6 +9913,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formStateRestoreCallback",
               "return": {
@@ -8789,6 +10085,139 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -8929,7 +10358,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the combobox control (`aria-label`). Without it the\ncontrol is announced by its contents, i.e. the selected value.",
+              "description": "Accessible name for the combobox control (`aria-label`). Left empty, the\nname falls back to whatever the host carries — `aria-labelledby`,\n`aria-label` or an associated `<label for>` — via\nVfFormControl.hostLabel; with neither, the control is announced by\nits contents, i.e. the selected value.",
               "fieldName": "label"
             },
             {
@@ -8940,6 +10369,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -9485,6 +10940,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -9552,6 +11111,167 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "Whether the control is empty for `required`'s purposes. Overridden by the\ncontrols a value can be missing from — `value === ''` on the fields, the\nselect and the radio group, unchecked on the checkbox. The default never\nfails, which is what makes a bare `required` inert on the rest.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -9734,6 +11454,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -10009,7 +11755,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the inner button — a swatch has no text of its own.\nDefaults to the `color` value (or \"transparent\"). `vf-label`'s `for`\nwiring writes this property, like every `vf-*` control's.",
+              "description": "Accessible name for the inner button — a swatch has no text of its own.\nLeft empty, the name falls back to whatever the host carries\n(`aria-labelledby`, `aria-label`, an associated `<label for>` — see\nVfFormControl.hostLabel), then to the `color` value (or\n\"transparent\") as a last resort, so a palette is never nameless — but a\nhex literal announced as \"number f f six six zero zero\" is a fallback to\nname past, not a name. `vf-label`'s `for` wiring writes this property,\nlike every `vf-*` control's.",
               "attribute": "label"
             },
             {
@@ -10093,6 +11839,110 @@
               },
               "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
               "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -10189,6 +12039,167 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "Whether the control is empty for `required`'s purposes. Overridden by the\ncontrols a value can be missing from — `value === ''` on the fields, the\nselect and the radio group, unchecked on the checkbox. The default never\nfails, which is what makes a bare `required` inert on the rest.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -10332,7 +12343,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the inner button — a swatch has no text of its own.\nDefaults to the `color` value (or \"transparent\"). `vf-label`'s `for`\nwiring writes this property, like every `vf-*` control's.",
+              "description": "Accessible name for the inner button — a swatch has no text of its own.\nLeft empty, the name falls back to whatever the host carries\n(`aria-labelledby`, `aria-label`, an associated `<label for>` — see\nVfFormControl.hostLabel), then to the `color` value (or\n\"transparent\") as a last resort, so a palette is never nameless — but a\nhex literal announced as \"number f f six six zero zero\" is a fallback to\nname past, not a name. `vf-label`'s `for` wiring writes this property,\nlike every `vf-*` control's.",
               "fieldName": "label"
             },
             {
@@ -10343,6 +12354,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding. Nothing dims (see class doc).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -10539,11 +12576,25 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "attribute": "label",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "A field is empty for `required`'s purposes when its value is `''`.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
               }
             },
             {
@@ -10811,6 +12862,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -10901,6 +13056,153 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -11088,7 +13390,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "fieldName": "label",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
@@ -11103,6 +13405,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -11292,11 +13620,25 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "attribute": "label",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "A field is empty for `required`'s purposes when its value is `''`.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
               }
             },
             {
@@ -11571,6 +13913,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -11661,6 +14107,153 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -11848,7 +14441,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "fieldName": "label",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
@@ -11863,6 +14456,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -12398,6 +15017,82 @@
               "readonly": true
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape."
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it."
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description"
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting."
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -12476,6 +15171,123 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place."
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear."
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit."
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not."
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure."
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "Whether the control is empty for `required`'s purposes. Overridden by the\ncontrols a value can be missing from — `value === ''` on the fields, the\nselect and the radio group, unchecked on the checkbox. The default never\nfails, which is what makes a bare `required` inert on the rest.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction."
             },
             {
               "kind": "field",
@@ -12562,6 +15374,24 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled"
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description"
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required"
             }
           ],
           "superclass": {
@@ -12650,8 +15480,22 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "valueMissing",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "description": "A field is empty for `required`'s purposes when its value is `''`.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
             },
             {
               "kind": "field",
@@ -12893,6 +15737,110 @@
               }
             },
             {
+              "kind": "field",
+              "name": "bridgedAriaAttributes",
+              "type": {
+                "text": "array"
+              },
+              "privacy": "private",
+              "static": true,
+              "readonly": true,
+              "default": "[ 'aria-label', 'aria-labelledby', 'aria-describedby', ]",
+              "description": "The host-level ARIA attributes the bridge below mirrors inward, observed\nso a consumer writing one after upgrade re-renders the control. They are\ndeliberately not reactive properties: each has an IDL accessor on\n`Element` already, and a Lit `@property` would shadow the platform member\n(the kit's `align`/`draggable` trap) — so they are observed by name and\nread at render time, the `forwardedAttributes` shape.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "formAssociatedCallback",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_form",
+                  "type": {
+                    "text": "HTMLFormElement | null"
+                  }
+                }
+              ],
+              "description": "Form-associated lifecycle: the association changed, so the `<label for>`\nset feeding hostLabel may have too — re-render whatever mirrors it.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "attribute": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descriptionText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "What renderDescription's span carries: the current validation\nmessage while the control is invalid, then the description (the property,\nor the bridged host `aria-describedby` text).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "describedBy",
+              "type": {
+                "text": "string | typeof nothing"
+              },
+              "privacy": "protected",
+              "description": "`aria-describedby` value for the inner control — set only while the span\nhas something to say, so an idle control isn't announced as described by\nnothing.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderDescription",
+              "privacy": "protected",
+              "description": "The hidden span the inner control's `aria-describedby` points at.\n`hidden` keeps it out of the page; AccName still resolves `display: none`\nreference targets (the fact vf-window's utility title patch leans on), so\nthe text reaches AT without painting.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formDisabledCallback",
               "return": {
@@ -12983,6 +15931,153 @@
                 }
               ],
               "description": "Submit `value` under the control's `name` — unless the control is disabled,\nin which case nothing is submitted (SPEC §4). The single guarded funnel for\nevery subclass's form value, so the disabled contract holds in one place.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#customError",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The message setCustomValidity installed; `''` when clear.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setCustomValidity",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Installs a custom validity message — the native channel: a non-empty\nstring makes the control invalid with exactly that message, `''` clears\nit.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validity",
+              "type": {
+                "text": "ValidityState"
+              },
+              "description": "The control's current `ValidityState`, as on a native control.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "validationMessage",
+              "type": {
+                "text": "string"
+              },
+              "description": "The message of the currently failing constraint, `''` while valid.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the control is a candidate for constraint validation — false\nwhile disabled or readonly, per HTML's barring rules (the browser\ncomputes this from the reflected attributes).",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "True when the control satisfies its constraints; fires `invalid` if not.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "reportValidity",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "description": "checkValidity plus the browser's own error UI on failure.",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueMissingMessage",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The `valueMissing` message; subclasses match their native counterpart's.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "syncValidity",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The single funnel every validity write goes through — the\nsyncFormValue shape, one place for the contract: the flags are\ncomputed from the live properties (`required` × valueMissing,\nplus any custom error) and installed with `setValidity`, so `:invalid`\nmatches on the host and `form.reportValidity()` blocks exactly as it\nwould on a native control. Runs from willUpdate, before render,\nso the same update's template reads fresh validity. Also mirrors\n`aria-required`/`aria-invalid` through internals for the controls whose\nrole sits on the host — internals lose to a consumer's own host\nattribute, which is the correct precedence direction.",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
@@ -13127,7 +16222,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+              "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
               "fieldName": "label"
             },
             {
@@ -13138,6 +16233,32 @@
               "default": "false",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "fieldName": "disabled",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "description",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "fieldName": "description",
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+              "fieldName": "required",
               "inheritedFrom": {
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"

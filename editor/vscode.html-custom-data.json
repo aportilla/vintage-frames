@@ -88,6 +88,16 @@
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
           "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+          "values": []
         }
       ],
       "references": []
@@ -114,6 +124,16 @@
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
         }
       ],
@@ -291,7 +311,7 @@
       "attributes": [
         {
           "name": "for",
-          "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
+          "description": "The id of the control this caption names, resolved in the label's own tree\nscope (its document or shadow root), like a native `<label for>`.\n\nTwo things follow from it. **Clicking the caption focuses the control** —\na focus shortcut, not an activation: the kit's toggles carry their own\nlabels, so forwarding a click to one would double up on the label they\nalready have. And **the caption text becomes the control's accessible\nname**, by whichever route reaches it:\n\n- a `vf-*` control's focusable element lives in its shadow root, where an\n  `aria-label` on the host cannot reach it — which is why each of them\n  exposes a `label` property that lands on the inner control. That property\n  is what gets filled in, and only when the consumer left it empty.\n- anything else (a native `<input>`, an element with a role) is in this\n  label's own tree scope, so an `aria-labelledby` id reference works; it is\n  set only when the target has no name of its own — and a name computed\n  from the target's *content* counts: a `vf-checkbox` with slotted text, a\n  `vf-button`, a native `<button>` are already named by what they show, and\n  the caption declines rather than stamping over it.\n\nThe one target neither route reaches is a control whose focusable element\nis shadow-internal but which exposes no `label` property because it names\nfrom content — `vf-button` is the kit's case. With visible text it needs\nno caption; an icon-only one should carry its name on the art (`alt` on\nthe slotted `<img>`), which name-from-content picks up the same way.\n\nEither way the label puts back what it found when it is removed, the id\nchanges, or the caption text does.\n\nLeft `undefined` rather than `''` so an unset `for` reflects no attribute\nat all: `vf-label[for]` is a selector a page will reasonably write, and an\nempty `for=\"\"` on every plain caption would make it match all of them.",
           "values": []
         },
         {
@@ -473,12 +493,22 @@
         },
         {
           "name": "label",
-          "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
         }
       ],
@@ -583,6 +613,16 @@
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
           "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
+          "values": []
         }
       ],
       "references": []
@@ -646,12 +686,22 @@
         },
         {
           "name": "label",
-          "description": "Accessible name for the combobox control (`aria-label`). Without it the\ncontrol is announced by its contents, i.e. the selected value.",
+          "description": "Accessible name for the combobox control (`aria-label`). Left empty, the\nname falls back to whatever the host carries — `aria-labelledby`,\n`aria-label` or an associated `<label for>` — via\nVfFormControl.hostLabel; with neither, the control is announced by\nits contents, i.e. the selected value.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
         }
       ],
@@ -706,6 +756,16 @@
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
         }
       ],
@@ -774,12 +834,22 @@
         },
         {
           "name": "label",
-          "description": "Accessible name for the inner button — a swatch has no text of its own.\nDefaults to the `color` value (or \"transparent\"). `vf-label`'s `for`\nwiring writes this property, like every `vf-*` control's.",
+          "description": "Accessible name for the inner button — a swatch has no text of its own.\nLeft empty, the name falls back to whatever the host carries\n(`aria-labelledby`, `aria-label`, an associated `<label for>` — see\nVfFormControl.hostLabel), then to the `color` value (or\n\"transparent\") as a last resort, so a palette is never nameless — but a\nhex literal announced as \"number f f six six zero zero\" is a fallback to\nname past, not a name. `vf-label`'s `for` wiring writes this property,\nlike every `vf-*` control's.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding. Nothing dims (see class doc).",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
         }
       ],
@@ -816,12 +886,22 @@
         },
         {
           "name": "label",
-          "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
         }
       ],
@@ -858,12 +938,22 @@
         },
         {
           "name": "label",
-          "description": "Accessible name, applied as `aria-label` on the inner native control (which\nreceives focus and is announced by screen readers — an `aria-label` on the\nhost does not reach into the shadow DOM).",
+          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "values": []
+        },
+        {
+          "name": "required",
+          "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
         }
       ],

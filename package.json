@@ -90,6 +90,7 @@
     "verify:snap": "node scripts/verify-snap.mjs",
     "verify:blog": "node scripts/verify-blog.mjs",
     "verify:contract": "node scripts/verify-contract.mjs",
+    "verify:names": "node scripts/verify-names.mjs",
     "verify:forced-colors": "node scripts/verify-forced-colors.mjs"
   },
   "dependencies": {

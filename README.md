@@ -275,6 +275,19 @@ windoid dither and the barber stripes all survive on the user's palette
 (SPEC §1 has the mechanics). `npm run verify:forced-colors` asserts the
 rendered pixels on dark and light forced themes.
 
+The same posture extends to the **platform's own form vocabulary**. The words
+a page already knows — `<label for>`, `aria-label` / `aria-labelledby` /
+`aria-describedby`, `required` — all work on the kit's controls, including
+the ones whose focusable element lives inside a shadow root where the
+platform alone can't deliver them: a host-level name or description is
+bridged to the inner control (a control's own `label` property still wins),
+and `required` runs real constraint validation with the native messages —
+`form.reportValidity()` blocks, `:invalid` matches on the host,
+`setCustomValidity()` works, and Enter can't submit past a failing
+constraint. A `description` (or the validation error, while there is one)
+reaches assistive tech alongside the name. `npm run verify:names` asserts
+the computed accessibility tree for all of it.
+
 ## Window archetypes — enabling the 1992 HIG, not enforcing it
 
 The 1992 *Macintosh Human Interface Guidelines* names five standard windows.

@@ -87,7 +87,10 @@ export class VfTextField extends VfTextControlBase {
           part="input"
           class="vf-field"
           type=${this.type}
-          aria-label=${this.label || nothing}
+          aria-label=${this.label || this.hostLabel || nothing}
+          aria-describedby=${this.describedBy}
+          aria-required=${this.required ? 'true' : nothing}
+          aria-invalid=${this.validity.valid ? nothing : 'true'}
           autocomplete=${this.forwardedAttr('autocomplete')}
           inputmode=${this.forwardedAttr('inputmode')}
           enterkeyhint=${this.forwardedAttr('enterkeyhint')}
@@ -104,6 +107,7 @@ export class VfTextField extends VfTextControlBase {
           @change=${this.handleChange}
         />
       </div>
+      ${this.renderDescription()}
     `
   }
 }

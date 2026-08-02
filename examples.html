@@ -464,7 +464,13 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
             so a plain <code>&lt;form&gt;</code> submits them, they appear in
             <code>form.elements</code>, and <code>form.reset()</code> restores their
             default value. <code>name</code> and <code>value</code> mean exactly what
-            they mean on <a href="https://html.spec.whatwg.org/multipage/input.html#the-input-element"><code>&lt;input&gt;</code></a>.
+            they mean on <a href="https://html.spec.whatwg.org/multipage/input.html#the-input-element"><code>&lt;input&gt;</code></a> —
+            and so does <code>required</code>: constraint validation is real.
+            <code>form.reportValidity()</code> blocks on an empty required control
+            with the native message, <code>:invalid</code> matches on the host,
+            <code>checkValidity</code>/<code>setCustomValidity</code>/<code>validity</code>
+            are all there, and Enter in a field cannot submit past a failing
+            constraint.
           </p>
 
           <table class="api api--wide">
@@ -510,32 +516,58 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
                   <code>&lt;input type="number"&gt;</code> / <code>range</code></td>
                 <td class="wrap"><code>vf-number-field</code>, <code>vf-slider</code></td>
               </tr>
+              <tr>
+                <td><code>required</code></td>
+                <td class="wrap">Fails constraint validation with
+                  <code>valueMissing</code> while empty — unfilled, unchecked or
+                  unselected, each with its native counterpart's message.
+                  <code>disabled</code>/<code>readonly</code> bar validation, per
+                  HTML</td>
+                <td class="wrap">The three fields, <code>vf-checkbox</code>,
+                  <code>vf-radio-group</code>, <code>vf-select</code></td>
+              </tr>
             </tbody>
           </table>
 
-          <h3>Naming a control</h3>
+          <h3>Naming and describing a control</h3>
           <p>
-            A <code>vf-*</code> control's focusable element lives inside its shadow
-            root, where an <code>aria-label</code> on the host cannot reach it. Two
-            routes reach it instead, and both are wired for you:
+            A <code>vf-*</code> control's focusable element often lives inside its
+            shadow root, where a host-level attribute cannot reach it on its own.
+            The kit bridges the gap, so every route the platform taught you works:
           </p>
           <ul>
             <li>
-              <code>&lt;vf-label for="id"&gt;</code> — clicking the caption focuses the
-              target, and the caption text becomes its accessible name. It never
-              overwrites a name you set, and puts back what it found when removed.
+              the platform's own vocabulary — <code>&lt;label for="id"&gt;</code>, or
+              <code>aria-label</code>/<code>aria-labelledby</code> on the host —
+              resolved in html-aam precedence and handed to the inner control
+              (<code>vf-select</code>, <code>vf-swatch</code>, the three fields);
             </li>
             <li>
-              the control's own <code>label</code> property, for a control with no
-              visible caption (<code>vf-select</code>, <code>vf-slider</code>,
-              <code>vf-list</code>, <code>vf-scroll-area</code>,
-              <code>vf-progress-bar</code>, <code>vf-swatch</code>,
-              <code>vf-radio-group</code>, the three fields).
+              <code>&lt;vf-label for="id"&gt;</code> — clicking the caption focuses the
+              target, and the caption text becomes its accessible name. It never
+              overwrites a name the target already has — including one computed from
+              the target's own text, the way a <code>vf-checkbox</code> or a button
+              names itself;
+            </li>
+            <li>
+              the control's own <code>label</code> property (<code>vf-select</code>,
+              <code>vf-slider</code>, <code>vf-list</code>,
+              <code>vf-scroll-area</code>, <code>vf-progress-bar</code>,
+              <code>vf-swatch</code>, <code>vf-radio-group</code>, the three
+              fields), which beats every host channel.
             </li>
           </ul>
           <p>
             Where the role sits on the host itself (<code>vf-radio-group</code>,
-            <code>vf-list</code>), plain <code>aria-labelledby</code> works too.
+            <code>vf-list</code>), plain <code>aria-labelledby</code> always worked —
+            no bridge involved.
+          </p>
+          <p>
+            Descriptions ride the same bridge: a <code>description</code> property on
+            the fields and <code>vf-select</code> — or <code>aria-describedby</code>
+            on the host — reaches assistive tech, and while a control is invalid its
+            <code>validationMessage</code> joins the same channel, so the error is
+            announced where the hint is.
           </p>
 
           <h3>Roles and keyboard</h3>
@@ -1352,7 +1384,9 @@ vf-button::part(button) { min-width: 96px; }
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>type</code></td><td>—</td><td>—</td><td class="wrap">Standard — see <a href="#conformity">Form participation</a>. <code>type</code> defaults to <code>'text'</code> and passes through to the inner input</td></tr>
-              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name, for a field with no visible caption</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name, for a field with no visible caption. Left empty, a host-level <code>aria-label</code>/<code>aria-labelledby</code> or an associated <code>&lt;label for&gt;</code> is bridged in instead — see <a href="#conformity">Naming and describing a control</a></td></tr>
+              <tr><td><code>required</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Real constraint validation — see <a href="#conformity">Form participation</a></td></tr>
+              <tr><td><code>description</code></td><td>string</td><td><code>''</code></td><td class="wrap">Hint text for assistive tech (<code>aria-describedby</code> can't cross the shadow boundary on its own); a failing constraint's message joins it</td></tr>
               <tr><td><code>vf-input</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on every keystroke</td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on commit</td></tr>
               <tr><td><code>--vf-field-width</code></td><td>Token</td><td><code>180px</code></td><td class="wrap">Default width. Set a width on the <em>host</em> or this token — not on <code>::part(input)</code>, which sizes the control without moving the well the focus rule spans</td></tr>
@@ -1381,7 +1415,7 @@ vf-button::part(button) { min-width: 96px; }
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>rows</code></td><td>number</td><td><code>4</code></td><td class="wrap">Visible lines, as on <code>&lt;textarea&gt;</code></td></tr>
-              <tr><td colspan="4" class="wrap">Everything else matches <a href="#vf-text-field"><code>vf-text-field</code></a>: <code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>label</code>, <code>vf-input</code>, <code>vf-change</code>, <code>--vf-field-width</code>. Part: <code>textarea</code>.</td></tr>
+              <tr><td colspan="4" class="wrap">Everything else matches <a href="#vf-text-field"><code>vf-text-field</code></a>: <code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>label</code>, <code>required</code>, <code>description</code>, <code>vf-input</code>, <code>vf-change</code>, <code>--vf-field-width</code>. Part: <code>textarea</code>.</td></tr>
             </tbody>
           </table>
         </section>

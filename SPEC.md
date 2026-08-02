@@ -129,6 +129,33 @@ Modern requirements that we deliberately keep (accessibility over purity):
   checkbox restores the flag, slider parses the number) — and expose
   `:state(form-disabled)` while an ancestor `<fieldset disabled>` disables
   them, the one disabled state consumer CSS can't otherwise see.
+- **The name/description bridge.** On the controls whose role lives on a
+  shadow-internal node (the three fields, `vf-select`, `vf-swatch`), a
+  host-level `aria-labelledby`, `aria-label` or associated `<label for>`
+  resolves — in html-aam precedence — to the inner focusable element's
+  `aria-label` whenever the `label` property is empty (`hostLabel`,
+  src/form-control.ts). A `description` property (or, when it's empty, a
+  host-level `aria-describedby`) renders as a hidden span in the control's own
+  shadow root with the inner control's `aria-describedby` pointing at it — the
+  shadow-internal IDREF idiom `vf-alert` uses — and a failing constraint's
+  `validationMessage` joins the same node. Referenced text is flattened at
+  render time, so an edit to a referenced element's *text* lands on the next
+  render rather than instantly — the one divergence from native. Controls
+  whose role sits on the host (the toggles, slider, radio group, bars) need
+  none of this: the platform reads their host attributes directly.
+- **Constraint validation** (`VfFormControl`): a reflected `required` fails
+  validation with `valueMissing` while the control is empty by its own
+  definition (fields/select `value === ''`, checkbox unchecked, radio group
+  unselected — each with its native counterpart's message), through one
+  `syncValidity()` funnel run before each render. The native surface is
+  complete — `checkValidity`/`reportValidity`/`validity`/`validationMessage`/
+  `willValidate`/`setCustomValidity` — `:invalid` matches on the host,
+  `form.reportValidity()` blocks, and `disabled`/`readonly` bar validation
+  per HTML's own rules. AT wiring is `aria-required`/`aria-invalid` on the
+  inner control (plus internals mirrors for host-role controls) — never a
+  forwarded native `required`, which would put UA `:user-invalid` styling on
+  the artwork. Enter's implicit submission routes through the browser's
+  validation, so it cannot submit past a failing constraint.
 - Components must render nothing surprising outside their box: no margins on
   `:host` by default.
 - Do NOT run repo-wide `tsc` while building an individual component group —
@@ -1678,9 +1705,12 @@ The static caption: "Name:" beside a field, "Mode" over a radio group, a readout
   the caption text becomes the target's **accessible name** by whichever route
   reaches it: a `vf-*` control's `label` property (the only thing that reaches
   the focusable element inside its shadow root), or `aria-labelledby` for
-  anything in the label's own tree scope. Never overwrites a name the consumer
-  set; puts back what it found when the label is removed, the id changes or the
-  caption text does. A target that hasn't upgraded yet is waited for
+  anything in the label's own tree scope. Never overwrites a name the target
+  already has — a consumer-set attribute, **or a name computed from the
+  target's own content** (a `vf-checkbox` with slotted text, a `vf-button`, a
+  native `<button>`): the aria route declines those rather than stamping over
+  visible text. Puts back what it found when the label is removed, the id
+  changes or the caption text does. A target that hasn't upgraded yet is waited for
   (`customElements.whenDefined`), since a pre-upgrade element has no `label`
   property to fill in. A disabled target (`disabled`, or `isDisabled` for an
   ancestor `<fieldset disabled>`) is not focused.

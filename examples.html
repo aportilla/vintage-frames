@@ -618,11 +618,19 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
                 <td class="wrap">—</td>
               </tr>
               <tr>
+                <td><code>vf-window</code></td>
+                <td class="wrap"><code>group</code>, named by its
+                  <code>heading</code></td>
+                <td class="wrap">Close and zoom widgets are labelled buttons in
+                  the tab order — kept there while the window is inactive and
+                  they are not drawn, so Tab still reaches a background
+                  window</td>
+              </tr>
+              <tr>
                 <td><code>vf-grid</code>, <code>vf-stack</code>,
-                  <code>vf-window</code>, <code>vf-desktop</code></td>
+                  <code>vf-desktop</code></td>
                 <td class="wrap">none — the semantics are yours to set</td>
-                <td class="wrap">A window's close and zoom widgets are labelled
-                  buttons in the tab order</td>
+                <td class="wrap">—</td>
               </tr>
             </tbody>
           </table>
@@ -752,8 +760,12 @@ vf-button::part(button) { min-width: 96px; }
           <p>
             The gray desktop container: the classic 50% dither drawn as a crisp SVG
             tile, plus window management. It stacks slotted <code>vf-window</code>
-            children — a pointerdown brings a window to front and marks it
-            <code>active</code>, clearing <code>active</code> on the others.
+            children — a pointerdown <em>or keyboard focus entering</em> a window
+            brings it to front and marks it <code>active</code>, clearing
+            <code>active</code> on the others. The windows' DOM order is kept in
+            step with the stacking, so tabbing walks the stack the way the eye
+            does — worth knowing if you style windows by <code>:nth-child</code>
+            or lean on their source order.
           </p>
           <p>
             Utility windows (<code>variant="utility"</code>) live on a floating tier
@@ -765,7 +777,7 @@ vf-button::part(button) { min-width: 96px; }
           <template
             data-example
             data-stage="desktop"
-            data-caption="Click each window to restack it — and watch the other one's stripes, widgets and grow box go. The palette is on the floating tier: clicking it deactivates nothing."
+            data-caption="Click each window to restack it — and watch the other one's stripes, widgets and grow box go. Or Tab into a background window: its undrawn close box is still a stop, and focus landing there brings it forward. The palette is on the floating tier: clicking it deactivates nothing."
           >
             <vf-desktop style="width: 32em; height: 17em">
               <vf-window
@@ -913,7 +925,7 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it,</strong> with <code>height</code>. Whole system px — the art's own unit, so the window holds its proportion to the chrome inside it at every density, which a CSS-px width does not. Undeclared, the window falls back to plain block layout and says so once in the console</td></tr>
               <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it too.</strong> A window is a fixed box in both axes, not a shape its contents fall into — System 7 carried both dimensions in the WIND resource. Content taller than the box is clipped at the frame, as the classic content region was; <code>scrollbars</code> is how the user reaches the rest. Unset, the body sizes to its content and it says so once in the console</td></tr>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title text, centered on the stripes. Also qualifies the widgets' accessible names (<code>Close Read Me</code>) — several windows are open at once by design</td></tr>
-              <tr><td><code>active</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">Frontmost. Inactive drops the stripes and widgets, hollows the grow box and blanks every scroll rail inside — but keeps the title black, as System 7 did. Managed by <code>vf-desktop</code>; outside one, nothing changes it</td></tr>
+              <tr><td><code>active</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">Frontmost. Inactive drops the stripes, stops drawing the widgets (they keep their tab stops, so a background window stays keyboard-reachable), hollows the grow box and blanks every scroll rail inside — but keeps the title black, as System 7 did. Managed by <code>vf-desktop</code>; outside one, nothing changes it</td></tr>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">The left close box</td></tr>
               <tr><td><code>zoomable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The right zoom box</td></tr>
               <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag the title bar to move; the component seeds <code>position: absolute</code> from the current offset on first drag</td></tr>

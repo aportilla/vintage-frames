@@ -169,7 +169,7 @@ class keeps the tag, and that the elements still render afterwards.
 
 | Element | Purpose |
 | --- | --- |
-| `vf-desktop` | Gray desktop container; manages window stacking + active state, with utility windows on a floating tier |
+| `vf-desktop` | Gray desktop container; manages window stacking + active state, with utility windows on a floating tier — a click or keyboard focus activates a window, and tab order follows the stack |
 | `vf-window` | The desktop-window shell (**declare `width` and `height`**, in system px): striped title bar, close/zoom boxes, movable/resizable, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`) — see [Window archetypes](#window-archetypes--enabling-the-1992-hig-not-enforcing-it) |
 | `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood; **declare `width` and `height`**, in system px): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` |
 | `vf-alert` | Classic double-framed modal alert (**declare `width` and `height`**, in system px); `variant="caution"` draws the real 32×32 System 7 caution icon — see [Glyphs are drawn, icons are not](#glyphs-are-drawn-icons-are-not) |

@@ -2259,7 +2259,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window. The windows' light-DOM order is kept\nin step with the stacking order (bottom-most first, at pointer-gesture\nends), so tabbing walks the stack the way the eye does and Shift+Tab is\nits exact mirror.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
+          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window. The windows' light-DOM order is kept\nin step with the stacking order (bottom-most first, at pointer-gesture\nends), so tabbing walks the stack the way the eye does and Shift+Tab is\nits exact mirror.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\n`bezel` (system px) draws the black screen surround — the CRT's unlit\nmargin — around the desktop, rounding the screen's top corners with the\nclassic corner mask.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
           "name": "VfDesktop",
           "cssProperties": [
             {
@@ -2285,6 +2285,16 @@
             }
           ],
           "members": [
+            {
+              "kind": "field",
+              "name": "bezel",
+              "type": {
+                "text": "number"
+              },
+              "default": "0",
+              "description": "Width of the black screen bezel, in system px (`0` = none). The compact\nMac's CRT showed an unlit black margin between the desktop's raster and\nthe case; `bezel` draws it around the whole desktop, and puts the\nclassic screen-corner mask on the screen's two *top* corners — only the\ntop pair was rounded in the framebuffer. The screen area (flow, window\ncoordinates, the drag clip) is inset by the same amount, so windows crop\nat the bezel's inner edge. Inside a bezeled desktop a menu bar needs no\n`rounded` of its own — the desktop's mask lands on the same pixels.",
+              "attribute": "bezel"
+            },
             {
               "kind": "field",
               "name": "_windows",
@@ -2587,6 +2597,17 @@
                 }
               },
               "description": "Re-order the slotted windows in the light DOM to match their z-order\n(bottom-most first), so sequential focus navigation walks the stack the\nway the eye does — and Shift+Tab is its exact mirror. The utility band\nsorts the floating tier after every document window by construction.\n\nMinimal-move: windows already in relative order are never touched (the\ncommon case — after one raise, one window moves). Non-window siblings\n(a menu bar, page content) keep their positions; only a window that must\ncross the stack moves past them. Moving a node containing the focused\nelement drops focus to `<body>`, so it is restored afterwards — behind\n`_restoringFocus`, because the restore re-fires focusin (see\n_onFocusIn) on an element that may sit in a background window.\nOnly runs between pointer gestures or programmatically, never from a\nfocus-driven raise (see _raise for why)."
+            }
+          ],
+          "attributes": [
+            {
+              "name": "bezel",
+              "type": {
+                "text": "number"
+              },
+              "default": "0",
+              "description": "Width of the black screen bezel, in system px (`0` = none). The compact\nMac's CRT showed an unlit black margin between the desktop's raster and\nthe case; `bezel` draws it around the whole desktop, and puts the\nclassic screen-corner mask on the screen's two *top* corners — only the\ntop pair was rounded in the framebuffer. The screen area (flow, window\ncoordinates, the drag clip) is inset by the same amount, so windows crop\nat the bezel's inner edge. Inside a bezeled desktop a menu bar needs no\n`rounded` of its own — the desktop's mask lands on the same pixels.",
+              "fieldName": "bezel"
             }
           ],
           "superclass": {
@@ -5018,7 +5039,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items, Home/End jump to its first/last, and typed letters\nrun the shared Finder first-letter type-ahead (src/type-ahead.ts).\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.",
+          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left. `rounded` adds\nthe classic screen-corner mask to the top corners.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items, Home/End jump to its first/last, and typed letters\nrun the shared Finder first-letter type-ahead (src/type-ahead.ts).\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.",
           "name": "VfMenuBar",
           "cssProperties": [
             {
@@ -5064,6 +5085,17 @@
               "default": "''",
               "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"menubar\"`). Without it the menubar computes with an empty\nname. A consumer-supplied `aria-label`/`aria-labelledby` attribute is\nleft alone.",
               "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "rounded",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Rounds the bar's top corners the way System 7's were: not a curve of the\nbar itself but the black stair-step mask the compact Mac's ROM painted\nover the CRT's rounded corners, which the menu bar wore by sitting flush\nwith the screen top. Drawn as the traced 5-px staircase in `--vf-black`\nink over the bar's own corners — over any backdrop, as the hardware\nmask was.",
+              "attribute": "rounded",
+              "reflects": true
             },
             {
               "kind": "field",
@@ -5298,6 +5330,15 @@
               "default": "''",
               "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"menubar\"`). Without it the menubar computes with an empty\nname. A consumer-supplied `aria-label`/`aria-labelledby` attribute is\nleft alone.",
               "fieldName": "label"
+            },
+            {
+              "name": "rounded",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Rounds the bar's top corners the way System 7's were: not a curve of the\nbar itself but the black stair-step mask the compact Mac's ROM painted\nover the CRT's rounded corners, which the menu bar wore by sitting flush\nwith the screen top. Drawn as the traced 5-px staircase in `--vf-black`\nink over the bar's own corners — over any backdrop, as the hardware\nmask was.",
+              "fieldName": "rounded"
             }
           ],
           "superclass": {

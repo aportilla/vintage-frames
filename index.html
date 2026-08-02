@@ -7,7 +7,10 @@
     <script type="module" src="/demo/demo.ts"></script>
   </head>
   <body>
-    <vf-desktop id="desktop">
+    <!-- `bezel`: the CRT's black surround, 5 system px all around; the screen's
+         top corners wear the classic corner mask, which lands over the menu
+         bar's corners — the bar needs no `rounded` of its own in here. -->
+    <vf-desktop id="desktop" bezel="5">
       <!-- ============================== Menu bar ======================== -->
       <vf-menu-bar>
         <!-- The six-color apple as pixel art (16×16, one image px = one

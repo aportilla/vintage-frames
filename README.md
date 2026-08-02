@@ -180,7 +180,7 @@ class keeps the tag, and that the elements still render afterwards.
 
 | Element | Purpose |
 | --- | --- |
-| `vf-desktop` | Gray desktop container; manages window stacking + active state, with utility windows on a floating tier — a click or keyboard focus activates a window, and tab order follows the stack |
+| `vf-desktop` | Gray desktop container; manages window stacking + active state, with utility windows on a floating tier — a click or keyboard focus activates a window, and tab order follows the stack; `bezel` (system px) draws the CRT's black surround with the classic rounded top screen corners |
 | `vf-window` | The desktop-window shell (**declare `width` and `height`**, in system px): striped title bar, close/zoom boxes, movable/resizable, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`) — see [Window archetypes](#window-archetypes--enabling-the-1992-hig-not-enforcing-it) |
 | `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood; **declare `width` and `height`**, in system px): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` |
 | `vf-alert` | Classic double-framed modal alert (**declare `width` and `height`**, in system px); `variant="caution"` draws the real 32×32 System 7 caution icon — see [Glyphs are drawn, icons are not](#glyphs-are-drawn-icons-are-not) |
@@ -195,7 +195,7 @@ class keeps the tag, and that the elements still render afterwards.
 | `vf-select`, `vf-option` | Popup menu control ("Macintosh HD ▼") |
 | `vf-progress-bar` | Determinate fill or indeterminate barber stripes |
 | `vf-slider` | Horizontal 1-bit slider: solid-black fill up to a shield-shaped drag handle |
-| `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts, selection blink, and the classic press-drag-release: press a title, slide onto a command, release to run it |
+| `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts, selection blink, and the classic press-drag-release: press a title, slide onto a command, release to run it; `rounded` masks the bar's top corners with the System 7 screen-corner stair-step |
 | `vf-list`, `vf-list-item` | List box with inverted selection, a permanent scroll rail, and Finder first-letter type-ahead; each row takes a leading graphic (usually a 16×16 `vf-img`) in its `icon` slot |
 | `vf-scroll-area` | Container with System 7 scrollbars; reserves the scroll rail as a placeholder (per-axis via `axis`), filling in only on overflow |
 | `vf-fieldset` | Group box with legend punching through the border |
@@ -900,7 +900,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `CAUTION_ICON` | The 32×32 System 7 alert icon as a PNG data URI — the raster half of the sprite set (see below) |
-| `steppedRectClip`, `steppedRingClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`) |
+| `steppedRectClip`, `steppedRingClip`, `steppedCornerClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET`, `SCREEN_CORNER` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`), plus the screen-corner mask `vf-menu-bar rounded` paints |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow and inactive-window reporting for the always-a-rail scrollbars (a non-frontmost window's rails blank, per the HIG); a track's measured width, for drawing your own 1-bit fill on the system-pixel grid; document-level listeners scoped to an open panel or in-flight gesture (paired attach/detach + disconnect cleanup in one place) |
 | `focusModality`, `trackFocusModality`, `FocusRuleController` | Whether the keyboard or a pointer last drove the page, and that resolved against a host's own focus as one reactive flag — what a control consults to mark keyboard focus only, wherever `:focus-visible` can't say so: a *clicked* text input matches it, and so does any control that suppresses the browser's mouse focus and calls `focus()` itself |
 | `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share |

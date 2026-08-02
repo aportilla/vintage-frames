@@ -165,11 +165,13 @@ export { CAUTION_ICON } from './icons.js'
 export {
   steppedRectClip,
   steppedRingClip,
+  steppedCornerClip,
   BUTTON_FRAME,
   BUTTON_FACE,
   RING_FRAME,
   RING_HOLE,
   RING_INSET,
+  SCREEN_CORNER,
 } from './pixel-frame.js'
 export type { SteppedProfile } from './pixel-frame.js'
 

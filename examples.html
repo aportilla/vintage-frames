@@ -851,16 +851,42 @@ vf-button::part(button) { min-width: 96px; }
             </vf-desktop>
           </template>
 
+          <template
+            data-example
+            data-stage="column"
+            data-caption="bezel — the CRT's unlit black surround, 5 system px here. The screen's top corners wear the classic corner mask (only the top pair: the framebuffer ran the bottom square), landing over the menu bar's corners, and a dragged window crops at the bezel's inner edge."
+          >
+            <vf-desktop bezel="5" style="width: 100%; height: 14em">
+              <vf-menu-bar>
+                <vf-menu label="File">
+                  <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
+                </vf-menu>
+                <vf-menu label="Special">
+                  <vf-menu-item value="empty">Empty Trash…</vf-menu-item>
+                </vf-menu>
+              </vf-menu-bar>
+              <vf-window
+                heading="Drag me into a corner"
+                movable
+                width="200"
+                height="72"
+                style="position: absolute; left: 2em; top: 3em"
+              >
+                <vf-paragraph>The bezel is in front.</vf-paragraph>
+              </vf-window>
+            </vf-desktop>
+          </template>
+
           <p class="conforms">
-            No parameters of its own. Give it a height; it is
-            <code>position: relative</code> already, so position windows inside it
-            absolutely.
+            Give it a height; it is <code>position: relative</code> already, so
+            position windows inside it absolutely.
           </p>
 
           <table class="api">
             <caption>Anatomy</caption>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
+              <tr><td>Property</td><td><code>bezel</code></td><td class="wrap">The black screen surround, in system px (default 0). Insets the screen — flow, window coordinates and the drag clip all move with it — and puts the corner mask on the screen's top corners, so a menu bar inside needs no <code>rounded</code> of its own</td></tr>
               <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, anything</td></tr>
               <tr><td>Part</td><td><code>desktop</code></td><td class="wrap">The dithered surface</td></tr>
               <tr><td>Token</td><td><code>--vf-desktop</code></td><td class="wrap">Base color under the tile (<code>#808080</code>); visible only under a custom pattern with transparent cells</td></tr>
@@ -1614,6 +1640,22 @@ vf-button::part(button) { min-width: 96px; }
             <pre class="log" data-log></pre>
           </template>
 
+          <template
+            data-example
+            data-stage="column gapless"
+            data-caption="rounded — the screen-corner mask, for a bar sitting flush with the top of its surface the way the System 7 menu bar sat flush with the screen."
+          >
+            <vf-menu-bar rounded>
+              <vf-menu label="File">
+                <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
+                <vf-menu-item value="quit" shortcut="⌘Q">Quit</vf-menu-item>
+              </vf-menu>
+              <vf-menu label="Special">
+                <vf-menu-item value="empty">Empty Trash…</vf-menu-item>
+              </vf-menu>
+            </vf-menu-bar>
+          </template>
+
           <p>
             A <code>vf-menu</code> works standing alone too — it hosts the press
             gesture itself when there is no bar to own it:
@@ -1634,7 +1676,7 @@ vf-button::part(button) { min-width: 96px; }
             <caption><code>vf-menu-bar</code></caption>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td>Properties</td><td>—</td><td class="wrap">None. It is the coordinator: one menu open at a time, hover switches while open, ArrowLeft/Right move between menus</td></tr>
+              <tr><td>Properties</td><td><code>rounded</code></td><td class="wrap">Boolean; paints the System 7 screen-corner mask — the black 5px stair-step the classic Mac's ROM drew over the CRT's rounded corners — on the bar's top corners. Otherwise the bar is the coordinator: one menu open at a time, hover switches while open, ArrowLeft/Right move between menus</td></tr>
               <tr><td>Slot</td><td>(default)</td><td class="wrap"><code>vf-menu</code> elements</td></tr>
               <tr><td>Part</td><td><code>bar</code></td><td class="wrap">Style this to align a full-bleed nav with a centered content column</td></tr>
               <tr><td>Token</td><td><code>--vf-menubar-height</code></td><td class="wrap">24px</td></tr>

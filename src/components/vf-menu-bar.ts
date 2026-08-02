@@ -1,7 +1,8 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, unsafeCSS } from 'lit'
 import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
+import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
@@ -12,7 +13,8 @@ import type { VfMenuItem } from './vf-menu-item.js'
 
 /**
  * `<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom
- * rule, slotted `<vf-menu>` children laid out from the left.
+ * rule, slotted `<vf-menu>` children laid out from the left. `rounded` adds
+ * the classic screen-corner mask to the top corners.
  *
  * Coordinates its menus: pressing a label opens that menu (and inverts the
  * label); while any menu is open, hovering another label switches to it;
@@ -50,6 +52,33 @@ export class VfMenuBar extends LitElement {
         align-items: stretch;
         height: 100%;
       }
+      /* rounded: the screen-corner mask. The corners aren't a shape of the
+         bar's own — they're the black staircase the ROM painted over the
+         CRT's rounded corners, worn by the menu bar because it sat flush with
+         the screen top. So they paint as ink *over* the bar (above slotted
+         content, like the hardware mask over anything), not as a cutout that
+         would show the backdrop. Stepped per the SCREEN_CORNER trace; the
+         --vf-black token keeps it themeable and forced-colors-safe. Absolute
+         position anchors to .bar (positioned via .vf-snap), riding the snap
+         offset with the paint it masks. */
+      :host([rounded]) .bar::before,
+      :host([rounded]) .bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        width: calc(var(--vf-scale, 1) * ${SCREEN_CORNER[0]!}px);
+        height: calc(var(--vf-scale, 1) * ${SCREEN_CORNER.length}px);
+        background: var(--vf-black, #000);
+        pointer-events: none;
+      }
+      :host([rounded]) .bar::before {
+        left: 0;
+        clip-path: ${unsafeCSS(steppedCornerClip(SCREEN_CORNER, 'left'))};
+      }
+      :host([rounded]) .bar::after {
+        right: 0;
+        clip-path: ${unsafeCSS(steppedCornerClip(SCREEN_CORNER, 'right'))};
+      }
     `,
   ]
 
@@ -65,6 +94,16 @@ export class VfMenuBar extends LitElement {
    * left alone.
    */
   @property() label = ''
+
+  /**
+   * Rounds the bar's top corners the way System 7's were: not a curve of the
+   * bar itself but the black stair-step mask the compact Mac's ROM painted
+   * over the CRT's rounded corners, which the menu bar wore by sitting flush
+   * with the screen top. Drawn as the traced 5-px staircase in `--vf-black`
+   * ink over the bar's own corners — over any backdrop, as the hardware
+   * mask was.
+   */
+  @property({ type: Boolean, reflect: true }) rounded = false
 
   @queryAssignedElements({ selector: 'vf-menu', flatten: true })
   private _menus!: VfMenu[]

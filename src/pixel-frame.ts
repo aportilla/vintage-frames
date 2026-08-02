@@ -74,6 +74,18 @@ export const RING_HOLE: SteppedProfile = { corner: [6, 4, 4], edge: 3, start: 3 
 /** How far the ring box outsets the button box on each side (system px). */
 export const RING_INSET = 4
 
+/**
+ * The screen-corner mask: per-row width (system px) of the black staircase a
+ * compact Mac's ROM painted over the rounded corners of its CRT — what makes
+ * the System 7 menu bar's top corners read as rounded. Traced from a 1x
+ * screen capture (5×5 corner crop): y0 run 5, y1 3, y2 2, y3–y4 1. The same
+ * radius-5 staircase as {@link RING_FRAME}'s corner — QuickDraw had one
+ * vocabulary for round corners — but the opposite *object*: this is the ink
+ * outside the silhouette, not the silhouette, so it compiles through
+ * {@link steppedCornerClip} rather than the rect compilers.
+ */
+export const SCREEN_CORNER: readonly number[] = [5, 3, 2, 1, 1]
+
 /** A coordinate `n` system px from the box's top or left edge. */
 const px = (n: number): string =>
   n === 0 ? '0' : `calc(var(--vf-scale, 1) * ${n}px)`
@@ -143,6 +155,33 @@ const rectPoints = (p: SteppedProfile): string[] => {
 /** Compile a profile into a stepped `polygon()` clip-path value. */
 export const steppedRectClip = (p: SteppedProfile): string =>
   `polygon(${rectPoints(p).join(', ')})`
+
+/**
+ * Compile a corner-mask run list into the ink polygon for one *top* corner —
+ * the corner box minus the rounded silhouette, i.e. the region the screen
+ * mask blacked out. Runs are the mask's per-row width, topmost first; `side`
+ * mirrors the staircase (via `100% - …`) for the top-right corner. Clip an
+ * element `runs[0]` wide × `runs.length` tall (system px), anchored into its
+ * corner, and let its `background` supply the ink.
+ */
+export const steppedCornerClip = (
+  runs: readonly number[],
+  side: 'left' | 'right'
+): string => {
+  const x = side === 'left' ? px : pxFromEnd
+  let prev = runs[0] ?? 0
+  const pts: string[] = [`${x(0)} ${px(0)}`, `${x(prev)} ${px(0)}`]
+  // Step inward wherever the run shrinks; runs[length] is 0, closing the
+  // staircase at the bottom row, and polygon() closes bottom → top itself.
+  for (let y = 1; y <= runs.length; y++) {
+    const cur = runs[y] ?? 0
+    if (cur !== prev) {
+      pts.push(`${x(prev)} ${px(y)}`, `${x(cur)} ${px(y)}`)
+      prev = cur
+    }
+  }
+  return `polygon(${pts.join(', ')})`
+}
 
 /**
  * Compile an outer profile and a hole profile into a ring (a stepped donut).

@@ -462,6 +462,18 @@ without one.
 
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
+- **Attributes/props:** `bezel: number` (system px, default 0) — the black
+  screen surround, the CRT's unlit margin between raster and case. Drawn as a
+  border on the paint root in `--vf-black`, so the screen area (flow, an
+  absolute window's containing block, the drag clip) insets with it and a
+  dragged window crops at the bezel's inner edge. With a bezel the screen's
+  two *top* corners wear the `SCREEN_CORNER` mask (the classic framebuffer
+  rounded only the top pair; the raster's bottom corners ran square), painted
+  above everything like the hardware mask — the masks land over a slotted
+  menu bar's corners, so the bar needs no `rounded` of its own inside a
+  bezeled desktop. The width is written onto the host as `--vf-desktop-bezel`
+  (self-set geometry, like `--vf-scale` — component-owned, not a theming
+  token).
 - **Visual:** `display: block; position: relative; overflow: hidden;`
   background = classic 50% dither, drawn as a crisp SVG tile: a 2×2 grid with an
   opaque white base and two black pixels on the diagonal, `background-size: 2px
@@ -1183,10 +1195,17 @@ The classic popup menu control ("Macintosh HD ▼").
 #### `vf-menu-bar` (`VfMenuBar`, vf-menu-bar.ts)
 - **Attributes/props:** `label: string` — accessible name for the menubar,
   mirrored as host `aria-label` (guarded: a consumer's own
-  `aria-label`/`aria-labelledby` is left alone).
+  `aria-label`/`aria-labelledby` is left alone). `rounded: boolean` (reflected)
+  — draws the System 7 screen-corner mask over the bar's top-left/top-right
+  corners.
 - **Visual:** `display: block/flex`, height `var(--vf-menubar-height, 24px)`,
   white bg, `border-bottom: 1px solid var(--vf-black, #000)`, children laid out
-  horizontally from left with `padding: 0 10px` per label.
+  horizontally from left with `padding: 0 10px` per label. With `rounded`, two
+  5×5 system-px corner overlays paint the traced stair-step mask (per-row runs
+  5/3/2/1/1 — `SCREEN_CORNER` + `steppedCornerClip` in `pixel-frame.ts`) in
+  `--vf-black` *over* the bar: on the classic screen the rounding was the
+  ROM's black corner mask sitting on top of the menu bar, not a shape of the
+  bar's own, so it is ink over any backdrop rather than a cutout.
 - **Behavior:** container/controller for slotted `vf-menu` children. Pressing a
   menu label → opens it (label inverts while open). While any menu is open,
   hovering another label switches to it (classic behavior). Escape / outside

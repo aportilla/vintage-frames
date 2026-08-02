@@ -157,6 +157,9 @@ const INTERNAL = new Set([
   '--vf-button-ring-margin',
   '--vf-title-inset',
   '--vf-window-active',
+  // Written by vf-desktop's own `bezel` property (self-set geometry); the
+  // attribute is the API — setting the var by hand skips the corner masks.
+  '--vf-desktop-bezel',
 ])
 const KIT_WIDE_AT = 5
 

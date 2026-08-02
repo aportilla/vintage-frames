@@ -441,12 +441,24 @@ Full-bleed classic desktop container.
   shows only under a custom pattern with transparent cells (or `none`).
 - **Slots:** default (menu bar, windows, anything).
 - **Behavior:** manages stacking of slotted `vf-window` children: `pointerdown`
-  on a window brings it to front (incrementing z-index counter) and sets its
-  `active` attribute, clearing `active` on the others. Listens via a delegated
-  pointerdown listener + `slotchange`. Windows slotted before `vf-window` is
+  *or `focusin`* on a window brings it to front (incrementing z-index counter)
+  and sets its `active` attribute, clearing `active` on the others — the
+  `focusin` half is the keyboard route to activation: Tab landing anywhere in a
+  background window (its undrawn-but-focusable widgets included) raises it.
+  Listens via delegated pointerdown/focusin listeners + `slotchange`. Windows
+  slotted before `vf-window` is
   defined are re-normalized once `customElements.whenDefined('vf-window')`
   settles, since the upgrade reflects each window's `active = true` default back
   out and upgrading a slotted node doesn't re-fire `slotchange`.
+  - **DOM order follows z-order** (bottom-most first), so sequential focus
+    order matches the visual stack and Shift+Tab mirrors Tab exactly. The sync
+    runs at pointer-gesture end (a mid-gesture node move would clear the
+    pointer capture a title-bar drag or grow-box resize holds) and on
+    programmatic `bringToFront`, never from a focus-driven raise (moving the
+    window focus just entered would re-order the tab sequence mid-traversal);
+    focus surviving its own window's move is restored without re-raising that
+    window. Non-window children (a menu bar, page content) keep their
+    positions. `npm run verify:window-a11y`.
   - **Floating tier:** `vf-window[variant="utility"]` children stack in a z
     band `1_000_000` above the document tier (one shared monotonic counter, so
     a palette stays above every document window), restack only among
@@ -481,7 +493,8 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
     `active`). `touch-action: none` only when `[movable]`.
   - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
     stripes, with `--vf-title-inset: 60px` of clearance so it ellipsizes before
-    reaching the widgets. Inactive: no stripes, widgets hidden, the grow box's
+    reaching the widgets. Inactive: no stripes, widgets undrawn (transparent
+    ink — they keep their tab stops; see A11y below), the grow box's
     nested squares hidden, and every managed scroll rail inside the window
     blanked (see "always-a-rail" §5 vf-scroll-area) — but the title text stays
     black (System 7 never grayed the window title).
@@ -539,9 +552,18 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
 - **A11y:** the close/zoom `aria-label`s are qualified by the title when there is
   one (`Close ${heading}` / `Zoom ${heading}`, falling back to bare `Close` /
   `Zoom`) — several windows are open at once by design, so a bare repeated
-  "Close" gives an AT user no way to tell which window a widget belongs to. An
-  inactive window's widgets are `display: none`, so they leave the tab order with
-  the stripes.
+  "Close" gives an AT user no way to tell which window a widget belongs to. The
+  frame is `role="group"`, named by the title patch via `aria-labelledby` when
+  there is a heading (the utility variant's hidden patch still names it —
+  AccName resolves hidden labelledby targets) — `group` rather than `region`
+  deliberately, so a desktop of windows doesn't pollute landmark navigation;
+  the title bar is a `<div>`, never a `<header>`, which would map to an
+  unnamed `banner` landmark even inside the shadow root. An inactive window's
+  widgets stay in the tree and the tab order but paint no ink (transparent
+  border/background/patch ring — the bare System 7 bar): a background window
+  whose body holds nothing focusable is still reachable, activated by
+  `vf-desktop`'s `focusin` raise the moment Tab lands on a widget, and never
+  drops focus to `<body>` when it deactivates. `npm run verify:window-a11y`.
 - **Behavior:** close box click → `vf-close` (does NOT remove itself; consumer
   decides). Zoom box click → `vf-zoom`. If `movable`: dragging the title bar
   moves the window — on drag start, ensure `position: absolute` seeded from

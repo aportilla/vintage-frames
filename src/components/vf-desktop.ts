@@ -4,6 +4,7 @@ import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { DocumentListenersController } from '../document-listeners.js'
 
 /**
  * z-index offset lifting the utility (floating) tier above the document tier.
@@ -19,7 +20,10 @@ const UTILITY_Z_BAND = 1_000_000
  * Renders the 50%-dither gray desktop pattern and manages the stacking order
  * and `active` state of slotted `vf-window` children: a `pointerdown` or
  * `focusin` (keyboard focus) anywhere inside a window brings it to the front
- * and makes it the single active window.
+ * and makes it the single active window. The windows' light-DOM order is kept
+ * in step with the stacking order (bottom-most first, at pointer-gesture
+ * ends), so tabbing walks the stack the way the eye does and Shift+Tab is
+ * its exact mirror.
  *
  * Utility windows (`vf-window[variant="utility"]`) stack in a floating tier
  * above every document-tier window, restack only among themselves, and stand
@@ -108,6 +112,22 @@ export class VfDesktop extends LitElement {
   /** Whether a one-shot post-upgrade re-normalization is already pending. */
   private _awaitingUpgrade = false
 
+  /** Whether a pointer gesture that began on the desktop is still in flight. */
+  private _pointerGesture = false
+
+  /** Whether {@link _syncDomOrder} is putting focus back after a node move. */
+  private _restoringFocus = false
+
+  /**
+   * Ends the pointer-gesture window that defers DOM reordering. Capture-phase
+   * on the document so a component's `stopPropagation` can't strand the flag,
+   * and detached on host disconnect by the controller.
+   */
+  private readonly _gestureEnd = new DocumentListenersController(this, () => [
+    [document, 'pointerup', this._onGestureEnd, true],
+    [document, 'pointercancel', this._onGestureEnd, true],
+  ])
+
   override connectedCallback(): void {
     super.connectedCallback()
     this.addEventListener('pointerdown', this._onPointerDown)
@@ -117,6 +137,9 @@ export class VfDesktop extends LitElement {
   override disconnectedCallback(): void {
     this.removeEventListener('pointerdown', this._onPointerDown)
     this.removeEventListener('focusin', this._onFocusIn)
+    // The controller detaches the document listeners; drop the flag with
+    // them so a reconnected desktop doesn't sit on a stale deferral.
+    this._pointerGesture = false
     super.disconnectedCallback()
   }
 
@@ -133,11 +156,31 @@ export class VfDesktop extends LitElement {
    * also becomes the single active window (clearing `active` on the other
    * document windows); a utility window restacks within the floating tier
    * and leaves every `active` state alone.
+   *
+   * The light-DOM order of the slotted windows follows ({@link _syncDomOrder}):
+   * visual stacking and sequential focus order come from independent channels
+   * (z-index vs DOM position), and letting them drift apart is how a desktop
+   * tabs front-to-back one way and back-to-front the other, with widgets
+   * reachable only travelling backwards. Deferred to the end of any in-flight
+   * pointer gesture — moving a node clears the pointer capture a title-bar
+   * drag or grow-box resize holds on it, and a background window must stay
+   * draggable in the same gesture that raises it.
    */
   bringToFront(win: HTMLElement): void {
+    this._restack(win)
+    this._requestDomSync()
+  }
+
+  /** The z/active half of a raise, shared by every path. */
+  private _restack(win: HTMLElement): void {
     const utility = this._isUtility(win)
     win.style.zIndex = String(++this._zCounter + (utility ? UTILITY_Z_BAND : 0))
     if (!utility) this._setActive(win)
+  }
+
+  /** Sync the DOM order now, or at gesture end if a pointer is down. */
+  private _requestDomSync(): void {
+    if (!this._pointerGesture) this._syncDomOrder()
   }
 
   /**
@@ -146,6 +189,13 @@ export class VfDesktop extends LitElement {
    * window, already active): otherwise every click inside the front window
    * would bump _zCounter and re-run the whole-fleet activation loop for
    * nothing.
+   *
+   * Restacks z/active only — deliberately no DOM sync. A focus-driven raise
+   * MUST NOT move nodes: moving the window focus just entered re-orders the
+   * sequence mid-traversal, and a Shift+Tab that raises each window it
+   * enters (pushing it forward in the DOM, back the way the traversal came)
+   * would revisit it forever. The pointer path syncs at gesture end instead,
+   * which is also the next safe point after any keyboard-session staleness.
    */
   private _raise(win: HTMLElement): void {
     const utility = this._isUtility(win)
@@ -156,21 +206,47 @@ export class VfDesktop extends LitElement {
     ) {
       return
     }
-    this.bringToFront(win)
+    this._restack(win)
   }
 
-  /** Delegated pointerdown: raise the window the event originated in. */
+  /**
+   * Delegated pointerdown: raise the window the event originated in. Any
+   * press opens the gesture window that defers DOM reordering (see
+   * {@link bringToFront}) — a raise can be requested mid-gesture by this
+   * press or by code the press runs.
+   */
   private _onPointerDown = (event: PointerEvent): void => {
+    if (!this._pointerGesture) {
+      this._pointerGesture = true
+      this._gestureEnd.attach()
+    }
     const win = this._windowFromEvent(event)
     if (win) this._raise(win)
   }
 
   /**
+   * The press ended (or was cancelled) — sync the DOM order. Unconditional
+   * rather than only-if-raised: the sync no-ops when order already agrees,
+   * and running it at every gesture end is what heals the staleness a
+   * keyboard-only stretch leaves behind (focus-driven raises change z but
+   * never move nodes — see {@link _raise}).
+   */
+  private _onGestureEnd = (): void => {
+    this._gestureEnd.detach()
+    this._pointerGesture = false
+    this._syncDomOrder()
+  }
+
+  /**
    * Delegated focusin: raise the window keyboard focus entered, so tabbing
    * into a background window brings it to front (and reveals its close/zoom
-   * widgets) just like a pointerdown would.
+   * widgets) just like a pointerdown would. Ignored while `_syncDomOrder` is
+   * putting focus back after a node move — the restore re-fires focusin on
+   * an element that may sit in a *background* window, and raising that
+   * window would undo the raise that triggered the sync.
    */
   private _onFocusIn = (event: FocusEvent): void => {
+    if (this._restoringFocus) return
     const win = this._windowFromEvent(event)
     if (win) this._raise(win)
   }
@@ -273,6 +349,62 @@ export class VfDesktop extends LitElement {
       }
     }
     return top
+  }
+
+  /** The innermost focused element, through open shadow roots. */
+  private _deepActiveElement(): Element | null {
+    let el: Element | null = document.activeElement
+    while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement
+    return el
+  }
+
+  /**
+   * Re-order the slotted windows in the light DOM to match their z-order
+   * (bottom-most first), so sequential focus navigation walks the stack the
+   * way the eye does — and Shift+Tab is its exact mirror. The utility band
+   * sorts the floating tier after every document window by construction.
+   *
+   * Minimal-move: windows already in relative order are never touched (the
+   * common case — after one raise, one window moves). Non-window siblings
+   * (a menu bar, page content) keep their positions; only a window that must
+   * cross the stack moves past them. Moving a node containing the focused
+   * element drops focus to `<body>`, so it is restored afterwards — behind
+   * `_restoringFocus`, because the restore re-fires focusin (see
+   * {@link _onFocusIn}) on an element that may sit in a background window.
+   * Only runs between pointer gestures or programmatically, never from a
+   * focus-driven raise (see {@link _raise} for why).
+   */
+  private _syncDomOrder(): void {
+    if (!this.isConnected) return
+    const windows = this._windows
+    if (windows.length < 2) return
+    const sorted = [...windows].sort(
+      (a, b) => (Number(a.style.zIndex) || 0) - (Number(b.style.zIndex) || 0)
+    )
+    const focused = this._deepActiveElement()
+    let moved = false
+    let prev: HTMLElement | null = null
+    for (const win of sorted) {
+      if (
+        prev &&
+        prev.compareDocumentPosition(win) & Node.DOCUMENT_POSITION_PRECEDING
+      ) {
+        // `win` stacks above `prev` but sits before it in the DOM.
+        this.insertBefore(win, prev.nextSibling)
+        moved = true
+      }
+      prev = win
+    }
+    if (
+      moved &&
+      focused instanceof HTMLElement &&
+      focused.isConnected &&
+      this._deepActiveElement() !== focused
+    ) {
+      this._restoringFocus = true
+      focused.focus({ preventScroll: true })
+      this._restoringFocus = false
+    }
   }
 
   protected override render(): unknown {

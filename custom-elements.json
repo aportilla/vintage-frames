@@ -1677,7 +1677,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
+          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window. The windows' light-DOM order is kept\nin step with the stacking order (bottom-most first, at pointer-gesture\nends), so tabbing walks the stack the way the eye does and Shift+Tab is\nits exact mirror.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
           "name": "VfDesktop",
           "cssProperties": [
             {
@@ -1749,6 +1749,34 @@
               "description": "Whether a one-shot post-upgrade re-normalization is already pending."
             },
             {
+              "kind": "field",
+              "name": "_pointerGesture",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether a pointer gesture that began on the desktop is still in flight."
+            },
+            {
+              "kind": "field",
+              "name": "_restoringFocus",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether _syncDomOrder is putting focus back after a node move."
+            },
+            {
+              "kind": "field",
+              "name": "_gestureEnd",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new DocumentListenersController(this, () => [ [document, 'pointerup', this._onGestureEnd, true], [document, 'pointercancel', this._onGestureEnd, true], ])",
+              "description": "Ends the pointer-gesture window that defers DOM reordering. Capture-phase\non the document so a component's `stopPropagation` can't strand the flag,\nand detached on host disconnect by the controller."
+            },
+            {
               "kind": "method",
               "name": "_isUtility",
               "privacy": "private",
@@ -1783,7 +1811,37 @@
                   }
                 }
               ],
-              "description": "Bring a slotted window to the front of its tier. A document-tier window\nalso becomes the single active window (clearing `active` on the other\ndocument windows); a utility window restacks within the floating tier\nand leaves every `active` state alone."
+              "description": "Bring a slotted window to the front of its tier. A document-tier window\nalso becomes the single active window (clearing `active` on the other\ndocument windows); a utility window restacks within the floating tier\nand leaves every `active` state alone.\n\nThe light-DOM order of the slotted windows follows (_syncDomOrder):\nvisual stacking and sequential focus order come from independent channels\n(z-index vs DOM position), and letting them drift apart is how a desktop\ntabs front-to-back one way and back-to-front the other, with widgets\nreachable only travelling backwards. Deferred to the end of any in-flight\npointer gesture — moving a node clears the pointer capture a title-bar\ndrag or grow-box resize holds on it, and a background window must stay\ndraggable in the same gesture that raises it."
+            },
+            {
+              "kind": "method",
+              "name": "_restack",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "win",
+                  "type": {
+                    "text": "HTMLElement"
+                  }
+                }
+              ],
+              "description": "The z/active half of a raise, shared by every path."
+            },
+            {
+              "kind": "method",
+              "name": "_requestDomSync",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Sync the DOM order now, or at gesture end if a pointer is down."
             },
             {
               "kind": "method",
@@ -1802,19 +1860,25 @@
                   }
                 }
               ],
-              "description": "Raise the window an event originated in, skipping the restack/activation\nchurn when it is already on top of its own tier (and, for a document\nwindow, already active): otherwise every click inside the front window\nwould bump _zCounter and re-run the whole-fleet activation loop for\nnothing."
+              "description": "Raise the window an event originated in, skipping the restack/activation\nchurn when it is already on top of its own tier (and, for a document\nwindow, already active): otherwise every click inside the front window\nwould bump _zCounter and re-run the whole-fleet activation loop for\nnothing.\n\nRestacks z/active only — deliberately no DOM sync. A focus-driven raise\nMUST NOT move nodes: moving the window focus just entered re-orders the\nsequence mid-traversal, and a Shift+Tab that raises each window it\nenters (pushing it forward in the DOM, back the way the traversal came)\nwould revisit it forever. The pointer path syncs at gesture end instead,\nwhich is also the next safe point after any keyboard-session staleness."
             },
             {
               "kind": "field",
               "name": "_onPointerDown",
               "privacy": "private",
-              "description": "Delegated pointerdown: raise the window the event originated in."
+              "description": "Delegated pointerdown: raise the window the event originated in. Any\npress opens the gesture window that defers DOM reordering (see\nbringToFront) — a raise can be requested mid-gesture by this\npress or by code the press runs."
+            },
+            {
+              "kind": "field",
+              "name": "_onGestureEnd",
+              "privacy": "private",
+              "description": "The press ended (or was cancelled) — sync the DOM order. Unconditional\nrather than only-if-raised: the sync no-ops when order already agrees,\nand running it at every gesture end is what heals the staleness a\nkeyboard-only stretch leaves behind (focus-driven raises change z but\nnever move nodes — see _raise)."
             },
             {
               "kind": "field",
               "name": "_onFocusIn",
               "privacy": "private",
-              "description": "Delegated focusin: raise the window keyboard focus entered, so tabbing\ninto a background window brings it to front (and reveals its close/zoom\nwidgets) just like a pointerdown would."
+              "description": "Delegated focusin: raise the window keyboard focus entered, so tabbing\ninto a background window brings it to front (and reveals its close/zoom\nwidgets) just like a pointerdown would. Ignored while `_syncDomOrder` is\nputting focus back after a node move — the restore re-fires focusin on\nan element that may sit in a *background* window, and raising that\nwindow would undo the raise that triggered the sync."
             },
             {
               "kind": "method",
@@ -1919,6 +1983,28 @@
                 }
               ],
               "description": "The window with the highest z-index, or null when there are none."
+            },
+            {
+              "kind": "method",
+              "name": "_deepActiveElement",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Element | null"
+                }
+              },
+              "description": "The innermost focused element, through open shadow roots."
+            },
+            {
+              "kind": "method",
+              "name": "_syncDomOrder",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Re-order the slotted windows in the light DOM to match their z-order\n(bottom-most first), so sequential focus navigation walks the stack the\nway the eye does — and Shift+Tab is its exact mirror. The utility band\nsorts the floating tier after every document window by construction.\n\nMinimal-move: windows already in relative order are never touched (the\ncommon case — after one raise, one window moves). Non-window siblings\n(a menu bar, page content) keep their positions; only a window that must\ncross the stack moves past them. Moving a node containing the focused\nelement drops focus to `<body>`, so it is restored afterwards — behind\n`_restoringFocus`, because the restore re-fires focusin (see\n_onFocusIn) on an element that may sit in a background window.\nOnly runs between pointer gestures or programmatically, never from a\nfocus-driven raise (see _raise for why)."
             }
           ],
           "superclass": {

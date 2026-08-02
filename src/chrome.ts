@@ -8,12 +8,18 @@ import type { DragController } from './drag.js'
  * passes `'vf-dots'` for the windoid dither), and the four pointer bindings
  * that hand the bar to a {@link DragController}.
  *
- * Both components render a byte-identical header with byte-identical wiring;
+ * Both components render a byte-identical bar with byte-identical wiring;
  * only what sits in the bar differs — vf-window interleaves its close/zoom
  * widgets around the title, vf-dialog carries just the title (with the id its
  * `aria-labelledby` points at). That goes in as `content`, so the four bindings
  * — which have to stay in lockstep with DragController's three handlers, and
  * where a dropped `pointercancel` would strand a drag — live in one place.
+ *
+ * A `<div>`, deliberately not a `<header>`: per HTML-AAM a `<header>` maps to
+ * the `banner` landmark unless a sectioning ancestor demotes it, and inside a
+ * shadow root nothing in the chain qualifies — so every window and dialog was
+ * publishing an unnamed `banner` to AT landmark navigation. The bar is chrome,
+ * not page structure; the skin selects by class, so nothing else moves.
  *
  * Internal to the kit: it bakes in our own `part` name and class contract, so
  * it is deliberately not re-exported from index.ts (same call as `number.ts`).
@@ -23,7 +29,7 @@ export const chromeTitleBar = (
   content: unknown,
   textureClass: 'vf-stripes' | 'vf-dots' = 'vf-stripes'
 ): TemplateResult => html`
-  <header
+  <div
     class="vf-title-bar"
     part="title-bar"
     @pointerdown=${drag.onPointerDown}
@@ -33,7 +39,7 @@ export const chromeTitleBar = (
   >
     <div class=${textureClass}></div>
     ${content}
-  </header>
+  </div>
 `
 
 /**

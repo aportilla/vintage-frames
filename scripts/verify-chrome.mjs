@@ -398,24 +398,34 @@ const partMetrics = (page, hostId, part, props) =>
   check('the labels track a heading change',
     (await widget('titled', 'close-box')) === 'Close Renamed', await widget('titled', 'close-box'))
 
-  // An inactive window's widgets are display:none — absent, not just invisible,
-  // so they can't be reached by keyboard either.
+  // An inactive window draws no widgets — transparent ink, the bare System 7
+  // bar — but the controls stay in the tree and the tab order, so keyboard/AT
+  // can reach "Close Behind" and a desktop's focusin raise can activate the
+  // window (ACCESSIBILITY-REVIEW §4.4; this check previously pinned the
+  // display:none behavior that made a static-body background window
+  // unreachable by keyboard entirely).
   await page.evaluate(() => document.getElementById('inactive').removeAttribute('active'))
   await page.evaluate(() => document.getElementById('inactive').updateComplete)
-  const hidden = await page.evaluate(() => {
+  const blanked = await page.evaluate(() => {
     const root = document.getElementById('inactive').shadowRoot
     const box = root.querySelector('[part=close-box]')
+    const cs = getComputedStyle(box)
     box.focus()
     return {
-      display: getComputedStyle(box).display,
+      display: cs.display,
+      border: cs.borderTopColor,
+      background: cs.backgroundColor,
+      boxShadow: cs.boxShadow,
       focused: root.activeElement === box,
       stripes: getComputedStyle(root.querySelector('.vf-stripes')).display,
     }
   })
-  check('inactive window hides its widgets and stripes',
-    hidden.display === 'none' && hidden.stripes === 'none',
-    `${hidden.display}/${hidden.stripes}`)
-  check('…and they are not keyboard-reachable while hidden', hidden.focused === false)
+  check('inactive window draws no widget ink (transparent, not removed) and no stripes',
+    blanked.display !== 'none' && blanked.border === 'rgba(0, 0, 0, 0)' &&
+    blanked.background === 'rgba(0, 0, 0, 0)' && blanked.boxShadow === 'none' &&
+    blanked.stripes === 'none',
+    `display ${blanked.display}, border ${blanked.border}, bg ${blanked.background}, shadow ${blanked.boxShadow}, stripes ${blanked.stripes}`)
+  check('…and the close box stays keyboard-reachable while inactive', blanked.focused === true)
   await page.close()
 }
 {

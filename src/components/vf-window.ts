@@ -109,15 +109,34 @@ export class VfWindow extends LitElement {
       :host(:not([active])) .vf-dots {
         display: none;
       }
-      /* Inactive window: stripes and widgets go away, but the title text
-         stays black — classic System 7 never grayed the title. */
+      /* Inactive window: the stripes go away and the widgets stop being
+         drawn (see the widget rule below — they keep their tab stops), but
+         the title text stays black — classic System 7 never grayed the
+         title. */
 
       /* --- Window widgets (close / zoom boxes) ----------------------- */
       /* Skin from vfWindowWidgets (shared with vf-dialog); only the
          host-state rule is the window's own — a dialog has no inactive
-         state, so hiding widgets with the stripes lives here. */
+         state, so blanking widgets with the stripes lives here.
+
+         Blanked with transparent ink, NOT display/visibility: System 7 drew
+         an inactive bar bare, and this reproduces exactly that — but the
+         controls stay in the tree and the tab order, a modern affordance the
+         kit adds (SPEC §1). A background window whose body holds nothing
+         focusable (a static About window, the modeless-dialog recipe, a
+         palette of labels) is otherwise unreachable by keyboard entirely:
+         Tab must be able to land on "Close Bravo" so vf-desktop's focusin
+         raise can activate the window — which repaints the widgets under
+         the focus that just arrived. It also means deactivation never yanks
+         a focused widget out of the tree, so focus can't be dropped to
+         <body> by a click on another window. */
       :host(:not([active])) .box {
-        display: none;
+        border-color: transparent;
+        background-color: transparent;
+        box-shadow: none;
+      }
+      :host(:not([active])) .zoom::after {
+        border-color: transparent;
       }
 
       /* --- Utility (windoid) variant --------------------------------- */
@@ -514,15 +533,29 @@ export class VfWindow extends LitElement {
   }
 
   protected override render(): unknown {
+    // The frame is a named group, so AT users can tell whose content they are
+    // reading when several windows are open — role="group" rather than
+    // "region" deliberately: a region is a landmark, and a desktop full of
+    // windows would pollute landmark navigation with exactly the elements
+    // that shouldn't be there (the review's §9.3 failure, inverted). The
+    // title patch names it the way vf-dialog's names its <dialog>; AccName
+    // resolves aria-labelledby through display:none, so the utility bar's
+    // hidden patch still names the windoid. An untitled window is an unnamed
+    // group — unlike a dialog, a group carries no obligation to be named.
     return html`
-      <div class="vf-frame vf-snap" part="frame">
+      <div
+        class="vf-frame vf-snap"
+        part="frame"
+        role="group"
+        aria-labelledby=${this.heading ? 'title' : nothing}
+      >
         ${chromeTitleBar(
           this._drag,
           html`
             ${this.closable
               ? closeBox(widgetLabel('Close', this.heading), this._onCloseClick)
               : nothing}
-            <span class="vf-title" part="title">${this.heading}</span>
+            <span class="vf-title" part="title" id="title">${this.heading}</span>
             ${this.zoomable
               ? zoomBox(widgetLabel('Zoom', this.heading), this._onZoomClick)
               : nothing}

@@ -9,7 +9,10 @@
   <body>
     <!-- `bezel`: the CRT's black surround, 5 system px all around; the screen's
          top corners wear the classic corner mask, which lands over the menu
-         bar's corners — the bar needs no `rounded` of its own in here. -->
+         bar's corners — the bar needs no `rounded` of its own in here. The
+         raster's width/height are set by demo.ts: the page measures the
+         viewport and fitWithin() derives the largest whole raster on resize
+         and scale changes. -->
     <vf-desktop id="desktop" bezel="5">
       <!-- ============================== Menu bar ======================== -->
       <vf-menu-bar>

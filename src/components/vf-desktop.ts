@@ -2,7 +2,7 @@ import { html, css, LitElement, unsafeCSS } from 'lit'
 import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase } from '../styles/base.js'
-import { ScaleController, sysLength } from '../scale.js'
+import { ScaleController, effectiveScale, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
@@ -14,6 +14,15 @@ import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
  * crosses the band — far beyond any real session's restack count.
  */
 const UTILITY_Z_BAND = 1_000_000
+
+/**
+ * The classic compact Mac raster — the screen an undeclared desktop gets.
+ * A desktop ALWAYS has an explicit whole-system-px size (pure CSS sizing is
+ * not supported: the host's inline size, written from these properties,
+ * wins over a stylesheet); these are just the numbers it starts on.
+ */
+const DEFAULT_SCREEN_WIDTH = 512
+const DEFAULT_SCREEN_HEIGHT = 342
 
 /**
  * `<vf-desktop>` — the full-bleed classic desktop container.
@@ -32,9 +41,17 @@ const UTILITY_Z_BAND = 1_000_000
  * deactivates the active document window nor greys the palette, exactly as
  * System 7's floating windoids behaved while their application was frontmost.
  *
- * `bezel` (system px) draws the black screen surround — the CRT's unlit
- * margin — around the desktop, rounding the screen's top corners with the
- * classic corner mask.
+ * The desktop is a raster with an explicit size, always: **`width` and
+ * `height`**, in system px, the way a WIND resource declared a window's —
+ * the host box renders at the declared screen plus `2 × bezel` per axis, a
+ * whole number of system pixels by construction (default 512×342, the
+ * compact Mac's screen). Pure CSS sizing is not supported; the page sets
+ * the numbers — directly, or via {@link VfDesktop.fitWithin} on
+ * `resize`/`onScaleChange` for a viewport-filling desktop — and positions
+ * the sized box with its own stylesheet, keeping any sub-system-pixel
+ * slack on its side. `bezel` (system px) draws the black screen surround —
+ * the CRT's unlit margin — around the screen, rounding its top corners
+ * with the classic corner mask.
  *
  * Custom properties:
  * - `--vf-desktop-pattern` — the background-image pattern layer (default a
@@ -45,7 +62,8 @@ const UTILITY_Z_BAND = 1_000_000
  *   cells (or with `none`).
  *
  * @slot - Default slot: menu bar, windows, anything.
- * @csspart desktop - The full-size desktop surface.
+ * @csspart desktop - The dithered screen surface — the whole-system-px
+ *   raster (inset by `bezel` when one is set).
  * @cssprop [--vf-desktop=#808080] - base color under the desktop dither —
  *   occluded by the default (opaque) tile, so it only shows through a custom
  *   `--vf-desktop-pattern`
@@ -63,20 +81,24 @@ export class VfDesktop extends LitElement {
       }
       .desktop {
         position: relative;
-        /* Clip here rather than on the host so dragged windows crop at this
-           box's corrected edge, not the host's possibly-fractional one. */
-        overflow: hidden;
         width: 100%;
         height: 100%;
-        /* The screen bezel: the unlit black margin a compact Mac's CRT showed
-           between the raster and the case, as a border so everything inside
-           it comes along by construction — the content sits in the padding
-           box, so flow (the menu bar), an absolutely positioned window's
-           containing block, and the overflow clip all move to the bezel's
-           inner edge, and a dragged window crops there, sliding "under" the
-           black. Width is written by the bezel property (updated()), in
-           system px. */
-        border: var(--vf-desktop-bezel, 0px) solid var(--vf-black, #000);
+      }
+      /* The bezel surface: the unlit black margin a compact Mac's CRT showed
+         between the raster and the case. Painted only when bezeled, so an
+         unbezeled desktop's paint is exactly the screen's. */
+      .desktop.bezeled {
+        background: var(--vf-black, #000);
+      }
+      .screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        /* Clip here rather than on the host so dragged windows crop at the
+           raster's corrected edge, not the host's possibly-fractional one. */
+        overflow: hidden;
         background-color: var(--vf-desktop, #808080);
         /* Classic 50% checker dither as a crisp 1-bit SVG tile — a 2×2 grid
            painting an opaque white base with two black pixels on the diagonal.
@@ -102,6 +124,16 @@ export class VfDesktop extends LitElement {
           background-image: none;
         }
       }
+      /* Bezeled, the screen is inset by exactly one bezel width. The host
+         is always the declared screen + 2×bezel (written in updated()), so
+         this subtraction is exact and the raster is whole by construction —
+         a page's sub-system-pixel slack never enters the component. */
+      .bezeled .screen {
+        top: var(--vf-desktop-bezel, 0px);
+        left: var(--vf-desktop-bezel, 0px);
+        width: calc(100% - 2 * var(--vf-desktop-bezel, 0px));
+        height: calc(100% - 2 * var(--vf-desktop-bezel, 0px));
+      }
       /* Slotted windows need a positioning context so z-index applies.
          (An inline position: absolute set by a movable window wins.) */
       ::slotted(vf-window) {
@@ -110,7 +142,7 @@ export class VfDesktop extends LitElement {
       /* With a bezel, the screen's top corners wear the SCREEN_CORNER mask,
          rounding into the surrounding black — the top pair only, because the
          classic framebuffer masked only those; the raster's bottom corners
-         ran square. Anchored to .desktop's padding box, i.e. the screen's own
+         ran square. Children of .screen, so they anchor to the raster's own
          corners (over a slotted menu bar's, which sit in the same place). The
          hardware mask was in front of every pixel — a window dragged into a
          corner slides under it — hence the maximal z-index. */
@@ -135,16 +167,51 @@ export class VfDesktop extends LitElement {
   ]
 
   /**
-   * Width of the black screen bezel, in system px (`0` = none). The compact
-   * Mac's CRT showed an unlit black margin between the desktop's raster and
-   * the case; `bezel` draws it around the whole desktop, and puts the
-   * classic screen-corner mask on the screen's two *top* corners — only the
-   * top pair was rounded in the framebuffer. The screen area (flow, window
-   * coordinates, the drag clip) is inset by the same amount, so windows crop
-   * at the bezel's inner edge. Inside a bezeled desktop a menu bar needs no
-   * `rounded` of its own — the desktop's mask lands on the same pixels.
+   * Screen width in system px — the raster's own size, the way a WIND
+   * resource declared a window's. The host box renders at exactly
+   * `width + 2 × bezel` system px, always whole; a desktop is never sized
+   * by page CSS — the page sets these numbers (directly or via
+   * {@link fitWithin}) and positions the explicitly sized box with its own
+   * stylesheet, keeping whatever sub-system-pixel slack its layout has on
+   * its side of the fence. Defaults to the compact Mac's 512.
+   */
+  @property({ type: Number }) width = DEFAULT_SCREEN_WIDTH
+
+  /** Screen height in system px; see {@link width}. Defaults to 342. */
+  @property({ type: Number }) height = DEFAULT_SCREEN_HEIGHT
+
+  /**
+   * Width of the black screen bezel, in system px (`0` = none), added onto
+   * the declared screen on every side — a `width="502" bezel="5"` desktop
+   * renders a 512-system-px host box. The compact Mac's CRT showed an
+   * unlit black margin between the desktop's raster and the case; `bezel`
+   * draws it around the screen and puts the classic screen-corner mask on
+   * the screen's two *top* corners — only the top pair was rounded in the
+   * framebuffer. Flow, window coordinates and the drag clip all belong to
+   * the screen, so windows crop at its edge. Inside a bezeled desktop a
+   * menu bar needs no `rounded` of its own — the desktop's mask lands on
+   * the same pixels.
    */
   @property({ type: Number }) bezel = 0
+
+  /**
+   * Size the screen to the largest whole-system-px raster whose host box —
+   * bezel included — fits a CSS-px bound, and return what was set. The
+   * page's half of the sizing contract: it owns the viewport, so it
+   * measures the box and hands it here on `resize` and `onScaleChange`
+   * (zoom and density moves change how many CSS px a system px costs),
+   * and the sub-system-pixel remainder stays on the page, behind the
+   * bezel. The epsilon forgives float error in the division so an
+   * exact-fit bound never drops a whole system pixel.
+   */
+  fitWithin(maxWidth: number, maxHeight: number): { width: number; height: number } {
+    const s = effectiveScale(this)
+    const fit = (cssPx: number): number =>
+      Math.max(0, Math.floor(cssPx / s + 1e-6) - 2 * this.bezel)
+    this.width = fit(maxWidth)
+    this.height = fit(maxHeight)
+    return { width: this.width, height: this.height }
+  }
 
   /** Slotted `vf-window` children (direct children only). */
   @queryAssignedElements({ selector: 'vf-window' })
@@ -459,7 +526,7 @@ export class VfDesktop extends LitElement {
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     // Written as a host custom property (the self-set-geometry channel, like
-    // --vf-scale / --vf-snap-*) so the stylesheet's border stays live against
+    // --vf-scale / --vf-snap-*) so the stylesheet's inset stays live against
     // the display; removed at 0 to keep an unbezeled host's inline style
     // clean (a no-op on the first update, where 0 is the class default).
     if (changed.has('bezel')) {
@@ -469,16 +536,31 @@ export class VfDesktop extends LitElement {
         this.style.removeProperty('--vf-desktop-bezel')
       }
     }
+    // The declared raster, written as the host's size with the bezel added
+    // on — a live sysLength, so it tracks the display like every declared
+    // metric. Written on the first update too (the properties have
+    // defaults), which is what makes "a desktop always has an explicit
+    // whole size" total: the inline size wins over any page stylesheet.
+    // The ?? guards attribute removal, which Lit's Number converter hands
+    // back as null — the raster falls back to the classic screen.
+    if (changed.has('width') || changed.has('height') || changed.has('bezel')) {
+      const w = this.width ?? DEFAULT_SCREEN_WIDTH
+      const h = this.height ?? DEFAULT_SCREEN_HEIGHT
+      this.style.width = sysLength(w + 2 * this.bezel)
+      this.style.height = sysLength(h + 2 * this.bezel)
+    }
   }
 
   protected override render(): unknown {
     return html`
-      <div class="desktop vf-snap" part="desktop">
-        <slot @slotchange=${this._onSlotChange}></slot>
-        ${this.bezel > 0
-          ? html`<div class="corner tl"></div>
-              <div class="corner tr"></div>`
-          : null}
+      <div class=${this.bezel > 0 ? 'desktop vf-snap bezeled' : 'desktop vf-snap'}>
+        <div class="screen" part="desktop">
+          <slot @slotchange=${this._onSlotChange}></slot>
+          ${this.bezel > 0
+            ? html`<div class="corner tl"></div>
+                <div class="corner tr"></div>`
+            : null}
+        </div>
       </div>
     `
   }

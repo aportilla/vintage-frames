@@ -7,7 +7,7 @@
  * module is behavior only.
  */
 import { VfParagraph, VfWindow } from '../src/index.js'
-import { sys } from '../src/scale.js'
+import { onScaleChange, sys } from '../src/scale.js'
 import type {
   VfAlert,
   VfDesktop,
@@ -39,6 +39,25 @@ function menuDetail(event: Event): MenuSelectDetail {
 }
 
 const desktop = $<VfDesktop>('#desktop')
+
+/* ------------------------------------------------------------------ *
+ * The desktop raster. A vf-desktop takes a declared width/height in
+ * system px (bezel added on top), so filling the viewport is the page's
+ * job: measure the box the page owns, let fitWithin() derive the largest
+ * whole raster that fits, and re-derive when the window resizes or the
+ * effective scale moves (zoom, a monitor change — either changes what a
+ * system px costs in CSS px). The sub-system-pixel leftover stays on the
+ * page, invisible against the black body behind the bezel.
+ * ------------------------------------------------------------------ */
+const fitDesktop = (): void => {
+  desktop.fitWithin(
+    document.documentElement.clientWidth,
+    document.documentElement.clientHeight
+  )
+}
+fitDesktop()
+window.addEventListener('resize', fitDesktop)
+onScaleChange(fitDesktop)
 const installerWindow = $<VfWindow>('#win-installer')
 const formatWindow = $<VfWindow>('#win-format')
 const newDocWindow = $<VfWindow>('#win-newdoc')

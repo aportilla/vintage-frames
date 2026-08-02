@@ -28,14 +28,15 @@
 
 /* ------------------------------- Desktop ------------------------------- */
 
-vf-desktop {
-  height: 100%;
-  /* The desktop is the viewport — absolutely positioned windows past its edge
-     don't give the page a scrollbar, so a window is only reachable if its
-     authored position starts on-screen. Keep placements inside roughly
-     940×560 system px (a 1440×900 retina viewport at scale 1.5) or the
-     window is lost at common densities. */
-}
+/*
+ * No sizing rule: a vf-desktop always carries its own explicit size, and
+ * demo.ts fits this one to the viewport (fitWithin, on resize and scale
+ * changes). The desktop is the viewport — absolutely positioned windows
+ * past its edge don't give the page a scrollbar, so a window is only
+ * reachable if its authored position starts on-screen. Keep placements
+ * inside roughly 940×560 system px (a 1440×900 retina viewport at scale
+ * 1.5) or the window is lost at common densities.
+ */
 
 /* Window placement — staggered (system px × --vf-scale so the whole
    arrangement scales proportionally at true size). */

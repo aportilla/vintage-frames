@@ -2259,7 +2259,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window. The windows' light-DOM order is kept\nin step with the stacking order (bottom-most first, at pointer-gesture\nends), so tabbing walks the stack the way the eye does and Shift+Tab is\nits exact mirror.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\n`bezel` (system px) draws the black screen surround — the CRT's unlit\nmargin — around the desktop, rounding the screen's top corners with the\nclassic corner mask.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
+          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window. The windows' light-DOM order is kept\nin step with the stacking order (bottom-most first, at pointer-gesture\nends), so tabbing walks the stack the way the eye does and Shift+Tab is\nits exact mirror.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\nThe desktop is a raster with an explicit size, always: **`width` and\n`height`**, in system px, the way a WIND resource declared a window's —\nthe host box renders at the declared screen plus `2 × bezel` per axis, a\nwhole number of system pixels by construction (default 512×342, the\ncompact Mac's screen). Pure CSS sizing is not supported; the page sets\nthe numbers — directly, or via VfDesktop.fitWithin on\n`resize`/`onScaleChange` for a viewport-filling desktop — and positions\nthe sized box with its own stylesheet, keeping any sub-system-pixel\nslack on its side. `bezel` (system px) draws the black screen surround —\nthe CRT's unlit margin — around the screen, rounding its top corners\nwith the classic corner mask.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
           "name": "VfDesktop",
           "cssProperties": [
             {
@@ -2274,7 +2274,7 @@
           ],
           "cssParts": [
             {
-              "description": "The full-size desktop surface.",
+              "description": "The dithered screen surface — the whole-system-px raster (inset by `bezel` when one is set).",
               "name": "desktop"
             }
           ],
@@ -2287,13 +2287,57 @@
           "members": [
             {
               "kind": "field",
+              "name": "width",
+              "default": "512",
+              "description": "Screen width in system px — the raster's own size, the way a WIND\nresource declared a window's. The host box renders at exactly\n`width + 2 × bezel` system px, always whole; a desktop is never sized\nby page CSS — the page sets these numbers (directly or via\nfitWithin) and positions the explicitly sized box with its own\nstylesheet, keeping whatever sub-system-pixel slack its layout has on\nits side of the fence. Defaults to the compact Mac's 512.",
+              "attribute": "width",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "height",
+              "default": "342",
+              "description": "Screen height in system px; see width. Defaults to 342.",
+              "attribute": "height",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "kind": "field",
               "name": "bezel",
               "type": {
                 "text": "number"
               },
               "default": "0",
-              "description": "Width of the black screen bezel, in system px (`0` = none). The compact\nMac's CRT showed an unlit black margin between the desktop's raster and\nthe case; `bezel` draws it around the whole desktop, and puts the\nclassic screen-corner mask on the screen's two *top* corners — only the\ntop pair was rounded in the framebuffer. The screen area (flow, window\ncoordinates, the drag clip) is inset by the same amount, so windows crop\nat the bezel's inner edge. Inside a bezeled desktop a menu bar needs no\n`rounded` of its own — the desktop's mask lands on the same pixels.",
+              "description": "Width of the black screen bezel, in system px (`0` = none), added onto\nthe declared screen on every side — a `width=\"502\" bezel=\"5\"` desktop\nrenders a 512-system-px host box. The compact Mac's CRT showed an\nunlit black margin between the desktop's raster and the case; `bezel`\ndraws it around the screen and puts the classic screen-corner mask on\nthe screen's two *top* corners — only the top pair was rounded in the\nframebuffer. Flow, window coordinates and the drag clip all belong to\nthe screen, so windows crop at its edge. Inside a bezeled desktop a\nmenu bar needs no `rounded` of its own — the desktop's mask lands on\nthe same pixels.",
               "attribute": "bezel"
+            },
+            {
+              "kind": "method",
+              "name": "fitWithin",
+              "return": {
+                "type": {
+                  "text": "{ width: number; height: number }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "maxWidth",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "maxHeight",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Size the screen to the largest whole-system-px raster whose host box —\nbezel included — fits a CSS-px bound, and return what was set. The\npage's half of the sizing contract: it owns the viewport, so it\nmeasures the box and hands it here on `resize` and `onScaleChange`\n(zoom and density moves change how many CSS px a system px costs),\nand the sub-system-pixel remainder stays on the page, behind the\nbezel. The epsilon forgives float error in the division so an\nexact-fit bound never drops a whole system pixel."
             },
             {
               "kind": "field",
@@ -2601,12 +2645,24 @@
           ],
           "attributes": [
             {
+              "name": "width",
+              "default": "DEFAULT_SCREEN_WIDTH",
+              "description": "Screen width in system px — the raster's own size, the way a WIND\nresource declared a window's. The host box renders at exactly\n`width + 2 × bezel` system px, always whole; a desktop is never sized\nby page CSS — the page sets these numbers (directly or via\nfitWithin) and positions the explicitly sized box with its own\nstylesheet, keeping whatever sub-system-pixel slack its layout has on\nits side of the fence. Defaults to the compact Mac's 512.",
+              "fieldName": "width"
+            },
+            {
+              "name": "height",
+              "default": "DEFAULT_SCREEN_HEIGHT",
+              "description": "Screen height in system px; see width. Defaults to 342.",
+              "fieldName": "height"
+            },
+            {
               "name": "bezel",
               "type": {
                 "text": "number"
               },
               "default": "0",
-              "description": "Width of the black screen bezel, in system px (`0` = none). The compact\nMac's CRT showed an unlit black margin between the desktop's raster and\nthe case; `bezel` draws it around the whole desktop, and puts the\nclassic screen-corner mask on the screen's two *top* corners — only the\ntop pair was rounded in the framebuffer. The screen area (flow, window\ncoordinates, the drag clip) is inset by the same amount, so windows crop\nat the bezel's inner edge. Inside a bezeled desktop a menu bar needs no\n`rounded` of its own — the desktop's mask lands on the same pixels.",
+              "description": "Width of the black screen bezel, in system px (`0` = none), added onto\nthe declared screen on every side — a `width=\"502\" bezel=\"5\"` desktop\nrenders a 512-system-px host box. The compact Mac's CRT showed an\nunlit black margin between the desktop's raster and the case; `bezel`\ndraws it around the screen and puts the classic screen-corner mask on\nthe screen's two *top* corners — only the top pair was rounded in the\nframebuffer. Flow, window coordinates and the drag clip all belong to\nthe screen, so windows crop at its edge. Inside a bezeled desktop a\nmenu bar needs no `rounded` of its own — the desktop's mask lands on\nthe same pixels.",
               "fieldName": "bezel"
             }
           ],

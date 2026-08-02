@@ -462,20 +462,36 @@ without one.
 
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
-- **Attributes/props:** `bezel: number` (system px, default 0) — the black
-  screen surround, the CRT's unlit margin between raster and case. Drawn as a
-  border on the paint root in `--vf-black`, so the screen area (flow, an
-  absolute window's containing block, the drag clip) insets with it and a
-  dragged window crops at the bezel's inner edge. With a bezel the screen's
-  two *top* corners wear the `SCREEN_CORNER` mask (the classic framebuffer
+- **Attributes/props:** `width`, `height: number` (system px, defaults
+  512×342 — the compact Mac's raster) — the screen's own size, the way a
+  WIND resource declared a window's. The host box renders at exactly
+  `width + 2·bezel` per axis (a live `sysLength` written as host inline
+  size on every update), always a whole number of system px. **Pure CSS
+  sizing is not supported**: the inline size wins over any stylesheet, so
+  the page sets the numbers — directly or via `fitWithin` — and positions
+  the explicitly sized desktop with its own CSS, keeping its layout's
+  sub-system-pixel slack on its own side of the fence.
+  `bezel: number` (system px, default 0) — the black screen surround, the
+  CRT's unlit margin between raster and case, added onto the declared screen
+  on every side. The screen owns flow, an absolute window's containing block
+  and the drag clip, so a dragged window crops at the raster's edge. Its two
+  *top* corners wear the `SCREEN_CORNER` mask (the classic framebuffer
   rounded only the top pair; the raster's bottom corners ran square), painted
   above everything like the hardware mask — the masks land over a slotted
   menu bar's corners, so the bar needs no `rounded` of its own inside a
-  bezeled desktop. The width is written onto the host as `--vf-desktop-bezel`
-  (self-set geometry, like `--vf-scale` — component-owned, not a theming
-  token).
-- **Visual:** `display: block; position: relative; overflow: hidden;`
-  background = classic 50% dither, drawn as a crisp SVG tile: a 2×2 grid with an
+  bezeled desktop. The bezel width is written onto the host as
+  `--vf-desktop-bezel` (self-set geometry, like `--vf-scale` —
+  component-owned, not a theming token).
+- **Methods:** `fitWithin(maxWidth, maxHeight)` (CSS px) → sets `width`/
+  `height` to the largest whole-system-px raster whose host box — bezel
+  included — fits the bound, per the current effective scale, and returns
+  `{ width, height }`. The page's half of the sizing contract: call it on
+  `resize` and `onScaleChange` (zoom and density moves change what a system
+  px costs in CSS px), as the showcase does in `demo/demo.ts`.
+- **Visual:** `display: block; position: relative;` — the paint lives on an
+  inner screen surface (part `desktop`, `overflow: hidden` — the
+  whole-system-px raster, inset by `bezel` when one is set).
+  Screen background = classic 50% dither, drawn as a crisp SVG tile: a 2×2 grid with an
   opaque white base and two black pixels on the diagonal, `background-size: 2px
   2px` scaled by `--vf-scale`, overridable via `--vf-desktop-pattern`. (A
   `repeating-conic-gradient` feathers its hard stops at scale; the SVG rects stay

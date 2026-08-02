@@ -128,7 +128,7 @@
             data-source="hidden"
             data-caption="Not a screenshot. Pull down a menu, drag a title bar, click a window to bring it forward, tab into a control."
           >
-            <vf-desktop style="width: 100%; height: 25em">
+            <vf-desktop width="512" height="400">
               <vf-menu-bar>
                 <vf-menu label="File">
                   <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
@@ -810,7 +810,7 @@ vf-button::part(button) { min-width: 96px; }
             data-stage="desktop"
             data-caption="Click each window to restack it — and watch the other one's stripes, widgets and grow box go. Or Tab into a background window: its undrawn close box is still a stop, and focus landing there brings it forward. The palette is on the floating tier: clicking it deactivates nothing."
           >
-            <vf-desktop style="width: 32em; height: 17em">
+            <vf-desktop width="512" height="272">
               <vf-window
                 heading="Untitled"
                 movable
@@ -853,10 +853,10 @@ vf-button::part(button) { min-width: 96px; }
 
           <template
             data-example
-            data-stage="column"
-            data-caption="bezel — the CRT's unlit black surround, 5 system px here. The screen's top corners wear the classic corner mask (only the top pair: the framebuffer ran the bottom square), landing over the menu bar's corners, and a dragged window crops at the bezel's inner edge."
+            data-stage="desktop"
+            data-caption="bezel — the CRT's unlit black surround, added onto the declared screen: width 502 plus a 5-px bezel each side renders the classic 512-system-px host box. The screen's top corners wear the corner mask (only the top pair: the framebuffer ran the bottom square), landing over the menu bar's corners, and a dragged window crops at the raster's edge."
           >
-            <vf-desktop bezel="5" style="width: 100%; height: 14em">
+            <vf-desktop width="502" height="214" bezel="5">
               <vf-menu-bar>
                 <vf-menu label="File">
                   <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
@@ -878,15 +878,20 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <p class="conforms">
-            Give it a height; it is <code>position: relative</code> already, so
-            position windows inside it absolutely.
+            Always explicitly sized: <code>width</code>/<code>height</code> in
+            system px, never your stylesheet — the component's own inline size
+            wins. Set the numbers directly, or let <code>fitWithin</code>
+            derive them from a box you measure; then position the sized
+            desktop with your own CSS, and place windows absolutely inside it.
           </p>
 
           <table class="api">
             <caption>Anatomy</caption>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td>Property</td><td><code>bezel</code></td><td class="wrap">The black screen surround, in system px (default 0). Insets the screen — flow, window coordinates and the drag clip all move with it — and puts the corner mask on the screen's top corners, so a menu bar inside needs no <code>rounded</code> of its own</td></tr>
+              <tr><td>Property</td><td><code>width</code>, <code>height</code></td><td class="wrap">The screen raster, in system px (defaults 512×342, the compact Mac's). The host box renders at the screen plus 2×<code>bezel</code> per axis — always a whole number of system pixels</td></tr>
+              <tr><td>Property</td><td><code>bezel</code></td><td class="wrap">The black screen surround, in system px (default 0), added onto the screen on every side. Flow, window coordinates and the drag clip belong to the screen, and the corner mask on its top corners means a menu bar inside needs no <code>rounded</code> of its own</td></tr>
+              <tr><td>Method</td><td><code>fitWithin(w,&nbsp;h)</code></td><td class="wrap">Sets the largest whole raster whose host box — bezel included — fits a CSS-px bound, and returns it. Call on <code>resize</code> and <code>onScaleChange</code> to keep a desktop filling the viewport</td></tr>
               <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, anything</td></tr>
               <tr><td>Part</td><td><code>desktop</code></td><td class="wrap">The dithered surface</td></tr>
               <tr><td>Token</td><td><code>--vf-desktop</code></td><td class="wrap">Base color under the tile (<code>#808080</code>); visible only under a custom pattern with transparent cells</td></tr>
@@ -930,7 +935,7 @@ vf-button::part(button) { min-width: 96px; }
             data-stage="desktop"
             data-caption="Document window (rails on the frame, grow box in the corner cell), modeless dialog, and the windoid. One document window is frontmost at a time — click a title bar to switch. Then close it: vf-close does not remove the window, so this page hides it and the button puts it back."
           >
-            <vf-desktop style="width: 32em; height: 21em">
+            <vf-desktop width="512" height="336">
               <vf-window
                 heading="Read Me"
                 movable
@@ -2256,7 +2261,7 @@ vf-button::part(button) { min-width: 96px; }
             data-stage="desktop"
             data-caption="movable — drag one, or Tab to it and use the arrow keys (Shift for eight). editable — click the name of an icon that is already selected to rename it; Return commits, Escape reverts, and the plate widens as you type. On the dither you can see why the plate is opaque white in its own right."
           >
-            <vf-desktop style="width: 32em; height: 12em">
+            <vf-desktop width="512" height="192">
               <vf-icon
                 label="Macintosh HD"
                 width="64"

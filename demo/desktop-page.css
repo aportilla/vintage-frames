@@ -1,10 +1,11 @@
 /*
  * The showcase's own page CSS — the side of a faux desktop a component cannot
- * reach from its shadow root: the page itself. A full-bleed <vf-desktop>
- * needs the page to hand it the viewport, and the page's own text (there is
- * almost none) sits on the kit's body face. This is host-page CSS, not part
- * of the kit — the package ships no stylesheet; blog.html shows the opposite
- * case, an ordinary page with none of this.
+ * reach from its shadow root: the page itself. A <vf-desktop> is always
+ * explicitly sized (demo.ts fits its raster to the viewport), so the page's
+ * jobs are the black behind it and the body face for its own text (there is
+ * almost none). This is host-page CSS, not part of the kit — the package
+ * ships no stylesheet; blog.html shows the opposite case, an ordinary page
+ * with none of this.
  */
 
 html,
@@ -14,7 +15,11 @@ body {
 
 body {
   margin: 0;
-  background: var(--vf-desktop, #808080);
+  /* Black, matching the desktop's bezel: the raster is a whole number of
+     system px (demo.ts fits it to the viewport), so the page's sub-pixel
+     leftover shows at the right/bottom edge — against black it reads as
+     more bezel, exactly what a CRT's surround did with slack. */
+  background: var(--vf-black, #000);
   font-family: var(
     --vf-font-family,
     'FindersKeepers',

@@ -92,12 +92,21 @@ That is the whole setup — the kit ships no stylesheet. Every visual constant
 is a `--vf-*` token with an inlined fallback, the bitmap faces register
 themselves on `document.fonts`, and `vf-desktop` paints its own gray dither,
 so components render correctly with no global CSS at all. The one thing a
-component cannot reach from its shadow root is your page itself: a full-bleed
-desktop needs the page to hand it the viewport, in your own stylesheet —
+component cannot reach from its shadow root is your page itself: a desktop is
+a **raster with a declared size** — `width` and `height` in system px, like a
+window — and a full-screen one needs the page, the owner of the viewport, to
+hand it the numbers and re-derive them when the window or the scale moves:
 
-```css
-html, body { height: 100%; margin: 0 }
-vf-desktop { height: 100% }
+```ts
+const desktop = document.querySelector('vf-desktop')
+const fit = () =>
+  desktop.fitWithin(innerWidth, innerHeight) // largest whole raster that fits
+fit()
+addEventListener('resize', fit)
+onScaleChange(fit) // zoom or a monitor move changes what a system px costs
+
+// body { margin: 0; background: #000 }  ← the page's own stylesheet: the
+// sub-system-pixel leftover stays on the page, and black reads as bezel
 ```
 
 ### Taking only what you use
@@ -154,7 +163,7 @@ call really would have thrown, that the second copy doesn't, that the first
 class keeps the tag, and that the elements still render afterwards.
 
 ```html
-<vf-desktop>
+<vf-desktop width="512" height="342">
   <vf-menu-bar>
     <vf-menu label="File">
       <vf-menu-item shortcut="⌘N">New Window</vf-menu-item>
@@ -180,7 +189,7 @@ class keeps the tag, and that the elements still render afterwards.
 
 | Element | Purpose |
 | --- | --- |
-| `vf-desktop` | Gray desktop container; manages window stacking + active state, with utility windows on a floating tier — a click or keyboard focus activates a window, and tab order follows the stack; `bezel` (system px) draws the CRT's black surround with the classic rounded top screen corners |
+| `vf-desktop` | Gray desktop raster (**declare `width` and `height`**, in system px; `fitWithin(w, h)` derives the largest whole raster for a CSS-px box — the viewport, usually); manages window stacking + active state, with utility windows on a floating tier — a click or keyboard focus activates a window, and tab order follows the stack; `bezel` (system px) adds the CRT's black surround with the classic rounded top screen corners |
 | `vf-window` | The desktop-window shell (**declare `width` and `height`**, in system px): striped title bar, close/zoom boxes, movable/resizable, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`) — see [Window archetypes](#window-archetypes--enabling-the-1992-hig-not-enforcing-it) |
 | `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood; **declare `width` and `height`**, in system px): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` |
 | `vf-alert` | Classic double-framed modal alert (**declare `width` and `height`**, in system px); `variant="caution"` draws the real 32×32 System 7 caution icon — see [Glyphs are drawn, icons are not](#glyphs-are-drawn-icons-are-not) |

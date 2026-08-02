@@ -147,7 +147,7 @@ check(
 //
 //   KIT_WIDE_AT  a token this many components or more can style is a kit-wide
 //                knob (the palette, the type stack, the focus rule), described
-//                once in SPEC §3 and vintage.css rather than repeated on all 30
+//                once in SPEC §3 rather than repeated on all 30
 //                elements. The kit splits cleanly: the widest component-specific
 //                token reaches 4, the narrowest kit-wide one 7.
 const INTERNAL = new Set([

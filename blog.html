@@ -25,12 +25,11 @@
 
       Three deliberate choices worth copying:
 
-      1. There is no `vintage.css` import. That file paints the gray desktop
-         background and forces the FindersKeepers bitmap face at weight 700 on
-         <body> — correct for a faux OS, wrong for a blog. Leaving it out is the
-         proof that components need zero global CSS: the bitmap faces register
-         themselves on document.fonts and are only referenced inside shadow
-         roots, so the page copy below stays in Georgia and Helvetica.
+      1. There is no kit CSS on this page — the kit ships none. The components
+         need zero global CSS: the bitmap faces register themselves on
+         document.fonts and are only referenced inside shadow roots, so the
+         page copy below stays in Georgia and Helvetica, and blog.css remains
+         an ordinary stylesheet the kit never touches.
 
       2. Every line-height, padding, margin and gap in blog.css is a whole
          number of pixels. That is the layout contract (README, "Staying on the
@@ -64,8 +63,8 @@
       <p class="harness__note">
         <strong>Vintage Frames integration example.</strong> An ordinary blog
         page using <code>&lt;vf-*&gt;</code> controls in its header, sidebar and
-        forms — no <code>&lt;vf-desktop&gt;</code>, no windows, no
-        <code>vintage.css</code>, and no <code>--vf-scale</code>: the controls
+        forms — no <code>&lt;vf-desktop&gt;</code>, no windows, no global CSS,
+        and no <code>--vf-scale</code>: the controls
         are in their default self-scaling state.
       </p>
       <!-- Read-only: the page sets no --vf-scale, so this reports what the

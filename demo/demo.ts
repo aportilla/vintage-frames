@@ -17,7 +17,7 @@ import type {
   VfMenuItem,
   VfProgressBar,
 } from '../src/index.js'
-import '../src/styles/vintage.css'
+import './desktop-page.css'
 import './demo.css'
 
 /** Detail dispatched by `vf-menu-item`'s `vf-menu-select` event. */

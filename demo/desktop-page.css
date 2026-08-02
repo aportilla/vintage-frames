@@ -1,0 +1,53 @@
+/*
+ * The showcase's own page CSS — the side of a faux desktop a component cannot
+ * reach from its shadow root: the page itself. A full-bleed <vf-desktop>
+ * needs the page to hand it the viewport, and the page's own text (there is
+ * almost none) sits on the kit's body face. This is host-page CSS, not part
+ * of the kit — the package ships no stylesheet; blog.html shows the opposite
+ * case, an ordinary page with none of this.
+ */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--vf-desktop, #808080);
+  font-family: var(
+    --vf-font-family,
+    'FindersKeepers',
+    'Geneva',
+    'Helvetica Neue',
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  font-size: var(--vf-font-size, 16px);
+  font-weight: var(--vf-font-weight, 700);
+  color: var(--vf-black, #000);
+}
+
+::selection {
+  background: var(--vf-highlight, #000);
+  color: var(--vf-highlight-text, #fff);
+}
+
+/*
+ * Forced-colors mode: the PAGE's side of the token remap every component
+ * carries in vfBase (see src/styles/recipes/host.ts) — body copy, ::selection
+ * above, and any page CSS that reads the tokens all land on the user's own
+ * pair. System-color keywords survive the forced override.
+ */
+@media (forced-colors: active) {
+  :root {
+    --vf-black: CanvasText;
+    --vf-white: Canvas;
+    --vf-surface: Canvas;
+    --vf-disabled: GrayText;
+    --vf-field-placeholder: GrayText;
+    --vf-highlight: Highlight;
+    --vf-highlight-text: HighlightText;
+  }
+}

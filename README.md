@@ -18,7 +18,7 @@ npm run typecheck
 | Page | What it is |
 | --- | --- |
 | [`/`](http://localhost:5173/) | **The showcase** — a full `vf-desktop` with menu bar, movable windows, dialogs, alerts and every control ([`index.html`](./index.html) + [`demo/`](./demo)) |
-| [`/blog.html`](http://localhost:5173/blog.html) | **The integration example** — an ordinary blog page (system-font copy, normal document flow, no `vintage.css`) using the controls in its header, sidebar, dialogs and comment form ([`blog.html`](./blog.html) + [`demo/blog.*`](./demo)) |
+| [`/blog.html`](http://localhost:5173/blog.html) | **The integration example** — an ordinary blog page (system-font copy, normal document flow, no global CSS) using the controls in its header, sidebar, dialogs and comment form ([`blog.html`](./blog.html) + [`demo/blog.*`](./demo)) |
 | [`/examples.html`](http://localhost:5173/examples.html) | **The component reference** — every component, its custom API, and a live specimen of each state, plus the conformity notes for what it shares with the platform ([`examples.html`](./examples.html) + [`demo/examples.*`](./demo)) |
 
 The reference page prints each demo's own `<template>` as its code sample, so a
@@ -85,8 +85,19 @@ npm run shot:blog     # shots/blog-dpr{1,2,3}.png
 ## Usage in your project
 
 ```ts
-import 'vintage-frames'            // registers every <vf-*> element
-import 'vintage-frames/vintage.css' // optional page defaults (desktop bg, font)
+import 'vintage-frames'   // registers every <vf-*> element
+```
+
+That is the whole setup — the kit ships no stylesheet. Every visual constant
+is a `--vf-*` token with an inlined fallback, the bitmap faces register
+themselves on `document.fonts`, and `vf-desktop` paints its own gray dither,
+so components render correctly with no global CSS at all. The one thing a
+component cannot reach from its shadow root is your page itself: a full-bleed
+desktop needs the page to hand it the viewport, in your own stylesheet —
+
+```css
+html, body { height: 100%; margin: 0 }
+vf-desktop { height: 100% }
 ```
 
 ### Taking only what you use
@@ -108,13 +119,13 @@ mirrors `src/` one file per module, so a subpath resolves to a real file a
 bundler can shake — and one a `<script type="module">` or an import map can
 fetch directly, with no build step at all.
 
-**Those are also the only doors.** The package exports exactly three entries —
-the root, one `vf-*.js` per element, and `vintage.css`. The shared modules
+**Those are also the only doors.** The package exports exactly two entries —
+the root and one `vf-*.js` per element. The shared modules
 behind them (the style recipes, the controllers, the fonts) are real files in
 `dist/`, which is what the per-component graphs import — but *your* imports of
 them go through the root (see [Utilities & style toolkit](#utilities--style-toolkit)),
 never a deeper path, so `dist/`'s internal layout stays an implementation
-detail rather than API. A path outside the three fails at resolve time, in the
+detail rather than API. A path outside the two fails at resolve time, in the
 bundler or the typechecker, not as a 404 in production.
 
 What that costs, bundled and minified with `lit` external:
@@ -230,8 +241,7 @@ SPEC §3 table so the two can't disagree — 45 tags across 22 components, and
 `verify:manifest` fails if a component gains such a token without one, if a tag
 has no SPEC row, or if SPEC lists a token nothing reads. The 17 kit-wide knobs
 (`--vf-scale`, the palette, both type stacks, the focus rule) are described once
-in [SPEC.md](./SPEC.md) and `vintage.css` rather than repeated on all 31
-elements. Three kinds of token are deliberately undocumented: the
+in [SPEC.md](./SPEC.md) rather than repeated on all 31 elements. Three kinds of token are deliberately undocumented: the
 controller-owned grid-snap offsets, the private channels `vf-button-group` uses
 to drive `vf-button`, and geometry a component sets on itself.
 

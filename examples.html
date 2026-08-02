@@ -128,7 +128,7 @@
             data-source="hidden"
             data-caption="Not a screenshot. Pull down a menu, drag a title bar, click a window to bring it forward, tab into a control."
           >
-            <vf-desktop style="width: 36em; height: 25em">
+            <vf-desktop style="width: 100%; height: 25em">
               <vf-menu-bar>
                 <vf-menu label="File">
                   <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
@@ -265,19 +265,18 @@
 
           <h2>Install</h2>
           <pre class="snippet"><code>npm install vintage-frames</code></pre>
-          <pre class="snippet"><code>import 'vintage-frames'             // registers every &lt;vf-*&gt; element
-import 'vintage-frames/vintage.css' // OPTIONAL page defaults (desktop bg, body face)</code></pre>
+          <pre class="snippet"><code>import 'vintage-frames' // registers every &lt;vf-*&gt; element</code></pre>
 
           <p>
-            The second import is genuinely optional. Every visual constant is a
-            <code>--vf-*</code> custom property with an inlined fallback, and the two
-            System 7 bitmap faces register themselves on <code>document.fonts</code>
-            from inside the components — so a component dropped on a blank page
-            renders correctly with <strong>no global CSS at all</strong>.
-            <code>vintage.css</code> only adds page-level defaults (gray desktop
-            background, the body face on <code>&lt;body&gt;</code>), which are right
-            for a faux desktop and wrong for a documentation page like this one. This
-            page does not load it.
+            That is the whole setup — the kit ships no stylesheet. Every visual
+            constant is a <code>--vf-*</code> custom property with an inlined
+            fallback, the two System 7 bitmap faces register themselves on
+            <code>document.fonts</code> from inside the components, and
+            <code>vf-desktop</code> paints its own gray dither — so a component
+            dropped on a blank page renders correctly with
+            <strong>no global CSS at all</strong>. Page-level looks (a full-bleed
+            desktop, your own copy's face) belong to your page's stylesheet, where
+            a component cannot and should not reach.
           </p>
 
           <p>
@@ -288,7 +287,7 @@ import 'vintage-frames/vintage.css' // OPTIONAL page defaults (desktop bg, body 
           <pre class="snippet"><code>import 'vintage-frames/vf-button.js'
 import 'vintage-frames/vf-checkbox.js'</code></pre>
           <p>
-            Those subpaths and <code>vintage.css</code> are the whole export surface;
+            Those subpaths are the whole export surface;
             a deeper path into the package fails at resolve time rather than as a
             404 in production. It stays one npm package on purpose — the scaling,
             grid snapping, focus modality and font registration are module-scoped

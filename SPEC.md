@@ -163,8 +163,12 @@ Modern requirements that we deliberately keep (accessibility over purity):
 
 ## 3. Design tokens
 
-Use with inline fallback: `var(--vf-white, #ffffff)`. `src/styles/vintage.css`
-documents the same set for consumers to override at `:root`.
+Use with inline fallback: `var(--vf-white, #ffffff)`. Consumers override at
+`:root` (or any narrower scope) in their own CSS — the kit ships no stylesheet.
+A page whose *own* rules read these tokens should also re-declare the palette
+as system colors under `@media (forced-colors: active)` (see §1): the
+components carry that remap themselves in `vfBase`, but a component cannot do
+it for the page.
 
 Every length in this doc is a **system pixel** value; components multiply it by
 `--vf-scale` in `calc()` (see the note after the table).

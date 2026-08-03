@@ -231,6 +231,84 @@ export function unsnapDialog(dialog: HTMLDialogElement): void {
   dialog.style.marginTop = ''
 }
 
+/* ── The shared scale tracker ───────────────────────────────────────────── */
+
+type ScaleListener = (scale: number) => void
+
+/**
+ * Two tiers, and the order is the point. The kit's own subscribers WRITE
+ * `--vf-scale` (every component's {@link ScaleController}, a page's
+ * {@link applyScale}); consumer callbacks tend to READ it back — a
+ * `fitWithin()` re-fit calls {@link effectiveScale}, a layout callback
+ * measures a component. Writers must run first, or every such read sees the
+ * *previous* scale: subscription order alone put page code (which subscribes
+ * at module eval) ahead of the controllers (which subscribe on a component's
+ * first update), and the showcase's zoom re-fit sized its raster one zoom
+ * step behind for exactly that reason.
+ */
+const scaleWriters = new Set<ScaleListener>()
+const scaleReaders = new Set<ScaleListener>()
+let scaleWatchers = 0
+let lastPair = { scale: 0, dpr: 0 }
+let stopScaleZoom: (() => void) | undefined
+let scaleMql: MediaQueryList | undefined
+
+/**
+ * One evaluation per actual change, deduped on the pair `(scale, trueDpr)` —
+ * and the pair matters: at Chrome 100% → 200% on a 2× display the scale is
+ * 1.5 both times, but the true dpr goes 2 → 4 — the *device grid* changed,
+ * and grid snapping must re-sweep even though `--vf-scale` did not move.
+ * Conversely a Chrome zoom fires both sources in one turn, and the dedupe
+ * collapses them to one callback wave per actual change.
+ */
+const fireScale = (): void => {
+  const next = { scale: getScale(), dpr: truePixelRatio() }
+  if (next.scale === lastPair.scale && next.dpr === lastPair.dpr) return
+  lastPair = next
+  for (const listener of [...scaleWriters]) listener(next.scale)
+  for (const listener of [...scaleReaders]) listener(next.scale)
+}
+
+const armScaleMql = (): void => {
+  disarmScaleMql()
+  scaleMql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+  scaleMql.addEventListener('change', onScaleMql)
+}
+
+const onScaleMql = (): void => {
+  fireScale()
+  // dpr changed, so the old query no longer matches — re-register on the new one.
+  armScaleMql()
+}
+
+const disarmScaleMql = (): void => {
+  scaleMql?.removeEventListener('change', onScaleMql)
+  scaleMql = undefined
+}
+
+/** Shared, refcounted subscription — both tiers ride one media query and one
+ *  zoom subscription for the whole page. */
+function subscribeScale(callback: ScaleListener, tier: Set<ScaleListener>): () => void {
+  if (typeof window === 'undefined' || !window.matchMedia) return () => {}
+  tier.add(callback)
+  if (scaleWatchers++ === 0) {
+    lastPair = { scale: getScale(), dpr: truePixelRatio() }
+    stopScaleZoom = onZoomChange(fireScale)
+    armScaleMql()
+  }
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    tier.delete(callback)
+    if (--scaleWatchers === 0) {
+      stopScaleZoom?.()
+      stopScaleZoom = undefined
+      disarmScaleMql()
+    }
+  }
+}
+
 /**
  * Watch for anything that moves the scale *or* the device grid under it — the
  * window moving to a different-density monitor (via a resolution media query),
@@ -238,36 +316,15 @@ export function unsnapDialog(dialog: HTMLDialogElement): void {
  * Safari's dpr-invisible zoom) — and invoke `callback` with the new scale.
  * Returns a cleanup function.
  *
- * Fires are deduped on the pair `(scale, trueDpr)`, and the pair matters: at
- * Chrome 100% → 200% on a 2× display the scale is 1.5 both times, but the true
- * dpr goes 2 → 4 — the *device grid* changed, and grid snapping must re-sweep
- * even though `--vf-scale` did not move. Conversely a Chrome zoom fires both
- * sources in one turn, and the dedupe collapses them to one callback per
- * actual change.
+ * Ordering guarantee: by the time a callback runs, every `--vf-scale` the kit
+ * itself manages (component defaults via {@link ScaleController}, a root set
+ * by {@link applyScale}) has already been updated — so reading
+ * {@link effectiveScale} or a computed style inside the callback is sound.
+ * The README's full-screen pattern (`onScaleChange(fit)` re-deriving a
+ * `vf-desktop` raster) depends on this.
  */
-export function onScaleChange(callback: (scale: number) => void): () => void {
-  if (typeof window === 'undefined' || !window.matchMedia) return () => {}
-  let last = { scale: getScale(), dpr: truePixelRatio() }
-  const fire = (): void => {
-    const next = { scale: getScale(), dpr: truePixelRatio() }
-    if (next.scale === last.scale && next.dpr === last.dpr) return
-    last = next
-    callback(next.scale)
-  }
-  const stopZoom = onZoomChange(fire)
-  let mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
-  const handler = (): void => {
-    fire()
-    // dpr changed, so the old query no longer matches — re-register on the new one.
-    mql.removeEventListener('change', handler)
-    mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
-    mql.addEventListener('change', handler)
-  }
-  mql.addEventListener('change', handler)
-  return () => {
-    stopZoom()
-    mql.removeEventListener('change', handler)
-  }
+export function onScaleChange(callback: ScaleListener): () => void {
+  return subscribeScale(callback, scaleReaders)
 }
 
 /**
@@ -281,7 +338,9 @@ export function applyScale(
 ): () => void {
   const set = (): void => target.style.setProperty('--vf-scale', String(getScale()))
   set()
-  return onScaleChange(set)
+  // Writer tier: this runs before any onScaleChange() consumer callback, so
+  // code reading the root's scale in one sees the value already applied.
+  return subscribeScale(set, scaleWriters)
 }
 
 /**
@@ -363,7 +422,9 @@ export class ScaleController implements ReactiveController {
     const take = (): void => {
       this.pending = false
       set()
-      this.stop = onScaleChange(set)
+      // Writer tier: the host's --vf-scale is updated before any consumer's
+      // onScaleChange() callback can read it.
+      this.stop = subscribeScale(set, scaleWriters)
     }
     if (this.owns) return take()
     // Reading our own inline style needs no layout, so it is always decisive.

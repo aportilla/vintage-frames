@@ -2,14 +2,16 @@ import { css } from 'lit'
 
 /**
  * Racing stripes for title bars. Apply the class to an absolutely-positioned
- * layer inset 3px (top/bottom) and 2px (left/right) within the title bar. At
+ * layer inset 3px (top/bottom) and 1px (left/right) within the title bar. At
  * the 18px bar height this yields exactly six 1px stripes spanning the close
- * box's top and bottom edges (title-bar interior 17px, stripes 11px tall).
+ * box's top and bottom edges (title-bar interior 17px, stripes 11px tall);
+ * the side inset leaves the stripes one system px clear of the frame border,
+ * matching the widgets' 1px patch ring (npm run extract:windows).
  */
 export const vfStripes = css`
   .vf-stripes {
     position: absolute;
-    inset: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 2px);
+    inset: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 1px);
     background: repeating-linear-gradient(
       to bottom,
       var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),

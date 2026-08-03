@@ -290,9 +290,11 @@ right.
   the plain `:host` rule each component sets its own default face in.
 - `vfStripes` — a `.vf-stripes` class:
   `background: repeating-linear-gradient(to bottom, var(--vf-black, #000) 0 1px, transparent 1px 2px);`
-  Position it absolutely inside the title bar, inset `3px 2px` (top/bottom 3px,
-  left/right 2px) so exactly six 1px stripes show at the 18px bar height, their
-  top and bottom edges aligned with the close box's.
+  Position it absolutely inside the title bar, inset `3px 1px` (top/bottom 3px,
+  left/right 1px) so exactly six 1px stripes show at the 18px bar height, their
+  top and bottom edges aligned with the close box's and one system px of clear
+  white between the stripes and the frame border — the same buffer the widgets'
+  patch ring keeps.
 - `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer
   inset `2px` top/bottom and **flush left/right** (the close-up reference runs
   the dots into the side borders; the `Windows/` sheet's 2px side inset is the
@@ -321,7 +323,7 @@ right.
   dialogs with two different double frames (`Windows/modal dialog.png` vs the
   alert reference), so the kit keeps two recipes.
 - `vfWindowWidgets` — the title-bar window widgets (`.box` base, `.close`
-  left / `.zoom` right at 11×11 with the 2px white patch ring, the pressed
+  left / `.zoom` right at 11×11 with the 1px white patch ring, the pressed
   go-away sunburst, the nested zoom square), shared by `vf-window` and a
   `closable` `vf-dialog` so the two components' widgets match by construction.
   The templates that pair with it (`closeBox`/`zoomBox`/`widgetLabel`) live in
@@ -559,7 +561,7 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
     black (System 7 never grayed the window title).
   - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of
     clear white above and below it, `1px solid black`, white bg, no bevel,
-    surrounded by a 2px white patch interrupting the stripes. `:active`
+    surrounded by a 1px white patch interrupting the stripes. `:active`
     (pressed) → the interior fills with the classic radiating "go-away"
     sunburst: black 1-bit spokes on the white face (four orthogonal 3px spokes
     plus four diagonal 2px ones around an empty center), traced pixel-for-pixel
@@ -600,8 +602,10 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
     `Windows/utility-window.png` — `--vf-titlebar-height-utility` (12px = 11px
     interior + 1px rule), the `vfDots` dither instead of stripes (flush to the
     side borders — see §4 vfDots), 7×7 widgets (`top: 2px`; close `left: 7px`,
-    zoom `right: 8px` — the art really is asymmetric by that pixel) with the
-    same 2px patch ring, and the nested zoom square shrunk so its edges land
+    zoom `right: 8px` — the art really is asymmetric by that pixel) with a
+    2px patch ring where the striped bar's is 1px (`--vf-widget-ring`,
+    internal geometry: the windoid sheet clears two px of dither beside its
+    widgets), and the nested zoom square shrunk so its edges land
     at sprite col/row 3. No title patch: the display face's 16px line box
     can't sit in an 11px interior, so `.vf-title` is `display: none` under the
     variant (a retheming consumer can re-show it via `::part(title)`) and the

@@ -151,7 +151,7 @@ const partMetrics = (page, hostId, part, props) =>
   check('title ellipsizes rather than wrapping',
     winTitle['white-space'] === 'nowrap' && winTitle['text-overflow'] === 'ellipsis')
 
-  // The stripe layer is inside both bars and inset by the shared 3px/2px.
+  // The stripe layer is inside both bars and inset by the shared 3px/1px.
   const stripes = (id) =>
     page.evaluate((hostId) => {
       const bar = document.getElementById(hostId).shadowRoot.querySelector('[part=title-bar]')
@@ -171,9 +171,9 @@ const partMetrics = (page, hostId, part, props) =>
   const dlgStripes = await stripes('dlg')
   check('both bars carry the stripe layer',
     !!winStripes && !!dlgStripes && winStripes.position === 'absolute')
-  check(`stripes inset 3px/2px x${S} in both`,
-    near(winStripes.insetTop, 3 * S) && near(winStripes.insetLeft, 2 * S) &&
-    near(dlgStripes.insetTop, 3 * S) && near(dlgStripes.insetLeft, 2 * S),
+  check(`stripes inset 3px/1px x${S} in both`,
+    near(winStripes.insetTop, 3 * S) && near(winStripes.insetLeft, 1 * S) &&
+    near(dlgStripes.insetTop, 3 * S) && near(dlgStripes.insetLeft, 1 * S),
     `win ${winStripes.insetTop}/${winStripes.insetLeft} dlg ${dlgStripes.insetTop}/${dlgStripes.insetLeft}`)
   check('stripes never eat pointer events (the bar is a drag handle)',
     winStripes.pointerEvents === 'none' && dlgStripes.pointerEvents === 'none')

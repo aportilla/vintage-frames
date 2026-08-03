@@ -27,7 +27,10 @@ trace:
   different System 7 chromes, deliberately not one shared recipe.
 - `moveable modal dialog.png` — the striped bar with a close box: 11x11 at
   left:8px spanning the stripe band, byte-identical to vf-window's widget, so
-  vf-dialog's `closable` reuses the shared recipe rather than re-tracing.
+  vf-dialog's `closable` reuses the shared recipe rather than re-tracing. The
+  stripes keep a 1px buffer everywhere: one clear px against either frame
+  border (vfStripes' side inset) and a 1px white patch ring around the box
+  (`--vf-widget-ring`; the windoid's dither clears 2px instead — see above).
 
 Run from the repo root: `npm run extract:windows`.
 """
@@ -141,6 +144,16 @@ def trace_moveable_modal():
     assert (bx, blen) == (9, 11), f"close box run {(bx, blen)}"
     assert is_dark(pix[14][9]) and not is_dark(pix[15][9]), "close box 11px tall"
     print("close box: 11x11 at left:8px — shared with vf-window by construction")
+
+    # The stripes' side buffers are 1px everywhere: clear of the left border
+    # at x1 (stripes start x2), a 1px patch either side of the box (x8 / x20),
+    # and clear of the right border at w-3 (stripes end w-4; the border sits
+    # at w-2 with the sheet's 1px shadow in the last column).
+    assert not is_dark(pix[4][1]) and is_dark(pix[4][2]), "1px left buffer"
+    assert not is_dark(pix[4][8]) and not is_dark(pix[4][20]), "1px patch ring"
+    assert is_dark(pix[4][21]), "stripes resume past the ring"
+    assert is_dark(pix[4][w - 4]) and not is_dark(pix[4][w - 3]), "1px right buffer"
+    print("stripes: 1px clear of the frame edges, 1px patch ring at the box")
 
 
 if __name__ == "__main__":

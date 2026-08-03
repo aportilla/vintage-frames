@@ -71,9 +71,13 @@ export const vfWindowWidgets = css`
     margin: 0;
     border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
     background: var(--vf-white, #ffffff);
-    /* A 2px white patch ring that interrupts the stripes around the
-       box (no bevel — flat 1-bit). */
-    box-shadow: 0 0 0 calc(var(--vf-scale, 1) * 2px) var(--vf-white, #ffffff);
+    /* A 1px white patch ring that interrupts the stripes around the
+       box (no bevel — flat 1-bit), same buffer the stripes keep from the
+       frame edges. --vf-widget-ring is internal geometry, not a theming
+       knob: vf-window's utility variant widens it to 2px, the clearance
+       the windoid sheet cuts into its dither. */
+    box-shadow: 0 0 0 calc(var(--vf-scale, 1) * var(--vf-widget-ring, 1px))
+      var(--vf-white, #ffffff);
     font: inherit;
     cursor: default;
     -webkit-appearance: none;
@@ -121,7 +125,7 @@ export const vfWindowWidgets = css`
     display: none;
   }
   /* Forced colors: everything the widget draws is already token-routed —
-     Canvas face, CanvasText border — but its 2px white patch ring is a
+     Canvas face, CanvasText border — but its white patch ring is a
      box-shadow, which forced colors never paints, leaving the box pressed
      against the (rescued — see vfStripes) stripes. forced-color-adjust: none
      turns the widget's own paint back on; with the tokens remapped it still

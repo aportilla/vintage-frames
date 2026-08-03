@@ -96,7 +96,7 @@ export class VfWindow extends LitElement {
 
       /* --- Title bar ------------------------------------------------- */
       /* Clearance for the close/zoom widgets either side of the title patch:
-         8px offset + an 11px box + its 2px white patch ring, doubled, rounded
+         8px offset + an 11px box + its 1px white patch ring, doubled, rounded
          up to the classic 30-per-side. Not a theming knob — it's the widgets'
          own geometry — so it's set on the element, like --vf-focus-offset. */
       .vf-title {
@@ -158,7 +158,13 @@ export class VfWindow extends LitElement {
       }
       :host([variant='utility']) .box {
         /* 7×7 box with 2px of clear white above and below (bar interior is
-           11px: 2 + 7 + 2). */
+           11px: 2 + 7 + 2). The patch ring stays 2px here where the striped
+           bar's is 1px: the windoid sheet deliberately clears two px of
+           dither beside its widgets — the flush dot grid lands a dot in the
+           column adjacent to the box, and the art blanks it (npm run
+           extract:windows). A custom property rather than box-shadow so the
+           inactive blanking rule above still wins the cascade. */
+        --vf-widget-ring: 2px;
         top: calc(var(--vf-scale, 1) * 2px);
         width: calc(var(--vf-scale, 1) * 7px);
         height: calc(var(--vf-scale, 1) * 7px);

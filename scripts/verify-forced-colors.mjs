@@ -409,9 +409,9 @@ check(
     stripeInk > 3 * (bar.h - 6 * S),
     `${stripeInk} ink px beside the close box`
   )
-  // The 2px patch ring around the widget: pure Canvas, no stripe crosses it.
-  const ringX = box.x - bar.x - 2 * S
-  const ringInk = count(png, ringX, box.y - bar.y, 2 * S, box.h, P.ink)
+  // The 1px patch ring around the widget: pure Canvas, no stripe crosses it.
+  const ringX = box.x - bar.x - S
+  const ringInk = count(png, ringX, box.y - bar.y, S, box.h, P.ink)
   check(
     'the close box\'s white patch ring is back (box-shadow via forced-color-adjust)',
     ringInk === 0,

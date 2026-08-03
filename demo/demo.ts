@@ -53,16 +53,17 @@ const desktop = $<VfDesktop>('#desktop')
 const fitDesktop = (): void => {
   const cw = document.documentElement.clientWidth
   const ch = document.documentElement.clientHeight
-  const { width, height } = desktop.fitWithin(cw, ch)
+  desktop.fitWithin(cw, ch)
+  // const { width, height } = desktop.fitWithin(cw, ch)
   // Resize diagnostic: the measured box, the scale in force, and the raster
   // assigned from them. client < inner means a space-consuming scrollbar was
   // shrinking the measurement — the loop `overflow: hidden` on <html> exists
   // to prevent.
-  console.log(
-    `[vf-desktop fit] client ${cw}×${ch}, inner ${innerWidth}×${innerHeight}, ` +
-      `scale ${effectiveScale(desktop)} → raster ${width}×${height} sys px ` +
-      `(host ${width + 2 * desktop.bezel}×${height + 2 * desktop.bezel} sys px)`
-  )
+  // console.log(
+  //   `[vf-desktop fit] client ${cw}×${ch}, inner ${innerWidth}×${innerHeight}, ` +
+  //     `scale ${effectiveScale(desktop)} → raster ${width}×${height} sys px ` +
+  //     `(host ${width + 2 * desktop.bezel}×${height + 2 * desktop.bezel} sys px)`
+  // )
 }
 fitDesktop()
 window.addEventListener('resize', fitDesktop)

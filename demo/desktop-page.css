@@ -13,6 +13,17 @@ body {
   height: 100%;
 }
 
+html {
+  /* The raster is fitted to the viewport (demo.ts), so the page never scrolls
+     by design — but mid-resize the previous fit momentarily overflows the
+     shrinking viewport, and a classic (space-consuming) scrollbar would then
+     shrink what fitWithin measures next: the raster jitters between the
+     with- and without-scrollbar fit, and settles undersized whenever the
+     last resize event happened to measure beside a scrollbar. Clipping
+     overflow keeps the measurement the viewport itself, always. */
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   /* Black, matching the desktop's bezel: the raster is a whole number of

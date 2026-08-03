@@ -7,7 +7,7 @@
  * module is behavior only.
  */
 import { VfParagraph, VfWindow } from '../src/index.js'
-import { onScaleChange, sys } from '../src/scale.js'
+import { effectiveScale, onScaleChange, sys } from '../src/scale.js'
 import type {
   VfAlert,
   VfDesktop,
@@ -50,9 +50,17 @@ const desktop = $<VfDesktop>('#desktop')
  * page, invisible against the black body behind the bezel.
  * ------------------------------------------------------------------ */
 const fitDesktop = (): void => {
-  desktop.fitWithin(
-    document.documentElement.clientWidth,
-    document.documentElement.clientHeight
+  const cw = document.documentElement.clientWidth
+  const ch = document.documentElement.clientHeight
+  const { width, height } = desktop.fitWithin(cw, ch)
+  // Resize diagnostic: the measured box, the scale in force, and the raster
+  // assigned from them. client < inner means a space-consuming scrollbar was
+  // shrinking the measurement — the loop `overflow: hidden` on <html> exists
+  // to prevent.
+  console.log(
+    `[vf-desktop fit] client ${cw}×${ch}, inner ${innerWidth}×${innerHeight}, ` +
+      `scale ${effectiveScale(desktop)} → raster ${width}×${height} sys px ` +
+      `(host ${width + 2 * desktop.bezel}×${height + 2 * desktop.bezel} sys px)`
   )
 }
 fitDesktop()

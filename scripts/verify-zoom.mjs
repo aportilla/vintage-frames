@@ -50,9 +50,11 @@ const TABLE = [
   [0.67, 2],
   [0.75, 2],
   [0.8, 2],
+  [0.85, 3], // Safari's step below 100%: ties round up, so it holds size
   [0.9, 3],
   [1, 3],
   [1.1, 3],
+  [1.15, 3], // Safari's step above 100%: inside the do-nothing band
   [1.25, 4],
   [1.5, 5], // ties round UP: 4.5 → 5, erring toward larger
   [1.75, 5],
@@ -286,6 +288,121 @@ for (const dpr of [1, 2]) {
     `dpr ${dpr}: a one-axis viewport change (devtools dock) is not zoom`,
     docked.zoom === 1,
     `zoom ${docked.zoom}`
+  )
+
+  // A window-edge drag at its worst: the outer size is stubbed still (a
+  // stale or dead outer signal), and one coalesced resize event shrinks one
+  // axis by ~2.5% — the exact shape that used to pass axis agreement, miss
+  // the ladder, and ship the raw ratio as zoom, shrinking every component
+  // into fractional device coverage. One axis alone must never move the scale.
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: 965,
+    height: 950,
+    deviceScaleFactor: dpr,
+    mobile: false,
+    screenWidth: 2560,
+    screenHeight: 1440,
+  })
+  const dragged = await measure(page)
+  check(
+    `dpr ${dpr}: a width-only edge drag never moves the scale`,
+    dragged.zoom === 1 && dragged.scale === 3 / dpr,
+    `zoom ${dragged.zoom}, --vf-scale ${dragged.scale}`
+  )
+
+  // Both axes shrinking by a factor that is no browser zoom level (a corner
+  // drag, a window-manager tile): rebase, never zoom — the old path accepted
+  // this raw.
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: 919, // 965 / 1.05, both axes — off every ladder rung
+    height: 905,
+    deviceScaleFactor: dpr,
+    mobile: false,
+    screenWidth: 2560,
+    screenHeight: 1440,
+  })
+  const tiled = await measure(page)
+  check(
+    `dpr ${dpr}: an off-ladder both-axes change is not zoom`,
+    tiled.zoom === 1 && tiled.scale === 3 / dpr,
+    `zoom ${tiled.zoom}, --vf-scale ${tiled.scale}`
+  )
+
+  // …and that rebase kept a later real zoom measurable from the new viewport.
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: 613, // 919 / 1.5, 905 / 1.5
+    height: 603,
+    deviceScaleFactor: dpr,
+    mobile: false,
+    screenWidth: 2560,
+    screenHeight: 1440,
+  })
+  const rezoomed = await measure(page)
+  check(
+    `dpr ${dpr}: a real zoom after the rebase still lands`,
+    rezoomed.zoom === 1.5 &&
+      Math.abs(rezoomed.scale - devicePxPerSystemPx(1.5) / (dpr * 1.5)) < 1e-9,
+    `zoom ${rezoomed.zoom}, --vf-scale ${rezoomed.scale}`
+  )
+
+  // Safari's own 115% — a ladder entry Chrome doesn't offer; path 2 must
+  // accept it now that acceptance is ladder-only.
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: 799, // 919 / 1.15, 905 / 1.15
+    height: 787,
+    deviceScaleFactor: dpr,
+    mobile: false,
+    screenWidth: 2560,
+    screenHeight: 1440,
+  })
+  const safariStep = await measure(page)
+  check(
+    `dpr ${dpr}: Safari's 115% step is recognized`,
+    safariStep.zoom === 1.15 &&
+      Math.abs(safariStep.trueDpr - dpr * 1.15) < 1e-9 &&
+      Math.abs(safariStep.scale - devicePxPerSystemPx(1.15) / (dpr * 1.15)) < 1e-9,
+    `zoom ${safariStep.zoom}, trueDpr ${safariStep.trueDpr}, --vf-scale ${safariStep.scale}`
+  )
+
+  // Back to 100%: the drag noise along the way cost nothing.
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: 919,
+    height: 905,
+    deviceScaleFactor: dpr,
+    mobile: false,
+    screenWidth: 2560,
+    screenHeight: 1440,
+  })
+  const restored = await measure(page)
+  check(
+    `dpr ${dpr}: back to 100% is exactly the launch scale`,
+    restored.zoom === 1 && restored.scale === 3 / dpr,
+    `zoom ${restored.zoom}, --vf-scale ${restored.scale}`
+  )
+  await page.close()
+}
+
+{
+  // The same edge drag with a LIVE outer signal (headless Chromium reports
+  // outerWidth = innerWidth, so the outer branch sees it move): classified as
+  // a window resize outright. Belt to the stubbed worst case above.
+  const { page, cdp } = await build(browser, {
+    dpr: 1,
+    screen: { width: 2560, height: 1440 },
+  })
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: 1290,
+    height: 950,
+    deviceScaleFactor: 1,
+    mobile: false,
+    screenWidth: 2560,
+    screenHeight: 1440,
+  })
+  const m = await measure(page)
+  check(
+    'an edge drag with the outer size tracking is a window resize, not zoom',
+    m.zoom === 1 && m.scale === 3,
+    `zoom ${m.zoom}, --vf-scale ${m.scale}`
   )
   await page.close()
 }

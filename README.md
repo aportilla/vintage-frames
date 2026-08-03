@@ -105,8 +105,11 @@ fit()
 addEventListener('resize', fit)
 onScaleChange(fit) // zoom or a monitor move changes what a system px costs
 
-// body { margin: 0; background: #000 }  ← the page's own stylesheet: the
-// sub-system-pixel leftover stays on the page, and black reads as bezel
+// html { overflow: hidden }  body { margin: 0; background: #000 }  ← the
+// page's own stylesheet: the sub-system-pixel leftover stays on the page,
+// black reads as bezel, and clipped overflow keeps a mid-resize scrollbar
+// (the previous fit overflows the shrinking viewport for a moment) from
+// feeding back into what the next fit() measures
 ```
 
 ### Taking only what you use
@@ -428,7 +431,7 @@ is not negotiable. The response is quantized and identical on every display:
 | --- | --- | --- |
 | 25–33% | 1 | 33% |
 | 50–80% | 2 | 67% |
-| 90–110% | 3 | 100% |
+| 85–115% | 3 | 100% |
 | 125% | 4 | 133% |
 | 150–175% | 5 | 167% |
 | 200% | 6 | 200% |
@@ -449,7 +452,11 @@ same in every engine**: Chrome and Firefox report zoom through
 `innerWidth` instead, so the kit tracks both signals (`src/zoom.ts`) and
 arrives at the same rendered size either way — including telling a zoom apart
 from the window moving to a different-density monitor, which changes the same
-dpr but must keep physical size instead (and still does).
+dpr but must keep physical size instead (and still does). Resizing the browser
+window is never read as zoom: a viewport change counts only when both axes
+rescale together to a real browser zoom level, so dragging a window edge can
+never move the render scale — the kit's response to a resize is layout
+(`fitWithin`, your own CSS), never a new scale.
 
 The baseline is page load, assumed to be 100%. A page that *loads*
 already-zoomed (Chrome persists zoom per origin) reads that as its 100% and

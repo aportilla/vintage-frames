@@ -25,11 +25,15 @@
  *      report those members in zoom-affected CSS px) means zoom; anything else
  *      means a display change, which rebases the baseline and reports nothing.
  *   2. `innerWidth`/`innerHeight` against `outerWidth`/`outerHeight`, for
- *      Safari: zoom shrinks the inner (CSS-px) viewport on both axes by the
+ *      Safari: zoom rescales the inner (CSS-px) viewport on both axes by the
  *      same factor while the outer (screen-px) window holds still. A change in
  *      the outer size is a real window resize and rebases; a one-axis inner
- *      change (devtools docking, a sidebar) is a viewport change and rebases;
- *      only a both-axes, same-factor shrink reads as zoom.
+ *      change (an edge drag, devtools docking, a sidebar) is never zoom and
+ *      rebases; a both-axes change reads as zoom only when both axes land on
+ *      the same {@link ZOOM_LADDER} level. A width-derived zoom is an
+ *      inference, unlike path 1's engine-stated density, so anything it can't
+ *      match to a real zoom level rebases rather than reports (see
+ *      {@link onResize} for what accepting a raw ratio used to cost).
  *
  * Once path 1 has classified a change as zoom, the engine is known to fold
  * zoom into dpr and path 2 is switched off for the session
@@ -65,13 +69,17 @@ const MIN_TARGET = 1
 const MAX_TARGET = 24
 
 /**
- * Zoom levels browsers actually offer (Chrome's set; Firefox's 120/133/170%
- * and Safari's 115% land between entries and pass through raw, which is fine —
- * only the exact-threshold levels need pinning). Measured zoom snaps to the
- * nearest entry within {@link LADDER_TOLERANCE}.
+ * Zoom levels browsers actually offer — Chrome's set plus Safari's 85% and
+ * 115%. Two consumers, two strictnesses: path 1 snaps its dpr-derived zoom to
+ * the nearest entry within {@link LADDER_TOLERANCE} and otherwise trusts it
+ * raw (the engine measured it — Firefox's 120/133/170% land between entries
+ * and pass through, which is fine), while path 2 accepts ONLY these levels:
+ * its width-derived measurement is an inference, and every real zoom it can
+ * observe is a Safari one, so Safari's own steps must all be entries.
  */
 export const ZOOM_LADDER = [
-  0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5,
+  0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.85, 0.9, 1, 1.1, 1.15, 1.25, 1.5, 1.75, 2,
+  2.5, 3, 4, 5,
 ]
 const LADDER_TOLERANCE = 0.02
 
@@ -154,9 +162,6 @@ const signatureScaledBy = (
 
 /** An inner/outer width change smaller than this is noise, not a signal. */
 const WIDTH_EPS = 4
-
-/** How far the two inner axes' shrink factors may disagree and still be zoom. */
-const AXIS_AGREEMENT = 0.03
 
 /** Resolution media queries match a band, not a point — float-serialization slack. */
 const BAND = 0.001
@@ -288,13 +293,23 @@ const disarm = (): void => {
 
 /**
  * Path 2 — Safari-shaped zoom, where the dpr holds still and the CSS viewport
- * shrinks instead. Everything that is *not* a both-axes same-factor change is
- * classified away first: a dpr move belongs to path 1; an outer-size change is
- * the user resizing the window; a one-axis inner change is devtools or a
- * sidebar. What survives is measured against the load-time inner size and
- * quantized. The residual false positive — a viewport change that happens to
- * shrink both axes by one factor with the outer size held — is accepted and
- * documented (§5c); its worst outcome is a wrong size, visibly, never a fringe.
+ * rescales instead. Everything that is not zoom-shaped is classified away and
+ * *rebased*, never reported: a dpr move belongs to path 1; an outer-size
+ * change is the user resizing the window; a one-axis inner change is never
+ * zoom (zoom rescales both axes at once — an edge drag, devtools, a sidebar
+ * move one). A both-axes change is accepted only when both axes land on the
+ * same {@link ZOOM_LADDER} level, because a false positive here is never
+ * merely a size error: it folds a zoom into {@link truePixelRatio} that the
+ * rasterizer never applied, so `--vf-scale × trueDpr` stays whole while the
+ * art's *actual* device coverage goes fractional — the exact fringe the whole
+ * model exists to prevent. A janky window-edge drag used to do just that:
+ * resize events coalesce into a 2–3% one-axis jump, a stale outer baseline
+ * missed it, and the raw off-ladder ratio shrank the kit a hair into gray.
+ * One-axis-is-never-zoom and ladder-or-rebase each close that independently,
+ * and rebasing on every unclassified change means no drift can *accumulate*
+ * toward a ladder level either. The residual false positive — a single jump
+ * that rescales both axes by one real zoom level with the outer size held —
+ * remains accepted and documented.
  */
 const onResize = (): void => {
   const dpr = window.devicePixelRatio
@@ -319,22 +334,20 @@ const onResize = (): void => {
     baselineInnerHeight = ih * zoom
     return
   }
-  if (
-    Math.abs(iw - baselineInner / zoom) < WIDTH_EPS &&
-    Math.abs(ih - baselineInnerHeight / zoom) < WIDTH_EPS
-  ) {
-    return
-  }
-  const rw = baselineInner / iw
-  const rh = baselineInnerHeight / ih
-  if (Math.abs(rw / rh - 1) > AXIS_AGREEMENT) {
-    // One axis moved without the other — devtools docked, a sidebar opened.
-    // Rebase so a later real zoom measures from the viewport that remains.
+  // Not zoom: rebase so a later real zoom measures from the viewport that
+  // remains, and so repeated near-misses never accumulate into a ladder hit.
+  const rebase = (): void => {
     baselineInner = iw * zoom
     baselineInnerHeight = ih * zoom
-    return
   }
-  setZoom(quantizeZoom(rw))
+  const dw = Math.abs(iw - baselineInner / zoom)
+  const dh = Math.abs(ih - baselineInnerHeight / zoom)
+  if (dw < WIDTH_EPS && dh < WIDTH_EPS) return
+  if (dw < WIDTH_EPS || dh < WIDTH_EPS) return rebase()
+  const qw = quantizeZoom(baselineInner / iw)
+  const qh = quantizeZoom(baselineInnerHeight / ih)
+  if (qw !== qh || !ZOOM_LADDER.includes(qw)) return rebase()
+  setZoom(qw)
 }
 
 let watchers = 0

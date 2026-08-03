@@ -216,7 +216,7 @@ class keeps the tag, and that the elements still render afterwards.
 | `vf-label` | Static caption ("Name:", "Mode") in the chrome face; `for` focuses and names a control the way `<label for>` does, and `width` (system px) gives a caption column one whole-pixel x |
 | `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box |
 | `vf-img` | Pixel art on the kit's grid — sizes a slotted `<img>` to one system pixel per image pixel and keeps the nearest-neighbor magnification on whole device pixels; `width`/`height` (system px) reserve the box before the file loads |
-| `vf-icon` | The Finder icon: art in a reserved 32×32 or 16×16 cell with its name on a plate below — wrapped, never abbreviated, and capped at HFS's 31 characters. `selectable` (the art inverts), `movable` (drag or arrow keys) and `editable` (rename in place) — see [The Finder icon](#the-finder-icon--vf-icon) |
+| `vf-icon` | The Finder icon: art in a reserved 32×32 or 16×16 cell with its name on a plate below — wrapped, never abbreviated, and capped at HFS's 31 characters. `selectable` (the art inverts), `open` (the art redraws as the open-window ghost, derived from the slotted art in the client), `movable` (drag or arrow keys) and `editable` (rename in place) — see [The Finder icon](#the-finder-icon--vf-icon) |
 
 All visual constants are CSS custom properties (`--vf-*`) with inlined
 fallbacks — components need **no global CSS**, and everything is themeable.
@@ -826,6 +826,24 @@ selection color with `vf-list-item`. Clicking selects, Shift adds, and a press
 anywhere else clears — single-selection works with no container managing the
 set, which is what the outside-press listener buys.
 
+**`open` is derived, not shipped.** The Finder's other visual state — the
+window this icon stands for is on screen — redraws the art as a ghost: the
+outline held in solid black, the interior re-filled with the same loose 25%
+dither the scroll rails use, the transparent surround untouched. There is no
+second raster and no second fetch: the same alpha channel that makes selection
+an inversion is the icon's mask resource, so both halves of the ghost are
+derived from the slotted art in the client, by canvas compositing alone — a
+silhouette, a 1px erosion (`destination-in` against itself shifted one pixel
+each way), and a pattern fill anchored on the art's own grid, so a field of
+open icons shares one lattice phase. Nothing ever reads pixels back, which
+means a cross-origin image that taints its canvas still works: taint forbids
+reading, not drawing or displaying. And because the ghost keeps ink and opaque
+white on a transparent surround, a selected open icon inverts exactly as a
+closed one does. Set `open` when you handle `vf-open`, clear it when the window
+goes away — the showcase's launcher icons do exactly that. Art the pipeline
+cannot draw (nothing slotted, a failed load, an inline `<svg>`) keeps rendering
+as itself.
+
 **The parameter is `movable`, never `draggable`.** `draggable` is a global HTML
 attribute *and* an `HTMLElement` accessor, so declaring it would both shadow a
 platform member and hand the element to the browser's own drag-and-drop
@@ -894,7 +912,10 @@ npm run verify:icon   # the cell metrics at dpr 1/2/3; art, plate and text all o
                       # pixel in a field of names; one-line names that overflow
                       # rather than abbreviate; the 31-char cap and its event;
                       # single-selection with no container; the rename gesture;
-                      # that `draggable` is never touched; keyboard-only focus
+                      # that `draggable` is never touched; keyboard-only focus;
+                      # the open ghost read off the rendered pixels — ring,
+                      # lattice, transparency, inversion — incl. from a source
+                      # that taints its canvas
 ```
 
 ## Utilities & style toolkit

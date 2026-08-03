@@ -1,7 +1,7 @@
 /**
  * Verifies `vf-icon` — the Finder icon.
  *
- * Six groups, each covering a claim the component's doc comment makes:
+ * Groups, each covering a claim the component's doc comment makes:
  *
  *  - CELL: the reserved cell really is the icon resource's, 32×32 large and
  *    16×16 small, with the name plate on a whole-system-px line box and a
@@ -15,9 +15,19 @@
  *    icon opens the field with the whole name selected; the first press never
  *    does. Return commits and fires vf-change, Escape puts the old name back,
  *    and the plate widens as you type.
+ *  - OPENING: vf-open comes from a double-click or its keyboard route, ⌘O /
+ *    ⌘↓ — never from Return, which renames (the Finder's Return never
+ *    opened): it starts the edit on an editable icon and does nothing on a
+ *    non-editable one.
  *  - MOVABLE: that the parameter is `movable` and the platform's `draggable`
  *    is untouched — the trap the component exists to avoid — plus a drag and
  *    an arrow-key nudge landing on whole system px.
+ *  - OPEN: the derived open ghost — outline held, interior re-filled with the
+ *    scrollbar trough's lattice on opaque white, transparency untouched —
+ *    read straight off the rendered pixels; still inverting on selection;
+ *    surviving a canvas-tainting cross-origin source (the pipeline is
+ *    compositing only, never a readback); and coming off cleanly with the
+ *    attribute.
  *  - FOCUS: the dashed rule after Tab and NOT after a mouse press, which the
  *    host cannot get from :focus-visible because it focuses itself (SPEC §4).
  *  - ARIA: role and aria-selected appear with `selectable` and not without.
@@ -697,6 +707,247 @@ for (const dpr of [1, 2, 3]) {
   await page.close()
 }
 
+// ── OPEN ────────────────────────────────────────────────────────────────────
+// The derived open ghost. The art is a 24×24 solid square inset at (4,4) in a
+// 32×32 raster, so every region is predictable: the ring at rows/cols 4 and 27
+// must be black, the interior must carry the scrollbar trough's 4×2 lattice —
+// a dot at (0,0) and (2,1), anchored at the ART's own top-left — on opaque
+// white, and the 4px margin must stay transparent (the #888 behind shows).
+const INSET32 =
+  'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27%3E%3Crect x=%274%27 y=%274%27 width=%2724%27 height=%2724%27/%3E%3C/svg%3E'
+
+/** Ghost pixels at art-px offsets, classified B/W/. like the WELL scan. */
+const sampleGhost = async (page, points, index = 0) => {
+  const rect = await page.evaluate((i) => {
+    const b = document
+      .querySelectorAll('vf-icon')
+      [i].shadowRoot.querySelector('.ghost')
+      .getBoundingClientRect()
+    return { x: Math.round(b.x), y: Math.round(b.y) }
+  }, index)
+  const shot = await page.screenshot()
+  return page.evaluate(
+    async ([b64, r, pts]) => {
+      const img = new Image()
+      img.src = 'data:image/png;base64,' + b64
+      await img.decode()
+      const c = document.createElement('canvas')
+      c.width = img.width
+      c.height = img.height
+      const ctx = c.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      return pts
+        .map(([x, y]) => {
+          const d = ctx.getImageData(r.x + x, r.y + y, 1, 1).data
+          return d[0] > 200 ? 'W' : d[0] < 60 ? 'B' : '.'
+        })
+        .join('')
+    },
+    [shot.toString('base64'), rect, points]
+  )
+}
+// ring, two lattice dots, three lattice gaps, the four transparent corners.
+const GHOST_POINTS = [
+  [4, 4], [27, 4], [4, 27], [15, 4],
+  [6, 5], [8, 6],
+  [5, 5], [7, 6], [5, 6],
+  [1, 1], [30, 1], [1, 30], [30, 30],
+]
+
+{
+  const page = await build(
+    `<style>:root { --vf-scale: 1 }</style>
+     <div style="background:#888;padding:24px">
+       <vf-icon label="System Folder" width="64" open selectable>
+         <vf-img slot="large"><img src="${INSET32}" alt="An open folder"></vf-img>
+       </vf-icon>
+     </div>`
+  )
+  await page.waitForFunction(() =>
+    document.querySelector('vf-icon').shadowRoot.querySelector('.ghost')
+  )
+
+  const shape = await page.evaluate(() => {
+    const el = document.querySelector('vf-icon')
+    const ghost = el.shadowRoot.querySelector('.ghost')
+    const art = el.querySelector('vf-img')
+    const b = ghost.getBoundingClientRect()
+    return {
+      raster: { w: ghost.width, h: ghost.height },
+      css: { w: b.width, h: b.height },
+      slotPainted: art.getClientRects().length > 0,
+      role: ghost.getAttribute('role'),
+      name: ghost.getAttribute('aria-label'),
+    }
+  })
+  check(
+    'OPEN  the ghost is a canvas at the art raster, one image px per system px',
+    shape.raster.w === 32 && shape.raster.h === 32 && shape.css.w === 32 && shape.css.h === 32,
+    JSON.stringify(shape.raster)
+  )
+  check('OPEN  the slotted art stops painting while the ghost stands in', !shape.slotPainted)
+  check(
+    "OPEN  the ghost carries the art's alt, so the graphic keeps its name",
+    shape.role === 'img' && shape.name === 'An open folder',
+    `${shape.role} "${shape.name}"`
+  )
+
+  const pixels = await sampleGhost(page, GHOST_POINTS)
+  check(
+    'OPEN  ring black, lattice dots on opaque white inside, margin transparent',
+    pixels === 'BBBB' + 'BB' + 'WWW' + '....',
+    `${pixels} (want BBBBBBWWW....)`
+  )
+
+  // Selection is the same inversion as ever — the ghost kept ink and opaque
+  // white on a transparent surround, so invert(1) needs no second treatment.
+  await page.evaluate(async () => {
+    const el = document.querySelector('vf-icon')
+    el.selected = true
+    await el.updateComplete
+  })
+  const inverted = await sampleGhost(page, GHOST_POINTS)
+  check(
+    'OPEN  selected: ring and dots invert to white, fill to black, margin still clear',
+    inverted === 'WWWW' + 'WW' + 'BBB' + '....',
+    `${inverted} (want WWWWWWBBB....)`
+  )
+
+  // Off comes off: the art returns and the ghost leaves the tree.
+  await page.evaluate(async () => {
+    const el = document.querySelector('vf-icon')
+    el.selected = false
+    el.open = false
+    await el.updateComplete
+  })
+  const closed = await page.evaluate(() => {
+    const el = document.querySelector('vf-icon')
+    return {
+      ghost: !!el.shadowRoot.querySelector('.ghost'),
+      slotPainted: el.querySelector('vf-img').getClientRects().length > 0,
+    }
+  })
+  check(
+    'OPEN  clearing `open` restores the slotted art',
+    !closed.ghost && closed.slotPainted,
+    JSON.stringify(closed)
+  )
+  await page.close()
+}
+
+// The marquee claim: the pipeline never reads pixels back, so art that TAINTS
+// its canvas — a cross-origin image with no CORS headers — still derives and
+// still displays. The control first proves the source really does taint.
+{
+  const page = await build(
+    `<style>:root { --vf-scale: 1 }</style>
+     <div id="pad" style="background:#888;padding:24px"></div>`
+  )
+  await page.route('http://vf-remote.test/**', (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect x="4" y="4" width="24" height="24"/></svg>',
+    })
+  )
+  await page.evaluate(() => {
+    document.getElementById('pad').innerHTML = `
+      <vf-icon label="Remote" width="64" open>
+        <vf-img slot="large"><img src="http://vf-remote.test/icon.svg" alt=""></vf-img>
+      </vf-icon>`
+  })
+  await page.waitForFunction(() =>
+    document.querySelector('vf-icon')?.shadowRoot?.querySelector('.ghost')
+  )
+  check(
+    'OPEN  the cross-origin source really taints a canvas (the control)',
+    await page.evaluate(() => {
+      const c = document.createElement('canvas')
+      c.width = 32
+      c.height = 32
+      const ctx = c.getContext('2d')
+      ctx.drawImage(document.querySelector('vf-icon img'), 0, 0)
+      try {
+        ctx.getImageData(0, 0, 1, 1)
+        return false
+      } catch {
+        return true
+      }
+    })
+  )
+  const pixels = await sampleGhost(page, GHOST_POINTS)
+  check(
+    'OPEN  …and the ghost derives and displays anyway, pixel for pixel',
+    pixels === 'BBBB' + 'BB' + 'WWW' + '....',
+    `${pixels} (want BBBBBBWWW....)`
+  )
+  await page.close()
+}
+
+// Art the pipeline cannot draw keeps rendering as itself: `open` with nothing
+// slotted shows nothing new, and `open` over a failed load shows the broken
+// art, not a blank cell behind a state it can't show.
+{
+  const page = await build(
+    `<vf-icon label="Empty" width="64" open></vf-icon>
+     <vf-icon label="Broken" width="64" open>
+       <vf-img slot="large"><img src="/no-such-icon.png" alt=""></vf-img>
+     </vf-icon>`
+  )
+  await page.waitForTimeout(120)
+  const state = await page.evaluate(() =>
+    [...document.querySelectorAll('vf-icon')].map((el) => ({
+      ghost: !!el.shadowRoot.querySelector('.ghost'),
+      slotHidden: el.shadowRoot.querySelector('.art').classList.contains('open'),
+    }))
+  )
+  check(
+    'OPEN  underivable art falls back to the art, never to a blank cell',
+    state.every((s) => !s.ghost && !s.slotHidden),
+    JSON.stringify(state)
+  )
+  await page.close()
+}
+
+// The ghost on the kit's own terms at every density: the raster follows the
+// size the view picked (32 large, 16 small), the box lands on whole device px,
+// and a field of open icons renders without one gray pixel — nearest-neighbor
+// magnification on the device grid, like the art it stands in for.
+for (const dpr of [1, 2, 3]) {
+  const page = await build(
+    `<div style="padding:8px">${icon('open width="64"', 'Open Large')}</div>
+     <div style="padding:8px">${icon('open size="small" width="64"', 'Open Small')}</div>`,
+    { dpr }
+  )
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll('vf-icon')].filter((el) =>
+        el.shadowRoot.querySelector('.ghost')
+      ).length === 2
+  )
+  const rasters = await page.evaluate(() =>
+    [...document.querySelectorAll('vf-icon')].map((el) => {
+      const g = el.shadowRoot.querySelector('.ghost')
+      const b = g.getBoundingClientRect()
+      return { raster: g.width, dev: b.width }
+    })
+  )
+  check(
+    `OPEN dpr${dpr}  the ghost raster follows the size the view picked`,
+    rasters[0].raster === 32 && rasters[1].raster === 16,
+    rasters.map((r) => r.raster).join(',')
+  )
+  check(
+    `OPEN dpr${dpr}  the ghost box lands on whole device px`,
+    rasters.every((r) => (r.dev * dpr) % 1 === 0),
+    rasters.map((r) => r.dev * dpr).join(',')
+  )
+  check(
+    `OPEN dpr${dpr}  and not one gray pixel in a field of open icons`,
+    (await grayPixels(page)) === 0
+  )
+  await page.close()
+}
+
 // ── SELECT ──────────────────────────────────────────────────────────────────
 {
   const page = await build(
@@ -829,6 +1080,75 @@ for (const dpr of [1, 2, 3]) {
         globalThis.__changes.length === 1
     ),
     await page.evaluate(() => document.querySelector('vf-icon').label)
+  )
+  await page.close()
+}
+
+// ── OPENING ─────────────────────────────────────────────────────────────────
+// vf-open comes from a double-click, or from ⌘O / ⌘↓ — the System 7 keyboard
+// route (Ctrl off the Mac). Return is never an open: the Finder's Return
+// renamed, so on an editable icon it starts the edit and on a non-editable
+// one it does nothing at all.
+//
+// The icons are placed absolutely, the way a desktop places them, because a
+// movable icon's FIRST press seeds `position: absolute` — in normal flow that
+// reflows the neighbor under the very point the double-click's second press
+// lands on, and the rest of the group interrogates whichever icon stole the
+// focus.
+{
+  const page = await build(
+    `<div id="desk" style="position:relative;width:600px;height:400px">
+       <vf-icon id="launcher" label="Launcher" width="64" selectable movable
+                style="position:absolute;left:16px;top:16px">
+         <vf-img slot="large"><img src="${ART32}" alt=""></vf-img>
+       </vf-icon>
+       <vf-icon id="notes" label="Notes" width="64" selectable editable
+                style="position:absolute;left:300px;top:16px">
+         <vf-img slot="large"><img src="${ART32}" alt=""></vf-img>
+       </vf-icon>
+     </div>`
+  )
+  await page.evaluate(() => {
+    globalThis.__opens = 0
+    document.addEventListener('vf-open', () => globalThis.__opens++)
+  })
+  const opens = () => page.evaluate(() => globalThis.__opens)
+  const launcher = page.locator('#launcher')
+
+  await launcher.dblclick()
+  check('OPENING  a double-click fires vf-open', (await opens()) === 1)
+
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(40)
+  check(
+    'OPENING  Return on a non-editable icon opens nothing',
+    (await opens()) === 1,
+    `${await opens()} opens`
+  )
+
+  const y = () => launcher.evaluate((el) => el.getBoundingClientRect().y)
+  const beforeY = await y()
+  await page.keyboard.press('ControlOrMeta+o')
+  await page.waitForTimeout(40)
+  check('OPENING  ⌘O opens — the System 7 shortcut', (await opens()) === 2)
+
+  await page.keyboard.press('ControlOrMeta+ArrowDown')
+  await page.waitForTimeout(40)
+  check('OPENING  so does ⌘↓', (await opens()) === 3)
+  check(
+    'OPENING  …which opens INSTEAD of nudging the movable icon',
+    (await y()) === beforeY,
+    `y ${beforeY} → ${await y()}`
+  )
+
+  await page.locator('#notes').click()
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(60)
+  check(
+    'OPENING  Return on an editable icon starts the rename, not an open',
+    (await page.evaluate(
+      () => !!document.getElementById('notes').shadowRoot.querySelector('input')
+    )) && (await opens()) === 3
   )
   await page.close()
 }

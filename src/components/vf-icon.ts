@@ -8,6 +8,7 @@ import { DragController } from '../drag.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
+import { deriveOpenArt } from '../open-art.js'
 
 /** Which member of the icon family paints — the two System 7 resource sizes. */
 export type VfIconSize = 'large' | 'small'
@@ -105,6 +106,25 @@ const clamp = (v: number, max: number): number =>
  * selected-state treatment of its own. The label plate inverts to the
  * `--vf-highlight` pair, sharing one selection color with `vf-list-item`.
  *
+ * ### Open is derived, not shipped
+ *
+ * With `open`, the art redraws as the Finder's open ghost: the outline held
+ * in solid black, the interior re-filled with the kit's loose 25% dither (the
+ * scrollbar trough's lattice), the transparent surround untouched. There is
+ * no second raster and no second fetch — the same alpha channel that makes
+ * selection an inversion makes the ghost derivable, and `src/open-art.ts`
+ * derives it from the slotted art by canvas compositing alone. No pixels are
+ * ever read back, so a cross-origin image that taints its canvas still works:
+ * taint forbids reading, not drawing or displaying.
+ *
+ * The ghost keeps the shape selection expects — ink and opaque white on a
+ * transparent surround — so a selected open icon inverts exactly as a closed
+ * one does, with no second treatment. The slot stays in the tree while the
+ * ghost paints, hidden (it is where the art loads, and re-loads, from), and
+ * art the pipeline cannot draw — nothing slotted yet, a failed load, an
+ * inline `<svg>` — keeps rendering as itself rather than vanishing behind a
+ * state it cannot show.
+ *
  * ### `movable`, not `draggable`
  *
  * `draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so
@@ -121,6 +141,12 @@ const clamp = (v: number, max: number): number =>
  * of gap the kit closes rather than inherits (SPEC §1): a focused movable icon
  * also moves under the arrow keys, one system px at a time and eight with
  * Shift.
+ *
+ * Opening gets the same treatment. The double-click is the pointer gesture,
+ * and its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl
+ * standing in for ⌘ off the Mac. Return is deliberately not one of them: the
+ * Finder's Return renamed, never opened, so on an editable icon it starts the
+ * edit and on a non-editable one it does nothing at all.
  *
  * ### The label is a property, because it is editable
  *
@@ -174,8 +200,9 @@ const clamp = (v: number, max: number): number =>
  * @cssprop --vf-icon-label-height - The name plate's line box
  * @fires vf-select - Selection changed by user interaction. `detail: { selected: boolean }`.
  * @fires vf-change - The name was committed. `detail: { label: string, previous: string }`.
- * @fires vf-open - The icon was opened — double-clicked, or Return on a
- *   non-editable icon. `detail: {}`.
+ * @fires vf-open - The icon was opened — double-clicked, or ⌘O / ⌘↓ from the
+ *   keyboard (Ctrl off the Mac), the System 7 shortcuts. Return renames
+ *   instead, as the Finder's did. `detail: {}`.
  * @fires vf-name-too-long - A rename was typed or pasted past `maxlength`, and
  *   the field refused the excess. `detail: { attempted, accepted, limit }` —
  *   enough to raise the alert System 7 raised rather than drop the characters
@@ -220,9 +247,25 @@ export class VfIcon extends LitElement {
       }
       /* The classic selected icon: the art is ink and opaque white on a
          transparent surround, so inverting flips the two and the surround
-         stays out of it (see the class doc). */
+         stays out of it (see the class doc). The open ghost keeps exactly
+         that shape, so the same rule is the whole of selected-open too. */
       :host([selected]) .art {
         filter: invert(1);
+      }
+      /* The open ghost replaces the slotted art while there is one — the
+         slot stays in the tree (it is where the art loads and re-loads
+         from) but paints nothing. Gated on the class, not :host([open]):
+         art the pipeline cannot draw keeps rendering as itself rather than
+         vanishing behind a state it cannot show. */
+      .art.open slot {
+        display: none;
+      }
+      /* The derived raster displays on the terms vf-img gives the art it
+         came from: natural size in system px (the inline style it carries),
+         nearest-neighbor on whole device pixels. */
+      .ghost {
+        display: block;
+        image-rendering: pixelated;
       }
       /* Sized by the plate, and deliberately NOT clamped to the frame: a name
          wider than the cell has to straddle the centre line, not start at the
@@ -395,6 +438,15 @@ export class VfIcon extends LitElement {
   @property({ type: Boolean, reflect: true }) selected = false
 
   /**
+   * The icon's window is on screen, so the art paints as the Finder's open
+   * ghost — outline held, interior re-filled with the kit's loose dither —
+   * derived in the client from the slotted art itself (see the class doc).
+   * Set it when handling `vf-open`, clear it when the window goes away.
+   * Selection inverts the ghost exactly as it inverts the art.
+   */
+  @property({ type: Boolean, reflect: true }) open = false
+
+  /**
    * Drag to move — `movable`, never `draggable`, which is a platform attribute
    * and accessor (see the class doc). Arrow keys move a focused icon too.
    */
@@ -448,6 +500,15 @@ export class VfIcon extends LitElement {
    * See {@link #measurePlate}; this is what keeps every name on the grid.
    */
   @state() private _plateWidth = 0
+
+  /** The derived open ghost, or null while there is nothing to derive from. */
+  @state() private _ghost: HTMLCanvasElement | null = null
+
+  /** The art element the ghost derives from, so a rehome moves the listener. */
+  #art: HTMLImageElement | HTMLCanvasElement | null = null
+
+  /** What the current ghost was derived from, so a no-op refresh is free. */
+  #ghostKey = ''
 
   /** The name editing started from, for Escape to put back. */
   #committed = ''
@@ -524,6 +585,11 @@ export class VfIcon extends LitElement {
     if (changed.has('label') || changed.has('_draft') || changed.has('_editing')) {
       this.#measurePlate()
     }
+    // `size` swaps which slot (and so which art) the ghost derives from; the
+    // slotchange and load listeners cover every other route to a new raster.
+    if (changed.has('open') || changed.has('size')) {
+      this.#trackArt()
+    }
   }
 
   override firstUpdated(): void {
@@ -584,6 +650,91 @@ export class VfIcon extends LitElement {
     // is even, so the parity argument is untouched.
     this._plateWidth =
       this._editing && textCss === 0 ? Math.max(even, CELL[this.size]) : even
+  }
+
+  #onArtSlotChange = (): void => {
+    this.#trackArt()
+  }
+
+  #onArtSettled = (): void => {
+    this.#refreshGhost()
+  }
+
+  /**
+   * Follow the active slot's art element and keep the ghost derived from it.
+   * The art is normally an `<img>` inside a slotted `vf-img`, but a bare
+   * `<img>` or a `<canvas>` (slotted directly or wrapped) derives the same.
+   * The `load` listener lives on an element inside this host's own light DOM,
+   * so it cannot outlive us (the `vf-img` reasoning), and it re-fires on a
+   * `src` swap — the re-derivation a swapped icon needs.
+   */
+  #trackArt(): void {
+    const slot = this.renderRoot?.querySelector<HTMLSlotElement>(
+      `slot[name='${this.size}']`
+    )
+    let art: HTMLImageElement | HTMLCanvasElement | null = null
+    for (const el of slot?.assignedElements({ flatten: true }) ?? []) {
+      const found =
+        el instanceof HTMLImageElement || el instanceof HTMLCanvasElement
+          ? el
+          : el.querySelector('img, canvas')
+      if (
+        found instanceof HTMLImageElement ||
+        found instanceof HTMLCanvasElement
+      ) {
+        art = found
+        break
+      }
+    }
+    if (art !== this.#art) {
+      this.#art?.removeEventListener('load', this.#onArtSettled)
+      this.#art?.removeEventListener('error', this.#onArtSettled)
+      this.#art = art
+      art?.addEventListener('load', this.#onArtSettled)
+      art?.addEventListener('error', this.#onArtSettled)
+    }
+    this.#refreshGhost()
+  }
+
+  /**
+   * Derive (or drop) the open ghost. Keyed on the art's current source so the
+   * usual refresh — a slotchange or load that changed nothing — costs a
+   * string compare; a `<canvas>` source has no such fingerprint and
+   * re-derives each time, which at icon sizes is a handful of composited
+   * draws.
+   */
+  #refreshGhost(): void {
+    const art = this.#art
+    const ready =
+      art instanceof HTMLImageElement
+        ? art.complete && art.naturalWidth > 0
+        : art != null && art.width > 0
+    if (!this.open || art == null || !ready) {
+      this._ghost = null
+      this.#ghostKey = ''
+      return
+    }
+    const key =
+      art instanceof HTMLImageElement ? `${this.size} ${art.currentSrc}` : ''
+    if (key !== '' && key === this.#ghostKey && this._ghost) return
+    const ghost = deriveOpenArt(art)
+    if (ghost) {
+      ghost.className = 'ghost'
+      // The terms vf-img gives the art itself: one image pixel is one system
+      // pixel, scaled in calc() like every other metric.
+      ghost.style.width = `calc(var(--vf-scale, 1) * ${ghost.width}px)`
+      ghost.style.height = `calc(var(--vf-scale, 1) * ${ghost.height}px)`
+      // The ghost stands in for the art in the tree as well as visually:
+      // carry the source's alt, so a graphic that names its icon keeps doing
+      // so while its slot is hidden.
+      const alt = art instanceof HTMLImageElement ? art.alt : ''
+      if (alt) {
+        ghost.setAttribute('role', 'img')
+        ghost.setAttribute('aria-label', alt)
+      }
+    }
+    this._ghost = ghost
+    this.#ghostKey = ghost ? key : ''
   }
 
   /**
@@ -650,7 +801,9 @@ export class VfIcon extends LitElement {
     const captionClasses = `caption${editing ? ' editing' : ''}${
       marked && caption ? ' focus-rule' : ''
     }`
-    const artClasses = `art${marked && !caption ? ' focus-rule' : ''}`
+    const artClasses = `art${this.open && this._ghost ? ' open' : ''}${
+      marked && !caption ? ' focus-rule' : ''
+    }`
     const width = this.width
       ? `width: calc(var(--vf-scale, 1) * ${this.width}px)`
       : ''
@@ -666,8 +819,9 @@ export class VfIcon extends LitElement {
     >
       <div class=${artClasses} part="icon">
         ${this.size === 'small'
-          ? html`<slot name="small"></slot>`
-          : html`<slot name="large"></slot>`}
+          ? html`<slot name="small" @slotchange=${this.#onArtSlotChange}></slot>`
+          : html`<slot name="large" @slotchange=${this.#onArtSlotChange}></slot>`}${this
+          ._ghost ?? nothing}
       </div>
       ${showCaption
         ? html`<div class=${captionClasses}>
@@ -830,11 +984,27 @@ export class VfIcon extends LitElement {
 
   #onKeyDown = (event: KeyboardEvent): void => {
     if (this._editing || event.defaultPrevented) return
+    // ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl standing in for ⌘ off
+    // the Mac. A double-click is a pointer gesture, and this is its keyboard
+    // route (SPEC §1). Return is deliberately NOT one: the Finder's Return
+    // renamed, never opened. Checked before the switch so ⌘↓ opens instead of
+    // nudging a movable icon.
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      !event.altKey &&
+      (event.key.toLowerCase() === 'o' || event.key === 'ArrowDown')
+    ) {
+      event.preventDefault()
+      emit(this, 'vf-open', {})
+      return
+    }
     switch (event.key) {
       case 'Enter':
+        // Return starts the rename, as the Finder's did. On a non-editable
+        // icon it does nothing — opening is the double-click (or ⌘O above).
+        if (!this.editable) return
         event.preventDefault()
-        if (this.editable) this.startEditing()
-        else emit(this, 'vf-open', {})
+        this.startEditing()
         return
       case ' ':
         if (!this.selectable) return

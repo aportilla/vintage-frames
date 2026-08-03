@@ -1806,9 +1806,10 @@ grid; this makes it the thing the Finder manipulates.
   is the "no label" setting, rather than a second attribute that could disagree
   with it). `size`: `large` (default, 32×32) | `small` (16×16) — picks the slot
   that paints *and* the cell it paints in. `selectable`, `selected`, `movable`,
-  `editable`: boolean. `width`: number (system px, **even**; the cell/grid
-  pitch, which a longer name overflows rather than being bound by).
-  `maxlength`: number (31).
+  `editable`: boolean. `open`: boolean — the icon's window is on screen, and
+  the art paints as the derived open ghost (below). `width`: number (system px,
+  **even**; the cell/grid pitch, which a longer name overflows rather than
+  being bound by). `maxlength`: number (31).
 - **Visual:** `display: inline-block`. A column: the art cell (`--_cell` system
   px square, `overflow: hidden`, art centered), `--vf-icon-gap` (2px), then the
   name plate — body face on a `--vf-icon-label-height` (12px) line box, the
@@ -1824,11 +1825,41 @@ grid; this makes it the thing the Finder manipulates.
   inverting flips the two and leaves the surround alone. That is the whole of
   the classic selected appearance for 1-bit art; color art inverts into a
   photographic negative rather than the darkening System 7 gave it.
+- **The open ghost is derived, not shipped** (`open`; `open-art.ts`). The art
+  redraws as the Finder's open-window ghost — outline held in solid black,
+  interior re-filled with the scrollbar trough's 4×2 dot lattice (a dot at
+  (0,0) and (2,1), 25%) on opaque white, surround untouched — derived from the
+  slotted art itself, by compositing alone: a silhouette via `source-in`; a
+  1px 4-neighborhood erosion via four `destination-in` draws of the silhouette
+  shifted one pixel each way (off-canvas composites as transparent, so the
+  raster's own edge erodes too and an interior hole rings itself); the lattice
+  via `createPattern` anchored at the art's top-left, where 32 and 16 being
+  whole multiples of the tile keeps a field of icons in one phase; then the
+  fill composed over the un-eroded silhouette, so the ring the erosion removed
+  reads as the outline. Never `getImageData` — a canvas that drew a
+  cross-origin image is tainted, which forbids *reading* pixels but not
+  drawing or displaying them, so the ghost works for CORS-less sources too —
+  and never `ctx.filter` (Safari's shaky corner; compositing operators are
+  universal). Keeping the interior *opaque white* is what lets a selected open
+  icon invert under the same `filter: invert(1)` with no second treatment. The
+  slot stays in the tree while the ghost paints, hidden via a class gated on a
+  successful derivation — art the pipeline cannot draw (nothing slotted, a
+  failed load, an inline `<svg>`) keeps rendering as itself. The ghost
+  re-derives on slotchange, the art's `load`/`error`, and `open`/`size`
+  changes, keyed by `currentSrc` so a refresh that changed nothing is a string
+  compare; the source's `alt` is carried onto the ghost (`role="img"` +
+  `aria-label`) so a graphic that names its icon keeps doing so while its slot
+  is hidden. The ghost displays on `vf-img`'s terms: natural raster size in
+  system px, `image-rendering: pixelated`, one image pixel per system pixel.
 - **Behavior:** clicking selects, Shift/⌘ toggles, and a press outside every
   icon clears — a `DocumentListenersController` capture-phase listener attached
   only while selectable *and* selected, which is what makes single-selection
-  work with no container owning the set. Double-click (or Return on a
-  non-editable icon) fires `vf-open`. `editable`: a press on the plate of an
+  work with no container owning the set. Double-click fires `vf-open`, and its
+  keyboard route is ⌘O / ⌘↓ (Ctrl off the Mac) — the System 7 Open shortcuts,
+  added because a double-click is a pointer-only gesture (§1). Return is
+  deliberately not one: the Finder's Return renamed, never opened, so it
+  starts the edit on an editable icon and does nothing on a non-editable
+  one. `editable`: a press on the plate of an
   ALREADY-selected icon opens a rename field overlaying it (the press that does
   the selecting never does); the whole name starts selected, Return commits,
   Escape reverts, and the hidden plate keeps rendering the draft so the box

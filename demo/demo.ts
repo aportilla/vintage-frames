@@ -244,10 +244,12 @@ $<VfMenu>('#menu-special').addEventListener('vf-menu-select', (event) => {
 /* ------------------------------------------------------------------ *
  * Launcher icons: each one's data-opens names the window or dialog it
  * stands for. `vf-open` is the icon's open gesture — a double-click, or
- * Return (the launchers are not `editable`, so Return opens rather than
- * renames). A window centers on the current raster, un-hides and comes
+ * ⌘O / ⌘↓ from the keyboard; Return starts a rename instead, since every
+ * icon on this desktop is `editable`, as every Finder icon was. A window
+ * centers on the current raster, un-hides and comes
  * to the front of its tier; a dialog or alert shows modally (the native
- * <dialog> centers itself).
+ * <dialog> centers itself). While the target is on screen its launcher
+ * wears the derived open ghost, the way the Finder marked an open folder.
  * ------------------------------------------------------------------ */
 
 for (const icon of document.querySelectorAll<VfIcon>('vf-icon[data-opens]')) {
@@ -259,8 +261,24 @@ for (const icon of document.querySelectorAll<VfIcon>('vf-icon[data-opens]')) {
       desktop.bringToFront(target)
     } else {
       ;(target as VfDialog | VfAlert).show()
+      icon.open = true
     }
   })
+  // The icon's `open` ghost mirrors whether its window is on screen. Every
+  // way a window goes away writes `hidden` (close box, action buttons, Show
+  // All Windows), so observing that one attribute covers them all; dialogs
+  // and alerts fire vf-close on every close path instead.
+  if (target instanceof VfWindow) {
+    const sync = () => {
+      icon.open = !target.hidden
+    }
+    new MutationObserver(sync).observe(target, { attributeFilter: ['hidden'] })
+    sync()
+  } else {
+    target.addEventListener('vf-close', () => {
+      icon.open = false
+    })
+  }
 }
 
 /* ------------------------------------------------------------------ *

@@ -744,11 +744,11 @@ shrink it and watch the arrows come back.
       <!-- One vf-icon per demonstration window and dialog, clustered around
            the top-left so the whole set stays on-canvas at any viewport size
            or density (demo.css holds the 3×4 grid); the windows themselves
-           start hidden. Double-click — or Return: launchers are deliberately
-           not `editable`, so Return opens rather than renames — fires
-           `vf-open`, and demo.ts opens whatever data-opens names. Placeholder
-           art on all of them for now, slotted at both resource sizes so
-           View → by Small Icon swaps these too. -->
+           start hidden. Double-click — or ⌘O / ⌘↓ — fires `vf-open`, and
+           demo.ts opens whatever data-opens names; Return starts a rename
+           instead, as the Finder's did, since every icon on this desktop is
+           `editable`. Placeholder art on all of them for now, slotted at both
+           resource sizes so View → by Small Icon swaps these too. -->
       <vf-icon
         id="icon-installer"
         class="desktop-icon"
@@ -756,6 +756,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-installer"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -768,6 +769,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-readme"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -780,6 +782,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-controls"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -792,6 +795,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-format"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -804,6 +808,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-newdoc"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -816,6 +821,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-newimage"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -828,6 +834,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-find"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -840,6 +847,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-charset"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -852,6 +860,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="win-tools"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -864,6 +873,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="dlg-about"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -876,6 +886,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="dlg-pagesetup"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
@@ -888,6 +899,7 @@ shrink it and watch the arrows come back.
         width="64"
         selectable
         movable
+        editable
         data-opens="alert-erase"
       >
         <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>

@@ -57,7 +57,7 @@ const clamp = (v: number, max: number): number =>
  * behalf, so the graphic stays a real element in the light DOM with its own
  * `alt`, `srcset`, loading behavior and asset URLs. A `src` string can express
  * none of that, and it could not hold an inline `<svg>` or a `<canvas>` either.
- * `vf-alert`'s `icon` slot and `vf-list-item`'s make the same trade.
+ * `vf-list-item`'s `icon` slot makes the same trade.
  *
  * The cost is that both files fetch even though one paints — pay it with two
  * data URIs, or slot only the size that view uses.

@@ -324,9 +324,9 @@ export class GridSnapController implements ReactiveController {
     }
 
     const rect = host.getBoundingClientRect()
-    // No box at all: display:none, or a display:contents host (vf-dialog,
-    // vf-alert), whose real surface is a native <dialog> in the top layer and
-    // is snapped by snapDialogToGrid instead.
+    // No box at all: display:none, or a display:contents host (vf-dialog),
+    // whose real surface is a native <dialog> in the top layer and is
+    // snapped by snapDialogToGrid instead.
     if (!rect.width && !rect.height) return
 
     // If something rewrote the host's style attribute, the variables are gone

@@ -6,12 +6,11 @@ import { unsafeCSS } from 'lit'
  * tokenized via `--vf-shadow-offset` and scales with `--vf-scale`.
  *
  * Compose it into any raised surface. Every raised surface in the kit does:
- * {@link vfPanel} (menus, popups), {@link vfChromeFrame} (window and dialog
- * frames) and vf-alert's double-ruled frame, which supplies its own 2px border
- * but the same shadow. One declaration, so the kit can't grow two shadows.
+ * {@link vfPanel} (menus, popups) and {@link vfChromeFrame} (window and dialog
+ * frames). One declaration, so the kit can't grow two shadows.
  *
  * Kept in its own module because it is the one recipe consumed on its own:
- * vf-alert and vf-swatch compose the shadow without either surface class.
+ * vf-swatch composes the shadow without either surface class.
  */
 export const vfHardShadowDecls = unsafeCSS(`
   box-shadow: calc(var(--vf-scale, 1) * var(--vf-shadow-offset, 2px))

@@ -82,7 +82,6 @@
     "verify:updates": "node scripts/verify-updates.mjs",
     "verify:baseline": "node scripts/verify-baseline.mjs",
     "verify:define": "node scripts/verify-define.mjs",
-    "verify:caution": "node scripts/verify-caution.mjs",
     "verify:icon": "node scripts/verify-icon.mjs",
     "verify:focus": "node scripts/verify-focus.mjs",
     "verify:grid": "node scripts/verify-grid.mjs",

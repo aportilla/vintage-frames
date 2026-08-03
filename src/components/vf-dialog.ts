@@ -251,7 +251,7 @@ export class VfDialog extends VfModalDialog {
    * Accessible name for the dialog (`aria-label`), for a dialog with no
    * `heading` — an untitled title bar has no text to be named by. Ignored when
    * empty and a `heading` is set (the title patch names the dialog then);
-   * defaults to `'Dialog'` when neither is given. Mirrors vf-alert's `label`.
+   * defaults to `'Dialog'` when neither is given.
    */
   @property() label = ''
 
@@ -303,8 +303,7 @@ export class VfDialog extends VfModalDialog {
     // frame, its body-top heading — both carry id="title"). An untitled one
     // has nothing to point at — aria-labelledby would resolve to an empty
     // node and leave the dialog with no accessible name at all — so it names
-    // itself with aria-label instead, the way vf-alert (which never has a
-    // title bar) does.
+    // itself with aria-label instead.
     const titled = !this.label && this.heading !== ''
     const plain = this.frame === 'plain'
     const body = html`

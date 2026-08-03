@@ -114,7 +114,7 @@ onScaleChange(fit) // zoom or a monitor move changes what a system px costs
 
 ### Taking only what you use
 
-The root import registers all 31 elements. To ship less, import the ones you
+The root import registers all 30 elements. To ship less, import the ones you
 use by name — same elements, same self-registration, one module each:
 
 ```ts
@@ -144,10 +144,10 @@ What that costs, bundled and minified with `lit` external:
 
 | Imported | min | gzip |
 | --- | --- | --- |
-| `vf-separator.js` — sets no chrome type, so it carries no Chicago face | 14.3 KB | 7.6 KB |
-| `vf-button.js` | 27.2 KB | 13.7 KB |
-| …plus `vf-checkbox.js` | 32.8 KB | 15.3 KB |
-| the root import — all 31 elements | 246 KB | 72.5 KB |
+| `vf-separator.js` — sets no chrome type, so it carries no Chicago face | 16.1 KB | 8.5 KB |
+| `vf-button.js` | 32.1 KB | 15.6 KB |
+| …plus `vf-checkbox.js` | 38.4 KB | 17.4 KB |
+| the root import — all 30 elements | 270 KB | 78.9 KB |
 
 The first component pays for the shared floor (the body face, `scale.ts` and
 its zoom tracker, `grid-snap.ts`, the recipes it composes); each one after it
@@ -194,8 +194,7 @@ class keeps the tag, and that the elements still render afterwards.
 | --- | --- |
 | `vf-desktop` | Gray desktop raster (**declare `width` and `height`**, in system px; `fitWithin(w, h)` derives the largest whole raster for a CSS-px box — the viewport, usually); manages window stacking + active state, with utility windows on a floating tier — a click or keyboard focus activates a window, and tab order follows the stack; `bezel` (system px) adds the CRT's black surround with the classic rounded top screen corners |
 | `vf-window` | The desktop-window shell (**declare `width` and `height`**, in system px): striped title bar, close/zoom boxes, movable/resizable, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`) — see [Window archetypes](#window-archetypes--enabling-the-1992-hig-not-enforcing-it) |
-| `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood; **declare `width` and `height`**, in system px): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` |
-| `vf-alert` | Classic double-framed modal alert (**declare `width` and `height`**, in system px); `variant="caution"` draws the real 32×32 System 7 caution icon — see [Glyphs are drawn, icons are not](#glyphs-are-drawn-icons-are-not) |
+| `vf-dialog` | The modal-dialog shell (native `<dialog>` under the hood; **declare `width` and `height`**, in system px): movable-modal striped bar by default (`closable` opts into a close box), classic double-rule modal frame with `frame="plain"` — also the shell an alert box is composed from (see [Glyphs are drawn, icons are yours](#glyphs-are-drawn-icons-are-yours)) |
 | `vf-separator` | 1px rule (horizontal/vertical; dims inside menus) |
 | `vf-button` | Push button with pixel-stepped corners (no antialiased `border-radius`); `variant="default"` renders the double-ring default button, `size="small"` the compact 16px one |
 | `vf-button-group` | Arranges buttons in a row (or `vertical` column), sizing them all to the widest — the classic System 7 shared width — unless `natural`; aligns their faces so a `variant="default"` button lines up with its neighbors |
@@ -253,7 +252,7 @@ SPEC §3 table so the two can't disagree — 45 tags across 22 components, and
 `verify:manifest` fails if a component gains such a token without one, if a tag
 has no SPEC row, or if SPEC lists a token nothing reads. The 17 kit-wide knobs
 (`--vf-scale`, the palette, both type stacks, the focus rule) are described once
-in [SPEC.md](./SPEC.md) rather than repeated on all 31 elements. Three kinds of token are deliberately undocumented: the
+in [SPEC.md](./SPEC.md) rather than repeated on all 30 elements. Three kinds of token are deliberately undocumented: the
 controller-owned grid-snap offsets, the private channels `vf-button-group` uses
 to drive `vf-button`, and geometry a component sets on itself.
 
@@ -334,6 +333,14 @@ the user reaches the rest, and a control's drop-open list still escapes the clip
 and paints past the border. The size is left out of the table above to keep the
 parameter that *makes* each archetype legible.
 
+The **alert box** is a recipe too, one step further: the kit deliberately
+ships no alert component, because what separates an alert from a modal dialog
+is a *picture*, and pictures are the client's, never the library's. Compose it
+from the modal-dialog shell and your own icon art — see
+[Glyphs are drawn, icons are yours](#glyphs-are-drawn-icons-are-yours) for the
+recipe, and the [reference page](http://localhost:5173/examples.html) for a
+live one.
+
 Why parameters instead of fixed anatomies: the HIG disagrees *with itself*
 about the details. Figure 5-1 (Windows chapter) and Figure 6-1 (Dialogs
 chapter) label the same two artworks opposite ways — the close box migrates
@@ -347,9 +354,9 @@ easily.
 
 The chrome itself is traced, not paraphrased (`npm run extract:windows`):
 `frame="plain"` is the modal-dialog double frame — 1px outer rule, 2px gap,
-2px inner band, no shadow, which is *not* the alert's frame (2px outer, 1px
-inner, with shadow; System 7 drew them differently, so `vf-alert` keeps its
-own) — and `variant="utility"` is the windoid: a 12px bar with a dot-grid
+2px inner band, no shadow (System 7's alert box drew the mirror trace, with
+the shadow — a different chrome, and one the kit doesn't ship: an alert here
+is composed over this frame) — and `variant="utility"` is the windoid: a 12px bar with a dot-grid
 dither in place of racing stripes and 7×7 widgets. Inside a `vf-desktop`,
 utility windows float above every document window and stand outside the
 single-active rule, so clicking a tool palette never deactivates the document
@@ -761,33 +768,41 @@ the reference screens contain, not a size to set body copy in; give a small
 caption a whole width (or let it stretch) so its host stays on the grid.
 `npm run verify:text` checks the line boxes, the faces and the `for` wiring.
 
-## Glyphs are drawn, icons are not
+## Glyphs are drawn, icons are yours
 
-Almost every mark the kit paints is *geometry* — a checkmark, a caret, the
-stepper arrows, a radio's ring — so it is drawn as inline SVG on
-integer coordinates (`glyphs.ts`), which stays crisp at any size and retints
-with the tokens. One thing isn't. An alert icon is a **picture**, and a picture
-redrawn is a picture lost, so `vf-alert variant="caution"` ships the reference
-sheet's own 32×32 pixels rather than a trace of them — inlined as a base64 data
-URI the same way the two bitmap faces are, and magnified nearest-neighbor at one
-image pixel per system pixel, exactly what `vf-img` does for your art. It is the
-only raster the library itself carries; everything else you see is drawn.
+Every mark the kit paints is *geometry* — a checkmark, a caret, the stepper
+arrows, a radio's ring — drawn as inline SVG on integer coordinates
+(`glyphs.ts`), which stays crisp at any size and retints with the tokens. The
+kit ships **no raster art at all**. An icon is a **picture**, and a picture is
+the client's asset, never the library's: slotted through `vf-img` (or
+`vf-icon`'s and `vf-list-item`'s icon slots) it stays a real `<img>` in your
+own DOM — `alt`, `srcset`, loading behavior and asset URLs intact — magnified
+nearest-neighbor at one image pixel per system pixel.
 
-Being black ink on transparency, the art is precisely an alpha mask, so it
-paints as one over `--vf-black` instead of as an `<img>`. The ink still follows
-the token, and the triangle's interior shows the alert's own surface rather than
-a baked-in white — a raster that themes.
+The classic alert box is where this rule bites, and it is deliberately a
+*recipe* rather than a component: the modal-dialog shell plus your own 32×32
+icon art —
 
-```sh
-npm run extract:icons   # re-cut it (and the demo's 16×16 DA icons) from the sheet
-npm run verify:caution  # the rendered ink at dpr 1/2/3: whole-pixel magnification,
-                        # no smoothing, and that it is still a mask
+```html
+<vf-dialog id="alert" frame="plain" label="Caution" width="340" height="126">
+  <vf-stack fill-width direction="row" gap="16">
+    <vf-img width="32" height="32"><img src="alert-32.png" alt="" /></vf-img>
+    <vf-paragraph fill-width face="display"
+      >Completely erase the disk named “Macintosh HD”?</vf-paragraph
+    >
+  </vf-stack>
+  <vf-button slot="buttons">Cancel</vf-button>
+  <vf-button slot="buttons" variant="default">Erase</vf-button>
+</vf-dialog>
 ```
 
-The crop lives in `scripts/extract-da-icons.py`, which writes both the demo copy
-(`demo/icons/alert.png`) and the shipped constant (`src/icons.ts`) so the two
-can't drift. Slot your own 32×32 art into `vf-alert`'s `icon` slot to replace it
-— that also drops the accessible name the variant supplies, so state `label`.
+`label` is stated because the plain frame has no title bar to take a name
+from, and the copy takes the chrome face because an alert speaks in chrome
+type. The demo pages compose their alerts exactly this way, from their own
+asset: `npm run extract:icons` cuts `demo/icons/alert.png` (and the demo's
+16×16 DA icons) from the reference sheet — black ink on transparency all
+through, so the dialog's own surface shows inside the triangle and the art
+survives a retheme without a baked-in white patch.
 
 ## The Finder icon — `vf-icon`
 
@@ -807,7 +822,7 @@ exists at all. The kit ships no raster files and never builds an `<img>` on your
 behalf, so the graphic stays a real element in your own DOM with its `alt`,
 `srcset`, loading behavior and asset URLs intact; a `src` string can express none
 of that, and could not hold an inline `<svg>` or a `<canvas>` either. It is the
-same trade `vf-alert`'s `icon` slot and `vf-list-item`'s already make. The cost
+same trade `vf-list-item`'s `icon` slot already makes. The cost
 is that both files fetch even though one paints — pay it with two data URIs, or
 slot only the size that view uses.
 
@@ -936,7 +951,6 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
-| `CAUTION_ICON` | The 32×32 System 7 alert icon as a PNG data URI — the raster half of the sprite set (see below) |
 | `steppedRectClip`, `steppedRingClip`, `steppedCornerClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET`, `SCREEN_CORNER` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`), plus the screen-corner mask `vf-menu-bar rounded` paints |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow and inactive-window reporting for the always-a-rail scrollbars (a non-frontmost window's rails blank, per the HIG); a track's measured width, for drawing your own 1-bit fill on the system-pixel grid; document-level listeners scoped to an open panel or in-flight gesture (paired attach/detach + disconnect cleanup in one place) |
 | `focusModality`, `trackFocusModality`, `FocusRuleController` | Whether the keyboard or a pointer last drove the page, and that resolved against a host's own focus as one reactive flag — what a control consults to mark keyboard focus only, wherever `:focus-visible` can't say so: a *clicked* text input matches it, and so does any control that suppresses the browser's mouse focus and calls `focus()` itself |

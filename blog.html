@@ -465,13 +465,20 @@
       <vf-button slot="buttons" id="about-ok" variant="default">OK</vf-button>
     </vf-dialog>
 
-    <!-- An alert speaks in chrome type, so this one takes face="display"
-         rather than vf-paragraph's body default. -->
-    <vf-alert id="alert-note" variant="caution" width="340" height="126">
-      <vf-paragraph id="alert-message" face="display"
-        >A note needs some text before you can post it.</vf-paragraph
-      >
+    <!-- An alert box is not a component: it is the modal-dialog shell plus
+         this page's own 32×32 icon art, slotted through vf-img like any
+         picture. An alert speaks in chrome type, so the copy takes
+         face="display" rather than vf-paragraph's body default. -->
+    <vf-dialog id="alert-note" frame="plain" label="Caution" width="340" height="126">
+      <vf-stack fill-width direction="row" gap="16">
+        <vf-img width="32" height="32">
+          <img src="/demo/icons/alert.png" alt="" />
+        </vf-img>
+        <vf-paragraph fill-width id="alert-message" face="display"
+          >A note needs some text before you can post it.</vf-paragraph
+        >
+      </vf-stack>
       <vf-button slot="buttons" id="alert-ok" variant="default">OK</vf-button>
-    </vf-alert>
+    </vf-dialog>
   </body>
 </html>

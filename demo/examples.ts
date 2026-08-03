@@ -150,7 +150,7 @@ const VF_EVENTS = [
   'vf-name-rejected',
 ] as const
 
-/** A modal shell — `vf-dialog` and `vf-alert` share this much. */
+/** A modal shell — the `show()`/`close()` pair `data-show`/`data-close` drive. */
 interface Modal extends HTMLElement {
   show(): void
   close(): void

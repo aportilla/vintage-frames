@@ -32,8 +32,8 @@ export const vfBase = css`
      keyword is preserved — and var() substitution happens before the override
      judges it. So remapping the tokens here repairs, in one place, every paint
      site that routes through them: borders, faces, glyphs, the selection
-     inversion, the button's silhouette pseudos, vf-grid's masked rules, the
-     caution mask. What it cannot reach is filed per site: non-url()
+     inversion, the button's silhouette pseudos, vf-grid's masked rules.
+     What it cannot reach is filed per site: non-url()
      background-images are deleted regardless of color (the focus underline and
      title-bar stripe gradients — see vfFocusUnderline/vfStripes), url() tiles
      are preserved with their literal ink (the dot/sprite tiles — masks over

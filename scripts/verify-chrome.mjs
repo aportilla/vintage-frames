@@ -245,7 +245,6 @@ const partMetrics = (page, hostId, part, props) =>
     <div id="host" style="position:relative;--vf-titlebar-height:26px;--vf-shadow-offset:4px">
       <vf-window id="win" heading="W" movable style="width:300px;height:200px"><p>B</p></vf-window>
       <vf-dialog id="dlg" heading="D" width="200" height="120" open><p>B</p></vf-dialog>
-      <vf-alert id="alert" variant="caution" width="240" height="100" open>Careful</vf-alert>
     </div>
   `)
   const barH = async (id) => (await partMetrics(page, id, 'title-bar', ['height'])).height
@@ -258,12 +257,7 @@ const partMetrics = (page, hostId, part, props) =>
   const want = `rgb(0, 0, 0) ${4 * S}px ${4 * S}px 0px 0px`
   check('re-themed shadow offset carries the window', (await shadow('win')) === want,
     await shadow('win'))
-  check('…the dialog', (await shadow('dlg')) === want, await shadow('dlg'))
-  check('…and the alert, which shares only the shadow (its border stays 2px)',
-    (await shadow('alert')) === want, await shadow('alert'))
-  const alertBorder = (await partMetrics(page, 'alert', 'frame', ['border-top-width']))['border-top-width']
-  check(`alert keeps its own heavier ${2}px x${S} outer rule`,
-    alertBorder === `${2 * S}px`, alertBorder)
+  check('…and the dialog', (await shadow('dlg')) === want, await shadow('dlg'))
 
   await page.close()
 }

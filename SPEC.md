@@ -14,10 +14,11 @@ design and public APIs. Every component MUST follow it.
 > scroll arrows). Each is reconstructed pixel-for-pixel as an inline-SVG fill
 > path in `src/glyphs.ts` (shared, `currentColor`-themeable, zero raster assets)
 > and consumed by the components below — the authoritative source for these
-> marks. A glyph is *geometry*, which is why redrawing it loses nothing; the one
-> mark the kit paints that is a **picture** — the 32×32 alert icon — is not
-> redrawn but shipped as the sheet's own pixels (`src/icons.ts`, see
-> `vf-alert`).
+> marks. A glyph is *geometry*, which is why redrawing it loses nothing. A
+> **picture** is different — redrawn it is lost — and the kit ships no raster
+> art at all: an icon is the consumer's asset, slotted through `vf-img` (the
+> demo's 32×32 alert icon is cut to `demo/icons/alert.png` by
+> `npm run extract:icons`).
 
 ## 1. Design principles
 
@@ -137,7 +138,7 @@ Modern requirements that we deliberately keep (accessibility over purity):
   src/form-control.ts). A `description` property (or, when it's empty, a
   host-level `aria-describedby`) renders as a hidden span in the control's own
   shadow root with the inner control's `aria-describedby` pointing at it — the
-  shadow-internal IDREF idiom `vf-alert` uses — and a failing constraint's
+  shadow-internal IDREF idiom `vf-dialog`'s title patch uses — and a failing constraint's
   `validationMessage` joins the same node. Referenced text is flattened at
   render time, so an edit to a referenced element's *text* lands on the next
   render rather than instantly — the one divergence from native. Controls
@@ -306,8 +307,8 @@ right.
   into a surface that supplies its own border:
   `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
   No blur, no spread — System 7's only depth cue. Every raised surface in the kit
-  composes this one declaration (`vfPanel`, `vfChromeFrame`, and vf-alert, which
-  supplies its own heavier 2px rule).
+  composes this one declaration (`vfPanel`, `vfChromeFrame`; `vf-swatch`
+  composes it without either surface class).
 - `vfPanel` — a `.vf-panel` class for menus/popups:
   white bg, `border: 1px solid var(--vf-black, #000)`, `vfHardShadowDecls`.
 - `vfChromeFrame` — a `.vf-frame` class for the framed containers (`vf-window`,
@@ -317,11 +318,11 @@ right.
   native `<dialog>` shrink-wraps.
 - `vfModalFrame` — the dBoxProc modal-dialog frame (`vf-dialog frame="plain"`):
   `.vf-modal-frame` (white face, 1px black border, **no shadow**) around
-  `.vf-modal-frame-inner` (`margin: 2px; border: 2px solid`). Deliberately not
-  shared with `vf-alert`'s frame, which is the mirror trace — 2px outer, 2px
-  gap, 1px inner rule, *with* the hard shadow. System 7 drew alerts and modal
-  dialogs with two different double frames (`Windows/modal dialog.png` vs the
-  alert reference), so the kit keeps two recipes.
+  `.vf-modal-frame-inner` (`margin: 2px; border: 2px solid`). System 7's alert
+  box drew the mirror trace — 2px outer, 2px gap, 1px inner rule, *with* the
+  hard shadow (`Windows/modal dialog.png` vs the alert reference) — a
+  different chrome the kit does not ship: an alert box is a consumer
+  composition over this frame, not a component.
 - `vfWindowWidgets` — the title-bar window widgets (`.box` base, `.close`
   left / `.zoom` right at 11×11 with the 1px white patch ring, the pressed
   go-away sunburst, the nested zoom square), shared by `vf-window` and a
@@ -716,56 +717,25 @@ striped title bar over a white body), the dBoxProc modal dialog box with
   `heading` is set. With no heading there is nothing to point at —
   `aria-labelledby` would resolve to an empty node and leave the dialog
   unnamed — so it falls back to `aria-label`, taking `label` if given and
-  otherwise `'Dialog'`. An explicit `label` wins over `heading`. Mirrors how
-  `vf-alert` (which never has a title bar) names itself. The close box is
-  labeled `Close ${heading}` like `vf-window`'s.
+  otherwise `'Dialog'`. An explicit `label` wins over `heading`. The close box
+  is labeled `Close ${heading}` like `vf-window`'s.
 - **Slots:** default, `buttons`.
 - **Parts:** `frame`, `title-bar` (default chrome), `title`, `close-box`
   (when `closable`), `body`, `content`, `footer`, `buttons`.
 - **Events:** `vf-close`.
 
-#### `vf-alert` (`VfAlert`, vf-alert.ts)
-Classic fixed modal alert: double black frame, no title bar. (Its frame is
-deliberately NOT `vfModalFrame` — the alert's trace is 2px outer / 1px inner
-*with* the hard shadow, the modal dialog's is 1px outer / 2px inner without;
-see §4.)
-- **Attributes/props:** `open: boolean`, `width: number` / `height: number`
-  (**declare them both** — whole system px, the same requirement, the same
-  fallbacks and the same one-time console warning as `vf-dialog`; both inherit
-  it from `VfModalDialog`), `variant?: 'caution'` (renders the classic
-  triangle-with-! icon; omit for none/slot).
-- **Implementation:** native `<dialog>` like vf-dialog. `show()`/`close()`.
-- **Visual:** outer `border: 2px solid black`; inner frame: a wrapper with
-  `margin: 2px; border: 1px solid black;` (classic double-rule). Body white,
-  `padding: 16px 20px`, drop shadow `2px 2px 0 0 black`. Layout: icon column
-  (32px) left, message right; the `buttons` slot is a bottom-right
-  `vf-button-group` (equal-width, faces aligned; classic 12px gap).
-  Each ring of the double frame is a flex column passing the declared `height`
-  inward (the outer ring is the `<dialog>`'s flex child, inner and content
-  `flex: 1 1 auto`), for the reason given under `vf-dialog` — otherwise the
-  framed art stays content-tall inside a taller (or UA-capped) `<dialog>`.
-  The box never grows, but an over-stuffed message scrolls instead of
-  clipping: the message row shrinks (`minmax(0, auto)`) while the button row
-  holds, and the message cell's scroller takes the same
-  rail-on-overflow-plus-keyboard-stop treatment as `vf-dialog`'s `.content`.
-  Removal-while-open teardown and the live grid re-pin are inherited from
-  `VfModalDialog` (see `vf-dialog`).
-  The `variant="caution"` icon is the **only raster art the library itself
-  ships**: an alert icon is a picture, not geometry, so it is not vectorized
-  into glyphs.ts — it is the reference sheet's own 32×32 pixels, inlined as a
-  base64 data URI in `src/icons.ts` (generated by `npm run extract:icons` from
-  the same crop as the demo copy, so the two cannot drift). Black ink on
-  transparency makes it exactly an alpha mask, so it paints as `mask-image`
-  over `background: var(--vf-black)` — the `vf-grid` rules idiom — which keeps
-  the ink on the token and lets the alert's surface show inside the triangle.
-  Sized `32px × --vf-scale` with `mask-size: 100% 100%`, so the box is whole
-  device px and the magnification is bit-exact nearest-neighbor
-  (`npm run verify:caution`).
-- **Slots:** `icon`, default (message), `buttons`. A slotted `icon` replaces the
-  variant's — and with it the variant's accessible-name default, so an alert
-  that slots its own icon should state `label`.
-- **Parts:** `frame`, `icon`, `message`, `buttons`.
-- **Events:** `vf-close` (detail `{ reason }`).
+#### The alert box (composed — no component)
+System 7's fixed modal alert (double frame: 2px outer, 2px gap, 1px inner
+rule, *with* the hard shadow) is deliberately not shipped as a component.
+What separates an alert from a modal dialog is a *picture* — the 32×32
+icon — and pictures are the consumer's assets, never the library's (see the
+glyph-sprites note at the top of this spec). An alert box is composed from
+the shells above: `vf-dialog frame="plain"` with `label` stated (there is no
+title bar to name it), a row `vf-stack` slotting the consumer's own 32×32
+art through `vf-img`, display-face copy (an alert speaks in chrome type),
+and the `buttons` slot. The showcase and blog demos compose theirs from
+`demo/icons/alert.png` (`npm run extract:icons`), and the reference page
+carries the live recipe.
 
 #### `vf-separator` (`VfSeparator`, vf-separator.ts)
 - 1px black rule. `vertical: boolean` attr → 1px wide, auto height.
@@ -860,8 +830,8 @@ see §4.)
   column via the inherited `--vf-button-flex`. Pure CSS; no measurement.
 - **Layout-neutral:** shrink-wraps to its buttons; the parent positions it — a
   `<vf-stack fill-width place="end">` around it is the kit's own bottom-right
-  action row, and `justify-self: end` does it in page CSS. `vf-alert` and
-  `vf-dialog` wrap their `buttons` slots in one.
+  action row, and `justify-self: end` does it in page CSS. `vf-dialog` wraps
+  its `buttons` slot in one.
 - **Slots:** default (vf-button elements). **Parts:** none. **Events:** none.
 
 #### `vf-swatch` (`VfSwatch`, vf-swatch.ts)
@@ -1976,9 +1946,12 @@ screenshots:
    `vf-list` (each row's `icon` slot carrying its DA's 16×16 small icon as a
    `vf-img`; crops via `npm run extract:icons`), `vf-scroll-area` with enough
    text to scroll, disabled control examples.
-5. An alert: menu item Special → "Erase Disk…" opens a `vf-alert
-   variant="caution"` — "Completely erase the disk named 'Macintosh HD'?" with
-   Cancel / Erase buttons (Erase = default variant, closes alert).
+5. An alert: menu item Special → "Erase Disk…" opens a composed alert box —
+   `vf-dialog frame="plain"` with the demo's own 32×32 alert icon
+   (`demo/icons/alert.png`) in a row `vf-stack` via `vf-img` — "Completely
+   erase the disk named 'Macintosh HD'?" with Cancel / Erase buttons (Erase =
+   default variant, closes the dialog). The kit ships no alert component; the
+   showcase demonstrates the recipe.
 6. All windows `movable`; desktop stacking/active management demonstrably
    works. Every window starts put away and opens from its own desktop
    launcher icon — a `vf-icon` per demonstration window and dialog, clustered

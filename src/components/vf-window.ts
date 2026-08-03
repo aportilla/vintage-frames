@@ -56,7 +56,7 @@ interface ResizeState {
  * @csspart viewport - The built-in scroll area's viewport (when `scrollbars`;
  *   re-exported from vf-scroll-area).
  * @fires vf-close - Close box clicked. Detail `{ reason: 'close' }` (shape-
- *   compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT
+ *   compatible with vf-dialog's `vf-close`). The window does NOT
  *   remove itself; the consumer decides what closing means.
  * @fires vf-zoom - Zoom box clicked. Detail `{}`.
  * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,

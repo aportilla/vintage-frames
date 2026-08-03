@@ -22,9 +22,9 @@ trace:
   the bar's), and the shadow is the kit's shared `--vf-shadow-offset` token
   rather than the sheet's 1px.
 - `modal dialog.png` — the dBoxProc frame: 1px outer border, 2px gap, 2px
-  inner band, and NO drop shadow. This is the mirror of vf-alert's traced
-  alert frame (2px outer, 2px gap, 1px inner rule, with shadow) — the two are
-  different System 7 chromes, deliberately not one shared recipe.
+  inner band, and NO drop shadow. System 7's alert box drew the mirror trace
+  (2px outer, 2px gap, 1px inner rule, with shadow) — a different chrome the
+  kit does not ship; an alert is composed over this frame instead.
 - `moveable modal dialog.png` — the striped bar with a close box: 11x11 at
   left:8px spanning the stripe band, byte-identical to vf-window's widget, so
   vf-dialog's `closable` reuses the shared recipe rather than re-tracing. The
@@ -128,7 +128,7 @@ def trace_modal():
     assert not is_dark(pix[5][5]), "content starts at 5"
     assert not is_dark(pix[1][w - 1]) or is_dark(pix[0][w - 1]), "no shadow col"
     print("frame: 1px outer + 2px gap + 2px inner band, no shadow")
-    print("(mirror of vf-alert's 2px outer + 2px gap + 1px inner — not shared)")
+    print("(the alert box's 2px outer + 2px gap + 1px inner is the mirror — not shipped)")
 
 
 def trace_moveable_modal():

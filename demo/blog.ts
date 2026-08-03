@@ -20,7 +20,6 @@ import {
   truePixelRatio,
 } from '../src/index.js'
 import type {
-  VfAlert,
   VfCheckbox,
   VfDialog,
   VfList,
@@ -454,7 +453,7 @@ postList.addEventListener('click', (event) => {
 const subscribeDialog = $<VfDialog>('#dlg-subscribe')
 const subscribeEmail = $<VfTextField>('#sub-email')
 const aboutDialog = $<VfDialog>('#dlg-about')
-const noteAlert = $<VfAlert>('#alert-note')
+const noteAlert = $<VfDialog>('#alert-note')
 const alertMessage = $<HTMLElement>('#alert-message')
 
 $<HTMLElement>('#subscribe').addEventListener('click', () => subscribeDialog.show())

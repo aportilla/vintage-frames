@@ -10,7 +10,6 @@
 import { VfParagraph, VfWindow } from '../src/index.js'
 import { effectiveScale, onScaleChange, sysLength } from '../src/scale.js'
 import type {
-  VfAlert,
   VfDesktop,
   VfDialog,
   VfIcon,
@@ -76,7 +75,7 @@ const findWindow = $<VfWindow>('#win-find')
 const toolsPalette = $<VfWindow>('#win-tools')
 const aboutDialog = $<VfDialog>('#dlg-about')
 const pageSetupDialog = $<VfDialog>('#dlg-pagesetup')
-const eraseAlert = $<VfAlert>('#alert-erase')
+const eraseAlert = $<VfDialog>('#alert-erase')
 
 /* ------------------------------------------------------------------ *
  * Windows: every one puts itself away — the close box where there is
@@ -261,7 +260,7 @@ for (const icon of document.querySelectorAll<VfIcon>('vf-icon[data-opens]')) {
       target.hidden = false
       desktop.bringToFront(target)
     } else {
-      ;(target as VfDialog | VfAlert).show()
+      ;(target as VfDialog).show()
       icon.open = true
     }
   })

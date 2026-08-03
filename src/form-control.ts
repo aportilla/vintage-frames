@@ -132,7 +132,7 @@ export class VfFormControl extends LitElement {
    * so there was structurally no way to describe a field; this property is
    * that channel. It renders as a hidden span in the control's own shadow root
    * with the inner control's `aria-describedby` pointing at it — the
-   * shadow-internal IDREF idiom `vf-alert` already uses. A host-level
+   * shadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level
    * `aria-describedby` is bridged into the same span when this property is
    * empty, and a failing constraint's {@link validationMessage} joins it too,
    * so AT hears the error where it hears the hint.

@@ -1058,7 +1058,7 @@ shrink it and watch the arrows come back.
            content the way those dialogs titled themselves. File →
            Page Setup… opens it; Page Setup is the classic example of a
            dialog you must answer before working on. -->
-      <vf-dialog id="dlg-pagesetup" frame="plain" heading="Page Setup" width="320" height="258">
+      <vf-dialog id="dlg-pagesetup" frame="plain" heading="Page Setup" width="320" height="266">
         <!-- A declared width keeps the panel — and everything stretched to it
              — on the device-pixel grid by construction (README rule 3). -->
         <vf-stack width="260" gap="12">
@@ -1086,18 +1086,26 @@ shrink it and watch the arrows come back.
         >
       </vf-dialog>
 
-      <!-- ===================== Erase Disk alert (modal) ================= -->
-      <vf-alert id="alert-erase" variant="caution" width="400" height="118">
-        <!-- An alert speaks in chrome type, so the copy takes the display
-             face rather than vf-paragraph's body default. -->
-        <vf-paragraph class="alert-message" face="display"
-          >Completely erase the disk named “Macintosh HD”?</vf-paragraph
-        >
+      <!-- ============== Erase Disk alert (composed, modal) ============== -->
+      <!-- An alert box is not a component: it is the modal-dialog shell
+           plus this page's own 32×32 icon art (demo/icons/alert.png, cut
+           by `npm run extract:icons`), slotted through vf-img like any
+           picture. An alert speaks in chrome type, so the copy takes the
+           display face rather than vf-paragraph's body default. -->
+      <vf-dialog id="alert-erase" frame="plain" label="Caution" width="400" height="118">
+        <vf-stack fill-width direction="row" gap="16">
+          <vf-img width="32" height="32">
+            <img src="/demo/icons/alert.png" alt="" />
+          </vf-img>
+          <vf-paragraph fill-width face="display"
+            >Completely erase the disk named “Macintosh HD”?</vf-paragraph
+          >
+        </vf-stack>
         <vf-button id="btn-erase-cancel" slot="buttons">Cancel</vf-button>
         <vf-button id="btn-erase-confirm" slot="buttons" variant="default"
           >Erase</vf-button
         >
-      </vf-alert>
+      </vf-dialog>
     </vf-desktop>
   </body>
 </html>

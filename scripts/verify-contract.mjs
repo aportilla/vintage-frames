@@ -230,32 +230,19 @@ async function build(markup) {
       ${Array.from({ length: 60 }, (_, i) => `<vf-paragraph>Line ${i + 1}.</vf-paragraph>`).join('')}
       <vf-button id="ok2" slot="buttons" variant="default">OK</vf-button>
     </vf-dialog>
-    <vf-alert id="tallAlert" variant="caution" width="360" height="150" open>
-      ${Array.from({ length: 30 }, (_, i) => `<vf-paragraph>Alert line ${i + 1}.</vf-paragraph>`).join('')}
-      <vf-button id="ok3" slot="buttons" variant="default">Erase</vf-button>
-    </vf-alert>
   `)
   const r = await page.evaluate(() => {
     const dlg = document.getElementById('auto')
     const frame = dlg.shadowRoot.querySelector('.vf-frame')
     const fr = frame.getBoundingClientRect()
     const ok = document.getElementById('ok2').getBoundingClientRect()
-    const alert = document.getElementById('tallAlert')
-    const scroll = alert.shadowRoot.querySelector('.message-scroll')
-    const ok3 = document.getElementById('ok3').getBoundingClientRect()
     return {
       frameInViewport: fr.top >= 0 && fr.bottom <= window.innerHeight + 1,
       okOnScreen: ok.top >= 0 && ok.bottom <= window.innerHeight && ok.height > 0,
-      alertScrolls:
-        scroll.getAttribute('data-overflow-y') === 'true' &&
-        scroll.scrollHeight - scroll.clientHeight > 1,
-      alertOkOnScreen: ok3.top >= 0 && ok3.bottom <= window.innerHeight && ok3.height > 0,
     }
   })
   check('overflow: undeclared-height frame stays inside the viewport', r.frameInViewport)
   check('overflow: undeclared-height dialog keeps its button on-screen', r.okOnScreen)
-  check('overflow: over-stuffed alert message scrolls', r.alertScrolls)
-  check('overflow: over-stuffed alert keeps its button on-screen', r.alertOkOnScreen)
   await page.close()
 }
 

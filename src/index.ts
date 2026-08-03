@@ -15,7 +15,6 @@
 export { VfDesktop } from './components/vf-desktop.js'
 export { VfWindow } from './components/vf-window.js'
 export { VfDialog } from './components/vf-dialog.js'
-export { VfAlert } from './components/vf-alert.js'
 export { VfSeparator } from './components/vf-separator.js'
 
 // Buttons & toggles
@@ -157,9 +156,6 @@ export {
   SLIDER_THUMB_FACE,
 } from './glyphs.js'
 export type { Glyph } from './glyphs.js'
-
-/** The raster half of the sprite set — the 32x32 alert icon, as a data URI. */
-export { CAUTION_ICON } from './icons.js'
 
 /** Pixel-stepped corner profiles and the clip-paths traced from them. */
 export {

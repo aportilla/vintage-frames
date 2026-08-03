@@ -43,10 +43,10 @@ export const vfChromeFrame = css`
 /**
  * The classic modal-dialog (dBoxProc) frame: 1px outer border, 2px white gap,
  * 2px inner band — and NO drop shadow, per the `Windows/modal dialog.png`
- * reference (`npm run extract:windows`). Deliberately not shared with
- * vf-alert's frame, which is the *mirror* trace (2px outer, 2px gap, 1px inner
- * rule, with the hard shadow): System 7 drew alerts and modal dialogs with two
- * different double frames, so the kit keeps two recipes.
+ * reference (`npm run extract:windows`). System 7's alert box drew the
+ * *mirror* trace (2px outer, 2px gap, 1px inner rule, with the hard shadow) —
+ * a different chrome the kit does not ship: an alert is a composition over
+ * this frame, not a component.
  *
  * Apply `.vf-modal-frame` to the outer element and `.vf-modal-frame-inner` to
  * a wrapper inside it; content goes in the wrapper.

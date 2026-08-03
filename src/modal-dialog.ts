@@ -54,9 +54,10 @@ export const modalDialogStyles = css`
 `
 
 /**
- * Base class for the movable-modal `vf-dialog` and fixed-modal `vf-alert`.
+ * Base class for the modal shell `vf-dialog` — and for a consumer's own
+ * modal (an alert box, say) authored against the kit.
  *
- * Owns the native `<dialog>` lifecycle both share: `open` sync, `show()` /
+ * Owns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /
  * `close()`, the device-grid pin on open, and the single `close` funnel that
  * clears the grid-pinned margins ({@link unsnapDialog}) and fires `vf-close`
  * with the reason. Because every close path — Escape, `close()`, backdrop —
@@ -222,7 +223,7 @@ export class VfModalDialog extends LitElement {
    * stranding its bottom off-screen), and a browser zoom rescales every
    * metric while the old margins hold the stale origin. A dragged position is
    * traded for re-centering on these signals — recoverable, where a stranded
-   * modal with no drag handle (vf-alert, frame="plain") is not.
+   * modal with no drag handle (frame="plain") is not.
    */
   #repin = (): void => {
     const dialog = this._dialog

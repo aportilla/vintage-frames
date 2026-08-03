@@ -4,493 +4,6 @@
   "modules": [
     {
       "kind": "javascript-module",
-      "path": "src/components/vf-alert.ts",
-      "declarations": [
-        {
-          "kind": "class",
-          "description": "`<vf-alert>` — the classic fixed modal alert.\n\nDouble black rule frame (2px outer border, 1px inner rule), no title bar,\nwhite body with an icon column on the left, the message on the right, and\na button row at the bottom-right. Wraps a native `<dialog>` (top layer +\nfocus trap) with a transparent backdrop.\n\nOpen with `show()` (or the `open` attribute/property); close with\n`close()`. Escape fires `vf-close` with `{ reason: 'escape' }`,\nprogrammatic closing with `{ reason: 'close' }`.",
-          "name": "VfAlert",
-          "cssParts": [
-            {
-              "description": "The outer double-rule frame.",
-              "name": "frame"
-            },
-            {
-              "description": "The 32px icon column.",
-              "name": "icon"
-            },
-            {
-              "description": "The message area.",
-              "name": "message"
-            },
-            {
-              "description": "The button group.",
-              "name": "buttons"
-            }
-          ],
-          "slots": [
-            {
-              "description": "Default slot: the alert message.",
-              "name": ""
-            },
-            {
-              "description": "Custom icon (overrides the `variant` icon).",
-              "name": "icon"
-            },
-            {
-              "description": "Action buttons, laid out bottom-right in a `vf-button-group` (equal-width, faces aligned; classic 12px gap).",
-              "name": "buttons"
-            }
-          ],
-          "members": [
-            {
-              "kind": "field",
-              "name": "variant",
-              "type": {
-                "text": "'caution' | undefined"
-              },
-              "description": "Built-in icon variant. `'caution'` renders the classic black/white\ntriangle-with-! icon. Omit for no icon (or slot your own via `icon`).",
-              "attribute": "variant"
-            },
-            {
-              "kind": "field",
-              "name": "label",
-              "type": {
-                "text": "string"
-              },
-              "default": "''",
-              "description": "Accessible name for the alert dialog (`aria-label`). Alerts have no title\nbar, so the name must come from ARIA; defaults to `'Caution'` when\n`variant=\"caution\"`, otherwise `'Alert'`.",
-              "attribute": "label"
-            },
-            {
-              "kind": "field",
-              "name": "_hasSlottedIcon",
-              "type": {
-                "text": "boolean"
-              },
-              "privacy": "private",
-              "default": "false",
-              "description": "True when the consumer slotted custom icon content."
-            },
-            {
-              "kind": "field",
-              "name": "_messageScroll",
-              "type": {
-                "text": "HTMLElement | null"
-              },
-              "privacy": "private"
-            },
-            {
-              "kind": "field",
-              "name": "_scrollable",
-              "type": {
-                "text": "boolean"
-              },
-              "privacy": "private",
-              "default": "false",
-              "description": "Whether the message overflows its cell (drives the scroll stop)."
-            },
-            {
-              "kind": "field",
-              "name": "_scrollState",
-              "privacy": "private",
-              "readonly": true,
-              "default": "new ScrollStateController( this, () => this._messageScroll, undefined, (overflow) => { this._scrollable = overflow.y } )",
-              "description": "Activates the System 7 rail — and the message region's keyboard stop —\nonce the message overflows the declared (or viewport-capped) box."
-            },
-            {
-              "kind": "method",
-              "name": "_onMessageSlotChange",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "description": "Message content changed under the fixed box — re-measure the overflow."
-            },
-            {
-              "kind": "method",
-              "name": "_onIconSlotChange",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "event",
-                  "type": {
-                    "text": "Event"
-                  }
-                }
-              ]
-            },
-            {
-              "kind": "field",
-              "name": "scale",
-              "privacy": "protected",
-              "readonly": true,
-              "default": "new ScaleController(this)",
-              "description": "Default-on display scaling (true 72dpi size); see src/scale.ts.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "open",
-              "type": {
-                "text": "boolean"
-              },
-              "default": "false",
-              "description": "Whether the modal is open. Kept in sync with the native `<dialog>`.",
-              "attribute": "open",
-              "reflects": true,
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "width",
-              "type": {
-                "text": "number | undefined"
-              },
-              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
-              "attribute": "width",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "height",
-              "type": {
-                "text": "number | undefined"
-              },
-              "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
-              "attribute": "height",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "_dialog",
-              "type": {
-                "text": "HTMLDialogElement"
-              },
-              "privacy": "protected",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "dialogSize",
-              "type": {
-                "text": "Record<string, string | null>"
-              },
-              "privacy": "protected",
-              "description": "The declared box as inline styles for the subclass's `<dialog>`:\n`style=${styleMap(this.dialogSize)}`. Width always resolves to something\ndefinite — the declaration or the fallback — because that is what keeps a\ndrag from squeezing the box.",
-              "readonly": true,
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "#warnedNoSize",
-              "privacy": "private",
-              "type": {
-                "text": "boolean"
-              },
-              "default": "false",
-              "description": "One warning per element, on the open that first shows an unsized modal.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "#warnIfUnsized",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "description": "Say it once, when an unsized modal is first shown — a hidden one is not\nyet anybody's problem, and the name in the message is what makes it\nfindable in a page with several.\n\nBoth dimensions are required, as on `vf-window`, but they fail differently:\nan undeclared width takes a definite fallback (a squeezing box is worse\nthan a wrong-but-stable one), while an undeclared height just sizes to the\ncontent and says so.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "#closeReason",
-              "privacy": "private",
-              "type": {
-                "text": "VfCloseReason | null"
-              },
-              "default": "null",
-              "description": "Close reason pending for the next native `close` event.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "#invoker",
-              "privacy": "private",
-              "type": {
-                "text": "Element | null"
-              },
-              "default": "null",
-              "description": "The element that was focused when the modal opened. The normal close path\nrestores focus natively, but the removal path (see the class doc) skips\nthe close algorithm, and by the time `disconnectedCallback` runs, focus\nhas already fallen to `<body>` — so we keep our own record.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "show",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "description": "Open the modal (native `showModal()`), pinned onto the device grid.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "close",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "description": "Close the modal. Fires `vf-close` with `{ reason: 'close' }`.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "#syncDialog",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "description": "Reconcile the native `<dialog>` with `open`. Opening pins the UA's\nauto-centering onto the device-pixel grid (half-pixel offsets fringe the\n1-bit chrome — see scale.ts). Closing just calls `dialog.close()`, routing\nteardown through the native `close` event so _onNativeClose is the\none place margins are cleared and `vf-close` is fired.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "#repin",
-              "privacy": "private",
-              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (vf-alert, frame=\"plain\") is not.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "field",
-              "name": "#resizeObserver",
-              "privacy": "private",
-              "type": {
-                "text": "ResizeObserver | undefined"
-              },
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "#watchGeometry",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "dialog",
-                  "type": {
-                    "text": "HTMLDialogElement"
-                  }
-                }
-              ],
-              "description": "While open, watch the two signals that invalidate the pin: the dialog's\nown box changing (content upgrade/growth, `--vf-scale` moving under a\nzoom or density change — every metric resizes with it) and the viewport\nresizing. Undone in _onNativeClose / `disconnectedCallback`.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "#unwatchGeometry",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "_onNativeCancel",
-              "privacy": "protected",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "description": "Native `cancel` (Escape): remember the reason; `close` follows.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "kind": "method",
-              "name": "_onNativeClose",
-              "privacy": "protected",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "description": "Native `close` — the single teardown funnel for every close path. Clears\nthe grid-pinned margins so the next open re-centers, syncs `open`, and\nfires `vf-close` with the reason.",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            }
-          ],
-          "events": [
-            {
-              "description": "Alert closed. Detail `{ reason: 'escape' | 'close' }`.",
-              "name": "vf-close",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            }
-          ],
-          "attributes": [
-            {
-              "name": "variant",
-              "type": {
-                "text": "'caution' | undefined"
-              },
-              "description": "Built-in icon variant. `'caution'` renders the classic black/white\ntriangle-with-! icon. Omit for no icon (or slot your own via `icon`).",
-              "fieldName": "variant"
-            },
-            {
-              "name": "label",
-              "type": {
-                "text": "string"
-              },
-              "default": "''",
-              "description": "Accessible name for the alert dialog (`aria-label`). Alerts have no title\nbar, so the name must come from ARIA; defaults to `'Caution'` when\n`variant=\"caution\"`, otherwise `'Alert'`.",
-              "fieldName": "label"
-            },
-            {
-              "name": "open",
-              "type": {
-                "text": "boolean"
-              },
-              "default": "false",
-              "description": "Whether the modal is open. Kept in sync with the native `<dialog>`.",
-              "fieldName": "open",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "name": "width",
-              "type": {
-                "text": "number | undefined"
-              },
-              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
-              "fieldName": "width",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            },
-            {
-              "name": "height",
-              "type": {
-                "text": "number | undefined"
-              },
-              "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
-              "fieldName": "height",
-              "inheritedFrom": {
-                "name": "VfModalDialog",
-                "module": "src/modal-dialog.ts"
-              }
-            }
-          ],
-          "superclass": {
-            "name": "VfModalDialog",
-            "module": "/src/modal-dialog.js"
-          },
-          "tagName": "vf-alert",
-          "customElement": true
-        }
-      ],
-      "exports": [
-        {
-          "kind": "js",
-          "name": "VfAlert",
-          "declaration": {
-            "name": "VfAlert",
-            "module": "src/components/vf-alert.ts"
-          }
-        },
-        {
-          "kind": "custom-element-definition",
-          "name": "vf-alert",
-          "declaration": {
-            "name": "VfAlert",
-            "module": "src/components/vf-alert.ts"
-          }
-        }
-      ]
-    },
-    {
-      "kind": "javascript-module",
       "path": "src/components/vf-button-group.ts",
       "declarations": [
         {
@@ -866,7 +379,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -1327,7 +840,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -1791,7 +1304,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -2199,7 +1712,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -2781,7 +2294,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given. Mirrors vf-alert's `label`.",
+              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given.",
               "attribute": "label"
             },
             {
@@ -3063,7 +2576,7 @@
               "kind": "field",
               "name": "#repin",
               "privacy": "private",
-              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (vf-alert, frame=\"plain\") is not.",
+              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (frame=\"plain\") is not.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -3175,7 +2688,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given. Mirrors vf-alert's `label`.",
+              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given.",
               "fieldName": "label"
             },
             {
@@ -3605,7 +3118,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-alert`'s `icon` slot and `vf-list-item`'s make the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n`scripts/extract-da-icons.py` bakes the same registration into the assets it\ncuts.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart inverts too, into a photographic negative rather than the darkening\nSystem 7 gave it; that is the case to revisit if the kit ever grows a\nselected-state treatment of its own. The label plate inverts to the\n`--vf-highlight` pair, sharing one selection color with `vf-list-item`.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` seeds absolute positioning from the\nin-flow offset on the first drag and writes back `left`/`top` snapped onto\nthe system-pixel grid, whole art pixels the way QuickDraw moved things.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box, as the Finder's does, with Return\ncommitting, Escape reverting, and the plate widening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
+          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-list-item`'s `icon` slot makes the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n`scripts/extract-da-icons.py` bakes the same registration into the assets it\ncuts.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart inverts too, into a photographic negative rather than the darkening\nSystem 7 gave it; that is the case to revisit if the kit ever grows a\nselected-state treatment of its own. The label plate inverts to the\n`--vf-highlight` pair, sharing one selection color with `vf-list-item`.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` seeds absolute positioning from the\nin-flow offset on the first drag and writes back `left`/`top` snapped onto\nthe system-pixel grid, whole art pixels the way QuickDraw moved things.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box, as the Finder's does, with Return\ncommitting, Escape reverting, and the plate widening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
           "name": "VfIcon",
           "cssProperties": [
             {
@@ -6947,7 +6460,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -7459,7 +6972,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -8330,7 +7843,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -8761,7 +8274,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -10150,7 +9663,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -10559,7 +10072,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -11177,7 +10690,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -11644,7 +11157,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -12082,7 +11595,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -12544,7 +12057,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -13099,7 +12612,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -13595,7 +13108,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -14150,7 +13663,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -14646,7 +14159,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -15004,7 +14517,7 @@
           ],
           "events": [
             {
-              "description": "Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog/vf-alert's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.",
+              "description": "Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.",
               "name": "vf-close"
             },
             {
@@ -15242,7 +14755,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description"
             },
             {
@@ -15560,7 +15073,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description"
             },
             {
@@ -15974,7 +15487,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "attribute": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -16423,7 +15936,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-alert` already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+              "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
               "fieldName": "description",
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -16704,7 +16217,7 @@
         },
         {
           "kind": "class",
-          "description": "Base class for the movable-modal `vf-dialog` and fixed-modal `vf-alert`.\n\nOwns the native `<dialog>` lifecycle both share: `open` sync, `show()` /\n`close()`, the device-grid pin on open, and the single `close` funnel that\nclears the grid-pinned margins (unsnapDialog) and fires `vf-close`\nwith the reason. Because every close path — Escape, `close()`, backdrop —\nroutes through the native `close` event, an Escape-close no longer leaves\nstale margins behind, so the next open re-centers.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
+          "description": "Base class for the modal shell `vf-dialog` — and for a consumer's own\nmodal (an alert box, say) authored against the kit.\n\nOwns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /\n`close()`, the device-grid pin on open, and the single `close` funnel that\nclears the grid-pinned margins (unsnapDialog) and fires `vf-close`\nwith the reason. Because every close path — Escape, `close()`, backdrop —\nroutes through the native `close` event, an Escape-close no longer leaves\nstale margins behind, so the next open re-centers.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
           "name": "VfModalDialog",
           "members": [
             {
@@ -16838,7 +16351,7 @@
               "kind": "field",
               "name": "#repin",
               "privacy": "private",
-              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (vf-alert, frame=\"plain\") is not."
+              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (frame=\"plain\") is not."
             },
             {
               "kind": "field",

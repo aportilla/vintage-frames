@@ -31,30 +31,15 @@
 /*
  * No sizing rule: a vf-desktop always carries its own explicit size, and
  * demo.ts fits this one to the viewport (fitWithin, on resize and scale
- * changes). The desktop is the viewport — absolutely positioned windows
- * past its edge don't give the page a scrollbar, so a window is only
- * reachable if its authored position starts on-screen. Keep placements
- * inside roughly 940×560 system px (a 1440×900 retina viewport at scale
- * 1.5) or the window is lost at common densities.
+ * changes). The desktop is the viewport — absolutely positioned children
+ * past its edge don't give the page a scrollbar, so an authored position
+ * is only reachable if it starts on-screen. Windows sidestep the whole
+ * problem: none carries an authored position, because demo.ts centers a
+ * window on the raster as it stands the moment it opens. The icons are
+ * what this file still places, and the cluster keeps to the top-left
+ * ~430×270 system px — on-canvas even on a 1× display, where a 1440×900
+ * viewport is only ~480×300 system px at scale 3.
  */
-
-/* Window placement — staggered (system px × --vf-scale so the whole
-   arrangement scales proportionally at true size). */
-#win-installer {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 40px);
-  top: calc(var(--vf-scale, 1) * 60px);
-}
-#win-format {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 380px);
-  top: calc(var(--vf-scale, 1) * 440px);
-}
-#win-controls {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 640px);
-  top: calc(var(--vf-scale, 1) * 110px);
-}
 
 /* Windows spawned by File → New Window. */
 .untitled-note {
@@ -65,15 +50,6 @@
 /* Full glyph coverage of each embedded face, drawn in the face itself at true
    16px (on the 1024-upm grid) with smoothing off — every glyph is a real pixel,
    never a system fallback. Authored in system px × --vf-scale like the rest. */
-#win-charset {
-  position: absolute;
-  /* Near the top so it's on-screen at every density (see the vf-desktop note
-     — it was originally parked at y 1000, past the reachable canvas). It
-     overlaps the stack below it; every covered window keeps part of its title
-     bar or body clickable to come to the front. */
-  left: calc(var(--vf-scale, 1) * 260px);
-  top: calc(var(--vf-scale, 1) * 140px);
-}
 .charset {
   font-size: calc(var(--vf-scale, 1) * 16px);
   line-height: 1.5;
@@ -105,11 +81,6 @@
    definite size — the grow box then owns it — the scroll area fills the
    body, and the document keeps its natural size, so each rail activates
    only while its own axis overflows. */
-#win-readme {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 230px);
-  top: calc(var(--vf-scale, 1) * 560px);
-}
 /* (The TeachText rails-on-the-edge composition this window used to carry as
    .readme-scroll is now the window's own scrollbars="both" — SPEC §5
    vf-window.) */
@@ -127,34 +98,76 @@
 
 /* -------------------------- Finder desktop icons ------------------------- */
 /* Placement only — everything an icon looks like is the component's.
-   Left/top in system px like every window here, NOT the right/bottom anchor a
-   real Trash would use: the desktop is the viewport, so a far-edge anchor
-   lands somewhere different at every density and drops the icons into the
-   window pile (see the vf-desktop note above). This column — left of the New
-   HTML Document window and below the installer — is the only 64×52 slot the
-   window pile leaves anywhere on the canvas, which is also why two icons
-   stacked there read as the Finder's auto-arrange-along-an-edge. They sit
-   UNDER the windows, as desktop icons do. */
+   Left/top in system px, NOT the right/bottom anchor a real Trash would use:
+   the desktop is the viewport, so a far-edge anchor lands somewhere different
+   at every density (see the vf-desktop note above). HD and Trash take the
+   column to the right of the launcher cluster — the same grid, reading as the
+   Finder's auto-arrange-along-an-edge — so they too are on-canvas at any
+   density. Icons sit UNDER the windows, as desktop icons do. */
 .desktop-icon {
   position: absolute;
-  left: calc(var(--vf-scale, 1) * 24px);
+}
+#icon-hd,
+#icon-trash {
+  left: calc(var(--vf-scale, 1) * 354px);
 }
 #icon-hd {
-  top: calc(var(--vf-scale, 1) * 436px);
+  top: calc(var(--vf-scale, 1) * 40px);
 }
 #icon-trash {
-  top: calc(var(--vf-scale, 1) * 496px);
+  top: calc(var(--vf-scale, 1) * 100px);
+}
+
+/* ------------------------- Desktop launcher icons ------------------------ */
+/* One launcher per demonstration window/dialog (the windows start hidden;
+   double-click opens — demo.ts). Clustered around the top-left so the whole
+   set is on-canvas at any viewport size or density: a 3×4 grid on a 110×60
+   system-px pitch spans ~330×270, inside even a 1× 1440×900 viewport's
+   ~480×300 canvas. An icon's one-line name straddles its 64px cell, so the
+   column pitch is what keeps neighbours' names clear of each other. */
+#icon-installer,
+#icon-readme,
+#icon-controls,
+#icon-format {
+  left: calc(var(--vf-scale, 1) * 24px);
+}
+#icon-newdoc,
+#icon-newimage,
+#icon-find,
+#icon-charset {
+  left: calc(var(--vf-scale, 1) * 134px);
+}
+#icon-tools,
+#icon-about,
+#icon-pagesetup,
+#icon-erase {
+  left: calc(var(--vf-scale, 1) * 244px);
+}
+#icon-installer,
+#icon-newdoc,
+#icon-tools {
+  top: calc(var(--vf-scale, 1) * 40px);
+}
+#icon-readme,
+#icon-newimage,
+#icon-about {
+  top: calc(var(--vf-scale, 1) * 100px);
+}
+#icon-controls,
+#icon-find,
+#icon-pagesetup {
+  top: calc(var(--vf-scale, 1) * 160px);
+}
+#icon-format,
+#icon-charset,
+#icon-erase {
+  top: calc(var(--vf-scale, 1) * 220px);
 }
 
 /* ----------------------- Desk Accessories palette ----------------------- */
-/* The utility windoid floats over the Read Me's top-right corner, the way
-   HIG Figure 5-6 parks its tool palette over the document (and inside the
-   ~940×560 system-px reachable canvas — see the vf-desktop note). */
-#win-tools {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 600px);
-  top: calc(var(--vf-scale, 1) * 490px);
-}
+/* The utility windoid centers like every window at open, then floats over
+   whatever documents are up, the way HIG Figure 5-6 parks its tool palette
+   over the document. */
 /* The 3×3 tool cells and the 1px rules between them are the vf-grid in the
    markup (26×26 cells, frameless — the flush window's own border is the
    outer one). All that's left here is what a tool cell is: a borderless
@@ -263,12 +276,6 @@
 
 /* ----------------------- New HTML Document dialog ---------------------- */
 
-#win-newdoc {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 150px);
-  top: calc(var(--vf-scale, 1) * 300px);
-}
-
 /* The faint dotted rules that split the dialog into sections — the same
    dimmed-dotted recipe vf-menu uses for its separators. */
 .newdoc-rule {
@@ -285,12 +292,6 @@
 }
 
 /* ---------------------------- Find File window ------------------------- */
-
-#win-find {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 150px);
-  top: calc(var(--vf-scale, 1) * 720px);
-}
 
 /* The criteria "well": a hairline dotted frame around the
    attribute/operator/value row — exactly 1px black dots with 1px gaps, square
@@ -333,12 +334,6 @@
 }
 
 /* --------------------- Photoshop "New" image dialog -------------------- */
-
-#win-newimage {
-  position: absolute;
-  left: calc(var(--vf-scale, 1) * 700px);
-  top: calc(var(--vf-scale, 1) * 540px);
-}
 
 .newimage-actions {
   /* Tighter than the 12px dialog default — Photoshop stacked OK/Cancel close.

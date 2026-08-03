@@ -1935,8 +1935,9 @@ screenshots:
    `vf-radio-group` (Hierarchical ⌘H … Don't Reorganize ⌘R, with "Source Format
    Profile" disabled; shortcut text right of labels), disabled "Selection Only"
    checkbox, Options checkboxes (3, all checked), Cancel ⌘. + Format
-   (variant=default) buttons bottom-right. Rendered as an always-open movable
-   `vf-window` with no close box (closable=false) to sit on the desktop.
+   (variant=default) buttons bottom-right. Rendered as a movable `vf-window`
+   with no close box (closable=false), so its own Cancel/Format buttons are
+   how it dismisses.
 4. **"Controls" kitchen-sink window** — text field, password field, textarea,
    determinate progress animating 0→100 on a timer, indeterminate progress,
    button variants (normal/default/disabled), a `vf-swatch` palette row (the
@@ -1948,8 +1949,14 @@ screenshots:
    variant="caution"` — "Completely erase the disk named 'Macintosh HD'?" with
    Cancel / Erase buttons (Erase = default variant, closes alert).
 6. All windows `movable`; desktop stacking/active management demonstrably
-   works; closing a window hides it (listen for `vf-close`, set `hidden`);
-   Special → Show All Windows un-hides.
+   works. Every window starts put away and opens from its own desktop
+   launcher icon — a `vf-icon` per demonstration window and dialog, clustered
+   around the top-left so the set stays on-canvas at any viewport size;
+   `vf-open` centers the window on the raster as it currently stands and
+   raises it (no window carries an authored position). Closing a window hides
+   it (listen for `vf-close`, set `hidden`); the close-box-less modal
+   lookalikes dismiss via their own OK/Cancel buttons instead; Special →
+   Show All Windows un-hides everything, cascaded around the center.
 7. **"Page Setup" modal dialog box** — File → Page Setup… opens a
    `vf-dialog frame="plain"` (dBoxProc double frame, heading drawn in
    content): Paper radio group in a fieldset, Reduce or Enlarge
@@ -1966,12 +1973,11 @@ screenshots:
    cell.
 10. **Finder icons on the desktop** — "Macintosh HD" and "Trash" as `vf-icon`,
     each slotting its art at both resource sizes, `selectable movable
-    editable`. They sit under the windows the way desktop icons do, and are
-    placed in the one 64×52 slot the window pile leaves clear (left column,
-    below the installer) — with `left`/`top` in system px like every window
-    here, never a `right`/`bottom` anchor, which lands somewhere different at
-    each density since the desktop is the viewport. View → "by Small Icon"
-    drives them.
+    editable`. They sit under the windows the way desktop icons do, taking
+    the column to the right of the launcher cluster — with `left`/`top` in
+    system px, never a `right`/`bottom` anchor, which lands somewhere
+    different at each density since the desktop is the viewport. View →
+    "by Small Icon" drives them (launchers included).
 
 Demo may use small amounts of layout CSS (positioning windows on the desktop)
 but NO aesthetic CSS — looks must come from the components. That includes the

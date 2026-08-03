@@ -60,8 +60,9 @@
       </vf-menu-bar>
 
       <!-- =================== "Format" dialog-style window =============== -->
-      <!-- Always-open movable-modal lookalike; demo.ts sets closable=false. -->
-      <vf-window id="win-format" heading="Format" movable width="470" height="252">
+      <!-- Movable-modal lookalike; demo.ts sets closable=false, so its own
+           Cancel/Format buttons are how it dismisses. -->
+      <vf-window id="win-format" heading="Format" movable hidden width="470" height="252">
         <vf-stack fill-width gap="18">
           <!-- place="start": the cross axis of a row is vertical, and these two
                columns start at the top. (A row's own default is center, which
@@ -104,15 +105,15 @@
                parked at the end of that width. -->
           <vf-stack fill-width place="end">
             <vf-button-group>
-              <vf-button>Cancel ⌘.</vf-button>
-              <vf-button variant="default">Format</vf-button>
+              <vf-button id="btn-format-cancel">Cancel ⌘.</vf-button>
+              <vf-button id="btn-format-ok" variant="default">Format</vf-button>
             </vf-button-group>
           </vf-stack>
         </vf-stack>
       </vf-window>
 
       <!-- ================= "Controls" kitchen-sink window =============== -->
-      <vf-window id="win-controls" heading="Controls" movable resizable width="590" height="560">
+      <vf-window id="win-controls" heading="Controls" movable resizable hidden width="590" height="560">
         <div class="controls-grid">
           <vf-stack fill-width gap="10">
             <vf-fieldset fill-width legend="Text">
@@ -351,7 +352,7 @@
       </vf-window>
 
       <!-- ================ "DragThing 2.9 Installer" window ============== -->
-      <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable width="560" height="370">
+      <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable hidden width="560" height="370">
         <vf-stack fill-width gap="10">
           <vf-scroll-area fill-width class="installer-well">
             <vf-stack fill-width gap="10">
@@ -411,8 +412,9 @@
       </vf-window>
 
       <!-- ============= "New HTML Document" modal dialog (BBEdit) ========= -->
-      <!-- Movable modal lookalike; demo.ts sets closable=false (no close box). -->
-      <vf-window id="win-newdoc" heading="New HTML Document" movable width="480" height="368">
+      <!-- Movable modal lookalike; demo.ts sets closable=false (no close
+           box), so OK and Cancel are how it dismisses. -->
+      <vf-window id="win-newdoc" heading="New HTML Document" movable hidden width="480" height="368">
         <vf-stack fill-width gap="12">
           <vf-stack direction="row" gap="10">
             <vf-checkbox checked>Insert DOCTYPE</vf-checkbox>
@@ -485,8 +487,8 @@
                the column's own 12px gap. -->
           <vf-stack fill-width place="end" pad="4 0 0">
             <vf-button-group>
-              <vf-button>Cancel</vf-button>
-              <vf-button variant="default">OK</vf-button>
+              <vf-button id="btn-newdoc-cancel">Cancel</vf-button>
+              <vf-button id="btn-newdoc-ok" variant="default">OK</vf-button>
             </vf-button-group>
           </vf-stack>
         </vf-stack>
@@ -497,7 +499,7 @@
            archetypes"): close box + movable, no zoom box, grow box or scroll
            rails — a dialog that floats among the document windows and can be
            put away any time. Find is the HIG's own canonical example. -->
-      <vf-window id="win-find" heading="Find File" movable width="440" height="156">
+      <vf-window id="win-find" heading="Find File" movable hidden width="440" height="156">
         <vf-stack fill-width gap="12">
           <!-- "Find items [on local disks ▼] whose" — the popup hugs its
                widest option, so no `fill-width` on it. -->
@@ -543,13 +545,17 @@
           <vf-stack fill-width direction="row">
             <vf-button>More Choices</vf-button>
             <vf-stack fill-width></vf-stack>
-            <vf-button variant="default">Find</vf-button>
+            <!-- Find puts the dialog away, as System 7's Find did when the
+                 search ran. -->
+            <vf-button id="btn-find" variant="default">Find</vf-button>
           </vf-stack>
         </vf-stack>
       </vf-window>
 
       <!-- =============== Photoshop "New" document dialog =============== -->
-      <vf-window id="win-newimage" heading="New" movable width="470" height="338">
+      <!-- Another movable-modal lookalike (closable=false in demo.ts):
+           OK/Cancel dismiss. -->
+      <vf-window id="win-newimage" heading="New" movable hidden width="470" height="338">
         <vf-stack fill-width direction="row" gap="16" place="start">
           <vf-stack fill-width gap="12">
             <vf-stack fill-width direction="row" gap="8">
@@ -634,8 +640,8 @@
           </vf-stack>
 
           <vf-button-group vertical class="newimage-actions">
-            <vf-button variant="default">OK</vf-button>
-            <vf-button>Cancel</vf-button>
+            <vf-button id="btn-newimage-ok" variant="default">OK</vf-button>
+            <vf-button id="btn-newimage-cancel">Cancel</vf-button>
           </vf-button-group>
         </vf-stack>
       </vf-window>
@@ -644,7 +650,7 @@
       <!-- Full glyph coverage of each embedded face, rendered in the face
            itself with smoothing off — every character here is a real pixel
            glyph, never a system-font fallback. -->
-      <vf-window id="win-charset" heading="Character Set" movable zoomable width="700" height="372">
+      <vf-window id="win-charset" heading="Character Set" movable zoomable hidden width="700" height="372">
         <!-- The panels are kit layout, so they stack. What's inside them is a
              type specimen — raw <p>s in each face — and its own line rhythm
              stays page CSS (demo.css .charset-line): a stack arranges boxes,
@@ -697,6 +703,7 @@
         movable
         resizable
         scrollbars="both"
+        hidden
         width="420"
         height="320"
       >
@@ -732,6 +739,160 @@ its axis actually overflows — grow the window until a rail empties out,
 shrink it and watch the arrows come back.
 </pre>
       </vf-window>
+
+      <!-- ================ Launcher icons for every window ================ -->
+      <!-- One vf-icon per demonstration window and dialog, clustered around
+           the top-left so the whole set stays on-canvas at any viewport size
+           or density (demo.css holds the 3×4 grid); the windows themselves
+           start hidden. Double-click — or Return: launchers are deliberately
+           not `editable`, so Return opens rather than renames — fires
+           `vf-open`, and demo.ts opens whatever data-opens names. Placeholder
+           art on all of them for now, slotted at both resource sizes so
+           View → by Small Icon swaps these too. -->
+      <vf-icon
+        id="icon-installer"
+        class="desktop-icon"
+        label="Installer"
+        width="64"
+        selectable
+        movable
+        data-opens="win-installer"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-readme"
+        class="desktop-icon"
+        label="Read Me"
+        width="64"
+        selectable
+        movable
+        data-opens="win-readme"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-controls"
+        class="desktop-icon"
+        label="Controls"
+        width="64"
+        selectable
+        movable
+        data-opens="win-controls"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-format"
+        class="desktop-icon"
+        label="Format"
+        width="64"
+        selectable
+        movable
+        data-opens="win-format"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-newdoc"
+        class="desktop-icon"
+        label="New Document"
+        width="64"
+        selectable
+        movable
+        data-opens="win-newdoc"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-newimage"
+        class="desktop-icon"
+        label="New Image"
+        width="64"
+        selectable
+        movable
+        data-opens="win-newimage"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-find"
+        class="desktop-icon"
+        label="Find File"
+        width="64"
+        selectable
+        movable
+        data-opens="win-find"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-charset"
+        class="desktop-icon"
+        label="Character Set"
+        width="64"
+        selectable
+        movable
+        data-opens="win-charset"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-tools"
+        class="desktop-icon"
+        label="Desk Accessories"
+        width="64"
+        selectable
+        movable
+        data-opens="win-tools"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-about"
+        class="desktop-icon"
+        label="About"
+        width="64"
+        selectable
+        movable
+        data-opens="dlg-about"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-pagesetup"
+        class="desktop-icon"
+        label="Page Setup"
+        width="64"
+        selectable
+        movable
+        data-opens="dlg-pagesetup"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
+      <vf-icon
+        id="icon-erase"
+        class="desktop-icon"
+        label="Erase Disk"
+        width="64"
+        selectable
+        movable
+        data-opens="alert-erase"
+      >
+        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+      </vf-icon>
 
       <!-- ==================== Finder icons on the desktop ================ -->
       <!-- What the desktop is FOR, in Example screen (1-bit).png: the volume
@@ -786,6 +947,7 @@ shrink it and watch the arrows come back.
         heading="Desk Accessories"
         movable
         flush
+        hidden
         width="82"
         height="94"
       >

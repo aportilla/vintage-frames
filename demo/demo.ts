@@ -1,13 +1,14 @@
 /// <reference types="vite/client" />
 /**
  * Vintage Frames demo — wires the System 7 showcase desktop (SPEC §7):
- * menu behavior, window close / re-open, the Erase Disk alert, the About and
- * Page Setup dialogs, the Desk Accessories utility palette, and the animated
- * determinate progress bar. Everything visual comes from the components; this
- * module is behavior only.
+ * menu behavior, the desktop launcher icons (every window starts put away;
+ * double-click opens), window close / self-dismissal via each window's own
+ * buttons, the Erase Disk alert, the About and Page Setup dialogs, the Desk
+ * Accessories utility palette, and the animated determinate progress bar.
+ * Everything visual comes from the components; this module is behavior only.
  */
 import { VfParagraph, VfWindow } from '../src/index.js'
-import { effectiveScale, onScaleChange, sys } from '../src/scale.js'
+import { effectiveScale, onScaleChange, sysLength } from '../src/scale.js'
 import type {
   VfAlert,
   VfDesktop,
@@ -70,24 +71,24 @@ const installerWindow = $<VfWindow>('#win-installer')
 const formatWindow = $<VfWindow>('#win-format')
 const newDocWindow = $<VfWindow>('#win-newdoc')
 const newImageWindow = $<VfWindow>('#win-newimage')
+const findWindow = $<VfWindow>('#win-find')
 const toolsPalette = $<VfWindow>('#win-tools')
 const aboutDialog = $<VfDialog>('#dlg-about')
 const pageSetupDialog = $<VfDialog>('#dlg-pagesetup')
 const eraseAlert = $<VfAlert>('#alert-erase')
 
 /* ------------------------------------------------------------------ *
- * Windows: close hides, Special → Show All Windows re-opens.
+ * Windows: every one puts itself away — the close box where there is
+ * one, its own action buttons where there is not. Special → Show All
+ * Windows (or the window's launcher icon) re-opens.
  * ------------------------------------------------------------------ */
 
-// The Format window emulates an always-open movable modal: no close box.
-// (`closable` defaults to true and, being a reflected boolean, can only be
-// turned off from script.)
+// The three movable-modal lookalikes — Format, BBEdit's New HTML Document
+// and Photoshop's New — carry no close box (`closable` defaults to true
+// and, being a reflected boolean, can only be turned off from script), so
+// their OK/Cancel buttons below are their whole dismissal.
 formatWindow.closable = false
-
-// The BBEdit "New HTML Document" window is the same movable-modal lookalike.
 newDocWindow.closable = false
-
-// The Photoshop "New" image dialog is another always-open movable modal.
 newImageWindow.closable = false
 
 // A window's close box fires `vf-close` on the window itself; hide it.
@@ -96,9 +97,69 @@ desktop.addEventListener('vf-close', (event) => {
   if (event.target instanceof VfWindow) event.target.hidden = true
 })
 
-/** Un-hide every window on the desktop (Special → Show All Windows). */
+/** Wire a button to put its window away, the way its close box would. */
+function dismissOnClick(selector: string, win: VfWindow): void {
+  $<HTMLElement>(selector).addEventListener('click', () => {
+    win.hidden = true
+  })
+}
+dismissOnClick('#btn-format-cancel', formatWindow)
+dismissOnClick('#btn-format-ok', formatWindow)
+dismissOnClick('#btn-newdoc-cancel', newDocWindow)
+dismissOnClick('#btn-newdoc-ok', newDocWindow)
+dismissOnClick('#btn-newimage-ok', newImageWindow)
+dismissOnClick('#btn-newimage-cancel', newImageWindow)
+// System 7's Find dialog put itself away when the search ran.
+dismissOnClick('#btn-find', findWindow)
+// Installer: Quit and Install both leave, like the real one's terminal acts.
+dismissOnClick('#btn-quit', installerWindow)
+dismissOnClick('#btn-install', installerWindow)
+
+/* ------------------------------------------------------------------ *
+ * Opening a window centers it on the raster as it stands RIGHT NOW —
+ * no window carries an authored position, so nothing can open off-canvas
+ * however small the viewport is (the desktop is the viewport: a window
+ * past its edge gives the page no scrollbar to reach it by).
+ * ------------------------------------------------------------------ */
+
+/** Menu bar height in system px (--vf-menubar-height's default). */
+const MENU_BAR = 24
+
+const clamp = (value: number, lo: number, hi: number): number =>
+  Math.min(Math.max(value, lo), hi)
+
+/**
+ * Park a window in the middle of the screen area below the menu bar, in
+ * whole system px (grid rule 3), written as the same
+ * `calc(var(--vf-scale) * Npx)` idiom demo.css uses so the position stays
+ * proportional if the scale moves. `nudge` staggers a batch down-right so
+ * Show All Windows deals a cascade rather than one exact pile; a window
+ * too large for the raster pins to the top-left of what room there is.
+ */
+function centerWindow(win: VfWindow, nudge = 0): void {
+  const w = win.width ?? 0
+  const h = win.height ?? 0
+  const x = clamp(
+    Math.round((desktop.width - w) / 2) + nudge,
+    0,
+    Math.max(0, desktop.width - w)
+  )
+  const y = clamp(
+    MENU_BAR + Math.round((desktop.height - MENU_BAR - h) / 2) + nudge,
+    MENU_BAR,
+    Math.max(MENU_BAR, desktop.height - h)
+  )
+  win.style.position = 'absolute'
+  win.style.left = sysLength(x)
+  win.style.top = sysLength(y)
+}
+
+/** Un-hide every window on the desktop (Special → Show All Windows),
+ *  cascading the ones that were put away around the center. */
 function showAllWindows(): void {
+  let step = 0
   for (const win of desktop.querySelectorAll('vf-window')) {
+    if (win.hidden) centerWindow(win, (step++ % 7) * 24)
     win.hidden = false
   }
 }
@@ -115,17 +176,13 @@ function spawnWindow(): void {
   win.heading =
     untitledCount === 1 ? 'untitled folder' : `untitled folder ${untitledCount}`
   win.movable = true
-  const step = (untitledCount - 1) % 7
-  win.style.position = 'absolute'
-  // Positions/size in system px, scaled to the display (matches demo.css).
-  // Scale off the desktop (where --vf-scale is set), the window's scope once slotted.
-  win.style.left = `${sys(180 + step * 28, desktop)}px`
-  win.style.top = `${sys(140 + step * 26, desktop)}px`
-  win.style.width = `${sys(300, desktop)}px`
   // Both axes, like every other window here: a window is a fixed box, and an
   // undeclared height would size it to whatever the note below happens to wrap
   // to. Tall enough for that note at this width.
-  win.style.height = `${sys(112, desktop)}px`
+  win.width = 300
+  win.height = 112
+  // Center on the current raster, cascading repeat spawns down-right.
+  centerWindow(win, ((untitledCount - 1) % 7) * 24)
 
   const note = new VfParagraph()
   note.className = 'untitled-note'
@@ -185,7 +242,29 @@ $<VfMenu>('#menu-special').addEventListener('vf-menu-select', (event) => {
 })
 
 /* ------------------------------------------------------------------ *
- * Dialog, alert, and installer buttons.
+ * Launcher icons: each one's data-opens names the window or dialog it
+ * stands for. `vf-open` is the icon's open gesture — a double-click, or
+ * Return (the launchers are not `editable`, so Return opens rather than
+ * renames). A window centers on the current raster, un-hides and comes
+ * to the front of its tier; a dialog or alert shows modally (the native
+ * <dialog> centers itself).
+ * ------------------------------------------------------------------ */
+
+for (const icon of document.querySelectorAll<VfIcon>('vf-icon[data-opens]')) {
+  const target = $<HTMLElement>(`#${icon.dataset.opens}`)
+  icon.addEventListener('vf-open', () => {
+    if (target instanceof VfWindow) {
+      centerWindow(target)
+      target.hidden = false
+      desktop.bringToFront(target)
+    } else {
+      ;(target as VfDialog | VfAlert).show()
+    }
+  })
+}
+
+/* ------------------------------------------------------------------ *
+ * Dialog and alert buttons.
  * ------------------------------------------------------------------ */
 
 $<HTMLElement>('#btn-about-ok').addEventListener('click', () =>
@@ -203,11 +282,6 @@ $<HTMLElement>('#btn-erase-cancel').addEventListener('click', () =>
 $<HTMLElement>('#btn-erase-confirm').addEventListener('click', () =>
   eraseAlert.close()
 )
-
-// Installer: Quit behaves like the close box (Show All Windows re-opens it).
-$<HTMLElement>('#btn-quit').addEventListener('click', () => {
-  installerWindow.hidden = true
-})
 
 /* ------------------------------------------------------------------ *
  * Utility palette: one tool selected at a time (aria-pressed drives

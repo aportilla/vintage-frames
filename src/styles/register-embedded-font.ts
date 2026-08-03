@@ -100,9 +100,18 @@ export function registerEmbeddedFont(
       display: 'swap',
       ...metrics,
     })
+    // Add the face BEFORE the decode finishes, not after: a loading face in
+    // the set is what makes `document.fonts.ready` (and `loadingdone`) wait
+    // for it. Added only-once-loaded, the set looks idle during the decode,
+    // `ready` settles immediately, and anything that re-measures "once the
+    // fonts have landed" — vf-icon's name plate sizing itself against the
+    // fallback face's wider glyphs was the visible symptom — runs before
+    // they have.
+    document.fonts.add(face)
     face.load().then(
-      (loaded) => document.fonts.add(loaded),
+      () => {}, // loaded in place — the face is already in the set
       () => {
+        document.fonts.delete(face)
         attempted.delete(family) // decode failed — allow retry; fall back meanwhile
       },
     )

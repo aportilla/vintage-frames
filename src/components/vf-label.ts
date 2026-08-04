@@ -104,7 +104,7 @@ export class VfLabel extends VfPositioned(LitElement) {
            vf-menu-item's row pitch, so a caption beside a menu or a popup sits
            on the same rhythm. */
         line-height: calc(var(--vf-scale, 1) * var(--vf-label-line-height, 16px));
-        cursor: default;
+        cursor: var(--vf-cursor, default);
       }
     `,
   ]

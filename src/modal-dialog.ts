@@ -50,6 +50,11 @@ export const modalDialogStyles = css`
   }
   dialog::backdrop {
     background: transparent;
+    /* The backdrop is top-layer: no page cursor rule can reach it, so the
+       kit-wide cursor token (SPEC §3) is read here — \`::backdrop\` inherits
+       custom properties from its dialog in current engines; where it doesn't,
+       the fallback is the arrow it always showed. */
+    cursor: var(--vf-cursor, default);
   }
 `
 

@@ -258,7 +258,7 @@ export class VfWindow extends VfPositioned(LitElement) {
         border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         background: var(--vf-white, #ffffff);
         touch-action: none;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
       }
       .grow::before {
         content: '';

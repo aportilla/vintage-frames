@@ -103,7 +103,7 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
         height: calc(var(--vf-scale, 1) * 25px);
         /* Stays solid black even when the field is disabled. */
         color: var(--vf-black, #000);
-        cursor: default;
+        cursor: var(--vf-cursor, default);
       }
       .stepper svg {
         display: block;

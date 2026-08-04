@@ -17,7 +17,7 @@ npm run typecheck
 
 | Page | What it is |
 | --- | --- |
-| [`/`](http://localhost:5173/) | **The showcase** — a full `vf-desktop` with menu bar, movable windows, dialogs, alerts and every control ([`index.html`](./index.html) + [`demo/`](./demo)) |
+| [`/`](http://localhost:5173/) | **The showcase** — a full `vf-desktop` with menu bar, movable windows, dialogs, alerts and every control, under a page-drawn System 7 cursor ([`index.html`](./index.html) + [`demo/`](./demo)) |
 | [`/blog.html`](http://localhost:5173/blog.html) | **The integration example** — an ordinary blog page (system-font copy, normal document flow, no global CSS) using the controls in its header, sidebar, dialogs and comment form ([`blog.html`](./blog.html) + [`demo/blog.*`](./demo)) |
 | [`/examples.html`](http://localhost:5173/examples.html) | **The component reference** — every component, its custom API, and a live specimen of each state, plus the conformity notes for what it shares with the platform ([`examples.html`](./examples.html) + [`demo/examples.*`](./demo)) |
 
@@ -250,9 +250,9 @@ event rather than a stale comment.
 styled with is documented on each of them as an `@cssprop`, generated from the
 SPEC §3 table so the two can't disagree — 45 tags across 22 components, and
 `verify:manifest` fails if a component gains such a token without one, if a tag
-has no SPEC row, or if SPEC lists a token nothing reads. The 17 kit-wide knobs
-(`--vf-scale`, the palette, both type stacks, the focus rule) are described once
-in [SPEC.md](./SPEC.md) rather than repeated on all 30 elements. Three kinds of token are deliberately undocumented: the
+has no SPEC row, or if SPEC lists a token nothing reads. The 18 kit-wide knobs
+(`--vf-scale`, the palette, both type stacks, the focus rule, the cursor) are
+described once in [SPEC.md](./SPEC.md) rather than repeated on all 30 elements. Three kinds of token are deliberately undocumented: the
 controller-owned grid-snap offsets, the private channels `vf-button-group` uses
 to drive `vf-button`, and geometry a component sets on itself.
 
@@ -823,7 +823,10 @@ caption a whole width (or let it stretch) so its host stays on the grid.
 Every mark the kit paints is *geometry* — a checkmark, a caret, the stepper
 arrows, a radio's ring — drawn as inline SVG on integer coordinates
 (`glyphs.ts`), which stays crisp at any size and retints with the tokens. The
-kit ships **no raster art at all**. An icon is a **picture**, and a picture is
+kit ships **no raster content at all** — the one raster it carries is chrome,
+the embedded [cursor set](#the-cursor--the-platforms-by-default-yours-to-draw),
+base64 inside the module the way the bitmap faces are, never an asset file.
+An icon is a **picture**, and a picture is
 the client's asset, never the library's: slotted through `vf-img` (or
 `vf-icon`'s and `vf-list-item`'s icon slots) it stays a real `<img>` in your
 own DOM — `alt`, `srcset`, loading behavior and asset URLs intact — magnified
@@ -853,6 +856,78 @@ asset: `npm run extract:icons` cuts `demo/icons/alert.png` (and the demo's
 16×16 DA icons) from the reference sheet — black ink on transparency all
 through, so the dialog's own surface shows inside the triangle and the art
 survives a retheme without a baked-in white patch.
+
+## The cursor — the platform's by default, yours to draw
+
+The kit's chrome states the classic cursors as ordinary CSS — the arrow on
+controls, the I-beam in an editable well — so a page that does nothing gets
+System 7's pointer *behavior* at the OS's own crispness, and that is the
+right default for dropping controls into an ordinary page.
+
+A faux desktop can go further and draw the pointer itself:
+
+```ts
+import { applyCursor } from 'vintage-frames'
+
+applyCursor() // → returns a cleanup function that restores the native pointer
+```
+
+One call replaces the native pointer with the embedded System 7 set — the
+arrow, I-beam, crosshair and wristwatch as pixel art locked to the
+system-pixel lattice, anchored to the page's `vf-desktop` (else the document
+root, or an `anchor` you pass) so the cursor's pixels share the raster's
+grid phase. A CSS `cursor: url(…)` could not get there — the OS composites
+that image at the pointer's own device position, out of phase with the
+raster's 3-device-px grid two positions in three, filtered at the engine's
+discretion, and blind to the kit's zoom-following — which is why the cursor
+is a drawn element, riding the top layer above windows, menus and modals,
+and the native one is hidden. The hiding is two declarations, both applied
+for you and both necessary:
+
+```css
+* { cursor: none !important }  /* the light DOM, UA rules included: the
+                                  browser's own sheets put cursors on <button>
+                                  and <input>, and an element's own declaration
+                                  beats anything inherited */
+:root { --vf-cursor: none }    /* the shadow trees and the top layer: every
+                                  spot where the kit states a cursor reads this
+                                  token first (SPEC §3) — including the ones
+                                  page CSS can never reach: a scroll rail, a
+                                  title-bar widget, a modal's backdrop */
+```
+
+Which art shows is read from state rather than declared per control:
+`aria-busy="true"` anywhere over the pointer — or on an open modal, a dialog
+mid-save — is the wristwatch, the same attribute assistive tech already
+listens to; an enabled text well takes the I-beam by platform semantics
+alone; `data-vf-cursor="crosshair"` claims a region explicitly; anything
+else is the arrow. The I-beam and crosshair draw with the classic XOR pen —
+`filter: invert(1)` plus `mix-blend-mode: difference` inverts the pixels
+beneath, per pixel, black on white and white on black, exactly as System 7
+drew them. The wristwatch turns its hand (8 frames, `waitFrameMs` per) and
+holds still for a reader who prefers reduced motion.
+
+The art ships *inside the module* — base64 data URIs like the bitmap faces,
+never an asset file (`npm run embed:cursors` regenerates `src/cursor-art.ts`
+from `cursors/*.png`) — and every kind takes your own instead: a
+`VfCursorArt` is frame URLs at one image px per system px, the size, the
+hotspot, and whether it draws with the XOR pen. Pass one per kind, `null` to
+disable a kind, or remix the exported set:
+
+```ts
+import { applyCursor } from 'vintage-frames'
+
+applyCursor({
+  crosshair: { src: '/my/pencil.png', width: 16, height: 16, hotspotY: 15 },
+  wait: null, // never show the watch; busy surfaces keep the arrow
+})
+```
+
+The pointer hides only once the arrow art has decoded — a broken option
+never strands a cursorless page — and a kind whose art fails to load falls
+back to the arrow. The honest cost of a drawn cursor is that an element
+repaints a frame behind the hardware one; on a machine that moved its
+cursor at VBL pace, arguably part of the emulation.
 
 ## The Finder icon — `vf-icon`
 
@@ -997,6 +1072,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `applyScale`, `ScaleController`, `onScaleChange` | Opt a subtree (or your own component) into true-size rendering |
 | `getZoom`, `truePixelRatio`, `onZoomChange`, `devicePxPerSystemPx`, `resetZoomBaseline` | The zoom half of display scaling: the tracked page zoom; device px per CSS px *including* it (what `devicePixelRatio` stops being in Safari under zoom — the number every "snap to the device grid" computation must divide by); a subscription to zoom changes; the zoom→target quantization; and the "current state is 100%" escape hatch |
 | `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Opt the page into automatic device-pixel-grid snapping; add it to your own component with one controller line plus the `vf-snap` class on its painted root |
+| `applyCursor`, `CURSOR_ARROW`, `CURSOR_I_BEAM`, `CURSOR_CROSSHAIR`, `CURSOR_WAIT` | Replace the native pointer with the embedded System 7 pointer set, drawn on the system-pixel grid (see [The cursor](#the-cursor--the-platforms-by-default-yours-to-draw)); the constants are the embedded art, exported so a consumer can remap or remix it with their own |
 | `sys`, `toSys`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapToSystemPx`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; `sysLength`/`sysLengths` emit a system-px length (or a 1–4 value shorthand) that stays live against the display, for a size written onto an element; snap JS-written geometry onto the system-pixel grid (what window drags, grow-box resizes and dialog pins go through — whole art pixels, like QuickDraw) or onto the finer device grid |
 | `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |

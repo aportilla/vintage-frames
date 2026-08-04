@@ -221,7 +221,7 @@ export class VfIcon extends VfPositioned(LitElement) {
     css`
       :host {
         display: inline-block;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
         /* The reserved cell, resolved once so the art box and the no-label
            focus rule share one definition. Not a public token: the two sizes
            are the two icon resources, not a taste. */

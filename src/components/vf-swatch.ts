@@ -61,7 +61,7 @@ export class VfSwatch extends VfPositioned(VfFormControl) {
     css`
       :host {
         display: inline-flex;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
         /* The transparency checker: 2×2-system-px white/#c0c0c0 checks on a
            4×4 SVG tile — crisp 1-bit rects for the same reason as vf-desktop's
            dither (gradient hard stops feather at scale). Resolved into a

@@ -59,7 +59,7 @@ export const vfScrollbars = css`
   .vf-scroll::-webkit-scrollbar-thumb,
   .vf-scroll::-webkit-scrollbar-button,
   .vf-scroll::-webkit-scrollbar-corner {
-    cursor: default;
+    cursor: var(--vf-cursor, default);
   }
   /* Loose 1-bit dither: a 25%-density dot lattice — dotted vertical lines two
      pixels apart, each column phase-shifted by one row. A 4×2 tile with a dot

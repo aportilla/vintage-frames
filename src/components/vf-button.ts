@@ -58,7 +58,7 @@ export class VfButton extends VfPositioned(VfFormControl) {
       :host {
         display: inline-flex;
         position: relative;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
         /* Display scaling: metrics are authored in *system pixels* and
            multiplied by --vf-scale (default 1 = today's rendering). Opt a
            subtree into true 72dpi size via applyScale()/--vf-scale — see

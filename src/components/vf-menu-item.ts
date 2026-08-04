@@ -77,7 +77,7 @@ export class VfMenuItem extends LitElement {
     css`
       :host {
         display: block;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
         outline: none;
       }
       .item {

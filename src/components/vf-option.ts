@@ -57,7 +57,7 @@ export class VfOption extends LitElement {
         background: var(--vf-white, #fff);
         color: var(--vf-black, #000);
         white-space: nowrap;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
         outline: none;
       }
       /* Hover/keyboard highlight — classic full-row inversion. The parent

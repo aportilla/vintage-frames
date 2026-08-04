@@ -113,6 +113,24 @@ export {
 } from './grid-snap.js'
 
 /**
+ * The page-drawn cursor. `applyCursor()` is the one call an app makes to
+ * replace the native pointer with the embedded System 7 set — arrow, I-beam,
+ * crosshair and wristwatch as pixel art locked to the system-pixel grid,
+ * with the classic XOR draw and an `aria-busy`-driven wait state — hiding
+ * the native pointer everywhere via the page blanket plus the `--vf-cursor`
+ * token (SPEC §3). Each kind's art is overridable with the consumer's own;
+ * the embedded set is exported alongside for remixing.
+ */
+export { applyCursor } from './cursor.js'
+export type { VfCursorArt, VfCursorKind, VfCursorOptions } from './cursor.js'
+export {
+  CURSOR_ARROW,
+  CURSOR_I_BEAM,
+  CURSOR_CROSSHAIR,
+  CURSOR_WAIT,
+} from './cursor-art.js'
+
+/**
  * The 1-bit style recipes. Compose them into a custom element's
  * `static styles` to inherit the kit's type, panel frame, window chrome, focus
  * ring, field well and System 7 scrollbar skin.

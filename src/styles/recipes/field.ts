@@ -34,6 +34,10 @@ export const vfField = css`
     user-select: text;
     -webkit-user-select: text;
     outline: none;
+    /* Stated, not inherited: Firefox's UA sheet puts \`cursor: text\` on
+       \`<input>\`, so the kit-wide cursor token (SPEC §3) has to be read here
+       to reach the well at all. The fallback is the I-beam it always was. */
+    cursor: var(--vf-cursor, text);
   }
   /* The wrapper boxing the well: the positioned anchor the focus rule hangs
      from, and the element grid snapping moves (see the note above). */
@@ -65,9 +69,11 @@ export const vfField = css`
     font-weight: inherit;
     opacity: 1;
   }
-  /* Disabled: the text dims to gray; the solid black box border stays. */
+  /* Disabled: the text dims to gray; the solid black box border stays. The
+     cursor returns to the arrow — a well that can't take input isn't text. */
   .vf-field:disabled {
     color: var(--vf-disabled, #c0c0c0);
+    cursor: var(--vf-cursor, default);
   }
   /* Selected text inverts to solid black-on-white — the 1-bit System 7
      selection, not the browser's translucent blue. Reuses the list's highlight

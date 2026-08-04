@@ -14,7 +14,7 @@ export const vfToggle = css`
     display: inline-flex;
     align-items: center;
     gap: calc(var(--vf-scale, 1) * 6px);
-    cursor: default;
+    cursor: var(--vf-cursor, default);
   }
   /* The focus rule is drawn under the box/circle, not around the host. */
   :host(:focus-visible) {

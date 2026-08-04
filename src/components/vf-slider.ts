@@ -86,7 +86,7 @@ export class VfSlider extends VfPositioned(VfFormControl) {
         display: block;
         padding: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 4px);
         color: var(--vf-black, #000);
-        cursor: default;
+        cursor: var(--vf-cursor, default);
         -webkit-tap-highlight-color: transparent;
       }
       .track {

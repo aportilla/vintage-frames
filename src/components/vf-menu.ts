@@ -73,7 +73,7 @@ export class VfMenu extends LitElement {
            suppress the browser's own touch panning/scrolling so a touch drag
            walks the menu instead of scrolling the page. */
         touch-action: none;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
       }
       :host([open]) .label {
         /* Forced colors: exempt the inverted title from the mode's text

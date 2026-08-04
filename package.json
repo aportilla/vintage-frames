@@ -54,6 +54,7 @@
     "extract:buttons": "python3 scripts/extract-button-pixels.py",
     "extract:menus": "python3 scripts/extract-menu-pixels.py",
     "extract:icons": "python3 scripts/extract-da-icons.py",
+    "embed:cursors": "node scripts/embed-cursor-art.mjs",
     "extract:windows": "python3 scripts/extract-window-pixels.py",
     "probe:buttons": "python3 scripts/probe-button-colors.py",
     "verify:buttons": "tsc src/pixel-frame.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/emit-clips.mjs && python3 scripts/verify-button-clips.py",

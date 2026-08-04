@@ -79,7 +79,7 @@ export const vfWindowWidgets = css`
     box-shadow: 0 0 0 calc(var(--vf-scale, 1) * var(--vf-widget-ring, 1px))
       var(--vf-white, #ffffff);
     font: inherit;
-    cursor: default;
+    cursor: var(--vf-cursor, default);
     -webkit-appearance: none;
     appearance: none;
   }

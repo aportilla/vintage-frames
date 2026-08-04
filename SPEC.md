@@ -243,6 +243,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-scrollbar-track` | `#c0c0c0` | scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average |
 | `--vf-highlight` | `#000000` | selection background |
 | `--vf-highlight-text` | `#ffffff` | selection foreground |
+| `--vf-cursor` | *(unset — every spot keeps its classic pointer)* | read by every place the kit states a cursor of its own (control hosts, title-bar widgets, the stepper, scrollbar rails, the grow box, the editable wells' I-beam, a modal's backdrop) — set `none` on `:root` to blank them all for a page-drawn cursor (see note) |
 
 **`--vf-scale` (display scaling).** Every length above is authored in *system
 pixels* and multiplied by `--vf-scale`. It defaults to the true-size factor for
@@ -296,6 +297,28 @@ into their insets; rows and options inside a corrected container
 surroundings. It corrects the origin only: a fractional *size*, and a
 `--vf-scale × trueDpr` that isn't whole, are still the page's to get
 right.
+
+**`--vf-cursor` (hiding the pointer for a page-drawn cursor).** A page that
+draws its own cursor — a JS-positioned image on the system-pixel grid, which
+is what `applyCursor()` (`src/cursor.ts`) sets up with the kit's embedded
+System 7 pointer set — needs the native pointer gone from every surface, and
+`html { cursor: none }` alone cannot get it there: inheritance stops wherever a
+shadow stylesheet states a cursor of its own, and the kit states one
+deliberately on its chrome — control hosts, the title-bar widgets, the number
+stepper, the scrollbar rails, the grow box, the editable wells (whose I-beam
+Firefox's UA sheet would otherwise pin), and a modal's top-layer backdrop,
+which no page rule reaches at all. Every one of those declarations reads this
+token first, so `--vf-cursor: none` on `:root` (custom properties inherit
+through every shadow root) covers all of them. The page's own side must be a
+blanket, not a root rule: the UA sheets put `cursor: default` on `<button>`
+and `cursor: text` on `<input>`, and an element's own declaration beats
+anything it would inherit — so a bare `html { cursor: none }` leaves the OS
+arrow alive over every native control in the light DOM. The pair that empties
+everything is `* { cursor: none !important }` plus the token — `applyCursor()`
+applies both itself, once its art has decoded; state the pair by hand only
+under a hand-rolled overlay. Unset, each
+spot keeps its classic pointer — the arrow on chrome, the I-beam in an
+enabled well.
 
 ## 4. Shared recipes (in `src/styles/base.ts`)
 

@@ -7,7 +7,7 @@
  * Accessories utility palette, and the animated determinate progress bar.
  * Everything visual comes from the components; this module is behavior only.
  */
-import { VfParagraph, VfWindow } from '../src/index.js'
+import { VfParagraph, VfWindow, applyCursor } from '../src/index.js'
 import { effectiveScale, onScaleChange } from '../src/scale.js'
 import type {
   VfDesktop,
@@ -67,6 +67,19 @@ const fitDesktop = (): void => {
 fitDesktop()
 window.addEventListener('resize', fitDesktop)
 onScaleChange(fitDesktop)
+
+/* ------------------------------------------------------------------ *
+ * The cursor. One call: the kit's embedded System 7 pointer set — arrow,
+ * I-beam, crosshair and wristwatch — drawn as a JS-positioned image locked
+ * to the desktop's system-pixel lattice (src/cursor.ts documents why CSS
+ * `cursor: url(…)` can't do this, and the state pattern). The default
+ * anchor finds this page's vf-desktop by itself, and which art shows is
+ * state, not markup: `aria-busy="true"` anywhere over the pointer (or on
+ * an open modal) is the wristwatch, an enabled text well is the I-beam by
+ * platform semantics alone, and `data-vf-cursor="crosshair"` is there for
+ * a region that wants the cross.
+ * ------------------------------------------------------------------ */
+applyCursor()
 const installerWindow = $<VfWindow>('#win-installer')
 const formatWindow = $<VfWindow>('#win-format')
 const newDocWindow = $<VfWindow>('#win-newdoc')
@@ -303,9 +316,19 @@ $<HTMLElement>('#btn-pagesetup-ok').addEventListener('click', () =>
 $<HTMLElement>('#btn-erase-cancel').addEventListener('click', () =>
   eraseAlert.close()
 )
-$<HTMLElement>('#btn-erase-confirm').addEventListener('click', () =>
-  eraseAlert.close()
-)
+// Erase pretends to erase before closing — the modal async-work pattern:
+// declare the wait with `aria-busy="true"` on the dialog doing the work (the
+// standard vocabulary, so assistive tech hears the same state) and the cursor
+// module shows the wristwatch over the whole modal until the attribute comes
+// off. A real app would await its fetch where the timeout stands.
+$<HTMLElement>('#btn-erase-confirm').addEventListener('click', () => {
+  if (eraseAlert.hasAttribute('aria-busy')) return
+  eraseAlert.setAttribute('aria-busy', 'true')
+  window.setTimeout(() => {
+    eraseAlert.removeAttribute('aria-busy')
+    eraseAlert.close()
+  }, 1500)
+})
 
 /* ------------------------------------------------------------------ *
  * Utility palette: one tool selected at a time (aria-pressed drives

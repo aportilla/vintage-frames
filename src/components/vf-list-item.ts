@@ -38,7 +38,7 @@ export class VfListItem extends LitElement {
         height: calc(var(--vf-scale, 1) * 20px);
         line-height: calc(var(--vf-scale, 1) * 20px);
         padding: 0 calc(var(--vf-scale, 1) * 6px);
-        cursor: default;
+        cursor: var(--vf-cursor, default);
         background: transparent;
       }
       ::slotted([slot='icon']) {

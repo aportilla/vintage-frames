@@ -129,7 +129,7 @@ export class VfSelect extends VfPositioned(VfFormControl) {
            suppress the browser's own touch panning/scrolling so a touch drag
            tracks the list instead of scrolling the page. */
         touch-action: none;
-        cursor: default;
+        cursor: var(--vf-cursor, default);
       }
       /* Keyboard focus is the kit's dashed rule under the pill, not a ring
          around it (see vfFocusUnderline). It goes BELOW the whole box rather

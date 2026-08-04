@@ -226,14 +226,16 @@ code {
  * page container's box, less vf-menu's own label padding so the first label's
  * text lands on the container edge rather than inside it.
  *
- * That padding is 10 system px, expressed here as 0.625em — `em` inside the
- * part resolves against the menu bar's own font, which is what scales, so the
- * correction tracks the component without this file naming --vf-scale.
+ * That inset is 5 system px — the label's 10px leading padding less the 5px
+ * the bar pulls every title into its neighbor (the System 7 plate overlap) —
+ * expressed here as 0.3125em: `em` inside the part resolves against the menu
+ * bar's own font, which is what scales, so the correction tracks the
+ * component without this file naming --vf-scale.
  * ------------------------------------------------------------------------ */
 .site-header vf-menu-bar::part(bar) {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 max(0px, calc(24px - 0.625em));
+  padding: 0 max(0px, calc(24px - 0.3125em));
 }
 
 /* ── Layout ───────────────────────────────────────────────────────────── */

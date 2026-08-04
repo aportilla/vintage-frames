@@ -210,7 +210,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-titlebar-height-utility` | `12px` | the slim `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` |
 | `--vf-dots-pattern` | *(1-bit SVG tile)* | the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) |
 | `--vf-swatch-checker` | *(SVG tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like `--vf-desktop-pattern`) |
-| `--vf-menubar-height` | `24px` | `vf-menu-bar` |
+| `--vf-menubar-height` | `20px` | `vf-menu-bar` |
 | `--vf-separator-color` | `var(--vf-black, #000)` | `vf-separator` rule color — `vf-menu` sets it to `--vf-disabled` for the dimmed menu rule |
 | `--vf-separator-style` | `solid` | `vf-separator` rule style — `vf-menu` sets `dotted` (see `Menus.png`) |
 | `--vf-focus-outline` | `1px dotted currentColor` | focus-visible outline — `currentColor`, not black, so the multi-select keyboard cursor stays visible riding a selected row's inverted bar |
@@ -1188,9 +1188,16 @@ The classic popup menu control ("Macintosh HD ▼").
   `aria-label`/`aria-labelledby` is left alone). `rounded: boolean` (reflected)
   — draws the System 7 screen-corner mask over the bar's top-left/top-right
   corners.
-- **Visual:** `display: block/flex`, height `var(--vf-menubar-height, 24px)`,
+- **Visual:** `display: block/flex`, height `var(--vf-menubar-height, 20px)` —
+  19 white system px over the 1px black rule, the Menus.png bar strip exactly —
   white bg, `border-bottom: 1px solid var(--vf-black, #000)`, children laid out
-  horizontally from left with `padding: 0 10px` per label. With `rounded`, two
+  horizontally from left. Adjacent titles are pulled 5px into each other
+  (`margin-inline-start: -5px` on every slotted menu, absorbed by 14px of bar
+  start padding — 9px of bar before the first plate, as System 7 placed the
+  Apple title, plus the first title's 5px share): Menus.png spaces title ink
+  14px apart while each title's plate runs 10px left / 9px right of its own
+  ink, so neighboring plates *overlap* by 5px, as the originals did. With
+  `rounded`, two
   5×5 system-px corner overlays paint the traced stair-step mask (per-row runs
   5/3/2/1/1 — `SCREEN_CORNER` + `steppedCornerClip` in `pixel-frame.ts`) in
   `--vf-black` *over* the bar: on the classic screen the rounding was the
@@ -1218,8 +1225,15 @@ The classic popup menu control ("Macintosh HD ▼").
 #### `vf-menu` (`VfMenu`, vf-menu.ts)
 - **Attributes/props:** `label: string` (the menu title in the bar; may contain
   e.g. an apple glyph), `open: boolean` (reflect, managed by menu-bar or self).
-- **Visual:** label: bold, height of menubar, `padding: 0 10px`; open → inverted
-  (black bg / white text). The title itself sits in a `.title` box inside that
+- **Visual:** label: bold, height of menubar, `padding-inline: 10px 8px` — the
+  label box is the title's black plate and hit rect, and Menus.png puts the
+  plate 10px left / 9px right of the title ink (ChiKareGo carries Chicago's
+  1px trailing bearing inside the text box, so 10/8 in layout lands −10/+9
+  around ink); open → inverted (black bg / white text), inset one system px
+  top and bottom via transparent `border-block` + `background-clip:
+  padding-box` — the hilite is rows 1..18 of the 20px bar, leaving the bar's
+  top row white and its bottom rule showing through, while the hit rect stays
+  the full bar height. The title itself sits in a `.title` box inside that
   cell, so the focus rule can span the title and not the padding. In a bar the
   label is `role="menuitem"`; standalone it is `role="button"` — a collapsed
   standalone dropdown *is* the APG menu-button pattern, and `aria-haspopup` +

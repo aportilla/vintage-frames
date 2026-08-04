@@ -30,7 +30,7 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *
  * @slot - `vf-menu` elements.
  * @csspart bar - The horizontal layout container.
- * @cssprop [--vf-menubar-height=24px] - `vf-menu-bar`
+ * @cssprop [--vf-menubar-height=20px] - `vf-menu-bar`
  */
 @vfElement('vf-menu-bar')
 export class VfMenuBar extends LitElement {
@@ -39,7 +39,9 @@ export class VfMenuBar extends LitElement {
     css`
       :host {
         display: block;
-        height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 24px));
+        /* 19 white system px over the 1px black rule — Menus.png's bar strip
+           exactly (white rows y 69..87 of the sheet). */
+        height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 20px));
         position: relative;
         z-index: 1000;
       }
@@ -51,6 +53,19 @@ export class VfMenuBar extends LitElement {
         display: flex;
         align-items: stretch;
         height: 100%;
+        /* 9px of bar before the first title's plate (System 7 put the Apple
+           plate 9 system px from the screen edge, clear of the 5px corner
+           mask), plus 5px cancelling the first title's share of the overlap
+           below. */
+        padding-inline-start: calc(var(--vf-scale, 1) * 14px);
+      }
+      /* Adjacent title plates OVERLAP by 5 system px: Menus.png spaces title
+         ink 14px apart while each plate runs 10px left / 9px right of its own
+         ink, so neighboring plates share a 5px band. A title's plate is its
+         label box (padding in vf-menu), so the overlap is layout: every menu
+         pulled 5px into its left neighbor. */
+      ::slotted(vf-menu) {
+        margin-inline-start: calc(var(--vf-scale, 1) * -5px);
       }
       /* rounded: the screen-corner mask. The corners aren't a shape of the
          bar's own — they're the black staircase the ROM painted over the

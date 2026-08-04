@@ -4696,7 +4696,7 @@
             {
               "description": "`vf-menu-bar`",
               "name": "--vf-menubar-height",
-              "default": "24px"
+              "default": "20px"
             }
           ],
           "cssParts": [
@@ -5401,7 +5401,7 @@
             {
               "description": "`vf-menu-bar`",
               "name": "--vf-menubar-height",
-              "default": "24px"
+              "default": "20px"
             }
           ],
           "cssParts": [

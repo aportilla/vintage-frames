@@ -123,7 +123,7 @@ dismissOnClick('#btn-install', installerWindow)
  * ------------------------------------------------------------------ */
 
 /** Menu bar height in system px (--vf-menubar-height's default). */
-const MENU_BAR = 24
+const MENU_BAR = 20
 
 const clamp = (value: number, lo: number, hi: number): number =>
   Math.min(Math.max(value, lo), hi)

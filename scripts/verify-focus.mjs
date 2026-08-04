@@ -886,9 +886,11 @@ for (const [tag, markup, frame, shadow] of [
   check('vf-menu: …and while open the rule stands down — the inversion is the mark', !whileOpen.drawn)
   // Nothing white left under the inverted title either: the rule is
   // currentColor, so a surviving one would read as a white dashed line on the
-  // black cell — a second white band below the glyphs. Scanned inside the cell
-  // (inset 1 device px), since the page around it is white too.
-  const inverted = bands(whileOpen, isWhite, { inset: 1 })
+  // black cell — a second white band below the glyphs. Scanned inside the
+  // PLATE, not the cell: the hilite is inset one system px top and bottom
+  // (the bar's white shows above it by design — see vf-menu's label styles),
+  // so the scan skips that row plus one device px of boundary.
+  const inverted = bands(whileOpen, isWhite, { inset: S + 1 })
   check(
     'vf-menu: no white dashes under the inverted title',
     inverted.length === 1,

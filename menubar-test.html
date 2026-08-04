@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Pixel-verification page for the menu BAR metrics — the horizontal
+    companion covers the panels (menu-test.html); this one covers the strip:
+    the 19-white-px bar over its 1px black rule, the 14px ink gap between
+    adjacent titles, the first plate starting 9px from the bar's left edge,
+    and the inverted title plate (ink −10 / +9, rows 1..18 of the bar — one
+    white row above, the rule below) whose overlap with its neighbors'
+    plates is 5px.
+
+    Pins scale to 1 so one CSS px = one system px; screenshot at
+    deviceScaleFactor 1 and measure with the reference numbers from
+    Menus.png (the bar specimen at y 69..87 and the Label/[Label]/Label
+    strip at y 417..434).
+
+    Magenta background: it appears nowhere in the kit palette.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --vf-scale: 1;
+      }
+      body {
+        margin: 0;
+        background: #f0f;
+      }
+      .spec {
+        position: absolute;
+        left: 0;
+        right: 0;
+      }
+      #closed {
+        top: 20px;
+      }
+      #open {
+        top: 120px;
+      }
+    </style>
+    <script type="module" src="/src/index.ts"></script>
+  </head>
+  <body>
+    <!-- Closed bar: title ink runs and the white gaps between them. -->
+    <div class="spec" id="closed">
+      <vf-menu-bar label="closed">
+        <vf-menu label="File"></vf-menu>
+        <vf-menu label="Edit"></vf-menu>
+        <vf-menu label="View"></vf-menu>
+        <vf-menu label="Label"></vf-menu>
+        <vf-menu label="Special"></vf-menu>
+      </vf-menu-bar>
+    </div>
+
+    <!-- Same bar with the middle title open: the plate's extent past its own
+         ink, on both sides, against live neighbors. -->
+    <div class="spec" id="open">
+      <vf-menu-bar label="open">
+        <vf-menu label="File"></vf-menu>
+        <vf-menu label="Edit"></vf-menu>
+        <vf-menu label="View" open>
+          <vf-menu-item>Menu item</vf-menu-item>
+          <vf-menu-item>Menu item</vf-menu-item>
+        </vf-menu>
+        <vf-menu label="Label"></vf-menu>
+        <vf-menu label="Special"></vf-menu>
+      </vf-menu-bar>
+    </div>
+  </body>
+</html>

@@ -41,7 +41,7 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *   the visible title is an image.
  * @csspart label - The menu title in the bar (inverts while open).
  * @csspart panel - The dropped `.vf-panel` containing the items.
- * @cssprop [--vf-menubar-height=24px] - `vf-menu-bar`
+ * @cssprop [--vf-menubar-height=20px] - `vf-menu-bar`
  */
 @vfElement('vf-menu')
 export class VfMenu extends LitElement {
@@ -57,8 +57,14 @@ export class VfMenu extends LitElement {
       .label {
         display: flex;
         align-items: center;
-        height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 24px));
-        padding: 0 calc(var(--vf-scale, 1) * 10px);
+        height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 20px));
+        /* The label box IS the title's black plate (and its hit rect), and
+           Menus.png puts the plate 10px left / 9px right of the title ink.
+           ChiKareGo carries Chicago's 1px trailing bearing inside the text
+           box, so 10/8 in layout lands the plate at ink −10/+9. In a bar,
+           vf-menu-bar overlaps adjacent boxes 5px on top of this — the
+           plates share a band, as the originals did. */
+        padding-inline: calc(var(--vf-scale, 1) * 10px) calc(var(--vf-scale, 1) * 8px);
         white-space: nowrap;
         /* The press-drag gesture owns pointer moves while the title is held;
            suppress the browser's own touch panning/scrolling so a touch drag
@@ -76,6 +82,20 @@ export class VfMenu extends LitElement {
         }
         background: var(--vf-highlight, #000);
         color: var(--vf-highlight-text, #fff);
+        /* The hilite leaves the bar's top row white: System 7's plate is rows
+           1..18 of the 20px bar (the Label specimen in Menus.png is 18px of
+           plate, and InfiniteMac shows the white row above it). Transparent
+           borders + padding-box clip inset the paint without moving the box:
+           the top row shows the bar's white through, the bottom row the bar's
+           own black rule, and the hit rect stays the full bar height so a
+           click slammed against the screen top still opens the menu. The
+           18px content box centers the 16px em on the same rows as the
+           closed state, so the title never shifts. Declared only while open
+           because forced-colors mode repaints transparent borders CanvasText
+           on closed labels; here forced-color-adjust above already exempts
+           them. */
+        border-block: calc(var(--vf-scale, 1) * 1px) solid transparent;
+        background-clip: padding-box;
       }
       /* The title rides in its own box so the focus rule spans the title and
          not the bar cell's 10px padding — the same reason vf-button wraps its

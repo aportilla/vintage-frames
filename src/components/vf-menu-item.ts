@@ -44,15 +44,16 @@ function toAriaKeyshortcuts(shortcut: string): string {
  *
  * Renders the classic System 7 menu row: optional ✓ check in the
  * `--vf-select-gutter` left column (16px, shared with vf-select/vf-option),
- * label, and a right-aligned keyboard shortcut. On activation the item
- * performs the classic 3-blink inversion (~250ms), then dispatches
- * `vf-menu-select` and asks its ancestors to close the menu.
+ * label, and the keyboard shortcut left-aligned in a right-anchored column,
+ * so every ⌘ lands at the same x. On activation the item performs the classic
+ * 3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its
+ * ancestors to close the menu.
  *
  * @slot - The item label.
  * @csspart item - The row container.
  * @csspart check - The ✓ checkmark glyph (rendered when `checked`).
  * @csspart label - The label wrapper around the default slot.
- * @csspart shortcut - The right-aligned shortcut text.
+ * @csspart shortcut - The shortcut text, left-aligned in the shared column.
  * @fires vf-menu-select - After the blink completes. `detail: { value, item }`.
  *   Named for the menu rather than plain `vf-select`, which would collide with
  *   the `<vf-select>` popup on any delegated ancestor listener (that component
@@ -60,6 +61,10 @@ function toAriaKeyshortcuts(shortcut: string): string {
  * @cssprop [--vf-menu-row-height=16px] - `vf-menu-item` row pitch (`Menus.png`;
  *   kept separate from `--vf-popup-height` so re-theming the popup pill doesn't
  *   move pulldown rows)
+ * @cssprop [--vf-menu-shortcut-column=22px] - `vf-menu-item` shortcut slot,
+ *   right-anchored with the text left-aligned in it so every ⌘ lands at the
+ *   same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's
+ *   widest letter (11px); widen it to line up longer shortcuts ("⌘⇧S")
  * @cssprop [--vf-select-gutter=16px] - checkmark column: `vf-select` left inset
  *   / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift
  *   on open)
@@ -131,8 +136,32 @@ export class VfMenuItem extends LitElement {
       .label {
         flex: 1;
       }
+      /* The shortcut is LEFT-aligned ink in a right-anchored slot, the way the
+         MDEF drew it: in Menus.png's File pulldown every ⌘ starts at the same
+         x — 23px left of the right border — whatever the letter, with ⌘W
+         running to within 3px of the border. Flexing the label and letting the
+         span hug the right edge instead right-aligned the pairs, so the ⌘
+         column jagged with each letter's width. The slot is the classic
+         reserve: ⌘'s 11px advance + the face's widest letter (M/W, 11px).
+         min-width, not width, so a longer shortcut ("⌘⇧S") widens its own
+         slot rather than painting past the row. The 8px margin is the
+         label↔shortcut minimum ("Close Window"'s label box ends at +108, the
+         slot starts at +116); it only binds in the row that sets the panel's
+         intrinsic width. */
       .shortcut {
-        margin-left: calc(var(--vf-scale, 1) * 24px);
+        flex: none;
+        margin-left: calc(var(--vf-scale, 1) * 8px);
+        min-width: calc(
+          var(--vf-scale, 1) * var(--vf-menu-shortcut-column, 22px)
+        );
+        text-align: left;
+      }
+      /* A shortcut row trades the label's 12px right clearance for the art's
+         2px — the slot itself is the clearance there (2 + 22 puts the slot
+         edge at −24, and ⌘'s 1px bearing lands its ink at −23, as traced).
+         Label-only rows keep the 12. */
+      .item.has-shortcut {
+        padding-right: calc(var(--vf-scale, 1) * 2px);
       }
       :host([disabled]) .item {
         color: var(--vf-disabled, #c0c0c0);
@@ -200,7 +229,8 @@ export class VfMenuItem extends LitElement {
   @property({ type: Boolean, reflect: true }) checkable = false
 
   /**
-   * Right-aligned keyboard shortcut text, e.g. `"⌘H"`. Display only in the
+   * Keyboard shortcut text, e.g. `"⌘H"`, drawn left-aligned in the panel's
+   * shared shortcut column. Display only in the
    * visual sense — the span is `aria-hidden` so the glyphs never concatenate
    * into the item's accessible name ("Print… place of interest sign P") —
    * while the host mirrors it as `aria-keyshortcuts` ("Meta+H"), so AT
@@ -338,6 +368,7 @@ export class VfMenuItem extends LitElement {
   protected override render() {
     const classes = {
       item: true,
+      'has-shortcut': this.shortcut !== '',
       'blink-on': this._blinkPhase === 'on',
       'blink-off': this._blinkPhase === 'off',
     }

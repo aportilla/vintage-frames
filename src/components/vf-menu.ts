@@ -42,6 +42,9 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * @csspart label - The menu title in the bar (inverts while open).
  * @csspart panel - The dropped `.vf-panel` containing the items.
  * @cssprop [--vf-menubar-height=20px] - `vf-menu-bar`
+ * @cssprop [--vf-menu-row-height=16px] - `vf-menu-item` row pitch; the panel
+ *   also spends one of these on every slotted `vf-separator`, the full row the
+ *   MDEF gave a divider (rule 8px into it — see the panel CSS)
  */
 @vfElement('vf-menu')
 export class VfMenu extends LitElement {
@@ -144,7 +147,15 @@ export class VfMenu extends LitElement {
            composes the snap offset (see grid-snap.ts) to ride along. */
         top: calc(100% + var(--vf-snap-dy, 0px));
         left: var(--vf-snap-dx, 0px);
-        min-width: calc(var(--vf-scale, 1) * 180px);
+        /* A menu is as wide as its widest row, the way the MDEF sized it —
+           Menus.png's File pulldown is 141px, its cm/inches popup 94. The old
+           180px floor held every smaller panel apart from its own rows, which
+           the right-anchored shortcut column would turn into a visible gulf
+           between label and ⌘. The floor that remains is the host's own
+           width, so a panel is never narrower than the bar title it hangs
+           from. (The nowrap rows make min-content the widest row, so the
+           shrink-to-fit abspos width IS the MDEF width.) */
+        min-width: 100%;
         /* No vertical inset: every panel in Menus.png — both pulldowns, the
            open popup and the closed pill — puts its first row's ink at +4 from
            the border box, which is the 1px border plus the row's own 3px ✓
@@ -163,8 +174,18 @@ export class VfMenu extends LitElement {
       :host(:not([open])) .panel {
         display: none;
       }
+      /* A divider is an ITEM: the MDEF gave "-" a full row, so a separator
+         spends one whole --vf-menu-row-height, not a thin rule with token
+         margins — Menus.png's File pulldown runs a 32px ink pitch across
+         every divider group (vs 16 within one), and InfiniteMac's System 7.5
+         Edit menu puts the rule 12px under the ⌘ band above and 10px over
+         the one below: the neighbor rows' own 4/3px insets plus 8 over /
+         7 under the 1px rule. Derived from the row token (8 = H/2,
+         7 = H/2 − 1) so a re-themed pitch keeps dividers on it. */
       .panel ::slotted(vf-separator) {
-        margin: calc(var(--vf-scale, 1) * 2px) 0;
+        margin: calc(var(--vf-scale, 1) * var(--vf-menu-row-height, 16px) / 2)
+          0
+          calc(var(--vf-scale, 1) * (var(--vf-menu-row-height, 16px) / 2 - 1px));
       }
     `,
   ]

@@ -40,6 +40,10 @@
         top: 20px;
         left: 320px;
       }
+      #shortcuts {
+        top: 260px;
+        left: 320px;
+      }
     </style>
     <script type="module" src="/src/index.ts"></script>
   </head>
@@ -59,6 +63,26 @@
       <vf-menu label="File" open>
         <vf-menu-item checked>Menu item</vf-menu-item>
         <vf-menu-item>Menu item</vf-menu-item>
+      </vf-menu>
+    </div>
+
+    <!-- The shortcut column, with the art's own File-menu strings (the one
+         specimen that deliberately breaks the "Menu item" rule above, since
+         the reference rows it is compared against are the File pulldown's).
+         Reference: every shortcut's ⌘ ink starts 23px left of the right
+         border, the letters ragged-right — ⌘W to within 3px of the border,
+         ⌘I stopping 11 short — and the shortcut-less row keeps its 12px
+         clearance. The separator spends a full 16px row (the MDEF's
+         divider-as-item), so the ink pitch across it reads 32, not 16 — the
+         gray dotted rule itself is invisible to the is_black reducer, exactly
+         as the art's dithered rule is. -->
+    <div class="spec" id="shortcuts">
+      <vf-menu label="File" open>
+        <vf-menu-item shortcut="⌘N">New Folder</vf-menu-item>
+        <vf-menu-item shortcut="⌘W">Close Window</vf-menu-item>
+        <vf-menu-item shortcut="⌘I">Get Info</vf-menu-item>
+        <vf-separator></vf-separator>
+        <vf-menu-item>Page Setup…</vf-menu-item>
       </vf-menu>
     </div>
 

@@ -194,7 +194,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
 | `--vf-button-group-gap` | `12px` | gap between buttons in a `vf-button-group` (always exceeds the default ring's reach, so rings never collide) |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
-| `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) |
+| `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows); `vf-menu` also spends one full row on every slotted `vf-separator` — the MDEF's divider-as-item, rule 8px in (H/2 above, H/2−1 below) |
+| `--vf-menu-shortcut-column` | `22px` | `vf-menu-item` shortcut slot, right-anchored with the text left-aligned in it so every ⌘ lands at the same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's widest letter (11px); widen it to line up longer shortcuts ("⌘⇧S") |
 | `--vf-label-line-height` | `16px` | `vf-label` line box — the faces' own em, so a caption sits on the menu/popup rhythm |
 | `--vf-paragraph-line-height` | `20px` | `vf-paragraph` line box — the same pitch as a `vf-list-item` row |
 | `--vf-icon-label-height` | `12px` | `vf-icon`'s name plate line box — the Finder's own plate height, tighter than the face's 16px em, which centers in it (keep an override even, or the baseline lands on a half pixel) |
@@ -743,7 +744,8 @@ carries the live recipe.
   When used inside menus it should render as the classic dimmed **dotted**
   rule spanning the full panel width (see Menus.png) — implement via
   `--vf-separator-color` + `--vf-separator-style` custom props (menu panel sets
-  them to `#C0C0C0` / `dotted`, with 3px vertical margins). `role="separator"`.
+  them to `#C0C0C0` / `dotted`, and spends a full `--vf-menu-row-height` on
+  the divider: 8px margin above the rule, 7 below). `role="separator"`.
 
 ### Group B — buttons & toggles
 
@@ -1240,7 +1242,9 @@ The classic popup menu control ("Macintosh HD ▼").
   `aria-expanded` are already right for it (the host itself is `role="none"`
   in a bar and role-less standalone, behind vf-menu-item's first-connect
   ownership latch). Panel: `.vf-panel`, `position: absolute` below the label
-  (`top: 100%; left: 0;`), `min-width: 180px`, `padding: 2px 0`;
+  (`top: 100%; left: 0;`), `padding: 0`, `min-width: 100%` — a menu is as wide
+  as its widest row, the way the MDEF sized it (`Menus.png`'s File pulldown is
+  141px, its cm/inches popup 94), never narrower than its own bar title;
   `role="menu"`.
   - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
     `--vf-focus-underline-offset: -2px`, a dashed rule one blank system px row
@@ -1272,7 +1276,10 @@ The classic popup menu control ("Macintosh HD ▼").
   ArrowDown/Up wrap, Home/End jump, printable keys run the shared first-letter
   type-ahead (`src/type-ahead.ts`), Escape closes and refocuses the label.
   Sets `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so
-  slotted `vf-separator`s render dimmed with 2px vertical margin.
+  slotted `vf-separator`s render dimmed, each spending one full
+  `--vf-menu-row-height` — the MDEF's divider-as-item — with the rule 8px in
+  (12px under the ink band above, 10 over the one below, per InfiniteMac's
+  System 7.5 Edit menu and the 32px cross-divider ink pitch in `Menus.png`).
   **Pointer:** the two styles `vf-select` supports, on the same terms and the
   same `PRESS_HOLD_MS` threshold (`src/motion.ts`) — the menus get theirs from
   `MenuPressController` (`src/menu-press.ts`), which a standalone menu hosts
@@ -1303,7 +1310,8 @@ The classic popup menu control ("Macintosh HD ▼").
 #### `vf-menu-item` (`VfMenuItem`, vf-menu-item.ts)
 - **Attributes/props:** `disabled`, `checked` (shows ✓ in left gutter),
   `checkable` (declares a toggle up front — see Behavior),
-  `shortcut: string` (e.g. `"⌘H"`, right-aligned), `value?: string` (defaults
+  `shortcut: string` (e.g. `"⌘H"`, drawn in the left-aligned shortcut
+  column), `value?: string` (defaults
   to text content), `active` (reflect; the transient press-drag highlight,
   managed by the menu — mirrors `vf-option[active]`, not an authoring API).
 - **Visual:** height `var(--vf-menu-row-height, 16px)` — `Menus.png` puts every
@@ -1312,8 +1320,12 @@ The classic popup menu control ("Macintosh HD ▼").
   expression so an inherited line-height can never overflow the panel.
   `padding: 0 12px 0 var(--vf-select-gutter, 16px)`
   (left gutter for ✓, shared with `vf-select`/`vf-option` — `Menus.png` puts a
-  pulldown's label ink at the same inset as a popup's), shortcut right-aligned
-  with 24px min gap, `color: var(--vf-disabled)` when
+  pulldown's label ink at the same inset as a popup's; a shortcut row trades
+  the 12 for 2px, the slot being the clearance there). The shortcut is
+  left-aligned in a right-anchored `--vf-menu-shortcut-column` (22px) slot —
+  every ⌘ at the same x, 23px from the right border, the widest letters
+  running to within ~3px of it (`Menus.png`'s File pulldown) — with an 8px
+  label↔shortcut min gap. `color: var(--vf-disabled)` when
   disabled. Hover, `[active]`, keyboard focus (not disabled): full-width
   inversion — each with its own `.blink-off` override at matching specificity,
   so a drag-picked row keeps its flag through the blink and the release reads as

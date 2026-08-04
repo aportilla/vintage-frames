@@ -1669,14 +1669,14 @@ vf-button::part(button) { min-width: 96px; }
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>value</code></td><td>string</td><td class="wrap">text content</td><td class="wrap">Carried in the event detail</td></tr>
-              <tr><td><code>shortcut</code></td><td>string</td><td><code>''</code></td><td class="wrap">Right-aligned key equivalent (<code>⌘N</code>) — display only; binding the key is yours</td></tr>
+              <tr><td><code>shortcut</code></td><td>string</td><td><code>''</code></td><td class="wrap">Key equivalent (<code>⌘N</code>), left-aligned in a shared right-anchored column so every ⌘ lines up — display only; binding the key is yours</td></tr>
               <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows the ✓ in the left gutter</td></tr>
               <tr><td><code>checkable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Declares a toggle that starts <em>off</em>, so it announces as <code>menuitemcheckbox</code> instead of a plain command before its first flip (a boolean <code>checked</code> cannot express "checkable but off")</td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the whole row, ✓ included — a documented deviation from the kit's dim-the-label rule, because System 7 grayed the whole disabled row</td></tr>
               <tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The transient press-drag highlight, managed by the menu — not an authoring API</td></tr>
               <tr><td><code>activate()</code></td><td>Method</td><td>—</td><td class="wrap">Blink, then select — what the press gesture calls for the row a drag was released over</td></tr>
               <tr><td><code>vf-menu-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, item }</code></td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>item</code>, <code>check</code>, <code>label</code>, <code>shortcut</code>. Token: <code>--vf-menu-row-height</code> (16px), <code>--vf-select-gutter</code>.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>item</code>, <code>check</code>, <code>label</code>, <code>shortcut</code>. Token: <code>--vf-menu-row-height</code> (16px), <code>--vf-menu-shortcut-column</code> (22px), <code>--vf-select-gutter</code>.</td></tr>
             </tbody>
           </table>
         </section>

@@ -44,6 +44,8 @@
           <vf-menu-item shortcut="⌘X">Cut</vf-menu-item>
           <vf-menu-item shortcut="⌘C">Copy</vf-menu-item>
           <vf-menu-item shortcut="⌘V">Paste</vf-menu-item>
+          <vf-separator></vf-separator>
+          <vf-menu-item value="preferences">Preferences…</vf-menu-item>
         </vf-menu>
         <vf-menu id="menu-view" label="View">
           <vf-menu-item checked value="by-icon">by Icon</vf-menu-item>
@@ -1084,6 +1086,45 @@ shrink it and watch the arrows come back.
         <vf-button id="btn-pagesetup-ok" slot="buttons" variant="default"
           >OK</vf-button
         >
+      </vf-dialog>
+
+      <!-- ============== "Preferences" modal dialog box (plain) ========== -->
+      <!-- The OTHER stylesheet-free layout (README "Positioning inside a
+           window"): every item states its own rectangle in whole system px
+           through the top/left properties, the DITL convention — coordinates
+           measured from the dialog's content area. No `heading`: the title is
+           itself a placed item, as a dBoxProc dialog's was, so `label` names
+           the dialog for AT instead. Edit → Preferences… opens it. -->
+      <vf-dialog id="dlg-prefs" frame="plain" label="Preferences" width="280" height="168">
+        <vf-label top="0" left="0">Preferences:</vf-label>
+        <vf-label top="27" left="12" for="prefs-font">Font</vf-label>
+        <vf-select top="24" left="48" id="prefs-font" value="New York">
+          <vf-option>Chicago</vf-option>
+          <vf-option>Courier</vf-option>
+          <vf-option>Geneva</vf-option>
+          <vf-option>Helvetica</vf-option>
+          <vf-option>Monaco</vf-option>
+          <vf-option>New York</vf-option>
+          <vf-option>Palatino</vf-option>
+          <vf-option>Times</vf-option>
+        </vf-select>
+        <vf-label top="61" left="12" for="prefs-size">Size</vf-label>
+        <vf-select top="58" left="48" id="prefs-size" value="12">
+          <vf-option>9</vf-option>
+          <vf-option>10</vf-option>
+          <vf-option>12</vf-option>
+          <vf-option>14</vf-option>
+          <vf-option>18</vf-option>
+          <vf-option>24</vf-option>
+        </vf-select>
+        <!-- Placed buttons live in the body, not the `buttons` slot — the
+             flow footer would stack under zero-height content and land the
+             row somewhere no coordinate stated. The group still equalizes
+             widths and aligns the default button's face. -->
+        <vf-button-group top="94" left="70">
+          <vf-button id="btn-prefs-cancel">Cancel</vf-button>
+          <vf-button id="btn-prefs-ok" variant="default">OK</vf-button>
+        </vf-button-group>
       </vf-dialog>
 
       <!-- ============== Erase Disk alert (composed, modal) ============== -->

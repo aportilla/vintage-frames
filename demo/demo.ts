@@ -88,6 +88,7 @@ const findWindow = $<VfWindow>('#win-find')
 const toolsPalette = $<VfWindow>('#win-tools')
 const aboutDialog = $<VfDialog>('#dlg-about')
 const pageSetupDialog = $<VfDialog>('#dlg-pagesetup')
+const prefsDialog = $<VfDialog>('#dlg-prefs')
 const eraseAlert = $<VfDialog>('#alert-erase')
 
 /* ------------------------------------------------------------------ *
@@ -233,6 +234,10 @@ $<VfMenu>('#menu-file').addEventListener('vf-menu-select', (event) => {
   }
 })
 
+$<VfMenu>('#menu-edit').addEventListener('vf-menu-select', (event) => {
+  if (menuDetail(event).value === 'preferences') prefsDialog.show()
+})
+
 // View: an exclusive check across the three, and the two icon views really do
 // switch the desktop between the icon family's two members — the 32×32 ICN#
 // and the 16×16 ics#, both already slotted on every vf-icon.
@@ -312,6 +317,12 @@ $<HTMLElement>('#btn-pagesetup-cancel').addEventListener('click', () =>
 )
 $<HTMLElement>('#btn-pagesetup-ok').addEventListener('click', () =>
   pageSetupDialog.close()
+)
+$<HTMLElement>('#btn-prefs-cancel').addEventListener('click', () =>
+  prefsDialog.close()
+)
+$<HTMLElement>('#btn-prefs-ok').addEventListener('click', () =>
+  prefsDialog.close()
 )
 $<HTMLElement>('#btn-erase-cancel').addEventListener('click', () =>
   eraseAlert.close()

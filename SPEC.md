@@ -197,7 +197,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | --- | --- | --- |
 | `--vf-scale` | *(display factor, `3 / dpr`)* | multiplies every length token below (see note) |
 | `--vf-font-family` | `'FindersKeepers', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | body text (list rows, page copy) |
-| `--vf-font-family-display` | `'ChiKareGo', 'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
+| `--vf-font-family-display` | `'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
 | `--vf-font-size` | `16px` | body face size |
 | `--vf-font-size-display` | `16px` | chrome face size |
 | `--vf-font-size-small` | `12px` | fine print (disk-space captions, `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table |
@@ -214,7 +214,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-button-group-gap` | `12px` | gap between buttons in a `vf-button-group` (always exceeds the default ring's reach, so rings never collide) |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
 | `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows); `vf-menu` also spends one full row on every slotted `vf-separator` — the MDEF's divider-as-item, rule 8px in (H/2 above, H/2−1 below) |
-| `--vf-menu-shortcut-column` | `22px` | `vf-menu-item` shortcut slot, right-anchored with the text left-aligned in it so every ⌘ lands at the same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's widest letter (11px); widen it to line up longer shortcuts ("⌘⇧S") |
+| `--vf-menu-shortcut-column` | `23px` | `vf-menu-item` shortcut slot, right-anchored with the text left-aligned in it so every ⌘ lands at the same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's widest letter (M/W, 12px); widen it to line up longer shortcuts ("⌘⇧S") |
 | `--vf-label-line-height` | `16px` | `vf-label` line box — the faces' own em, so a caption sits on the menu/popup rhythm |
 | `--vf-paragraph-line-height` | `20px` | `vf-paragraph` line box — the same pitch as a `vf-list-item` row |
 | `--vf-icon-label-height` | `12px` | `vf-icon`'s name plate line box — the Finder's own plate height, tighter than the face's 16px em, which centers in it (keep an override even, or the baseline lands on a half pixel) |
@@ -1269,11 +1269,11 @@ The classic popup menu control ("Macintosh HD ▼").
 #### `vf-menu` (`VfMenu`, vf-menu.ts)
 - **Attributes/props:** `label: string` (the menu title in the bar; may contain
   e.g. an apple glyph), `open: boolean` (reflect, managed by menu-bar or self).
-- **Visual:** label: bold, height of menubar, `padding-inline: 10px 8px` — the
+- **Visual:** label: bold, height of menubar, `padding-inline: 9px 8px` — the
   label box is the title's black plate and hit rect, and Menus.png puts the
-  plate 10px left / 9px right of the title ink (ChiKareGo carries Chicago's
-  1px trailing bearing inside the text box, so 10/8 in layout lands −10/+9
-  around ink); open → inverted (black bg / white text), inset one system px
+  plate 10px left / 9px right of the title ink (Chicago carries a 1px bearing
+  on each side inside the text box, so 9/8 in layout lands −10/+9 around
+  ink); open → inverted (black bg / white text), inset one system px
   top and bottom via transparent `border-block` + `background-clip:
   padding-box` — the hilite is rows 1..18 of the 20px bar, leaving the bar's
   top row white and its bottom rule showing through, while the hit rect stays
@@ -1363,8 +1363,8 @@ The classic popup menu control ("Macintosh HD ▼").
   `padding: 0 12px 0 var(--vf-select-gutter, 16px)`
   (left gutter for ✓, shared with `vf-select`/`vf-option` — `Menus.png` puts a
   pulldown's label ink at the same inset as a popup's; a shortcut row trades
-  the 12 for 2px, the slot being the clearance there). The shortcut is
-  left-aligned in a right-anchored `--vf-menu-shortcut-column` (22px) slot —
+  the 12 for 1px, the slot being the clearance there). The shortcut is
+  left-aligned in a right-anchored `--vf-menu-shortcut-column` (23px) slot —
   every ⌘ at the same x, 23px from the right border, the widest letters
   running to within ~3px of it (`Menus.png`'s File pulldown) — with an 8px
   label↔shortcut min gap. `color: var(--vf-disabled)` when

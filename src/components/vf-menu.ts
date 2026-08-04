@@ -63,11 +63,11 @@ export class VfMenu extends LitElement {
         height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 20px));
         /* The label box IS the title's black plate (and its hit rect), and
            Menus.png puts the plate 10px left / 9px right of the title ink.
-           ChiKareGo carries Chicago's 1px trailing bearing inside the text
-           box, so 10/8 in layout lands the plate at ink −10/+9. In a bar,
-           vf-menu-bar overlaps adjacent boxes 5px on top of this — the
-           plates share a band, as the originals did. */
-        padding-inline: calc(var(--vf-scale, 1) * 10px) calc(var(--vf-scale, 1) * 8px);
+           Chicago carries a 1px bearing on each side inside the text box, so
+           9/8 in layout lands the plate at ink −10/+9. In a bar, vf-menu-bar
+           overlaps adjacent boxes 5px on top of this — the plates share a
+           band, as the originals did. */
+        padding-inline: calc(var(--vf-scale, 1) * 9px) calc(var(--vf-scale, 1) * 8px);
         white-space: nowrap;
         /* The press-drag gesture owns pointer moves while the title is held;
            suppress the browser's own touch panning/scrolling so a touch drag

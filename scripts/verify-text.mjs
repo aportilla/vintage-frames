@@ -177,7 +177,7 @@ const heightOf = (page, id) =>
 
   check(
     'label: chrome face by default',
-    styles['l-default'].family === 'ChiKareGo' && styles['l-default'].smoothing === 'none',
+    styles['l-default'].family === 'Chicago' && styles['l-default'].smoothing === 'none',
     `${styles['l-default'].family} / smoothing ${styles['l-default'].smoothing}`
   )
   check(
@@ -197,7 +197,7 @@ const heightOf = (page, id) =>
   )
   check(
     'paragraph: face="display" switches to the chrome face',
-    styles['p-display'].family === 'ChiKareGo' && styles['p-display'].smoothing === 'none',
+    styles['p-display'].family === 'Chicago' && styles['p-display'].smoothing === 'none',
     `${styles['p-display'].family} / smoothing ${styles['p-display'].smoothing}`
   )
   check(

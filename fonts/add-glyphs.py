@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Extend the System 7 bitmap faces with glyphs they ship without.
 
-ChiKareGo (Chicago-style chrome face) and FindersKeepers (body face) ship
-without a few punctuation glyphs the UI types — `⌘`, `…`, curly quotes, the
+Chicago (the genuine chrome strike, produced by `import-bdf.py --em 16`) lacks
+only `×` — MacRoman never carried it. FindersKeepers (the lookalike body face)
+ships without the punctuation the UI types — `⌘`, `…`, curly quotes, the
 em/en dashes, the bullet and `×` — so those fell back to the system font, a
-smooth glyph beside the pixel labels. This script draws those
-glyphs as pixels, injects them into each WOFF2, and re-embeds the base64 into
-the `src/styles/*-font.ts` modules that register the faces at runtime.
+smooth glyph beside the pixel labels. This script draws the missing glyphs as
+pixels, injects them into each WOFF2, and re-embeds the base64 into the
+`src/styles/*-font.ts` modules that register the faces at runtime.
 
 Run it (needs fonttools + brotli — see fonts/README.md):
 
@@ -20,11 +21,10 @@ compound. To add a glyph, add one row to a font's `specs` list and re-run.
 --- The pixel grid -----------------------------------------------------------
 Both faces are 1024 units/em and designed on a 64-unit pixel (so they land on
 the CSS pixel grid at 16px: 1024 / 16 = 64). Everything below is expressed in
-whole pixels and multiplied by PX. Reference metrics decoded from the sources:
-
-              cap height   x-height   period dot   quotes sit at
-  ChiKareGo      9px          7px       2x2 px       6-9px band
-  FindersKeepers 7px          5px       1x1 px       5-7px band
+whole pixels and multiplied by PX. Reference metrics for drawing into
+FindersKeepers, decoded from the source: 7px caps, 5px x-height, 1x1 px period
+dot, quotes in the 5-7px band. Chicago's one spec borrows its whole geometry
+from the strike's own '+' (5x5 ink, 1px bearing each side, 7px advance).
 
 Glyphs are bitmaps (top row first, '#' = ink). `bmp()` rasterises each to
 TrueType contours as one clockwise rectangle per maximal horizontal run of ink
@@ -43,22 +43,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STYLES = os.path.join(HERE, "..", "src", "styles")
 PX = 64  # font units per design pixel
 
-# U+2318 the "looped square" / cloverleaf command key: four ROUNDED corner loops
-# (notched outer corners, so each reads as a petal/circle — this is the detail
-# that distinguishes the real Mac glyph from a plain grid) joined by a central
-# square, with the edges between loops left open (concave). The chrome glyph is
-# 9x9 sitting ON the baseline — cap height exactly, like a capital letter.
-CMD_CHROME = [  # 9x9, 4x4 loops with 2x2 holes around a 1px-hole centre
-    ".##...##.",
-    "#..#.#..#",
-    "#..#.#..#",
-    ".#######.",
-    "...#.#...",
-    ".#######.",
-    "#..#.#..#",
-    "#..#.#..#",
-    ".##...##.",
-]
+# U+2318 the "looped square" / cloverleaf command key: four corner loops joined
+# by a central square, with the edges between loops left open (concave).
+# (Chicago needs no drawing — the strike carries the real glyph natively.)
 CMD_BODY = [  # 9x9 diamond loops for the body face, 1px below its 7px cap band
     ".#.....#.",
     "#.#...#.#",
@@ -72,13 +59,13 @@ CMD_BODY = [  # 9x9 diamond loops for the body face, 1px below its 7px cap band
 ]
 
 # Dashes, bullet and multiplication sign — punctuation the UI copy types that
-# neither face shipped, so each fell back to a smooth system glyph beside the
-# pixels (the em dash in "US$25 — see the Read Me" was the giveaway). The en/em
-# dashes reuse each face's own hyphen stroke — same band, same weight, just
-# longer — so hyphen/en/em read as one family (ChiKareGo: a 2px bar in the 3-5px
-# band; FindersKeepers: a 1px bar in the 3-4px band). The bullet is a round dot
-# centred on the x-height; the × an X on the math axis (aligned with '+').
-# X_MULT is shared: a 5x5 saltire, sized identically in both faces.
+# the faces shipped without, so each fell back to a smooth system glyph beside
+# the pixels (the em dash in "US$25 — see the Read Me" was the giveaway). The
+# en/em dashes reuse the body face's own hyphen stroke — same band, same
+# weight, just longer — so hyphen/en/em read as one family (a 1px bar in the
+# 3-4px band). The bullet is a round dot centred on the x-height; the × an X
+# on the math axis (aligned with '+'). X_MULT is shared: a 5x5 saltire, sized
+# identically in both faces.
 X_MULT = [
     "#...#",
     ".#.#.",
@@ -114,18 +101,9 @@ def bmp(bitmap, x0, y0, advance):
 
 # name, codepoint, bitmap, x0, y0(bottom edge), advance — all in font units.
 FONTS = {
-    "ChiKareGo": {  # 9px cap, 2px dots, quotes in the 6-9px band
-        "module": "chikarego-font.ts",
+    "Chicago": {  # the real strike needs only ×; geometry borrowed from its '+'
+        "module": "chicago-font.ts",
         "specs": [
-            ("uni2318", 0x2318, CMD_CHROME, 64, 0, 704),
-            ("ellipsis", 0x2026, ["##.##.##", "##.##.##"], 0, 0, 576),
-            ("quoteright", 0x2019, ["##", "##", "#."], 0, 384, 192),
-            ("quoteleft", 0x2018, ["##", "##", ".#"], 0, 384, 192),
-            ("quotedblright", 0x201D, ["##.##", "##.##", "#..#."], 0, 384, 384),
-            ("quotedblleft", 0x201C, ["##.##", "##.##", ".#..#"], 0, 384, 384),
-            ("endash", 0x2013, ["#######", "#######"], 0, 192, 512),
-            ("emdash", 0x2014, ["##########", "##########"], 0, 192, 704),
-            ("bullet", 0x2022, [".##.", "####", "####", ".##."], 128, 128, 512),
             ("multiply", 0x00D7, X_MULT, 64, 128, 448),
         ],
     },

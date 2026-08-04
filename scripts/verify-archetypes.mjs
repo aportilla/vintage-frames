@@ -263,7 +263,7 @@ function decodePng(buf) {
     ['font-family', 'text-align', 'display', 'margin-bottom', '-webkit-font-smoothing'])
   check('plain heading is drawn in content, centered, in the display face',
     title !== null && title['text-align'] === 'center' && title.display === 'block' &&
-    title['font-family'].startsWith('ChiKareGo'), title && title['font-family'])
+    title['font-family'].startsWith('Chicago'), title && title['font-family'])
   check(`plain heading keeps 16px x${S} below itself`,
     title['margin-bottom'] === `${16 * S}px`, title['margin-bottom'])
 

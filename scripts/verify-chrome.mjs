@@ -139,8 +139,8 @@ const partMetrics = (page, hostId, part, props) =>
     check(`title ${p} identical across window/dialog`, winTitle[p] === dlgTitle[p],
       `${winTitle[p]} vs ${dlgTitle[p]}`)
   }
-  check('title is set in the ChiKareGo display face',
-    winTitle['font-family'].startsWith('ChiKareGo'), winTitle['font-family'])
+  check('title is set in the Chicago display face',
+    winTitle['font-family'].startsWith('Chicago'), winTitle['font-family'])
   check('title smoothing is off (1-bit edges)',
     winTitle['-webkit-font-smoothing'] === 'none')
   check(`title patch pads 8px x${S} either side`,

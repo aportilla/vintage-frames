@@ -7,8 +7,8 @@
   "sideEffects": [
     "**/components/*.js",
     "**/components/*.ts",
-    "**/chikarego-font.js",
-    "**/chikarego-font.ts",
+    "**/chicago-font.js",
+    "**/chicago-font.ts",
     "**/finders-keepers-font.js",
     "**/finders-keepers-font.ts",
     "**/*.css"

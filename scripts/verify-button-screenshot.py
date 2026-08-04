@@ -293,7 +293,7 @@ def main():
 
     # dragged window: after fractional-position + fractional-drag repro, the
     # snapped window must rasterize entirely in pure black/white (its border,
-    # stripes, ChiKareGo title, shadow, and the button inside) — a single
+    # stripes, Chicago title, shadow, and the button inside) — a single
     # off-grid coordinate would fringe hundreds of pixels gray.
     check("window: dragged test window present", len(window_islands) == 1,
           f"got {len(window_islands)}")

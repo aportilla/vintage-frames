@@ -61,10 +61,10 @@ function toAriaKeyshortcuts(shortcut: string): string {
  * @cssprop [--vf-menu-row-height=16px] - `vf-menu-item` row pitch (`Menus.png`;
  *   kept separate from `--vf-popup-height` so re-theming the popup pill doesn't
  *   move pulldown rows)
- * @cssprop [--vf-menu-shortcut-column=22px] - `vf-menu-item` shortcut slot,
+ * @cssprop [--vf-menu-shortcut-column=23px] - `vf-menu-item` shortcut slot,
  *   right-anchored with the text left-aligned in it so every ⌘ lands at the
  *   same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's
- *   widest letter (11px); widen it to line up longer shortcuts ("⌘⇧S")
+ *   widest letter (M/W, 12px); widen it to line up longer shortcuts ("⌘⇧S")
  * @cssprop [--vf-select-gutter=16px] - checkmark column: `vf-select` left inset
  *   / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift
  *   on open)
@@ -142,7 +142,8 @@ export class VfMenuItem extends LitElement {
          running to within 3px of the border. Flexing the label and letting the
          span hug the right edge instead right-aligned the pairs, so the ⌘
          column jagged with each letter's width. The slot is the classic
-         reserve: ⌘'s 11px advance + the face's widest letter (M/W, 11px).
+         reserve: ⌘'s 11px advance + the face's widest letter (M/W, 12px) —
+         sized so ⌘W exactly fills it and no pair moves the anchor.
          min-width, not width, so a longer shortcut ("⌘⇧S") widens its own
          slot rather than painting past the row. The 8px margin is the
          label↔shortcut minimum ("Close Window"'s label box ends at +108, the
@@ -152,16 +153,16 @@ export class VfMenuItem extends LitElement {
         flex: none;
         margin-left: calc(var(--vf-scale, 1) * 8px);
         min-width: calc(
-          var(--vf-scale, 1) * var(--vf-menu-shortcut-column, 22px)
+          var(--vf-scale, 1) * var(--vf-menu-shortcut-column, 23px)
         );
         text-align: left;
       }
       /* A shortcut row trades the label's 12px right clearance for the art's
-         2px — the slot itself is the clearance there (2 + 22 puts the slot
+         1px — the slot itself is the clearance there (1 + 23 puts the slot
          edge at −24, and ⌘'s 1px bearing lands its ink at −23, as traced).
          Label-only rows keep the 12. */
       .item.has-shortcut {
-        padding-right: calc(var(--vf-scale, 1) * 2px);
+        padding-right: calc(var(--vf-scale, 1) * 1px);
       }
       :host([disabled]) .item {
         color: var(--vf-disabled, #c0c0c0);

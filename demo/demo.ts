@@ -8,7 +8,7 @@
  * Everything visual comes from the components; this module is behavior only.
  */
 import { VfParagraph, VfWindow } from '../src/index.js'
-import { effectiveScale, onScaleChange, sysLength } from '../src/scale.js'
+import { effectiveScale, onScaleChange } from '../src/scale.js'
 import type {
   VfDesktop,
   VfDialog,
@@ -130,28 +130,34 @@ const clamp = (value: number, lo: number, hi: number): number =>
 
 /**
  * Park a window in the middle of the screen area below the menu bar, in
- * whole system px (grid rule 3), written as the same
- * `calc(var(--vf-scale) * Npx)` idiom demo.css uses so the position stays
- * proportional if the scale moves. `nudge` staggers a batch down-right so
- * Show All Windows deals a cascade rather than one exact pile; a window
- * too large for the raster pins to the top-left of what room there is.
+ * whole system px (grid rule 3), through the component's own `top`/`left`
+ * placement — the properties stay live against the scale the way the old
+ * hand-written `calc(var(--vf-scale) * Npx)` idiom did, with the calc now the
+ * component's business. `nudge` staggers a batch down-right so Show All
+ * Windows deals a cascade rather than one exact pile; a window too large for
+ * the raster pins to the top-left of what room there is.
+ *
+ * One nuance inherited from the placement contract: a property write is a
+ * no-op when the value hasn't changed, and a drag owns the coordinates once
+ * it happens. So a window you dragged, closed and reopened comes back where
+ * you left it — the position memory a real System 7 window had — and still
+ * on-canvas, because the drag itself clamps. It re-centers only when the
+ * raster has changed underneath it, which is exactly the off-canvas case
+ * centering exists for.
  */
 function centerWindow(win: VfWindow, nudge = 0): void {
   const w = win.width ?? 0
   const h = win.height ?? 0
-  const x = clamp(
+  win.left = clamp(
     Math.round((desktop.width - w) / 2) + nudge,
     0,
     Math.max(0, desktop.width - w)
   )
-  const y = clamp(
+  win.top = clamp(
     MENU_BAR + Math.round((desktop.height - MENU_BAR - h) / 2) + nudge,
     MENU_BAR,
     Math.max(MENU_BAR, desktop.height - h)
   )
-  win.style.position = 'absolute'
-  win.style.left = sysLength(x)
-  win.style.top = sysLength(y)
 }
 
 /** Un-hide every window on the desktop (Special → Show All Windows),

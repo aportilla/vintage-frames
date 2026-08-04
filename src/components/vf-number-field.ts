@@ -67,6 +67,12 @@ export class VfNumberField extends VfTextControlBase {
       .vf-field-well {
         display: flex;
         flex: 1 1 auto;
+        /* Shrinkable, or the stepper leaves the host box: min-width's auto
+           floor here is the input's definite 4em width, so a host narrowed to
+           4em or less pushed gap + stepper past its own border box (under
+           whatever sits beside it) instead of narrowing the well. 0 hands the
+           floor to the input's own min-width. */
+        min-width: 0;
         /* The 3px difference is odd, so centering the well would land it on a
            half pixel and fringe at every scale. Bias it one whole pixel down
            (1 above / 2 below) — optically centered, still on the device grid. */

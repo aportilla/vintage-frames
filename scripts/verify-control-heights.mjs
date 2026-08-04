@@ -22,6 +22,9 @@
  * Also covers the original vf-number-field regression this file was written for:
  * the host used to be `align-items: stretch` with the 15×25 stepper as the only
  * fixed-height child, so the <input> stretched to 25px and ignored the token.
+ * And its width sibling: the well's automatic flex minimum was the input's
+ * definite 4em width, so a host narrowed to 4em or less pushed the stepper past
+ * its own border box, under whatever sat beside it.
  *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:control-heights
@@ -55,6 +58,9 @@ const MARKUP = `
   <vf-text-field id="text" value="abc"></vf-text-field>
   <vf-number-field id="num" value="5"></vf-number-field>
   <vf-number-field id="themed" value="5" style="--vf-control-height: 30px"></vf-number-field>
+  <!-- 64 system px = exactly the input's 4em: the width that used to push the
+       stepper out of the host box (the showcase's Page Setup row). -->
+  <vf-number-field id="narrow" value="100" style="width: calc(var(--vf-scale, 1) * 64px)"></vf-number-field>
 
   <vf-button id="btn">OK</vf-button>
   <vf-button id="def" variant="default">Install</vf-button>
@@ -206,6 +212,38 @@ check(
   'a well taller than the sprite drives the host height itself',
   themed.host === 30 * s + s,
   `host=${themed.host} expected=${30 * s + s}`
+)
+
+// ── A narrowed host keeps the stepper inside its own border box ──
+// The well's automatic flex minimum was the input's definite 4em width, so a
+// host width at or under 4em overflowed gap + stepper to the right, under the
+// next thing in the row. The well must give up the 3 + 15 the stepper needs.
+const narrow = await page.evaluate(() => {
+  const host = document.getElementById('narrow')
+  const hostRect = host.getBoundingClientRect()
+  const wellRect = host.shadowRoot.querySelector('.vf-field-well').getBoundingClientRect()
+  const stepperRect = host.shadowRoot.querySelector('.stepper').getBoundingClientRect()
+  return {
+    host: hostRect.width,
+    hostRight: hostRect.right,
+    well: wellRect.width,
+    stepperRight: stepperRect.right,
+  }
+})
+check(
+  'a 64px host is honored',
+  narrow.host === 64 * s,
+  `host=${narrow.host} expected=${64 * s}`
+)
+check(
+  'the stepper stays inside the narrowed host',
+  narrow.stepperRight <= narrow.hostRight + 0.5,
+  `stepperRight=${narrow.stepperRight} hostRight=${narrow.hostRight}`
+)
+check(
+  'the well gives up exactly the gap + sprite width (still whole system px)',
+  narrow.well === (64 - 3 - 15) * s,
+  `well=${narrow.well} expected=${(64 - 3 - 15) * s}`
 )
 
 // ── vf-button: the face is 20, not the fields' 22 ──

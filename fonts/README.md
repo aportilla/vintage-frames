@@ -36,9 +36,18 @@ glyphs, on 2026-08-04; the retired face survives in git history. Being
 Apple's artwork, its distribution posture is a deliberate decision — see
 PUBLISHING.md.
 
-**FindersKeepers** remains a lookalike: the genuine Geneva 9pt strike draws
-one pixel taller (8px caps to FindersKeepers' 7), so swapping it would change
-letterforms, not just spacing — a separate decision from Chicago's.
+**FindersKeepers** remains a lookalike — but only because the genuine Geneva
+**9pt** strike isn't in the BDF collection. The collection's smallest Geneva
+export (`Geneva/12.bdf`, ascent 10 / descent 2) is the **10pt** strike: real
+Geneva ink, one size up (8px caps to the 9pt's 7, `I` advance 4 to its 2). A
+2026-08-04 attempt shipped it as the body face and was reverted the same day —
+everything rendered a pixel too tall and wider-set than the original Finder
+(the collection names files by font rect, and the families that do include
+their 9pt strike show it as `11.bdf` with ascent 9 / descent 2 — Geneva's
+ladder starts at 12). FindersKeepers carries the original 9pt *metrics*
+(7px caps, 5px x-height, `I` advance 2), so it stays until a true Geneva 9
+BDF exists; the pipeline below then swaps it in as
+`import-bdf.py --em 16 --ascent 12`.
 
 ## Why we modify the fonts
 
@@ -59,7 +68,7 @@ string; prefer a sprite when the component controls the exact markup.)
 ## import-bdf.py — BDF strike → webfont
 
 ```sh
-/tmp/fontenv/bin/python3 fonts/import-bdf.py [--em N] <strike.bdf> ...
+/tmp/fontenv/bin/python3 fonts/import-bdf.py [--em N] [--ascent N] <strike.bdf> ...
 ```
 
 Writes `fonts/imported/<Family>-<size>.woff2` per input. The conventions:
@@ -70,7 +79,10 @@ the tables, no registration overrides required; MacRoman `ENCODING`s mapped
 through Unicode (inked classic symbol slots 0x11–0x14 → `⌘ ✓ ◆ `); each
 strike its own family (`"Geneva 12"`), since CSS can't pick a bitmap strike
 by size. `--em N` re-ems a strike onto a larger line box by padding the
-descent (how Chicago.woff2 is made). The script self-verifies: it decompiles
+descent (how Chicago.woff2 is made); `--ascent N` re-splits that box at a
+stated baseline, padding the ascent too — for a strike whose own ascent is
+short of the target grid (padding only, never clipping). The script
+self-verifies: it decompiles
 every compiled glyph back to pixel cells and bit-compares against the BDF —
 a font that saves is pixel-identical to its source.
 

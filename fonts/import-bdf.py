@@ -132,12 +132,18 @@ def draw(bbx, rows):
     return pen.glyph()
 
 
-def build(bdf_path, em=None):
+def build(bdf_path, em=None, ascent=None):
     """em: optionally re-em the strike onto a larger line box (whole px, >= its
     native size); the extra pixels pad the DESCENT, so the ascent — where the
-    baseline sits — is untouched and the ink lands identically. This is how a
+    baseline sits — is untouched and the ink lands identically. This is how the
     kit chrome face is derived: Chicago 15 (12/3) on the kit's 16px em is 12/4,
-    the exact box the 75%/25% registration overrides describe."""
+    the exact box the 75%/25% registration overrides describe.
+
+    ascent: optionally re-split the (possibly re-emmed) box at a stated
+    baseline, padding the ASCENT too — for a strike whose own ascent is short
+    of the target grid (e.g. Geneva 12's 10/2 with --em 16 --ascent 12 lands
+    on the same 12/4 box). Padding only, never clipping: the strike's own
+    ascent/descent must still fit."""
     props, raw = parse_bdf(bdf_path)
     size = props["PIXEL_SIZE"]
     asc, desc = props["FONT_ASCENT"], props["FONT_DESCENT"]
@@ -148,6 +154,13 @@ def build(bdf_path, em=None):
             sys.exit(f"{bdf_path}: --em {em} smaller than the strike's {size}px")
         desc += em - size
         size = em
+    if ascent is not None:
+        if not asc <= ascent <= size - props["FONT_DESCENT"]:
+            sys.exit(
+                f"{bdf_path}: --ascent {ascent} outside {asc}..{size - props['FONT_DESCENT']} "
+                f"(pads only — the strike's {props['FONT_ASCENT']}/{props['FONT_DESCENT']} must fit the em)"
+            )
+        asc, desc = ascent, size - ascent
     family = f"{os.path.basename(os.path.dirname(os.path.abspath(bdf_path)))} {props['PIXEL_SIZE']}"
     upm = size * PX
 
@@ -204,7 +217,11 @@ def build(bdf_path, em=None):
     fb.setupPost()
     fb.font.flavor = "woff2"
     os.makedirs(OUT, exist_ok=True)
-    stem = family.replace(" ", "-") + (f"-em{size}" if em is not None else "")
+    stem = (
+        family.replace(" ", "-")
+        + (f"-em{size}" if em is not None else "")
+        + (f"-a{asc}" if ascent is not None else "")
+    )
     out = os.path.join(OUT, f"{stem}.woff2")
     fb.save(out)
 
@@ -244,12 +261,16 @@ def verify(path, upm, kept):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    em = None
+    em = ascent = None
     if "--em" in args:
         i = args.index("--em")
         em = int(args[i + 1])
         del args[i : i + 2]
+    if "--ascent" in args:
+        i = args.index("--ascent")
+        ascent = int(args[i + 1])
+        del args[i : i + 2]
     if not args:
-        sys.exit(f"usage: {sys.argv[0]} [--em N] <strike.bdf> ...")
+        sys.exit(f"usage: {sys.argv[0]} [--em N] [--ascent N] <strike.bdf> ...")
     for p in args:
-        build(p, em)
+        build(p, em, ascent)

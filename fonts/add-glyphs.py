@@ -46,23 +46,20 @@ PX = 64  # font units per design pixel
 # U+2318 the "looped square" / cloverleaf command key: four ROUNDED corner loops
 # (notched outer corners, so each reads as a petal/circle — this is the detail
 # that distinguishes the real Mac glyph from a plain grid) joined by a central
-# square, with the edges between loops left open (concave). Sized per face: an
-# 11px cloverleaf for the 9px-cap chrome face, a 9px one for the 7px-cap body
-# face. Both sit 1px below the baseline so they centre on the cap band.
-CMD_CHROME = [  # 11x11, 4x4 loops with 2x2 holes
-    ".##.....##.",
-    "#..#...#..#",
-    "#..#...#..#",
-    ".#########.",
-    "...#...#...",
-    "...#...#...",
-    "...#...#...",
-    ".#########.",
-    "#..#...#..#",
-    "#..#...#..#",
-    ".##.....##.",
+# square, with the edges between loops left open (concave). The chrome glyph is
+# 9x9 sitting ON the baseline — cap height exactly, like a capital letter.
+CMD_CHROME = [  # 9x9, 4x4 loops with 2x2 holes around a 1px-hole centre
+    ".##...##.",
+    "#..#.#..#",
+    "#..#.#..#",
+    ".#######.",
+    "...#.#...",
+    ".#######.",
+    "#..#.#..#",
+    "#..#.#..#",
+    ".##...##.",
 ]
-CMD_BODY = [  # 9x9, smaller diamond loops for the body face
+CMD_BODY = [  # 9x9 diamond loops for the body face, 1px below its 7px cap band
     ".#.....#.",
     "#.#...#.#",
     ".#######.",
@@ -120,7 +117,7 @@ FONTS = {
     "ChiKareGo": {  # 9px cap, 2px dots, quotes in the 6-9px band
         "module": "chikarego-font.ts",
         "specs": [
-            ("uni2318", 0x2318, CMD_CHROME, 64, -64, 832),
+            ("uni2318", 0x2318, CMD_CHROME, 64, 0, 704),
             ("ellipsis", 0x2026, ["##.##.##", "##.##.##"], 0, 0, 576),
             ("quoteright", 0x2019, ["##", "##", "#."], 0, 384, 192),
             ("quoteleft", 0x2018, ["##", "##", ".#"], 0, 384, 192),

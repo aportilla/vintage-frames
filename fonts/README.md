@@ -65,18 +65,16 @@ glyphs on whole-pixel (64-unit) boundaries and within these bands.
 Glyphs are **bitmaps** — a list of row strings, top row first, `#` = ink:
 
 ```python
-CMD_CHROME = [     # ⌘: four ROUNDED corner loops (notched outer corners,
-    ".##.....##.",  #    so each reads as a petal) joined by a central
-    "#..#...#..#",  #    square, edges between loops left open (concave).
-    "#..#...#..#",  #    Empty cells are simply not drawn, so a loop is ink
-    ".#########.",  #    around an unfilled centre — no reverse-winding
-    "...#...#...",  #    contour needed. The rounded corners are the detail
-    "...#...#...",  #    that distinguishes the real Mac glyph from a grid;
-    "...#...#...",  #    a plain 3×3 square ring reads wrong.
-    ".#########.",
-    "#..#...#..#",
-    "#..#...#..#",
-    ".##.....##.",
+CMD_CHROME = [   # ⌘: four ROUNDED corner loops (notched outer corners,
+    ".##...##.",  #    so each reads as a petal) joined by a central
+    "#..#.#..#",  #    square, edges between loops left open (concave).
+    "#..#.#..#",  #    Empty cells are simply not drawn, so a loop is ink
+    ".#######.",  #    around an unfilled centre — no reverse-winding
+    "...#.#...",  #    contour needed. The rounded corners are the detail
+    ".#######.",  #    that distinguishes the real Mac glyph from a grid;
+    "#..#.#..#",  #    a plain 3×3 square ring reads wrong. 9×9 on the
+    "#..#.#..#",  #    baseline: cap height exactly, like a capital.
+    ".##...##.",
 ]
 ```
 

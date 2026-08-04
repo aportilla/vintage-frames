@@ -103,18 +103,18 @@
                the composition is the lesson here, and opening with ~90 lines of
                source would bury the install instructions under it.
 
-               Geometry notes, since none of it is free-hand. Sizes are in system
-               px (the attributes take that unit) and positions in em, which on a
-               vf-* host is the kit's 16-system-pixel face — the same reason
-               blog.css works in em: the page never has to name --vf-scale. The
-               desktop is 36em × 25em, so 576 × 400 system px, which is 864 CSS
+               Geometry notes, since none of it is free-hand. Sizes and positions
+               are both stated in system px: the size attributes always took that
+               unit, and each window is placed with the components' own top/left,
+               which state it too — no stylesheet, no em arithmetic, no
+               --vf-scale. The desktop is 512 × 400 system px, which is 768 CSS
                px wide on a 2× display — about what this column gives it.
 
                Three things are placed rather than dropped. The About window is
                LAST in the source because vf-desktop marks its topmost document
                window active, and the window carrying the pitch should be the one
                wearing the stripes. It also sits top-left, because at 1× a system
-               pixel is 3 CSS px and the desktop is 1728 wide — wider than the
+               pixel is 3 CSS px and the desktop is 1536 wide — wider than the
                column, so the stage scrolls, and whatever is leftmost is what a
                1× reader sees first. And it laps the Read Me by 8 system px,
                which is inside that window's 18.67px text inset: the overlap
@@ -155,7 +155,8 @@
                 movable
                 width="192"
                 height="104"
-                style="position: absolute; left: 2em; top: 17em"
+                left="32"
+                top="272"
               >
                 <vf-stack fill-width gap="10">
                   <vf-stack fill-width direction="row" gap="8">
@@ -175,7 +176,8 @@
                 flush
                 width="82"
                 height="67"
-                style="position: absolute; left: 29em; top: 4em"
+                left="464"
+                top="64"
               >
                 <vf-grid
                   columns="3"
@@ -201,7 +203,8 @@
                 scrollbars="vertical"
                 width="240"
                 height="208"
-                style="position: absolute; left: 18.5em; top: 7em"
+                left="296"
+                top="112"
               >
                 <vf-stack fill-width gap="10" pad="10">
                   <vf-paragraph>
@@ -224,7 +227,8 @@
                 movable
                 width="288"
                 height="224"
-                style="position: absolute; left: 1em; top: 2em"
+                left="16"
+                top="32"
               >
                 <!-- A declared width rather than fill-width: the panel is 256 of
                      the 262 system px the body offers, so the strip this window
@@ -280,7 +284,7 @@
           </p>
 
           <p>
-            The root import registers all 31 elements. To ship less, import the ones
+            The root import registers all 30 elements. To ship less, import the ones
             you use by name — same elements, same self-registration, one module
             each:
           </p>
@@ -312,6 +316,14 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             kit's 16-pixel face, so <code>15em</code> is the same box on every
             display) or as a percentage of its container. Page furniture around the
             components stays in ordinary px, as your own layout would.
+          </p>
+          <p>
+            Position is stated the same way: nearly every component takes
+            <code>top</code>/<code>left</code> in whole system px and absolutely
+            positions itself within its parent — it is how every window and icon
+            on this page's desktops is placed. The details, and the few elements
+            that don't take the pair, are under
+            <a href="#conformity">Standards &amp; conventions</a>.
           </p>
 
           <h3>Zoom is followed, in whole steps</h3>
@@ -524,6 +536,24 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
                   HTML</td>
                 <td class="wrap">The three fields, <code>vf-checkbox</code>,
                   <code>vf-radio-group</code>, <code>vf-select</code></td>
+              </tr>
+              <tr>
+                <td><code>top</code>, <code>left</code></td>
+                <td class="wrap">Explicit placement, in whole system px: set
+                  either and the element is absolutely positioned within its
+                  parent — CSS's nearest positioned ancestor, which every kit
+                  container is on purpose — with the unset coordinate 0. Set
+                  neither and it renders in flow; remove both to return there.
+                  The DITL model: a window or dialog body is laid out by
+                  positioning its items just as validly as by stacking them
+                  (<a href="#vf-stack"><code>vf-stack</code></a>). A drag then
+                  owns a <code>movable</code> window's or icon's coordinates —
+                  setting the property again is the deliberate re-place</td>
+                <td class="wrap">Every component except the owned rows
+                  (<code>vf-option</code>, <code>vf-menu-item</code>,
+                  <code>vf-list-item</code>, <code>vf-menu</code>) and
+                  <code>vf-dialog</code>, whose top-layer box is the
+                  platform's</td>
               </tr>
             </tbody>
           </table>
@@ -815,7 +845,8 @@ vf-button::part(button) { min-width: 96px; }
                 resizable
                 width="192"
                 height="84"
-                style="position: absolute; left: 1em; top: 1em"
+                left="16"
+                top="16"
               >
                 <vf-paragraph>Drag my title bar. Drag the grow box.</vf-paragraph>
               </vf-window>
@@ -824,7 +855,8 @@ vf-button::part(button) { min-width: 96px; }
                 movable
                 width="176"
                 height="64"
-                style="position: absolute; left: 8em; top: 6em"
+                left="128"
+                top="96"
               >
                 <vf-paragraph>Click me to come forward.</vf-paragraph>
               </vf-window>
@@ -835,7 +867,8 @@ vf-button::part(button) { min-width: 96px; }
                 flush
                 width="82"
                 height="94"
-                style="position: absolute; left: 22em; top: 1em"
+                left="352"
+                top="16"
               >
                 <vf-grid columns="3" cell-width="26" cell-height="26" frameless>
                   <vf-img width="16" height="16"><img src="/demo/icons/alarm-clock.png" alt="" /></vf-img>
@@ -868,7 +901,8 @@ vf-button::part(button) { min-width: 96px; }
                 movable
                 width="200"
                 height="72"
-                style="position: absolute; left: 2em; top: 3em"
+                left="32"
+                top="48"
               >
                 <vf-paragraph>The bezel is in front.</vf-paragraph>
               </vf-window>
@@ -880,7 +914,9 @@ vf-button::part(button) { min-width: 96px; }
             system px, never your stylesheet — the component's own inline size
             wins. Set the numbers directly, or let <code>fitWithin</code>
             derive them from a box you measure; then position the sized
-            desktop with your own CSS, and place windows absolutely inside it.
+            desktop with your own CSS. The windows and icons inside place
+            themselves, with their own <code>top</code>/<code>left</code> in
+            system px.
           </p>
 
           <table class="api">
@@ -944,7 +980,8 @@ vf-button::part(button) { min-width: 96px; }
                 id="ex-window-doc"
                 width="240"
                 height="176"
-                style="position: absolute; left: 1em; top: 1em"
+                left="16"
+                top="16"
               >
                 <vf-paragraph>DragThing 2.9 — read me before installing.</vf-paragraph>
                 <vf-paragraph>
@@ -959,7 +996,8 @@ vf-button::part(button) { min-width: 96px; }
                 movable
                 width="208"
                 height="86"
-                style="position: absolute; left: 18em; top: 3em"
+                left="288"
+                top="48"
               >
                 <vf-label for="ex-find">Find:</vf-label>
                 <vf-text-field id="ex-find" value="System" style="width: 100%"></vf-text-field>
@@ -970,11 +1008,12 @@ vf-button::part(button) { min-width: 96px; }
                 movable
                 width="144"
                 height="70"
-                style="position: absolute; left: 18em; top: 12em"
+                left="288"
+                top="192"
               >
                 <vf-paragraph size="small">A windoid: 12px bar, dot dither, 7×7 widgets.</vf-paragraph>
               </vf-window>
-              <vf-button data-reopen="#ex-window-doc" style="position: absolute; left: 1em; top: 14em">Reopen</vf-button>
+              <vf-button data-reopen="#ex-window-doc" left="16" top="224">Reopen</vf-button>
             </vf-desktop>
           </template>
 
@@ -1947,7 +1986,10 @@ vf-button::part(button) { min-width: 96px; }
             <code>width</code> and <code>height</code> are declared in whole system
             pixels — the art's own unit — and converted internally, so a window's
             insides need no <code>calc(var(--vf-scale, 1) * …)</code> in your
-            stylesheet.
+            stylesheet. It is one of two stylesheet-free ways to lay those insides
+            out — the other is placing each child with its own
+            <code>top</code>/<code>left</code>, the DITL way (see
+            <a href="#conformity">Standards &amp; conventions</a>).
           </p>
           <p>
             It exists because a page's own CSS often <em>cannot</em> say "8 system px".
@@ -2259,7 +2301,8 @@ vf-button::part(button) { min-width: 96px; }
                 selectable
                 movable
                 editable
-                style="position: absolute; left: 1em; top: 1em"
+                left="16"
+                top="16"
               >
                 <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
                 <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
@@ -2270,7 +2313,8 @@ vf-button::part(button) { min-width: 96px; }
                 selectable
                 movable
                 editable
-                style="position: absolute; left: 8em; top: 1em"
+                left="128"
+                top="16"
               >
                 <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
                 <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
@@ -2281,7 +2325,8 @@ vf-button::part(button) { min-width: 96px; }
                 selectable
                 movable
                 editable
-                style="position: absolute; left: 15em; top: 1em"
+                left="240"
+                top="16"
               >
                 <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
                 <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>

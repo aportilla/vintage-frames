@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sys, toSys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -30,7 +31,7 @@ import { TrackWidthController } from '../track-width.js'
  * @cssprop [--vf-progress-track=#ffffff] - progress track (white)
  */
 @vfElement('vf-progress-bar')
-export class VfProgressBar extends LitElement {
+export class VfProgressBar extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

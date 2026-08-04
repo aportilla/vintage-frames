@@ -49,11 +49,12 @@ function vfElementPlugin() {
 
 export default {
   /**
-   * The elements, plus the four base classes they extend — the bases are in
+   * The elements, plus the base classes and mixins they extend — those are in
    * scope so inherited members (VfFormControl's `disabled`/`name`/`value`,
-   * VfTextControlBase's field plumbing) resolve instead of dangling. The style
-   * recipes, glyph geometry and embedded font data are deliberately out: they
-   * are not API surface, and the base64 faces would dwarf the manifest.
+   * VfTextControlBase's field plumbing, VfPositioned's `top`/`left`) resolve
+   * instead of dangling. The style recipes, glyph geometry and embedded font
+   * data are deliberately out: they are not API surface, and the base64 faces
+   * would dwarf the manifest.
    */
   globs: [
     'src/components/*.ts',
@@ -61,6 +62,7 @@ export default {
     'src/text-control.ts',
     'src/toggle-control.ts',
     'src/modal-dialog.ts',
+    'src/position.ts',
   ],
   outdir: '.',
   litelement: true,

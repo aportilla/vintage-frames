@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { RING_INSET } from '../pixel-frame.js'
@@ -33,7 +34,7 @@ import { RING_INSET } from '../pixel-frame.js'
  * @cssprop --vf-button-group-gap - Gap between buttons (default 12px).
  */
 @vfElement('vf-button-group')
-export class VfButtonGroup extends LitElement {
+export class VfButtonGroup extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

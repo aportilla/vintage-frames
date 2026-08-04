@@ -1,6 +1,7 @@
 import { css, html, nothing } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfField } from '../styles/base.js'
 import { VfTextControlBase } from '../text-control.js'
@@ -37,7 +38,7 @@ import { VfTextControlBase } from '../text-control.js'
  *   and holds AA contrast, where the disabled gray is exempt
  */
 @vfElement('vf-text-field')
-export class VfTextField extends VfTextControlBase {
+export class VfTextField extends VfPositioned(VfTextControlBase) {
   static override styles = [
     vfBase,
     vfField,

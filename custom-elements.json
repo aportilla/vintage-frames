@@ -68,6 +68,32 @@
                 "text": "string"
               },
               "default": "'group'"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -88,6 +114,36 @@
               "default": "false",
               "description": "Let each button size to its own label instead of every button sharing the\nwidest button's width. Off by default: grouped buttons are uniform width,\nmatching classic System 7 dialogs.",
               "fieldName": "natural"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -249,6 +305,32 @@
               "kind": "field",
               "name": "handleClick",
               "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             },
             {
               "kind": "field",
@@ -822,6 +904,30 @@
               "fieldName": "value"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -859,6 +965,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -1060,6 +1172,32 @@
                 "text": "string"
               },
               "default": "'checkbox'"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             },
             {
               "kind": "field",
@@ -1694,6 +1832,30 @@
               "fieldName": "value"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -1734,6 +1896,10 @@
             }
           ],
           "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
+            },
             {
               "name": "VfToggleControl",
               "module": "/src/toggle-control.js"
@@ -2154,6 +2320,32 @@
                 }
               },
               "description": "Re-order the slotted windows in the light DOM to match their z-order\n(bottom-most first), so sequential focus navigation walks the stack the\nway the eye does — and Shift+Tab is its exact mirror. The utility band\nsorts the floating tier after every document window by construction.\n\nMinimal-move: windows already in relative order are never touched (the\ncommon case — after one raise, one window moves). Non-window siblings\n(a menu bar, page content) keep their positions; only a window that must\ncross the stack moves past them. Moving a node containing the focused\nelement drops focus to `<body>`, so it is restored afterwards — behind\n`_restoringFocus`, because the restore re-fires focusin (see\n_onFocusIn) on an element that may sit in a background window.\nOnly runs between pointer gestures or programmatically, never from a\nfocus-driven raise (see _raise for why)."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -2177,6 +2369,36 @@
               "default": "0",
               "description": "Width of the black screen bezel, in system px (`0` = none), added onto\nthe declared screen on every side — a `width=\"502\" bezel=\"5\"` desktop\nrenders a 512-system-px host box. The compact Mac's CRT showed an\nunlit black margin between the desktop's raster and the case; `bezel`\ndraws it around the screen and puts the classic screen-corner mask on\nthe screen's two *top* corners — only the top pair was rounded in the\nframebuffer. Flow, window coordinates and the drag clip all belong to\nthe screen, so windows crop at its edge. Inside a bezeled desktop a\nmenu bar needs no `rounded` of its own — the desktop's mask lands on\nthe same pixels.",
               "fieldName": "bezel"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -2861,6 +3083,32 @@
                   }
                 }
               ]
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -2872,6 +3120,36 @@
               "default": "''",
               "description": "Legend text shown on the top border.",
               "fieldName": "legend"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -3019,6 +3297,32 @@
               "readonly": true,
               "default": "new GridSnapController(this)",
               "description": "Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -3083,6 +3387,36 @@
               "default": "false",
               "description": "Collapse each cell's own 1px border onto the grid's rules instead of\nsetting it beside them (see the class doc). Size the cells at *item − 2px*;\nthe frame is what gives the outermost borders a line to land on, so a\n`frameless` grid lets them paint a pixel outside its box.",
               "fieldName": "collapse"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -3568,6 +3902,32 @@
                 }
               ],
               "description": "Write a new origin, kept inside the positioning parent and re-snapped onto\nthe system-pixel grid after the clamp, so the clamped edge is a whole art\npixel too. Unlike `vf-window`, which only keeps a grabbable strip on\nscreen, an icon is small enough to hold whole — losing half of one to an\nedge reads as a bug rather than as a window pushed aside."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -3672,6 +4032,36 @@
               "default": "31",
               "description": "The most characters the rename field will accept — 31, the HFS filename\nlimit every System 7 name was cut to, which is also why the Finder could\nafford to always draw the whole name. Going past it fires\n`vf-name-too-long` with what was tried, so a host can say so rather than\nlet characters vanish.\n\nIt bounds *typing* only: a `label` set from your own data is displayed as\ngiven and fires nothing, since the name belongs to your model and silently\ntruncating it would lose data.",
               "fieldName": "maxlength"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -3815,6 +4205,32 @@
                 }
               },
               "description": "Natural size if the image has one; 0×0 (an empty box) otherwise."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -3833,6 +4249,36 @@
               },
               "description": "The displayed height in system px; see width.",
               "fieldName": "height"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -4027,6 +4473,32 @@
               "kind": "field",
               "name": "#handleClick",
               "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -4070,6 +4542,36 @@
               },
               "description": "Width in whole system px — the shared width of a caption column, so a run\nof label-and-field rows lands every field on one x.\n\nThis is the caption's half of layout contract rule 3. Left to its text a\ncaption measures whatever its glyphs measure (the showcase's Apple menu\ntitle came to 32.641 system px), and anything sized from it inherits the\nfraction; a declared width is whole, and so is the row built on it. The\nhost has been `inline-block` for exactly this purpose since it was written\n— this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page\nused to need, which only landed whole while it happened to bind.\n\nA caption wider than the width it is given overflows rather than wrapping\nthe row's layout around it: the number is the column, and a caption that\ndoesn't fit is a number to raise.",
               "fieldName": "width"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -4611,6 +5113,32 @@
                 }
               ],
               "description": "Focuses and scrolls to the item at `index` without selecting it.\n\n`block: 'nearest'` is the conventional minimal-scroll listbox pattern and is\nkept deliberately, with one known consequence: scrollIntoView walks the\nwhole scrollable-ancestor chain, so a list sitting near a viewport edge can\nnudge the page as well as its own `.list` viewport. Reviewed and accepted —\nreplacing it with hand-computed `scrollTop` math against the internal\nviewport would trade a well-understood primitive for bespoke geometry."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -4655,6 +5183,36 @@
               "default": "''",
               "description": "Accessible name for the list, applied as `aria-label` on the host (which\ncarries `role=\"listbox\"`). Without it a caption-less list is announced\nanonymously. A consumer-supplied `aria-label`/`aria-labelledby` attribute\nis left alone.",
               "fieldName": "label"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -4970,6 +5528,32 @@
                 }
               ],
               "description": "Moves keyboard focus through the open menu's enabled items, wrapping."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -4990,6 +5574,36 @@
               "default": "false",
               "description": "Rounds the bar's top corners the way System 7's were: not a curve of the\nbar itself but the black stair-step mask the compact Mac's ROM painted\nover the CRT's rounded corners, which the menu bar wore by sitting flush\nwith the screen top. Drawn as the traced 5-px staircase in `--vf-black`\nink over the bar's own corners — over any backdrop, as the hardware\nmask was.",
               "fieldName": "rounded"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -6026,6 +6640,32 @@
             },
             {
               "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "shadowRootOptions",
               "type": {
                 "text": "ShadowRootInit"
@@ -6899,6 +7539,30 @@
               "fieldName": "step"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -7001,6 +7665,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -7254,6 +7924,32 @@
               "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
               "attribute": "dim",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -7281,6 +7977,36 @@
               "default": "false",
               "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
               "fieldName": "dim"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -7436,6 +8162,32 @@
               "privacy": "private",
               "description": "`value` clamped to `[0, effectiveMax]`.",
               "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -7474,6 +8226,36 @@
               "default": "''",
               "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"progressbar\"`). Especially useful in `indeterminate` mode,\nwhere there is no `aria-valuenow` to describe the bar. A consumer-supplied\n`aria-label`/`aria-labelledby` attribute is left alone.",
               "fieldName": "label"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -7723,6 +8505,32 @@
                 "text": "string"
               },
               "default": "'radiogroup'"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             },
             {
               "kind": "field",
@@ -8266,6 +9074,30 @@
               "fieldName": "label"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -8303,6 +9135,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -8478,6 +9316,32 @@
             },
             {
               "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "scale",
               "privacy": "private",
               "readonly": true,
@@ -8610,9 +9474,37 @@
               "default": "''",
               "description": "The value the containing `vf-radio-group` reports when selected.",
               "fieldName": "value"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
+            },
             {
               "name": "VfToggleControl",
               "module": "/src/toggle-control.js"
@@ -8764,6 +9656,32 @@
                 }
               ],
               "description": "Moves keyboard focus to the scrolling viewport — the focusable element\nlives inside the shadow root, where the platform's `focus()` can't reach\n(no `delegatesFocus`, no host tabindex), so `vf-label for` and consumer\nscripts silently no-opped on the host."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -8784,6 +9702,36 @@
               "default": "''",
               "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable while its content overflows, so without a\nname it is announced only as an anonymous scrollable group; setting\n`label` also promotes it to a named `role=\"region\"` landmark. While\n`label` is empty the viewport is a plain `group` when scrollable (an\nunnamed region is inert) and role-less when not.",
               "fieldName": "label"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -9546,6 +10494,32 @@
             },
             {
               "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "formAssociated",
               "type": {
                 "text": "boolean"
@@ -10064,6 +11038,30 @@
               "fieldName": "label"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -10101,6 +11099,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -10175,6 +11179,32 @@
               "description": "Render as a vertical rule (1px wide) instead of horizontal.",
               "attribute": "vertical",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -10186,6 +11216,36 @@
               "default": "false",
               "description": "Render as a vertical rule (1px wide) instead of horizontal.",
               "fieldName": "vertical"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -10570,6 +11630,32 @@
                 "text": "string"
               },
               "default": "'horizontal'"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             },
             {
               "kind": "field",
@@ -11149,6 +12235,30 @@
               "fieldName": "label"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -11186,6 +12296,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -11295,6 +12411,32 @@
               "readonly": true,
               "default": "new ScaleController(this)",
               "description": "Default-on display scaling (true 72dpi size); see src/scale.ts."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -11347,6 +12489,36 @@
               },
               "description": "Height in whole system px. Optional; see width.",
               "fieldName": "height"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -11490,6 +12662,32 @@
               "readonly": true,
               "default": "new GridSnapController(this)",
               "description": "Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             },
             {
               "kind": "field",
@@ -12062,6 +13260,30 @@
               }
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "description",
               "type": {
                 "text": "string"
@@ -12086,6 +13308,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -12197,6 +13425,32 @@
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
               }
             },
             {
@@ -13035,6 +14289,30 @@
               "fieldName": "rows"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -13137,6 +14415,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -13242,6 +14526,32 @@
                 }
               ],
               "description": "Enter in a single-line field triggers the associated form's implicit\nsubmission. The native `<input>` is shadow-encapsulated, so its form owner\nis null and the browser won't do this itself."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             },
             {
               "kind": "field",
@@ -14086,6 +15396,30 @@
               "fieldName": "type"
             },
             {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -14188,6 +15522,12 @@
                 "name": "VfFormControl",
                 "module": "src/form-control.ts"
               }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -14523,6 +15863,32 @@
                 }
               ],
               "description": "Ends a grow-box resize on pointerup / pointercancel / lostpointercapture.\nIdempotent — releasing the capture below re-enters here, and by then\n`_resizeState` is already null."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -14630,6 +15996,36 @@
               },
               "description": "Put System 7 scroll rails on the window edge — the classic document\nwindow. The body slot renders inside a built-in `vf-scroll-area` pulled\none system pixel under the frame on every side, so the rails repaint the\nborder lines and a `resizable` window's grow box lands in the corner\ncell. Values mirror `vf-scroll-area`'s `axis`; the `heading` names the\nscroll region; the viewport part is re-exported. Implies `flush` (the\nviewport carries its own padding). The slotted composition (SPEC §5\nvf-scroll-area) still works for windows that want an inset well instead.",
               "fieldName": "scrollbars"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -16486,6 +17882,107 @@
           "declaration": {
             "name": "VfModalDialog",
             "module": "src/modal-dialog.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/position.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "The mixin's surface, as a `declare class` for the same TS4094 reason\nVfToggleControlInterface states: TypeScript cannot name the\nanonymous class a mixin returns when emitting declarations. Keep it in sync\nwith the implementation below.",
+          "name": "VfPositionedInterface",
+          "members": [
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        },
+        {
+          "kind": "mixin",
+          "description": "Explicit placement — `top`/`left` in whole system px, on (nearly) every\ncomponent.\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nIt re-applies **only when the property values changed** — the `vf-window`\nwidth/height rule. `vf-window` drag and `vf-icon` move write resolved px\ninto the same inline `left`/`top` without touching these properties (both\nre-seed from *computed* style, so they read a live calc correctly); if some\nunrelated update re-asserted the authored coordinates, activating a window\nwould snap it back to where its markup put it. Setting a property again is\nthe deliberate way to re-place a moved element — and, as with any reactive\nproperty, setting it to the value it already holds is a no-op.",
+          "name": "VfPositioned",
+          "members": [
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top"
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top"
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "Base",
+              "type": {
+                "text": "T"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "VfPositionedInterface",
+          "declaration": {
+            "name": "VfPositionedInterface",
+            "module": "src/position.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "VfPositioned",
+          "declaration": {
+            "name": "VfPositioned",
+            "module": "src/position.ts"
           }
         }
       ]

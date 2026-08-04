@@ -1,6 +1,7 @@
 import { html, css, LitElement, unsafeCSS } from 'lit'
 import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, effectiveScale, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -71,7 +72,7 @@ const DEFAULT_SCREEN_HEIGHT = 342
  *   checker drawn as opaque black-on-white rects (override the whole pattern)
  */
 @vfElement('vf-desktop')
-export class VfDesktop extends LitElement {
+export class VfDesktop extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

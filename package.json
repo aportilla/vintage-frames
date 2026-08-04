@@ -79,6 +79,7 @@
     "verify:toggle": "node scripts/verify-toggle.mjs",
     "verify:text": "node scripts/verify-text.mjs",
     "verify:stack": "node scripts/verify-stack.mjs",
+    "verify:position": "node scripts/verify-position.mjs",
     "verify:updates": "node scripts/verify-updates.mjs",
     "verify:baseline": "node scripts/verify-baseline.mjs",
     "verify:define": "node scripts/verify-define.mjs",

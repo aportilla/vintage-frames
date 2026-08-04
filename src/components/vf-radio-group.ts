@@ -2,6 +2,7 @@ import { css, html } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { ScaleController } from '../scale.js'
 import { vfBase } from '../styles/base.js'
 import { VfFormControl } from '../form-control.js'
@@ -31,7 +32,7 @@ import { VfRadio } from './vf-radio.js'
  *   form delegation and framework bindings hear it.
  */
 @vfElement('vf-radio-group')
-export class VfRadioGroup extends VfFormControl {
+export class VfRadioGroup extends VfPositioned(VfFormControl) {
   static override styles = [
     vfBase,
     css`

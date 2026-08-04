@@ -1,6 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase, vfScrollbars, vfFocusRing } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -32,7 +33,7 @@ import { ScrollStateController } from '../scroll-state.js'
  *   25%-black average
  */
 @vfElement('vf-scroll-area')
-export class VfScrollArea extends LitElement {
+export class VfScrollArea extends VfPositioned(LitElement) {
   private readonly scale = new ScaleController(this)
 
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
@@ -138,6 +139,15 @@ export class VfScrollArea extends LitElement {
       }
       :host([axis='horizontal']) .viewport {
         overflow-y: auto;
+      }
+      /* The positioning anchor for slotted children placed with top/left
+         (src/position.ts). It must be THIS wrapper and not .box: .content
+         rides the scroll, so positioned children travel with the content —
+         anchored to .box they would hang fixed over the rail while the plane
+         moved beneath them. Inside the viewport's 9px padding, so (0,0) is
+         where flow content starts. */
+      .content {
+        position: relative;
       }
       /* Focusable so keyboard users can scroll; inset ring to stay in-box. */
       .viewport:focus-visible {

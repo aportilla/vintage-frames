@@ -594,6 +594,56 @@ cannot land on a whole pixel by itself (a 16px caption centered against the
 margins, so `vf-fieldset`'s 8px of legend room is genuinely reserved inside a
 stack rather than being donated by whatever precedes it.
 
+## Positioning inside a window — `top` and `left`
+
+The stack is one of **two stylesheet-free ways to lay out a window's
+insides**, and the other is the older one: a DITL resource laid a dialog out
+by stating each item's rectangle in the window's own coordinates. Nearly every
+component takes **`top` and `left` in whole system px** — set either and the
+element is absolutely positioned within its parent, the coordinate you left
+out defaulting to 0. Set neither and it renders in flow, exactly as before:
+
+```html
+<vf-window heading="Rename" width="300" height="140">
+  <vf-label left="12" top="30" for="nm">New name:</vf-label>
+  <vf-text-field left="92" top="26" id="nm"></vf-text-field>
+  <vf-button-group left="120" top="96">
+    <vf-button>Cancel</vf-button>
+    <vf-button variant="default">OK</vf-button>
+  </vf-button-group>
+</vf-window>
+```
+
+The coordinates are the art's own unit, written as the same live
+`calc(var(--vf-scale, 1) * Npx)` a stack's `gap` becomes — so a placed layout
+scales with the display and sits on the device-pixel grid by construction. The
+stated offsets are the whole story: `right`/`bottom` are released and `margin`
+zeroed while placed, and removing both attributes returns the element to flow
+with every inline declaration unwound.
+
+**Where (0,0) is.** CSS answers "within which parent" with the nearest
+positioned ancestor, and every kit container is one deliberately: the
+desktop's raster, a window's content region (the frame's inner edge, below
+the title bar — the 12px inset governs flow content only, exactly the DITL
+convention), a dialog's content area, a stack's box, a fieldset just inside
+its border, and a scroll area's scrolled plane, so a placed child travels
+with the content around it. In a parent of your own, add `position: relative`
+— the one line of CSS this feature can't write for you.
+
+Five elements don't take the pair: `vf-option`, `vf-menu-item`, `vf-list-item`
+and `vf-menu` are owned rows of a managing container, and `vf-dialog`'s
+top-layer box belongs to the platform — its *children* are the positioning
+surface, as above. The two elements that already move themselves compose
+rather than collide: `top`/`left` place a `movable` window or icon, a user's
+drag then owns the coordinates — activating a window never snaps it back to
+its authored spot — and setting the property again is the deliberate way to
+re-place it.
+
+```sh
+npm run verify:position   # system px at dpr 1/2/3, the defaults, every
+                          # container's anchor, and the drag interplay
+```
+
 ## Staying on the device-pixel grid — the layout contract
 
 A component is built entirely from whole system pixels, so every edge inside it
@@ -956,7 +1006,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `focusModality`, `trackFocusModality`, `FocusRuleController` | Whether the keyboard or a pointer last drove the page, and that resolved against a host's own focus as one reactive flag — what a control consults to mark keyboard focus only, wherever `:focus-visible` can't say so: a *clicked* text input matches it, and so does any control that suppresses the browser's mouse focus and calls `focus()` itself |
 | `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share |
 | `defineElement`, `vfElement` | Register a custom element without the duplicate-copy footgun — `vfElement` is the kit's `@customElement`, and both skip (with a warning) rather than throwing when the tag is already taken (see below) |
-| `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), the native-`<dialog>` lifecycle |
+| `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfPositioned`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), explicit placement (`top`/`left` in system px — the mixin every kit element already wears), the native-`<dialog>` lifecycle |
 | `registerEmbeddedFont`, `registerChiKareGo`, `registerFindersKeepers`, `CHIKAREGO_FAMILY`, `FINDERS_KEEPERS_FAMILY` | Register the bitmap faces on `document.fonts` yourself |
 
 `VfToggleControl` is a **mixin** rather than a plain base class, because the

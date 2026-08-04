@@ -1,6 +1,7 @@
 import { css, html, nothing } from 'lit'
 import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfField } from '../styles/base.js'
@@ -47,7 +48,7 @@ import { emitNative } from '../events.js'
  *   and holds AA contrast, where the disabled gray is exempt
  */
 @vfElement('vf-number-field')
-export class VfNumberField extends VfTextControlBase {
+export class VfNumberField extends VfPositioned(VfTextControlBase) {
   static override styles = [
     vfBase,
     vfField,

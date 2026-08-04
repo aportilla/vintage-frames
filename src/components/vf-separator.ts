@@ -1,6 +1,7 @@
 import { html, css, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -24,7 +25,7 @@ import { GridSnapController } from '../grid-snap.js'
  *   sets `dotted` (see `Menus.png`)
  */
 @vfElement('vf-separator')
-export class VfSeparator extends LitElement {
+export class VfSeparator extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

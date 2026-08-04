@@ -1,6 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase, vfBodyDecls, vfFocusUnderline } from '../styles/base.js'
 import { effectiveScale, ScaleController, snapToSystemPx, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -214,7 +215,7 @@ const clamp = (v: number, max: number): number =>
  *   fired alongside it — nothing changed.
  */
 @vfElement('vf-icon')
-export class VfIcon extends LitElement {
+export class VfIcon extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

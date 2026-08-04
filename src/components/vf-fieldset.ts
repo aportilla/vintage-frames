@@ -1,6 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplayDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -21,7 +22,7 @@ import { GridSnapController } from '../grid-snap.js'
  *   and `vf-dialog` both set it to white
  */
 @vfElement('vf-fieldset')
-export class VfFieldset extends LitElement {
+export class VfFieldset extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

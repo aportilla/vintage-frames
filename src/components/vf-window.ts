@@ -2,6 +2,7 @@ import { html, css, LitElement, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import {
   vfBase,
   vfStripes,
@@ -68,7 +69,7 @@ interface ResizeState {
  *   rule, traced from `Windows/utility-window.png`
  */
 @vfElement('vf-window')
-export class VfWindow extends LitElement {
+export class VfWindow extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfStripes,
@@ -207,6 +208,12 @@ export class VfWindow extends LitElement {
          should. A vf-menu panel is anchored position:absolute and would clip —
          but a menu bar belongs to the desktop, not inside a window body. */
       .body {
+        /* The positioning anchor for slotted children placed with top/left
+           (src/position.ts): coordinates measure from the content region's
+           corner — the frame's inner edge, below the title bar — exactly the
+           DITL convention. CSS anchors absolute children at the padding box,
+           so the 12px inset below governs flow content only. */
+        position: relative;
         flex: 1 1 auto;
         min-height: 0;
         overflow: hidden;

@@ -1,6 +1,7 @@
 import { css, html, nothing } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { live } from 'lit/directives/live.js'
 import { vfBase, vfField, vfScrollbars } from '../styles/base.js'
 import { VfTextControlBase } from '../text-control.js'
@@ -49,7 +50,7 @@ import { ScrollStateController } from '../scroll-state.js'
  *   25%-black average
  */
 @vfElement('vf-text-area')
-export class VfTextArea extends VfTextControlBase {
+export class VfTextArea extends VfPositioned(VfTextControlBase) {
   static override styles = [
     vfBase,
     vfField,

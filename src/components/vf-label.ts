@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfDisplayDecls, vfStaticText } from '../styles/base.js'
 import { ScaleController, sysLength } from '../scale.js'
@@ -87,7 +88,7 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  *   `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table
  */
 @vfElement('vf-label')
-export class VfLabel extends LitElement {
+export class VfLabel extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfStaticText,

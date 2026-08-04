@@ -2,6 +2,7 @@ import { css, html, nothing } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property, query, queryAssignedElements, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfPanel, vfScrollbars } from '../styles/base.js'
 import { CARET_DOWN, glyphSvg } from '../glyphs.js'
@@ -75,7 +76,7 @@ import { emit, emitNative } from '../events.js'
  *   on open)
  */
 @vfElement('vf-select')
-export class VfSelect extends VfFormControl {
+export class VfSelect extends VfPositioned(VfFormControl) {
   /**
    * Fallback height of one option row — the pill's *content* height
    * (`--vf-popup-height` 18px minus its two 1px borders). Used to overlay the

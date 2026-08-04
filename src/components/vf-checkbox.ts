@@ -1,6 +1,7 @@
 import { css, html, type PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
@@ -29,7 +30,7 @@ import { emit, emitNative } from '../events.js'
  *   form delegation and framework bindings hear it.
  */
 @vfElement('vf-checkbox')
-export class VfCheckbox extends VfToggleControl(VfFormControl) {
+export class VfCheckbox extends VfPositioned(VfToggleControl(VfFormControl)) {
   static override styles = [
     vfBase,
     vfDisplay,

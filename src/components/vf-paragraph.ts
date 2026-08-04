@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase, vfStaticText } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -40,7 +41,7 @@ import { GridSnapController } from '../grid-snap.js'
  *   `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table
  */
 @vfElement('vf-paragraph')
-export class VfParagraph extends LitElement {
+export class VfParagraph extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfStaticText,

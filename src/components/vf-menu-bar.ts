@@ -1,6 +1,7 @@
 import { css, html, LitElement, unsafeCSS } from 'lit'
 import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
 import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
 import { ScaleController } from '../scale.js'
@@ -33,7 +34,7 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * @cssprop [--vf-menubar-height=20px] - `vf-menu-bar`
  */
 @vfElement('vf-menu-bar')
-export class VfMenuBar extends LitElement {
+export class VfMenuBar extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

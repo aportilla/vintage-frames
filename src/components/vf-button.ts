@@ -1,6 +1,7 @@
 import { css, html, unsafeCSS } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -44,7 +45,7 @@ import {
  * @cssprop [--vf-control-height-small=16px] - `size="small"` buttons
  */
 @vfElement('vf-button')
-export class VfButton extends VfFormControl {
+export class VfButton extends VfPositioned(VfFormControl) {
   static override shadowRootOptions: ShadowRootInit = {
     ...VfFormControl.shadowRootOptions,
     delegatesFocus: true,

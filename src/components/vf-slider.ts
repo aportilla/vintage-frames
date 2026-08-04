@@ -2,6 +2,7 @@ import { css, html } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase, vfFocusUnderline } from '../styles/base.js'
 import { SLIDER_THUMB, SLIDER_THUMB_FACE } from '../glyphs.js'
 import { ScaleController, sys, toSys } from '../scale.js'
@@ -75,7 +76,7 @@ function railPath(w: number, pos: number): string {
  * @csspart thumb - The shield-shaped drag handle.
  */
 @vfElement('vf-slider')
-export class VfSlider extends VfFormControl {
+export class VfSlider extends VfPositioned(VfFormControl) {
   static override styles = [
     vfBase,
     css`

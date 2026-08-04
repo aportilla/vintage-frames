@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sysLength, sysLengths } from '../scale.js'
@@ -109,7 +110,7 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  * @slot - The children to arrange. `fill-width` / `fill-height` on any of them.
  */
 @vfElement('vf-stack')
-export class VfStack extends LitElement {
+export class VfStack extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`
@@ -133,6 +134,11 @@ export class VfStack extends LitElement {
         width: fit-content;
         flex-direction: column;
         align-items: flex-start;
+        /* The positioning anchor for children placed with top/left
+           (src/position.ts): "positioned within its parent" has to hold when
+           the parent is the kit's own layout box. Alone, position: relative
+           changes no geometry and creates no stacking context. */
+        position: relative;
         /* Typographic transparency — see the class doc. vfBase dresses a host
            as chrome (body face, 1.25 line box, black, unselectable); a stack
            holds no text of its own, so imposing any of that on what it wraps

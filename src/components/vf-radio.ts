@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js'
 import {
@@ -30,7 +31,7 @@ import { emit } from '../events.js'
  * @fires vf-change - When selected by user interaction. `detail: { value: string }`.
  */
 @vfElement('vf-radio')
-export class VfRadio extends VfToggleControl(LitElement) {
+export class VfRadio extends VfPositioned(VfToggleControl(LitElement)) {
   static override styles = [
     vfBase,
     vfDisplay,

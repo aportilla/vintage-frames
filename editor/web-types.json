@@ -20,6 +20,16 @@
               "name": "natural",
               "description": "Let each button size to its own label instead of every button sharing the\nwidest button's width. Off by default: grouped buttons are uniform width,\nmatching classic System 7 dialogs.",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -38,7 +48,17 @@
                 "description": "Let each button size to its own label instead of every button sharing the\nwidest button's width. Off by default: grouped buttons are uniform width,\nmatching classic System 7 dialogs.",
                 "type": "boolean"
               },
-              { "name": "role", "type": "string" }
+              { "name": "role", "type": "string" },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
+              }
             ],
             "events": []
           }
@@ -75,6 +95,16 @@
               "name": "value",
               "description": "Value submitted under `name` when `type=\"submit\"`.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "disabled",
@@ -120,6 +150,16 @@
                 "name": "value",
                 "description": "Value submitted under `name` when `type=\"submit\"`.",
                 "type": "string"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "disabled",
@@ -181,6 +221,16 @@
               "value": { "type": "string", "default": "'on'" }
             },
             {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
               "name": "disabled",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "value": { "type": "boolean", "default": "false" }
@@ -234,6 +284,16 @@
                 "type": "string"
               },
               { "name": "role", "type": "string" },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
+              },
               {
                 "name": "disabled",
                 "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
@@ -305,6 +365,16 @@
               "name": "bezel",
               "description": "Width of the black screen bezel, in system px (`0` = none), added onto\nthe declared screen on every side — a `width=\"502\" bezel=\"5\"` desktop\nrenders a 512-system-px host box. The compact Mac's CRT showed an\nunlit black margin between the desktop's raster and the case; `bezel`\ndraws it around the screen and puts the classic screen-corner mask on\nthe screen's two *top* corners — only the top pair was rounded in the\nframebuffer. Flow, window coordinates and the drag clip all belong to\nthe screen, so windows crop at its edge. Inside a bezeled desktop a\nmenu bar needs no `rounded` of its own — the desktop's mask lands on\nthe same pixels.",
               "value": { "type": "number", "default": "0" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -330,6 +400,16 @@
                 "name": "bezel",
                 "description": "Width of the black screen bezel, in system px (`0` = none), added onto\nthe declared screen on every side — a `width=\"502\" bezel=\"5\"` desktop\nrenders a 512-system-px host box. The compact Mac's CRT showed an\nunlit black margin between the desktop's raster and the case; `bezel`\ndraws it around the screen and puts the classic screen-corner mask on\nthe screen's two *top* corners — only the top pair was rounded in the\nframebuffer. Flow, window coordinates and the drag clip all belong to\nthe screen, so windows crop at its edge. Inside a bezeled desktop a\nmenu bar needs no `rounded` of its own — the desktop's mask lands on\nthe same pixels.",
                 "type": "number"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -444,6 +524,16 @@
               "name": "legend",
               "description": "Legend text shown on the top border.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -460,6 +550,16 @@
                 "name": "legend",
                 "description": "Legend text shown on the top border.",
                 "type": "string"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -504,6 +604,16 @@
               "name": "collapse",
               "description": "Collapse each cell's own 1px border onto the grid's rules instead of\nsetting it beside them (see the class doc). Size the cells at *item − 2px*;\nthe frame is what gives the outermost borders a line to land on, so a\n`frameless` grid lets them paint a pixel outside its box.",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -549,6 +659,16 @@
                 "name": "collapse",
                 "description": "Collapse each cell's own 1px border onto the grid's rules instead of\nsetting it beside them (see the class doc). Size the cells at *item − 2px*;\nthe frame is what gives the outermost borders a line to land on, so a\n`frameless` grid lets them paint a pixel outside its box.",
                 "type": "boolean"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -603,6 +723,16 @@
               "name": "maxlength",
               "description": "The most characters the rename field will accept — 31, the HFS filename\nlimit every System 7 name was cut to, which is also why the Finder could\nafford to always draw the whole name. Going past it fires\n`vf-name-too-long` with what was tried, so a host can say so rather than\nlet characters vanish.\n\nIt bounds *typing* only: a `label` set from your own data is displayed as\ngiven and fires nothing, since the name belongs to your model and silently\ntruncating it would lose data.",
               "value": { "type": "number", "default": "31" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -683,6 +813,16 @@
                 "name": "maxlength",
                 "description": "The most characters the rename field will accept — 31, the HFS filename\nlimit every System 7 name was cut to, which is also why the Finder could\nafford to always draw the whole name. Going past it fires\n`vf-name-too-long` with what was tried, so a host can say so rather than\nlet characters vanish.\n\nIt bounds *typing* only: a `label` set from your own data is displayed as\ngiven and fires nothing, since the name belongs to your model and silently\ntruncating it would lose data.",
                 "type": "number"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": [
@@ -723,6 +863,16 @@
               "name": "height",
               "description": "The displayed height in system px; see width.",
               "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -743,6 +893,16 @@
                 "name": "height",
                 "description": "The displayed height in system px; see width.",
                 "type": "number | undefined"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -777,6 +937,16 @@
               "name": "width",
               "description": "Width in whole system px — the shared width of a caption column, so a run\nof label-and-field rows lands every field on one x.\n\nThis is the caption's half of layout contract rule 3. Left to its text a\ncaption measures whatever its glyphs measure (the showcase's Apple menu\ntitle came to 32.641 system px), and anything sized from it inherits the\nfraction; a declared width is whole, and so is the row built on it. The\nhost has been `inline-block` for exactly this purpose since it was written\n— this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page\nused to need, which only landed whole while it happened to bind.\n\nA caption wider than the width it is given overflows rather than wrapping\nthe row's layout around it: the number is the column, and a caption that\ndoesn't fit is a number to raise.",
               "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [{ "name": "", "description": "The caption text." }],
@@ -807,6 +977,16 @@
                 "name": "width",
                 "description": "Width in whole system px — the shared width of a caption column, so a run\nof label-and-field rows lands every field on one x.\n\nThis is the caption's half of layout contract rule 3. Left to its text a\ncaption measures whatever its glyphs measure (the showcase's Apple menu\ntitle came to 32.641 system px), and anything sized from it inherits the\nfraction; a declared width is whole, and so is the row built on it. The\nhost has been `inline-block` for exactly this purpose since it was written\n— this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page\nused to need, which only landed whole while it happened to bind.\n\nA caption wider than the width it is given overflows rather than wrapping\nthe row's layout around it: the number is the column, and a caption that\ndoesn't fit is a number to raise.",
                 "type": "number | undefined"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -891,6 +1071,16 @@
               "name": "label",
               "description": "Accessible name for the list, applied as `aria-label` on the host (which\ncarries `role=\"listbox\"`). Without it a caption-less list is announced\nanonymously. A consumer-supplied `aria-label`/`aria-labelledby` attribute\nis left alone.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [{ "name": "", "description": "`vf-list-item` elements." }],
@@ -926,6 +1116,16 @@
                 "name": "label",
                 "description": "Accessible name for the list, applied as `aria-label` on the host (which\ncarries `role=\"listbox\"`). Without it a caption-less list is announced\nanonymously. A consumer-supplied `aria-label`/`aria-labelledby` attribute\nis left alone.",
                 "type": "string"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": [
@@ -950,6 +1150,16 @@
               "name": "rounded",
               "description": "Rounds the bar's top corners the way System 7's were: not a curve of the\nbar itself but the black stair-step mask the compact Mac's ROM painted\nover the CRT's rounded corners, which the menu bar wore by sitting flush\nwith the screen top. Drawn as the traced 5-px staircase in `--vf-black`\nink over the bar's own corners — over any backdrop, as the hardware\nmask was.",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [{ "name": "", "description": "`vf-menu` elements." }],
@@ -965,6 +1175,16 @@
                 "name": "rounded",
                 "description": "Rounds the bar's top corners the way System 7's were: not a curve of the\nbar itself but the black stair-step mask the compact Mac's ROM painted\nover the CRT's rounded corners, which the menu bar wore by sitting flush\nwith the screen top. Drawn as the traced 5-px staircase in `--vf-black`\nink over the bar's own corners — over any backdrop, as the hardware\nmask was.",
                 "type": "boolean"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -1138,6 +1358,16 @@
               "value": { "type": "number", "default": "1" }
             },
             {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
               "name": "value",
               "description": "Current value. Synced on every keystroke and submitted with forms.",
               "value": { "type": "string", "default": "''" }
@@ -1212,6 +1442,16 @@
                 "name": "step",
                 "description": "Increment applied per step / arrow press. Also sets the value's precision.",
                 "type": "number"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "value",
@@ -1366,6 +1606,16 @@
               "name": "dim",
               "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [{ "name": "", "description": "The paragraph copy." }],
@@ -1386,6 +1636,16 @@
                 "name": "dim",
                 "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
                 "type": "boolean"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -1415,6 +1675,16 @@
               "name": "label",
               "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"progressbar\"`). Especially useful in `indeterminate` mode,\nwhere there is no `aria-valuenow` to describe the bar. A consumer-supplied\n`aria-label`/`aria-labelledby` attribute is left alone.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "events": [],
@@ -1439,6 +1709,16 @@
                 "name": "label",
                 "description": "Accessible name for the bar, applied as `aria-label` on the host (which\ncarries `role=\"progressbar\"`). Especially useful in `indeterminate` mode,\nwhere there is no `aria-valuenow` to describe the bar. A consumer-supplied\n`aria-label`/`aria-labelledby` attribute is left alone.",
                 "type": "string"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -1463,6 +1743,16 @@
               "name": "label",
               "description": "Accessible name for the group, exposed as the `radiogroup`'s `aria-label`.\nWithout it a caption-less group is announced anonymously.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "disabled",
@@ -1518,6 +1808,16 @@
                 "type": "string"
               },
               { "name": "role", "type": "string" },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
+              },
               {
                 "name": "disabled",
                 "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
@@ -1589,6 +1889,16 @@
               "name": "value",
               "description": "The value the containing `vf-radio-group` reports when selected.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -1625,7 +1935,17 @@
                 "description": "True while the containing `vf-radio-group` is disabled. Managed by the\ngroup — not intended to be set by consumers.",
                 "type": "boolean"
               },
-              { "name": "role", "type": "string" }
+              { "name": "role", "type": "string" },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
+              }
             ],
             "events": [
               {
@@ -1652,6 +1972,16 @@
               "name": "label",
               "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable while its content overflows, so without a\nname it is announced only as an anonymous scrollable group; setting\n`label` also promotes it to a named `role=\"region\"` landmark. While\n`label` is empty the viewport is a plain `group` when scrollable (an\nunnamed region is inert) and role-less when not.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [{ "name": "", "description": "Scrollable content." }],
@@ -1667,6 +1997,16 @@
                 "name": "label",
                 "description": "Accessible name for the scrolling viewport, applied as its `aria-label`\n(an `aria-label` on the host would not reach into the shadow DOM). The\nviewport is keyboard-focusable while its content overflows, so without a\nname it is announced only as an anonymous scrollable group; setting\n`label` also promotes it to a named `role=\"region\"` landmark. While\n`label` is empty the viewport is a plain `group` when scrollable (an\nunnamed region is inert) and role-less when not.",
                 "type": "string"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -1691,6 +2031,16 @@
               "name": "label",
               "description": "Accessible name for the combobox control (`aria-label`). Left empty, the\nname falls back to whatever the host carries — `aria-labelledby`,\n`aria-label` or an associated `<label for>` — via\nVfFormControl.hostLabel; with neither, the control is announced by\nits contents, i.e. the selected value.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "disabled",
@@ -1739,6 +2089,16 @@
                 "name": "label",
                 "description": "Accessible name for the combobox control (`aria-label`). Left empty, the\nname falls back to whatever the host carries — `aria-labelledby`,\n`aria-label` or an associated `<label for>` — via\nVfFormControl.hostLabel; with neither, the control is announced by\nits contents, i.e. the selected value.",
                 "type": "string"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "disabled",
@@ -1801,6 +2161,16 @@
               "name": "vertical",
               "description": "Render as a vertical rule (1px wide) instead of horizontal.",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "events": [],
@@ -1810,6 +2180,16 @@
                 "name": "vertical",
                 "description": "Render as a vertical rule (1px wide) instead of horizontal.",
                 "type": "boolean"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -1849,6 +2229,16 @@
               "name": "label",
               "description": "Accessible name, exposed as the control's `aria-label`.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "disabled",
@@ -1918,6 +2308,16 @@
               },
               { "name": "role", "type": "string" },
               { "name": "ariaOrientation", "type": "string" },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
+              },
               {
                 "name": "disabled",
                 "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
@@ -2008,6 +2408,16 @@
               "name": "height",
               "description": "Height in whole system px. Optional; see width.",
               "value": { "type": "number | undefined" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -2048,6 +2458,16 @@
                 "name": "height",
                 "description": "Height in whole system px. Optional; see width.",
                 "type": "number | undefined"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": []
@@ -2087,6 +2507,16 @@
               "name": "disabled",
               "description": "Disables the control: it stops responding. Nothing dims (see class doc).",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "description",
@@ -2133,6 +2563,16 @@
                 "type": "boolean"
               },
               {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
+              },
+              {
                 "name": "isDisabled",
                 "description": "Effective disabled state: the `disabled` prop OR an ancestor fieldset.",
                 "type": "boolean"
@@ -2175,6 +2615,16 @@
               "name": "rows",
               "description": "Number of visible text rows (native `rows`). Default 4.",
               "value": { "type": "number", "default": "4" }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "value",
@@ -2241,6 +2691,16 @@
                 "name": "rows",
                 "description": "Number of visible text rows (native `rows`). Default 4.",
                 "type": "number"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "value",
@@ -2334,6 +2794,16 @@
               "value": { "type": "string", "default": "'text'" }
             },
             {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
               "name": "value",
               "description": "Current value. Synced on every keystroke and submitted with forms.",
               "value": { "type": "string", "default": "''" }
@@ -2398,6 +2868,16 @@
                 "name": "type",
                 "description": "Input type, passed through to the native input (e.g. `password`).",
                 "type": "string"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "value",
@@ -2541,6 +3021,16 @@
               "value": {
                 "type": "'vertical' | 'horizontal' | 'both' | undefined"
               }
+            },
+            {
+              "name": "top",
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "left",
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "value": { "type": "number | null | undefined" }
             }
           ],
           "slots": [
@@ -2612,6 +3102,16 @@
                 "name": "scrollbars",
                 "description": "Put System 7 scroll rails on the window edge — the classic document\nwindow. The body slot renders inside a built-in `vf-scroll-area` pulled\none system pixel under the frame on every side, so the rails repaint the\nborder lines and a `resizable` window's grow box lands in the corner\ncell. Values mirror `vf-scroll-area`'s `axis`; the `heading` names the\nscroll region; the viewport part is re-exported. Implies `flush` (the\nviewport carries its own padding). The slotted composition (SPEC §5\nvf-scroll-area) still works for windows that want an inset well instead.",
                 "type": "'vertical' | 'horizontal' | 'both' | undefined"
+              },
+              {
+                "name": "top",
+                "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "left",
+                "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+                "type": "number | null | undefined"
               }
             ],
             "events": [

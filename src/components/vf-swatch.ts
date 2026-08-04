@@ -1,6 +1,7 @@
 import { css, html } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -49,7 +50,7 @@ import { VfFormControl } from '../form-control.js'
  *   `--vf-desktop-pattern`)
  */
 @vfElement('vf-swatch')
-export class VfSwatch extends VfFormControl {
+export class VfSwatch extends VfPositioned(VfFormControl) {
   static override shadowRootOptions: ShadowRootInit = {
     ...VfFormControl.shadowRootOptions,
     delegatesFocus: true,

@@ -6,6 +6,7 @@ import {
   state,
 } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { vfBase, vfFocusRing, vfScrollbars } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -42,7 +43,7 @@ const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
  *   25%-black average
  */
 @vfElement('vf-list')
-export class VfList extends LitElement {
+export class VfList extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfScrollbars,

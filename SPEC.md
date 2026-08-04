@@ -159,6 +159,25 @@ Modern requirements that we deliberately keep (accessibility over purity):
   validation, so it cannot submit past a failing constraint.
 - Components must render nothing surprising outside their box: no margins on
   `:host` by default.
+- **Explicit placement** (`VfPositioned`, src/position.ts): every free-standing
+  component takes `top`/`left` in whole system px — set either and the host is
+  absolutely positioned within its parent (`position: absolute` plus both
+  offsets as live `calc(var(--vf-scale, 1) * Npx)` inline styles; the unset
+  coordinate is 0; `right`/`bottom` released to `auto` and `margin` zeroed).
+  Set neither and the element renders in flow; removing both unwinds every
+  inline declaration. The DITL model: a dialog can be laid out by positioning
+  its items just as validly as by stacking them. Excluded: the owned
+  rows/options of a managing container (`vf-option`, `vf-menu-item`,
+  `vf-list-item`, `vf-menu`) and `vf-dialog`, whose top-layer box belongs to
+  the platform. Containers are deliberate anchors — the desktop raster, a
+  window's *content region* (the frame's inner edge below the title bar; the
+  12px body inset governs flow content only), a dialog's content area, a
+  stack's box, a fieldset's border interior, a scroll area's scrolled plane.
+  The style writing rides a ReactiveController (`hostUpdated`), not an
+  `updated()` override — component subclasses routinely skip `super.updated()`
+  — and re-applies only when the property values changed, so `vf-window` drag
+  and `vf-icon` moves (which write resolved px into the same inline styles)
+  are never snapped back by an unrelated update. `npm run verify:position`.
 - Do NOT run repo-wide `tsc` while building an individual component group —
   sibling files may not exist yet. A later phase compiles everything.
 

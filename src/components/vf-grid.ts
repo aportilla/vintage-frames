@@ -1,6 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
+import { VfPositioned } from '../position.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
@@ -156,7 +157,7 @@ const scaled = (systemPx: number): string =>
  * @cssprop --vf-surface - The surface behind the cells (default white).
  */
 @vfElement('vf-grid')
-export class VfGrid extends LitElement {
+export class VfGrid extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

@@ -65,7 +65,11 @@
  * it — black on white, white on black, inverted dither on the dither — per
  * pixel, the way the classic I-beam and crosshair drew. Art that carries
  * its own white (the arrow's outline, the watch's face) leaves it off.
- * A multi-frame `wait` art animates, unless the user prefers reduced motion.
+ * Where the engine cannot blend from the top layer (stable Safari — see
+ * `XOR_UNAVAILABLE`), `invert` art renders its `staticSrc` variant as-is
+ * instead: same box, same hotspot, its own legibility (the embedded set
+ * carries white-haloed variants). A multi-frame `wait` art animates, unless
+ * the user prefers reduced motion.
  */
 import { effectiveScale, onScaleChange } from './scale.js'
 import { truePixelRatio } from './zoom.js'
@@ -90,6 +94,13 @@ export interface VfCursorArt {
   hotspotY?: number
   /** Draw with the XOR pen — per-pixel inversion of whatever is beneath. */
   invert?: boolean
+  /**
+   * The variant an engine that cannot XOR draws as-is (stable Safari — see
+   * `XOR_UNAVAILABLE`): same box and hotspot as `src`, but carrying its own
+   * legibility, e.g. a white outline. Only consulted when `invert` is set;
+   * without one, such an engine draws `src` itself, un-inverted.
+   */
+  staticSrc?: string | string[]
 }
 
 export type VfCursorKind = 'arrow' | 'text' | 'crosshair' | 'wait'
@@ -121,10 +132,29 @@ export interface VfCursorOptions {
 /** A kind's art with its frames preloaded (the Images pin the cache). */
 interface Loaded {
   art: VfCursorArt
+  /** The frames actually drawn: `staticSrc` where XOR is unavailable. */
   frames: string[]
+  /** Whether these frames composite with the XOR pen. */
+  xor: boolean
   images: HTMLImageElement[]
   ready: boolean
 }
+
+/*
+ * Stable Safari cannot blend an element in the top layer against the page —
+ * `mix-blend-mode: difference` there composites against nothing and XOR art
+ * paints as-is, with or without a filter on the element (probed 2026-08 on
+ * Safari 26). The bug is invisible to feature detection: the broken and
+ * working cases have identical computed styles, and a page cannot read its
+ * own rendered pixels — so this is a vendor sniff, deliberately broad. It
+ * also stays conservative about the future: WebKit trunk has the fix, but
+ * until a shipping Safari version is known the static variants simply keep
+ * working there. The alternatives probed and rejected: `backdrop-filter:
+ * invert(1)` under a mask renders nothing in Firefox and trunk WebKit, and
+ * leaving the top layer breaks the cursor over open modals everywhere.
+ */
+const XOR_UNAVAILABLE =
+  typeof navigator !== 'undefined' && (navigator.vendor ?? '').startsWith('Apple')
 
 const TEXT_INPUTS = new Set(['text', 'password', 'search', 'email', 'url', 'tel', 'number'])
 
@@ -228,13 +258,20 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
   for (const kindName of KINDS) {
     const art = arts[kindName]
     if (!art) continue
-    const frames = Array.isArray(art.src) ? art.src : [art.src]
+    const source = art.invert && XOR_UNAVAILABLE ? (art.staticSrc ?? art.src) : art.src
+    const frames = Array.isArray(source) ? source : [source]
     const images = frames.map((url) => {
       const image = new Image()
       image.src = url
       return image
     })
-    loaded.set(kindName, { art, frames, images, ready: false })
+    loaded.set(kindName, {
+      art,
+      frames,
+      xor: !!art.invert && !XOR_UNAVAILABLE,
+      images,
+      ready: false,
+    })
   }
   const decodeAll = (entry: Loaded): Promise<void> =>
     Promise.all(entry.images.map((image) => image.decode())).then(() => {
@@ -296,8 +333,8 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
     frameIndex = 0
     img.src = current.frames[0]!
     // The XOR pen: ink flipped white, then difference against the backdrop.
-    img.style.filter = current.art.invert ? 'invert(1)' : ''
-    img.style.mixBlendMode = current.art.invert ? 'difference' : ''
+    img.style.filter = current.xor ? 'invert(1)' : ''
+    img.style.mixBlendMode = current.xor ? 'difference' : ''
     if (current.frames.length > 1 && !prefersReducedMotion()) {
       frameTimer = window.setInterval(() => {
         frameIndex = (frameIndex + 1) % current.frames.length

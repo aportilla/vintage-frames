@@ -907,6 +907,16 @@ beneath, per pixel, black on white and white on black, exactly as System 7
 drew them. The wristwatch turns its hand (8 frames, `waitFrameMs` per) and
 holds still for a reader who prefers reduced motion.
 
+One engine can't XOR: stable Safari's top layer refuses to blend against the
+page (WebKit trunk already carries the fix), and no feature query can see
+the difference — so on Apple engines each XOR cursor draws its `staticSrc`
+variant as-is instead: same box, same hotspot, its own legibility. The
+embedded set's variants put the ink under a one-pixel white halo, the
+arrow's own outline treatment, generated at embed time; hand-drawn art
+replaces one by adding `cursors/<name>-static.png` and re-running
+`embed:cursors`. Give your own `invert` art a `staticSrc` too — without
+one, Safari draws its ink un-inverted.
+
 The art ships *inside the module* — base64 data URIs like the bitmap faces,
 never an asset file (`npm run embed:cursors` regenerates `src/cursor-art.ts`
 from `cursors/*.png`) — and every kind takes your own instead: a

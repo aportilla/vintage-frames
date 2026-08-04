@@ -6,7 +6,10 @@
  * Like the bitmap faces, the art ships base64-embedded so the package needs
  * no asset files: these are the defaults `applyCursor()` uses, exported so a
  * consumer can pass one explicitly, remap it to another kind, or mix the set
- * with art of their own.
+ * with art of their own. XOR art carries a `staticSrc` variant — the same
+ * ink under a one-pixel white halo — for the engines whose top layer cannot
+ * blend; supply `cursors/<name>-static.png` to replace the generated halo
+ * with hand-drawn art.
  */
 import type { VfCursorArt } from './cursor.js'
 
@@ -16,7 +19,7 @@ import type { VfCursorArt } from './cursor.js'
  * on any background, so it draws as-is rather than with the XOR pen.
  */
 export const CURSOR_ARROW: VfCursorArt = {
-  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAQCAYAAADAvYV+AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAGNJREFUeAGNkEsKADEIQ1V6/yt3EJQpkrRxUazkxY/tChMi8nF3U4DoRAHi/LyAmIUbEKjIAChmABUj4CqewGKiOXICawrS6XB1QzOX0NuRLthCewW6Z9V2pf81JMfeQenYhh8vwlEBxMajqAAAAABJRU5ErkJggg==',
+  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAQCAYAAADAvYV+AAAAS0lEQVR42q2SMQ4AMAgC/f+n20WTliowlNW7RA2xMuEkQU8o2BJOWAoIU6GDR2GCW4HBj6DgS2A7Y7o/6wNrSAXshoS/VcAuGK64ASXf4R9SU/euAAAAAElFTkSuQmCC',
   width: 11,
   height: 16,
   hotspotX: 1,
@@ -25,27 +28,31 @@ export const CURSOR_ARROW: VfCursorArt = {
 
 /**
  * The text-entry I-beam. Hotspot mid-stem, per the classic CURS
- * resource; draws with the XOR pen, as System 7 drew it.
+ * resource; draws with the XOR pen, as System 7 drew it, with a white-halo
+ * static variant for the engines that cannot (see `staticSrc`).
  */
 export const CURSOR_I_BEAM: VfCursorArt = {
-  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAQCAYAAADagWXwAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAADFJREFUeAHt0bERACAIBMF7++/5DQx0VKABNr0h4QWYRWzm4ih8LwaJjlU8PY8XyWQT0zgJEvDD2K8AAAAASUVORK5CYII=',
-  width: 7,
-  height: 16,
-  hotspotX: 3,
-  hotspotY: 7,
+  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAASCAYAAACJgPRIAAAAJElEQVR42mNgIAH8h2JCYnAJBlyS2BSOKhpaivBGMElJBSsAAPlIF+m2BB32AAAAAElFTkSuQmCC',
+  staticSrc: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAASCAYAAACJgPRIAAAAOklEQVR42mP4jwYYGBgYMMSgEv/R5ZDFGNAlkGlk0xmQrUBWwIANoJnGMKqIlorwRgtREUxyUsGV6AB8JyboJ0V9MQAAAABJRU5ErkJggg==',
+  width: 9,
+  height: 18,
+  hotspotX: 4,
+  hotspotY: 8,
   invert: true,
 }
 
 /**
  * The crosshair. Hotspot on the intersection; draws with the XOR pen,
- * as System 7 drew it.
+ * as System 7 drew it, with a white-halo static variant for the engines
+ * that cannot (see `staticSrc`).
  */
 export const CURSOR_CROSSHAIR: VfCursorArt = {
-  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAACxJREFUeAHt0bENADAIA8FP9t8ZJgCkb+Fay40NtWgyPtKG4mNYz7g7kHQxAVnfAxVWEyxsAAAAAElFTkSuQmCC',
-  width: 14,
-  height: 14,
-  hotspotX: 6,
-  hotspotY: 6,
+  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAHElEQVR42mNgoDH4P2oAHQ34TyYeDcSRYQBBAAA+6BrmCTIofgAAAABJRU5ErkJggg==',
+  staticSrc: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMElEQVR42mNgwAH+IwEGcgBU46gBxBjwHw8gIA1RA1NIDoYbQJELRqNxsBtATHYGAOqhCgWyPk7UAAAAAElFTkSuQmCC',
+  width: 16,
+  height: 16,
+  hotspotX: 7,
+  hotspotY: 7,
   invert: true,
 }
 
@@ -55,14 +62,14 @@ export const CURSOR_CROSSHAIR: VfCursorArt = {
  */
 export const CURSOR_WAIT: VfCursorArt = {
   src: [
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAFNJREFUeAHlk8EOABAMQ1X8/y8jYiKsBIcd9EJqfRkyOF2R+BgN7x5lD4DixSy9GJgyfheuITksywpwrFtA6yKwir71lSiAPaTwZWP/jeyiP81CAiQvFhxs9F2QAAAAAElFTkSuQmCC',
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAFtJREFUeAHdk0sKACAIRJ3o/lfuAyFUmlaLoNk1OM80AslKio/RCHSp9wAIXiqSi4EpA29Yg7hHaMFJLkANDzfjQ1yFuHoxlgowdrG/A5PUNz9/RoaQs+EHfyEDxMoYICH7fTEAAAAASUVORK5CYII=',
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAE9JREFUeAHdU0EKACAIc9H/v1wdQqgcCQlCOw43dSLERiM8dqLII/INYHBtwC4GDg28YmaSloGOWVnFHHVVGetRg0sWcRmEn1FNxNnwg1/oSFwVHbqi8WMAAAAASUVORK5CYII=',
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAFZJREFUeAHdk9sKACAIQ130/7/chSKiVIwCIR/HdlpGIH6SoGMVAl2OPwCMlsrwZmDLwBqWIG47GDWj5OhVm1u5lgiYQxW2QM52oDV4/owDQsYDP/gLGVO3Gxq9iFvdAAAAAElFTkSuQmCC',
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAFFJREFUeAHdU1sKACAIc9H9r9yDwo9SERKE9jm2tRRBMprC4yQKPSI/AALXBmQxcHngNWshaTPgmlVT7KpLbXxLbTBNhjFuBuFr5BByPvjBLXRTBhgYClRrJAAAAABJRU5ErkJggg==',
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAFlJREFUeAHdU1sKACAMmtH9r9yDHlDNivoI2qeoM2MQfRzB0QNGLue9ARTMhdHJwKDBrpiZPOugxrSMkaMm9uRZNEEREfG6g5hgVWjj1C4//8ZqIpsLP7gFD39aGxhusMEtAAAAAElFTkSuQmCC',
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAFBJREFUeAHdU0EKACAIc9H/v1wdoqBmCQlCO06dOhHCURQeK5HkEfECIFxp4MnAVgNrsSYS5sEYM7NoH3NmH9aiAjcfxNMD9zMOETE2/OAXKmxEFR2vuADhAAAAAElFTkSuQmCC',
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAFNJREFUeAHdk0kKACAMAxvx/1+uevGgXQIKgnMM7RgUITbq5FiDIoe8F8DItGMPA9sO2GVPUpLBFFcwmgQSpRtkTaoEDQLyO2C5/oxTIuSBH/yFBlXfFSRE94DbAAAAAElFTkSuQmCC',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAANElEQVR42mNgwA7+48BEgyFuwH9cgBhDsGoixRC6GfCfoAHIgUeWAeQGJMUGUByNIzEvAAD+3h7wGXnswAAAAABJRU5ErkJggg==',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAOUlEQVR42mNgwA7+48BEgyFuwH9cgBhD/hMChAzBq5FsA5DFCYUHNoXYvPCf/mFAlZggKS2MoLwAABZGIe0u7mf5AAAAAElFTkSuQmCC',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMklEQVR42mNgwA7+48BEgyFuwH9cgBhD/hMChAyhmwH/CRqALRBJMmDAwoDiaByJeQEAXRsh7d6Ez7cAAAAASUVORK5CYII=',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAANElEQVR42mNgwA7+48BEgyFuwH9cgBhD/hMChAyhmwH/CRqAHHhkGYCuiW5hQHE0jsS8AAC0GCTqSlaRPQAAAABJRU5ErkJggg==',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAANklEQVR42mNgwA7+48BEgyFuwH9cgBhD/hMChAyhmwH/CRqAHHhkGYCsgSIvkGoAxdE4EvMCAIAUIe3WmwVMAAAAAElFTkSuQmCC',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAOUlEQVR42mNgwA7+48BEgyFuwH9cgBhD/hMChAyhmwH/CRqAHHhkGQBTTLYXcHmHopggKS2MoLwAAFw4Ie372GT7AAAAAElFTkSuQmCC',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMklEQVR42mNgwA7+48BEgyFuwH9cgBhD/hMChAyhmwH/8RqAHngkGzCgYUBxNI7EvAAAwfwk6qpQGA8AAAAASUVORK5CYII=',
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAOElEQVR42mNgwA7+48BEgyFuwH9cgBhD/hMChAxBUUiRAbgMIRQe2BSSZwDFYUCTmCApLYygvAAAzn8h7Z3ZHmwAAAAASUVORK5CYII=',
   ],
   width: 16,
   height: 16,

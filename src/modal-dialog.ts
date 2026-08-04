@@ -34,6 +34,14 @@ export const modalDialogStyles = css`
     overflow: visible;
     color: inherit;
     font: inherit;
+    /* showModal()'s focusing steps fall back to focusing the dialog itself
+       when no descendant is chosen as the focus delegate — WebKit and Firefox
+       reach that with the kit's controls hidden inside shadow roots — and
+       both then draw their native ring around the top-layer box. The modal
+       frame already announces the surface, and focus marks inside it are the
+       kit's own (1-bit, on the controls), so the UA ring is suppressed rather
+       than restyled. */
+    outline: none;
   }
   /* Scoped to [open]: an unqualified display here would out-cascade the UA's
      dialog:not([open]) { display: none } (author origin beats UA origin) and

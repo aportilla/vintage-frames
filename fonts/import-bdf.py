@@ -13,10 +13,18 @@ Same convention as the shipped faces (see add-glyphs.py): 64 font units per
 design pixel. Here the em is the strike's own line height — PIXEL_SIZE, which
 for these exports equals FONT_ASCENT + FONT_DESCENT — so upm = 64 * PIXEL_SIZE
 and the face renders 1 design px = 1 CSS px at `font-size: PIXEL_SIZEpx`.
-hhea and OS/2 typo metrics are written as ascent*64 / -descent*64 / gap 0
-directly, so the baseline sits on the design grid without needing the
+hhea and OS/2 typo metrics are written as ascent*64 / -descent*64 directly,
+so the baseline sits on the design grid without needing the
 ascent-override/descent-override registration hacks the shipped faces carry
 (their converter left hhea off the grid; this converter *is* the metrics).
+lineGap carries the strike's QuickDraw leading — stated with `--leading N`,
+from a native measurement or period documentation, NEVER read from the
+suitcase metadata (which is synthesized — see dfont-to-bdf.py's docstring) —
+so a woff2 built with it states its native line pitch on its face: pitch in
+design px = (upm + lineGap) / 64. Absent, lineGap is 0 and the font claims
+only its rect. A re-emmed box (--em / --ascent) already spends its padding
+rows inside the em, so the gap records only what padding hasn't covered —
+never negative.
 
 --- Encoding -----------------------------------------------------------------
 ENCODING values are MacRoman bytes, mapped through Python's mac_roman codec.
@@ -132,7 +140,7 @@ def draw(bbx, rows):
     return pen.glyph()
 
 
-def build(bdf_path, em=None, ascent=None, family=None):
+def build(bdf_path, em=None, ascent=None, family=None, leading=0):
     """em: optionally re-em the strike onto a larger line box (whole px, >= its
     native size); the extra pixels pad the DESCENT, so the ascent — where the
     baseline sits — is untouched and the ink lands identically. This is how the
@@ -188,12 +196,18 @@ def build(bdf_path, em=None, ascent=None, family=None):
         glyphs[name] = draw(bbx, rows)
         metrics[name] = (adv_px * PX, min((x for x, _ in ink_cells(bbx, rows)), default=0) * PX)
 
+    # Native pitch = the strike's own ascent + descent + the stated QuickDraw
+    # leading (see the module docstring — measured, never from suitcase
+    # metadata); the gap is whatever of it the (possibly re-emmed) box
+    # doesn't already cover.
+    line_gap = max(0, props["FONT_ASCENT"] + props["FONT_DESCENT"] + leading - size) * PX
+
     fb = FontBuilder(upm, isTTF=True)
     fb.setupGlyphOrder(glyph_order)
     fb.setupCharacterMap(cmap)
     fb.setupGlyf(glyphs)
     fb.setupHorizontalMetrics(metrics)
-    fb.setupHorizontalHeader(ascent=asc * PX, descent=-desc * PX, lineGap=0)
+    fb.setupHorizontalHeader(ascent=asc * PX, descent=-desc * PX, lineGap=line_gap)
     # Win metrics must cover the glyph extremes (renderers clip to them);
     # typo metrics ARE the design grid, and USE_TYPO_METRICS pins layout to it.
     tops = [g.yMax for g in glyphs.values() if g.numberOfContours > 0]
@@ -202,7 +216,7 @@ def build(bdf_path, em=None, ascent=None, family=None):
         version=4,  # fsSelection's USE_TYPO_METRICS bit is defined from v4
         sTypoAscender=asc * PX,
         sTypoDescender=-desc * PX,
-        sTypoLineGap=0,
+        sTypoLineGap=line_gap,
         usWinAscent=max([asc * PX] + tops),
         usWinDescent=max([desc * PX] + [-b for b in bottoms]),
         fsSelection=0x40 | 0x80,  # REGULAR | USE_TYPO_METRICS
@@ -229,18 +243,21 @@ def build(bdf_path, em=None, ascent=None, family=None):
     out = os.path.join(OUT, f"{stem}.woff2")
     fb.save(out)
 
-    verify(out, upm, kept)
+    verify(out, upm, line_gap, kept)
     print(
         f"{family}: {len(kept)} glyphs, em {size}px ({asc}/{desc}), "
+        f"line {size + line_gap // PX}px, "
         f"{os.path.getsize(out)} bytes -> {os.path.relpath(out)}"
     )
 
 
-def verify(path, upm, kept):
+def verify(path, upm, line_gap, kept):
     """Round-trip: decompose the compiled contours back into pixel cells and
     bit-compare every glyph against its BDF bitmap."""
     font = TTFont(path)
     assert font["head"].unitsPerEm == upm
+    assert font["hhea"].lineGap == line_gap, "hhea lineGap lost in save"
+    assert font["OS/2"].sTypoLineGap == line_gap, "OS/2 sTypoLineGap lost in save"
     glyf, hmtx, cmap = font["glyf"], font["hmtx"], font.getBestCmap()
     for u in kept:
         name, adv_px, bbx, rows = kept[u]
@@ -266,6 +283,7 @@ def verify(path, upm, kept):
 if __name__ == "__main__":
     args = sys.argv[1:]
     em = ascent = family = None
+    leading = 0
     if "--em" in args:
         i = args.index("--em")
         em = int(args[i + 1])
@@ -278,7 +296,13 @@ if __name__ == "__main__":
         i = args.index("--family")
         family = args[i + 1]
         del args[i : i + 2]
+    if "--leading" in args:
+        i = args.index("--leading")
+        leading = int(args[i + 1])
+        del args[i : i + 2]
     if not args:
-        sys.exit(f"usage: {sys.argv[0]} [--em N] [--ascent N] [--family NAME] <strike.bdf> ...")
+        sys.exit(
+            f"usage: {sys.argv[0]} [--em N] [--ascent N] [--family NAME] [--leading N] <strike.bdf> ..."
+        )
     for p in args:
-        build(p, em, ascent, family)
+        build(p, em, ascent, family, leading)

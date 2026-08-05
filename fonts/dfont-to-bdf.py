@@ -14,8 +14,22 @@ These suitcases package each strike as a bitmap-only sfnt resource — 'bdat' /
 'bloc' tables, Apple's original names for what Microsoft later called EBDT /
 EBLC (identical formats, which is how fontTools reads them below), plus a
 'bhed' in place of 'head' and a 26-byte stub NFNT that just points at the
-sfnt. The family name comes from the FOND resource; the strike's line height
+sfnt. The family name comes from the FOND resource; the strike's font rect
 is its ppem.
+
+A warning about the OTHER numbers in these files: the stub NFNT decodes as
+a classic FontRec header and the FOND as a FamRec, but their metrics are
+SYNTHESIZED by whatever converted these to dfonts, not Apple's — every FOND
+in the collection carries the identical boilerplate (ffAscent 3276,
+ffDescent -819, ffLeading 368), every stub's ascent+descent exactly equals
+the ppem (i.e. it is the bitmap rect, accents included, not the typographic
+ascent), and every stub's "leading" is floor(368 x ppem / 4096) — the
+boilerplate evaluated at the strike size (0 below 11 px, 1 through 22, 2
+from 23; verified against all 60+ stubs). None of it says what line pitch
+System 7 actually set. Native pitch is established by measurement (or
+period documentation) and stated to import-bdf.py as --leading; measured so
+far: Chicago 12 -> 16px pitch on the 15px rect, Geneva 9 -> 12px pitch on
+the 12px rect (both from native screenshots, 2026-08-05).
 
 Encodings: the Mac Roman cmap subtable (1,0) provides the classic byte
 encodings BDF expects; anything only in the Unicode subtable (re-encoded
@@ -47,7 +61,10 @@ _spec.loader.exec_module(import_bdf)
 
 def load_strike(path, family=None):
     """-> (family, ascent, descent, ppem, glyphs: {codepoint: (advance, bearingX,
-    bearingY, width, height, rows)}) — rows as '#'/'.' strings, top first."""
+    bearingY, width, height, rows)}) — rows as '#'/'.' strings, top first.
+    Only the bitmaps, advances and the rect split are read; the stub NFNT and
+    FOND metrics are deliberately ignored (synthesized — see the module
+    docstring)."""
     reader = ResourceReader(path)
     if family is None:
         family = next((r.name for r in reader.get("FOND", []) if r.name), None)

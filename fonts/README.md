@@ -59,7 +59,9 @@ its resource fork and is empty.
 **Geneva.woff2** is likewise the original Apple bitmap: `dfont-to-bdf.py`
 extracts the strike from `Geneva_12.dfont` (the macfonts suitcase collection)
 and `import-bdf.py --em 16 --ascent 12` re-ems its 12px box (ascent 10,
-descent 2) onto the kit's 16px 12/4 grid, ascent and descent both padded.
+descent 2; native pitch measured at exactly that 12px rect — leading 0,
+unlike Chicago's 1) onto the kit's 16px 12/4 grid, ascent and descent both
+padded.
 The suitcase matters: the BDF collection's own `Geneva/12.bdf` was exported
 from **`Geneva_12_raised.dfont`**, a variant drawn one size larger (8px caps
 to the true strike's 7, `I` advance 4 to its 3) — it briefly shipped as the
@@ -106,6 +108,22 @@ suitcases package each strike as a bitmap-only sfnt resource — `bdat`/`bloc`
 tables, Apple's original names for what became EBDT/EBLC (identical formats,
 which is how fontTools reads them), plus a stub NFNT pointing at it; the
 family name comes from the FOND, byte encodings from the Mac Roman cmap.
+One thing it deliberately does **not** read: the stub NFNT's and the FOND's
+metric fields. They decode as a classic FontRec/FamRec, but in this
+collection they are the converter's synthesis, not Apple's — every FOND
+carries the identical boilerplate (ffAscent 3276 / ffDescent −819 /
+ffLeading 368), every stub's ascent+descent exactly equals the ppem (the
+bitmap rect, accents included, not the typographic ascent), and every
+stub's "leading" is `floor(368 × ppem / 4096)`, the boilerplate evaluated
+at the strike size (verified against all 60+ stubs). The bitmaps and
+advances are genuine; the metrics say nothing about System 7's real line
+pitch (see "A rect is not a pitch" below). The collection's FontForge
+`.sfd` sources are the same lineage and no better: their `BitmapFont:`
+strike headers carry the identical rect splits (Geneva 12px: 10/2), the
+format has no leading field at all, and the consolidated family files hold
+the regular and `_raised` 12px strikes as two indistinguishable
+`BitmapFont: 12` entries — the ambiguity behind the 2026-08-04 raised-Geneva
+mixup, which the dfonts' filenames at least disambiguate.
 Self-verifying like its sibling: the written BDF is re-parsed with
 `import-bdf.py`'s own parser and every glyph's ink and advance bit-compared
 against the decoded `bdat` bitmaps.
@@ -148,10 +166,63 @@ rest (36 was 2×18); the 20pt strikes existed for the ImageWriter's
 best-quality mode, which printed each size from a strike at twice its
 number — that doubling is also the fingerprint the table leans on.
 
+Two caveats for anyone re-importing the collection: the FOND name lies on
+several families (Toronto, System, Mobile, SwanSong and the 13px Symbol all
+say "Cairo" — keep using `--family` per the table above), and
+`EspySans_15.dfont` is a five-strike suitcase the converter doesn't take
+yet.
+
+## Line pitch — measured, never derived
+
+**A rect is not a pitch.** The line heights above are font rects; the pitch
+QuickDraw actually advanced lines by may add leading — and may not:
+
+| Strike | rect | native pitch | leading | Established by |
+| --- | --- | --- | --- | --- |
+| Chicago 12 | 15 | **16** | 1 | native screenshot, 2026-08-05 (7 blank rows over 9px caps) |
+| Geneva 9 | 12 | **12** | 0 | native screenshot, 2026-08-05 (5 blank rows over 7px caps, both line pairs) |
+
+Every other strike's pitch is **unestablished**. Nothing in the files can
+answer it: the dfont FontRec/FamRec fields and the `.sfd` headers are all
+synthesized (see the dfont-to-bdf notes above — the NFNT-derived "13" for
+Geneva 9 is exactly the kind of wrong answer they give). Establish a pitch
+the way the two above were:
+
+1. On native System 7 (or a faithful emulator), set two wrapped lines in the
+   strike, **descender-free words** so the lowest ink of line one is its
+   baseline (e.g. "Three Nations" / "Hello World").
+2. Screenshot at 1:1 and count the blank pixel rows between line one's
+   baseline and line two's cap tops.
+3. **pitch = blank rows + cap height** (cap heights: measure the strike, or
+   see the reference table below for Geneva's 7px; Chicago's is 9).
+
+Once established, a pitch is recorded in two places:
+
+- **In the woff2** — rebuild the strike with `import-bdf.py --leading N`,
+  which writes hhea/OS-2 `lineGap` so the font states it on its face
+  (pitch in design px = `(upm + lineGap) / 64`). An unestablished strike
+  reads `lineGap 0`, claiming only its rect — never bake a guess.
+- **In the kit** — line boxes are always explicit CSS, so pitch reaches the
+  components through the theming tokens (SPEC §3): the shipped faces' own
+  measured pitches are the defaults of `--vf-line-height-display` (16px,
+  Chicago 12) and `--vf-line-height` (12px, Geneva 9), which is what
+  `vf-paragraph`, `vf-label` and `vf-text-area` wrap on. Theming another
+  strike in states its three numbers together — family, size, and measured
+  pitch:
+
+  ```css
+  :root {
+    --vf-font-family: 'Geneva 12';
+    --vf-font-size: 15px;    /* the strike's rect — its 1-px-per-px size */
+    --vf-line-height: ???px; /* its measured native pitch — Geneva 12's is
+                                unestablished: measure it first (steps above) */
+  }
+  ```
+
 ## import-bdf.py — BDF strike → webfont
 
 ```sh
-/tmp/fontenv/bin/python3 fonts/import-bdf.py [--em N] [--ascent N] <strike.bdf> ...
+/tmp/fontenv/bin/python3 fonts/import-bdf.py [--em N] [--ascent N] [--family NAME] [--leading N] <strike.bdf> ...
 ```
 
 Writes `fonts/imported/<Family>-<size>.woff2` per input. The conventions:
@@ -161,11 +232,20 @@ hhea/OS/2 metrics written as `ascent / descent / 0` on that grid — correct in
 the tables, no registration overrides required; MacRoman `ENCODING`s mapped
 through Unicode (inked classic symbol slots 0x11–0x14 → `⌘ ✓ ◆ `); each
 strike its own family (`"Geneva 12"`), since CSS can't pick a bitmap strike
-by size. `--em N` re-ems a strike onto a larger line box by padding the
+by size; hhea/OS-2 `lineGap` carries the strike's QuickDraw leading when
+`--leading N` states one — a **measured value only** (see "Line pitch"
+above), never the suitcase metadata — so a woff2 built with it declares its
+native pitch on its face: **pitch in design px = (upm + lineGap) / 64**.
+`Chicago-12.woff2` is built `--leading 1` (measured: em 15, line 16);
+`Geneva-9.woff2` needs none (measured: its 12px rect *is* its pitch).
+`--em N` re-ems a strike onto a
+larger line box by padding the
 descent (how Chicago.woff2 is made); `--ascent N` re-splits that box at a
 stated baseline, padding the ascent too — for a strike whose own ascent is
 short of the target grid (padding only, never clipping; Geneva.woff2 is
-`--em 16 --ascent 12` on the extracted 10/2 strike). The script
+`--em 16 --ascent 12` on the extracted 10/2 strike). A re-emmed box already
+spends its padding rows inside the em, so its lineGap records only what the
+padding hasn't covered, clamped at 0 — never negative. The script
 self-verifies: it decompiles
 every compiled glyph back to pixel cells and bit-compares against the BDF —
 a font that saves is pixel-identical to its source.
@@ -185,7 +265,10 @@ python3 -m venv /tmp/fontenv
 Both shipped faces are **1024 units/em, designed on a 64-unit pixel** — so a
 design pixel maps to one CSS pixel at `font-size: 16px` (1024 ÷ 16 = 64).
 That's why the components render chrome/body at 16px with
-`-webkit-font-smoothing: none`: on-grid and crisp. Everything in
+`-webkit-font-smoothing: none`: on-grid and crisp. The em is the *rendering
+grid*, not the line pitch — the kit states pitch separately, in explicit
+whole-px line boxes fed by the tokens above ("Line pitch"), which is how
+Geneva 9 sets 12px lines out of a 16px em. Everything in
 `add-glyphs.py` is written in whole pixels × `PX` (=64). Reference metrics
 for drawing into Geneva, measured from the strike:
 

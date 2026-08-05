@@ -2,12 +2,14 @@
 """Extend the System 7 bitmap faces with glyphs they ship without.
 
 Chicago (the genuine chrome strike, produced by `import-bdf.py --em 16`) lacks
-only `×` — MacRoman never carried it. FindersKeepers (the lookalike body face)
-ships without the punctuation the UI types — `⌘`, `…`, curly quotes, the
-em/en dashes, the bullet and `×` — so those fell back to the system font, a
-smooth glyph beside the pixel labels. This script draws the missing glyphs as
-pixels, injects them into each WOFF2, and re-embeds the base64 into the
-`src/styles/*-font.ts` modules that register the faces at runtime.
+only `×` — MacRoman never carried it. Geneva (the genuine body strike) ships
+deliberately untouched for now: its two gaps — `×`, and `⌘`, which only the
+Chicago strike ever drew — fall back per glyph to the system font, and the
+known backfill is a Geneva entry in this script (the ⌘ would trace Chicago's
+own ink, per fonts/README's trace-don't-invent rule). This script draws the
+missing glyphs as pixels, injects them into each WOFF2, and re-embeds the
+base64 into the `src/styles/*-font.ts` modules that register the faces at
+runtime.
 
 Run it (needs fonttools + brotli — see fonts/README.md):
 
@@ -21,10 +23,12 @@ compound. To add a glyph, add one row to a font's `specs` list and re-run.
 --- The pixel grid -----------------------------------------------------------
 Both faces are 1024 units/em and designed on a 64-unit pixel (so they land on
 the CSS pixel grid at 16px: 1024 / 16 = 64). Everything below is expressed in
-whole pixels and multiplied by PX. Reference metrics for drawing into
-FindersKeepers, decoded from the source: 7px caps, 5px x-height, 1x1 px period
-dot, quotes in the 5-7px band. Chicago's one spec borrows its whole geometry
-from the strike's own '+' (5x5 ink, 1px bearing each side, 7px advance).
+whole pixels and multiplied by PX. Reference metrics for drawing into Geneva,
+measured from the strike: 7px caps, 5px x-height, 1x1 px period dot with a
+1px bearing, quotes in the 5-8px band; its ink sits flush left with the 1px
+gap carried in the advance (its '+' is 5x5 at y 1, 6px advance). Chicago's
+one spec borrows its whole geometry from that strike's own '+' (5x5 ink, 1px
+bearing each side, 7px advance).
 
 Glyphs are bitmaps (top row first, '#' = ink). `bmp()` rasterises each to
 TrueType contours as one clockwise rectangle per maximal horizontal run of ink
@@ -43,29 +47,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STYLES = os.path.join(HERE, "..", "src", "styles")
 PX = 64  # font units per design pixel
 
-# U+2318 the "looped square" / cloverleaf command key: four corner loops joined
-# by a central square, with the edges between loops left open (concave).
-# (Chicago needs no drawing — the strike carries the real glyph natively.)
-CMD_BODY = [  # 9x9 diamond loops for the body face, 1px below its 7px cap band
-    ".#.....#.",
-    "#.#...#.#",
-    ".#######.",
-    "..#...#..",
-    "..#...#..",
-    "..#...#..",
-    ".#######.",
-    "#.#...#.#",
-    ".#.....#.",
-]
-
-# Dashes, bullet and multiplication sign — punctuation the UI copy types that
-# the faces shipped without, so each fell back to a smooth system glyph beside
-# the pixels (the em dash in "US$25 — see the Read Me" was the giveaway). The
-# en/em dashes reuse the body face's own hyphen stroke — same band, same
-# weight, just longer — so hyphen/en/em read as one family (a 1px bar in the
-# 3-4px band). The bullet is a round dot centred on the x-height; the × an X
-# on the math axis (aligned with '+'). X_MULT is shared: a 5x5 saltire, sized
-# identically in both faces.
+# The multiplication sign, an X on the math axis (aligned with the strike's
+# own '+'): a 5x5 saltire.
 X_MULT = [
     "#...#",
     ".#.#.",
@@ -105,21 +88,6 @@ FONTS = {
         "module": "chicago-font.ts",
         "specs": [
             ("multiply", 0x00D7, X_MULT, 64, 128, 448),
-        ],
-    },
-    "FindersKeepers": {  # 7px cap, 1px dots, quotes in the 5-7px band
-        "module": "finders-keepers-font.ts",
-        "specs": [
-            ("uni2318", 0x2318, CMD_BODY, 64, -64, 704),
-            ("ellipsis", 0x2026, ["#.#.#"], 0, 0, 384),
-            ("quoteright", 0x2019, ["##", "#."], 0, 320, 192),
-            ("quoteleft", 0x2018, ["##", ".#"], 0, 320, 192),
-            ("quotedblright", 0x201D, ["##.##", "#..#."], 0, 320, 384),
-            ("quotedblleft", 0x201C, ["##.##", ".#..#"], 0, 320, 384),
-            ("endash", 0x2013, ["#####"], 0, 192, 384),
-            ("emdash", 0x2014, ["########"], 0, 192, 576),
-            ("bullet", 0x2022, ["###", "###", "###"], 64, 64, 320),
-            ("multiply", 0x00D7, X_MULT, 0, 64, 384),
         ],
     },
 }

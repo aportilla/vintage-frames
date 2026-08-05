@@ -35,18 +35,18 @@ export interface EmbeddedFontMetrics {
  * ascent/descent), no line gap.
  *
  * WHY OVERRIDE AT ALL: browsers place a line box's baseline from the face's
- * hhea metrics, and FindersKeepers carries converter-artifact hhea values —
- * ascender 682, descender 192, line gap 92 of the 1024 upm, i.e. 10.66 px /
- * 3 px / 1.44 px at 16px — which are NOT on the 64-unit design-pixel grid the
- * glyphs are drawn on. Half-leading computed from them lands the baseline
- * ~0.5px high in every whole-pixel line box, and rasterization snaps that to a
- * whole device pixel: all chrome/body text sat one device px above its
- * System 7 position (first seen as fractional gaps in the vf-select pill).
- * The face's OS/2 typo metrics carry the intended grid-clean em (768/256/0 =
- * 12/4/0 px); these overrides force every browser onto it regardless of which
- * table its platform prefers. (The Chicago face's own tables are already on
- * the grid — fonts/import-bdf.py writes them — so for it the overrides merely
- * restate the truth; every face the kit registers is pinned the same way.)
+ * hhea metrics, and the retired converter-artifact faces (ChiKareGo and
+ * FindersKeepers, both since replaced by the genuine strikes) carried hhea
+ * values — ascender 682, descender 192, line gap 92 of the 1024 upm, i.e.
+ * 10.66 px / 3 px / 1.44 px at 16px — that are NOT on the 64-unit
+ * design-pixel grid the glyphs are drawn on. Half-leading computed from them
+ * lands the baseline ~0.5px high in every whole-pixel line box, and
+ * rasterization snaps that to a whole device pixel: all chrome/body text sat
+ * one device px above its System 7 position (first seen as fractional gaps in
+ * the vf-select pill). Today both shipped strikes' own tables carry the
+ * grid-clean em (768/256/0 = 12/4/0 px — fonts/import-bdf.py writes them);
+ * the overrides restate it so every face the kit registers is pinned the same
+ * way regardless of provenance or which table a platform prefers.
  *
  * KNOWN LIMIT (dpr 2, scale 1.5): Chrome snaps aliased text baselines to whole
  * ABSOLUTE CSS px. A pill's ideal baseline sits 13 system px (19.5 CSS px at

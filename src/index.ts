@@ -229,7 +229,4 @@ export type { VfCloseReason } from './modal-dialog.js'
 export { registerEmbeddedFont, PIXEL_GRID_METRICS } from './styles/register-embedded-font.js'
 export type { EmbeddedFontMetrics } from './styles/register-embedded-font.js'
 export { registerChicago, CHICAGO_FAMILY } from './styles/chicago-font.js'
-export {
-  registerFindersKeepers,
-  FINDERS_KEEPERS_FAMILY,
-} from './styles/finders-keepers-font.js'
+export { registerGeneva, GENEVA_FAMILY } from './styles/geneva-font.js'

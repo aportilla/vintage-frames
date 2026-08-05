@@ -196,7 +196,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | Token | Default | Used for |
 | --- | --- | --- |
 | `--vf-scale` | *(display factor, `3 / dpr`)* | multiplies every length token below (see note) |
-| `--vf-font-family` | `'FindersKeepers', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | body text (list rows, page copy) |
+| `--vf-font-family` | `'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | body text (list rows, page copy) |
 | `--vf-font-family-display` | `'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
 | `--vf-font-size` | `16px` | body face size |
 | `--vf-font-size-display` | `16px` | chrome face size |
@@ -325,7 +325,7 @@ enabled well.
 - `vfBase` — host font, `box-sizing: border-box` everywhere, the `.vf-snap`
   grid-correction hook (see Grid snapping above), `user-select: none`
   (text inputs re-enable), `:host([hidden]) { display: none !important }`.
-- `vfBodyDecls` — the three declarations that put text on the FindersKeepers
+- `vfBodyDecls` — the three declarations that put text on the Geneva
   body face (family, 16px, smoothing), for composing into one rule; the mirror
   of `vfDisplayDecls`, and the body face's single definition (`vfBase` applies
   it to every host; `vf-button size="small"` and `face="body"` switch back to it).

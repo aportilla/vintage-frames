@@ -36,7 +36,7 @@ export const vfDisplayDecls = unsafeCSS(`
  * checkbox/radio labels, popup menus. Components that mix a chrome title with
  * body content (windows, dialogs, fieldsets) instead apply {@link vfDisplayDecls}
  * to just their title/legend element, leaving slotted body copy on the vfBase
- * FindersKeepers body face.
+ * Geneva body face.
  */
 export const vfDisplay = css`
   :host {

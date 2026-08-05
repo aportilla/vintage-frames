@@ -9,14 +9,15 @@ boundary).
 | Face | What it is | Role | Used by |
 | --- | --- | --- | --- |
 | **Chicago** | the genuine Chicago 12pt strike | *chrome* | menus, titles, buttons, controls (`vfDisplay`) |
-| **FindersKeepers** | a Geneva-style lookalike | *body* copy | fields, list rows, prose (`vfBase` default) |
+| **Geneva** | the genuine Geneva 9pt strike | *body* copy | fields, list rows, prose (`vfBase` default) |
 
 ```
-Chicago.woff2            FindersKeepers.woff2      ← pristine sources (see provenance)
-Chicago.ext.woff2        FindersKeepers.ext.woff2  ← generated: sources + our glyphs
+Chicago.woff2            Geneva.woff2  ← pristine sources (see provenance)
+Chicago.ext.woff2        ← generated: source + our glyphs (Geneva ships un-extended)
 add-glyphs.py            ← rebuilds the .ext fonts and re-embeds them into TS
+dfont-to-bdf.py          ← extracts a suitcase's bitmap strike as a BDF
 import-bdf.py            ← converts a classic Mac BDF strike to a pixel-grid woff2
-imported/                ← import-bdf.py's output, one woff2 per strike (untracked)
+imported/                ← both scripts' output (untracked)
 ```
 
 The **`.ext.woff2`** files (and the base64 in `src/styles/*-font.ts`) are
@@ -36,34 +37,59 @@ glyphs, on 2026-08-04; the retired face survives in git history. Being
 Apple's artwork, its distribution posture is a deliberate decision — see
 PUBLISHING.md.
 
-**FindersKeepers** remains a lookalike — but only because the genuine Geneva
-**9pt** strike isn't in the BDF collection. The collection's smallest Geneva
-export (`Geneva/12.bdf`, ascent 10 / descent 2) is the **10pt** strike: real
-Geneva ink, one size up (8px caps to the 9pt's 7, `I` advance 4 to its 2). A
-2026-08-04 attempt shipped it as the body face and was reverted the same day —
-everything rendered a pixel too tall and wider-set than the original Finder
-(the collection names files by font rect, and the families that do include
-their 9pt strike show it as `11.bdf` with ascent 9 / descent 2 — Geneva's
-ladder starts at 12). FindersKeepers carries the original 9pt *metrics*
-(7px caps, 5px x-height, `I` advance 2), so it stays until a true Geneva 9
-BDF exists; the pipeline below then swaps it in as
-`import-bdf.py --em 16 --ascent 12`.
+**Geneva.woff2** is likewise the original Apple bitmap: `dfont-to-bdf.py`
+extracts the strike from `Geneva_12.dfont` (the macfonts suitcase collection)
+and `import-bdf.py --em 16 --ascent 12` re-ems its 12px box (ascent 10,
+descent 2) onto the kit's 16px 12/4 grid, ascent and descent both padded.
+The suitcase matters: the BDF collection's own `Geneva/12.bdf` was exported
+from **`Geneva_12_raised.dfont`**, a variant drawn one size larger (8px caps
+to the true strike's 7, `I` advance 4 to its 3) — it briefly shipped as the
+body face on 2026-08-04 and read visibly wrong against a real Finder before
+the suitcases surfaced the un-raised strike. Geneva replaced
+**FindersKeepers**, a lookalike that matched the 9pt metrics (7px caps, `I`
+on a 1px gap) with its own ink, the same day; that retired face survives in
+git history alongside ChiKareGo. Same Apple-IP distribution posture as
+Chicago.
+
+Unlike Chicago, Geneva ships **un-extended** for now — the embedded base64 is
+the pristine strike, so `×` and `⌘` (which it never carried) fall back per
+glyph to the system font. The known backfill is a Geneva entry in
+`add-glyphs.py`; its docstring carries the measured drawing metrics.
 
 ## Why we modify the fonts
 
 The UI types punctuation the sources lack, and a missing glyph falls back
 *per glyph* to the system font — a smooth glyph beside the pixel labels (the
-em dash in "US$25 — see the Read Me" was the giveaway).
+em dash in "US$25 — see the Read Me" was the giveaway). Both strikes carry
+full MacRoman natively — `…`, curly quotes, the dashes, `•`, the accented
+Latin — which leaves exactly two gaps:
 
-- **Chicago** carries full MacRoman natively — `⌘`, `…`, curly quotes, the
-  dashes, `•`, the accented Latin — so it needs only **`×`** (U+00D7), which
-  MacRoman never included.
-- **FindersKeepers** needs the classic ten: `⌘ … ‘ ’ “ ” — – • ×`.
+- **`×`** (U+00D7), which MacRoman never included — patched into Chicago
+  (geometry from its own `+`); still open in Geneva.
+- **`⌘`** (U+2318), which only the Chicago strike ever drew — still open in
+  Geneva (trace Chicago's ink when backfilling, per the rule below).
 
 (The `✓`, `▼` and scroll arrows are handled differently — as inline SVG
 sprites in [`../src/glyphs.ts`](../src/glyphs.ts) and `base.ts`. Prefer a font
 glyph when the character appears in freeform/slotted text like a shortcut
 string; prefer a sprite when the component controls the exact markup.)
+
+## dfont-to-bdf.py — suitcase strike → BDF
+
+```sh
+/tmp/fontenv/bin/python3 fonts/dfont-to-bdf.py <suitcase.dfont> ...
+```
+
+Writes `fonts/imported/bdf/<Family>/<line>.bdf` per input — the family-dir /
+line-height layout and conventions `import-bdf.py` consumes, so the two
+scripts chain into one pipeline (dfont → BDF → pixel-grid woff2). The
+suitcases package each strike as a bitmap-only sfnt resource — `bdat`/`bloc`
+tables, Apple's original names for what became EBDT/EBLC (identical formats,
+which is how fontTools reads them), plus a stub NFNT pointing at it; the
+family name comes from the FOND, byte encodings from the Mac Roman cmap.
+Self-verifying like its sibling: the written BDF is re-parsed with
+`import-bdf.py`'s own parser and every glyph's ink and advance bit-compared
+against the decoded `bdat` bitmaps.
 
 ## import-bdf.py — BDF strike → webfont
 
@@ -81,7 +107,8 @@ strike its own family (`"Geneva 12"`), since CSS can't pick a bitmap strike
 by size. `--em N` re-ems a strike onto a larger line box by padding the
 descent (how Chicago.woff2 is made); `--ascent N` re-splits that box at a
 stated baseline, padding the ascent too — for a strike whose own ascent is
-short of the target grid (padding only, never clipping). The script
+short of the target grid (padding only, never clipping; Geneva.woff2 is
+`--em 16 --ascent 12` on the extracted 10/2 strike). The script
 self-verifies: it decompiles
 every compiled glyph back to pixel cells and bit-compares against the BDF —
 a font that saves is pixel-identical to its source.
@@ -103,14 +130,16 @@ design pixel maps to one CSS pixel at `font-size: 16px` (1024 ÷ 16 = 64).
 That's why the components render chrome/body at 16px with
 `-webkit-font-smoothing: none`: on-grid and crisp. Everything in
 `add-glyphs.py` is written in whole pixels × `PX` (=64). Reference metrics
-for drawing into FindersKeepers, decoded from the source:
+for drawing into Geneva, measured from the strike:
 
 | | cap height | x-height | period dot | quotes sit at |
 | --- | --- | --- | --- | --- |
-| FindersKeepers | 7px | 5px | 1×1 px | 5–7px band |
+| Geneva | 7px | 5px | 1×1 px, 1px bearing | 5–8px band |
 
-Chicago's one spec (`×`) borrows its whole geometry from the strike's own
-`+`: 5×5 ink, 1px bearing each side, 7px advance. Chicago glyphs generally
+Geneva ink sits flush left with its 1px gap carried in the advance (its `+`
+is 5×5 at y 1, 6px advance — the geometry for its future `×`). Chicago's one
+spec (`×`) borrows its whole geometry from that strike's own `+`: 5×5 ink,
+1px bearing each side, 7px advance. Chicago glyphs generally
 carry a 1px bearing on both sides of their ink — the spacing the menu bar
 and shortcut-column constants are traced against.
 
@@ -122,24 +151,19 @@ glyphs on whole-pixel (64-unit) boundaries and within its bands.
 Glyphs are **bitmaps** — a list of row strings, top row first, `#` = ink:
 
 ```python
-CMD_BODY = [      # ⌘ for the body face: four corner loops joined by a
-    ".#.....#.",  #    central square, edges between loops left open
-    "#.#...#.#",  #    (concave). Empty cells are simply not drawn, so a
-    ".#######.",  #    loop is ink around an unfilled centre — no
-    "..#...#..",  #    reverse-winding contour needed.
-    "..#...#..",
-    "..#...#..",
-    ".#######.",
-    "#.#...#.#",
-    ".#.....#.",
+X_MULT = [   # × on the math axis. Empty cells are simply not drawn, so a
+    "#...#", #   loop is ink around an unfilled centre — no reverse-winding
+    ".#.#.", #   contour needed.
+    "..#..",
+    ".#.#.",
+    "#...#",
 ]
 ```
 
 `bmp(bitmap, x0, y0, advance)` rasterises it to TrueType contours — one
 clockwise rectangle per maximal horizontal run of ink. `x0`/`y0` are the
 font-unit coordinates of the bitmap's **left / bottom** edge; `advance` is the
-glyph's advance width. Quotes derive their `y0` from the bands above; the
-ellipsis is just the period repeated three times.
+glyph's advance width.
 
 ## Add or change a glyph
 

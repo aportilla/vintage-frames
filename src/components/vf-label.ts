@@ -64,7 +64,7 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  * in the display face — this is that, as a component, on the kit's grid:
  *
  * - the **Chicago-style chrome face** by default (dialog captions are chrome),
- *   with `face="body"` to switch to FindersKeepers and `size="small"` for the
+ *   with `face="body"` to switch to Geneva and `size="small"` for the
  *   12px fine print;
  * - a **whole-system-pixel line box** (`--vf-label-line-height`, 16px — the
  *   faces' own em), so a column of captions accumulates whole offsets instead of
@@ -153,7 +153,7 @@ export class VfLabel extends VfPositioned(LitElement) {
 
   /**
    * Which embedded face to set the caption in — `'display'` (the Chicago-style
-   * chrome face, the default) or `'body'` (FindersKeepers). Applied by
+   * chrome face, the default) or `'body'` (Geneva). Applied by
    * `vfStaticText`; declared here so it types and reflects.
    */
   @property({ reflect: true }) face?: 'display' | 'body'

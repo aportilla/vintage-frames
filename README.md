@@ -780,16 +780,18 @@ Two System 7 bitmap faces ship inside the components and register themselves on
   fields in Chicago). Converted from the original bitmap
   ([fonts/README.md](./fonts/README.md) has the pipeline and provenance), so
   every label occupies exactly the pixels a real Mac gave it.
-- **FindersKeepers** — the Geneva-style *body* face: list rows and page copy.
+- **Geneva** — the genuine Geneva 9pt strike, the *body* face: list rows and
+  page copy. Converted the same way, so body copy is likewise the pixels a
+  real Mac would have set.
 
 Both render on their native 1024-upm pixel grid (one design pixel = one system
 pixel) and scale with `--vf-scale` (see [Display scaling](#display-scaling--true-classic-size-crisp-on-any-screen)),
 staying pixel-crisp. Both are registered with `ascent-override: 75%` /
 `descent-override: 25%` / `line-gap-override: 0%` — the classic Chicago 12/4
-em on the 16-px design grid — for FindersKeepers because its WOFF2's own hhea
-metrics are off that grid and would set every baseline one device pixel high;
-Chicago's tables already carry those numbers, restated so every face the kit
-registers is pinned alike (`npm run verify:baseline` asserts the rendered
+em on the 16-px design grid, which both faces' own tables already carry (the
+converter writes them, re-emming Geneva's natural 10/2 strike box onto the
+kit's split); the overrides restate them so every face the kit registers is
+pinned alike (`npm run verify:baseline` asserts the rendered
 ink). Retheme with
 `--vf-font-family-display` (chrome) and `--vf-font-family` (body), plus the
 matching `--vf-font-size-display` / `--vf-font-smoothing-display` tokens.
@@ -1098,7 +1100,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share |
 | `defineElement`, `vfElement` | Register a custom element without the duplicate-copy footgun — `vfElement` is the kit's `@customElement`, and both skip (with a warning) rather than throwing when the tag is already taken (see below) |
 | `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfPositioned`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), explicit placement (`top`/`left` in system px — the mixin every kit element already wears), the native-`<dialog>` lifecycle |
-| `registerEmbeddedFont`, `registerChicago`, `registerFindersKeepers`, `CHICAGO_FAMILY`, `FINDERS_KEEPERS_FAMILY` | Register the bitmap faces on `document.fonts` yourself |
+| `registerEmbeddedFont`, `registerChicago`, `registerGeneva`, `CHICAGO_FAMILY`, `GENEVA_FAMILY` | Register the bitmap faces on `document.fonts` yourself |
 
 `VfToggleControl` is a **mixin** rather than a plain base class, because the
 kit's two toggles sit on different bases and have to stay there: `vf-checkbox`

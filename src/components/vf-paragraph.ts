@@ -13,7 +13,7 @@ import { GridSnapController } from '../grid-snap.js'
  * anything a page would otherwise set with a `<p>` and hope the leading landed
  * somewhere sensible. What it adds over that `<p>`:
  *
- * - the **FindersKeepers body face** by default (`face="display"` switches to
+ * - the **Geneva body face** by default (`face="display"` switches to
  *   the Chicago-style chrome face, `size="small"` to the 12px fine print);
  * - a **whole-system-pixel line box** — `--vf-paragraph-line-height`, 20px, the
  *   same row pitch as `vf-list-item`. This is the point of the component:
@@ -78,7 +78,7 @@ export class VfParagraph extends VfPositioned(LitElement) {
   private readonly gridSnap = new GridSnapController(this)
 
   /**
-   * Which embedded face to set the copy in — `'body'` (FindersKeepers, the
+   * Which embedded face to set the copy in — `'body'` (Geneva, the
    * default) or `'display'` (the Chicago-style chrome face, for copy that is
    * really dialog chrome). Applied by `vfStaticText`; declared here so it types
    * and reflects.

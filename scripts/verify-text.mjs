@@ -182,7 +182,7 @@ const heightOf = (page, id) =>
   )
   check(
     'label: face="body" switches to the body face',
-    styles['l-body'].family === 'FindersKeepers',
+    styles['l-body'].family === 'Geneva',
     styles['l-body'].family
   )
   check(
@@ -192,7 +192,7 @@ const heightOf = (page, id) =>
   )
   check(
     'paragraph: body face by default',
-    styles['p-default'].family === 'FindersKeepers',
+    styles['p-default'].family === 'Geneva',
     styles['p-default'].family
   )
   check(

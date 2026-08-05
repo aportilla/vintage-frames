@@ -9,8 +9,8 @@
     "**/components/*.ts",
     "**/chicago-font.js",
     "**/chicago-font.ts",
-    "**/finders-keepers-font.js",
-    "**/finders-keepers-font.ts",
+    "**/geneva-font.js",
+    "**/geneva-font.ts",
     "**/*.css"
   ],
   "main": "./dist/index.js",

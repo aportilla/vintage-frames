@@ -222,6 +222,8 @@ export { VfToggleControl } from './toggle-control.js'
 export type { VfToggleControlInterface } from './toggle-control.js'
 export { VfPositioned } from './position.js'
 export type { VfPositionedInterface } from './position.js'
+export { VfSized } from './size.js'
+export type { VfSizedInterface } from './size.js'
 export { VfModalDialog, modalDialogStyles } from './modal-dialog.js'
 export type { VfCloseReason } from './modal-dialog.js'
 

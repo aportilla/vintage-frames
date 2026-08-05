@@ -200,7 +200,6 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-font-family-display` | `'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
 | `--vf-font-size` | `16px` | body face size |
 | `--vf-font-size-display` | `16px` | chrome face size |
-| `--vf-font-size-small` | `12px` | fine print (disk-space captions, `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table |
 | `--vf-font-weight` | `700` | all text (Chicago is inherently bold) |
 | `--vf-black` | `#000000` | borders, text, stripes, selection bg |
 | `--vf-white` | `#ffffff` | content wells, control faces |
@@ -219,7 +218,6 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-paragraph-line-height` | `20px` | `vf-paragraph` line box — the same pitch as a `vf-list-item` row |
 | `--vf-icon-label-height` | `12px` | `vf-icon`'s name plate line box — the Finder's own plate height, tighter than the face's 16px em, which centers in it (keep an override even, or the baseline lands on a half pixel) |
 | `--vf-icon-gap` | `2px` | space between a `vf-icon`'s art cell and its name plate |
-| `--vf-paragraph-line-height-small` | `16px` | `vf-paragraph` line box under `size="small"` |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
@@ -268,13 +266,15 @@ after it further off the device-pixel grid, which is the single most common way
 a page fringes an otherwise-correct component (see the layout contract in
 README). Re-theme these tokens with whole numbers.
 
-**One size, honestly.** Both embedded faces are single 16-design-px masters, so
-`--vf-font-size-small` (12px) renders them at 0.75 design px per system px:
-stems land between device pixels and a run of text measures fractionally, which
-also drags its host off the grid if the host shrink-wraps to it (contract rule
-3). It is the one place the kit trades pixel-exactness for the fine print the
-reference screens actually contain. Use it for genuine captions, give the box a
-whole width (or let it stretch), and keep everything else at the one true size.
+**One size, honestly.** Both embedded faces are single 16-design-px masters and
+render at exactly that size — one design px = one system px, always. "Smaller"
+is a *family* switch: System 7's fine print was Geneva 9 — the collection's
+smallest strike, which **is** the body face — so a dialog's disk-space caption
+is `face="body"` (usually `dim`), the way `vf-button size="small"` sets its
+label and `vf-icon size="small"` swaps to the 16×16 art. A genuinely different
+size is a different strike (`fonts/imported/` holds the classic collection),
+registered like the embedded ones and themed in through the font family/size
+tokens with its own whole-pixel metrics.
 
 **Grid snapping.** Whole system pixels only put an edge on the device grid
 *relative to the component's own origin*; a page that lands that origin on a
@@ -1766,8 +1766,8 @@ leading.
 #### `vf-label` (`VfLabel`, vf-label.ts)
 The static caption: "Name:" beside a field, "Mode" over a radio group, a readout.
 - **Attributes/props:** `for: string` (id of the labelled control, resolved in
-  the label's own tree scope), `face: 'display' | 'body'`, `size: 'small'`,
-  `dim: boolean`, `width: number` (whole system px).
+  the label's own tree scope), `face: 'display' | 'body'`, `dim: boolean`,
+  `width`/`height: number` (whole system px, via `VfSized` — src/size.ts).
 - **`width` is the caption's half of contract rule 3.** Left to its text a
   caption measures whatever its glyphs measure (the showcase's Apple menu title
   came to 32.641 system px) and anything sized from it inherits the fraction; a
@@ -1799,11 +1799,13 @@ The static caption: "Name:" beside a field, "Mode" over a radio group, a readout
 
 #### `vf-paragraph` (`VfParagraph`, vf-paragraph.ts)
 A paragraph of copy on the kit's body face and grid.
-- **Attributes/props:** `face: 'display' | 'body'`, `size: 'small'`,
-  `dim: boolean`.
+- **Attributes/props:** `face: 'display' | 'body'`, `dim: boolean`,
+  `width`/`height: number` (whole system px, via `VfSized` — the measure the
+  copy wraps to, and a box the copy overflows rather than grows; what a
+  placed paragraph states, since it otherwise shrink-wraps its longest line).
 - **Visual:** `display: block`, the **body face** by default,
-  `line-height: var(--vf-paragraph-line-height, 20px)` (16px under
-  `size="small"`), selectable (prose, so it re-enables the text selection
+  `line-height: var(--vf-paragraph-line-height, 20px)`,
+  selectable (prose, so it re-enables the text selection
   `vfBase` suppresses). Renders a real `<p>` in the shadow root, so the copy
   keeps paragraph semantics for AT. **No margin** (§2): paragraph spacing is the
   page's, in whole pixels like everything else.
@@ -1997,7 +1999,8 @@ screenshots:
 2. **"DragThing 2.9 Installer" window** — faithful to the screenshot: white
    content well (bordered) with welcome copy + bullet list, "Disk space
    available: 58,616K / Approximate disk space needed: 4,584K" caption row
-   (small font), `vf-fieldset legend="Install Location"` containing the folder
+   (the body face — System 7's fine print is Geneva 9 at its own size),
+   `vf-fieldset legend="Install Location"` containing the folder
    text and a `vf-select` ("Macintosh HD"), and stacked `Quit` +
    `Install` (variant=default) buttons on the right. `movable zoomable`.
 3. **"Format" dialog window** — faithful to the screenshot: Mode

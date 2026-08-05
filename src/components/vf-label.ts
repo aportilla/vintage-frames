@@ -2,9 +2,10 @@ import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
+import { VfSized } from '../size.js'
 import type { PropertyValues } from 'lit'
 import { vfBase, vfDisplayDecls, vfStaticText } from '../styles/base.js'
-import { ScaleController, sysLength } from '../scale.js'
+import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 
 /** Serial for the auto-generated id an `aria-labelledby` reference needs. */
@@ -64,14 +65,23 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  * in the display face — this is that, as a component, on the kit's grid:
  *
  * - the **Chicago-style chrome face** by default (dialog captions are chrome),
- *   with `face="body"` to switch to Geneva and `size="small"` for the
- *   12px fine print;
+ *   with `face="body"` to switch to Geneva — which is also the kit's fine
+ *   print, as it was System 7's: a dialog's small captions are Geneva 9 at
+ *   its own strike size;
  * - a **whole-system-pixel line box** (`--vf-label-line-height`, 16px — the
  *   faces' own em), so a column of captions accumulates whole offsets instead of
  *   pushing what follows off the device-pixel grid the way a ratio `line-height`
  *   does (README, layout contract rule 2);
  * - its own {@link GridSnapController}, so the bitmap stems stay on the grid
- *   wherever the page puts it.
+ *   wherever the page puts it;
+ * - a **declared `width`** ({@link VfSized}) — the shared width of a caption
+ *   column, so a run of label-and-field rows lands every field on one x.
+ *   Left to its text a caption measures whatever its glyphs measure (the
+ *   showcase's Apple menu title came to 32.641 system px) and anything sized
+ *   from it inherits the fraction; a declared width is whole, and so is the
+ *   row built on it (layout contract rule 3). A caption wider than its column
+ *   overflows rather than reflowing the row: the number is the column, and a
+ *   caption that doesn't fit is a number to raise.
  *
  * `for` points at a control by id, as a native `<label>` does — clicking the
  * caption focuses that control, and the caption text becomes its accessible
@@ -84,11 +94,9 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  * @csspart label - The inner text box.
  * @cssprop --vf-label-line-height - Line box, in system px (default `16px`).
  *   Keep it a whole number — a ratio puts every following line off the grid.
- * @cssprop --vf-font-size-small - fine print (disk-space captions,
- *   `size="small"` on `vf-label`/`vf-paragraph`) — see the note after the table
  */
 @vfElement('vf-label')
-export class VfLabel extends VfPositioned(LitElement) {
+export class VfLabel extends VfSized(VfPositioned(LitElement)) {
   static override styles = [
     vfBase,
     vfStaticText,
@@ -158,33 +166,12 @@ export class VfLabel extends VfPositioned(LitElement) {
    */
   @property({ reflect: true }) face?: 'display' | 'body'
 
-  /** `'small'` sets the caption in the kit's 12px fine print. */
-  @property({ reflect: true }) size?: 'small'
-
   /**
    * Greys the caption to `--vf-disabled`. System 7 dims the label, not the
    * control (SPEC §1), so this is what a caption beside a disabled control
    * wears — the control keeps its solid black box.
    */
   @property({ type: Boolean, reflect: true }) dim = false
-
-  /**
-   * Width in whole system px — the shared width of a caption column, so a run
-   * of label-and-field rows lands every field on one x.
-   *
-   * This is the caption's half of layout contract rule 3. Left to its text a
-   * caption measures whatever its glyphs measure (the showcase's Apple menu
-   * title came to 32.641 system px), and anything sized from it inherits the
-   * fraction; a declared width is whole, and so is the row built on it. The
-   * host has been `inline-block` for exactly this purpose since it was written
-   * — this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page
-   * used to need, which only landed whole while it happened to bind.
-   *
-   * A caption wider than the width it is given overflows rather than wrapping
-   * the row's layout around it: the number is the column, and a caption that
-   * doesn't fit is a number to raise.
-   */
-  @property({ type: Number }) width?: number
 
   /** The name we handed the target, so we can take back exactly that. */
   #named: { target: Nameable; via: 'property' | 'aria'; value: string } | null = null
@@ -226,8 +213,6 @@ export class VfLabel extends VfPositioned(LitElement) {
 
   protected override updated(changed: PropertyValues<this>): void {
     if (changed.has('for')) this.#link()
-    // Live against --vf-scale, like vf-window's declared size (src/scale.ts).
-    if (changed.has('width')) this.style.width = sysLength(this.width)
   }
 
   protected override render() {

@@ -374,19 +374,13 @@
               </vf-paragraph>
             </vf-stack>
           </vf-scroll-area>
-          <!-- The spec's fine print (SPEC §7.2): body face, 12px. The captions
-               carry fill-width on purpose: at 12px the 16-design-px face
-               renders at 0.75 design px per system px, so a caption left at its
-               own size measures a fractional width — 139.5 system px here — and
-               lands its host off the device-pixel grid (README rule 3). Filled,
-               each caption takes the panel's own whole width and only the
-               glyphs are soft, which at this size is the kit's documented
-               trade-off (SPEC §3, --vf-font-size-small). -->
+          <!-- The spec's fine print (SPEC §7.2): the body face — System 7's
+               fine print is Geneva 9 at its own strike size. -->
           <vf-stack fill-width gap="2" pad="0 2">
-            <vf-label fill-width face="body" size="small"
+            <vf-label fill-width face="body"
               >Disk space available: 58,616K</vf-label
             >
-            <vf-label fill-width face="body" size="small"
+            <vf-label fill-width face="body"
               >Approximate disk space needed: 4,584K</vf-label
             >
           </vf-stack>
@@ -1133,19 +1127,15 @@ shrink it and watch the arrows come back.
            by `npm run extract:icons`), slotted through vf-img like any
            picture. An alert speaks in chrome type, so the copy takes the
            display face rather than vf-paragraph's body default. -->
-      <vf-dialog id="alert-erase" frame="plain" label="Caution" width="400" height="118">
-        <vf-stack fill-width direction="row" gap="16">
-          <vf-img width="32" height="32">
-            <img src="/demo/icons/alert.png" alt="" />
-          </vf-img>
-          <vf-paragraph fill-width face="display"
-            >Completely erase the disk named “Macintosh HD”?</vf-paragraph
-          >
-        </vf-stack>
-        <vf-button id="btn-erase-cancel" slot="buttons">Cancel</vf-button>
-        <vf-button id="btn-erase-confirm" slot="buttons" variant="default"
-          >Erase</vf-button
+      <vf-dialog id="alert-erase" frame="plain" label="Caution" width="400" height="140">
+        <vf-img width="32" height="32" top="8" left="8"><img src="/demo/icons/alert.png" alt="" /></vf-img>
+        <vf-paragraph face="display" top="6" left="60" width="240"
+          >Completely erase the disk named “Macintosh HD”?</vf-paragraph
         >
+        <vf-button-group top="70" left="190">
+          <vf-button id="btn-erase-cancel">Cancel</vf-button>
+          <vf-button id="btn-erase-confirm" variant="default">Erase</vf-button>
+        </vf-button-group>
       </vf-dialog>
     </vf-desktop>
   </body>

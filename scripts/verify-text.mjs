@@ -8,14 +8,18 @@
  * two components state their line box in whole system px instead, so a column
  * of copy accumulates whole offsets. Four groups:
  *
- *  - LINE BOX: a paragraph's height is exactly `lines × 20` system px (16 under
- *    size="small"), a label's exactly 16 — the claim everything else rests on.
+ *  - LINE BOX: a paragraph's height is exactly `lines × 20` system px, a
+ *    label's exactly 16 — the claim everything else rests on.
+ *  - DECLARED BOX: `width` is the measure a paragraph wraps to and `height` a
+ *    box its copy overflows rather than grows — the DITL static-text rectangle
+ *    a placed dialog layout states; both live against --vf-scale, both undone
+ *    by removing the attribute.
  *  - DRIFT: the A/B. Six paragraphs inside a container with a ratio leading all
  *    land on whole device pixels; six plain `<p>`s in the same container drift
  *    off it. If this ever reads "both clean", the fixture stopped reproducing
  *    the fault and the check is worthless.
  *  - FACE: each component's default face (label = chrome, paragraph = body),
- *    the `face` override that swaps them, `size="small"`, and `dim`.
+ *    the `face` override that swaps them, and `dim`.
  *  - FOR: the label/control wiring — click-to-focus, the accessible name it
  *    hands a vf-* control (and the aria-labelledby it uses for anything else),
  *    that it never overwrites a name the consumer set, that a caption filled in
@@ -81,9 +85,6 @@ const heightOf = (page, id) =>
         A run of copy long enough to wrap onto several line boxes inside this
         narrow column, which is the case a ratio leading gets wrong.
       </vf-paragraph>
-      <vf-paragraph id="fine" size="small">
-        The same again, in the kit's fine print, which rides a tighter line box.
-      </vf-paragraph>
     </div>
     <vf-label id="cap">Name:</vf-label>
   `)
@@ -98,15 +99,75 @@ const heightOf = (page, id) =>
     `${wrapped}px = ${wrapped / (20 * S)} lines`
   )
 
-  const fine = await heightOf(page, 'fine')
-  check(
-    'paragraph: size="small" rides a whole multiple of 16 system px',
-    fine % (16 * S) === 0 && fine > 16 * S,
-    `${fine}px = ${fine / (16 * S)} lines`
-  )
-
   const cap = await heightOf(page, 'cap')
   check('label: exactly 16 system px tall (the faces’ own em)', cap === 16 * S, `${cap}px`)
+
+  await page.close()
+}
+
+/* ── DECLARED BOX ─────────────────────────────────────────────────────────
+   `width`/`height` (VfSized) — the size half of the DITL story. A placed
+   paragraph shrink-wraps its longest line, so the declared width is what
+   states the measure; the declared height is a box copy overflows rather
+   than grows; the write is the live calc, and removing the attribute hands
+   the axis back to layout. */
+
+{
+  const page = await build(`
+    <div style="position: relative; width: 600px; height: 500px">
+      <vf-paragraph id="placed" top="10" left="50" width="100">
+        A run of copy long enough to need several line boxes at a narrow measure.
+      </vf-paragraph>
+      <vf-paragraph id="boxed" top="100" left="50" width="100" height="60">
+        A run of copy long enough to need several line boxes at a narrow
+        measure — decidedly more of them than the three the declared sixty
+        system pixels have room for.
+      </vf-paragraph>
+    </div>
+  `)
+
+  const placed = await page.evaluate(() => {
+    const el = document.getElementById('placed')
+    const rect = el.getBoundingClientRect()
+    return { width: rect.width, height: rect.height, inline: el.style.width }
+  })
+  check(
+    'declared box: a placed paragraph wraps at its stated measure',
+    placed.width === 100 * S && placed.height % (20 * S) === 0 && placed.height > 20 * S,
+    `${placed.width}px wide, ${placed.height / (20 * S)} lines`
+  )
+  check(
+    'declared box: the write is the live calc, not a resolved px',
+    placed.inline === 'calc(var(--vf-scale, 1) * 100px)',
+    placed.inline
+  )
+
+  const boxed = await page.evaluate(() => {
+    const el = document.getElementById('boxed')
+    return {
+      box: el.getBoundingClientRect().height,
+      // The host doesn't clip, so its own scrollHeight stays the box; the
+      // inner <p> is where the too-tall copy actually measures.
+      copy: el.shadowRoot.querySelector('p').getBoundingClientRect().height,
+    }
+  })
+  check(
+    'declared box: copy that outgrows the height overflows rather than growing it',
+    boxed.box === 60 * S && boxed.copy > 60 * S,
+    `box ${boxed.box}px, copy ${boxed.copy}px`
+  )
+
+  const released = await page.evaluate(async () => {
+    const el = document.getElementById('placed')
+    el.removeAttribute('width')
+    await el.updateComplete
+    return { inline: el.style.width, width: el.getBoundingClientRect().width }
+  })
+  check(
+    'declared box: removing the attribute returns the axis to layout',
+    released.inline === '' && released.width !== 100 * S,
+    `inline "${released.inline}", ${released.width}px wide`
+  )
 
   await page.close()
 }
@@ -155,12 +216,11 @@ const heightOf = (page, id) =>
     <vf-label id="l-dim" dim>Caption</vf-label>
     <vf-paragraph id="p-default">Copy</vf-paragraph>
     <vf-paragraph id="p-display" face="display">Copy</vf-paragraph>
-    <vf-paragraph id="p-small" size="small">Copy</vf-paragraph>
   `)
 
   const styles = await page.evaluate(() =>
     Object.fromEntries(
-      ['l-default', 'l-body', 'l-dim', 'p-default', 'p-display', 'p-small'].map((id) => {
+      ['l-default', 'l-body', 'l-dim', 'p-default', 'p-display'].map((id) => {
         const cs = getComputedStyle(document.getElementById(id))
         return [
           id,
@@ -199,11 +259,6 @@ const heightOf = (page, id) =>
     'paragraph: face="display" switches to the chrome face',
     styles['p-display'].family === 'Chicago' && styles['p-display'].smoothing === 'none',
     `${styles['p-display'].family} / smoothing ${styles['p-display'].smoothing}`
-  )
-  check(
-    'paragraph: size="small" is the 12px fine print, scaled',
-    styles['p-small'].size === `${12 * S}px`,
-    styles['p-small'].size
   )
 
   await page.close()

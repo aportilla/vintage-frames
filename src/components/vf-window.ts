@@ -1,8 +1,8 @@
 import { html, css, LitElement, nothing } from 'lit'
-import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
+import { VfSized } from '../size.js'
 import {
   vfBase,
   vfStripes,
@@ -12,7 +12,7 @@ import {
   vfTitleBar,
   vfWindowWidgets,
 } from '../styles/base.js'
-import { ScaleController, snapToSystemPx, sys, sysLength } from '../scale.js'
+import { ScaleController, snapToSystemPx, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar, widgetLabel, closeBox, zoomBox } from '../chrome.js'
@@ -42,9 +42,18 @@ interface ResizeState {
  * click-to-front stacking and automatic `active` management (utility windows
  * float above the document tier).
  *
- * Every recipe also declares {@link width} AND {@link height}, in whole system
- * px: a window is a fixed box in both axes, and content taller than it is
- * clipped at the frame the way the classic content region was.
+ * Every recipe also declares `width` AND `height` ({@link VfSized}), in whole
+ * system px — the art's own unit, so the window keeps its proportions to the
+ * chrome inside it at every display density (a CSS-px size stays put while
+ * the components in it triple). A window is a fixed box in both axes, the way
+ * the WIND resource carried it: left to layout it takes whatever its
+ * container or content hands it, which is how a title bar ends up wider than
+ * the screen or a dialog reflows as it moves — and a window that grows with
+ * its body is one the user can neither predict nor (via the grow box) own.
+ * Content taller than the declared box is clipped at the frame the way the
+ * classic content region was; `scrollbars` lets the user reach the rest.
+ * Unset, the window still renders — normal block layout, as before — and
+ * says so once in the console.
  *
  * @slot - Default slot: window body content.
  * @csspart frame - The outer chrome frame.
@@ -69,7 +78,7 @@ interface ResizeState {
  *   rule, traced from `Windows/utility-window.png`
  */
 @vfElement('vf-window')
-export class VfWindow extends VfPositioned(LitElement) {
+export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   static override styles = [
     vfBase,
     vfStripes,
@@ -300,33 +309,7 @@ export class VfWindow extends VfPositioned(LitElement) {
   /** Title text shown centered in the title bar. */
   @property() heading = ''
 
-  /**
-   * Window width in whole system px — the art's own unit, so the window keeps
-   * its proportions to the chrome inside it at every display density (a CSS-px
-   * width does not: it stays put while the components in it triple).
-   *
-   * **Declare it,** with {@link height}. A window owns its size the way a real
-   * one does; left to layout it takes whatever width its container or its
-   * content hands it, which is how a title bar ends up wider than the screen or
-   * a dialog reflows as it moves. Unset, the window still renders — normal
-   * block layout, as before — and says so once in the console.
-   */
-  @property({ type: Number }) width?: number
-
-  /**
-   * Window height in whole system px.
-   *
-   * **Declare it,** with {@link width}. A window is a fixed box, not a shape
-   * its contents fall into: System 7 carried both dimensions in the WIND
-   * resource, and a window that grows with its body is one the user can neither
-   * predict nor (via the grow box) own. Unset, the body sizes to its content —
-   * the old behavior — and the window says so once in the console.
-   *
-   * Content taller than the declared box is clipped at the frame, as the
-   * classic content region was; give the window `scrollbars` to let the user
-   * reach the rest.
-   */
-  @property({ type: Number }) height?: number
+  // `width`/`height` come from VfSized — declare BOTH; see the class doc.
 
   /**
    * Whether this is the frontmost (active) window: stripes and widgets show.
@@ -433,18 +416,15 @@ export class VfWindow extends VfPositioned(LitElement) {
   private _resizeState: ResizeState | null = null
 
   /**
-   * Write {@link width}/{@link height} onto the host as scaled lengths, and say
-   * something the first time a window is opened without a width.
-   *
-   * Only on the update that *changed* them: the grow box writes its own px
-   * width/height straight to the host, and re-applying the authored size on
-   * some later render (a title change, the desktop toggling `active`) would
-   * snap a resized window back. Setting the property again is the deliberate
-   * way to re-size it.
+   * Say something the first time a window is opened without a width. The size
+   * itself is written by VfSized's controller — whose only-on-change rule
+   * exists for this component: the grow box writes its own px width/height
+   * straight to the host, and re-applying the authored size on some later
+   * render (a title change, the desktop toggling `active`) would snap a
+   * resized window back. Controllers run before this hook, so the inline
+   * style the warning reads is already written.
    */
-  protected override updated(changed: PropertyValues<this>): void {
-    if (changed.has('width')) this.style.width = sysLength(this.width)
-    if (changed.has('height')) this.style.height = sysLength(this.height)
+  protected override updated(): void {
     this.#warnIfUnsized()
   }
 
@@ -462,10 +442,10 @@ export class VfWindow extends VfPositioned(LitElement) {
   #warnIfUnsized(): void {
     if (this.#warnedNoSize) return
     const missing: string[] = []
-    if (this.width === undefined && this.style.width === '') {
+    if (this.width == null && this.style.width === '') {
       missing.push('width (falling back to block layout)')
     }
-    if (this.height === undefined && this.style.height === '') {
+    if (this.height == null && this.style.height === '') {
       missing.push('height (falling back to the content)')
     }
     if (missing.length === 0) return

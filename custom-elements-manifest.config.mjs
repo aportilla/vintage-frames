@@ -63,6 +63,7 @@ export default {
     'src/toggle-control.ts',
     'src/modal-dialog.ts',
     'src/position.ts',
+    'src/size.ts',
   ],
   outdir: '.',
   litelement: true,

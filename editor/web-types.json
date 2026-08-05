@@ -910,7 +910,7 @@
         },
         {
           "name": "vf-label",
-          "description": "`<vf-label>` — a static System 7 caption.\n\nThe \"Name:\" beside a field, the \"Mode\" heading over a group of radios, a\nnumeric readout beside a slider. Text the page was previously setting by hand\nin the display face — this is that, as a component, on the kit's grid:\n\n- the **Chicago-style chrome face** by default (dialog captions are chrome),\n  with `face=\"body\"` to switch to Geneva and `size=\"small\"` for the\n  12px fine print;\n- a **whole-system-pixel line box** (`--vf-label-line-height`, 16px — the\n  faces' own em), so a column of captions accumulates whole offsets instead of\n  pushing what follows off the device-pixel grid the way a ratio `line-height`\n  does (README, layout contract rule 2);\n- its own GridSnapController, so the bitmap stems stay on the grid\n  wherever the page puts it.\n\n`for` points at a control by id, as a native `<label>` does — clicking the\ncaption focuses that control, and the caption text becomes its accessible\nname (see for for how, and for what it deliberately doesn't do).\n\nChrome text, so the host is not selectable (SPEC §1); prose belongs in\n`<vf-paragraph>`, which is.\n---\n\n\n### **Slots:**\n - _default_ - The caption text.\n\n### **CSS Properties:**\n - **--vf-label-line-height** - Line box, in system px (default `16px`). Keep it a whole number — a ratio puts every following line off the grid. _(default: undefined)_\n- **--vf-font-size-small** - fine print (disk-space captions, `size=\"small\"` on `vf-label`/`vf-paragraph`) — see the note after the table _(default: undefined)_\n\n### **CSS Parts:**\n - **label** - The inner text box.",
+          "description": "`<vf-label>` — a static System 7 caption.\n\nThe \"Name:\" beside a field, the \"Mode\" heading over a group of radios, a\nnumeric readout beside a slider. Text the page was previously setting by hand\nin the display face — this is that, as a component, on the kit's grid:\n\n- the **Chicago-style chrome face** by default (dialog captions are chrome),\n  with `face=\"body\"` to switch to Geneva — which is also the kit's fine\n  print, as it was System 7's: a dialog's small captions are Geneva 9 at\n  its own strike size;\n- a **whole-system-pixel line box** (`--vf-label-line-height`, 16px — the\n  faces' own em), so a column of captions accumulates whole offsets instead of\n  pushing what follows off the device-pixel grid the way a ratio `line-height`\n  does (README, layout contract rule 2);\n- its own GridSnapController, so the bitmap stems stay on the grid\n  wherever the page puts it;\n- a **declared `width`** (VfSized) — the shared width of a caption\n  column, so a run of label-and-field rows lands every field on one x.\n  Left to its text a caption measures whatever its glyphs measure (the\n  showcase's Apple menu title came to 32.641 system px) and anything sized\n  from it inherits the fraction; a declared width is whole, and so is the\n  row built on it (layout contract rule 3). A caption wider than its column\n  overflows rather than reflowing the row: the number is the column, and a\n  caption that doesn't fit is a number to raise.\n\n`for` points at a control by id, as a native `<label>` does — clicking the\ncaption focuses that control, and the caption text becomes its accessible\nname (see for for how, and for what it deliberately doesn't do).\n\nChrome text, so the host is not selectable (SPEC §1); prose belongs in\n`<vf-paragraph>`, which is.\n---\n\n\n### **Slots:**\n - _default_ - The caption text.\n\n### **CSS Properties:**\n - **--vf-label-line-height** - Line box, in system px (default `16px`). Keep it a whole number — a ratio puts every following line off the grid. _(default: undefined)_\n\n### **CSS Parts:**\n - **label** - The inner text box.",
           "doc-url": "",
           "attributes": [
             {
@@ -924,19 +924,19 @@
               "value": { "type": "'display' | 'body' | undefined" }
             },
             {
-              "name": "size",
-              "description": "`'small'` sets the caption in the kit's 12px fine print.",
-              "value": { "type": "'small' | undefined" }
-            },
-            {
               "name": "dim",
               "description": "Greys the caption to `--vf-disabled`. System 7 dims the label, not the\ncontrol (SPEC §1), so this is what a caption beside a disabled control\nwears — the control keeps its solid black box.",
               "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "width",
-              "description": "Width in whole system px — the shared width of a caption column, so a run\nof label-and-field rows lands every field on one x.\n\nThis is the caption's half of layout contract rule 3. Left to its text a\ncaption measures whatever its glyphs measure (the showcase's Apple menu\ntitle came to 32.641 system px), and anything sized from it inherits the\nfraction; a declared width is whole, and so is the row built on it. The\nhost has been `inline-block` for exactly this purpose since it was written\n— this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page\nused to need, which only landed whole while it happened to bind.\n\nA caption wider than the width it is given overflows rather than wrapping\nthe row's layout around it: the number is the column, and a caption that\ndoesn't fit is a number to raise.",
-              "value": { "type": "number | undefined" }
+              "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "top",
@@ -964,19 +964,19 @@
                 "type": "'display' | 'body' | undefined"
               },
               {
-                "name": "size",
-                "description": "`'small'` sets the caption in the kit's 12px fine print.",
-                "type": "'small' | undefined"
-              },
-              {
                 "name": "dim",
                 "description": "Greys the caption to `--vf-disabled`. System 7 dims the label, not the\ncontrol (SPEC §1), so this is what a caption beside a disabled control\nwears — the control keeps its solid black box.",
                 "type": "boolean"
               },
               {
                 "name": "width",
-                "description": "Width in whole system px — the shared width of a caption column, so a run\nof label-and-field rows lands every field on one x.\n\nThis is the caption's half of layout contract rule 3. Left to its text a\ncaption measures whatever its glyphs measure (the showcase's Apple menu\ntitle came to 32.641 system px), and anything sized from it inherits the\nfraction; a declared width is whole, and so is the row built on it. The\nhost has been `inline-block` for exactly this purpose since it was written\n— this replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page\nused to need, which only landed whole while it happened to bind.\n\nA caption wider than the width it is given overflows rather than wrapping\nthe row's layout around it: the number is the column, and a caption that\ndoesn't fit is a number to raise.",
-                "type": "number | undefined"
+                "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "height",
+                "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "top",
@@ -1589,7 +1589,7 @@
         },
         {
           "name": "vf-paragraph",
-          "description": "`<vf-paragraph>` — a paragraph of copy on the kit's body face and grid.\n\nThe installer's welcome text, a dialog's explanation, an article's prose:\nanything a page would otherwise set with a `<p>` and hope the leading landed\nsomewhere sensible. What it adds over that `<p>`:\n\n- the **Geneva body face** by default (`face=\"display\"` switches to\n  the Chicago-style chrome face, `size=\"small\"` to the 12px fine print);\n- a **whole-system-pixel line box** — `--vf-paragraph-line-height`, 20px, the\n  same row pitch as `vf-list-item`. This is the point of the component:\n  line boxes are the single biggest source of off-grid layout, because a\n  ratio resolves to whatever it resolves to (`1.65 × 17px = 28.05px`) and\n  every line of prose nudges everything after it further off the device-pixel\n  grid, smearing 1-bit borders and bitmap glyph stems (README, layout\n  contract rule 2). A whole-pixel line box accumulates whole offsets;\n- its own GridSnapController, so it holds its own origin once the\n  page opts in with `applyGridSnap()`.\n\nThe shadow root renders a real `<p>`, so the copy keeps paragraph semantics\nfor assistive tech, and — unlike the kit's chrome — the text is selectable.\nThere is no margin: per SPEC §2 a component adds nothing outside its own box,\nso paragraph spacing is the page's (a `gap` on the column, or a margin on the\nhost — kept a whole number of pixels, like everything else in the contract).\n---\n\n\n### **Slots:**\n - _default_ - The paragraph copy.\n\n### **CSS Properties:**\n - **--vf-paragraph-line-height** - Line box, in system px (default `20px`). _(default: undefined)_\n- **--vf-paragraph-line-height-small** - Line box under `size=\"small\"` (default `16px`). Keep both whole numbers — a ratio is what puts a page off the grid in the first place. _(default: undefined)_\n- **--vf-font-size-small** - fine print (disk-space captions, `size=\"small\"` on `vf-label`/`vf-paragraph`) — see the note after the table _(default: undefined)_\n\n### **CSS Parts:**\n - **paragraph** - The inner `<p>`.",
+          "description": "`<vf-paragraph>` — a paragraph of copy on the kit's body face and grid.\n\nThe installer's welcome text, a dialog's explanation, an article's prose:\nanything a page would otherwise set with a `<p>` and hope the leading landed\nsomewhere sensible. What it adds over that `<p>`:\n\n- the **Geneva body face** by default (`face=\"display\"` switches to\n  the Chicago-style chrome face);\n- a **whole-system-pixel line box** — `--vf-paragraph-line-height`, 20px, the\n  same row pitch as `vf-list-item`. This is the point of the component:\n  line boxes are the single biggest source of off-grid layout, because a\n  ratio resolves to whatever it resolves to (`1.65 × 17px = 28.05px`) and\n  every line of prose nudges everything after it further off the device-pixel\n  grid, smearing 1-bit borders and bitmap glyph stems (README, layout\n  contract rule 2). A whole-pixel line box accumulates whole offsets;\n- its own GridSnapController, so it holds its own origin once the\n  page opts in with `applyGridSnap()`;\n- a **declared box** when the layout wants one — `width`/`height` in whole\n  system px (VfSized). In flow a paragraph takes its container's\n  width, which is usually right; a *placed* one (`top`/`left`) shrink-wraps\n  its longest line instead — a fractional glyph-run width, wrapped wherever\n  the parent's edge happens to fall — so a DITL-style layout states the\n  measure the copy wraps to, whole and on the grid.\n\nThe shadow root renders a real `<p>`, so the copy keeps paragraph semantics\nfor assistive tech, and — unlike the kit's chrome — the text is selectable.\nThere is no margin: per SPEC §2 a component adds nothing outside its own box,\nso paragraph spacing is the page's (a `gap` on the column, or a margin on the\nhost — kept a whole number of pixels, like everything else in the contract).\n---\n\n\n### **Slots:**\n - _default_ - The paragraph copy.\n\n### **CSS Properties:**\n - **--vf-paragraph-line-height** - Line box, in system px (default `20px`). Keep it a whole number — a ratio is what puts a page off the grid in the first place. _(default: undefined)_\n\n### **CSS Parts:**\n - **paragraph** - The inner `<p>`.",
           "doc-url": "",
           "attributes": [
             {
@@ -1598,14 +1598,19 @@
               "value": { "type": "'display' | 'body' | undefined" }
             },
             {
-              "name": "size",
-              "description": "`'small'` sets the copy in the kit's 12px fine print, on a 16px line box.",
-              "value": { "type": "'small' | undefined" }
-            },
-            {
               "name": "dim",
               "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "width",
+              "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "top",
@@ -1628,14 +1633,19 @@
                 "type": "'display' | 'body' | undefined"
               },
               {
-                "name": "size",
-                "description": "`'small'` sets the copy in the kit's 12px fine print, on a 16px line box.",
-                "type": "'small' | undefined"
-              },
-              {
                 "name": "dim",
                 "description": "Greys the copy to `--vf-disabled` — System 7's dimmed static text.",
                 "type": "boolean"
+              },
+              {
+                "name": "width",
+                "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "height",
+                "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "top",
@@ -2401,13 +2411,13 @@
             },
             {
               "name": "width",
-              "description": "Width in whole system px. Optional — a column is otherwise as wide as its\nwidest child.\n\nWorth declaring on the outermost stack of a panel, for two reasons: a stack\nwith a declared width is on the device-pixel grid by construction, and so\nis every child filled to it (the size half of README rule 3, which snapping\ndeliberately doesn't cover) — and in a row it is what creates the slack a\nchild's `fill-width` divides.",
-              "value": { "type": "number | undefined" }
+              "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "height",
-              "description": "Height in whole system px. Optional; see width.",
-              "value": { "type": "number | undefined" }
+              "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "top",
@@ -2451,13 +2461,13 @@
               },
               {
                 "name": "width",
-                "description": "Width in whole system px. Optional — a column is otherwise as wide as its\nwidest child.\n\nWorth declaring on the outermost stack of a panel, for two reasons: a stack\nwith a declared width is on the device-pixel grid by construction, and so\nis every child filled to it (the size half of README rule 3, which snapping\ndeliberately doesn't cover) — and in a row it is what creates the slack a\nchild's `fill-width` divides.",
-                "type": "number | undefined"
+                "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "height",
-                "description": "Height in whole system px. Optional; see width.",
-                "type": "number | undefined"
+                "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "top",
@@ -2962,7 +2972,7 @@
         },
         {
           "name": "vf-window",
-          "description": "`<vf-window>` — the System 7 desktop-window shell.\n\nStriped title bar with optional close box (left) and zoom box (right), a\nsolid-white frame with a hard offset shadow, an optional grow box for\nresizing, optional edge scroll rails (`scrollbars`), and the slim windoid\nchrome (`variant=\"utility\"`). The HIG's window archetypes are parameter\nrecipes over this shell rather than fixed anatomies — the component enables\nHIG compliance, it doesn't enforce it (see README \"window archetypes\"):\nthe full document window is `closable zoomable movable resizable\nscrollbars=\"both\"`, a modeless dialog box is `closable movable`, a utility\nwindow is `variant=\"utility\" movable`. Place inside `<vf-desktop>` to get\nclick-to-front stacking and automatic `active` management (utility windows\nfloat above the document tier).\n\nEvery recipe also declares width AND height, in whole system\npx: a window is a fixed box in both axes, and content taller than it is\nclipped at the frame the way the classic content region was.\n---\n\n\n### **Events:**\n - **vf-close** - Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.\n- **vf-zoom** - Zoom box clicked. Detail `{}`.\n\n### **Slots:**\n - _default_ - Default slot: window body content.\n\n### **CSS Properties:**\n - **--vf-dots-pattern** - the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) _(default: undefined)_\n- **--vf-titlebar-height** - window/dialog title bars _(default: undefined)_\n- **--vf-titlebar-height-utility** - the slim `vf-window[variant=\"utility\"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` _(default: 12px)_\n\n### **CSS Parts:**\n - **frame** - The outer chrome frame.\n- **title-bar** - The striped (or dithered) title bar.\n- **title** - The centered title patch (hidden on the utility bar).\n- **close-box** - The close widget (left).\n- **zoom-box** - The zoom widget (right).\n- **body** - The content area.\n- **grow-box** - The resize widget (bottom-right, when `resizable`).\n- **viewport** - The built-in scroll area's viewport (when `scrollbars`; re-exported from vf-scroll-area).",
+          "description": "`<vf-window>` — the System 7 desktop-window shell.\n\nStriped title bar with optional close box (left) and zoom box (right), a\nsolid-white frame with a hard offset shadow, an optional grow box for\nresizing, optional edge scroll rails (`scrollbars`), and the slim windoid\nchrome (`variant=\"utility\"`). The HIG's window archetypes are parameter\nrecipes over this shell rather than fixed anatomies — the component enables\nHIG compliance, it doesn't enforce it (see README \"window archetypes\"):\nthe full document window is `closable zoomable movable resizable\nscrollbars=\"both\"`, a modeless dialog box is `closable movable`, a utility\nwindow is `variant=\"utility\" movable`. Place inside `<vf-desktop>` to get\nclick-to-front stacking and automatic `active` management (utility windows\nfloat above the document tier).\n\nEvery recipe also declares `width` AND `height` (VfSized), in whole\nsystem px — the art's own unit, so the window keeps its proportions to the\nchrome inside it at every display density (a CSS-px size stays put while\nthe components in it triple). A window is a fixed box in both axes, the way\nthe WIND resource carried it: left to layout it takes whatever its\ncontainer or content hands it, which is how a title bar ends up wider than\nthe screen or a dialog reflows as it moves — and a window that grows with\nits body is one the user can neither predict nor (via the grow box) own.\nContent taller than the declared box is clipped at the frame the way the\nclassic content region was; `scrollbars` lets the user reach the rest.\nUnset, the window still renders — normal block layout, as before — and\nsays so once in the console.\n---\n\n\n### **Events:**\n - **vf-close** - Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.\n- **vf-zoom** - Zoom box clicked. Detail `{}`.\n\n### **Slots:**\n - _default_ - Default slot: window body content.\n\n### **CSS Properties:**\n - **--vf-dots-pattern** - the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) _(default: undefined)_\n- **--vf-titlebar-height** - window/dialog title bars _(default: undefined)_\n- **--vf-titlebar-height-utility** - the slim `vf-window[variant=\"utility\"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` _(default: 12px)_\n\n### **CSS Parts:**\n - **frame** - The outer chrome frame.\n- **title-bar** - The striped (or dithered) title bar.\n- **title** - The centered title patch (hidden on the utility bar).\n- **close-box** - The close widget (left).\n- **zoom-box** - The zoom widget (right).\n- **body** - The content area.\n- **grow-box** - The resize widget (bottom-right, when `resizable`).\n- **viewport** - The built-in scroll area's viewport (when `scrollbars`; re-exported from vf-scroll-area).",
           "doc-url": "",
           "attributes": [
             {
@@ -2974,16 +2984,6 @@
               "name": "heading",
               "description": "Title text shown centered in the title bar.",
               "value": { "type": "string", "default": "''" }
-            },
-            {
-              "name": "width",
-              "description": "Window width in whole system px — the art's own unit, so the window keeps\nits proportions to the chrome inside it at every display density (a CSS-px\nwidth does not: it stays put while the components in it triple).\n\n**Declare it,** with height. A window owns its size the way a real\none does; left to layout it takes whatever width its container or its\ncontent hands it, which is how a title bar ends up wider than the screen or\na dialog reflows as it moves. Unset, the window still renders — normal\nblock layout, as before — and says so once in the console.",
-              "value": { "type": "number | undefined" }
-            },
-            {
-              "name": "height",
-              "description": "Window height in whole system px.\n\n**Declare it,** with width. A window is a fixed box, not a shape\nits contents fall into: System 7 carried both dimensions in the WIND\nresource, and a window that grows with its body is one the user can neither\npredict nor (via the grow box) own. Unset, the body sizes to its content —\nthe old behavior — and the window says so once in the console.\n\nContent taller than the declared box is clipped at the frame, as the\nclassic content region was; give the window `scrollbars` to let the user\nreach the rest.",
-              "value": { "type": "number | undefined" }
             },
             {
               "name": "active",
@@ -3023,6 +3023,16 @@
               }
             },
             {
+              "name": "width",
+              "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "height",
+              "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
               "name": "top",
               "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
               "value": { "type": "number | null | undefined" }
@@ -3059,16 +3069,6 @@
                 "type": "string"
               },
               {
-                "name": "width",
-                "description": "Window width in whole system px — the art's own unit, so the window keeps\nits proportions to the chrome inside it at every display density (a CSS-px\nwidth does not: it stays put while the components in it triple).\n\n**Declare it,** with height. A window owns its size the way a real\none does; left to layout it takes whatever width its container or its\ncontent hands it, which is how a title bar ends up wider than the screen or\na dialog reflows as it moves. Unset, the window still renders — normal\nblock layout, as before — and says so once in the console.",
-                "type": "number | undefined"
-              },
-              {
-                "name": "height",
-                "description": "Window height in whole system px.\n\n**Declare it,** with width. A window is a fixed box, not a shape\nits contents fall into: System 7 carried both dimensions in the WIND\nresource, and a window that grows with its body is one the user can neither\npredict nor (via the grow box) own. Unset, the body sizes to its content —\nthe old behavior — and the window says so once in the console.\n\nContent taller than the declared box is clipped at the frame, as the\nclassic content region was; give the window `scrollbars` to let the user\nreach the rest.",
-                "type": "number | undefined"
-              },
-              {
                 "name": "active",
                 "description": "Whether this is the frontmost (active) window: stripes and widgets show.\nManaged automatically by an enclosing `vf-desktop`.",
                 "type": "boolean"
@@ -3102,6 +3102,16 @@
                 "name": "scrollbars",
                 "description": "Put System 7 scroll rails on the window edge — the classic document\nwindow. The body slot renders inside a built-in `vf-scroll-area` pulled\none system pixel under the frame on every side, so the rails repaint the\nborder lines and a `resizable` window's grow box lands in the corner\ncell. Values mirror `vf-scroll-area`'s `axis`; the `heading` names the\nscroll region; the viewport part is re-exported. Implies `flush` (the\nviewport carries its own padding). The slotted composition (SPEC §5\nvf-scroll-area) still works for windows that want an inset well instead.",
                 "type": "'vertical' | 'horizontal' | 'both' | undefined"
+              },
+              {
+                "name": "width",
+                "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "height",
+                "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "top",

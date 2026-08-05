@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
+import { VfSized } from '../size.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sysLength, sysLengths } from '../scale.js'
@@ -110,7 +111,7 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  * @slot - The children to arrange. `fill-width` / `fill-height` on any of them.
  */
 @vfElement('vf-stack')
-export class VfStack extends VfPositioned(LitElement) {
+export class VfStack extends VfSized(VfPositioned(LitElement)) {
   static override styles = [
     vfBase,
     css`
@@ -283,20 +284,9 @@ export class VfStack extends VfPositioned(LitElement) {
    */
   @property({ reflect: true }) place?: VfStackPlace
 
-  /**
-   * Width in whole system px. Optional — a column is otherwise as wide as its
-   * widest child.
-   *
-   * Worth declaring on the outermost stack of a panel, for two reasons: a stack
-   * with a declared width is on the device-pixel grid by construction, and so
-   * is every child filled to it (the size half of README rule 3, which snapping
-   * deliberately doesn't cover) — and in a row it is what creates the slack a
-   * child's `fill-width` divides.
-   */
-  @property({ type: Number }) width?: number
-
-  /** Height in whole system px. Optional; see {@link width}. */
-  @property({ type: Number }) height?: number
+  // `width`/`height` come from VfSized — worth declaring on the outermost
+  // stack of a panel: a declared width is on the grid by construction, and in
+  // a row it is what creates the slack a child's `fill-width` divides.
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -305,8 +295,8 @@ export class VfStack extends VfPositioned(LitElement) {
   // on the grid; the slotted components correct themselves (see grid-snap.ts).
 
   /**
-   * The four measured properties go on the host's own inline style as
-   * `calc(var(--vf-scale, 1) * Npx)`, the way `vf-window` writes its declared
+   * `gap` and `pad` go on the host's own inline style as
+   * `calc(var(--vf-scale, 1) * Npx)`, the way VfSized writes the declared
    * size. Emitting the calc rather than a resolved number keeps each one live
    * against the display: the scale is read at paint time, so a stack follows a
    * monitor change exactly as the metrics in a component's stylesheet do.
@@ -314,8 +304,6 @@ export class VfStack extends VfPositioned(LitElement) {
   protected override updated(changed: PropertyValues<this>): void {
     if (changed.has('gap')) this.style.gap = sysLength(this.gap)
     if (changed.has('pad')) this.style.padding = sysLengths(this.pad)
-    if (changed.has('width')) this.style.width = sysLength(this.width)
-    if (changed.has('height')) this.style.height = sysLength(this.height)
   }
 
   protected override render() {

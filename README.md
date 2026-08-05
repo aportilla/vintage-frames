@@ -213,7 +213,7 @@ class keeps the tag, and that the elements still render afterwards.
 | `vf-grid` | A lattice of equal cells with 1px rules between them — the desk-accessory palette, a color picker's swatch table; the cell count and cell size are properties, `rules` picks the pen (`solid`, `dashed` or `none`), `frameless` drops the perimeter for a grid whose container already draws that line, and `collapse` lands a cell's own border *on* the rule instead of beside it |
 | `vf-stack` | Arranges things **in system pixels** — a flexbox whose `gap`, `pad`, `width` and `height` are declared in the art's own unit, so a window's insides need no `calc(var(--vf-scale, 1) * …)` in your stylesheet. Content-governed: a column is as wide as its widest child, and `fill-width`/`fill-height` on a child ask for more (see [Laying out inside a window](#laying-out-inside-a-window--vf-stack)) |
 | `vf-label` | Static caption ("Name:", "Mode") in the chrome face; `for` focuses and names a control the way `<label for>` does, and `width` (system px) gives a caption column one whole-pixel x |
-| `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box |
+| `vf-paragraph` | A paragraph of copy in the body face, on a whole-pixel line box; `width`/`height` (system px) state the box — the measure the copy wraps to, for a placed layout |
 | `vf-img` | Pixel art on the kit's grid — sizes a slotted `<img>` to one system pixel per image pixel and keeps the nearest-neighbor magnification on whole device pixels; `width`/`height` (system px) reserve the box before the file loads |
 | `vf-icon` | The Finder icon: art in a reserved 32×32 or 16×16 cell with its name on a plate below — wrapped, never abbreviated, and capped at HFS's 31 characters. `selectable` (the art inverts), `open` (the art redraws as the open-window ghost, derived from the slotted art in the client), `movable` (drag or arrow keys) and `editable` (rename in place) — see [The Finder icon](#the-finder-icon--vf-icon) |
 
@@ -639,6 +639,14 @@ drag then owns the coordinates — activating a window never snaps it back to
 its authored spot — and setting the property again is the deliberate way to
 re-place it.
 
+A DITL item stated its *extent* too, and `width`/`height` (also whole system
+px) are that half of the rectangle — on the four components whose box is
+declared rather than governed by their content: `vf-window`, `vf-stack`,
+`vf-label` and `vf-paragraph`. The pair matters most on a placed paragraph,
+which otherwise shrink-wraps its longest line — the declared width is the
+measure its copy wraps to. Everything else keeps the size it draws itself at,
+which is the point: a push button is as wide as its label.
+
 ```sh
 npm run verify:position   # system px at dpr 1/2/3, the defaults, every
                           # container's anchor, and the drag interplay
@@ -807,22 +815,23 @@ number of system pixels:
 <vf-select id="disk">…</vf-select>
 
 <vf-paragraph>Click Install to place DragThing on your hard disk.</vf-paragraph>
-<vf-paragraph size="small" dim>Approximate disk space needed: 4,584K</vf-paragraph>
+<vf-paragraph dim>Approximate disk space needed: 4,584K</vf-paragraph>
 ```
 
 `vf-label` is chrome type on a 16px line box, `vf-paragraph` body type on a 20px
-one; `face="body"` / `face="display"` swaps either, `size="small"` drops to the
-12px fine print, and `dim` greys the text the way System 7 dims a label. Both
+one; `face="body"` / `face="display"` swaps either, and `dim` greys the text
+the way System 7 dims a label. Both
 snap themselves to the device grid, and `for` does what a native `<label for>`
 does — click to focus, plus the accessible name, which for a `vf-*` control has
 to reach the focusable element inside its shadow root and so lands on the
 control's `label` property (never overwriting one you set).
 
-One honest limit: both faces are single 16-design-pixel masters, so
-`size="small"` renders them at 0.75 design px per system px — the stems land
-between device pixels and the run measures fractionally. It is the fine print
-the reference screens contain, not a size to set body copy in; give a small
-caption a whole width (or let it stretch) so its host stays on the grid.
+Every strike renders at its native size — one design px = one system px. The
+fine print the reference screens contain **is** the body face: System 7 set a
+dialog's disk-space captions in Geneva 9, the smallest strike the classic
+collection holds, at its own size — `face="body" dim`, as above. A genuinely
+different size is a different strike, registered like the embedded ones and
+themed in through the font tokens.
 `npm run verify:text` checks the line boxes, the faces and the `for` wiring.
 
 ## Glyphs are drawn, icons are yours

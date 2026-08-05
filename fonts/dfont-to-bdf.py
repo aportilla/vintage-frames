@@ -51,6 +51,10 @@ def load_strike(path):
     reader = ResourceReader(path)
     family = next((r.name for r in reader.get("FOND", []) if r.name), None)
     family = family or os.path.basename(path).split("_")[0]
+    # The FOND says "New York"; the BDF collection and imported/ say "NewYork".
+    # Strip spaces so the family dir — and the woff2 stem import-bdf.py derives
+    # from it — lands on the established naming.
+    family = family.replace(" ", "")
     font = TTFont(io.BytesIO(reader["sfnt"][0].data))
     # The bitmap-only sfnt carries a maxp 0.5 fontTools' lazy decompile
     # rejects — preset a synthetic glyph order so it is never consulted.

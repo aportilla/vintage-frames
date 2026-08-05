@@ -11,8 +11,10 @@ import { ScrollStateController } from '../scroll-state.js'
  * `<vf-text-area>` — a System 7 multi-line text entry field.
  *
  * Identical styling to `<vf-text-field>` but wrapping a native `<textarea>`.
- * No resize grip (`resize: none`) — System 7 fields don't resize. The shared
- * field skin lives in `vfField`; the value/form scaffolding in
+ * No resize grip (`resize: none`) — System 7 fields don't resize. Wrapped
+ * text sits on Chicago 12's native 16px line (the single-line well keeps its
+ * 20px box — that is control geometry, not typesetting). The shared field
+ * skin lives in `vfField`; the value/form scaffolding in
  * {@link VfTextControlBase}.
  *
  * The `.vf-field-well` wrapper is the one `vfField` hangs the focus rule from,
@@ -39,6 +41,9 @@ import { ScrollStateController } from '../scroll-state.js'
  * (`pattern` is not: only an `<input>` takes it).
  *
  * @csspart textarea - The inner native `<textarea>` element.
+ * @cssprop --vf-line-height-display - The display face's native line (default
+ *   `16px`, Chicago 12's) — the pitch wrapped entry text sits on, shared with
+ *   the static-text components so a display retheme moves them together.
  * @cssprop [--vf-field-width=180px] - default width of `vf-text-field` /
  *   `vf-text-area`
  * @cssprop [--vf-field-placeholder=#767676] - placeholder text in the editable
@@ -77,6 +82,14 @@ export class VfTextArea extends VfPositioned(VfTextControlBase) {
            exactly where the bordered field put them. */
         border: 0;
         padding: calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 7px);
+        /* Wrapped entry copy on the display face's native line (editable
+           text is display type) — the same face token the static-text
+           components read, so a display retheme moves this well too. The
+           vfField skin inherits the host's 1.25 ratio (a 20px box — what
+           vf-text-field's 22px well is built on and keeps); a multi-line
+           well is typesetting, and takes the strike's own pitch: rows buys
+           one line each. */
+        line-height: calc(var(--vf-scale, 1) * var(--vf-line-height-display, 16px));
         resize: none;
         /* Reserve the vertical rail as a permanent placeholder: overflow-y:
            scroll keeps the styled track (and its divider) painted, and

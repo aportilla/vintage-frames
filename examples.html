@@ -2116,7 +2116,7 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>face</code></td><td class="wrap"><code>'display' | 'body'</code></td><td><code>'display'</code></td><td class="wrap">Chrome type by default — dialog captions are chrome</td></tr>
               <tr><td><code>dim</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Greys the text to <code>--vf-disabled</code></td></tr>
               <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap">Whole system px — a caption column's shared width, so a run of label-and-field rows lands every field on one x. Left to its text a caption measures whatever its glyphs measure and anything sized from it inherits the fraction (contract rule 3); a caption wider than its width overflows rather than reflowing the row</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>label</code>. Token: <code>--vf-label-line-height</code> (16px). <code>display: inline-block</code>, so a page can give a caption column a shared width.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>label</code>. Line box: the face's native line — <code>--vf-line-height-display</code> (16px, Chicago 12's) or <code>--vf-line-height</code> (12px, Geneva 9's) per <code>face</code>, with <code>--vf-label-line-height</code> overriding both for captions alone. <code>display: inline-block</code>, so a page can give a caption column a shared width.</td></tr>
             </tbody>
           </table>
         </section>
@@ -2124,8 +2124,9 @@ vf-button::part(button) { min-width: 96px; }
         <section class="doc" id="vf-paragraph" data-group="Text, images &amp; icons" data-toc="vf-paragraph">
           <h2><code>vf-paragraph</code></h2>
           <p>
-            A run of copy on the kit's body face and a 20px line box — the same pitch as
-            a list row. It renders a real <code>&lt;p&gt;</code> in its shadow root, so
+            A run of copy on the kit's body face and its native 12px line — the pitch
+            System 7 set Geneva 9 on — with the display face wrapping at Chicago 12's
+            own 16px. It renders a real <code>&lt;p&gt;</code> in its shadow root, so
             the copy keeps paragraph semantics, and it has <strong>no margin</strong>:
             paragraph spacing is the page's, in whole pixels like everything else.
           </p>
@@ -2142,7 +2143,7 @@ vf-button::part(button) { min-width: 96px; }
             <tbody>
               <tr><td><code>face</code></td><td class="wrap"><code>'display' | 'body'</code></td><td><code>'body'</code></td><td class="wrap"></td></tr>
               <tr><td><code>dim</code></td><td>boolean</td><td><code>false</code></td><td class="wrap"></td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>paragraph</code>. Token: <code>--vf-paragraph-line-height</code> (20px). Selectable, unlike the kit's chrome text.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>paragraph</code>. Line box: the face's native line — <code>--vf-line-height</code> (12px) or <code>--vf-line-height-display</code> (16px) per <code>face</code>, with <code>--vf-paragraph-line-height</code> overriding both for paragraphs alone. Selectable, unlike the kit's chrome text.</td></tr>
             </tbody>
           </table>
         </section>
@@ -2407,8 +2408,10 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>--vf-field-width</code></td><td><code>180px</code></td><td class="wrap">Default width of the text field and area</td></tr>
               <tr><td><code>--vf-number-field-width</code></td><td><code>4em</code></td><td class="wrap">Width of the number field's well</td></tr>
               <tr><td><code>--vf-list-max-height</code></td><td><code>200px</code></td><td class="wrap"><code>vf-list</code></td></tr>
-              <tr><td><code>--vf-label-line-height</code></td><td><code>16px</code></td><td class="wrap"><code>vf-label</code> line box</td></tr>
-              <tr><td><code>--vf-paragraph-line-height</code></td><td><code>20px</code></td><td class="wrap"><code>vf-paragraph</code> line box</td></tr>
+              <tr><td><code>--vf-line-height</code></td><td><code>12px</code></td><td class="wrap">The body face's native line — the pitch wrapped body copy sits on; retheme it alongside the body font tokens</td></tr>
+              <tr><td><code>--vf-line-height-display</code></td><td><code>16px</code></td><td class="wrap">The display face's native line — wrapped chrome copy, captions and the text area</td></tr>
+              <tr><td><code>--vf-label-line-height</code></td><td class="wrap">follows the face</td><td class="wrap"><code>vf-label</code>'s own line box, overriding both face tokens for captions alone</td></tr>
+              <tr><td><code>--vf-paragraph-line-height</code></td><td class="wrap">follows the face</td><td class="wrap"><code>vf-paragraph</code>'s own line box, overriding both face tokens for paragraphs alone</td></tr>
               <tr><td><code>--vf-titlebar-height</code></td><td><code>18px</code></td><td class="wrap">Window / dialog title bars</td></tr>
               <tr><td><code>--vf-titlebar-height-utility</code></td><td><code>12px</code></td><td class="wrap">The windoid bar</td></tr>
               <tr><td><code>--vf-title-inset</code></td><td class="wrap"><code>16px</code> / <code>60px</code></td><td class="wrap">The centered title's clearance from the widgets</td></tr>

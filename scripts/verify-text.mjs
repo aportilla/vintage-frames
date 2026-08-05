@@ -8,8 +8,13 @@
  * two components state their line box in whole system px instead, so a column
  * of copy accumulates whole offsets. Four groups:
  *
- *  - LINE BOX: a paragraph's height is exactly `lines × 20` system px, a
- *    label's exactly 16 — the claim everything else rests on.
+ *  - LINE BOX: text wraps at the face's native System 7 pitch — body copy at
+ *    `lines × 12` system px (Geneva 9's strike line), chrome copy and captions
+ *    at `lines × 16` (Chicago 12's) — the claim everything else rests on.
+ *  - FACE PITCH: the pitch is the face's, not the component's — the
+ *    `--vf-line-height` / `--vf-line-height-display` face tokens move every
+ *    wrap site at once (paragraph, label, the text area's rows), and the
+ *    per-component tokens still override them for their component alone.
  *  - DECLARED BOX: `width` is the measure a paragraph wraps to and `height` a
  *    box its copy overflows rather than grows — the DITL static-text rectangle
  *    a placed dialog layout states; both live against --vf-scale, both undone
@@ -86,21 +91,96 @@ const heightOf = (page, id) =>
         narrow column, which is the case a ratio leading gets wrong.
       </vf-paragraph>
     </div>
+    <div style="width: 300px">
+      <vf-paragraph id="chrome" face="display">
+        A run of chrome copy long enough to wrap onto several line boxes
+        inside this narrow column, the way an alert's copy does.
+      </vf-paragraph>
+    </div>
     <vf-label id="cap">Name:</vf-label>
+    <vf-label id="fine" face="body">Approximate disk space needed: 4,584K</vf-label>
   `)
 
   const one = await heightOf(page, 'one')
-  check('paragraph: one line is exactly 20 system px', one === 20 * S, `${one}px`)
+  check(
+    'paragraph: one line is exactly 12 system px (Geneva 9’s native line)',
+    one === 12 * S,
+    `${one}px`
+  )
 
   const wrapped = await heightOf(page, 'wrapped')
   check(
-    'paragraph: a wrapped run is a whole multiple of 20 system px',
-    wrapped % (20 * S) === 0 && wrapped > 20 * S,
-    `${wrapped}px = ${wrapped / (20 * S)} lines`
+    'paragraph: a wrapped run is a whole multiple of 12 system px',
+    wrapped % (12 * S) === 0 && wrapped > 12 * S,
+    `${wrapped}px = ${wrapped / (12 * S)} lines`
+  )
+
+  const chrome = await heightOf(page, 'chrome')
+  check(
+    'paragraph[face=display]: chrome copy wraps at 16 system px (Chicago 12’s native line)',
+    chrome % (16 * S) === 0 && chrome > 16 * S,
+    `${chrome}px = ${chrome / (16 * S)} lines`
   )
 
   const cap = await heightOf(page, 'cap')
-  check('label: exactly 16 system px tall (the faces’ own em)', cap === 16 * S, `${cap}px`)
+  check('label: exactly 16 system px tall (Chicago 12’s line, the faces’ em)', cap === 16 * S, `${cap}px`)
+
+  const fine = await heightOf(page, 'fine')
+  check(
+    'label[face=body]: fine print sits on 12 system px (Geneva 9’s native line)',
+    fine === 12 * S,
+    `${fine}px`
+  )
+
+  await page.close()
+}
+
+/* ── FACE PITCH ───────────────────────────────────────────────────────────
+   Retheming a face states family, size and line together: the face tokens
+   are what the wrap sites read, under the per-component overrides. Values
+   here are arbitrary-but-even (see the token docs on why even). */
+
+{
+  const page = await build(`
+    <div style="--vf-line-height: 14px; --vf-line-height-display: 18px">
+      <vf-paragraph id="fp-body">One line of copy.</vf-paragraph>
+      <vf-paragraph id="fp-display" face="display">One line of copy.</vf-paragraph>
+      <vf-label id="fp-label">Caption</vf-label>
+      <vf-label id="fp-fine" face="body">Fine print</vf-label>
+      <vf-paragraph id="fp-override" style="--vf-paragraph-line-height: 24px"
+        >One line of copy.</vf-paragraph>
+      <vf-text-area id="fp-area" rows="4"></vf-text-area>
+    </div>
+    <vf-text-area id="fp-area-default" rows="4"></vf-text-area>
+  `)
+
+  const h = {}
+  for (const id of ['fp-body', 'fp-display', 'fp-label', 'fp-fine', 'fp-override', 'fp-area', 'fp-area-default'])
+    h[id] = await heightOf(page, id)
+
+  check('face pitch: --vf-line-height moves body copy', h['fp-body'] === 14 * S, `${h['fp-body']}px`)
+  check(
+    'face pitch: --vf-line-height-display moves chrome copy',
+    h['fp-display'] === 18 * S,
+    `${h['fp-display']}px`
+  )
+  check('face pitch: a label follows the display token', h['fp-label'] === 18 * S, `${h['fp-label']}px`)
+  check('face pitch: body-face fine print follows the body token', h['fp-fine'] === 14 * S, `${h['fp-fine']}px`)
+  check(
+    'face pitch: the per-component token still overrides the face token',
+    h['fp-override'] === 24 * S,
+    `${h['fp-override']}px`
+  )
+  check(
+    'face pitch: the text area wraps entry rows on the display token',
+    h['fp-area'] === (4 * 18 + 8) * S,
+    `${h['fp-area']}px`
+  )
+  check(
+    'face pitch: an untouched text area is rows × 16 + the 4px pads',
+    h['fp-area-default'] === (4 * 16 + 8) * S,
+    `${h['fp-area-default']}px`
+  )
 
   await page.close()
 }
@@ -120,7 +200,7 @@ const heightOf = (page, id) =>
       </vf-paragraph>
       <vf-paragraph id="boxed" top="100" left="50" width="100" height="60">
         A run of copy long enough to need several line boxes at a narrow
-        measure — decidedly more of them than the three the declared sixty
+        measure — decidedly more of them than the five the declared sixty
         system pixels have room for.
       </vf-paragraph>
     </div>
@@ -133,8 +213,8 @@ const heightOf = (page, id) =>
   })
   check(
     'declared box: a placed paragraph wraps at its stated measure',
-    placed.width === 100 * S && placed.height % (20 * S) === 0 && placed.height > 20 * S,
-    `${placed.width}px wide, ${placed.height / (20 * S)} lines`
+    placed.width === 100 * S && placed.height % (12 * S) === 0 && placed.height > 12 * S,
+    `${placed.width}px wide, ${placed.height / (12 * S)} lines`
   )
   check(
     'declared box: the write is the live calc, not a resolved px',

@@ -68,10 +68,12 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  *   with `face="body"` to switch to Geneva — which is also the kit's fine
  *   print, as it was System 7's: a dialog's small captions are Geneva 9 at
  *   its own strike size;
- * - a **whole-system-pixel line box** (`--vf-label-line-height`, 16px — the
- *   faces' own em), so a column of captions accumulates whole offsets instead of
- *   pushing what follows off the device-pixel grid the way a ratio `line-height`
- *   does (README, layout contract rule 2);
+ * - a **whole-system-pixel line box at the face's native pitch**
+ *   (`--vf-label-line-height`: 16px — Chicago 12's own line, which is also the
+ *   em; `face="body"` drops to 12px, Geneva 9's), so a column of captions
+ *   accumulates whole offsets instead of pushing what follows off the
+ *   device-pixel grid the way a ratio `line-height` does (README, layout
+ *   contract rule 2);
  * - its own {@link GridSnapController}, so the bitmap stems stay on the grid
  *   wherever the page puts it;
  * - a **declared `width`** ({@link VfSized}) — the shared width of a caption
@@ -92,8 +94,16 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  *
  * @slot - The caption text.
  * @csspart label - The inner text box.
- * @cssprop --vf-label-line-height - Line box, in system px (default `16px`).
- *   Keep it a whole number — a ratio puts every following line off the grid.
+ * @cssprop --vf-label-line-height - The caption's own line box, in system px.
+ *   Unset (the default) the box follows the face tokens below; set, it
+ *   overrides both faces for labels alone. Keep any override a whole *even*
+ *   number — a ratio puts every following line off the grid, and an odd value
+ *   halves into the em's half-leading and puts the baseline on a half pixel.
+ * @cssprop --vf-line-height - The body face's native line (default `12px`,
+ *   Geneva 9's) — the face-level knob a body-face retheme states alongside
+ *   `--vf-font-family` / `--vf-font-size`.
+ * @cssprop --vf-line-height-display - The display face's native line
+ *   (default `16px`, Chicago 12's) — the display retheme's third number.
  */
 @vfElement('vf-label')
 export class VfLabel extends VfSized(VfPositioned(LitElement)) {
@@ -107,12 +117,27 @@ export class VfLabel extends VfSized(VfPositioned(LitElement)) {
         display: inline-block;
         /* Chrome by default; vfStaticText's face="body" overrides it. */
         ${vfDisplayDecls}
-        /* Whole system px, never a ratio — see the class comment. 16px is the
-           faces' own em (12 above the baseline + 4 below), which is also
-           vf-menu-item's row pitch, so a caption beside a menu or a popup sits
-           on the same rhythm. */
-        line-height: calc(var(--vf-scale, 1) * var(--vf-label-line-height, 16px));
+        /* Whole system px, never a ratio — see the class comment. The pitch
+           is the face's, so it reads the face token under a per-component
+           override. 16px is Chicago 12's native line and the faces' own em
+           (12 above the baseline + 4 below), which is also vf-menu-item's row
+           pitch, so a caption beside a menu or a popup sits on the same
+           rhythm. */
+        line-height: calc(
+          var(--vf-scale, 1) *
+            var(--vf-label-line-height, var(--vf-line-height-display, 16px))
+        );
         cursor: var(--vf-cursor, default);
+      }
+      /* Fine print sits on Geneva 9's native 12px line, like the paragraph's
+         body copy and vf-icon's name plate — the 16px em centers into it,
+         baseline at 10. Later sheet than vfStaticText's face rule, so the
+         pitch follows the face. */
+      :host([face='body']) {
+        line-height: calc(
+          var(--vf-scale, 1) *
+            var(--vf-label-line-height, var(--vf-line-height, 12px))
+        );
       }
     `,
   ]

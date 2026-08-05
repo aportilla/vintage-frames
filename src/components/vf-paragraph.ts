@@ -16,13 +16,16 @@ import { GridSnapController } from '../grid-snap.js'
  *
  * - the **Geneva body face** by default (`face="display"` switches to
  *   the Chicago-style chrome face);
- * - a **whole-system-pixel line box** — `--vf-paragraph-line-height`, 20px, the
- *   same row pitch as `vf-list-item`. This is the point of the component:
- *   line boxes are the single biggest source of off-grid layout, because a
- *   ratio resolves to whatever it resolves to (`1.65 × 17px = 28.05px`) and
- *   every line of prose nudges everything after it further off the device-pixel
- *   grid, smearing 1-bit borders and bitmap glyph stems (README, layout
- *   contract rule 2). A whole-pixel line box accumulates whole offsets;
+ * - a **whole-system-pixel line box at the face's native pitch** —
+ *   `--vf-paragraph-line-height`: 12px for the body face (Geneva 9's own
+ *   strike line) and 16px under `face="display"` (Chicago 12's — ascent 12 +
+ *   descent 3 + leading 1, the pitch a real dialog wrapped its copy on).
+ *   Whole pixels are the point of the component: line boxes are the single
+ *   biggest source of off-grid layout, because a ratio resolves to whatever
+ *   it resolves to (`1.65 × 17px = 28.05px`) and every line of prose nudges
+ *   everything after it further off the device-pixel grid, smearing 1-bit
+ *   borders and bitmap glyph stems (README, layout contract rule 2). A
+ *   whole-pixel line box accumulates whole offsets;
  * - its own {@link GridSnapController}, so it holds its own origin once the
  *   page opts in with `applyGridSnap()`;
  * - a **declared box** when the layout wants one — `width`/`height` in whole
@@ -40,9 +43,17 @@ import { GridSnapController } from '../grid-snap.js'
  *
  * @slot - The paragraph copy.
  * @csspart paragraph - The inner `<p>`.
- * @cssprop --vf-paragraph-line-height - Line box, in system px (default `20px`).
- *   Keep it a whole number — a ratio is what puts a page off the grid in the
- *   first place.
+ * @cssprop --vf-paragraph-line-height - This paragraph kind's own line box,
+ *   in system px. Unset (the default) the box follows the face tokens below;
+ *   set, it overrides both faces for paragraphs alone. Keep any override a
+ *   whole *even* number — a ratio is what puts a page off the grid in the
+ *   first place, and half the difference to the 16px em is half-leading, so
+ *   an odd value lands the baseline on a half pixel.
+ * @cssprop --vf-line-height - The body face's native line (default `12px`,
+ *   Geneva 9's) — the face-level knob: retheming the body face to another
+ *   strike states this alongside `--vf-font-family` / `--vf-font-size`.
+ * @cssprop --vf-line-height-display - The display face's native line
+ *   (default `16px`, Chicago 12's) — the display retheme's third number.
  */
 @vfElement('vf-paragraph')
 export class VfParagraph extends VfSized(VfPositioned(LitElement)) {
@@ -54,13 +65,31 @@ export class VfParagraph extends VfSized(VfPositioned(LitElement)) {
         display: block;
         /* The body face is already vfBase's host default (vfStaticText's
            face="display" overrides it); what this component fixes is the line
-           box — in whole system px, never a ratio. */
+           box — whole system px, never a ratio, at the face's native pitch.
+           The pitch is the face's, so it reads the face token
+           (--vf-line-height, the retheme knob that travels with
+           --vf-font-family/--vf-font-size), under a per-component override.
+           12px is Geneva 9's strike line: the 16px em centers into it with
+           −2px half-leading (baseline at 10), exactly as vf-icon's name plate
+           does, and the strike's 10+2 ink fills the box edge to edge. */
         line-height: calc(
-          var(--vf-scale, 1) * var(--vf-paragraph-line-height, 20px)
+          var(--vf-scale, 1) *
+            var(--vf-paragraph-line-height, var(--vf-line-height, 12px))
         );
         /* Prose, not chrome: put back the text selection vfBase suppresses. */
         user-select: text;
         -webkit-user-select: text;
+      }
+      /* Chrome copy wraps on Chicago 12's native line: ascent 12 + descent 3
+         + leading 1 = 16 — zero half-leading on the 16px em, 7 blank rows
+         between a baseline and the caps under it, as a real alert set it.
+         Same specificity as vfStaticText's face rule; this sheet is later,
+         so the pitch follows the face. */
+      :host([face='display']) {
+        line-height: calc(
+          var(--vf-scale, 1) *
+            var(--vf-paragraph-line-height, var(--vf-line-height-display, 16px))
+        );
       }
       p {
         margin: 0;

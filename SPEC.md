@@ -200,6 +200,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-font-family-display` | `'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
 | `--vf-font-size` | `16px` | body face size |
 | `--vf-font-size-display` | `16px` | chrome face size |
+| `--vf-line-height` | `12px` | the body face's native line — the pitch wrapped body copy sits on (`vf-paragraph`, `vf-label[face="body"]`); retheming the body face to another strike states this alongside `--vf-font-family` / `--vf-font-size` |
+| `--vf-line-height-display` | `16px` | the display face's native line (Chicago 12's ascent 12 + descent 3 + leading 1) — wrapped chrome copy: `vf-paragraph[face="display"]`, `vf-label`, `vf-text-area`; the display retheme's third number |
 | `--vf-font-weight` | `700` | all text (Chicago is inherently bold) |
 | `--vf-black` | `#000000` | borders, text, stripes, selection bg |
 | `--vf-white` | `#ffffff` | content wells, control faces |
@@ -214,8 +216,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
 | `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows); `vf-menu` also spends one full row on every slotted `vf-separator` — the MDEF's divider-as-item, rule 8px in (H/2 above, H/2−1 below) |
 | `--vf-menu-shortcut-column` | `23px` | `vf-menu-item` shortcut slot, right-anchored with the text left-aligned in it so every ⌘ lands at the same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's widest letter (M/W, 12px); widen it to line up longer shortcuts ("⌘⇧S") |
-| `--vf-label-line-height` | `16px` | `vf-label` line box — the faces' own em, so a caption sits on the menu/popup rhythm |
-| `--vf-paragraph-line-height` | `20px` | `vf-paragraph` line box — the same pitch as a `vf-list-item` row |
+| `--vf-label-line-height` | follows the face | `vf-label`'s own line box, above the face tokens: unset, the box is the face's native line (`--vf-line-height-display` / `--vf-line-height`); set, it overrides both faces for captions alone — keep an override even, or the baseline lands on a half pixel |
+| `--vf-paragraph-line-height` | follows the face | `vf-paragraph`'s own line box, above the face tokens — same contract as the label's, for paragraphs alone |
 | `--vf-icon-label-height` | `12px` | `vf-icon`'s name plate line box — the Finder's own plate height, tighter than the face's 16px em, which centers in it (keep an override even, or the baseline lands on a half pixel) |
 | `--vf-icon-gap` | `2px` | space between a `vf-icon`'s art cell and its name plate |
 | `--vf-control-height-small` | `16px` | `size="small"` buttons |
@@ -1037,6 +1039,10 @@ The color-swatch button: a well of solid color — a palette cell.
 #### `vf-text-area` (`VfTextArea`, vf-text-area.ts)
 Same as vf-text-field but wrapping `<textarea>`; extra prop `rows: number`
 (default 4). No resize grip (`resize: none`) — System 7 fields don't resize.
+Wrapped entry text sits on the display face's native line
+(`--vf-line-height-display`, 16px — Chicago 12's; `rows` buys one line each) —
+the single-line well's 20px box is control geometry, the 22px field trace, and
+stays; a multi-line well is typesetting.
 Reserves a permanent System 7 vertical scroll rail (the shared "always-a-rail"
 behavior — see vf-scroll-area): an empty white channel until the text overflows,
 then the dither/thumb/arrows fill in. The `<textarea>` carries the `vf-scroll`
@@ -1778,9 +1784,12 @@ The static caption: "Name:" beside a field, "Mode" over a radio group, a readout
   width overflows rather than reflowing the row — the number is the column.
 - **Visual:** `display: inline-block` (so a page can give a caption column a
   shared width — contract rule 3), the **display face** by default (dialog
-  captions are chrome), `line-height: var(--vf-label-line-height, 16px)`,
-  `cursor: default`, not selectable (chrome, per §1). `dim` greys the text to
-  `--vf-disabled` — System 7 dims the label, not the control.
+  captions are chrome), `line-height: var(--vf-label-line-height,
+  var(--vf-line-height-display, 16px))` — Chicago 12's native line, read from
+  the face token; `face="body"` reads `--vf-line-height` (12px, Geneva 9's),
+  so fine print wraps at native pitch too — `cursor: default`, not selectable
+  (chrome, per §1). `dim` greys the text to `--vf-disabled` — System 7 dims
+  the label, not the control.
 - **Behavior (`for`):** clicking the caption **focuses** the target (a focus
   shortcut, not an activation — the kit's toggles carry their own labels), and
   the caption text becomes the target's **accessible name** by whichever route
@@ -1804,11 +1813,15 @@ A paragraph of copy on the kit's body face and grid.
   copy wraps to, and a box the copy overflows rather than grows; what a
   placed paragraph states, since it otherwise shrink-wraps its longest line).
 - **Visual:** `display: block`, the **body face** by default,
-  `line-height: var(--vf-paragraph-line-height, 20px)`,
-  selectable (prose, so it re-enables the text selection
-  `vfBase` suppresses). Renders a real `<p>` in the shadow root, so the copy
-  keeps paragraph semantics for AT. **No margin** (§2): paragraph spacing is the
-  page's, in whole pixels like everything else.
+  `line-height: var(--vf-paragraph-line-height, var(--vf-line-height, 12px))`
+  — Geneva 9's native
+  strike line, the 16px em centering into it the way the icon plate's does;
+  `face="display"` defaults the box to 16px, Chicago 12's own line (ascent 12 +
+  descent 3 + leading 1), so wrapped chrome copy leaves the native 7 blank rows
+  between a baseline and the caps below it. Selectable (prose, so it re-enables
+  the text selection `vfBase` suppresses). Renders a real `<p>` in the shadow
+  root, so the copy keeps paragraph semantics for AT. **No margin** (§2):
+  paragraph spacing is the page's, in whole pixels like everything else.
 - **Slots:** default (the copy). **Parts:** `paragraph`.
 
 ### Group F — images

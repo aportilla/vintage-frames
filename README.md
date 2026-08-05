@@ -802,7 +802,10 @@ kit's split); the overrides restate them so every face the kit registers is
 pinned alike (`npm run verify:baseline` asserts the rendered
 ink). Retheme with
 `--vf-font-family-display` (chrome) and `--vf-font-family` (body), plus the
-matching `--vf-font-size-display` / `--vf-font-smoothing-display` tokens.
+matching `--vf-font-size-display` / `--vf-font-smoothing-display` tokens — and
+`--vf-line-height-display` / `--vf-line-height`, the face's native line, which
+is what wrapped copy, captions and the text area set their pitch by: a swapped
+strike states its family, size and line together.
 
 **Your own text goes on the same faces with `vf-label` and `vf-paragraph`.**
 A caption beside a control and a run of copy are the two things every page adds
@@ -818,9 +821,10 @@ number of system pixels:
 <vf-paragraph dim>Approximate disk space needed: 4,584K</vf-paragraph>
 ```
 
-`vf-label` is chrome type on a 16px line box, `vf-paragraph` body type on a 20px
-one; `face="body"` / `face="display"` swaps either, and `dim` greys the text
-the way System 7 dims a label. Both
+`vf-label` is chrome type on a 16px line box, `vf-paragraph` body type on a 12px
+one — each face's own System 7 line, so wrapped copy sits at native pitch;
+`face="body"` / `face="display"` swaps either, the line box following the face,
+and `dim` greys the text the way System 7 dims a label. Both
 snap themselves to the device grid, and `for` does what a native `<label for>`
 does — click to focus, plus the accessible name, which for a `vf-*` control has
 to reach the focusable element inside its shadow root and so lands on the

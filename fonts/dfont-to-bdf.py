@@ -83,18 +83,33 @@ def load_strike(path, family=None):
         if uni > 255 and name not in claimed:
             encodings[uni] = name
 
+    # Constant-metrics bitmap formats (2/5 — monospaced faces use them) keep
+    # the metrics on the EBLC index subtable, not the glyph.
+    shared_metrics = {}
+    for ist in eblc.strikes[0].indexSubTables:
+        m = getattr(ist, "metrics", None)
+        if m is not None:
+            for n in ist.names:
+                shared_metrics[n] = m
+
     glyphs = {}
     for code, name in sorted(encodings.items()):
         g = strike.get(name)
         if g is None:
             continue
-        m = g.metrics
+        try:
+            m = g.metrics
+            adv, bx, by = m.Advance, m.BearingX, m.BearingY
+        except AttributeError:
+            m = shared_metrics[name]
+            adv, bx, by = m.horiAdvance, m.horiBearingX, m.horiBearingY
         rows = []
         for r in range(m.height):
-            raw = int.from_bytes(g.getRow(r, bitDepth=1, metrics=m), "big")
-            total = len(g.getRow(r, bitDepth=1, metrics=m)) * 8
-            rows.append("".join("#" if (raw >> (total - 1 - c)) & 1 else "." for c in range(m.width)))
-        glyphs[code] = (m.Advance, m.BearingX, m.BearingY, m.width, m.height, rows)
+            raw_row = g.getRow(r, bitDepth=1, metrics=m)
+            val = int.from_bytes(raw_row, "big")
+            total = len(raw_row) * 8
+            rows.append("".join("#" if (val >> (total - 1 - c)) & 1 else "." for c in range(m.width)))
+        glyphs[code] = (adv, bx, by, m.width, m.height, rows)
 
     return family, size.hori.ascender, -size.hori.descender, size.ppemY, glyphs
 

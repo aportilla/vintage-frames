@@ -60,20 +60,18 @@
 }
 
 /* ------------------------- Character Set specimen ---------------------- */
-/* Full glyph coverage of each embedded face, drawn in the face itself at true
-   16px (on the 1024-upm grid) with smoothing off — every glyph is a real pixel,
-   never a system fallback. Authored in system px × --vf-scale like the rest. */
+/* One strike at a time from the imported collection. The face and its size
+   are the pick, so demo.ts writes font-family / font-size / line-height
+   inline (the strike's native rect in system px × --vf-scale, whole-pixel
+   line boxes per grid rule 2); this file keeps what doesn't change with the
+   pick — smoothing off so every glyph shows true pixels, break-all so a run
+   of the whole cmap wraps, and the scroll well's height. */
 .charset {
-  font-size: calc(var(--vf-scale, 1) * 16px);
-  line-height: 1.5;
   -webkit-font-smoothing: none;
   word-break: break-all;
 }
-.charset--chrome {
-  font-family: 'Chicago', sans-serif;
-}
-.charset--body {
-  font-family: 'Geneva', sans-serif;
+.charset-well {
+  height: calc(var(--vf-scale, 1) * 230px);
 }
 .charset-line {
   margin: calc(var(--vf-scale, 1) * 3px) 0;

@@ -12,11 +12,16 @@ import { effectiveScale, onScaleChange } from '../src/scale.js'
 import type {
   VfDesktop,
   VfDialog,
+  VfFieldset,
   VfIcon,
   VfMenu,
   VfMenuItem,
+  VfOption,
   VfProgressBar,
+  VfSelect,
 } from '../src/index.js'
+import { CHARSET_FAMILIES } from './charset-manifest.js'
+import type { CharsetFamily, CharsetFont } from './charset-manifest.js'
 import './desktop-page.css'
 import './demo.css'
 
@@ -376,3 +381,177 @@ const sliderReadout = $<HTMLElement>('#slider-readout')
 $<HTMLElement>('#slider-demo').addEventListener('vf-input', (event) => {
   sliderReadout.textContent = String((event as CustomEvent<{ value: number }>).detail.value)
 })
+
+/* ------------------------------------------------------------------ *
+ * Character Set: one strike at a time from the imported collection
+ * (fonts/imported/ — untracked, built by the fonts/ pipeline). The Font
+ * and Size popups resolve a pick to a woff2 loaded on demand through the
+ * FontFace API, each strike under its own family name ("Geneva 9"),
+ * since CSS can't pick a bitmap strike by size. The specimen then sets
+ * the characters the manifest read from that strike's cmap — so nothing
+ * here can be a system-font fallback — at the strike's native rect:
+ * font-size = the rect's line height in system px (one design px per
+ * system px on the 64-unit grid), on a whole-pixel line box.
+ * ------------------------------------------------------------------ */
+
+const charsetWindow = $<VfWindow>('#win-charset')
+const charsetPanel = $<VfFieldset>('#charset-panel')
+const charsetSpecimen = $<HTMLElement>('#charset-specimen')
+const charsetCountEl = $<HTMLElement>('#charset-count')
+const charsetFontSelect = $<VfSelect>('#charset-font')
+const charsetSizeSelect = $<VfSelect>('#charset-size')
+
+/** Registered strikes by family name; a pending load dedupes re-picks. */
+const charsetFaces = new Map<string, Promise<boolean>>()
+
+const strikeName = (family: CharsetFamily, font: CharsetFont): string =>
+  `${family.label} ${font.size}`
+
+/** Fetch + register a strike once. Resolves false — and forgets the attempt,
+ *  so building the collection doesn't need a reload — when the file is absent. */
+function loadStrike(family: CharsetFamily, font: CharsetFont): Promise<boolean> {
+  const name = strikeName(family, font)
+  let pending = charsetFaces.get(name)
+  if (!pending) {
+    // The broad weight range is load-bearing, exactly as in
+    // register-embedded-font.ts: window content inherits the kit's
+    // font-weight 700, and a face registered at the default 400 would have
+    // the browser synthesize faux-bold over the strike, smearing every stem.
+    const face = new FontFace(name, `url(/fonts/imported/${font.file})`, {
+      style: 'normal',
+      weight: '100 900',
+    })
+    pending = face.load().then(
+      () => {
+        document.fonts.add(face)
+        return true
+      },
+      () => {
+        charsetFaces.delete(name)
+        return false
+      }
+    )
+    charsetFaces.set(name, pending)
+  }
+  return pending
+}
+
+/** Split coverage into the specimen's rows: ASCII, accented Latin, the rest. */
+function charsetRowsOf(chars: string): string[] {
+  let ascii = ''
+  let latin = ''
+  let symbols = ''
+  for (const ch of chars) {
+    const cp = ch.codePointAt(0) ?? 0
+    if (cp <= 0x7e) ascii += ch
+    else if (cp <= 0x24f) latin += ch
+    else symbols += ch
+  }
+  return [ascii, latin, symbols].filter((row) => row !== '')
+}
+
+let charsetFamily: CharsetFamily
+let charsetFont: CharsetFont
+let charsetPick = 0
+
+async function renderCharset(): Promise<void> {
+  const family = charsetFamily
+  const font = charsetFont
+  const pick = ++charsetPick
+  charsetPanel.legend = strikeName(family, font)
+  // The modal async-work pattern again: aria-busy declares the wait — the
+  // wristwatch cursor and assistive tech both read it — until this pick (or
+  // a newer one, which then owns the cleanup) resolves.
+  charsetWindow.setAttribute('aria-busy', 'true')
+  const loaded = await loadStrike(family, font)
+  if (pick !== charsetPick) return
+  charsetWindow.removeAttribute('aria-busy')
+  charsetSpecimen.replaceChildren()
+  if (!loaded) {
+    charsetSpecimen.style.fontFamily = ''
+    charsetSpecimen.style.fontSize = ''
+    charsetSpecimen.style.lineHeight = ''
+    const note = new VfParagraph()
+    note.textContent =
+      `fonts/imported/${font.file} didn't load — the strike collection is ` +
+      'untracked and built locally; fonts/README.md has the pipeline.'
+    charsetSpecimen.append(note)
+    charsetCountEl.textContent = ''
+    return
+  }
+  // The strike's native rect (whole system px), with 4px of leading so the
+  // line box stays whole too (grid rule 2).
+  charsetSpecimen.style.fontFamily = `'${strikeName(family, font)}'`
+  charsetSpecimen.style.fontSize = `calc(var(--vf-scale, 1) * ${font.line}px)`
+  charsetSpecimen.style.lineHeight = `calc(var(--vf-scale, 1) * ${font.line + 4}px)`
+  for (const row of charsetRowsOf(font.chars)) {
+    const line = document.createElement('p')
+    line.className = 'charset-line'
+    line.textContent = row
+    charsetSpecimen.append(line)
+  }
+  charsetCountEl.textContent = `${[...font.chars].length} characters`
+}
+
+function charsetOption(value: string): VfOption {
+  const option = document.createElement('vf-option')
+  option.value = value
+  option.textContent = value
+  return option
+}
+
+/** Rebuild the Size popup for the current family and mark the current pick. */
+function syncSizeOptions(): void {
+  charsetSizeSelect.replaceChildren(
+    ...charsetFamily.fonts.map((font) => charsetOption(String(font.size)))
+  )
+  charsetSizeSelect.value = String(charsetFont.size)
+}
+
+/** The strike whose size sits nearest a target (ties go to the smaller). */
+const nearestStrike = (family: CharsetFamily, target: number): CharsetFont =>
+  family.fonts.reduce((best, font) =>
+    Math.abs(font.size - target) < Math.abs(best.size - target) ? font : best
+  )
+
+const charsetInitial =
+  CHARSET_FAMILIES.find((family) => family.label === 'Chicago') ??
+  CHARSET_FAMILIES[0]
+
+if (charsetInitial) {
+  charsetFamily = charsetInitial
+  charsetFont = nearestStrike(charsetInitial, 12)
+  charsetFontSelect.replaceChildren(
+    ...CHARSET_FAMILIES.map((family) => charsetOption(family.label))
+  )
+  charsetFontSelect.value = charsetFamily.label
+  syncSizeOptions()
+  void renderCharset()
+
+  charsetFontSelect.addEventListener('vf-change', (event) => {
+    const picked = (event as CustomEvent<{ value: string }>).detail.value
+    const family = CHARSET_FAMILIES.find((entry) => entry.label === picked)
+    if (!family || family === charsetFamily) return
+    // Carry the size across the way a Size menu selection survived a font
+    // change: keep it where the new family has the strike, else the nearest.
+    charsetFont = nearestStrike(family, charsetFont.size)
+    charsetFamily = family
+    syncSizeOptions()
+    void renderCharset()
+  })
+
+  charsetSizeSelect.addEventListener('vf-change', (event) => {
+    const picked = Number((event as CustomEvent<{ value: string }>).detail.value)
+    const font = charsetFamily.fonts.find((entry) => entry.size === picked)
+    if (!font || font === charsetFont) return
+    charsetFont = font
+    void renderCharset()
+  })
+} else {
+  // The manifest is empty — it was generated before the collection existed.
+  const note = new VfParagraph()
+  note.textContent =
+    'No strikes in demo/charset-manifest.ts — build fonts/imported/ and rerun ' +
+    'fonts/charset-manifest.py (fonts/README.md).'
+  charsetSpecimen.append(note)
+}

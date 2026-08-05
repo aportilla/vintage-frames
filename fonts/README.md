@@ -91,6 +91,44 @@ Self-verifying like its sibling: the written BDF is re-parsed with
 `import-bdf.py`'s own parser and every glyph's ink and advance bit-compared
 against the decoded `bdat` bitmaps.
 
+## The collection's names — point sizes, not line heights
+
+Everything in `fonts/imported/*.woff2` is named by its **user-facing point
+size** — the number a System 7 size menu shows — while the BDF/dfont sources
+stay named by their font-rect line height, which is the only thing a raster
+carries on its face. The two can't be conflated: Geneva 9pt and 10pt both
+live on a 12px rect. The mapping, and how each size was established:
+
+| Family | pt → line | Established by |
+| --- | --- | --- |
+| Chicago | 12→15 | proven pixel-identical to native rendering |
+| Geneva | 9→12, 10→12 (`_raised`), 12→15, 14→18, 18→22, 20→24, 24→28 | ImageWriter doubling: the 18/20/24pt strikes double the 9/10/12pt advances (153–184 of 185 exactly ×2) and cap/x-heights |
+| NewYork | 9→12, 10→12 (`_raised`), 12→15, 14→17, 18→21, 20→22, 24→26 | same fingerprint (152–165 of 166) |
+| Toronto | 9→12, 12→15, 14→17, 18→23, 24→29 | doubling: 18pt = 2×9, 24pt = 2×12 |
+| Monaco | 9→11, 12→15 | the classic pair |
+| Courier | 9→10, 10→11, 12→12, 14→14, 18→17, 24→22 | the LaserWriter six-size set (9/10/12/14/18/24) on ascending rects |
+| Times | 9→10, 10→11, 12→12, 14→15, 18→18, 24→24 | same |
+| Symbol | 9→11, 10→13, 12→15, 14→17, 18→24, 24→31 | same |
+| Palatino | 10→12, 12→14, 14→16, 18→20, 24→25 | LW set by cap-height ratio (the 9pt isn't in the collection) |
+| Boston | 10→13, 12→15, 14→20, 18→24, 20→26, 24→30 | doubling (20pt = 2×10, 24pt = 2×12) + cap ratios |
+| LosAngeles | 12→14, 24→28 | classic sizes + doubling |
+| Venice | 14→19 | the 1984 single-size faces |
+| London | 18→20 | 〃 |
+| Athens | 18→22 | 〃 |
+| SanFrancisco | 18→20 | 〃 |
+| Cairo | 18→24 | 〃 |
+
+Still line-height-named, point size undetermined: `System-16`, `SwanSong-15`,
+`Mobile-28` / `Taliesin-28` (one drawing under its old and new name), the
+four Espy families and `EWorldTight-18` (the eWorld faces run their own size
+ladder).
+
+For context: System 7's size menu offered 9, 10, 12, 14, 18, 24 and 36 for
+every font, outlining the sizes with real strikes and integer-scaling the
+rest (36 was 2×18); the 20pt strikes existed for the ImageWriter's
+best-quality mode, which printed each size from a strike at twice its
+number — that doubling is also the fingerprint the table leans on.
+
 ## import-bdf.py — BDF strike → webfont
 
 ```sh

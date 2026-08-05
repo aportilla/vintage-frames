@@ -132,7 +132,7 @@ def draw(bbx, rows):
     return pen.glyph()
 
 
-def build(bdf_path, em=None, ascent=None):
+def build(bdf_path, em=None, ascent=None, family=None):
     """em: optionally re-em the strike onto a larger line box (whole px, >= its
     native size); the extra pixels pad the DESCENT, so the ascent — where the
     baseline sits — is untouched and the ink lands identically. This is how the
@@ -161,7 +161,11 @@ def build(bdf_path, em=None, ascent=None):
                 f"(pads only — the strike's {props['FONT_ASCENT']}/{props['FONT_DESCENT']} must fit the em)"
             )
         asc, desc = ascent, size - ascent
-    family = f"{os.path.basename(os.path.dirname(os.path.abspath(bdf_path)))} {props['PIXEL_SIZE']}"
+    # The derived "<dir> <size>" name carries the LINE height; --family states
+    # the name outright, for a strike whose file-name size isn't its point
+    # size (Geneva 9pt and 10pt both live on a 12px rect).
+    if family is None:
+        family = f"{os.path.basename(os.path.dirname(os.path.abspath(bdf_path)))} {props['PIXEL_SIZE']}"
     upm = size * PX
 
     # Select and order the glyphs: .notdef first, then by codepoint. Names come
@@ -261,7 +265,7 @@ def verify(path, upm, kept):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    em = ascent = None
+    em = ascent = family = None
     if "--em" in args:
         i = args.index("--em")
         em = int(args[i + 1])
@@ -270,7 +274,11 @@ if __name__ == "__main__":
         i = args.index("--ascent")
         ascent = int(args[i + 1])
         del args[i : i + 2]
+    if "--family" in args:
+        i = args.index("--family")
+        family = args[i + 1]
+        del args[i : i + 2]
     if not args:
-        sys.exit(f"usage: {sys.argv[0]} [--em N] [--ascent N] <strike.bdf> ...")
+        sys.exit(f"usage: {sys.argv[0]} [--em N] [--ascent N] [--family NAME] <strike.bdf> ...")
     for p in args:
-        build(p, em, ascent)
+        build(p, em, ascent, family)

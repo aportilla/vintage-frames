@@ -45,12 +45,13 @@ import_bdf = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(import_bdf)
 
 
-def load_strike(path):
+def load_strike(path, family=None):
     """-> (family, ascent, descent, ppem, glyphs: {codepoint: (advance, bearingX,
     bearingY, width, height, rows)}) — rows as '#'/'.' strings, top first."""
     reader = ResourceReader(path)
-    family = next((r.name for r in reader.get("FOND", []) if r.name), None)
-    family = family or os.path.basename(path).split("_")[0]
+    if family is None:
+        family = next((r.name for r in reader.get("FOND", []) if r.name), None)
+        family = family or os.path.basename(path).split("_")[0]
     # The FOND says "New York"; the BDF collection and imported/ say "NewYork".
     # Strip spaces so the family dir — and the woff2 stem import-bdf.py derives
     # from it — lands on the established naming.
@@ -98,8 +99,8 @@ def load_strike(path):
     return family, size.hori.ascender, -size.hori.descender, size.ppemY, glyphs
 
 
-def write_bdf(path):
-    family, asc, desc, ppem, glyphs = load_strike(path)
+def write_bdf(path, family=None):
+    family, asc, desc, ppem, glyphs = load_strike(path, family)
     if asc + desc != ppem:
         sys.exit(f"{path}: ascent {asc} + descent {desc} != ppem {ppem}")
     out_dir = os.path.join(OUT, family)
@@ -166,7 +167,16 @@ def verify(bdf_path, glyphs):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.exit(f"usage: {sys.argv[0]} <suitcase.dfont> ...")
-    for p in sys.argv[1:]:
-        write_bdf(p)
+    # --family overrides the FOND-derived name — for a suitcase whose FOND
+    # can't disambiguate (Geneva 9pt and 10pt share a 12px rect and a FOND
+    # name, so the 10pt goes out as e.g. --family Geneva10).
+    args = sys.argv[1:]
+    family = None
+    if "--family" in args:
+        i = args.index("--family")
+        family = args[i + 1]
+        del args[i : i + 2]
+    if not args:
+        sys.exit(f"usage: {sys.argv[0]} [--family NAME] <suitcase.dfont> ...")
+    for p in args:
+        write_bdf(p, family)

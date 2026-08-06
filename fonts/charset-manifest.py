@@ -4,8 +4,12 @@
 The showcase's Character Set window picks a face and a size and renders that
 strike's full coverage; this script gives it the data — per strike, the
 characters its cmap actually carries (so the specimen can never show a
-system-font fallback) and the font-rect line height the strike renders at
-(upm / 64: one design px per system px at `font-size: <line>px`).
+system-font fallback), the font-rect line height the strike renders at
+(upm / 64: one design px per system px at `font-size: <line>px`), and the
+line pitch the specimen sets rows on ((upm + hhea lineGap) / 64 — the
+strike's measured native pitch where one has been established and baked
+with `import-bdf.py --leading`, its rect otherwise; fonts/README.md,
+"Line pitch").
 
 Only `<Family>-<n>.woff2` names are read — the kit's re-emmed builds
 (`Chicago-12-em16`, `Geneva-9-em16-a12`) are intermediate artifacts of the
@@ -73,18 +77,26 @@ def main() -> None:
         font = TTFont(path, lazy=True)
         upm = font["head"].unitsPerEm
         assert upm % 64 == 0, f"{path.name}: upm {upm} is not on the 64-unit grid"
+        line_gap = font["hhea"].lineGap
+        assert line_gap % 64 == 0, f"{path.name}: lineGap {line_gap} off the 64-unit grid"
         chars = "".join(chr(cp) for cp in sorted(font.getBestCmap()) if visible(cp))
         font.close()
         families.setdefault(stem, []).append(
-            {"size": size, "line": upm // 64, "file": path.name, "chars": chars}
+            {
+                "size": size,
+                "line": upm // 64,
+                "pitch": (upm + line_gap) // 64,
+                "file": path.name,
+                "chars": chars,
+            }
         )
 
     entries = []
     for stem in sorted(families, key=lambda s: PRETTY.get(s, s).casefold()):
         fonts = sorted(families[stem], key=lambda f: f["size"])
         rows = ",\n".join(
-            "      { size: %d, line: %d, file: %s, chars:\n        %s }"
-            % (f["size"], f["line"], json.dumps(f["file"]), json.dumps(f["chars"]))
+            "      { size: %d, line: %d, pitch: %d, file: %s, chars:\n        %s }"
+            % (f["size"], f["line"], f["pitch"], json.dumps(f["file"]), json.dumps(f["chars"]))
             for f in fonts
         )
         entries.append(
@@ -107,6 +119,10 @@ def main() -> None:
         "  /** Font-rect line height in design px — render at font-size: <line>px\n"
         "   *  for one design px per system px (the 64-unit grid). */\n"
         "  line: number\n"
+        "  /** Native line pitch in design px — the strike's measured QuickDraw\n"
+        "   *  line where one has been established (baked as hhea lineGap; see\n"
+        "   *  fonts/README.md, \"Line pitch\"), equal to `line` otherwise. */\n"
+        "  pitch: number\n"
         "  /** Filename under fonts/imported/ (untracked — built locally). */\n"
         "  file: string\n"
         "  /** Every visible character the strike's cmap carries, by codepoint. */\n"

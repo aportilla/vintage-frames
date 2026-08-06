@@ -60,21 +60,22 @@
 }
 
 /* ------------------------- Character Set specimen ---------------------- */
-/* One strike at a time from the imported collection. The face and its size
-   are the pick, so demo.ts writes font-family / font-size / line-height
-   inline (the strike's native rect in system px × --vf-scale, whole-pixel
-   line boxes per grid rule 2); this file keeps what doesn't change with the
-   pick — smoothing off so every glyph shows true pixels, break-all so a run
-   of the whole cmap wraps, and the scroll well's height. */
+/* One strike at a time from the imported collection, as vf-paragraph rows.
+   The face, its size and its native pitch are the pick, so demo.ts writes
+   them as tokens on this container (--vf-font-family / --vf-font-size /
+   --vf-paragraph-line-height, whole system px — the rows do the × scale and
+   keep the line boxes whole per grid rule 2); this file keeps what doesn't
+   change with the pick — smoothing off via the token (the paragraph's text
+   lives in its shadow root, where only the token reaches) so every glyph
+   shows true pixels, break-all so a run of the whole cmap wraps, and the
+   scroll well's height. Rows carry no extra margins: consecutive paragraphs
+   stack at the strike's own pitch. */
 .charset {
-  -webkit-font-smoothing: none;
+  --vf-font-smoothing: none;
   word-break: break-all;
 }
 .charset-well {
   height: calc(var(--vf-scale, 1) * 230px);
-}
-.charset-line {
-  margin: calc(var(--vf-scale, 1) * 3px) 0;
 }
 .charset-count {
   margin: calc(var(--vf-scale, 1) * 6px) 0 0;

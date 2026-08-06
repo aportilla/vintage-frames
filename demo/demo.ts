@@ -389,9 +389,12 @@ $<HTMLElement>('#slider-demo').addEventListener('vf-input', (event) => {
  * FontFace API, each strike under its own family name ("Geneva 9"),
  * since CSS can't pick a bitmap strike by size. The specimen then sets
  * the characters the manifest read from that strike's cmap — so nothing
- * here can be a system-font fallback — at the strike's native rect:
- * font-size = the rect's line height in system px (one design px per
- * system px on the 64-unit grid), on a whole-pixel line box.
+ * here can be a system-font fallback — as vf-paragraph rows carrying the
+ * strike's own typesetting: the pick writes the font tokens onto the
+ * container (--vf-font-family, --vf-font-size = the rect, one design px
+ * per system px) plus --vf-paragraph-line-height = the manifest's pitch,
+ * the strike's measured native line where established, its rect
+ * otherwise — so the rows wrap at the spacing a real Mac gave that face.
  * ------------------------------------------------------------------ */
 
 const charsetWindow = $<VfWindow>('#win-charset')
@@ -468,9 +471,9 @@ async function renderCharset(): Promise<void> {
   charsetWindow.removeAttribute('aria-busy')
   charsetSpecimen.replaceChildren()
   if (!loaded) {
-    charsetSpecimen.style.fontFamily = ''
-    charsetSpecimen.style.fontSize = ''
-    charsetSpecimen.style.lineHeight = ''
+    charsetSpecimen.style.removeProperty('--vf-font-family')
+    charsetSpecimen.style.removeProperty('--vf-font-size')
+    charsetSpecimen.style.removeProperty('--vf-paragraph-line-height')
     const note = new VfParagraph()
     note.textContent =
       `fonts/imported/${font.file} didn't load — the strike collection is ` +
@@ -479,14 +482,15 @@ async function renderCharset(): Promise<void> {
     charsetCountEl.textContent = ''
     return
   }
-  // The strike's native rect (whole system px), with 4px of leading so the
-  // line box stays whole too (grid rule 2).
-  charsetSpecimen.style.fontFamily = `'${strikeName(family, font)}'`
-  charsetSpecimen.style.fontSize = `calc(var(--vf-scale, 1) * ${font.line}px)`
-  charsetSpecimen.style.lineHeight = `calc(var(--vf-scale, 1) * ${font.line + 4}px)`
+  // The pick, as tokens the vf-paragraph rows read (all whole system px —
+  // the components do the × scale): the strike's family, its rect as the
+  // 1-px-per-px size, and its native pitch as the line box, so the rows
+  // wrap at the strike's own line spacing.
+  charsetSpecimen.style.setProperty('--vf-font-family', `'${strikeName(family, font)}'`)
+  charsetSpecimen.style.setProperty('--vf-font-size', `${font.line}px`)
+  charsetSpecimen.style.setProperty('--vf-paragraph-line-height', `${font.pitch}px`)
   for (const row of charsetRowsOf(font.chars)) {
-    const line = document.createElement('p')
-    line.className = 'charset-line'
+    const line = new VfParagraph()
     line.textContent = row
     charsetSpecimen.append(line)
   }

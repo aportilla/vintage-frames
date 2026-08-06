@@ -470,6 +470,158 @@ console.log('\n— (d) a monitor move is not a zoom —')
   await page.close()
 }
 
+/* ── (e) a moved thing stays where it was dropped ───────────────────────────
+   The kit's own metrics follow the zoom (a–d). A window a user DRAGGED, an
+   icon they moved and a window they grew have to follow it the same way, and
+   for a while they did not: the gesture wrote its result as resolved CSS px,
+   which `--vf-scale` then moved out from under, so every moved thing slid by
+   `3z / round(3z)` of its coordinate at each step. 110% is the sharpest case —
+   round(3 × 1.1) is still 3, so NOTHING else on the page changes size, and the
+   old code slid a dragged window 10% away from the corner anyway. 200% is the
+   control: the factor is exactly 1 there, so it looked correct at 200% and
+   wrong at 110%, which is what makes the CSS-px freeze the diagnosis. */
+
+console.log('\n— (e) a dragged window / moved icon / grown window holds its system px —')
+
+{
+  const page = await browser.newPage({
+    viewport: { width: 1320, height: 950 },
+    deviceScaleFactor: 2,
+    screen: { width: 2560, height: 1440 },
+  })
+  await page.route(ORIGIN, (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
+  )
+  await page.goto(ORIGIN)
+  await page.unroute(ORIGIN)
+  await page.setContent(`
+    <body style="margin: 0">
+      <vf-desktop id="desk" width="380" height="280">
+        <vf-window id="win" heading="Alpha" movable resizable
+          width="200" height="120" left="20" top="20"></vf-window>
+        <vf-icon id="ico" label="Disk" movable left="12" top="180"></vf-icon>
+      </vf-desktop>
+    </body>`)
+  await page.evaluate(() => import('/src/index.ts'))
+  await page.evaluate(() =>
+    Promise.all(
+      [...document.querySelectorAll('vf-desktop, vf-window, vf-icon')].map(
+        (el) => el.updateComplete
+      )
+    )
+  )
+  const cdp = await page.context().newCDPSession(page)
+
+  // Drag the window's title bar, move the icon, and grow the window — three
+  // separate gestures, each of which used to freeze a CSS-px constant.
+  const bar = await page.evaluate(() => {
+    const b = document
+      .getElementById('win')
+      .shadowRoot.querySelector('[part=title-bar]')
+      .getBoundingClientRect()
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
+  })
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 63, bar.y + 42, { steps: 5 })
+  await page.mouse.up()
+
+  const ico = await page.evaluate(() => {
+    const b = document.getElementById('ico').getBoundingClientRect()
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
+  })
+  await page.mouse.move(ico.x, ico.y)
+  await page.mouse.down()
+  await page.mouse.move(ico.x + 30, ico.y - 24, { steps: 4 })
+  await page.mouse.up()
+
+  const grow = await page.evaluate(() => {
+    const b = document
+      .getElementById('win')
+      .shadowRoot.querySelector('.grow')
+      .getBoundingClientRect()
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
+  })
+  await page.mouse.move(grow.x, grow.y)
+  await page.mouse.down()
+  await page.mouse.move(grow.x + 45, grow.y + 30, { steps: 4 })
+  await page.mouse.up()
+
+  /** The placement as the kit stores it, plus what it resolves to right now. */
+  const placement = () =>
+    page.evaluate(async () => {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+      const win = document.getElementById('win')
+      const ico = document.getElementById('ico')
+      const scale = parseFloat(getComputedStyle(win).getPropertyValue('--vf-scale'))
+      const used = (el) => {
+        const s = getComputedStyle(el)
+        return { left: parseFloat(s.left), top: parseFloat(s.top) }
+      }
+      return {
+        scale,
+        trueDpr: (await import('/src/index.ts')).truePixelRatio(),
+        win: { left: win.left, top: win.top, width: win.width, height: win.height },
+        ico: { left: ico.left, top: ico.top },
+        winUsed: used(win),
+        icoUsed: used(ico),
+      }
+    })
+
+  const dropped = await placement()
+  check(
+    'the three gestures state whole system px',
+    [
+      dropped.win.left,
+      dropped.win.top,
+      dropped.win.width,
+      dropped.win.height,
+      dropped.ico.left,
+      dropped.ico.top,
+    ].every(Number.isInteger),
+    `win ${dropped.win.left},${dropped.win.top} ${dropped.win.width}×${dropped.win.height}, ` +
+      `icon ${dropped.ico.left},${dropped.ico.top}`
+  )
+  // The gestures must have actually moved things, or the rest proves nothing.
+  check(
+    '…and actually moved from the authored placement',
+    dropped.win.left !== 20 && dropped.win.top !== 20 && dropped.ico.left !== 12,
+    `win left ${dropped.win.left} (authored 20), icon left ${dropped.ico.left} (authored 12)`
+  )
+
+  for (const Z of [1.1, 1.25, 1.5, 2, 0.8]) {
+    await chromeZoom(cdp, 2, Z)
+    const now = await placement()
+    check(
+      `zoom ${Z * 100}%: the dropped origin is unchanged in system px`,
+      now.win.left === dropped.win.left &&
+        now.win.top === dropped.win.top &&
+        now.ico.left === dropped.ico.left &&
+        now.ico.top === dropped.ico.top,
+      `win ${now.win.left},${now.win.top} icon ${now.ico.left},${now.ico.top} ` +
+        `(dropped at win ${dropped.win.left},${dropped.win.top} icon ${dropped.ico.left},${dropped.ico.top})`
+    )
+    check(
+      `zoom ${Z * 100}%: …and the grown size with it`,
+      now.win.width === dropped.win.width && now.win.height === dropped.win.height,
+      `${now.win.width}×${now.win.height} vs ${dropped.win.width}×${dropped.win.height}`
+    )
+    // Whole system px IS whole device px — the scale contract — so the moved
+    // hosts stay fringe-free at every rung without anything re-snapping them.
+    const deviceOrigin = [
+      now.winUsed.left, now.winUsed.top, now.icoUsed.left, now.icoUsed.top,
+    ].map((css) => css * now.trueDpr)
+    check(
+      `zoom ${Z * 100}%: …and every moved origin is still whole device px`,
+      deviceOrigin.every(
+        (d) => Math.abs(d - Math.round(d)) < layoutTolerance(now.trueDpr)
+      ),
+      deviceOrigin.map((d) => d.toFixed(3)).join(', ')
+    )
+  }
+  await page.close()
+}
+
 await browser.close()
 
 const failed = results.filter((r) => !r).length

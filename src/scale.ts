@@ -119,6 +119,15 @@ export function toSys(value: number, el: Element): number {
 }
 
 /**
+ * Convert display (CSS) px to system units *without* rounding — the seed
+ * conversion for geometry that is about to be snapped onto the placement
+ * lattice anyway ({@link snapSys}), where rounding twice only loses precision.
+ */
+export function toSysExact(value: number, el: Element): number {
+  return value / effectiveScale(el)
+}
+
+/**
  * Snap a CSS-px coordinate onto the device-pixel grid.
  *
  * The 1-bit art is only crisp when its container's origin sits on a whole
@@ -181,54 +190,46 @@ export function snapToSystemPx(value: number, el: Element): number {
 }
 
 /**
- * The grid {@link snapToSystemPx} rounds to: the smallest run of k ≤ 4 system
- * px that is also whole in CSS px at `el`'s scale (see the note above for why
- * dpr 2 takes two). Identical to the historical behavior at 100% zoom (k = 1
- * for scales 3 and 1, k = 2 for 1.5); under zoom the scale can be a ratio like
- * 5/3, where k = 3 is what keeps every drag step whole in CSS px — without it
- * the step fell through to a single system px and revived the half-CSS-px edge
- * that makes WebKit shift a scroll rail one device pixel off its frame. A
- * scale whole in no k ≤ 4 falls back to single system px: whole device px, the
- * finest crisp grid there. The float tolerance absorbs a scale that round-trips
- * through a custom-property string (5/3 stringifies and parses exactly, but
- * k × scale can land a few ulps off a whole number).
+ * The placement lattice **in system px**: the smallest run of k ≤ 4 system px
+ * that is also whole in CSS px at `el`'s scale (see {@link snapToSystemPx} for
+ * why dpr 2 takes two). Identical to the historical behavior at 100% zoom
+ * (k = 1 for scales 3 and 1, k = 2 for 1.5); under zoom the scale can be a
+ * ratio like 5/3, where k = 3 is what keeps every drag step whole in CSS px —
+ * without it the step fell through to a single system px and revived the
+ * half-CSS-px edge that makes WebKit shift a scroll rail one device pixel off
+ * its frame. A scale whole in no k ≤ 4 falls back to single system px: whole
+ * device px, the finest crisp grid there. The float tolerance absorbs a scale
+ * that round-trips through a custom-property string (5/3 stringifies and parses
+ * exactly, but k × scale can land a few ulps off a whole number).
+ *
+ * The quantum moves with the scale, which is why a *stored* placement has to be
+ * re-snapped when the display or zoom changes: 94 system px is legal at k = 2
+ * and lands on a half CSS px at k = 3. Whole system px is always whole device
+ * px (the scale contract), so that re-snap is about the CSS-px edge alone.
  */
-function systemPxStep(el: Element): number {
+export function systemPxQuantum(el: Element): number {
   const scale = effectiveScale(el)
   for (let k = 1; k <= 4; k++) {
     const step = k * scale
-    if (Math.abs(step - Math.round(step)) < 1e-9) return step
+    if (Math.abs(step - Math.round(step)) < 1e-9) return k
   }
-  return scale
+  return 1
 }
 
 /**
- * Pin a native `<dialog>`'s auto-centered position onto the system-pixel
- * grid ({@link snapToSystemPx} — whole device px included). The UA centers
- * `margin: auto` dialogs at half-pixel offsets whenever viewport minus dialog
- * size is odd, putting all the chrome inside off-grid. Call after
- * `showModal()` (layout is forced synchronously); the snapped offsets are
- * pinned as inline margins, so clear them on close to let the next open
- * re-center. The snap moves the dialog at most half a system px off true
- * center — invisible. The dialog stays put if the viewport resizes while
- * open — System 7 modals didn't chase the screen either.
- *
- * Position only: the size is the author's, declared in system px on the
- * component (`<vf-dialog width="320">`). That is what keeps a drag from
- * squeezing the box — a native `<dialog>` left at `width: fit-content` measures
- * against the space beside these very margins, so every pixel toward an edge
- * would take a pixel of width and reflow the text inside.
+ * Snap a **system-px** coordinate onto the placement lattice
+ * ({@link systemPxQuantum}) — the system-px twin of {@link snapToSystemPx},
+ * and the one gestures use, because a placement is *stored* in system px and
+ * written as a live `calc()` ({@link sysLength}) so it survives a zoom.
  */
-export function snapDialogToGrid(dialog: HTMLDialogElement): void {
-  const rect = dialog.getBoundingClientRect()
-  dialog.style.marginLeft = `${snapToSystemPx(rect.left, dialog)}px`
-  dialog.style.marginTop = `${snapToSystemPx(rect.top, dialog)}px`
+export function snapSys(value: number, el: Element): number {
+  const k = systemPxQuantum(el)
+  return Math.round(value / k) * k
 }
 
-/** Undo {@link snapDialogToGrid} so the next open re-centers. */
-export function unsnapDialog(dialog: HTMLDialogElement): void {
-  dialog.style.marginLeft = ''
-  dialog.style.marginTop = ''
+/** {@link systemPxQuantum} expressed in CSS px — what {@link snapToSystemPx} rounds to. */
+function systemPxStep(el: Element): number {
+  return systemPxQuantum(el) * effectiveScale(el)
 }
 
 /* ── The shared scale tracker ───────────────────────────────────────────── */

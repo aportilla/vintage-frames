@@ -1,9 +1,9 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { VfPositioned } from '../position.js'
+import { PlacementController, VfPositioned } from '../position.js'
 import { vfBase, vfBodyDecls, vfFocusUnderline } from '../styles/base.js'
-import { effectiveScale, ScaleController, snapToSystemPx, sys } from '../scale.js'
+import { effectiveScale, ScaleController, toSysExact } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
 import { DocumentListenersController } from '../document-listeners.js'
@@ -134,9 +134,10 @@ const clamp = (v: number, max: number): number =>
  * `vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and
  * `title` all carry behavior a custom element never asked for. The kit already
  * spells this parameter `movable` on `vf-window`, so the icon does too, and it
- * moves the same way: `DragController` seeds absolute positioning from the
- * in-flow offset on the first drag and writes back `left`/`top` snapped onto
- * the system-pixel grid, whole art pixels the way QuickDraw moved things.
+ * moves the same way: `DragController` tracks the gesture and
+ * `PlacementController` writes the result into `left`/`top` in whole system px,
+ * the art's own unit — the same pair markup places an icon with, so a moved
+ * icon is still where it was dropped after a zoom.
  *
  * Dragging is a pointer gesture with no keyboard equivalent, which is the kind
  * of gap the kit closes rather than inherits (SPEC §1): a focused movable icon
@@ -528,16 +529,39 @@ export class VfIcon extends VfPositioned(LitElement) {
   ])
 
   /**
-   * Drag-to-move, on the same delegate shape as `vf-window`: seed absolute
-   * positioning from the in-flow offset on the first drag, then write back the
-   * origin the controller has already snapped onto the system-pixel grid.
+   * Where a moved icon is allowed to end up, in system px. Unlike `vf-window`,
+   * which only keeps a grabbable strip on screen, an icon is small enough to
+   * hold whole — losing half of one to an edge reads as a bug rather than as a
+   * window pushed aside.
+   */
+  #keepWhole = (x: number, y: number): { x: number; y: number } => {
+    const parent = this.offsetParent as HTMLElement | null
+    const pw = toSysExact(parent?.clientWidth ?? window.innerWidth, this)
+    const ph = toSysExact(parent?.clientHeight ?? window.innerHeight, this)
+    return {
+      x: clamp(x, pw - toSysExact(this.offsetWidth, this)),
+      y: clamp(y, ph - toSysExact(this.offsetHeight, this)),
+    }
+  }
+
+  /**
+   * Drag and nudge placement: the origin lands in `top`/`left` in system px,
+   * so a moved icon is placed the way an authored one is and holds its spot
+   * through a zoom (see src/position.ts).
+   */
+  readonly #placement = new PlacementController(this, (x, y) => this.#keepWhole(x, y))
+
+  /**
+   * Drag-to-move, on the same delegate shape as `vf-window`: the placement
+   * controller seeds the origin — from the in-flow offset the first time — and
+   * writes back each move the drag controller has snapped onto the lattice.
    */
   readonly #drag = new DragController(this, {
     onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
       if (!this.movable || event.button !== 0 || this._editing) return null
-      return this.#seedPosition()
+      return this.#placement.seed()
     },
-    onDrag: (x: number, y: number): void => this.#moveTo(x, y),
+    onDrag: (x: number, y: number): void => this.#placement.moveTo(x, y),
   })
 
   override connectedCallback(): void {
@@ -1020,68 +1044,18 @@ export class VfIcon extends VfPositioned(LitElement) {
         if (!this.movable) return
         event.preventDefault()
         this.focusRule.reveal()
-        const step = sys(event.shiftKey ? NUDGE_COARSE : NUDGE, this)
+        // The nudge is already in the unit a placement is stored in.
+        const step = event.shiftKey ? NUDGE_COARSE : NUDGE
         const dx =
           event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
         const dy =
           event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
-        const origin = this.#seedPosition()
-        this.#moveTo(origin.x + dx, origin.y + dy)
+        const origin = this.#placement.seed()
+        this.#placement.moveTo(origin.x + dx, origin.y + dy)
       }
     }
   }
 
-  /**
-   * The origin future moves add to, in the host's own `left`/`top` space.
-   * Seeds absolute positioning from the in-flow offset the first time, then
-   * re-reads the COMPUTED coordinates each time after — an author's `left: 10%`
-   * is a perfectly good way to place an icon, and reading `style.left` back
-   * would parse it as a bare number and jump. (Same delegate as `vf-window`.)
-   */
-  #seedPosition(): { x: number; y: number } {
-    const computed = getComputedStyle(this)
-    // Read the used coordinates BEFORE taking ownership below.
-    const left =
-      computed.position === 'absolute'
-        ? parseFloat(computed.left) || 0
-        : this.offsetLeft
-    const top =
-      computed.position === 'absolute'
-        ? parseFloat(computed.top) || 0
-        : this.offsetTop
-
-    if (computed.position !== 'absolute') {
-      this.style.position = 'absolute'
-      this.style.margin = '0'
-    }
-    // Release the far edges. A Trash icon anchored with `right`/`bottom` is a
-    // perfectly good way to place one, but an auto-width absolute box with
-    // BOTH edges set stretches to span them — so the first drag would widen
-    // the icon rather than move it.
-    this.style.right = 'auto'
-    this.style.bottom = 'auto'
-    this.style.left = `${snapToSystemPx(left, this)}px`
-    this.style.top = `${snapToSystemPx(top, this)}px`
-    return {
-      x: parseFloat(this.style.left) || 0,
-      y: parseFloat(this.style.top) || 0,
-    }
-  }
-
-  /**
-   * Write a new origin, kept inside the positioning parent and re-snapped onto
-   * the system-pixel grid after the clamp, so the clamped edge is a whole art
-   * pixel too. Unlike `vf-window`, which only keeps a grabbable strip on
-   * screen, an icon is small enough to hold whole — losing half of one to an
-   * edge reads as a bug rather than as a window pushed aside.
-   */
-  #moveTo(x: number, y: number): void {
-    const parent = this.offsetParent as HTMLElement | null
-    const pw = parent?.clientWidth ?? window.innerWidth
-    const ph = parent?.clientHeight ?? window.innerHeight
-    this.style.left = `${snapToSystemPx(clamp(x, pw - this.offsetWidth), this)}px`
-    this.style.top = `${snapToSystemPx(clamp(y, ph - this.offsetHeight), this)}px`
-  }
 }
 
 declare global {

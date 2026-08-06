@@ -2504,8 +2504,8 @@
               "name": "_drag",
               "privacy": "private",
               "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (event.button !== 0) return null // Ignore drags that start on the close widget (same guard as vf-window). if ( event .composedPath() .some( (node) => node instanceof HTMLElement && node.classList.contains('box') ) ) { return null } const dialog = this._dialog if (!dialog?.open) return null // Seed from the grid-pinned margins written on open; fall back to the // live rect if a drag somehow precedes the pin. let x = parseFloat(dialog.style.marginLeft) let y = parseFloat(dialog.style.marginTop) if (Number.isNaN(x) || Number.isNaN(y)) { const rect = dialog.getBoundingClientRect() x = snapToSystemPx(rect.left, this) y = snapToSystemPx(rect.top, this) } return { x, y } }, onDrag: (x: number, y: number): void => { const dialog = this._dialog if (!dialog) return // Keep a grabbable strip on-screen, as vf-window does against its // positioning parent — the dialog's is the viewport. With a declared // width nothing else stops a drag at an edge; the box used to run out of // room and squeeze itself instead of moving. // Re-snap after clamping so the clamped edge still lands on the grid. const keep = sys(24, this) const nx = Math.min(Math.max(x, keep - dialog.offsetWidth), window.innerWidth - keep) const ny = Math.min(Math.max(y, 0), Math.max(0, window.innerHeight - keep)) dialog.style.marginLeft = `${snapToSystemPx(nx, this)}px` dialog.style.marginTop = `${snapToSystemPx(ny, this)}px` }, })",
-              "description": "Title-bar drag-to-move (shared with `vf-window` via DragController).\nThe dialog is a centered top-layer `<dialog>` pinned onto the device grid\non open (snapDialogToGrid); dragging rewrites those centering margins with\nthe snapped new origin. `unsnapDialog` on close clears them so the next\nopen re-centers. Inert with `frame=\"plain\"` — no bar is rendered, so no\npointer ever reaches the controller (dBoxProc dialogs don't move)."
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (event.button !== 0) return null // Ignore drags that start on the close widget (same guard as vf-window). if ( event .composedPath() .some( (node) => node instanceof HTMLElement && node.classList.contains('box') ) ) { return null } const dialog = this._dialog if (!dialog?.open) return null // The origin stated on open — or, if a drag somehow precedes it, the // live rect, which is where the UA's own centering put the box. if (this.left != null || this.top != null) { return { x: this.left ?? 0, y: this.top ?? 0 } } const rect = dialog.getBoundingClientRect() return { x: snapSys(toSysExact(rect.left, this), this), y: snapSys(toSysExact(rect.top, this), this), } }, onDrag: (x: number, y: number): void => this.placeAt(x, y), })",
+              "description": "Title-bar drag-to-move (shared with `vf-window` via DragController).\nThe gesture states the modal's `top`/`left` in system px — viewport\ncoordinates, since `showModal()` puts the box in the top layer — so a\ndragged dialog is placed exactly the way an authored one is, and holds its\nspot through a zoom rather than being re-centered by it. Inert with\n`frame=\"plain\"` — no bar is rendered, so no pointer ever reaches the\ncontroller (dBoxProc dialogs don't move)."
             },
             {
               "kind": "field",
@@ -2656,7 +2656,7 @@
               "type": {
                 "text": "number | undefined"
               },
-              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside its offsets — and stating an offset is\nexactly how the box is placed and dragged (top), so an undeclared\nmodal squeezes itself and reflows its text as it moves toward an edge.\nUnset, it falls back to MODAL_FALLBACK_WIDTH and says so once in\nthe console.",
               "attribute": "width",
               "inheritedFrom": {
                 "name": "VfModalDialog",
@@ -2671,6 +2671,32 @@
               },
               "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
               "attribute": "height",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the **viewport**, in whole system px — the same\n`top`/`left` pair every other component takes (VfPositioned), in\nthe same unit, with one difference the platform forces: `showModal()` puts\nthe box in the top layer, whose containing block is the viewport rather\nthan the nearest positioned ancestor. So these coordinates are screen\ncoordinates, not the parent's.\n\nLeave both unset and the modal is **centered** — recomputed on open, and\nagain whenever its own box or the viewport changes, which is what keeps a\ndialog whose slotted content upgrades after `showModal()` from opening at\nthe offset its smaller first render centered at. Dragging the title bar\nstates the pair; setting either back to `null` returns the modal to\ncentering.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the viewport, in whole system px. See top.",
+              "attribute": "left",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -2789,6 +2815,124 @@
             },
             {
               "kind": "method",
+              "name": "#viewport",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ width: number; height: number }"
+                }
+              },
+              "description": "The viewport in system px — `documentElement.clientWidth/Height` rather\nthan `innerWidth/Height`, because that is the box a `position: fixed`\ntop-layer element actually resolves against (it excludes a classic\nspace-consuming scrollbar).",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#keepOnScreen",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ x: number; y: number }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Keep a grabbable strip on screen, as `vf-window` does against its\npositioning parent — a modal's is the viewport. With a declared width\nnothing else stops a drag at an edge, and a `frame=\"plain\"` modal has no\ntitle bar to recover it by at all.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#centered",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ x: number; y: number }"
+                }
+              },
+              "description": "The origin that centers the box in the viewport, in system px.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "placeAt",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "State the origin, in system px — clamped on screen and snapped onto the\nplacement lattice, so what `top`/`left` report is what you can see. This is\nwhat a title-bar drag calls; a modal that has been placed this way stays\nplaced, and re-centers only if the pair is cleared.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "settle",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Write the origin onto the top-layer box: the stated one, or the centered\none while the pair is unset. Both go on as a live `calc()` in system px\n(sysLength), so a zoom re-resolves the offset with every other\nmetric instead of leaving the box behind at a stale CSS-px constant — and\nboth are re-clamped here, which is what catches a viewport that shrank\n(zooming in leaves fewer system px on the screen) without forgetting where\nthe modal was put.\n\n`position` is deliberately untouched: the UA already makes an open modal\n`position: fixed`, and the four inset/margin declarations are what turn its\n`inset: 0; margin: auto` centering into a stated origin.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#clearPlacement",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Hand the box back to the UA's own centering, for the next open to redo.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "#syncDialog",
               "privacy": "private",
               "return": {
@@ -2796,7 +2940,7 @@
                   "text": "void"
                 }
               },
-              "description": "Reconcile the native `<dialog>` with `open`. Opening pins the UA's\nauto-centering onto the device-pixel grid (half-pixel offsets fringe the\n1-bit chrome — see scale.ts). Closing just calls `dialog.close()`, routing\nteardown through the native `close` event so _onNativeClose is the\none place margins are cleared and `vf-close` is fired.",
+              "description": "Reconcile the native `<dialog>` with `open`. Opening states the origin —\nthe author's, or the centered one — onto the top-layer box; the UA's own\n`margin: auto` centering lands on a half pixel whenever viewport minus\ndialog is odd, which fringes all the 1-bit chrome inside. Closing just\ncalls `dialog.close()`, routing teardown through the native `close` event\nso _onNativeClose is the one place placement is cleared and\n`vf-close` is fired.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -2804,9 +2948,9 @@
             },
             {
               "kind": "field",
-              "name": "#repin",
+              "name": "#resettle",
               "privacy": "private",
-              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (frame=\"plain\") is not.",
+              "description": "Re-derive the placement rather than keep the latch. The open-time geometry\ncan be wrong by the next frame in three ways, and all three land here:\nslotted content upgrading after `showModal()` grows the box (an unplaced\nmodal would otherwise hold the offset its small first render centered at,\nstranding its bottom off-screen), the viewport resizing under it, and a\nzoom or density change — which rescales every metric, moves the placement\nlattice, and leaves fewer system px on the screen to fit in.\n\nWhat survives differs by how the modal got where it is, and that is the\npoint: an unplaced modal re-centers (it never claimed a spot), while one\nthe user dragged — or the author placed — keeps its stated origin and is\nonly re-clamped. The old behavior re-centered both, trading a dragged\nposition away on every one of these signals to avoid the stranded case.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -2818,6 +2962,18 @@
               "privacy": "private",
               "type": {
                 "text": "ResizeObserver | undefined"
+              },
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#stopScaleWatch",
+              "privacy": "private",
+              "type": {
+                "text": "() => void | undefined"
               },
               "inheritedFrom": {
                 "name": "VfModalDialog",
@@ -2841,7 +2997,7 @@
                   }
                 }
               ],
-              "description": "While open, watch the two signals that invalidate the pin: the dialog's\nown box changing (content upgrade/growth, `--vf-scale` moving under a\nzoom or density change — every metric resizes with it) and the viewport\nresizing. Undone in _onNativeClose / `disconnectedCallback`.",
+              "description": "While open, watch everything that invalidates the placement: the dialog's\nown box changing (content upgrade/growth, and `--vf-scale` moving under a\nzoom or density change, since every metric resizes with it), the viewport\nresizing, and the scale itself — which the box alone would miss on a page\nthat pins `--vf-scale`, where a zoom moves the lattice without resizing\nanything. Undone in _onNativeClose / `disconnectedCallback`.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -2885,7 +3041,7 @@
                   "text": "void"
                 }
               },
-              "description": "Native `close` — the single teardown funnel for every close path. Clears\nthe grid-pinned margins so the next open re-centers, syncs `open`, and\nfires `vf-close` with the reason.",
+              "description": "Native `close` — the single teardown funnel for every close path. Drops\nthe written origin so the next open re-derives it from the box it will\nactually have (a stated `top`/`left` is the author's or the user's and\nsurvives, and is re-applied by that open), syncs `open`, and fires\n`vf-close` with the reason.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -2956,7 +3112,7 @@
               "type": {
                 "text": "number | undefined"
               },
-              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside its offsets — and stating an offset is\nexactly how the box is placed and dragged (top), so an undeclared\nmodal squeezes itself and reflows its text as it moves toward an edge.\nUnset, it falls back to MODAL_FALLBACK_WIDTH and says so once in\nthe console.",
               "fieldName": "width",
               "inheritedFrom": {
                 "name": "VfModalDialog",
@@ -2970,6 +3126,30 @@
               },
               "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
               "fieldName": "height",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the **viewport**, in whole system px — the same\n`top`/`left` pair every other component takes (VfPositioned), in\nthe same unit, with one difference the platform forces: `showModal()` puts\nthe box in the top layer, whose containing block is the viewport rather\nthan the nearest positioned ancestor. So these coordinates are screen\ncoordinates, not the parent's.\n\nLeave both unset and the modal is **centered** — recomputed on open, and\nagain whenever its own box or the viewport changes, which is what keeps a\ndialog whose slotted content upgrades after `showModal()` from opening at\nthe offset its smaller first render centered at. Dragging the title bar\nstates the pair; setting either back to `null` returns the modal to\ncentering.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the viewport, in whole system px. See top.",
+              "fieldName": "left",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -3460,7 +3640,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-list-item`'s `icon` slot makes the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n`scripts/extract-da-icons.py` bakes the same registration into the assets it\ncuts.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart inverts too, into a photographic negative rather than the darkening\nSystem 7 gave it; that is the case to revisit if the kit ever grows a\nselected-state treatment of its own. The label plate inverts to the\n`--vf-highlight` pair, sharing one selection color with `vf-list-item`.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` seeds absolute positioning from the\nin-flow offset on the first drag and writes back `left`/`top` snapped onto\nthe system-pixel grid, whole art pixels the way QuickDraw moved things.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box, as the Finder's does, with Return\ncommitting, Escape reverting, and the plate widening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
+          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-list-item`'s `icon` slot makes the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n`scripts/extract-da-icons.py` bakes the same registration into the assets it\ncuts.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart inverts too, into a photographic negative rather than the darkening\nSystem 7 gave it; that is the case to revisit if the kit ever grows a\nselected-state treatment of its own. The label plate inverts to the\n`--vf-highlight` pair, sharing one selection color with `vf-list-item`.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` tracks the gesture and\n`PlacementController` writes the result into `left`/`top` in whole system px,\nthe art's own unit — the same pair markup places an icon with, so a moved\nicon is still where it was dropped after a zoom.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box, as the Finder's does, with Return\ncommitting, Escape reverting, and the plate widening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
           "name": "VfIcon",
           "cssProperties": [
             {
@@ -3704,11 +3884,25 @@
             },
             {
               "kind": "field",
+              "name": "#keepWhole",
+              "privacy": "private",
+              "description": "Where a moved icon is allowed to end up, in system px. Unlike `vf-window`,\nwhich only keeps a grabbable strip on screen, an icon is small enough to\nhold whole — losing half of one to an edge reads as a bug rather than as a\nwindow pushed aside."
+            },
+            {
+              "kind": "field",
+              "name": "#placement",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new PlacementController(this, (x, y) => this.#keepWhole(x, y))",
+              "description": "Drag and nudge placement: the origin lands in `top`/`left` in system px,\nso a moved icon is placed the way an authored one is and holds its spot\nthrough a zoom (see src/position.ts)."
+            },
+            {
+              "kind": "field",
               "name": "#drag",
               "privacy": "private",
               "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null return this.#seedPosition() }, onDrag: (x: number, y: number): void => this.#moveTo(x, y), })",
-              "description": "Drag-to-move, on the same delegate shape as `vf-window`: seed absolute\npositioning from the in-flow offset on the first drag, then write back the\norigin the controller has already snapped onto the system-pixel grid."
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null return this.#placement.seed() }, onDrag: (x: number, y: number): void => this.#placement.moveTo(x, y), })",
+              "description": "Drag-to-move, on the same delegate shape as `vf-window`: the placement\ncontroller seeds the origin — from the in-flow offset the first time — and\nwrites back each move the drag controller has snapped onto the lattice."
             },
             {
               "kind": "method",
@@ -3874,42 +4068,6 @@
               "kind": "field",
               "name": "#onKeyDown",
               "privacy": "private"
-            },
-            {
-              "kind": "method",
-              "name": "#seedPosition",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "{ x: number; y: number }"
-                }
-              },
-              "description": "The origin future moves add to, in the host's own `left`/`top` space.\nSeeds absolute positioning from the in-flow offset the first time, then\nre-reads the COMPUTED coordinates each time after — an author's `left: 10%`\nis a perfectly good way to place an icon, and reading `style.left` back\nwould parse it as a bare number and jump. (Same delegate as `vf-window`.)"
-            },
-            {
-              "kind": "method",
-              "name": "#moveTo",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "x",
-                  "type": {
-                    "text": "number"
-                  }
-                },
-                {
-                  "name": "y",
-                  "type": {
-                    "text": "number"
-                  }
-                }
-              ],
-              "description": "Write a new origin, kept inside the positioning parent and re-snapped onto\nthe system-pixel grid after the clamp, so the clamped edge is a whole art\npixel too. Unlike `vf-window`, which only keeps a grabbable strip on\nscreen, an icon is small enough to hold whole — losing half of one to an\nedge reads as a bug rather than as a window pushed aside."
             },
             {
               "kind": "field",
@@ -16090,11 +16248,25 @@
             },
             {
               "kind": "field",
+              "name": "#keepGrabbable",
+              "privacy": "private",
+              "description": "Where a dragged window is allowed to end up, in system px: clamped against\nthe positioning parent (the desktop, usually) so it can't be pushed fully\npast an edge and lost. Only a grabbable strip has to stay in — a window\npushed mostly off-screen is a thing System 7 let you do."
+            },
+            {
+              "kind": "field",
+              "name": "_placement",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new PlacementController(this, (x, y) => this.#keepGrabbable(x, y) )",
+              "description": "Drag placement: the origin lands in `top`/`left` in system px, so a moved\nwindow is placed the way an authored one is and holds its spot through a\nzoom (see src/position.ts)."
+            },
+            {
+              "kind": "field",
               "name": "_drag",
               "privacy": "private",
               "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0) return null // Ignore drags that start on the close/zoom widgets. if ( event .composedPath() .some( (node) => node instanceof HTMLElement && node.classList.contains('box') ) ) { return null } // Seed absolute positioning from the current in-flow offset the first // time the window is dragged. Every coordinate is snapped onto the // system-pixel grid (scale.ts): a fractional origin fringes all the // 1-bit art inside, and a half-CSS-px edge shifts WebKit's rails. const computed = getComputedStyle(this) if (computed.position !== 'absolute') { const left = snapToSystemPx(this.offsetLeft, this) const top = snapToSystemPx(this.offsetTop, this) this.style.position = 'absolute' this.style.left = `${left}px` this.style.top = `${top}px` this.style.margin = '0' } else { // Already absolute: re-seed the inline coordinates from the COMPUTED // ones before every drag. They are resolved pixels whatever the author // wrote — an inline `left: 1em` or `left: 10%` is a perfectly good way // to place a window, and reading `style.left` back would parse it as // the bare number and jump the window there on the first move. Once // the drag owns the coordinates they are already px, so this is a // no-op from the second drag on. this.style.left = `${snapToSystemPx(parseFloat(computed.left) || 0, this)}px` this.style.top = `${snapToSystemPx(parseFloat(computed.top) || 0, this)}px` } return { x: parseFloat(this.style.left) || 0, y: parseFloat(this.style.top) || 0, } }, onDrag: (x: number, y: number): void => { // Keep a grabbable strip on-screen: clamp the origin against the // positioning parent (the desktop, usually) so the window can't be // dragged fully past an edge and lost. Re-snap after clamping so the // clamped edge still lands on the system grid. const parent = this.offsetParent as HTMLElement | null const pw = parent?.clientWidth ?? window.innerWidth const ph = parent?.clientHeight ?? window.innerHeight const keep = sys(24, this) // px of the window that must stay reachable const nx = Math.min(Math.max(x, keep - this.offsetWidth), pw - keep) const ny = Math.min(Math.max(y, 0), Math.max(0, ph - keep)) this.style.left = `${snapToSystemPx(nx, this)}px` this.style.top = `${snapToSystemPx(ny, this)}px` }, })",
-              "description": "Title-bar drag-to-move (shared with `vf-dialog` via DragController).\nThe delegate seeds absolute positioning on the first drag and writes the\nsnapped `left`/`top` back; the controller owns the pointer bookkeeping."
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0) return null // Ignore drags that start on the close/zoom widgets. if ( event .composedPath() .some( (node) => node instanceof HTMLElement && node.classList.contains('box') ) ) { return null } return this._placement.seed() }, onDrag: (x: number, y: number): void => this._placement.moveTo(x, y), })",
+              "description": "Title-bar drag-to-move (shared with `vf-dialog` via DragController).\nThe controller owns the pointer bookkeeping and hands over system px; the\nplacement controller seeds the origin and writes the result."
             },
             {
               "kind": "field",
@@ -17998,7 +18170,7 @@
         },
         {
           "kind": "class",
-          "description": "Base class for the modal shell `vf-dialog` — and for a consumer's own\nmodal (an alert box, say) authored against the kit.\n\nOwns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /\n`close()`, the device-grid pin on open, and the single `close` funnel that\nclears the grid-pinned margins (unsnapDialog) and fires `vf-close`\nwith the reason. Because every close path — Escape, `close()`, backdrop —\nroutes through the native `close` event, an Escape-close no longer leaves\nstale margins behind, so the next open re-centers.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
+          "description": "Base class for the modal shell `vf-dialog` — and for a consumer's own\nmodal (an alert box, say) authored against the kit.\n\nOwns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /\n`close()`, the top/left placement (stated or centered) and the\nsingle `close` funnel that drops the written origin and fires `vf-close` with\nthe reason. Because every close path — Escape, `close()`, backdrop — routes\nthrough the native `close` event, an Escape-close no longer leaves a stale\norigin behind, so the next open re-derives it.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
           "name": "VfModalDialog",
           "members": [
             {
@@ -18026,7 +18198,7 @@
               "type": {
                 "text": "number | undefined"
               },
-              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside its offsets — and stating an offset is\nexactly how the box is placed and dragged (top), so an undeclared\nmodal squeezes itself and reflows its text as it moves toward an edge.\nUnset, it falls back to MODAL_FALLBACK_WIDTH and says so once in\nthe console.",
               "attribute": "width"
             },
             {
@@ -18037,6 +18209,24 @@
               },
               "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
               "attribute": "height"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the **viewport**, in whole system px — the same\n`top`/`left` pair every other component takes (VfPositioned), in\nthe same unit, with one difference the platform forces: `showModal()` puts\nthe box in the top layer, whose containing block is the viewport rather\nthan the nearest positioned ancestor. So these coordinates are screen\ncoordinates, not the parent's.\n\nLeave both unset and the modal is **centered** — recomputed on open, and\nagain whenever its own box or the viewport changes, which is what keeps a\ndialog whose slotted content upgrades after `showModal()` from opening at\nthe offset its smaller first render centered at. Dragging the title bar\nstates the pair; setting either back to `null` returns the modal to\ncentering.",
+              "attribute": "top"
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the viewport, in whole system px. See top.",
+              "attribute": "left"
             },
             {
               "kind": "field",
@@ -18119,6 +18309,100 @@
             },
             {
               "kind": "method",
+              "name": "#viewport",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ width: number; height: number }"
+                }
+              },
+              "description": "The viewport in system px — `documentElement.clientWidth/Height` rather\nthan `innerWidth/Height`, because that is the box a `position: fixed`\ntop-layer element actually resolves against (it excludes a classic\nspace-consuming scrollbar)."
+            },
+            {
+              "kind": "method",
+              "name": "#keepOnScreen",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ x: number; y: number }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Keep a grabbable strip on screen, as `vf-window` does against its\npositioning parent — a modal's is the viewport. With a declared width\nnothing else stops a drag at an edge, and a `frame=\"plain\"` modal has no\ntitle bar to recover it by at all."
+            },
+            {
+              "kind": "method",
+              "name": "#centered",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ x: number; y: number }"
+                }
+              },
+              "description": "The origin that centers the box in the viewport, in system px."
+            },
+            {
+              "kind": "method",
+              "name": "placeAt",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "State the origin, in system px — clamped on screen and snapped onto the\nplacement lattice, so what `top`/`left` report is what you can see. This is\nwhat a title-bar drag calls; a modal that has been placed this way stays\nplaced, and re-centers only if the pair is cleared."
+            },
+            {
+              "kind": "method",
+              "name": "settle",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Write the origin onto the top-layer box: the stated one, or the centered\none while the pair is unset. Both go on as a live `calc()` in system px\n(sysLength), so a zoom re-resolves the offset with every other\nmetric instead of leaving the box behind at a stale CSS-px constant — and\nboth are re-clamped here, which is what catches a viewport that shrank\n(zooming in leaves fewer system px on the screen) without forgetting where\nthe modal was put.\n\n`position` is deliberately untouched: the UA already makes an open modal\n`position: fixed`, and the four inset/margin declarations are what turn its\n`inset: 0; margin: auto` centering into a stated origin."
+            },
+            {
+              "kind": "method",
+              "name": "#clearPlacement",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Hand the box back to the UA's own centering, for the next open to redo."
+            },
+            {
+              "kind": "method",
               "name": "#syncDialog",
               "privacy": "private",
               "return": {
@@ -18126,13 +18410,13 @@
                   "text": "void"
                 }
               },
-              "description": "Reconcile the native `<dialog>` with `open`. Opening pins the UA's\nauto-centering onto the device-pixel grid (half-pixel offsets fringe the\n1-bit chrome — see scale.ts). Closing just calls `dialog.close()`, routing\nteardown through the native `close` event so _onNativeClose is the\none place margins are cleared and `vf-close` is fired."
+              "description": "Reconcile the native `<dialog>` with `open`. Opening states the origin —\nthe author's, or the centered one — onto the top-layer box; the UA's own\n`margin: auto` centering lands on a half pixel whenever viewport minus\ndialog is odd, which fringes all the 1-bit chrome inside. Closing just\ncalls `dialog.close()`, routing teardown through the native `close` event\nso _onNativeClose is the one place placement is cleared and\n`vf-close` is fired."
             },
             {
               "kind": "field",
-              "name": "#repin",
+              "name": "#resettle",
               "privacy": "private",
-              "description": "Re-derive the pin rather than keep the latch: clear the pinned margins\n(restoring the UA's `margin: auto` centering) and re-pin from the live,\nre-centered rect. Without this the margins latched at open time forever —\nand the open-time rect can be wrong by the next frame: slotted content\nupgrading after `showModal()` grows the box (the pin then holds a\nviewport-tall dialog at the offset its small first render centered at,\nstranding its bottom off-screen), and a browser zoom rescales every\nmetric while the old margins hold the stale origin. A dragged position is\ntraded for re-centering on these signals — recoverable, where a stranded\nmodal with no drag handle (frame=\"plain\") is not."
+              "description": "Re-derive the placement rather than keep the latch. The open-time geometry\ncan be wrong by the next frame in three ways, and all three land here:\nslotted content upgrading after `showModal()` grows the box (an unplaced\nmodal would otherwise hold the offset its small first render centered at,\nstranding its bottom off-screen), the viewport resizing under it, and a\nzoom or density change — which rescales every metric, moves the placement\nlattice, and leaves fewer system px on the screen to fit in.\n\nWhat survives differs by how the modal got where it is, and that is the\npoint: an unplaced modal re-centers (it never claimed a spot), while one\nthe user dragged — or the author placed — keeps its stated origin and is\nonly re-clamped. The old behavior re-centered both, trading a dragged\nposition away on every one of these signals to avoid the stranded case."
             },
             {
               "kind": "field",
@@ -18140,6 +18424,14 @@
               "privacy": "private",
               "type": {
                 "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#stopScaleWatch",
+              "privacy": "private",
+              "type": {
+                "text": "() => void | undefined"
               }
             },
             {
@@ -18159,7 +18451,7 @@
                   }
                 }
               ],
-              "description": "While open, watch the two signals that invalidate the pin: the dialog's\nown box changing (content upgrade/growth, `--vf-scale` moving under a\nzoom or density change — every metric resizes with it) and the viewport\nresizing. Undone in _onNativeClose / `disconnectedCallback`."
+              "description": "While open, watch everything that invalidates the placement: the dialog's\nown box changing (content upgrade/growth, and `--vf-scale` moving under a\nzoom or density change, since every metric resizes with it), the viewport\nresizing, and the scale itself — which the box alone would miss on a page\nthat pins `--vf-scale`, where a zoom moves the lattice without resizing\nanything. Undone in _onNativeClose / `disconnectedCallback`."
             },
             {
               "kind": "method",
@@ -18191,7 +18483,7 @@
                   "text": "void"
                 }
               },
-              "description": "Native `close` — the single teardown funnel for every close path. Clears\nthe grid-pinned margins so the next open re-centers, syncs `open`, and\nfires `vf-close` with the reason."
+              "description": "Native `close` — the single teardown funnel for every close path. Drops\nthe written origin so the next open re-derives it from the box it will\nactually have (a stated `top`/`left` is the author's or the user's and\nsurvives, and is re-applied by that open), syncs `open`, and fires\n`vf-close` with the reason."
             }
           ],
           "events": [
@@ -18215,7 +18507,7 @@
               "type": {
                 "text": "number | undefined"
               },
-              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside the margins — and those margins are\nhow snapDialogToGrid pins the box and how a movable dialog is\ndragged, so an undeclared modal squeezes itself and reflows its text as it\nmoves toward an edge. Unset, it falls back to MODAL_FALLBACK_WIDTH\nand says so once in the console.",
+              "description": "Modal width in whole system px — the art's own unit, so the box holds its\nproportion to the chrome inside it at every display density.\n\n**Declare it.** A modal owns its width; it is not a shape its content\nhappens to fall into. The platform's own default is `fit-content` measured\nagainst the space *left over* beside its offsets — and stating an offset is\nexactly how the box is placed and dragged (top), so an undeclared\nmodal squeezes itself and reflows its text as it moves toward an edge.\nUnset, it falls back to MODAL_FALLBACK_WIDTH and says so once in\nthe console.",
               "fieldName": "width"
             },
             {
@@ -18225,6 +18517,22 @@
               },
               "description": "Modal height in whole system px.\n\n**Declare it,** with width. A modal is a fixed box in both axes —\nthe same rule `vf-window` follows, for the same reason: the classic shells\ncarried both dimensions in the resource, and a box that grows with its body\nis one whose buttons move under the pointer as its text changes. Unset, the\nbody sizes to its content — the old behavior — and it says so once in the\nconsole.\n\nContent taller than the declared box is clipped at the frame.",
               "fieldName": "height"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the **viewport**, in whole system px — the same\n`top`/`left` pair every other component takes (VfPositioned), in\nthe same unit, with one difference the platform forces: `showModal()` puts\nthe box in the top layer, whose containing block is the viewport rather\nthan the nearest positioned ancestor. So these coordinates are screen\ncoordinates, not the parent's.\n\nLeave both unset and the modal is **centered** — recomputed on open, and\nagain whenever its own box or the viewport changes, which is what keeps a\ndialog whose slotted content upgrades after `showModal()` from opening at\nthe offset its smaller first render centered at. Dragging the title bar\nstates the pair; setting either back to `null` returns the modal to\ncentering.",
+              "fieldName": "top"
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the viewport, in whole system px. See top.",
+              "fieldName": "left"
             }
           ],
           "superclass": {
@@ -18293,7 +18601,7 @@
         },
         {
           "kind": "mixin",
-          "description": "Explicit placement — `top`/`left` in whole system px, on (nearly) every\ncomponent.\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nIt re-applies **only when the property values changed** — the `vf-window`\nwidth/height rule. `vf-window` drag and `vf-icon` move write resolved px\ninto the same inline `left`/`top` without touching these properties (both\nre-seed from *computed* style, so they read a live calc correctly); if some\nunrelated update re-asserted the authored coordinates, activating a window\nwould snap it back to where its markup put it. Setting a property again is\nthe deliberate way to re-place a moved element — and, as with any reactive\nproperty, setting it to the value it already holds is a no-op.",
+          "description": "Explicit placement — `top`/`left` in whole system px, on (nearly) every\ncomponent.\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.",
           "name": "VfPositioned",
           "members": [
             {
@@ -18341,6 +18649,85 @@
               }
             }
           ]
+        },
+        {
+          "kind": "class",
+          "description": "The gesture half of placement: the piece a *movable* host adds on top of\nVfPositioned, so a drag ends up in the same `top`/`left` system-px\nproperties an author would have written.\n\nTwo things it owns, both consequences of storing the origin in the art's own\nunit rather than in resolved CSS px:\n\n- **Seeding.** A gesture starts from wherever the host already is, which may\n  be a coordinate nobody stated in system px — an authored `left: 10%`, a\n  `right`-anchored Trash icon, or plain normal flow. seed reads the\n  *used* position and converts it once; from then on the properties are the\n  whole truth.\n- **The lattice.** Every write is snapped to snapSys — whole art\n  pixels, the way QuickDraw moved windows, and the k-system-px run that also\n  lands the edge on a whole CSS px (scale.ts explains why that second half\n  matters to a scroll rail).\n\nIt holds no state the host's own properties don't already hold, so it takes\nno lifecycle and is not a ReactiveController: the writes it makes are\nordinary property sets, and `VfPositioned`'s controller renders them.\n\nAnd one thing it deliberately does **not** do: re-snap a placed host when the\nscale changes. The lattice moves with the scale (k is 2 at dpr 2, 3 at that\ndisplay's 150%), so a coordinate dropped on one rung sits between two on the\nnext — but re-rounding it there is worse than leaving it. It is lossy, and it\ncompounds: 62 → 63 at 150% → 64 at 200%, a window walking away from where it\nwas dropped one zoom step at a time, which is a milder version of the exact\nbug this class exists to fix (`verify:zoom` group (e) fails on it). Whole\nsystem px is whole *device* px at every rung by the scale contract, so the\nart stays crisp regardless; only the whole-CSS-px edge is given up, and an\nauthored `left=\"10\"` gives that up already. A dropped coordinate is therefore\nas immutable as an authored one — which is the whole claim.",
+          "name": "PlacementController",
+          "members": [
+            {
+              "kind": "field",
+              "name": "#host",
+              "privacy": "private",
+              "type": {
+                "text": "HTMLElement & { top?: number | null; left?: number | null }"
+              },
+              "readonly": true,
+              "default": "host"
+            },
+            {
+              "kind": "field",
+              "name": "#clamp",
+              "privacy": "private",
+              "type": {
+                "text": "PlacementClamp"
+              },
+              "readonly": true,
+              "default": "clamp"
+            },
+            {
+              "kind": "field",
+              "name": "#placed",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "placed",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether a gesture has placed this host (as opposed to markup or CSS).",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "seed",
+              "return": {
+                "type": {
+                  "text": "{ x: number; y: number }"
+                }
+              },
+              "description": "The origin a move adds its delta to, in system px.\n\nA stated coordinate is authoritative and needs no measuring — including\nthe one this controller wrote last time. Otherwise the host is wherever\nlayout or a stylesheet put it, so the *used* position is read and\nconverted: absolutely positioned hosts through their computed offsets\n(`left: 10%` and `left: 1em` are perfectly good ways to place one, and\nboth resolve to px here), everything else through its in-flow offset,\nwhich is measured against the same padding box `left`/`top` will be."
+            },
+            {
+              "kind": "method",
+              "name": "moveTo",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Place the host at a system-px origin, clamped by its own rule and snapped.\n\nThe clamp runs *here*, during the gesture, which is the moment the user is\nactually pushing against an edge — and nowhere else. Re-clamping later, on\na parent that shrank under a zoom, would move a host nobody moved and would\nnot give the position back when the parent grew again."
+            }
+          ]
         }
       ],
       "exports": [
@@ -18357,6 +18744,14 @@
           "name": "VfPositioned",
           "declaration": {
             "name": "VfPositioned",
+            "module": "src/position.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "PlacementController",
+          "declaration": {
+            "name": "PlacementController",
             "module": "src/position.ts"
           }
         }

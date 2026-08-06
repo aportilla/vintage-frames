@@ -77,8 +77,9 @@ export {
   toSys,
   snapToDevicePx,
   snapToSystemPx,
-  snapDialogToGrid,
-  unsnapDialog,
+  snapSys,
+  systemPxQuantum,
+  toSysExact,
   DEVICE_PX_PER_SYSTEM_PX,
 } from './scale.js'
 
@@ -220,8 +221,8 @@ export { VfFormControl } from './form-control.js'
 export { VfTextControlBase } from './text-control.js'
 export { VfToggleControl } from './toggle-control.js'
 export type { VfToggleControlInterface } from './toggle-control.js'
-export { VfPositioned } from './position.js'
-export type { VfPositionedInterface } from './position.js'
+export { PlacementController, VfPositioned } from './position.js'
+export type { PlacementClamp, VfPositionedInterface } from './position.js'
 export { VfSized } from './size.js'
 export type { VfSizedInterface } from './size.js'
 export { VfModalDialog, modalDialogStyles } from './modal-dialog.js'

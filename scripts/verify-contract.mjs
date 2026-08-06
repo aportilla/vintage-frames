@@ -98,7 +98,11 @@ async function build(markup) {
       openProp: dlg.open,
       openAttr: dlg.hasAttribute('open'),
       nativeOpen: native.open,
-      margins: native.style.marginLeft + native.style.marginTop,
+      // The written origin (left/top/right/bottom/margin), not just margins:
+      // a modal states its placement in system px on the top-layer box now.
+      margins: ['left', 'top', 'right', 'bottom', 'margin']
+        .map((p) => native.style.getPropertyValue(p))
+        .join(''),
       focusRestored: document.activeElement === opener,
     }
 
@@ -124,7 +128,7 @@ async function build(markup) {
   )
   check('removal: native dialog closed', r.afterRemove.nativeOpen === false)
   check(
-    'removal: grid-pin margins cleared',
+    'removal: the written placement is cleared',
     r.afterRemove.margins === '',
     JSON.stringify(r.afterRemove.margins)
   )

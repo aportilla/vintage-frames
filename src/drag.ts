@@ -1,22 +1,26 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit'
-import { snapToSystemPx } from './scale.js'
+import { effectiveScale, snapSys } from './scale.js'
 
 /**
  * The moving side of a pointer drag. A component supplies these callbacks; the
  * {@link DragController} owns the pointer bookkeeping (which button, capture,
- * delta tracking, device-pixel snapping) so window and dialog dragging stay
- * identical.
+ * delta tracking, system-pixel snapping) so window, dialog and icon dragging
+ * stay identical.
+ *
+ * Every coordinate here is in **system px** — the art's own unit, and the unit
+ * a placement is stored in, so that a dropped host is still where it was
+ * dropped after a zoom. The controller does the one conversion: pointer events
+ * arrive in CSS px, and only the *delta* is converted.
  */
 export interface DragTarget {
   /**
-   * A press landed on the drag handle. Return the origin the delta is added to
-   * — in the same coordinate space {@link onDrag} writes back — to begin the
-   * drag, or `null` to ignore this press (wrong button, landed on a widget, the
-   * host isn't movable). Seed any positioning state (e.g. switch to absolute)
-   * here before returning the origin.
+   * A press landed on the drag handle. Return the origin in system px, the
+   * space {@link onDrag} writes back in, to begin the drag — or `null` to
+   * ignore this press (wrong button, landed on a widget, the host isn't
+   * movable). Seed any positioning state here before returning the origin.
    */
   onDragStart(event: PointerEvent): { x: number; y: number } | null
-  /** Apply a moved origin. Already snapped onto the system-pixel grid. */
+  /** Apply a moved origin, in system px, already snapped onto the lattice. */
   onDrag(x: number, y: number): void
   /** Optional: the drag ended (pointer released or cancelled). */
   onDragEnd?(): void
@@ -27,11 +31,11 @@ export interface DragTarget {
  * / {@link onPointerUp} to a handle element (`vf-window`'s title bar,
  * `vf-dialog`'s title bar); the controller captures the pointer on that handle,
  * tracks the delta from the press point, and hands the {@link DragTarget} a new
- * origin snapped onto the system-pixel grid — whole art pixels, the way
- * QuickDraw moved windows, which is also what keeps the pixel art inside
- * fringe-free and WebKit's scrollbar rects pinned to the frame (see
- * {@link snapToSystemPx}). The target decides how to apply it (a window writes
- * `left`/`top`, a modal dialog writes its centering margins).
+ * origin in system px, snapped onto the placement lattice — whole art pixels,
+ * the way QuickDraw moved windows, which is also what keeps the pixel art
+ * inside fringe-free and WebKit's scrollbar rects pinned to the frame (see
+ * {@link snapSys}). The target decides how to apply it; all three write it
+ * through `top`/`left` (`src/position.ts`).
  */
 export class DragController implements ReactiveController {
   #pointerId: number | null = null
@@ -69,11 +73,15 @@ export class DragController implements ReactiveController {
 
   onPointerMove = (event: PointerEvent): void => {
     if (event.pointerId !== this.#pointerId) return
-    // Trackpads report fractional clientX/Y — snap every step so the host (and
-    // all the pixel art inside it) stays on the system grid.
+    // The delta is the only thing that has to cross units: the origin is
+    // already in system px, and adding a converted delta to it keeps the
+    // gesture free of the accumulated rounding a per-step conversion would
+    // bring. Trackpads report fractional clientX/Y, so snap every step —
+    // the host and all the pixel art inside it stay on the system grid.
+    const scale = effectiveScale(this.host)
     this.target.onDrag(
-      snapToSystemPx(this.#baseX + (event.clientX - this.#startX), this.host),
-      snapToSystemPx(this.#baseY + (event.clientY - this.#startY), this.host)
+      snapSys(this.#baseX + (event.clientX - this.#startX) / scale, this.host),
+      snapSys(this.#baseY + (event.clientY - this.#startY) / scale, this.host)
     )
   }
 

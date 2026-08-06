@@ -2,10 +2,11 @@ import { css, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import {
+  onScaleChange,
   ScaleController,
-  snapDialogToGrid,
+  snapSys,
   sysLength,
-  unsnapDialog,
+  toSysExact,
 } from './scale.js'
 import { emit } from './events.js'
 
@@ -19,6 +20,12 @@ export type VfCloseReason = 'escape' | 'close'
  * width so dragging cannot squeeze it; the console says what to declare.
  */
 export const MODAL_FALLBACK_WIDTH = 260
+
+/**
+ * How much of a placed modal must stay inside the viewport, in system px —
+ * enough of the title bar to grab it back by, the same strip `vf-window` keeps.
+ */
+const KEEP_GRABBABLE = 24
 
 /**
  * Shared native-`<dialog>` styles for the modal shells: a chromeless top-layer
@@ -71,11 +78,11 @@ export const modalDialogStyles = css`
  * modal (an alert box, say) authored against the kit.
  *
  * Owns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /
- * `close()`, the device-grid pin on open, and the single `close` funnel that
- * clears the grid-pinned margins ({@link unsnapDialog}) and fires `vf-close`
- * with the reason. Because every close path — Escape, `close()`, backdrop —
- * routes through the native `close` event, an Escape-close no longer leaves
- * stale margins behind, so the next open re-centers.
+ * `close()`, the {@link top}/{@link left} placement (stated or centered) and the
+ * single `close` funnel that drops the written origin and fires `vf-close` with
+ * the reason. Because every close path — Escape, `close()`, backdrop — routes
+ * through the native `close` event, an Escape-close no longer leaves a stale
+ * origin behind, so the next open re-derives it.
  *
  * Removing an open modal from the DOM is a close path too. HTML's dialog
  * *removing steps* take the element out of the top layer **without** running
@@ -107,11 +114,11 @@ export class VfModalDialog extends LitElement {
    *
    * **Declare it.** A modal owns its width; it is not a shape its content
    * happens to fall into. The platform's own default is `fit-content` measured
-   * against the space *left over* beside the margins — and those margins are
-   * how {@link snapDialogToGrid} pins the box and how a movable dialog is
-   * dragged, so an undeclared modal squeezes itself and reflows its text as it
-   * moves toward an edge. Unset, it falls back to {@link MODAL_FALLBACK_WIDTH}
-   * and says so once in the console.
+   * against the space *left over* beside its offsets — and stating an offset is
+   * exactly how the box is placed and dragged ({@link top}), so an undeclared
+   * modal squeezes itself and reflows its text as it moves toward an edge.
+   * Unset, it falls back to {@link MODAL_FALLBACK_WIDTH} and says so once in
+   * the console.
    */
   @property({ type: Number }) width?: number
 
@@ -128,6 +135,26 @@ export class VfModalDialog extends LitElement {
    * Content taller than the declared box is clipped at the frame.
    */
   @property({ type: Number }) height?: number
+
+  /**
+   * Offset from the top of the **viewport**, in whole system px — the same
+   * `top`/`left` pair every other component takes ({@link VfPositioned}), in
+   * the same unit, with one difference the platform forces: `showModal()` puts
+   * the box in the top layer, whose containing block is the viewport rather
+   * than the nearest positioned ancestor. So these coordinates are screen
+   * coordinates, not the parent's.
+   *
+   * Leave both unset and the modal is **centered** — recomputed on open, and
+   * again whenever its own box or the viewport changes, which is what keeps a
+   * dialog whose slotted content upgrades after `showModal()` from opening at
+   * the offset its smaller first render centered at. Dragging the title bar
+   * states the pair; setting either back to `null` returns the modal to
+   * centering.
+   */
+  @property({ type: Number }) top?: number | null
+
+  /** Offset from the left of the viewport, in whole system px. See {@link top}. */
+  @property({ type: Number }) left?: number | null
 
   @query('dialog') protected _dialog!: HTMLDialogElement
 
@@ -203,15 +230,106 @@ export class VfModalDialog extends LitElement {
 
   protected override updated(changed: PropertyValues<this>): void {
     if (changed.has('open')) this.#syncDialog()
+    if (changed.has('top') || changed.has('left')) this.settle()
     this.#warnIfUnsized()
   }
 
+  /* --- Placement ----------------------------------------------------- */
+
   /**
-   * Reconcile the native `<dialog>` with `open`. Opening pins the UA's
-   * auto-centering onto the device-pixel grid (half-pixel offsets fringe the
-   * 1-bit chrome — see scale.ts). Closing just calls `dialog.close()`, routing
-   * teardown through the native `close` event so {@link _onNativeClose} is the
-   * one place margins are cleared and `vf-close` is fired.
+   * The viewport in system px — `documentElement.clientWidth/Height` rather
+   * than `innerWidth/Height`, because that is the box a `position: fixed`
+   * top-layer element actually resolves against (it excludes a classic
+   * space-consuming scrollbar).
+   */
+  #viewport(): { width: number; height: number } {
+    const root = document.documentElement
+    return {
+      width: toSysExact(root.clientWidth || window.innerWidth, this),
+      height: toSysExact(root.clientHeight || window.innerHeight, this),
+    }
+  }
+
+  /**
+   * Keep a grabbable strip on screen, as `vf-window` does against its
+   * positioning parent — a modal's is the viewport. With a declared width
+   * nothing else stops a drag at an edge, and a `frame="plain"` modal has no
+   * title bar to recover it by at all.
+   */
+  #keepOnScreen(x: number, y: number): { x: number; y: number } {
+    const view = this.#viewport()
+    const width = toSysExact(this._dialog?.offsetWidth ?? 0, this)
+    return {
+      x: Math.min(Math.max(x, KEEP_GRABBABLE - width), view.width - KEEP_GRABBABLE),
+      y: Math.min(Math.max(y, 0), Math.max(0, view.height - KEEP_GRABBABLE)),
+    }
+  }
+
+  /** The origin that centers the box in the viewport, in system px. */
+  #centered(): { x: number; y: number } {
+    const view = this.#viewport()
+    const rect = this._dialog?.getBoundingClientRect()
+    return {
+      x: (view.width - toSysExact(rect?.width ?? 0, this)) / 2,
+      y: (view.height - toSysExact(rect?.height ?? 0, this)) / 2,
+    }
+  }
+
+  /**
+   * State the origin, in system px — clamped on screen and snapped onto the
+   * placement lattice, so what `top`/`left` report is what you can see. This is
+   * what a title-bar drag calls; a modal that has been placed this way stays
+   * placed, and re-centers only if the pair is cleared.
+   */
+  protected placeAt(x: number, y: number): void {
+    const kept = this.#keepOnScreen(x, y)
+    this.left = snapSys(kept.x, this)
+    this.top = snapSys(kept.y, this)
+  }
+
+  /**
+   * Write the origin onto the top-layer box: the stated one, or the centered
+   * one while the pair is unset. Both go on as a live `calc()` in system px
+   * ({@link sysLength}), so a zoom re-resolves the offset with every other
+   * metric instead of leaving the box behind at a stale CSS-px constant — and
+   * both are re-clamped here, which is what catches a viewport that shrank
+   * (zooming in leaves fewer system px on the screen) without forgetting where
+   * the modal was put.
+   *
+   * `position` is deliberately untouched: the UA already makes an open modal
+   * `position: fixed`, and the four inset/margin declarations are what turn its
+   * `inset: 0; margin: auto` centering into a stated origin.
+   */
+  protected settle(): void {
+    const dialog = this._dialog
+    if (!dialog?.open) return
+    const stated = this.left != null || this.top != null
+    const origin = stated ? { x: this.left ?? 0, y: this.top ?? 0 } : this.#centered()
+    const kept = this.#keepOnScreen(origin.x, origin.y)
+    dialog.style.left = sysLength(snapSys(kept.x, this))
+    dialog.style.top = sysLength(snapSys(kept.y, this))
+    dialog.style.right = 'auto'
+    dialog.style.bottom = 'auto'
+    dialog.style.margin = '0'
+  }
+
+  /** Hand the box back to the UA's own centering, for the next open to redo. */
+  #clearPlacement(): void {
+    const style = this._dialog?.style
+    if (!style) return
+    for (const property of ['left', 'top', 'right', 'bottom', 'margin']) {
+      style.removeProperty(property)
+    }
+  }
+
+  /**
+   * Reconcile the native `<dialog>` with `open`. Opening states the origin —
+   * the author's, or the centered one — onto the top-layer box; the UA's own
+   * `margin: auto` centering lands on a half pixel whenever viewport minus
+   * dialog is odd, which fringes all the 1-bit chrome inside. Closing just
+   * calls `dialog.close()`, routing teardown through the native `close` event
+   * so {@link _onNativeClose} is the one place placement is cleared and
+   * `vf-close` is fired.
    */
   #syncDialog(): void {
     const dialog = this._dialog
@@ -219,7 +337,7 @@ export class VfModalDialog extends LitElement {
     if (this.open && !dialog.open) {
       this.#invoker = document.activeElement
       dialog.showModal()
-      snapDialogToGrid(dialog)
+      this.settle()
       this.#watchGeometry(dialog)
     } else if (!this.open && dialog.open) {
       dialog.close()
@@ -227,44 +345,48 @@ export class VfModalDialog extends LitElement {
   }
 
   /**
-   * Re-derive the pin rather than keep the latch: clear the pinned margins
-   * (restoring the UA's `margin: auto` centering) and re-pin from the live,
-   * re-centered rect. Without this the margins latched at open time forever —
-   * and the open-time rect can be wrong by the next frame: slotted content
-   * upgrading after `showModal()` grows the box (the pin then holds a
-   * viewport-tall dialog at the offset its small first render centered at,
-   * stranding its bottom off-screen), and a browser zoom rescales every
-   * metric while the old margins hold the stale origin. A dragged position is
-   * traded for re-centering on these signals — recoverable, where a stranded
-   * modal with no drag handle (frame="plain") is not.
+   * Re-derive the placement rather than keep the latch. The open-time geometry
+   * can be wrong by the next frame in three ways, and all three land here:
+   * slotted content upgrading after `showModal()` grows the box (an unplaced
+   * modal would otherwise hold the offset its small first render centered at,
+   * stranding its bottom off-screen), the viewport resizing under it, and a
+   * zoom or density change — which rescales every metric, moves the placement
+   * lattice, and leaves fewer system px on the screen to fit in.
+   *
+   * What survives differs by how the modal got where it is, and that is the
+   * point: an unplaced modal re-centers (it never claimed a spot), while one
+   * the user dragged — or the author placed — keeps its stated origin and is
+   * only re-clamped. The old behavior re-centered both, trading a dragged
+   * position away on every one of these signals to avoid the stranded case.
    */
-  #repin = (): void => {
-    const dialog = this._dialog
-    if (!dialog?.open) return
-    unsnapDialog(dialog)
-    snapDialogToGrid(dialog)
-  }
+  #resettle = (): void => this.settle()
 
   #resizeObserver?: ResizeObserver
+  #stopScaleWatch?: () => void
 
   /**
-   * While open, watch the two signals that invalidate the pin: the dialog's
-   * own box changing (content upgrade/growth, `--vf-scale` moving under a
-   * zoom or density change — every metric resizes with it) and the viewport
-   * resizing. Undone in {@link _onNativeClose} / `disconnectedCallback`.
+   * While open, watch everything that invalidates the placement: the dialog's
+   * own box changing (content upgrade/growth, and `--vf-scale` moving under a
+   * zoom or density change, since every metric resizes with it), the viewport
+   * resizing, and the scale itself — which the box alone would miss on a page
+   * that pins `--vf-scale`, where a zoom moves the lattice without resizing
+   * anything. Undone in {@link _onNativeClose} / `disconnectedCallback`.
    */
   #watchGeometry(dialog: HTMLDialogElement): void {
     if (typeof ResizeObserver !== 'undefined' && !this.#resizeObserver) {
-      this.#resizeObserver = new ResizeObserver(this.#repin)
+      this.#resizeObserver = new ResizeObserver(this.#resettle)
       this.#resizeObserver.observe(dialog)
     }
-    window.addEventListener('resize', this.#repin)
+    window.addEventListener('resize', this.#resettle)
+    this.#stopScaleWatch ??= onScaleChange(this.#resettle)
   }
 
   #unwatchGeometry(): void {
     this.#resizeObserver?.disconnect()
     this.#resizeObserver = undefined
-    window.removeEventListener('resize', this.#repin)
+    window.removeEventListener('resize', this.#resettle)
+    this.#stopScaleWatch?.()
+    this.#stopScaleWatch = undefined
   }
 
   /**
@@ -298,9 +420,11 @@ export class VfModalDialog extends LitElement {
   }
 
   /**
-   * Native `close` — the single teardown funnel for every close path. Clears
-   * the grid-pinned margins so the next open re-centers, syncs `open`, and
-   * fires `vf-close` with the reason.
+   * Native `close` — the single teardown funnel for every close path. Drops
+   * the written origin so the next open re-derives it from the box it will
+   * actually have (a stated `top`/`left` is the author's or the user's and
+   * survives, and is re-applied by that open), syncs `open`, and fires
+   * `vf-close` with the reason.
    */
   protected _onNativeClose(): void {
     const reason = this.#closeReason ?? 'close'
@@ -308,7 +432,7 @@ export class VfModalDialog extends LitElement {
     this.#invoker = null
     this.#unwatchGeometry()
     this.open = false
-    unsnapDialog(this._dialog)
+    this.#clearPlacement()
     emit(this, 'vf-close', { reason })
   }
 }

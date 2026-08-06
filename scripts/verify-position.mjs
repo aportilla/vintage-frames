@@ -346,11 +346,12 @@ for (const dpr of DENSITIES) {
 }
 
 /* ── INTERPLAY ────────────────────────────────────────────────────────────
-   vf-window drag and vf-icon moves write resolved px into the same inline
-   left/top without touching the properties (both re-seed from COMPUTED style,
-   so they read a live calc correctly). The three claims: placement seeds the
-   gesture, a later unrelated update never re-asserts the authored coordinates
-   over a user's move, and writing the property again deliberately re-places. */
+   vf-window drag and vf-icon moves write THROUGH these properties, in system
+   px (PlacementController), seeding from computed style the first time so an
+   authored `left: 10%` or plain flow reads correctly. The claims: placement
+   seeds the gesture, a later unrelated update never re-asserts the authored
+   coordinates over a user's move, and writing a property again deliberately
+   re-places that one axis. */
 
 {
   const page = await build(`
@@ -392,18 +393,25 @@ for (const dpr of DENSITIES) {
     `at ${after.x - desk.x} × ${after.y - desk.y}, drag put it at ${dragged.x - desk.x} × ${dragged.y - desk.y}`
   )
 
-  // Writing the property again is the deliberate re-place — both coordinates.
-  await page.evaluate(() => {
+  // Writing a property again is the deliberate re-place — of THAT axis. The
+  // drag states both coordinates in the same properties, so the axis left
+  // alone keeps where the user put it rather than reverting to the markup.
+  const draggedLeft = await page.evaluate(() => {
     const w = document.getElementById('w1')
     w.top = 90
-    return w.updateComplete
+    return w.updateComplete.then(() => w.left)
   })
   const replaced = await rect(page, 'w1')
   check(
-    'interplay: setting a coordinate property re-places the window',
+    'interplay: setting a coordinate property re-places that axis',
     near(replaced.y - desk.y, 90 * DEVICE_PX_PER_SYSTEM_PX) &&
-      near(replaced.x - desk.x, 40 * DEVICE_PX_PER_SYSTEM_PX),
-    `${replaced.x - desk.x} × ${replaced.y - desk.y}px CSS`
+      near(replaced.x - desk.x, draggedLeft * DEVICE_PX_PER_SYSTEM_PX),
+    `${replaced.x - desk.x} × ${replaced.y - desk.y}px CSS, left reads ${draggedLeft}`
+  )
+  check(
+    'interplay: a drag states the origin in system px on the host',
+    draggedLeft === 40 + 60 / DEVICE_PX_PER_SYSTEM_PX,
+    `left=${draggedLeft} system px after a 60 CSS px drag from 40`
   )
   await page.close()
 }

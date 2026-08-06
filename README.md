@@ -630,14 +630,38 @@ its border, and a scroll area's scrolled plane, so a placed child travels
 with the content around it. In a parent of your own, add `position: relative`
 — the one line of CSS this feature can't write for you.
 
-Five elements don't take the pair: `vf-option`, `vf-menu-item`, `vf-list-item`
-and `vf-menu` are owned rows of a managing container, and `vf-dialog`'s
-top-layer box belongs to the platform — its *children* are the positioning
-surface, as above. The two elements that already move themselves compose
-rather than collide: `top`/`left` place a `movable` window or icon, a user's
-drag then owns the coordinates — activating a window never snaps it back to
-its authored spot — and setting the property again is the deliberate way to
-re-place it.
+Four elements don't take the pair: `vf-option`, `vf-menu-item`, `vf-list-item`
+and `vf-menu` are owned rows of a managing container.
+
+**`vf-dialog` takes it in viewport coordinates**, the one anchor the platform
+chooses rather than the kit: `showModal()` puts a modal in the top layer, whose
+containing block is the viewport, so a dialog's `top`/`left` are screen
+coordinates, not its parent's. (Its *children* still anchor to its content area,
+as above.) Leave the pair off and the modal is **centered** — recomputed on
+open, and again whenever its own box or the viewport changes, which is what
+keeps a dialog whose slotted content upgrades after opening from being stranded
+at the offset its smaller first render centered at. Setting either coordinate
+back to `null` returns it to centering.
+
+**The three elements that move themselves write through the same pair.** A
+title-bar drag on a `vf-window` or `vf-dialog`, and a drag or arrow-key nudge on
+a `vf-icon`, all state `top`/`left` in whole system px — the art's own unit —
+so a moved element is placed exactly the way an authored one is: activating a
+window never snaps it back, and a zoom that changes what a system px costs
+leaves it exactly where it was dropped. `vf-window`'s grow box does the same
+with `width`/`height`. Setting a property yourself is still the deliberate way
+to re-place a moved element, one axis at a time.
+
+Two consequences worth knowing. Read a moved element's position off the
+**properties** (`win.left`), not `style.left` — the inline value is a live
+`calc()`, so `parseFloat` gives you `NaN`. And the coordinates are held to the
+lattice a *drag step* lands on, which is 1 system px on a 1× display but 2 on a
+2× one (the run that is also whole in CSS px, so a scroll-bearing box keeps its
+rail pinned to its frame — `src/scale.ts` has the mechanics). Nothing re-snaps a
+dropped coordinate afterwards: whole system px is whole device px at every zoom
+level by the scale contract, so the art stays crisp, and re-rounding onto each
+new lattice would walk a window away from where it was dropped one zoom step at
+a time.
 
 A DITL item stated its *extent* too, and `width`/`height` (also whole system
 px) are that half of the rectangle — on the four components whose box is
@@ -650,6 +674,8 @@ which is the point: a push button is as wide as its label.
 ```sh
 npm run verify:position   # system px at dpr 1/2/3, the defaults, every
                           # container's anchor, and the drag interplay
+npm run verify:zoom       # …including that a dragged window, a moved icon and
+                          # a grown window hold their system px across the ladder
 ```
 
 ## Staying on the device-pixel grid — the layout contract
@@ -1103,8 +1129,8 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `getZoom`, `truePixelRatio`, `onZoomChange`, `devicePxPerSystemPx`, `resetZoomBaseline` | The zoom half of display scaling: the tracked page zoom; device px per CSS px *including* it (what `devicePixelRatio` stops being in Safari under zoom — the number every "snap to the device grid" computation must divide by); a subscription to zoom changes; the zoom→target quantization; and the "current state is 100%" escape hatch |
 | `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Opt the page into automatic device-pixel-grid snapping; add it to your own component with one controller line plus the `vf-snap` class on its painted root |
 | `applyCursor`, `CURSOR_ARROW`, `CURSOR_I_BEAM`, `CURSOR_CROSSHAIR`, `CURSOR_WAIT` | Replace the native pointer with the embedded System 7 pointer set, drawn on the system-pixel grid (see [The cursor](#the-cursor--the-platforms-by-default-yours-to-draw)); the constants are the embedded art, exported so a consumer can remap or remix it with their own |
-| `sys`, `toSys`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapToSystemPx`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; `sysLength`/`sysLengths` emit a system-px length (or a 1–4 value shorthand) that stays live against the display, for a size written onto an element; snap JS-written geometry onto the system-pixel grid (what window drags, grow-box resizes and dialog pins go through — whole art pixels, like QuickDraw) or onto the finer device grid |
-| `snapDialogToGrid`, `unsnapDialog` | Pin/unpin a native `<dialog>` to whole device px |
+| `sys`, `toSys`, `toSysExact`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapSys`, `systemPxQuantum`, `snapToSystemPx`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px, honoring the effective `--vf-scale`; `sysLength`/`sysLengths` emit a system-px length (or a 1–4 value shorthand) that stays live against the display, which is what a position or size written onto an element belongs in; `snapSys` puts a system-px coordinate on the placement lattice (`systemPxQuantum` is that lattice — whole art pixels, like QuickDraw, in the smallest run that is also whole in CSS px), and `snapToSystemPx`/`snapToDevicePx` are its CSS-px twins |
+| `VfPositioned`, `VfSized`, `PlacementController` | The `top`/`left` and `width`/`height` mixins, in whole system px — and the gesture half, which is how a drag states its result in the same properties an author would have written (see [Positioning inside a window](#positioning-inside-a-window--top-and-left)) |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfTitleBar`, `vfHardShadowDecls`, `vfStripes`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `steppedRectClip`, `steppedRingClip`, `steppedCornerClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET`, `SCREEN_CORNER` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`), plus the screen-corner mask `vf-menu-bar rounded` paints |

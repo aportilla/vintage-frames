@@ -300,9 +300,11 @@ const WINDOW_ORDER = `[...document.getElementById('desk').children]
   await page.mouse.down()
   await page.mouse.move(bar2.x + 200, bar2.y + 150, { steps: 2 })
   await page.mouse.up()
+  // The origin is stated in system px (PlacementController), so compare in the
+  // unit the gesture was measured in: CSS px = system px x the scale in force.
   const dragged = await page.evaluate(`({
-    left: parseFloat(document.getElementById('w2').style.left) || 0,
-    top: parseFloat(document.getElementById('w2').style.top) || 0,
+    left: (document.getElementById('w2').left || 0) * ${'parseFloat(getComputedStyle(document.getElementById("w2")).getPropertyValue("--vf-scale"))'},
+    top: (document.getElementById('w2').top || 0) * ${'parseFloat(getComputedStyle(document.getElementById("w2")).getPropertyValue("--vf-scale"))'},
     order: ${WINDOW_ORDER},
   })`)
   check('a background window raises AND drags in one gesture (capture survives)',

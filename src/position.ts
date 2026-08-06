@@ -1,6 +1,6 @@
 import type { LitElement, ReactiveController } from 'lit'
 import { property } from 'lit/decorators.js'
-import { sysLength } from './scale.js'
+import { snapSys, sysLength, toSysExact } from './scale.js'
 
 type Constructor<T = object> = new (...args: any[]) => T
 
@@ -55,14 +55,23 @@ export declare abstract class VfPositionedInterface extends LitElement {
  * override. A controller is invoked by ReactiveElement itself, after every
  * update, no matter what the subclass does.
  *
- * It re-applies **only when the property values changed** — the `vf-window`
- * width/height rule. `vf-window` drag and `vf-icon` move write resolved px
- * into the same inline `left`/`top` without touching these properties (both
- * re-seed from *computed* style, so they read a live calc correctly); if some
- * unrelated update re-asserted the authored coordinates, activating a window
- * would snap it back to where its markup put it. Setting a property again is
- * the deliberate way to re-place a moved element — and, as with any reactive
- * property, setting it to the value it already holds is a no-op.
+ * A gesture writes **through these properties**: `vf-window`'s title-bar drag
+ * and `vf-icon`'s drag and arrow nudge hand their new origin to a
+ * {@link PlacementController}, which snaps it onto the placement lattice and
+ * sets `left`/`top`. A moved element is therefore placed exactly the way an
+ * authored one is — a live `calc()` in the art's own unit — and stays where it
+ * was dropped when the zoom or the display changes what a system px costs.
+ *
+ * It did not always. Writing the resolved CSS px straight to the inline style
+ * froze the coordinate in the wrong unit: `--vf-scale` moved under it at every
+ * zoom step and the same constant read back as a different number of system px,
+ * so moved windows and icons slid off the grid the rest of the kit stayed on
+ * (by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).
+ *
+ * Setting a property yourself is still the deliberate way to re-place a moved
+ * element. The controller re-applies **only when the values changed**, so an
+ * unrelated update — a heading change, a desktop toggling `active` — never
+ * re-asserts a coordinate and costs nothing.
  */
 export const VfPositioned = <T extends Constructor<LitElement>>(Base: T) => {
   class VfPositionedElement extends Base {
@@ -138,5 +147,103 @@ class PositionController implements ReactiveController {
     style.right = 'auto'
     style.bottom = 'auto'
     style.margin = '0'
+  }
+}
+
+/** A moved host's own containment rule, in system px. */
+export type PlacementClamp = (x: number, y: number) => { x: number; y: number }
+
+/**
+ * The gesture half of placement: the piece a *movable* host adds on top of
+ * {@link VfPositioned}, so a drag ends up in the same `top`/`left` system-px
+ * properties an author would have written.
+ *
+ * Two things it owns, both consequences of storing the origin in the art's own
+ * unit rather than in resolved CSS px:
+ *
+ * - **Seeding.** A gesture starts from wherever the host already is, which may
+ *   be a coordinate nobody stated in system px — an authored `left: 10%`, a
+ *   `right`-anchored Trash icon, or plain normal flow. {@link seed} reads the
+ *   *used* position and converts it once; from then on the properties are the
+ *   whole truth.
+ * - **The lattice.** Every write is snapped to {@link snapSys} — whole art
+ *   pixels, the way QuickDraw moved windows, and the k-system-px run that also
+ *   lands the edge on a whole CSS px (scale.ts explains why that second half
+ *   matters to a scroll rail).
+ *
+ * It holds no state the host's own properties don't already hold, so it takes
+ * no lifecycle and is not a {@link ReactiveController}: the writes it makes are
+ * ordinary property sets, and `VfPositioned`'s controller renders them.
+ *
+ * And one thing it deliberately does **not** do: re-snap a placed host when the
+ * scale changes. The lattice moves with the scale (k is 2 at dpr 2, 3 at that
+ * display's 150%), so a coordinate dropped on one rung sits between two on the
+ * next — but re-rounding it there is worse than leaving it. It is lossy, and it
+ * compounds: 62 → 63 at 150% → 64 at 200%, a window walking away from where it
+ * was dropped one zoom step at a time, which is a milder version of the exact
+ * bug this class exists to fix (`verify:zoom` group (e) fails on it). Whole
+ * system px is whole *device* px at every rung by the scale contract, so the
+ * art stays crisp regardless; only the whole-CSS-px edge is given up, and an
+ * authored `left="10"` gives that up already. A dropped coordinate is therefore
+ * as immutable as an authored one — which is the whole claim.
+ */
+export class PlacementController {
+  readonly #host: HTMLElement & { top?: number | null; left?: number | null }
+  readonly #clamp: PlacementClamp
+  #placed = false
+
+  constructor(
+    host: HTMLElement & { top?: number | null; left?: number | null },
+    clamp: PlacementClamp
+  ) {
+    this.#host = host
+    this.#clamp = clamp
+  }
+
+  /** Whether a gesture has placed this host (as opposed to markup or CSS). */
+  get placed(): boolean {
+    return this.#placed
+  }
+
+  /**
+   * The origin a move adds its delta to, in system px.
+   *
+   * A stated coordinate is authoritative and needs no measuring — including
+   * the one this controller wrote last time. Otherwise the host is wherever
+   * layout or a stylesheet put it, so the *used* position is read and
+   * converted: absolutely positioned hosts through their computed offsets
+   * (`left: 10%` and `left: 1em` are perfectly good ways to place one, and
+   * both resolve to px here), everything else through its in-flow offset,
+   * which is measured against the same padding box `left`/`top` will be.
+   */
+  seed(): { x: number; y: number } {
+    const host = this.#host
+    if (host.left != null || host.top != null) {
+      return { x: host.left ?? 0, y: host.top ?? 0 }
+    }
+    const computed = getComputedStyle(host)
+    const positioned = computed.position === 'absolute' || computed.position === 'fixed'
+    const left = positioned ? parseFloat(computed.left) || 0 : host.offsetLeft
+    const top = positioned ? parseFloat(computed.top) || 0 : host.offsetTop
+    return {
+      x: snapSys(toSysExact(left, host), host),
+      y: snapSys(toSysExact(top, host), host),
+    }
+  }
+
+  /**
+   * Place the host at a system-px origin, clamped by its own rule and snapped.
+   *
+   * The clamp runs *here*, during the gesture, which is the moment the user is
+   * actually pushing against an edge — and nowhere else. Re-clamping later, on
+   * a parent that shrank under a zoom, would move a host nobody moved and would
+   * not give the position back when the parent grew again.
+   */
+  moveTo(x: number, y: number): void {
+    const host = this.#host
+    const kept = this.#clamp(x, y)
+    host.left = snapSys(kept.x, host)
+    host.top = snapSys(kept.y, host)
+    this.#placed = true
   }
 }

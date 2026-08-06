@@ -168,16 +168,32 @@ Modern requirements that we deliberately keep (accessibility over purity):
   inline declaration. The DITL model: a dialog can be laid out by positioning
   its items just as validly as by stacking them. Excluded: the owned
   rows/options of a managing container (`vf-option`, `vf-menu-item`,
-  `vf-list-item`, `vf-menu`) and `vf-dialog`, whose top-layer box belongs to
-  the platform. Containers are deliberate anchors — the desktop raster, a
-  window's *content region* (the frame's inner edge below the title bar; the
-  12px body inset governs flow content only), a dialog's content area, a
-  stack's box, a fieldset's border interior, a scroll area's scrolled plane.
+  `vf-list-item`, `vf-menu`). Containers are deliberate anchors — the desktop
+  raster, a window's *content region* (the frame's inner edge below the title
+  bar; the 12px body inset governs flow content only), a dialog's content area,
+  a stack's box, a fieldset's border interior, a scroll area's scrolled plane.
   The style writing rides a ReactiveController (`hostUpdated`), not an
   `updated()` override — component subclasses routinely skip `super.updated()`
-  — and re-applies only when the property values changed, so `vf-window` drag
-  and `vf-icon` moves (which write resolved px into the same inline styles)
-  are never snapped back by an unrelated update. `npm run verify:position`.
+  — and re-applies only when the property values changed, so an unrelated
+  update never re-asserts a coordinate. `npm run verify:position`.
+  - `vf-dialog` takes the pair in **viewport** coordinates: `showModal()` puts
+    the box in the top layer, whose containing block is the viewport rather
+    than the nearest positioned ancestor. Unset means centered — recomputed on
+    open and on every box/viewport/scale change, so a modal whose content
+    upgrades after opening is never stranded; `position` is left to the UA and
+    only the four inset/margin declarations are written.
+  - **Gestures write through the same properties** (`PlacementController`):
+    a `vf-window`/`vf-dialog` title-bar drag and a `vf-icon` drag or arrow
+    nudge state `top`/`left`, and `vf-window`'s grow box states
+    `width`/`height` (`VfSized`) — all in whole system px, so a moved element
+    is placed the way an authored one is and holds its spot through a zoom.
+    Writing resolved CSS px instead was the bug: `--vf-scale` moved under the
+    constant and every zoom step re-read it as a different number of system px
+    (`3z / round(3z)` — 10% at 110% zoom, where nothing else moves). Values are
+    snapped to `snapSys` at gesture time and never re-snapped afterwards:
+    re-rounding onto each new lattice compounds (62 → 63 → 64), and whole
+    system px is whole device px at every rung regardless.
+    `npm run verify:zoom` group (e).
 - Do NOT run repo-wide `tsc` while building an individual component group —
   sibling files may not exist yet. A later phase compiles everything.
 
@@ -677,9 +693,10 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
   drops focus to `<body>` when it deactivates. `npm run verify:window-a11y`.
 - **Behavior:** close box click → `vf-close` (does NOT remove itself; consumer
   decides). Zoom box click → `vf-zoom`. If `movable`: dragging the title bar
-  moves the window — on drag start, ensure `position: absolute` seeded from
-  current offset position, then update `left/top` via pointer capture. If
-  `resizable`: dragging grow box adjusts inline `width`/`height`.
+  moves the window — the drag seeds its origin from the current offset position
+  (once, converting to system px) and then states `left`/`top` via pointer
+  capture, in whole system px like any authored placement. If `resizable`:
+  dragging the grow box states `width`/`height` the same way.
 - **Slots:** default (body content).
 - **Parts:** `frame`, `title-bar`, `title`, `close-box`, `zoom-box`, `body`,
   `grow-box`, plus `viewport` re-exported from the built-in scroll area when
@@ -691,11 +708,14 @@ The modal-dialog shell: movable modal by default (see "Format" screenshot,
 striped title bar over a white body), the dBoxProc modal dialog box with
 `frame="plain"` (see the Group A recipe table).
 - **Attributes/props:** `open: boolean` (reflect), `heading: string`,
+  `top: number` / `left: number` (whole system px, in **viewport** coordinates
+  — see §1 Explicit placement; unset means centered),
   `width: number` / `height: number` (**declare them both** — whole system px,
   the same fixed box `vf-window` is. A native `<dialog>` is `width: fit-content`
-  measured against the space beside its margins, and those margins are how the
-  movable modal is positioned, so an undeclared dialog squeezes itself and
-  reflows as it is dragged toward an edge. The two fall back differently — width
+  measured against the space left beside its own offsets, and stating an offset
+  is how the movable modal is positioned, so an undeclared dialog squeezes
+  itself and reflows as it is dragged toward an edge. The two fall back
+  differently — width
   to 260 system px, height to the content — and it names whichever are missing,
   once, on the open that first shows it), `label: string` (accessible name for a
   dialog with no `heading`),
@@ -706,7 +726,7 @@ striped title bar over a white body), the dBoxProc modal dialog box with
 - **Implementation:** wraps a native `<dialog>` (for top-layer + focus trap).
   `show()` → `showModal()`; `close()` closes. Keep `open` attr in sync both
   directions. Drag the title bar to move it (shared `DragController` with
-  `vf-window`), rewriting the grid-pinned centering margins; drags starting on
+  `vf-window`), stating `top`/`left` in system px; drags starting on
   the close widget are ignored (same composedPath guard as `vf-window`).
   Escape → close + `vf-close` detail `{ reason: 'escape' }`;
   close box/programmatic/close() → `{ reason: 'close' }`. No backdrop dimming:
@@ -715,13 +735,14 @@ striped title bar over a white body), the dBoxProc modal dialog box with
   HTML's dialog removing steps skip the close algorithm entirely, which is
   exactly what a framework unmount does — the teardown routes through the same
   native-`close` funnel (`vf-close` fires on the removed element; nothing
-  bubbles, it left the tree), `open` and the pinned margins reconcile so a
+  bubbles, it left the tree), `open` and the written origin reconcile so a
   re-append mounts closed, and focus returns to the element focused at open
-  time. **The grid pin re-derives while open** (unsnap → re-snap off the live,
-  re-centered rect) whenever the dialog's own box resizes — slotted content
-  upgrading after `showModal()`, `--vf-scale` moving under zoom — or the
-  viewport resizes; a dragged position re-centers on those signals, which is
-  recoverable where a stranded modal is not.
+  time. **The placement re-settles while open** whenever the dialog's own box
+  resizes — slotted content upgrading after `showModal()`, `--vf-scale` moving
+  under zoom — the viewport resizes, or the scale changes. What survives
+  depends on how the modal got where it is: an unplaced one re-centers (it
+  never claimed a spot, and the stranded case is exactly this one), while a
+  dragged or authored origin is kept and only re-clamped on screen.
 - **Visual (default chrome):** `vfChromeFrame` + `vfTitleBar` (§4) — literally
   the same two recipes `vf-window` uses, so the bar is identical by
   construction (stripes + centered title) rather than by matching copies. It

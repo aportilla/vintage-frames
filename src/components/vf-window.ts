@@ -1,7 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { VfPositioned } from '../position.js'
+import { PlacementController, VfPositioned } from '../position.js'
 import { VfSized } from '../size.js'
 import {
   vfBase,
@@ -12,7 +12,7 @@ import {
   vfTitleBar,
   vfWindowWidgets,
 } from '../styles/base.js'
-import { ScaleController, snapToSystemPx, sys } from '../scale.js'
+import { ScaleController, snapSys, toSysExact } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar, widgetLabel, closeBox, zoomBox } from '../chrome.js'
@@ -21,11 +21,23 @@ import './vf-scroll-area.js'
 
 interface ResizeState {
   pointerId: number
+  /** Press point, in CSS px — the unit pointer events speak. */
   startX: number
   startY: number
+  /** The box at press time, in SYSTEM px — the unit the size is stored in. */
   baseWidth: number
   baseHeight: number
 }
+
+/** Grow-box floors, in system px: a window smaller than this can't be worked. */
+const MIN_WIDTH = 80
+const MIN_HEIGHT = 54
+
+/**
+ * How much of a dragged window must stay inside its parent, in system px —
+ * enough of the title bar to grab it back by.
+ */
+const KEEP_GRABBABLE = 24
 
 /**
  * `<vf-window>` — the System 7 desktop-window shell.
@@ -248,7 +260,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
          and a resizable window's grow box (z-index 1) lands in the scrollbar
          corner cell. The scrollbar anchors ride the window's whole-pixel box;
          drag and grow keep it on coordinates the engine's scrollbar rects can
-         hold (see snapToSystemPx). */
+         hold (see snapSys). */
       .edge-scroll {
         width: calc(100% + var(--vf-scale, 1) * 2px);
         height: calc(100% + var(--vf-scale, 1) * 2px);
@@ -351,9 +363,35 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   private readonly gridSnap = new GridSnapController(this)
 
   /**
+   * Where a dragged window is allowed to end up, in system px: clamped against
+   * the positioning parent (the desktop, usually) so it can't be pushed fully
+   * past an edge and lost. Only a grabbable strip has to stay in — a window
+   * pushed mostly off-screen is a thing System 7 let you do.
+   */
+  #keepGrabbable = (x: number, y: number): { x: number; y: number } => {
+    const parent = this.offsetParent as HTMLElement | null
+    const pw = toSysExact(parent?.clientWidth ?? window.innerWidth, this)
+    const ph = toSysExact(parent?.clientHeight ?? window.innerHeight, this)
+    const width = toSysExact(this.offsetWidth, this)
+    return {
+      x: Math.min(Math.max(x, KEEP_GRABBABLE - width), pw - KEEP_GRABBABLE),
+      y: Math.min(Math.max(y, 0), Math.max(0, ph - KEEP_GRABBABLE)),
+    }
+  }
+
+  /**
+   * Drag placement: the origin lands in `top`/`left` in system px, so a moved
+   * window is placed the way an authored one is and holds its spot through a
+   * zoom (see src/position.ts).
+   */
+  private readonly _placement = new PlacementController(this, (x, y) =>
+    this.#keepGrabbable(x, y)
+  )
+
+  /**
    * Title-bar drag-to-move (shared with `vf-dialog` via {@link DragController}).
-   * The delegate seeds absolute positioning on the first drag and writes the
-   * snapped `left`/`top` back; the controller owns the pointer bookkeeping.
+   * The controller owns the pointer bookkeeping and hands over system px; the
+   * placement controller seeds the origin and writes the result.
    */
   private readonly _drag = new DragController(this, {
     onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
@@ -369,60 +407,20 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       ) {
         return null
       }
-      // Seed absolute positioning from the current in-flow offset the first
-      // time the window is dragged. Every coordinate is snapped onto the
-      // system-pixel grid (scale.ts): a fractional origin fringes all the
-      // 1-bit art inside, and a half-CSS-px edge shifts WebKit's rails.
-      const computed = getComputedStyle(this)
-      if (computed.position !== 'absolute') {
-        const left = snapToSystemPx(this.offsetLeft, this)
-        const top = snapToSystemPx(this.offsetTop, this)
-        this.style.position = 'absolute'
-        this.style.left = `${left}px`
-        this.style.top = `${top}px`
-        this.style.margin = '0'
-      } else {
-        // Already absolute: re-seed the inline coordinates from the COMPUTED
-        // ones before every drag. They are resolved pixels whatever the author
-        // wrote — an inline `left: 1em` or `left: 10%` is a perfectly good way
-        // to place a window, and reading `style.left` back would parse it as
-        // the bare number and jump the window there on the first move. Once
-        // the drag owns the coordinates they are already px, so this is a
-        // no-op from the second drag on.
-        this.style.left = `${snapToSystemPx(parseFloat(computed.left) || 0, this)}px`
-        this.style.top = `${snapToSystemPx(parseFloat(computed.top) || 0, this)}px`
-      }
-      return {
-        x: parseFloat(this.style.left) || 0,
-        y: parseFloat(this.style.top) || 0,
-      }
+      return this._placement.seed()
     },
-    onDrag: (x: number, y: number): void => {
-      // Keep a grabbable strip on-screen: clamp the origin against the
-      // positioning parent (the desktop, usually) so the window can't be
-      // dragged fully past an edge and lost. Re-snap after clamping so the
-      // clamped edge still lands on the system grid.
-      const parent = this.offsetParent as HTMLElement | null
-      const pw = parent?.clientWidth ?? window.innerWidth
-      const ph = parent?.clientHeight ?? window.innerHeight
-      const keep = sys(24, this) // px of the window that must stay reachable
-      const nx = Math.min(Math.max(x, keep - this.offsetWidth), pw - keep)
-      const ny = Math.min(Math.max(y, 0), Math.max(0, ph - keep))
-      this.style.left = `${snapToSystemPx(nx, this)}px`
-      this.style.top = `${snapToSystemPx(ny, this)}px`
-    },
+    onDrag: (x: number, y: number): void => this._placement.moveTo(x, y),
   })
 
   private _resizeState: ResizeState | null = null
 
   /**
    * Say something the first time a window is opened without a width. The size
-   * itself is written by VfSized's controller — whose only-on-change rule
-   * exists for this component: the grow box writes its own px width/height
-   * straight to the host, and re-applying the authored size on some later
-   * render (a title change, the desktop toggling `active`) would snap a
-   * resized window back. Controllers run before this hook, so the inline
-   * style the warning reads is already written.
+   * itself is written by VfSized's controller, from `width`/`height` — which
+   * is also what the grow box sets, so a resized window and an authored one
+   * are the same declaration and neither can be re-asserted over the other.
+   * Controllers run before this hook, so the inline style the warning reads is
+   * already written.
    */
   protected override updated(): void {
     this.#warnIfUnsized()
@@ -485,8 +483,8 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      baseWidth: rect.width,
-      baseHeight: rect.height,
+      baseWidth: toSysExact(rect.width, this),
+      baseHeight: toSysExact(rect.height, this),
     }
     const grow = event.currentTarget as HTMLElement
     grow.setPointerCapture(event.pointerId)
@@ -496,18 +494,24 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   private _onGrowPointerMove(event: PointerEvent): void {
     const resize = this._resizeState
     if (!resize || event.pointerId !== resize.pointerId) return
-    // Minimums are in system px; getBoundingClientRect/clientX are real (scaled)
-    // CSS px, so convert the floors with sys(). Snapped onto the system grid so
-    // the window stays a whole count of art pixels — every interior metric
-    // (and an edge-mounted scroll rail's anchors) stays whole with it, and the
-    // right/bottom borders land on the device grid like the left/top edges.
-    const width = Math.max(sys(80, this), resize.baseWidth + (event.clientX - resize.startX))
-    const height = Math.max(
-      sys(54, this),
-      resize.baseHeight + (event.clientY - resize.startY)
+    // The grow box writes the same `width`/`height` an author declares, in the
+    // same unit: whole system px, snapped onto the placement lattice, so the
+    // window stays a whole count of art pixels — every interior metric (and an
+    // edge-mounted scroll rail's anchors) stays whole with it, the right/bottom
+    // borders land on the device grid like the left/top edges, and the box a
+    // user grew holds its size through a zoom instead of being re-read as a
+    // different number of art pixels at every step. Only the pointer delta
+    // crosses units: clientX is real (scaled) CSS px.
+    const width = Math.max(
+      MIN_WIDTH,
+      resize.baseWidth + toSysExact(event.clientX - resize.startX, this)
     )
-    this.style.width = `${snapToSystemPx(width, this)}px`
-    this.style.height = `${snapToSystemPx(height, this)}px`
+    const height = Math.max(
+      MIN_HEIGHT,
+      resize.baseHeight + toSysExact(event.clientY - resize.startY, this)
+    )
+    this.width = snapSys(width, this)
+    this.height = snapSys(height, this)
   }
 
   /**

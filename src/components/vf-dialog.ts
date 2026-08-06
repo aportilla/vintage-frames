@@ -14,7 +14,7 @@ import {
   vfDisplayDecls,
   vfScrollbars,
 } from '../styles/base.js'
-import { snapToSystemPx, sys } from '../scale.js'
+import { snapSys, toSysExact } from '../scale.js'
 import { DragController } from '../drag.js'
 import { ScrollStateController } from '../scroll-state.js'
 import { chromeTitleBar, widgetLabel, closeBox } from '../chrome.js'
@@ -199,11 +199,12 @@ export class VfDialog extends VfModalDialog {
 
   /**
    * Title-bar drag-to-move (shared with `vf-window` via {@link DragController}).
-   * The dialog is a centered top-layer `<dialog>` pinned onto the device grid
-   * on open (snapDialogToGrid); dragging rewrites those centering margins with
-   * the snapped new origin. `unsnapDialog` on close clears them so the next
-   * open re-centers. Inert with `frame="plain"` — no bar is rendered, so no
-   * pointer ever reaches the controller (dBoxProc dialogs don't move).
+   * The gesture states the modal's `top`/`left` in system px — viewport
+   * coordinates, since `showModal()` puts the box in the top layer — so a
+   * dragged dialog is placed exactly the way an authored one is, and holds its
+   * spot through a zoom rather than being re-centered by it. Inert with
+   * `frame="plain"` — no bar is rendered, so no pointer ever reaches the
+   * controller (dBoxProc dialogs don't move).
    */
   private readonly _drag = new DragController(this, {
     onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
@@ -221,31 +222,18 @@ export class VfDialog extends VfModalDialog {
       }
       const dialog = this._dialog
       if (!dialog?.open) return null
-      // Seed from the grid-pinned margins written on open; fall back to the
-      // live rect if a drag somehow precedes the pin.
-      let x = parseFloat(dialog.style.marginLeft)
-      let y = parseFloat(dialog.style.marginTop)
-      if (Number.isNaN(x) || Number.isNaN(y)) {
-        const rect = dialog.getBoundingClientRect()
-        x = snapToSystemPx(rect.left, this)
-        y = snapToSystemPx(rect.top, this)
+      // The origin stated on open — or, if a drag somehow precedes it, the
+      // live rect, which is where the UA's own centering put the box.
+      if (this.left != null || this.top != null) {
+        return { x: this.left ?? 0, y: this.top ?? 0 }
       }
-      return { x, y }
+      const rect = dialog.getBoundingClientRect()
+      return {
+        x: snapSys(toSysExact(rect.left, this), this),
+        y: snapSys(toSysExact(rect.top, this), this),
+      }
     },
-    onDrag: (x: number, y: number): void => {
-      const dialog = this._dialog
-      if (!dialog) return
-      // Keep a grabbable strip on-screen, as vf-window does against its
-      // positioning parent — the dialog's is the viewport. With a declared
-      // width nothing else stops a drag at an edge; the box used to run out of
-      // room and squeeze itself instead of moving.
-      // Re-snap after clamping so the clamped edge still lands on the grid.
-      const keep = sys(24, this)
-      const nx = Math.min(Math.max(x, keep - dialog.offsetWidth), window.innerWidth - keep)
-      const ny = Math.min(Math.max(y, 0), Math.max(0, window.innerHeight - keep))
-      dialog.style.marginLeft = `${snapToSystemPx(nx, this)}px`
-      dialog.style.marginTop = `${snapToSystemPx(ny, this)}px`
-    },
+    onDrag: (x: number, y: number): void => this.placeAt(x, y),
   })
 
   /** Title text: the bar's centered patch, or the plain frame's heading. */

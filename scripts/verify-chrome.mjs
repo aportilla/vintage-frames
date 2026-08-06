@@ -302,14 +302,27 @@ const partMetrics = (page, hostId, part, props) =>
   await page.mouse.up()
   const moved = await page.evaluate(() => {
     const el = document.getElementById('win')
-    return { pos: getComputedStyle(el).position, left: el.style.left, top: el.style.top }
+    const scale = parseFloat(getComputedStyle(el).getPropertyValue('--vf-scale'))
+    return {
+      pos: getComputedStyle(el).position,
+      left: el.left, top: el.top, scale,
+      css: el.style.left,
+      used: parseFloat(getComputedStyle(el).left),
+    }
   })
   check('window title-bar drag moves the window',
-    moved.pos === 'absolute' && parseFloat(moved.left) >= 55 && parseFloat(moved.top) >= 40,
-    `${moved.left},${moved.top}`)
+    moved.pos === 'absolute' &&
+      moved.left * moved.scale >= 55 && moved.top * moved.scale >= 40,
+    `${moved.left},${moved.top} system px at scale ${moved.scale}`)
+  // Whole system px IS whole device px (scale x trueDpr is integral), and the
+  // origin is stated in that unit rather than in resolved CSS px — so a zoom
+  // re-resolves it with every other metric instead of leaving it behind.
   check('dragged origin lands on the device grid (no fringe)',
-    Number.isInteger(parseFloat(moved.left)) && Number.isInteger(parseFloat(moved.top)),
-    `${moved.left},${moved.top}`)
+    Number.isInteger(moved.left) && Number.isInteger(moved.top) &&
+      Number.isInteger(moved.used),
+    `${moved.left},${moved.top} system px → ${moved.used}px CSS`)
+  check('dragged origin is written as a live length, not a px constant',
+    moved.css.includes('--vf-scale'), moved.css)
 
   // A non-movable window must ignore the same gesture.
   await page.evaluate(() => document.getElementById('win').removeAttribute('movable'))
@@ -337,21 +350,48 @@ const partMetrics = (page, hostId, part, props) =>
       .querySelector('[part=title-bar]').getBoundingClientRect()
     return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
   })
+  // A modal is placed with the same top/left pair every other component takes
+  // — in viewport coordinates, since showModal() puts the box in the top
+  // layer. Unset means "center me", so an untouched modal reports neither, and
+  // the centered origin it resolves to still lands on whole system px.
   const start = await page.evaluate(() => {
-    const d = document.getElementById('dlg').shadowRoot.querySelector('dialog')
-    return { ml: parseFloat(d.style.marginLeft), mt: parseFloat(d.style.marginTop) }
+    const el = document.getElementById('dlg')
+    const d = el.shadowRoot.querySelector('dialog')
+    const scale = parseFloat(getComputedStyle(el).getPropertyValue('--vf-scale'))
+    return {
+      stated: el.left ?? null,
+      css: d.style.left,
+      x: parseFloat(getComputedStyle(d).left),
+      y: parseFloat(getComputedStyle(d).top),
+      scale,
+    }
   })
+  check('an unplaced modal centers itself onto whole system px',
+    start.stated === null &&
+      Number.isInteger(start.x / start.scale) && Number.isInteger(start.y / start.scale),
+    `${start.x / start.scale},${start.y / start.scale} system px, left=${start.stated}`)
+  check('…stated as a live length on the top-layer box, not a px constant',
+    start.css.includes('--vf-scale'), start.css)
   await page.mouse.move(bar.x, bar.y)
   await page.mouse.down()
   await page.mouse.move(bar.x + 40, bar.y + 25, { steps: 5 })
   await page.mouse.up()
   const end = await page.evaluate(() => {
-    const d = document.getElementById('dlg').shadowRoot.querySelector('dialog')
-    return { ml: parseFloat(d.style.marginLeft), mt: parseFloat(d.style.marginTop) }
+    const el = document.getElementById('dlg')
+    const d = el.shadowRoot.querySelector('dialog')
+    return {
+      stated: el.left,
+      x: parseFloat(getComputedStyle(d).left),
+      y: parseFloat(getComputedStyle(d).top),
+    }
   })
   check('dialog title-bar drag moves the dialog',
-    near(end.ml - start.ml, 40, 1.5) && near(end.mt - start.mt, 25, 1.5),
-    `Δ ${end.ml - start.ml},${end.mt - start.mt}`)
+    near(end.x - start.x, 40, 1.5 * start.scale) &&
+      near(end.y - start.y, 25, 1.5 * start.scale),
+    `Δ ${end.x - start.x},${end.y - start.y}px CSS`)
+  check('…and a drag states the origin, in system px',
+    Number.isInteger(end.stated) && end.stated === end.x / start.scale,
+    `left=${end.stated} system px, used ${end.x}px CSS`)
   await page.close()
 }
 

@@ -1198,17 +1198,24 @@ for (const dpr of [1, 2, 3]) {
     `${start.x},${start.y} → ${moved.x},${moved.y}`
   )
   // The written origin, not the viewport rect: `left`/`top` are what the drag
-  // snaps, and they are relative to the container — whose own origin the page
+  // states, and they are relative to the container — whose own origin the page
   // owns (contract rule 3, and what applyGridSnap() corrects for).
   const origin = await page.evaluate(() => {
     const el = document.querySelector('vf-icon')
-    const s = parseFloat(getComputedStyle(el).getPropertyValue('--vf-scale'))
-    return { left: parseFloat(el.style.left) / s, top: parseFloat(el.style.top) / s }
+    return { left: el.left, top: el.top, css: el.style.left }
   })
   check(
     'MOVABLE  a fractional drag still lands on whole system px',
-    origin.left % 1 === 0 && origin.top % 1 === 0,
+    Number.isInteger(origin.left) && Number.isInteger(origin.top),
     `${origin.left}, ${origin.top} system px`
+  )
+  // …and lands there as a LIVE length. A resolved px constant would be read as
+  // a different number of system px at the next zoom step, which is how a
+  // moved icon used to slide off the grid everything else stayed on.
+  check(
+    'MOVABLE  the origin is written in system px, not frozen CSS px',
+    origin.css.includes('--vf-scale'),
+    origin.css
   )
 
   await page.evaluate(() => document.querySelector('vf-icon').focus())

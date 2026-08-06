@@ -2444,6 +2444,14 @@
             {
               "description": "window/dialog title bars",
               "name": "--vf-titlebar-height"
+            },
+            {
+              "description": "scrollbar thumb/elevator (white)",
+              "name": "--vf-scrollbar-thumb"
+            },
+            {
+              "description": "scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average",
+              "name": "--vf-scrollbar-track"
             }
           ],
           "cssParts": [
@@ -9826,7 +9834,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-select>` — the classic System 7 popup menu control (\"Macintosh HD ▼\").\n\nChildren are `<vf-option>` elements in the default slot. The closed control\nis a white box with a 1px black border, the small 1px hard shadow, the\nselected option's label on the left and a solid black ▼ triangle on the\nright. The open panel uses the shared `.vf-panel` recipe and is positioned\n`position: fixed` (computed from `getBoundingClientRect()`) so it escapes\nclipping containers; when possible the currently-selected item opens\ndirectly over the control, like the real popup menu.\n\nPointer — two interaction styles are supported and disambiguated by the\ngesture itself, resolved at the first pointer release:\n  - System 7 press-drag-release: press the pill (the list appears under the\n    pointer), drag onto an item, release over it to pick — one continuous\n    press. Releasing over the current item or off the list closes with no\n    change.\n  - Modern click-to-open: a quick in-place click (no drag, released within\n    PRESS_HOLD_MS) leaves the list open; a second, independent click\n    then picks an item.\nThe two share one opening trigger (pointerdown) and diverge only on how the\npress ends — whether the pointer travelled to another item, and (for an\nin-place release) whether it was a quick tap or a held press. The pull-down\nmenus drive themselves the same way, on the same threshold; that half lives\nin src/menu-press.ts, because one menu press may travel across a whole bar.\n\nKeyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the\nhighlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an\nitem plays the classic inversion blink (~250 ms) before closing. Keyboard\nfocus is marked with the kit's 1px dashed rule under the closed pill\n(`vfFocusUnderline`) rather than a ring around it — keyboard only, which\nhere means the page's input modality rather than `:focus-visible` (the pill\ndrives its own focus, and Blink reads that as visible either way).\n\nForm-associated: submits `value` under `name`.",
+          "description": "`<vf-select>` — the classic System 7 popup menu control (\"Macintosh HD ▼\").\n\nChildren are `<vf-option>` elements in the default slot. The closed control\nis a white box with a 1px black border, the small 1px hard shadow, the\nselected option's label on the left and a solid black ▼ triangle on the\nright. The open panel uses the shared `.vf-panel` recipe and is positioned\n`position: fixed` (computed from `getBoundingClientRect()`) so it escapes\nclipping containers; when possible the currently-selected item opens\ndirectly over the control, like the real popup menu.\n\nPointer — two interaction styles are supported and disambiguated by the\ngesture itself, resolved at the first pointer release:\n  - System 7 press-drag-release: press the pill (the list appears under the\n    pointer), drag onto an item, release over it to pick — one continuous\n    press. Releasing over the current item or off the list closes with no\n    change.\n  - Modern click-to-open: a quick in-place click (no drag, released within\n    PRESS_HOLD_MS) leaves the list open; a second, independent click\n    then picks an item.\nThe two share one opening trigger (pointerdown) and diverge only on how the\npress ends — whether the pointer travelled to another item, and (for an\nin-place release) whether it was a quick tap or a held press. The pull-down\nmenus drive themselves the same way, on the same threshold; that half lives\nin src/menu-press.ts, because one menu press may travel across a whole bar.\n\nA list too tall for the screen is **clipped**, never scrolled: the edge slot\nwith items beyond it shows a solid arrow instead of a row, which rolls the\nlist one row at a time while the pointer rests on it. The clamp is quantized\nto the pill lattice, so a clipped popup still opens with its selected row\nover the closed pill — and the panel keeps every slot the list asked for, so\na box that had to slide to fit the screen opens with *blank rows* at whichever\nend the list no longer reaches: the exact travel it will roll through, in\neither direction. See src/popup-overflow.ts.\n\nKeyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the\nhighlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an\nitem plays the classic inversion blink (~250 ms) before closing. Keyboard\nfocus is marked with the kit's 1px dashed rule under the closed pill\n(`vfFocusUnderline`) rather than a ring around it — keyboard only, which\nhere means the page's input modality rather than `:focus-visible` (the pill\ndrives its own focus, and Blink reads that as visible either way).\n\nForm-associated: submits `value` under `name`.",
           "name": "VfSelect",
           "cssProperties": [
             {
@@ -9835,12 +9843,14 @@
               "default": "18px"
             },
             {
-              "description": "scrollbar thumb/elevator (white)",
-              "name": "--vf-scrollbar-thumb"
+              "description": "room a clipped popup panel keeps clear at the TOP screen edge — set it once on `:root` (or the `vf-desktop`) to clear a `vf-menu-bar`: `24px` is the 20px bar plus the default 4",
+              "name": "--vf-popup-inset-top",
+              "default": "4px"
             },
             {
-              "description": "scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average",
-              "name": "--vf-scrollbar-track"
+              "description": "room a clipped popup panel keeps clear at the BOTTOM screen edge",
+              "name": "--vf-popup-inset-bottom",
+              "default": "4px"
             },
             {
               "description": "checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open)",
@@ -9864,6 +9874,10 @@
             {
               "description": "The popup panel (listbox).",
               "name": "panel"
+            },
+            {
+              "description": "Either of the two scroll arrows a clipped panel shows in its edge row slots.",
+              "name": "scroll-arrow"
             }
           ],
           "slots": [
@@ -9972,6 +9986,30 @@
             },
             {
               "kind": "field",
+              "name": "rowsEl",
+              "type": {
+                "text": "HTMLDivElement | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "upArrowEl",
+              "type": {
+                "text": "HTMLDivElement | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "downArrowEl",
+              "type": {
+                "text": "HTMLDivElement | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
               "name": "assignedOptions",
               "type": {
                 "text": "VfOption[]"
@@ -10037,6 +10075,75 @@
               "privacy": "private",
               "default": "-1",
               "description": "Index of the highlighted option while the panel is open."
+            },
+            {
+              "kind": "field",
+              "name": "rowScroll",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0",
+              "description": "Overflow state for the open panel, all three settled by\npositionPanel and only the scroll moving afterwards. `rowScroll` is\nhow many rows the strip is rolled up past the panel's top edge, so slot `i`\nshows option `rowScroll + i` — and it deliberately leaves the range that\nwould fill every slot, which is the reserved blank the list rolls through:\nnegative for blank above, past `rowCount − visibleSlots` for blank below.\nSee src/popup-overflow.ts. (Named for the rows and not just `scroll`\nbecause `HTMLElement.scroll()` already owns that word.)"
+            },
+            {
+              "kind": "field",
+              "name": "visibleSlots",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0",
+              "description": "Row slots the open panel was drawn with (`R`)."
+            },
+            {
+              "kind": "field",
+              "name": "rowHeight",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0",
+              "description": "Measured height of one option row, CSS px — the roll's own step."
+            },
+            {
+              "kind": "field",
+              "name": "showUpArrow",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "description": "Whether rows are hidden above / below what the panel shows.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "showDownArrow",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "arrowScroll",
+              "type": {
+                "text": "{ dir: 1 | -1; timer: number } | null"
+              },
+              "privacy": "private",
+              "default": "null",
+              "description": "The one arrow-scroll timer, with the direction it is rolling. A single\nowner for both entry paths (a resting pointer, and a press-drag into the\narrow's zone) so the two can't stack two intervals on one arrow."
+            },
+            {
+              "kind": "field",
+              "name": "pressStartArrow",
+              "type": {
+                "text": "'up' | 'down' | null"
+              },
+              "privacy": "private",
+              "default": "null",
+              "description": "Set when a press *began* in an arrow zone — that press is not a pick."
             },
             {
               "kind": "field",
@@ -10264,7 +10371,7 @@
                   }
                 }
               ],
-              "description": "Positions the fixed-position panel so the selected item sits directly\nover the closed control (classic popup behavior), clamped to the\nviewport with a 4px margin."
+              "description": "Positions the fixed-position panel so the selected item sits directly over\nthe closed control (classic popup behavior), clipped to the usable screen\nband at a whole number of row slots."
             },
             {
               "kind": "method",
@@ -10283,6 +10390,170 @@
                   }
                 }
               ]
+            },
+            {
+              "kind": "method",
+              "name": "applyScroll",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Writes the current scroll state to the panel: the strip's offset, and which\narrows are showing. Both are imperative rather than rendered — an arrow\nstep has to be visible to the very next hit-test in a drag, and nothing\nelse re-renders this component while the panel is open."
+            },
+            {
+              "kind": "method",
+              "name": "revealRow",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "index",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Rolls the list so row `index` sits in a pickable slot (no-op if it does)."
+            },
+            {
+              "kind": "method",
+              "name": "stepArrowScroll",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "dir",
+                  "type": {
+                    "text": "1 | -1"
+                  }
+                }
+              ],
+              "description": "One row toward `dir`; returns false at the bound (nothing left to roll)."
+            },
+            {
+              "kind": "method",
+              "name": "startArrowScroll",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "dir",
+                  "type": {
+                    "text": "1 | -1"
+                  }
+                }
+              ],
+              "description": "Starts rolling the list while the pointer holds an arrow. Steps once\nimmediately — a brief touch of the arrow must do *something* — then once\nper MENU_SCROLL_INTERVAL_MS until the bound or * stopArrowScroll. Idempotent per direction, so the hover path and the\npress-drag path can both claim the same arrow without stacking timers."
+            },
+            {
+              "kind": "method",
+              "name": "stopArrowScroll",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "arrowZoneAtPoint",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "'up' | 'down' | null"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Which arrow's zone the viewport point falls in, for the press-drag path.\n\nThe zone is the arrow's row **extended past the panel edge** in its own\ndirection — the classic ergonomics of slamming the pointer to the screen\nedge to keep a menu scrolling. Hover entry doesn't use this (it rides\n`pointerenter` on the slot itself); a pointer that has left the panel\nentirely is only scrolling because a press is dragging it there."
+            },
+            {
+              "kind": "method",
+              "name": "arrowSlotAtPoint",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "'up' | 'down' | null"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Which arrow *slot* the point is inside — the drawn row itself, with none of\narrowZoneAtPoint's reach past the panel edge. This is the plain\n\"is the pointer on the arrow\" question the hover contract asks."
+            },
+            {
+              "kind": "method",
+              "name": "hoverArrowAt",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Apply the hover contract at a point: on an arrow it rolls, off one it stops."
+            },
+            {
+              "kind": "field",
+              "name": "handleArrowEnter",
+              "privacy": "private",
+              "description": "`pointerenter` **and** `pointermove` on the slots: a pointer that was\nalready still where the arrow appeared never gets an enter event, and it\nis exactly the pointer most likely to be there — an arrow shows up under\nthe very click that opened the panel whenever the pill sits near a screen\nedge. `pointerup` covers the wholly motionless case (see\nhandlePressPointerUp); this covers the first twitch after it."
+            },
+            {
+              "kind": "field",
+              "name": "handleArrowLeave",
+              "privacy": "private"
             },
             {
               "kind": "method",
@@ -10480,7 +10751,7 @@
                   }
                 }
               ],
-              "description": "The option whose row currently contains the viewport point, if any."
+              "description": "The option whose row currently contains the viewport point, if any.\n\nTwo guards keep a clipped panel honest. The point must be inside the\npanel's own box — rows rolled out of view keep truthful rects *outside* the\nclip, so without this a drag above the panel would highlight a hidden row.\nAnd only the pickable range is searched: a row lying under a shown arrow is\ncovered, and covered is not clickable."
             },
             {
               "kind": "method",
@@ -10543,7 +10814,8 @@
             {
               "kind": "field",
               "name": "handleWindowScroll",
-              "privacy": "private"
+              "privacy": "private",
+              "description": "Any scroll strands a `position: fixed` panel away from the pill it was\nplaced against, so the popup closes. That now includes a scroll of the\npanel itself: it is a clip, not a scroll surface, and nothing in the\ncomponent ever scrolls it — but an `overflow: hidden` box is still\nprogrammatically scrollable, and a browser that decides to scroll one\n(find-in-page, an outside `scrollIntoView`) would slide the rows off the\nlattice. Closing is the safe read of a scroll that can't legitimately\nhappen."
             },
             {
               "kind": "field",

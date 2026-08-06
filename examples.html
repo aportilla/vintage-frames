@@ -1517,6 +1517,61 @@ vf-button::part(button) { min-width: 96px; }
             <span class="readout" data-value-src="ex-select"></span>
           </template>
 
+          <p>
+            A list taller than the screen is <strong>clipped, never scrolled</strong> —
+            System 7 put no scrollbar on a menu. The edge slot with items beyond it
+            shows a solid arrow instead of a row; rest the pointer on it and the list
+            rolls through one row at a time, until the arrow runs out and disappears.
+            Both edges can overflow at once. The clamp gives ground a whole <em>row</em>
+            at a time, so even a clipped popup opens with its selected row over the
+            closed pill.
+          </p>
+          <p>
+            A panel that had to slide to fit the screen opens with <strong>blank
+            rows</strong> at whichever end the list no longer reaches — above it when
+            the panel slid up, below it when it slid down. That looks like a mistake
+            until you scroll: the panel keeps every slot the list asked for, and the
+            blank is the exact travel the list rolls through, so reaching that end
+            fills the panel precisely with no arrow left. Only a list too long for the
+            screen band <em>at all</em> settles at the band's height and keeps an arrow
+            for good. Set <code>--vf-popup-inset-top</code> once on <code>:root</code>
+            to keep clamped panels clear of a menu bar (<code>24px</code> for a
+            <code>vf-menu-bar</code>).
+          </p>
+
+          <template data-example data-stage="column" data-caption="26 options — open it near the bottom of the window and drag onto the ▼.">
+            <vf-label for="ex-select-long">Find items whose:</vf-label>
+            <vf-select id="ex-select-long" value="name">
+              <vf-option value="name">name</vf-option>
+              <vf-option value="size">size</vf-option>
+              <vf-option value="kind">kind</vf-option>
+              <vf-option value="label">label</vf-option>
+              <vf-option value="created">date created</vf-option>
+              <vf-option value="modified">date modified</vf-option>
+              <vf-option value="version">version</vf-option>
+              <vf-option value="comments">comments</vf-option>
+              <vf-option value="lock">lock</vf-option>
+              <vf-option value="type">file type</vf-option>
+              <vf-option value="creator">creator</vf-option>
+              <vf-option value="folder">folder attribute</vf-option>
+              <vf-option value="color">color</vf-option>
+              <vf-option value="visible">visibility</vf-option>
+              <vf-option value="backup">backup date</vf-option>
+              <vf-option value="owner">owner</vf-option>
+              <vf-option value="group">group</vf-option>
+              <vf-option value="privileges">privileges</vf-option>
+              <vf-option value="shared">shared folder</vf-option>
+              <vf-option value="mounted">mounted volume</vf-option>
+              <vf-option value="alias">alias target</vf-option>
+              <vf-option value="stationery">stationery pad</vf-option>
+              <vf-option value="bundle">bundle bit</vf-option>
+              <vf-option value="inited">inited bit</vf-option>
+              <vf-option value="custom">custom icon</vf-option>
+              <vf-option value="fragment">code fragment</vf-option>
+            </vf-select>
+            <span class="readout" data-value-src="ex-select-long"></span>
+          </template>
+
           <table class="api">
             <caption><code>vf-select</code></caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
@@ -1525,7 +1580,7 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>name</code>, <code>disabled</code></td><td>—</td><td>—</td><td class="wrap">Standard; form-associated. Disabled dims the label only — the ▼ stays black</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name</td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code>, after the blink</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default (<code>vf-option</code> elements). Parts: <code>control</code>, <code>label</code>, <code>arrow</code>, <code>panel</code>. Tokens: <code>--vf-popup-height</code> (18px), <code>--vf-select-gutter</code> (16px — the ✓ column, shared with the menus so a popup row and a pulldown row line up). The panel is <code>position: fixed</code>, so it escapes clipping containers.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (<code>vf-option</code> elements). Parts: <code>control</code>, <code>label</code>, <code>arrow</code>, <code>panel</code>, <code>scroll-arrow</code>. Tokens: <code>--vf-popup-height</code> (18px), <code>--vf-select-gutter</code> (16px — the ✓ column, shared with the menus so a popup row and a pulldown row line up), <code>--vf-popup-inset-top</code> / <code>--vf-popup-inset-bottom</code> (4px — the screen-edge reserve a clipped panel keeps clear; environmental, so declare them once on <code>:root</code>). The panel is <code>position: fixed</code>, so it escapes clipping containers.</td></tr>
             </tbody>
           </table>
 

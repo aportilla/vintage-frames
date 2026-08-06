@@ -4,13 +4,25 @@ import { property, query, queryAssignedElements, state } from 'lit/decorators.js
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplay, vfFocusUnderline, vfPanel, vfScrollbars } from '../styles/base.js'
-import { CARET_DOWN, glyphSvg } from '../glyphs.js'
+import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
+import { CARET_DOWN, CARET_UP, glyphSvg } from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
-import { runSelectionBlink, PRESS_HOLD_MS, type BlinkHandle } from '../motion.js'
+import {
+  runSelectionBlink,
+  MENU_SCROLL_INTERVAL_MS,
+  PRESS_HOLD_MS,
+  type BlinkHandle,
+} from '../motion.js'
+import {
+  clampScroll,
+  ensureVisibleScroll,
+  firstPickableRow,
+  lastPickableRow,
+  layoutClampedPopup,
+} from '../popup-overflow.js'
 import { VfFormControl } from '../form-control.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
@@ -42,6 +54,15 @@ import { emit, emitNative } from '../events.js'
  * menus drive themselves the same way, on the same threshold; that half lives
  * in src/menu-press.ts, because one menu press may travel across a whole bar.
  *
+ * A list too tall for the screen is **clipped**, never scrolled: the edge slot
+ * with items beyond it shows a solid arrow instead of a row, which rolls the
+ * list one row at a time while the pointer rests on it. The clamp is quantized
+ * to the pill lattice, so a clipped popup still opens with its selected row
+ * over the closed pill — and the panel keeps every slot the list asked for, so
+ * a box that had to slide to fit the screen opens with *blank rows* at whichever
+ * end the list no longer reaches: the exact travel it will roll through, in
+ * either direction. See src/popup-overflow.ts.
+ *
  * Keyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the
  * highlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an
  * item plays the classic inversion blink (~250 ms) before closing. Keyboard
@@ -65,12 +86,15 @@ import { emit, emitNative } from '../events.js'
  * @csspart label - The selected-option label inside the control.
  * @csspart arrow - The black ▼ triangle.
  * @csspart panel - The popup panel (listbox).
+ * @csspart scroll-arrow - Either of the two scroll arrows a clipped panel shows
+ *   in its edge row slots.
  * @cssprop [--vf-popup-height=18px] - `vf-select` pill (border box; its 1px
  *   hard shadow makes the sheet's 157×19 ink box)
- * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
- * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
- *   the WebKit path draws the dot-dither tile instead, and this is its flat
- *   25%-black average
+ * @cssprop [--vf-popup-inset-top=4px] - room a clipped popup panel keeps clear
+ *   at the TOP screen edge — set it once on `:root` (or the `vf-desktop`) to
+ *   clear a `vf-menu-bar`: `24px` is the 20px bar plus the default 4
+ * @cssprop [--vf-popup-inset-bottom=4px] - room a clipped popup panel keeps
+ *   clear at the BOTTOM screen edge
  * @cssprop [--vf-select-gutter=16px] - checkmark column: `vf-select` left inset
  *   / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift
  *   on open)
@@ -91,7 +115,6 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     vfBase,
     vfDisplay,
     vfPanel,
-    vfScrollbars,
     css`
       :host {
         /* A popup menu is sized to its widest option — never stretched to fill
@@ -219,10 +242,72 @@ export class VfSelect extends VfPositioned(VfFormControl) {
            defaults to the 2px menu shadow, which would overhang the pill's shadow
            by 1px on the right and bottom. */
         --vf-shadow-offset: 1px;
-        overflow-y: auto;
+        /* A CLIP, never a scroll surface: positionPanel gives the panel a whole
+           number of row slots and the rows are rolled by transform inside it.
+           System 7 put no scrollbar on a menu, and an un-quantized native scroll
+           would break the row lattice the pill overlay is built on. */
+        overflow: hidden;
+        /* The screen-edge reserve, resolved here and read back by
+           positionPanel: the clamp is JS geometry, so the tokens can't be spent
+           in a declaration, but their defaults and the cascade still belong in
+           the stylesheet with every other token. Authored (unscaled) system px,
+           like --vf-popup-height. Internal names — the knobs are
+           --vf-popup-inset-top / --vf-popup-inset-bottom. */
+        --vf-popup-clamp-top: var(--vf-popup-inset-top, 4px);
+        --vf-popup-clamp-bottom: var(--vf-popup-inset-bottom, 4px);
       }
       .panel.open {
         display: block;
+      }
+      /* The rolling strip — a box for the options to ride, whose translateY
+         positionPanel and the arrow timer write. Transform rather than
+         scrollTop: both keep
+         getBoundingClientRect() truthful for hit-testing, but a transform can't
+         be hijacked — the browser will scroll an overflow:hidden box on its own
+         initiative (focus without preventScroll, find-in-page, an outside
+         scrollIntoView), and any un-quantized scroll lands the rows off the
+         lattice. The offset is a whole count of rows, and a row is a whole count
+         of device px by the layout contract, so rolled rows stay on the grid. */
+      .rows {
+        display: block;
+      }
+      /* An arrow OVERLAYS the edge slot — an opaque white row covering the item
+         beneath, which is the mechanism rather than a side effect: the row is
+         still there, still in the accessibility tree, just not pickable while
+         the arrow is on it. */
+      .arrow-slot {
+        display: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 18px) - 2px));
+        background: var(--vf-white, #fff);
+        color: var(--vf-black, #000);
+        cursor: var(--vf-cursor, default);
+      }
+      .arrow-slot.shown {
+        display: block;
+      }
+      .arrow-slot.up {
+        top: 0;
+      }
+      .arrow-slot.down {
+        bottom: 0;
+      }
+      /* Pinned at whole offsets rather than centred, the way vf-option pins its
+         ✓ at 3,3. Traced from a real System 7 popup clipped at the screen edge
+         (Find File's criteria menu under Infinite Mac, 2×): the 11×6 triangle's
+         ink sits 13px in from the panel's content edge and 5px down its 16px row
+         — which is the row's exact vertical centre, and 5 is whole, so the
+         centring costs nothing. Whole px at every scale is the point; a glyph
+         centred in an odd-width panel would land on a half pixel and fringe. */
+      .arrow-slot svg {
+        position: absolute;
+        left: calc(var(--vf-scale, 1) * 13px);
+        top: calc(var(--vf-scale, 1) * 5px);
+        display: block;
+        width: calc(var(--vf-scale, 1) * 11px);
+        height: calc(var(--vf-scale, 1) * 6px);
       }
     `,
   ]
@@ -258,6 +343,12 @@ export class VfSelect extends VfPositioned(VfFormControl) {
   @query('.control') private controlEl!: HTMLDivElement | null
 
   @query('.panel') private panelEl!: HTMLDivElement | null
+
+  @query('.rows') private rowsEl!: HTMLDivElement | null
+
+  @query('.arrow-slot.up') private upArrowEl!: HTMLDivElement | null
+
+  @query('.arrow-slot.down') private downArrowEl!: HTMLDivElement | null
 
   @queryAssignedElements({ selector: 'vf-option' })
   private assignedOptions!: VfOption[]
@@ -299,6 +390,41 @@ export class VfSelect extends VfPositioned(VfFormControl) {
 
   /** Index of the highlighted option while the panel is open. */
   private activeIndex = -1
+
+  /**
+   * Overflow state for the open panel, all three settled by
+   * {@link positionPanel} and only the scroll moving afterwards. `rowScroll` is
+   * how many rows the strip is rolled up past the panel's top edge, so slot `i`
+   * shows option `rowScroll + i` — and it deliberately leaves the range that
+   * would fill every slot, which is the reserved blank the list rolls through:
+   * negative for blank above, past `rowCount − visibleSlots` for blank below.
+   * See src/popup-overflow.ts. (Named for the rows and not just `scroll`
+   * because `HTMLElement.scroll()` already owns that word.)
+   */
+  private rowScroll = 0
+  /** Row slots the open panel was drawn with (`R`). */
+  private visibleSlots = 0
+  /** Measured height of one option row, CSS px — the roll's own step. */
+  private rowHeight = 0
+
+  /** Whether rows are hidden above / below what the panel shows. */
+  private get showUpArrow(): boolean {
+    return this.rowScroll > 0
+  }
+
+  private get showDownArrow(): boolean {
+    return this.rowScroll < this.optionItems.length - this.visibleSlots
+  }
+
+  /**
+   * The one arrow-scroll timer, with the direction it is rolling. A single
+   * owner for both entry paths (a resting pointer, and a press-drag into the
+   * arrow's zone) so the two can't stack two intervals on one arrow.
+   */
+  private arrowScroll: { dir: 1 | -1; timer: number } | null = null
+
+  /** Set when a press *began* in an arrow zone — that press is not a pick. */
+  private pressStartArrow: 'up' | 'down' | null = null
 
   /**
    * Pointer press-gesture state. A press starts on `pointerdown` and is
@@ -345,6 +471,7 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     // super's controller teardown already detached both listener sets.
     super.disconnectedCallback()
     this.cancelBlink()
+    this.stopArrowScroll()
     // Clear any stamped `active` flags on the options: a select disconnected
     // mid-open/mid-blink otherwise keeps an inverted highlight row when
     // reconnected (closePanel's clearActive() only runs on a normal close).
@@ -436,9 +563,9 @@ export class VfSelect extends VfPositioned(VfFormControl) {
   }
 
   /**
-   * Positions the fixed-position panel so the selected item sits directly
-   * over the closed control (classic popup behavior), clamped to the
-   * viewport with a 4px margin.
+   * Positions the fixed-position panel so the selected item sits directly over
+   * the closed control (classic popup behavior), clipped to the usable screen
+   * band at a whole number of row slots.
    */
   private positionPanel(selectedIndex: number): void {
     const control = this.controlEl
@@ -452,22 +579,31 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     // getBoundingClientRect is in real (already-scaled) CSS px, so the system-px
     // constants (item height, borders, viewport margins) are converted with sys().
     const rect = control.getBoundingClientRect()
-    const panelRect = panel.getBoundingClientRect()
-    // Third read, still before any write (consecutive reads don't re-reflow):
+    // Further reads, still before any write (consecutive reads don't re-reflow):
     // the row's rendered height, so a consumer who re-themes --vf-popup-height
-    // keeps the selected-row overlay aligned instead of drifting by index.
+    // keeps the selected-row overlay aligned instead of drifting by index; the
+    // panel's own border, which the clamp has to fit around; and the two screen-
+    // edge insets, parked on the panel by the stylesheet in authored system px.
     const rowRect = this.optionItems[0]?.getBoundingClientRect()
     const rowHeight = rowRect?.height || sys(VfSelect.ITEM_HEIGHT, this)
-    const maxHeight = window.innerHeight - sys(8, this)
-    // Natural panel height, capped to the maxHeight we're about to apply (read
-    // before that write, so account for the clamp here rather than re-measuring).
-    const panelHeight = Math.min(panelRect.height, maxHeight)
+    const panelStyle = getComputedStyle(panel)
+    const border = parseFloat(panelStyle.borderTopWidth) || 0
+    const inset = (name: string): number =>
+      sys(parseFloat(panelStyle.getPropertyValue(name)) || 0, this)
     // Overlay the selected row's white cell directly on the pill's white content,
     // so its text and whitespace match the closed pill and the list grows down.
     // With the row height = the pill's content height, the panel's own top border
     // then lands exactly on the pill's top border (no ±1px compensation needed).
-    let top = rect.top - selectedIndex * rowHeight
-    top = Math.max(sys(4, this), Math.min(top, window.innerHeight - panelHeight - sys(4, this)))
+    // Where the list doesn't fit, the clamp gives ground a whole ROW at a time
+    // off this same lattice, so the overlay survives it — see popup-overflow.ts.
+    const layout = layoutClampedPopup({
+      idealTop: rect.top - selectedIndex * rowHeight,
+      rowHeight,
+      border,
+      rowCount: this.optionItems.length,
+      viewTop: inset('--vf-popup-clamp-top'),
+      viewBottom: window.innerHeight - inset('--vf-popup-clamp-bottom'),
+    })
     // NO horizontal clamp: the panel is the pill's own width, positioned at the
     // pill's own left, so it is on-screen exactly when the pill is — a viewport
     // margin here can only ever break the closed↔open alignment, never rescue
@@ -484,21 +620,174 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     // whenever it sits at a fractional position (it follows variable-width content
     // in a flex row) — the panel instead inherits the pill's own pixel phase.
     panel.style.minWidth = `${rect.width}px`
-    panel.style.maxHeight = `${maxHeight}px`
-    panel.style.top = `${top}px`
+    panel.style.top = `${layout.panelTop}px`
     panel.style.left = `${left}px`
+    // Stated, not left to the content: the panel is drawn ONCE at its clamped
+    // height and never moves or resizes for the rest of the open — scrolling
+    // rolls the rows inside it.
+    panel.style.height = `${layout.panelHeight}px`
+    // (The panel is as tall as the LIST asked for, capped by the band — not as
+    // tall as the rows it can show yet. A box that had to slide to fit the
+    // screen therefore opens with blank slots at whichever end the strip no
+    // longer reaches — above when it slid up, below when it slid down — and
+    // that blank is exactly the travel the roll consumes: scrolling to that
+    // end lands the strip flush with the panel, precisely full.)
+    this.rowHeight = rowHeight
+    this.visibleSlots = layout.visibleSlots
+    this.rowScroll = layout.initialScroll
+    this.applyScroll()
   }
 
   private closePanel(refocusControl: boolean): void {
     if (!this.open) return
     this.open = false
     this.cancelBlink()
+    this.stopArrowScroll()
     this.endPress()
     this.clearActive()
     // A type-ahead prefix doesn't survive the panel it was typed into.
     this.typeAhead.reset()
     this.panelListeners.detach()
     if (refocusControl) this.controlEl?.focus()
+  }
+
+  // --------------------------------------------------------------- overflow
+
+  /**
+   * Writes the current scroll state to the panel: the strip's offset, and which
+   * arrows are showing. Both are imperative rather than rendered — an arrow
+   * step has to be visible to the very next hit-test in a drag, and nothing
+   * else re-renders this component while the panel is open.
+   */
+  private applyScroll(): void {
+    const offset = this.rowScroll * this.rowHeight
+    if (this.rowsEl) {
+      this.rowsEl.style.transform = offset ? `translateY(${-offset}px)` : ''
+    }
+    this.upArrowEl?.classList.toggle('shown', this.showUpArrow)
+    this.downArrowEl?.classList.toggle('shown', this.showDownArrow)
+  }
+
+  /** Rolls the list so row `index` sits in a pickable slot (no-op if it does). */
+  private revealRow(index: number): void {
+    const next = ensureVisibleScroll(
+      index,
+      this.rowScroll,
+      this.optionItems.length,
+      this.visibleSlots
+    )
+    if (next === this.rowScroll) return
+    this.rowScroll = next
+    this.applyScroll()
+  }
+
+  /** One row toward `dir`; returns false at the bound (nothing left to roll). */
+  private stepArrowScroll(dir: 1 | -1): boolean {
+    const next = clampScroll(
+      this.rowScroll + dir,
+      this.rowScroll,
+      this.optionItems.length,
+      this.visibleSlots
+    )
+    if (next === this.rowScroll) return false
+    this.rowScroll = next
+    this.applyScroll()
+    return true
+  }
+
+  /**
+   * Starts rolling the list while the pointer holds an arrow. Steps once
+   * immediately — a brief touch of the arrow must do *something* — then once
+   * per {@link MENU_SCROLL_INTERVAL_MS} until the bound or {@link
+   * stopArrowScroll}. Idempotent per direction, so the hover path and the
+   * press-drag path can both claim the same arrow without stacking timers.
+   */
+  private startArrowScroll(dir: 1 | -1): void {
+    if (this.arrowScroll?.dir === dir) return
+    this.stopArrowScroll()
+    if (!this.stepArrowScroll(dir)) return
+    const timer = window.setInterval(() => {
+      if (!this.stepArrowScroll(dir)) this.stopArrowScroll()
+    }, MENU_SCROLL_INTERVAL_MS)
+    this.arrowScroll = { dir, timer }
+  }
+
+  private stopArrowScroll(): void {
+    if (!this.arrowScroll) return
+    window.clearInterval(this.arrowScroll.timer)
+    this.arrowScroll = null
+  }
+
+  /**
+   * Which arrow's zone the viewport point falls in, for the press-drag path.
+   *
+   * The zone is the arrow's row **extended past the panel edge** in its own
+   * direction — the classic ergonomics of slamming the pointer to the screen
+   * edge to keep a menu scrolling. Hover entry doesn't use this (it rides
+   * `pointerenter` on the slot itself); a pointer that has left the panel
+   * entirely is only scrolling because a press is dragging it there.
+   */
+  private arrowZoneAtPoint(x: number, y: number): 'up' | 'down' | null {
+    const panel = this.panelEl
+    if (!this.open || !panel) return null
+    const r = panel.getBoundingClientRect()
+    if (x < r.left || x >= r.right) return null
+    const border = (r.height - this.visibleSlots * this.rowHeight) / 2
+    if (this.showUpArrow && y < r.top + border + this.rowHeight) return 'up'
+    if (this.showDownArrow && y >= r.bottom - border - this.rowHeight) return 'down'
+    return null
+  }
+
+  /**
+   * Which arrow *slot* the point is inside — the drawn row itself, with none of
+   * {@link arrowZoneAtPoint}'s reach past the panel edge. This is the plain
+   * "is the pointer on the arrow" question the hover contract asks.
+   */
+  private arrowSlotAtPoint(x: number, y: number): 'up' | 'down' | null {
+    const slots = [
+      ['up', this.upArrowEl],
+      ['down', this.downArrowEl],
+    ] as const
+    for (const [dir, el] of slots) {
+      if (!el || !el.classList.contains('shown')) continue
+      const r = el.getBoundingClientRect()
+      if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return dir
+    }
+    return null
+  }
+
+  /** Apply the hover contract at a point: on an arrow it rolls, off one it stops. */
+  private hoverArrowAt(x: number, y: number): void {
+    const slot = this.arrowSlotAtPoint(x, y)
+    if (!slot) {
+      this.stopArrowScroll()
+      return
+    }
+    this.startArrowScroll(slot === 'up' ? -1 : 1)
+    // One rule, every entry path: a pointer on an arrow means nothing is
+    // highlighted. The arrow row is not an item, and leaving the old highlight
+    // lit would strand it — the row it marks is on its way out of the panel.
+    if (this.activeIndex !== -1) this.clearActive()
+  }
+
+  /**
+   * `pointerenter` **and** `pointermove` on the slots: a pointer that was
+   * already still where the arrow appeared never gets an enter event, and it
+   * is exactly the pointer most likely to be there — an arrow shows up under
+   * the very click that opened the panel whenever the pill sits near a screen
+   * edge. `pointerup` covers the wholly motionless case (see
+   * {@link handlePressPointerUp}); this covers the first twitch after it.
+   */
+  private handleArrowEnter = (event: PointerEvent): void => {
+    // While a press is in flight handlePressPointerMove owns the timer (its
+    // zones reach past the panel edge, where enter/leave say nothing).
+    if (!this.open || this.blinking || this.pressing) return
+    this.hoverArrowAt(event.clientX, event.clientY)
+  }
+
+  private handleArrowLeave = (): void => {
+    if (this.pressing) return
+    this.stopArrowScroll()
   }
 
   // ------------------------------------------------------------- highlight
@@ -508,11 +797,14 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     this.optionItems.forEach((option, i) => {
       option.active = i === index
     })
+    // Roll a clipped list until the highlight is on a pickable slot. Every
+    // keyboard path (arrows, Home/End, type-ahead) and the open-time placement
+    // funnel through here, so all of them scroll correctly for free.
+    this.revealRow(index)
     if (focusOption) {
-      const option = this.optionItems[index]
-      option?.focus({ preventScroll: true })
-      // Keep the highlighted option visible inside the scrollable panel.
-      option?.scrollIntoView({ block: 'nearest' })
+      // preventScroll is what keeps the browser from natively scrolling the
+      // clipped panel out from under the transform.
+      this.optionItems[index]?.focus({ preventScroll: true })
     }
   }
 
@@ -637,6 +929,7 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     this.pressing = true
     this.pressMoved = false
     this.pressStartOption = null
+    this.pressStartArrow = null
     this.pressDownTime = event.timeStamp
     this.pressDownX = event.clientX
     this.pressDownY = event.clientY
@@ -653,10 +946,12 @@ export class VfSelect extends VfPositioned(VfFormControl) {
       // true origin.
       void this.openPanel().then(() => {
         if (this.pressing && this.pressStartOption === null) {
+          this.pressStartArrow = this.arrowZoneAtPoint(this.pressDownX, this.pressDownY)
           this.pressStartOption = this.optionAtPoint(this.pressDownX, this.pressDownY)
         }
       })
     } else {
+      this.pressStartArrow = this.arrowZoneAtPoint(event.clientX, event.clientY)
       this.pressStartOption = this.optionAtPoint(event.clientX, event.clientY)
     }
   }
@@ -664,6 +959,15 @@ export class VfSelect extends VfPositioned(VfFormControl) {
   private handlePressPointerMove = (event: PointerEvent): void => {
     if (!this.pressing) return
     event.preventDefault()
+    // An arrow outranks the row hit-test: while the pointer is in a zone the
+    // list is rolling and nothing is highlighted — the arrow row is not an item.
+    const zone = this.arrowZoneAtPoint(event.clientX, event.clientY)
+    if (zone) {
+      this.startArrowScroll(zone === 'up' ? -1 : 1)
+      if (this.activeIndex !== -1) this.clearActive()
+      return
+    }
+    this.stopArrowScroll()
     const option = this.optionAtPoint(event.clientX, event.clientY)
     if (this.pressStartOption === null) {
       // Opening not settled yet (see handleHostPointerDown): adopt the first
@@ -677,22 +981,37 @@ export class VfSelect extends VfPositioned(VfFormControl) {
 
   private handlePressPointerUp = (event: PointerEvent): void => {
     if (!this.pressing) return
-    const option = this.optionAtPoint(event.clientX, event.clientY)
+    const zone = this.arrowZoneAtPoint(event.clientX, event.clientY)
+    const option = zone ? null : this.optionAtPoint(event.clientX, event.clientY)
+    const startedOnArrow = this.pressStartArrow !== null
     const openedByThisPress = this.pressOpenedPanel
     const inPlace = !this.pressMoved
     const quick = event.timeStamp - this.pressDownTime < PRESS_HOLD_MS
     this.endPress()
-    // Modern click-to-open: a quick in-place tap on the closed pill leaves the
-    // list open for a second, independent click.
-    if (openedByThisPress && inPlace && quick) return
+    // Two releases leave the list up: a press that BEGAN on an arrow (the arrow
+    // is not an item, so clicking one is neither a pick nor a dismissal — its
+    // trailing `click` is already neutralised by swallowClick, so
+    // handleHostClick needs no carve-out of its own), and the modern
+    // click-to-open tap. Both hand the pointer back to the hover contract,
+    // which is also how an arrow drawn *under* a motionless pointer starts
+    // rolling at all: the panel was placed a moment ago, so no `pointerenter`
+    // was ever coming for it.
+    if (startedOnArrow || (openedByThisPress && inPlace && quick)) {
+      this.hoverArrowAt(event.clientX, event.clientY)
+      return
+    }
+    this.stopArrowScroll()
     // Otherwise it's a completed pick/dismiss — a drag onto an item, a held
-    // in-place press, or a press on the already-open list.
+    // in-place press, or a press on the already-open list. A release over an
+    // arrow zone lands here with `option` null and closes with no change, the
+    // same as any release on a non-item.
     this.resolveRelease(option)
   }
 
   private handlePressCancel = (): void => {
     // Pointer interrupted (e.g. a cancelled touch). Stop tracking but leave the
     // list as-is — the click-to-open state; the user can retry or dismiss it.
+    this.stopArrowScroll()
     this.endPress()
   }
 
@@ -700,13 +1019,29 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     if (!this.pressing) return
     this.pressing = false
     this.pressStartOption = null
+    this.pressStartArrow = null
     this.pressListeners.detach()
   }
 
-  /** The option whose row currently contains the viewport point, if any. */
+  /**
+   * The option whose row currently contains the viewport point, if any.
+   *
+   * Two guards keep a clipped panel honest. The point must be inside the
+   * panel's own box — rows rolled out of view keep truthful rects *outside* the
+   * clip, so without this a drag above the panel would highlight a hidden row.
+   * And only the pickable range is searched: a row lying under a shown arrow is
+   * covered, and covered is not clickable.
+   */
   private optionAtPoint(x: number, y: number): VfOption | null {
-    if (!this.open) return null
-    for (const option of this.optionItems) {
+    const panel = this.panelEl
+    if (!this.open || !panel) return null
+    const p = panel.getBoundingClientRect()
+    if (x < p.left || x >= p.right || y < p.top || y >= p.bottom) return null
+    const first = firstPickableRow(this.rowScroll)
+    const last = lastPickableRow(this.rowScroll, this.optionItems.length, this.visibleSlots)
+    for (let i = first; i <= last; i += 1) {
+      const option = this.optionItems[i]
+      if (!option) continue
       const r = option.getBoundingClientRect()
       if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return option
     }
@@ -841,9 +1176,18 @@ export class VfSelect extends VfPositioned(VfFormControl) {
     if (!event.composedPath().includes(this)) this.closePanel(false)
   }
 
-  private handleWindowScroll = (event: Event): void => {
+  /**
+   * Any scroll strands a `position: fixed` panel away from the pill it was
+   * placed against, so the popup closes. That now includes a scroll of the
+   * panel itself: it is a clip, not a scroll surface, and nothing in the
+   * component ever scrolls it — but an `overflow: hidden` box is still
+   * programmatically scrollable, and a browser that decides to scroll one
+   * (find-in-page, an outside `scrollIntoView`) would slide the rows off the
+   * lattice. Closing is the safe read of a scroll that can't legitimately
+   * happen.
+   */
+  private handleWindowScroll = (): void => {
     if (this.blinking) return
-    if (event.target === this.panelEl) return // the panel's own scrolling
     this.closePanel(false)
   }
 
@@ -902,13 +1246,41 @@ export class VfSelect extends VfPositioned(VfFormControl) {
       </div>
       <div
         id="listbox"
-        class="panel vf-panel vf-scroll ${this.open ? 'open' : ''}"
+        class="panel vf-panel ${this.open ? 'open' : ''}"
         part="panel"
         role="listbox"
         aria-label=${this.label || this.hostLabel || nothing}
         aria-hidden=${this.open ? 'false' : 'true'}
       >
-        <slot @slotchange=${this.handleSlotChange}></slot>
+        <!-- role="presentation" so the strip that carries the roll doesn't
+             stand between the listbox and the options it owns. -->
+        <div class="rows" role="presentation">
+          <slot @slotchange=${this.handleSlotChange}></slot>
+        </div>
+        <!-- Pointer affordances only, hence aria-hidden: the clipped options
+             stay in the accessibility tree un-hidden (clipping is presentation,
+             and a native <select> exposes its whole list too), and keyboard and
+             AT users reach every row with the arrows, Home/End and type-ahead. -->
+        <div
+          class="arrow-slot up"
+          part="scroll-arrow"
+          aria-hidden="true"
+          @pointerenter=${this.handleArrowEnter}
+          @pointermove=${this.handleArrowEnter}
+          @pointerleave=${this.handleArrowLeave}
+        >
+          ${glyphSvg(CARET_UP, 'caret')}
+        </div>
+        <div
+          class="arrow-slot down"
+          part="scroll-arrow"
+          aria-hidden="true"
+          @pointerenter=${this.handleArrowEnter}
+          @pointermove=${this.handleArrowEnter}
+          @pointerleave=${this.handleArrowLeave}
+        >
+          ${glyphSvg(CARET_DOWN, 'caret')}
+        </div>
       </div>
       ${this.renderDescription()}
     `

@@ -203,7 +203,7 @@ class keeps the tag, and that the elements still render afterwards.
 | `vf-radio`, `vf-radio-group` | Radio buttons with form-associated group |
 | `vf-text-field`, `vf-text-area` | Bordered text inputs; `vf-text-area` keeps a permanent System 7 scroll rail |
 | `vf-number-field` | Numeric field with the classic "little arrows" stepper |
-| `vf-select`, `vf-option` | Popup menu control ("Macintosh HD ▼") |
+| `vf-select`, `vf-option` | Popup menu control ("Macintosh HD ▼"); a list taller than the screen is clipped rather than scrolled, with the System 7 scroll arrow in the edge row slot — and a panel that had to slide to fit opens with blank rows at whichever end the list no longer reaches, the exact travel it rolls through. Set `--vf-popup-inset-top` once to keep clamped panels clear of a menu bar |
 | `vf-progress-bar` | Determinate fill or indeterminate barber stripes |
 | `vf-slider` | Horizontal 1-bit slider: solid-black fill up to a shield-shaped drag handle |
 | `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts, selection blink, and the classic press-drag-release: press a title, slide onto a command, release to run it; `rounded` masks the bar's top corners with the System 7 screen-corner stair-step |

@@ -214,6 +214,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
 | `--vf-button-group-gap` | `12px` | gap between buttons in a `vf-button-group` (always exceeds the default ring's reach, so rings never collide) |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
+| `--vf-popup-inset-top` | `4px` | room a clipped popup panel keeps clear at the **top** screen edge. Environmental rather than per-instance — a page has one menu bar and every popup on it should respect the same reserve — so it is declared once on `:root` or the `vf-desktop`: `24px` clears a `vf-menu-bar` (the 20px bar plus the default 4). Authored (unscaled) system px, like `--vf-popup-height`; `positionPanel` reads it back off the panel and converts with `sys()` |
+| `--vf-popup-inset-bottom` | `4px` | the same reserve at the **bottom** screen edge |
 | `--vf-menu-row-height` | `16px` | `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows); `vf-menu` also spends one full row on every slotted `vf-separator` — the MDEF's divider-as-item, rule 8px in (H/2 above, H/2−1 below) |
 | `--vf-menu-shortcut-column` | `23px` | `vf-menu-item` shortcut slot, right-anchored with the text left-aligned in it so every ⌘ lands at the same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's widest letter (M/W, 12px); widen it to line up longer shortcuts ("⌘⇧S") |
 | `--vf-label-line-height` | follows the face | `vf-label`'s own line box, above the face tokens: unset, the box is the face's native line (`--vf-line-height-display` / `--vf-line-height`); set, it overrides both faces for captions alone — keep an override even, or the baseline lands on a half pixel |
@@ -1142,10 +1144,52 @@ The classic popup menu control ("Macintosh HD ▼").
   selected label's position and surrounding whitespace are identical closed and
   open. The currently-selected item shows a ✓ checkmark in the left
   `--vf-select-gutter` column; hovered/active item inverts (black bg, white
-  text); disabled options gray. A list taller than the viewport scrolls with the
-  shared System 7 scrollbar recipe (`vfScrollbars` from base.ts — the panel
-  carries the `vf-scroll` class), clamped to the viewport height, rather than the
-  native OS scrollbar.
+  text); disabled options gray.
+- **Visual (open, clipped):** a list taller than the screen is **clipped, never
+  scrolled** — System 7 put no scrollbar on a menu. The panel is `overflow:
+  hidden` and drawn once at a whole number of row slots; the rows ride a
+  `.rows` strip rolled by `transform`, and the edge slot with items beyond it
+  is covered by an opaque white **arrow slot** (`part="scroll-arrow"`,
+  `aria-hidden`) carrying `CARET_UP` / `CARET_DOWN`. Traced from a real System 7
+  popup clipped at the screen edge (Find File's criteria menu under Infinite
+  Mac, 2×): the 11×6 triangle sits 13px in from the panel's content edge and 5px
+  down its 16px row, and the arrow occupies a **full** row slot. The pointer
+  resting on an arrow rolls the list one row per `MENU_SCROLL_INTERVAL_MS`
+  (66ms, motion.ts — the interaction itself, so *not* reduced-motion gated);
+  the arrow retires when its direction runs out. Both can show at once. Four
+  invariants, all in `src/popup-overflow.ts`:
+  - **The clamp is quantized to the pill lattice.** Rows are clipped a whole row
+    at a time off `pillTop − selectedIndex × rowHeight`, so a clipped popup
+    still opens with its selected row exactly over the closed pill — what an
+    un-quantized pixel clamp loses. One deliberate exception: when the selected
+    row would land *under* an arrow (the pill within one row of a screen edge
+    with items beyond it), the scroll shifts by one and the overlay gives way by
+    exactly one row. Rare, geometric, and the honest resolution.
+  - **The panel is as tall as the *list* asked for, not as tall as the rows it
+    can currently show** — capped only by the screen band. A list that fits the
+    band but not where the pill would put it keeps every slot and slides whole
+    rows, while the item strip stays welded to the pill; the slots the strip no
+    longer reaches are drawn as **empty white**. That blank is not filler, it is
+    the exact travel the list rolls through: scrolling to that end lands the
+    strip flush with the panel, precisely full, both arrows retired. This is
+    what System 7 drew — 5 empty rows above `name` in Find File's criteria
+    popup, 2 above `Athens` in Character Set's font menu. **The two directions
+    are one rule:** a panel pushed up (the pill is low) reserves its blank at the
+    top and rolls down into it; a panel pushed down (the pill is high with a late
+    item selected) reserves it at the bottom and rolls up into it. Only the sign
+    of the scroll integer distinguishes them — it is free to leave the
+    `[0, rowCount − visibleSlots]` range that would fill every slot, and that
+    departure *is* the blank. It follows that the blank is a one-way starting
+    position: an arrow means "rows are really hidden this way", so whichever end
+    the blank is on, the arrow pointing back at it is off.
+  - **The panel box never moves or resizes while open:** scrolling rolls the
+    items inside it.
+  - **Three slots minimum** when overflowing, even if that intrudes on the
+    insets below — with both arrows shown, fewer leaves nothing to pick.
+  The screen-edge band comes from `--vf-popup-inset-top` /
+  `--vf-popup-inset-bottom` (§3), whose 4px defaults reproduce the old viewport
+  margins exactly, so a list that fits is untouched by any of this.
+  `npm run verify:select-overflow`.
 - **Behavior:** form-associated. Opens on pointerdown (mouse/touch),
   Space/Enter/ArrowDown, or a synthesised click (assistive tech). Two pointer
   styles coexist, disambiguated by the gesture and resolved at the first
@@ -1164,7 +1208,13 @@ The classic popup menu control ("Macintosh HD ▼").
   first-letter type-ahead (`src/type-ahead.ts` — the same buffer `vf-list`
   and the menus use), moving the highlight to the match. On select: classic
   blink (invert toggles ~3 times in ~250ms) then close + `vf-change`.
-- **Parts:** `control`, `label`, `arrow`, `panel`.
+  A press that *begins* on an arrow is neither a pick nor a dismissal (so a
+  click on one leaves the list up); a press-drag *released* on one closes with
+  no change, like any release on a non-item — and while a drag is in an arrow's
+  zone the highlight is dropped, because the arrow row is not an item. That
+  zone reaches past the panel edge in its own direction, the classic ergonomics
+  of slamming the pointer to the screen edge.
+- **Parts:** `control`, `label`, `arrow`, `panel`, `scroll-arrow`.
 - **Events:** `vf-change` detail `{ value }`, plus the native `input`/`change`
   pair per committed pick (§2).
 

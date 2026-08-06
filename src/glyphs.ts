@@ -69,11 +69,33 @@ export const CHECKMARK: Glyph = {
   d: 'M8 0h1v1h-1zM7 1h2v1h-2zM6 2h2v1h-2zM5 3h2v1h-2zM0 4h1v1h-1zM4 4h2v1h-2zM0 5h2v1h-2zM3 5h2v1h-2zM1 6h3v1h-3zM2 7h1v1h-1z',
 }
 
-/** Popup-menu ▼ caret (`Symbols/Caret Down.png`). */
+/**
+ * Popup-menu ▼ caret (`Symbols/Caret Down.png`).
+ *
+ * Also the *scroll* arrow a clipped popup shows in its bottom row slot: a
+ * screenshot of a real System 7 popup overflowing the screen (Find File's
+ * criteria menu, captured under Infinite Mac at 2×) puts a 22×12 device-pixel
+ * triangle there, which is this exact 11×6 shape — the popup's own ▼
+ * vocabulary, reused rather than a second arrow art.
+ */
 export const CARET_DOWN: Glyph = {
   w: 11,
   h: 6,
   d: 'M0 0h11v1h-11zM1 1h9v1h-9zM2 2h7v1h-7zM3 3h5v1h-5zM4 4h3v1h-3zM5 5h1v1h-1z',
+}
+
+/**
+ * The ▲ a clipped popup shows in its *top* row slot — {@link CARET_DOWN}
+ * mirrored vertically (the shape is left-right symmetric, so the mirror is its
+ * six rows in reverse order). Synthesized rather than traced: the reference
+ * sheets carry no scrolling menu, and the overflow screenshot above happened to
+ * catch a list clipped only at the bottom. If a top-clipped reference turns up,
+ * retrace both. Same synthesis convention as {@link STEPPER_UP_FILL}.
+ */
+export const CARET_UP: Glyph = {
+  w: 11,
+  h: 6,
+  d: 'M5 0h1v1h-1zM4 1h3v1h-3zM3 2h5v1h-5zM2 3h7v1h-7zM1 4h9v1h-9zM0 5h11v1h-11z',
 }
 
 /**

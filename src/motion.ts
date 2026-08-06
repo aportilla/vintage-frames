@@ -27,6 +27,18 @@ export function prefersReducedMotion(): boolean {
  */
 export const PRESS_HOLD_MS = 200
 
+/**
+ * Milliseconds per row while the pointer rests on a menu scroll arrow — the
+ * pace a clipped popup rolls its list through the panel at (~15 rows/s).
+ *
+ * Deliberately *not* gated on `prefers-reduced-motion`, unlike the blink below.
+ * The blink is decoration played at the kit's discretion; this stepping is the
+ * interaction itself — user-held, discrete, and stopped the moment the pointer
+ * leaves — and suppressing it would leave the clipped rows unreachable by
+ * pointer. Same reasoning the drag gestures are ungated.
+ */
+export const MENU_SCROLL_INTERVAL_MS = 66
+
 /** Milliseconds between selection-blink phase flips. */
 export const BLINK_INTERVAL_MS = 42
 

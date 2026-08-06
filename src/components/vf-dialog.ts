@@ -63,6 +63,10 @@ import './vf-button-group.js'
  *   one black pixel at the origin (`vfDots`; override the whole pattern like
  *   `--vf-desktop-pattern`)
  * @cssprop --vf-titlebar-height - window/dialog title bars
+ * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
+ * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
+ *   the WebKit path draws the dot-dither tile instead, and this is its flat
+ *   25%-black average
  */
 @vfElement('vf-dialog')
 export class VfDialog extends VfModalDialog {

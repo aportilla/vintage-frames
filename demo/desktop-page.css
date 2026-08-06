@@ -13,6 +13,15 @@ body {
   height: 100%;
 }
 
+:root {
+  /* The screen-edge reserve a clipped popup menu keeps clear (SPEC §3). This
+     desktop wears a vf-menu-bar across the top of the viewport, so a popup
+     clamped upward has to stop below it rather than paint over it: 20px of bar
+     plus the default 4. Environmental, hence declared once here — a page has
+     one menu bar, and every popup on it owes the same reserve. */
+  --vf-popup-inset-top: 24px;
+}
+
 html {
   /* The raster is fitted to the viewport (demo.ts), so the page never scrolls
      by design — but mid-resize the previous fit momentarily overflows the

@@ -98,13 +98,13 @@
           "values": []
         },
         {
-          "name": "disabled",
-          "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
         },
         {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "name": "disabled",
+          "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
           "values": []
         },
         {
@@ -147,11 +147,6 @@
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
-          "values": []
-        },
-        {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
           "values": []
         },
         {
@@ -642,17 +637,17 @@
         },
         {
           "name": "label",
-          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
+          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfShadowRoleControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
-          "values": []
-        },
-        {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
           "values": []
         },
         {
@@ -799,11 +794,6 @@
           "values": []
         },
         {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
-          "values": []
-        },
-        {
           "name": "required",
           "description": "Requires a value before the associated form submits (SPEC §4): an empty\ncontrol fails constraint validation with `valueMissing`, exactly like a\nnative `required`. What \"empty\" means is each control's own\nvalueMissing; a control with no required semantics (a slider\nalways has a value, a swatch submits nothing) never fails it, the way a\nnative range input never does.",
           "values": []
@@ -890,7 +880,7 @@
         },
         {
           "name": "label",
-          "description": "Accessible name for the combobox control (`aria-label`). Left empty, the\nname falls back to whatever the host carries — `aria-labelledby`,\n`aria-label` or an associated `<label for>` — via\nVfFormControl.hostLabel; with neither, the control is announced by\nits contents, i.e. the selected value.",
+          "description": "Accessible name for the combobox control (`aria-label`). Left empty, the\nname falls back to whatever the host carries — `aria-labelledby`,\n`aria-label` or an associated `<label for>` — via\nVfShadowRoleControl.hostLabel; with neither, the control is announced by\nits contents, i.e. the selected value.",
           "values": []
         },
         {
@@ -904,13 +894,13 @@
           "values": []
         },
         {
-          "name": "disabled",
-          "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
         },
         {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "name": "disabled",
+          "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
           "values": []
         },
         {
@@ -990,11 +980,6 @@
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
-          "values": []
-        },
-        {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
           "values": []
         },
         {
@@ -1078,7 +1063,7 @@
         },
         {
           "name": "label",
-          "description": "Accessible name for the inner button — a swatch has no text of its own.\nLeft empty, the name falls back to whatever the host carries\n(`aria-labelledby`, `aria-label`, an associated `<label for>` — see\nVfFormControl.hostLabel), then to the `color` value (or\n\"transparent\") as a last resort, so a palette is never nameless — but a\nhex literal announced as \"number f f six six zero zero\" is a fallback to\nname past, not a name. `vf-label`'s `for` wiring writes this property,\nlike every `vf-*` control's.",
+          "description": "Accessible name for the inner button — a swatch has no text of its own.\nLeft empty, the name falls back to whatever the host carries\n(`aria-labelledby`, `aria-label`, an associated `<label for>` — see\nVfShadowRoleControl.hostLabel), then to the `color` value (or\n\"transparent\") as a last resort, so a palette is never nameless — but a\nhex literal announced as \"number f f six six zero zero\" is a fallback to\nname past, not a name. `vf-label`'s `for` wiring writes this property,\nlike every `vf-*` control's.",
           "values": []
         },
         {
@@ -1098,7 +1083,7 @@
         },
         {
           "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
         },
         {
@@ -1150,17 +1135,17 @@
         },
         {
           "name": "label",
-          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
+          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfShadowRoleControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
-          "values": []
-        },
-        {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
           "values": []
         },
         {
@@ -1212,17 +1197,17 @@
         },
         {
           "name": "label",
-          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfFormControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
+          "description": "Accessible name, applied as `aria-label` on the inner native control (the\nelement that receives focus and is announced by screen readers — a host\nattribute cannot reach it on its own). Left empty, the name falls back to\nwhatever the host carries — `aria-labelledby`, `aria-label` or an\nassociated `<label for>` — via VfShadowRoleControl.hostLabel, so the\nplatform's own labeling vocabulary works on these controls too.",
+          "values": []
+        },
+        {
+          "name": "description",
+          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
         },
         {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
-          "values": []
-        },
-        {
-          "name": "description",
-          "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level\n`aria-describedby` is bridged into the same span when this property is\nempty, and a failing constraint's validationMessage joins it too,\nso AT hears the error where it hears the hint.",
           "values": []
         },
         {

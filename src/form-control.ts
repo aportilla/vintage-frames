@@ -58,141 +58,6 @@ export class VfFormControl extends LitElement {
     return this.disabled || this.formDisabled
   }
 
-  // ------------------------------------------------- name/description bridge
-
-  /**
-   * The host-level ARIA attributes the bridge below mirrors inward, observed
-   * so a consumer writing one after upgrade re-renders the control. They are
-   * deliberately not reactive properties: each has an IDL accessor on
-   * `Element` already, and a Lit `@property` would shadow the platform member
-   * (the kit's `align`/`draggable` trap) — so they are observed by name and
-   * read at render time, the `forwardedAttributes` shape.
-   */
-  private static readonly bridgedAriaAttributes = [
-    'aria-label',
-    'aria-labelledby',
-    'aria-describedby',
-  ]
-
-  static override get observedAttributes(): string[] {
-    return [...super.observedAttributes, ...VfFormControl.bridgedAriaAttributes]
-  }
-
-  override attributeChangedCallback(
-    name: string,
-    old: string | null,
-    value: string | null
-  ): void {
-    super.attributeChangedCallback(name, old, value)
-    if (VfFormControl.bridgedAriaAttributes.includes(name)) this.requestUpdate()
-  }
-
-  /**
-   * Form-associated lifecycle: the association changed, so the `<label for>`
-   * set feeding {@link hostLabel} may have too — re-render whatever mirrors it.
-   */
-  formAssociatedCallback(_form: HTMLFormElement | null): void {
-    this.requestUpdate()
-  }
-
-  /**
-   * The accessible name the *host* carries, for controls whose role lives on a
-   * shadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a
-   * consumer's `aria-label`, `aria-labelledby` or `<label for>` used to be
-   * silently inert — the host is a generic wrapper AccName never consults, and
-   * a host-level IDREF cannot reach into a shadow tree — so the bridge
-   * resolves them to text for the control to hand to its inner focusable
-   * element. The explicit `label` property still wins: templates read
-   * `this.label || this.hostLabel`.
-   *
-   * Precedence is html-aam's — `aria-labelledby`, then `aria-label`, then the
-   * associated `<label for>` elements (`internals.labels`). Referenced text is
-   * flattened at render time, so an edit to a referenced element's *text*
-   * lands on the control's next render rather than instantly — the one
-   * divergence from a native control, recorded in SPEC §4.
-   *
-   * Controls whose role sits on the host itself (the toggles, the slider, the
-   * radio group, the bars) never need this: the platform reads their host
-   * attributes directly.
-   */
-  protected get hostLabel(): string {
-    return (
-      this.hostAriaLabel ||
-      [...this.internals.labels]
-        .map((label) => label.textContent?.trim() ?? '')
-        .filter(Boolean)
-        .join(' ')
-    )
-  }
-
-  /**
-   * The ARIA half of {@link hostLabel} — `aria-labelledby`, then `aria-label`,
-   * in html-aam's order — without the `<label for>` leg.
-   *
-   * Split out because that leg does not apply to every control. A `<button>`
-   * is not a labelable element, so no caption names a native one and none
-   * should name a `vf-button` either (`verify:names` asserts that a `vf-label
-   * for=` leaves a button's own name alone). What a button DOES need is the
-   * other half: on a control whose role sits on a shadow-internal node, a
-   * consumer's `aria-label` is otherwise inert, because it lands on a generic
-   * host AccName never consults — so an icon button labelled the ordinary way
-   * was announced by its glyph.
-   */
-  protected get hostAriaLabel(): string {
-    return (
-      idrefText(this, 'aria-labelledby') ||
-      this.getAttribute('aria-label')?.trim() ||
-      ''
-    )
-  }
-
-  /**
-   * Description for the control — hint text, a format, a unit. A host-level
-   * `aria-describedby` cannot reach a focusable element inside a shadow root,
-   * so there was structurally no way to describe a field; this property is
-   * that channel. It renders as a hidden span in the control's own shadow root
-   * with the inner control's `aria-describedby` pointing at it — the
-   * shadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A host-level
-   * `aria-describedby` is bridged into the same span when this property is
-   * empty, and a failing constraint's {@link validationMessage} joins it too,
-   * so AT hears the error where it hears the hint.
-   */
-  @property() description = ''
-
-  /**
-   * What {@link renderDescription}'s span carries: the current validation
-   * message while the control is invalid, then the description (the property,
-   * or the bridged host `aria-describedby` text).
-   */
-  protected get descriptionText(): string {
-    return [
-      this.internals.validity.valid ? '' : this.internals.validationMessage,
-      this.description || idrefText(this, 'aria-describedby'),
-    ]
-      .filter(Boolean)
-      .join(' ')
-  }
-
-  /**
-   * `aria-describedby` value for the inner control — set only while the span
-   * has something to say, so an idle control isn't announced as described by
-   * nothing.
-   */
-  protected get describedBy(): string | typeof nothing {
-    return this.descriptionText ? 'description' : nothing
-  }
-
-  /**
-   * The hidden span the inner control's `aria-describedby` points at.
-   * `hidden` keeps it out of the page; AccName still resolves `display: none`
-   * reference targets (the fact vf-window's utility title patch leans on), so
-   * the text reaches AT without painting.
-   */
-  protected renderDescription() {
-    const text = this.descriptionText
-    return text ? html`<span id="description" hidden>${text}</span>` : nothing
-  }
-
   /**
    * Form-associated lifecycle: the browser calls this when this control's
    * disabled state changes — an ancestor `<fieldset disabled>`, or the
@@ -405,5 +270,162 @@ export class VfFormControl extends LitElement {
    */
   protected disabledChanged(changed: PropertyValues): boolean {
     return changed.has('disabled') || changed.has('formDisabled')
+  }
+}
+
+/**
+ * {@link VfFormControl} plus the name/description bridge, for the controls
+ * whose **role sits on a shadow-internal node** — `vf-button`, `vf-select`,
+ * `vf-swatch`, and the three fields via `VfTextControlBase` (SPEC §4).
+ *
+ * That one structural fact is the whole membership rule. On those controls the
+ * host is a generic wrapper AccName never consults, and a host-level IDREF
+ * cannot reach into a shadow tree, so the platform's own words — `aria-label`,
+ * `aria-labelledby`, `<label for>`, `aria-describedby` — land on nothing unless
+ * something resolves them to text and hands them inward. This class is that
+ * something.
+ *
+ * The controls whose role sits on the **host** (`vf-checkbox`,
+ * `vf-radio-group`, `vf-slider`) deliberately stay on the plain base: the
+ * platform reads their host attributes directly, so a bridge there would
+ * duplicate a working channel — and an inherited property that renders nothing
+ * is exactly the "advertised API that silently does nothing" this split exists
+ * to make impossible. `verify:manifest` holds the line: a tag whose manifest
+ * carries `description` must call {@link renderDescription} in its own source.
+ */
+export class VfShadowRoleControl extends VfFormControl {
+  /**
+   * The host-level ARIA attributes the bridge mirrors inward, observed so a
+   * consumer writing one after upgrade re-renders the control. They are
+   * deliberately not reactive properties: each has an IDL accessor on
+   * `Element` already, and a Lit `@property` would shadow the platform member
+   * (the kit's `align`/`draggable` trap) — so they are observed by name and
+   * read at render time, the `forwardedAttributes` shape.
+   */
+  private static readonly bridgedAriaAttributes = [
+    'aria-label',
+    'aria-labelledby',
+    'aria-describedby',
+  ]
+
+  static override get observedAttributes(): string[] {
+    return [
+      ...super.observedAttributes,
+      ...VfShadowRoleControl.bridgedAriaAttributes,
+    ]
+  }
+
+  override attributeChangedCallback(
+    name: string,
+    old: string | null,
+    value: string | null
+  ): void {
+    super.attributeChangedCallback(name, old, value)
+    if (VfShadowRoleControl.bridgedAriaAttributes.includes(name)) {
+      this.requestUpdate()
+    }
+  }
+
+  /**
+   * Form-associated lifecycle: the association changed, so the `<label for>`
+   * set feeding {@link hostLabel} may have too — re-render whatever mirrors it.
+   */
+  formAssociatedCallback(_form: HTMLFormElement | null): void {
+    this.requestUpdate()
+  }
+
+  /**
+   * The accessible name the *host* carries. A consumer's `aria-label`,
+   * `aria-labelledby` or `<label for>` used to be silently inert on these
+   * controls, so the bridge resolves them to text for the control to hand to
+   * its inner focusable element. The explicit `label` property still wins:
+   * templates read `this.label || this.hostLabel`.
+   *
+   * Precedence is html-aam's — `aria-labelledby`, then `aria-label`, then the
+   * associated `<label for>` elements (`internals.labels`). Referenced text is
+   * flattened at render time, so an edit to a referenced element's *text*
+   * lands on the control's next render rather than instantly — the one
+   * divergence from a native control, recorded in SPEC §4.
+   */
+  protected get hostLabel(): string {
+    return (
+      this.hostAriaLabel ||
+      [...this.internals.labels]
+        .map((label) => label.textContent?.trim() ?? '')
+        .filter(Boolean)
+        .join(' ')
+    )
+  }
+
+  /**
+   * The ARIA half of {@link hostLabel} — `aria-labelledby`, then `aria-label`,
+   * in html-aam's order — without the `<label for>` leg.
+   *
+   * Split out because that leg does not apply to every control. A `<button>`
+   * is not a labelable element, so no caption names a native one and none
+   * should name a `vf-button` either (`verify:names` asserts that a `vf-label
+   * for=` leaves a button's own name alone). What a button DOES need is the
+   * other half: on a control whose role sits on a shadow-internal node, a
+   * consumer's `aria-label` is otherwise inert, because it lands on a generic
+   * host AccName never consults — so an icon button labelled the ordinary way
+   * was announced by its glyph.
+   */
+  protected get hostAriaLabel(): string {
+    return (
+      idrefText(this, 'aria-labelledby') ||
+      this.getAttribute('aria-label')?.trim() ||
+      ''
+    )
+  }
+
+  /**
+   * Description for the control — hint text, a format, a unit. A host-level
+   * `aria-describedby` cannot reach a focusable element inside a shadow root,
+   * so there was structurally no way to describe a field; this property is
+   * that channel. It renders as a hidden span in the control's own shadow root
+   * with the inner control's `aria-describedby` pointing at it — the
+   * shadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A
+   * host-level `aria-describedby` is bridged into the same span when this
+   * property is empty, and a failing constraint's {@link validationMessage}
+   * joins it too, so AT hears the error where it hears the hint.
+   *
+   * Host-role controls get neither half: their `aria-describedby` already
+   * works, and their validation message reaches AT the way a native control's
+   * does — `aria-invalid` plus the browser's own validation UI, not AccName.
+   */
+  @property() description = ''
+
+  /**
+   * What {@link renderDescription}'s span carries: the current validation
+   * message while the control is invalid, then the description (the property,
+   * or the bridged host `aria-describedby` text).
+   */
+  protected get descriptionText(): string {
+    return [
+      this.internals.validity.valid ? '' : this.internals.validationMessage,
+      this.description || idrefText(this, 'aria-describedby'),
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  /**
+   * `aria-describedby` value for the inner control — set only while the span
+   * has something to say, so an idle control isn't announced as described by
+   * nothing.
+   */
+  protected get describedBy(): string | typeof nothing {
+    return this.descriptionText ? 'description' : nothing
+  }
+
+  /**
+   * The hidden span the inner control's `aria-describedby` points at.
+   * `hidden` keeps it out of the page; AccName still resolves `display: none`
+   * reference targets (the fact vf-window's utility title patch leans on), so
+   * the text reaches AT without painting.
+   */
+  protected renderDescription() {
+    const text = this.descriptionText
+    return text ? html`<span id="description" hidden>${text}</span>` : nothing
   }
 }

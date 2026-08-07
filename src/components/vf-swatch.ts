@@ -6,7 +6,7 @@ import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
-import { VfFormControl } from '../form-control.js'
+import { VfShadowRoleControl } from '../form-control.js'
 
 /**
  * `<vf-swatch>` — a color-swatch button: the color well of a palette cell.
@@ -50,9 +50,9 @@ import { VfFormControl } from '../form-control.js'
  *   `--vf-desktop-pattern`)
  */
 @vfElement('vf-swatch')
-export class VfSwatch extends VfPositioned(VfFormControl) {
+export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
   static override shadowRootOptions: ShadowRootInit = {
-    ...VfFormControl.shadowRootOptions,
+    ...VfShadowRoleControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -174,7 +174,7 @@ export class VfSwatch extends VfPositioned(VfFormControl) {
    * Accessible name for the inner button — a swatch has no text of its own.
    * Left empty, the name falls back to whatever the host carries
    * (`aria-labelledby`, `aria-label`, an associated `<label for>` — see
-   * {@link VfFormControl.hostLabel}), then to the `color` value (or
+   * {@link VfShadowRoleControl.hostLabel}), then to the `color` value (or
    * "transparent") as a last resort, so a palette is never nameless — but a
    * hex literal announced as "number f f six six zero zero" is a fallback to
    * name past, not a name. `vf-label`'s `for` wiring writes this property,
@@ -209,10 +209,12 @@ export class VfSwatch extends VfPositioned(VfFormControl) {
         type="button"
         style="width: calc(var(--vf-scale, 1) * ${this.width}px); height: calc(var(--vf-scale, 1) * ${this.height}px)"
         aria-label=${this.label || this.hostLabel || this.color || 'transparent'}
+        aria-describedby=${this.describedBy}
         ?disabled=${this.isDisabled}
       >
         <span class="fill" part="fill" style=${fill}></span>
       </button>
+      ${this.renderDescription()}
     `
   }
 }

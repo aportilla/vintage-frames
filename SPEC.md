@@ -143,13 +143,20 @@ Modern requirements that we deliberately keep (accessibility over purity):
   checkbox restores the flag, slider parses the number) — and expose
   `:state(form-disabled)` while an ancestor `<fieldset disabled>` disables
   them, the one disabled state consumer CSS can't otherwise see.
-- **The name/description bridge.** On the controls whose role lives on a
+- **The name/description bridge** (`VfShadowRoleControl`, src/form-control.ts).
+  On the controls whose role lives on a
   shadow-internal node (the three fields, `vf-select`, `vf-swatch`,
   `vf-button`), a
   host-level `aria-labelledby`, `aria-label` or associated `<label for>`
   resolves — in html-aam precedence — to the inner focusable element's
-  `aria-label` whenever the `label` property is empty (`hostLabel`,
-  src/form-control.ts). `vf-button` takes the ARIA half alone
+  `aria-label` whenever the `label` property is empty (`hostLabel`).
+  Those six extend `VfShadowRoleControl`; the host-role controls
+  (`vf-checkbox`, `vf-radio-group`, `vf-slider`) extend the plain
+  `VfFormControl` and so never *carry* the bridge's API at all — being handed
+  an inherited `description` that renders nothing is precisely the
+  advertised-but-inert shape this split removes, and `verify:manifest` holds
+  the line (a tag whose manifest lists `description` must call
+  `renderDescription()`). `vf-button` takes the ARIA half alone
   (`hostAriaLabel`): a `<button>` is not a labelable element, so no caption
   names a native one and none names this one either — its slotted content is
   the name a bridge doesn't override. A `description` property (or, when it's empty, a
@@ -1063,7 +1070,17 @@ The color-swatch button: a well of solid color — a palette cell.
   the box border and ✕ glyph stay black. Pressed (`:active` on box): border
   thickens to 2px (classic press feedback).
 - **Behavior:** form-associated; toggles on click and Space; `role="checkbox"`,
-  `aria-checked`; focusable (tabindex 0 on the host). `:focus-visible` marks
+  `aria-checked`; focusable (tabindex 0 on the host).
+  - **When the toggle runs.** At the *end* of the click's propagation, like a
+    native checkbox's activation behavior — so `preventDefault()` on the
+    control or anything above it stops the state change, in either phase.
+    `stopPropagation()` cancels nothing (HTML doesn't), and the disabled gate
+    sits at the far end of the deferral, so a control disabled *during*
+    propagation never acts. Space synthesises a cancelable click and inherits
+    all of it. Shared with `vf-radio` through `VfToggleControl`, and with
+    `vf-button` and the menus through `deferActivation` (src/events.ts).
+    `npm run verify:toggle`, CANCELLATION group.
+  `:focus-visible` marks
   the **box**, not the label and not either with a ring: `vfFocusUnderline`
   (§4) at `--vf-focus-underline-offset: -3px`, a dashed rule spanning the
   well's full 13px, one blank row under its border. The −3 and the ±1px width
@@ -1082,7 +1099,9 @@ The color-swatch button: a well of solid color — a palette cell.
   6px gap. Disabled dims like checkbox (label only; ring + dot stay black).
 - **Behavior:** `role="radio"`, `aria-checked`. Click → asks parent group to
   select it (dispatch internal event or parent listens). NOT itself
-  form-associated — the group is. `:focus-visible` marks the **circle** with
+  form-associated — the group is. Selection defers to the end of the click's
+  propagation and is cancellable exactly as `vf-checkbox`'s is (same
+  `VfToggleControl` skeleton). `:focus-visible` marks the **circle** with
   `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: -2px` — one blank
   row below the same 13px well the checkbox uses, so the two rules share a row
   in a mixed list (the −1 difference is only that this well has no border).

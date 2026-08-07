@@ -3,17 +3,19 @@ import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { ScaleController } from './scale.js'
 import { GridSnapController } from './grid-snap.js'
-import { VfFormControl } from './form-control.js'
+import { VfShadowRoleControl } from './form-control.js'
 import { FocusRuleController } from './focus-modality.js'
 import { emit, emitNative } from './events.js'
 
 /**
  * Shared base for the kit's editable text fields — `vf-text-field`,
- * `vf-text-area` and `vf-number-field`. Builds on {@link VfFormControl} (form
- * association + the disabled-value guard) and adds the value/label scaffolding
+ * `vf-text-area` and `vf-number-field`. Builds on
+ * {@link VfShadowRoleControl} (form association, the disabled-value guard and
+ * the name/description bridge every field needs, its role sitting on the inner
+ * native control) and adds the value/label scaffolding
  * every field repeated: the reflected `name`, the `value`/`placeholder`/
  * `readonly`/`label` props, the captured default restored on form reset, the
- * `updated()` → {@link VfFormControl.syncFormValue} funnel, and the display-
+ * `updated()` → {@link VfShadowRoleControl.syncFormValue} funnel, and the display-
  * scaling controller. Pairs with the `vfField` css fragment (the white-well
  * skin) in styles/base.ts.
  *
@@ -21,10 +23,10 @@ import { emit, emitNative } from './events.js'
  * adornments), tag it `class="vf-field"`, and may enrich the emitted event
  * detail via {@link emitValue}.
  */
-export class VfTextControlBase extends VfFormControl {
+export class VfTextControlBase extends VfShadowRoleControl {
   /** Focus delegates into the inner native control. */
   static override shadowRootOptions: ShadowRootInit = {
-    ...VfFormControl.shadowRootOptions,
+    ...VfShadowRoleControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -45,7 +47,7 @@ export class VfTextControlBase extends VfFormControl {
    * element that receives focus and is announced by screen readers — a host
    * attribute cannot reach it on its own). Left empty, the name falls back to
    * whatever the host carries — `aria-labelledby`, `aria-label` or an
-   * associated `<label for>` — via {@link VfFormControl.hostLabel}, so the
+   * associated `<label for>` — via {@link VfShadowRoleControl.hostLabel}, so the
    * platform's own labeling vocabulary works on these controls too.
    */
   @property() label = ''

@@ -23,7 +23,7 @@ import {
   lastPickableRow,
   layoutClampedPopup,
 } from '../popup-overflow.js'
-import { VfFormControl } from '../form-control.js'
+import { VfShadowRoleControl } from '../form-control.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
 import { emit, emitNative } from '../events.js'
@@ -100,7 +100,7 @@ import { emit, emitNative } from '../events.js'
  *   on open)
  */
 @vfElement('vf-select')
-export class VfSelect extends VfPositioned(VfFormControl) {
+export class VfSelect extends VfPositioned(VfShadowRoleControl) {
   /**
    * Fallback height of one option row — the pill's *content* height
    * (`--vf-popup-height` 18px minus its two 1px borders). Used to overlay the
@@ -322,7 +322,7 @@ export class VfSelect extends VfPositioned(VfFormControl) {
    * Accessible name for the combobox control (`aria-label`). Left empty, the
    * name falls back to whatever the host carries — `aria-labelledby`,
    * `aria-label` or an associated `<label for>` — via
-   * {@link VfFormControl.hostLabel}; with neither, the control is announced by
+   * {@link VfShadowRoleControl.hostLabel}; with neither, the control is announced by
    * its contents, i.e. the selected value.
    */
   @property() label = ''

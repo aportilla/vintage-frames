@@ -248,6 +248,14 @@ regression would otherwise emit an empty manifest and still exit 0), and that
 every documented `@csspart`, `@slot` and `@fires` is a real part, slot and
 event rather than a stale comment.
 
+It also catches the quieter failure in the other direction: a member a
+component *inherits* but never finishes wiring up. Inheritance alone is enough
+to put a property in the manifest and in your editor's autocomplete, and a
+control that inherits `description` without rendering it looks completely
+normal from outside while silently dropping every description you hand it. The
+manifest is the input — if a tag claims the member, its source has to call the
+method that renders it.
+
 **Theming tokens are split by reach.** A token only a few components can be
 styled with is documented on each of them as an `@cssprop`, generated from the
 SPEC §3 table so the two can't disagree — 45 tags across 22 components, and
@@ -307,9 +315,19 @@ bridged to the inner control (a control's own `label` property still wins),
 and `required` runs real constraint validation with the native messages —
 `form.reportValidity()` blocks, `:invalid` matches on the host,
 `setCustomValidity()` works, and Enter can't submit past a failing
-constraint. A `description` (or the validation error, while there is one)
-reaches assistive tech alongside the name. `npm run verify:names` asserts
-the computed accessibility tree for all of it.
+constraint.
+
+The bridge is **only** for the controls that need one — the three fields,
+`vf-select`, `vf-swatch` and `vf-button`, whose role sits on an element inside
+their shadow root. Those six also take a `description` property, which reaches
+assistive tech alongside the name and carries the validation error while there
+is one. The controls whose role sits on the host — `vf-checkbox`,
+`vf-radio-group`, `vf-slider` — deliberately have neither: your own
+`aria-describedby` already reaches them natively, and their validation error
+reaches AT the way a native control's does, through `aria-invalid` and the
+browser's own validation UI. An inherited property that renders nothing is
+worse than an absent one, so they don't inherit it.
+`npm run verify:names` asserts the computed accessibility tree for all of it.
 
 `vf-button` is a full member of that vocabulary: `type="submit"`/`"reset"`
 (including `formaction`, `formmethod`, `formtarget`, `formenctype` and

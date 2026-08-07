@@ -117,6 +117,49 @@ check(
     : `${claims.events.length} events`,
 )
 
+// ── 3b. An inherited member that needs a render-time call has to get one ─────
+//
+// `VfShadowRoleControl` hands out `description`, but the property only does
+// anything if the component wires `renderDescription()` into its own render().
+// Nothing at the type level requires that, so a control could advertise the
+// property — in its type signature, in this manifest, in editor autocomplete —
+// and silently drop every description handed to it. Four controls did.
+//
+// This is the check that catches it without a browser: if the manifest says a
+// tag has `description`, its source must call the method that renders it. The
+// manifest is deliberately the input, not the class hierarchy — reading the
+// hierarchy is exactly what went wrong, since inheritance is what made the
+// claim in the first place.
+//
+// "In its own source file" is narrow on purpose: no component today inherits a
+// base class's render(), and the first one that legitimately wants to can argue
+// for widening this to the base then.
+const tagSource = new Map()
+for (const f of readdirSync(componentDir).filter((x) => x.endsWith('.ts'))) {
+  const s = read(join('src/components', f))
+  const tag = s.match(/@vfElement\('([^']+)'\)/)?.[1]
+  if (tag) tagSource.set(tag, s)
+}
+
+const RENDER_BACKED = [['description', 'renderDescription()']]
+const inertMembers = []
+for (const el of elements) {
+  const members = new Set((el.members ?? []).map((m) => m.name))
+  for (const [member, call] of RENDER_BACKED) {
+    if (!members.has(member)) continue
+    if (!tagSource.get(el.tagName)?.includes(call)) {
+      inertMembers.push(`${el.tagName}:${member}`)
+    }
+  }
+}
+check(
+  'every inherited member that needs a render-time call gets one',
+  inertMembers.length === 0,
+  inertMembers.length
+    ? `advertised but inert — ${inertMembers.join(', ')}`
+    : `${RENDER_BACKED.length} member kind checked across ${elements.length} elements`,
+)
+
 // ── 4. The manifest is not silently empty of detail ──────────────────────────
 const withAttrs = elements.filter((e) => (e.attributes ?? []).length > 0).length
 check(

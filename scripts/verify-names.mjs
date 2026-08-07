@@ -166,6 +166,13 @@ const axDescription = (node) => node?.description?.value ?? ''
     <vf-select id="seld" description="Pick the install target.">
       <vf-option value="hd">Macintosh HD</vf-option>
     </vf-select>
+
+    <vf-swatch id="swd" color="#ff6600" label="Fill" description="Applies to the selection."></vf-swatch>
+
+    <span id="swhint">Double-click to edit.</span>
+    <vf-swatch id="swb" color="#0000ff" label="Pen" aria-describedby="swhint"></vf-swatch>
+
+    <vf-swatch id="swplain" color="#00ff00" label="Bare"></vf-swatch>
   `)
   const cdp = await ax(page)
 
@@ -191,6 +198,29 @@ const axDescription = (node) => node?.description?.value ?? ''
   check(
     'select: description reaches the combobox control',
     axDescription(await axFor(cdp, 'seld', 'control')) === 'Pick the install target.'
+  )
+
+  // vf-swatch was the one shadow-role control with no description channel at
+  // all: its role sits on the inner <button>, so unlike the host-role controls
+  // it had no native aria-describedby to fall back on either.
+  check(
+    'swatch: description property reaches the inner button (§6.2)',
+    axDescription(await axFor(cdp, 'swd', 'button')) === 'Applies to the selection.'
+  )
+  check(
+    'swatch: host aria-describedby is bridged to the inner button',
+    axDescription(await axFor(cdp, 'swb', 'button')) === 'Double-click to edit.'
+  )
+  check(
+    'swatch: no description → no reference and no span',
+    await page.evaluate(
+      () =>
+        document
+          .getElementById('swplain')
+          .shadowRoot.querySelector('button')
+          .getAttribute('aria-describedby') === null &&
+        document.getElementById('swplain').shadowRoot.querySelector('#description') === null
+    )
   )
 
   await page.close()

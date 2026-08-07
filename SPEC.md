@@ -17,8 +17,7 @@ design and public APIs. Every component MUST follow it.
 > marks. A glyph is *geometry*, which is why redrawing it loses nothing. A
 > **picture** is different — redrawn it is lost — and the kit ships no raster
 > art at all: an icon is the consumer's asset, slotted through `vf-img` (the
-> demo's 32×32 alert icon is cut to `demo/icons/alert.png` by
-> `npm run extract:icons`).
+> demo's 32×32 alert icon is `demo/icons/alert.png`).
 
 ## 1. Design principles
 
@@ -412,8 +411,8 @@ enabled well.
   inset `2px` top/bottom and **flush left/right** (the close-up reference runs
   the dots into the side borders; the `Windows/` sheet's 2px side inset is the
   artist's, not the bar's), tiled with a 2×2 crisp SVG carrying one black
-  pixel at the tile origin (`--vf-dots-pattern` to retheme) — see
-  `npm run extract:windows`. An SVG tile for the same reason as the desktop
+  pixel at the tile origin (`--vf-dots-pattern` to retheme), traced from the
+  window reference. An SVG tile for the same reason as the desktop
   dither: gradient hard stops feather at scale, SVG rects don't.
 - `vfHardShadowDecls` — the hard 1-bit drop shadow on its own, for composing
   into a surface that supplies its own border:
@@ -851,7 +850,7 @@ the shells above: `vf-dialog frame="plain"` with `label` stated (there is no
 title bar to name it), a row `vf-stack` slotting the consumer's own 32×32
 art through `vf-img`, display-face copy (an alert speaks in chrome type),
 and the `buttons` slot. The showcase and blog demos compose theirs from
-`demo/icons/alert.png` (`npm run extract:icons`), and the reference page
+`demo/icons/alert.png`, and the reference page
 carries the live recipe.
 
 #### `vf-separator` (`VfSeparator`, vf-separator.ts)
@@ -897,9 +896,8 @@ carries the live recipe.
   The rounded rect is NOT `border-radius` (which antialiases): the button
   paints no box of its own; two pseudo-element layers carry stepped
   `clip-path` silhouettes traced from the reference sheet (`src/pixel-frame.ts`,
-  data from `Buttons Exact 1x pixel Refrence.png` via
-  `scripts/extract-button-pixels.py`, machine-diffed by
-  `npm run verify:buttons`): `::before` fills `var(--vf-black)` clipped to the
+  traced from the 1x button reference sheet; `npm run verify:buttons` checks
+  the compiled polygons render those profiles faithfully): `::before` fills `var(--vf-black)` clipped to the
   outer silhouette (corner insets `[3,1,1]`, then straight), `::after` fills
   `var(--vf-white)` clipped to the face (row 1 corner insets `[3,2]`, then 1px
   inside) — the 1px frame, corner steps included, is the QuickDraw-style
@@ -1237,7 +1235,7 @@ The classic popup menu control ("Macintosh HD ▼").
   gutter so the selected label sits at the same x closed or open. *One
   documented 1px deviation:* the reference sheets put a closed pill's label ink
   16px from its border box but an open menu's at 17 (three pill instances and
-  four menu panels, all consistent — `npm run extract:menus`). System 7
+  four menu panels, all consistent, in the reference art). System 7
   reconciled that by drawing the open panel 1px left of the pill; the kit
   instead uses one shared gutter with no panel offset, which keeps the
   closed↔open alignment exact and puts the closed pill's ink at 17. Bold label
@@ -2225,7 +2223,7 @@ screenshots:
    button variants (normal/default/disabled), a `vf-swatch` palette row (the
    six-color wells plus the no-color checker), separator, multi-select
    `vf-list` (each row's `icon` slot carrying its DA's 16×16 small icon as a
-   `vf-img`; crops via `npm run extract:icons`), `vf-scroll-area` with enough
+   `vf-img`), `vf-scroll-area` with enough
    text to scroll, disabled control examples.
 5. An alert: menu item Special → "Erase Disk…" opens a composed alert box —
    `vf-dialog frame="plain"` with the demo's own 32×32 alert icon

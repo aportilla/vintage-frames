@@ -23,14 +23,11 @@ Checks per button:
   painted outside the silhouette (the indicator is not a ring)
 """
 
+import pathlib
 import sys
-import importlib.util
 
-spec = importlib.util.spec_from_file_location(
-    "extract", "scripts/extract-button-pixels.py"
-)
-extract = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(extract)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import bitmap  # noqa: E402  (path set above so this runs from the repo root)
 
 # Profiles — keep in sync with src/pixel-frame.ts (verified by verify:buttons)
 BUTTON_FRAME = ([3, 1, 1], 0, 0)
@@ -78,7 +75,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("usage: verify-button-screenshot.py <screenshot.png>")
     path = sys.argv[1]
-    width, height, px = extract.read_png(path)
+    width, height, px = bitmap.read_png(path)
     print(f"screenshot: {width}x{height}")
 
     def is_bg(p):

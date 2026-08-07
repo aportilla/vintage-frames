@@ -1,28 +1,24 @@
 #!/usr/bin/env python3
-"""Measure OUR rendered menu/popup ink, for comparison with the art.
+"""Measure OUR rendered menu/popup ink.
 
-`extract-menu-pixels.py` reduces the reference sheets to ink offsets. This
-does the same reduction on a screenshot of menu-test.html (pinned to
-`--vf-scale: 1`, so one CSS px is one system px), reusing that script's
-`find_panel`/`report_box` so both sides are measured identically.
+Reduces a screenshot of menu-test.html (pinned to `--vf-scale: 1`, so one CSS
+px is one system px) to ink offsets, via the shared `find_panel`/`report_box`
+in scripts/bitmap.py.
 
-That equivalence is the whole point: the reference numbers are *ink*
-positions while our CSS is expressed as *layout* padding, and the difference
-between them is the font's left side bearing. Measuring our own render the
-same way makes the two directly comparable without having to model the
-bearing at all.
+Why ink and not layout: our CSS is expressed as *layout* padding, and the
+difference between that and where the ink lands is the font's left side
+bearing. Measuring the render itself sidesteps having to model the bearing at
+all — which is what made this comparable to the traced numbers when they were
+being derived, and what still makes it the way to check a menu metric by hand.
 
 Usage: npm run shot:menus && npm run measure:menus
 """
 
-import importlib.util
+import pathlib
 import sys
 
-spec = importlib.util.spec_from_file_location(
-    "art", "scripts/extract-menu-pixels.py"
-)
-art = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(art)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import bitmap  # noqa: E402  (path set above so this runs from the repo root)
 
 MIN_ISLAND = 12  # ignore specks; every specimen is far larger
 
@@ -67,7 +63,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("usage: measure-menu-render.py <screenshot.png>")
     path = sys.argv[1]
-    width, height, pixels = art.extract.read_png(path)
+    width, height, pixels = bitmap.read_png(path)
     print(f"screenshot: {width}x{height}")
 
     for box in islands(width, height, pixels):
@@ -79,7 +75,7 @@ def main():
         # Require the border to span most of the island, so a vf-menu's bar
         # label can't be mistaken for the panel that hangs below it.
         try:
-            panel = art.find_panel(pixels, box, min_run=int((x1 - x0 + 1) * 0.8))
+            panel = bitmap.find_panel(pixels, box, min_run=int((x1 - x0 + 1) * 0.8))
         except SystemExit:
             print("  (no panel border -- bare text island, skipped)")
             continue
@@ -88,7 +84,7 @@ def main():
             f"  border box: x {px0}..{px1} (w={px1 - px0 + 1})  "
             f"y {py0}..{py1} (h={py1 - py0 + 1})"
         )
-        art.report_box(pixels, panel)
+        bitmap.report_box(pixels, panel)
 
 
 if __name__ == "__main__":

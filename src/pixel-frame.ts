@@ -7,8 +7,7 @@
  * which is exactly the gray smudge the kit forbids. Instead we author each
  * silhouette as a *corner trace* — the per-row left inset of the shape, in
  * system pixels, read straight off the reference sheet
- * (`Classic Macintosh UI Kit Reference/Buttons Exact 1x pixel Refrence.png`,
- * extracted by `scripts/extract-button-pixels.py`) — and compile it into a
+ * read off the 1x button reference sheet — and compile it into a
  * stepped `polygon()` whose every vertex is a `calc(var(--vf-scale, 1) * Npx)`
  * multiple. Under display scaling each system pixel is a whole number of
  * device pixels, so every edge lands on the device grid and nothing

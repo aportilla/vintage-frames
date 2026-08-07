@@ -6,7 +6,7 @@ import { css } from 'lit'
  * the 18px bar height this yields exactly six 1px stripes spanning the close
  * box's top and bottom edges (title-bar interior 17px, stripes 11px tall);
  * the side inset leaves the stripes one system px clear of the frame border,
- * matching the widgets' 1px patch ring (npm run extract:windows).
+ * matching the widgets' 1px patch ring in the reference art.
  */
 export const vfStripes = css`
   .vf-stripes {
@@ -34,8 +34,8 @@ export const vfStripes = css`
  * layer inset 2px top/bottom and FLUSH left/right: the close-up reference art
  * runs the dots all the way into the side borders (the Windows/ sheet hand-
  * insets them 2px, which the close-up shows is not the bar's own geometry).
- * The tile is 2×2 with a single black pixel at the tile origin (see
- * `npm run extract:windows`), drawn as a crisp 1-bit SVG for the same reason
+ * The tile is 2×2 with a single black pixel at the tile origin, drawn as a
+ * crisp 1-bit SVG for the same reason
  * as vf-desktop's checker: gradient hard stops feather at scale, SVG rects
  * don't. Override the whole pattern via `--vf-dots-pattern`.
  */

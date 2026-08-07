@@ -18,7 +18,7 @@
  *  - UTILITY BAR: variant="utility" measures the windoid trace (12px bar,
  *    7×7 widgets at left:7/right:8, 3px nested zoom square, vf-dots layer),
  *    and a scale-1 raster of the bar is probed pixel-for-pixel against
- *    `Windows/utility-window.png` (npm run extract:windows).
+ *    the traced utility-window reference.
  *  - FLOATING TIER: on a vf-desktop, utility windows stack a band above the
  *    document tier, restack only among themselves, and neither steal nor
  *    lose `active`.

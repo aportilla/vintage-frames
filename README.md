@@ -373,7 +373,7 @@ component enforcing HIG compliance, it's the component *enabling* it via
 specific choice. `<vf-dialog closable>` builds the Figure 5-1 reading just as
 easily.
 
-The chrome itself is traced, not paraphrased (`npm run extract:windows`):
+The chrome itself is traced, not paraphrased:
 `frame="plain"` is the modal-dialog double frame — 1px outer rule, 2px gap,
 2px inner band, no shadow (System 7's alert box drew the mirror trace, with
 the shadow — a different chrome, and one the kit doesn't ship: an alert here
@@ -949,8 +949,8 @@ icon art —
 `label` is stated because the plain frame has no title bar to take a name
 from, and the copy takes the chrome face because an alert speaks in chrome
 type. The demo pages compose their alerts exactly this way, from their own
-asset: `npm run extract:icons` cuts `demo/icons/alert.png` (and the demo's
-16×16 DA icons) from the reference sheet — black ink on transparency all
+asset: `demo/icons/alert.png` (and the demo's 16×16 DA icons) were cut from
+the reference art — black ink on transparency all
 through, so the dialog's own surface shows inside the triangle and the art
 survives a retheme without a baked-in white patch.
 

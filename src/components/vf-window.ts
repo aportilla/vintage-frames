@@ -164,7 +164,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
 
       /* --- Utility (windoid) variant --------------------------------- */
       /* The slim floating-window bar, traced from Windows/utility-window.png
-         (npm run extract:windows): 11px interior over the 1px rule
+         : 11px interior over the 1px rule
          (--vf-titlebar-height-utility: 12px), the vf-dots dither instead of
          stripes, and 7×7 widgets at left:7px / right:8px — the art really is
          asymmetric by that pixel. No title patch: the bar is two system px
@@ -184,8 +184,8 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
            11px: 2 + 7 + 2). The patch ring stays 2px here where the striped
            bar's is 1px: the windoid sheet deliberately clears two px of
            dither beside its widgets — the flush dot grid lands a dot in the
-           column adjacent to the box, and the art blanks it (npm run
-           extract:windows). A custom property rather than box-shadow so the
+           column adjacent to the box, and the art blanks it. A custom
+           property rather than box-shadow so the
            inactive blanking rule above still wins the cascade. */
         --vf-widget-ring: 2px;
         top: calc(var(--vf-scale, 1) * 2px);

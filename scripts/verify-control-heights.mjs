@@ -3,8 +3,8 @@
  *
  * `--vf-control-height: 22px` once drove buttons, popups AND fields, but the
  * sheets disagree with each other about what that height is. Black-ink bounding
- * boxes, measured with the stdlib PNG reader in scripts/extract-button-pixels.py
- * (`Buttons Exact 1x pixel Refrence.png` + `Controls.png`, which agree):
+ * boxes, measured off the 1x button and controls reference sheets (which
+ * agree with each other) with the stdlib PNG reader now in scripts/bitmap.py:
  *
  *   button face      80 × 20   (no shadow; the default ring's inner box, and the
  *                               ring traces in pixel-frame.ts assume it)
@@ -441,8 +441,8 @@ check(
 // ── Horizontal sibling: the checkmark gutter ──
 // The vertical half above asserts the selected row lands on the pill's content
 // TOP. This is the same invariant on the other axis: the label must not shift
-// horizontally when the list opens either. Reference (`npm run extract:menus`,
-// three pill instances + four menu panels): an open menu's label ink sits 17px
+// horizontally when the list opens either. Measured off the reference art
+// (three pill instances + four menu panels): an open menu's label ink sits 17px
 // from the panel's border box and its ✓ ink at +4..12. One shared gutter of 16
 // (+1px border) reproduces both.
 const GUTTER = 16

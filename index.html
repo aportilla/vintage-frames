@@ -245,7 +245,7 @@
             <vf-fieldset fill-width legend="Desk Accessories">
               <!-- Each row's `icon` slot carries the DA's 16×16 System 7 small
                    icon as a vf-img — real raster crops from the reference
-                   sheet (npm run extract:icons), decorative (alt=""). -->
+                   art, decorative (alt=""). -->
               <vf-list
                 fill-width
                 multiple
@@ -1168,8 +1168,8 @@ shrink it and watch the arrows come back.
 
       <!-- ============== Erase Disk alert (composed, modal) ============== -->
       <!-- An alert box is not a component: it is the modal-dialog shell
-           plus this page's own 32×32 icon art (demo/icons/alert.png, cut
-           by `npm run extract:icons`), slotted through vf-img like any
+           plus this page's own 32×32 icon art (demo/icons/alert.png),
+           slotted through vf-img like any
            picture. An alert speaks in chrome type, so the copy takes the
            display face rather than vf-paragraph's body default. -->
       <vf-dialog id="alert-erase" frame="plain" label="Caution" width="400" height="140">

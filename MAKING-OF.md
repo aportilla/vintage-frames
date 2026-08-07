@@ -50,7 +50,7 @@ The engineering is in knowing the zoom at all, since no browser reports it direc
 
 **Goal:** reproduce the reference art's corner pixels exactly, at any control size, without antialiasing.
 
-A System 7 rounded rectangle is a staircase of whole pixels, and native `border-radius` renders it as an antialiased arc — so the kit does not use `border-radius` at all. Each silhouette is defined as a **corner trace**: the per-row inset of the shape in system pixels, read from the 1× reference sheet by an extraction script (`scripts/extract-button-pixels.py`) and compiled into a stepped CSS `polygon()` clip path whose every vertex is a `calc(var(--vf-scale) * Npx)` multiple ([`src/pixel-frame.ts`](./src/pixel-frame.ts)). The push button's outer edge, for example, is the profile `{ corner: [3, 1, 1], edge: 0 }`: inset 3 on the first row, 1 on the next two, then straight.
+A System 7 rounded rectangle is a staircase of whole pixels, and native `border-radius` renders it as an antialiased arc — so the kit does not use `border-radius` at all. Each silhouette is defined as a **corner trace**: the per-row inset of the shape in system pixels, read from the 1× reference sheet and compiled into a stepped CSS `polygon()` clip path whose every vertex is a `calc(var(--vf-scale) * Npx)` multiple ([`src/pixel-frame.ts`](./src/pixel-frame.ts)). The push button's outer edge, for example, is the profile `{ corner: [3, 1, 1], edge: 0 }`: inset 3 on the first row, 1 on the next two, then straight.
 
 Two details make the technique general:
 

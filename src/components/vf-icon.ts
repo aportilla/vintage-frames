@@ -74,8 +74,6 @@ const clamp = (v: number, max: number): number =>
  * held whether or not there is art for it. A folder is 32×20 of ink and a
  * document 25×32, and a row of them keeps one baseline only because the cell —
  * not the ink — is the unit, which is what an icon resource always was.
- * `scripts/extract-da-icons.py` bakes the same registration into the assets it
- * cuts.
  *
  * ### Everything centered lands on a whole pixel, by parity
  *

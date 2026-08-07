@@ -627,7 +627,6 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
         inlineTop: e.style.top,
         inlineLeft: e.style.left,
         tabindex: e.getAttribute('tabindex'),
-        role: e.getAttribute('role'),
       }
     })
   )
@@ -636,10 +635,32 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
     inert.every((e) => e.inlineTop === '' && e.inlineLeft === ''),
     inert.map((e) => `${e.id}:${e.position}`).join(' ')
   )
+  // Computed, not attribute-read: the kit writes host ARIA through internals
+  // (SPEC §2), so `getAttribute('role')` is null for every component whatever
+  // its role computes to — which would make the "no role" half of this
+  // contract pass vacuously. `generic` is the AX tree's way of saying the
+  // element took no role of its own.
+  const cdpPos = await page.context().newCDPSession(page)
+  await cdpPos.send('DOM.enable')
+  await cdpPos.send('Accessibility.enable')
+  const axRole = async (id) => {
+    const { root } = await cdpPos.send('DOM.getDocument', { depth: -1, pierce: true })
+    const { nodeId } = await cdpPos.send('DOM.querySelector', {
+      nodeId: root.nodeId,
+      selector: `#${id}`,
+    })
+    const { nodes } = await cdpPos.send('Accessibility.getPartialAXTree', {
+      nodeId,
+      fetchRelatives: false,
+    })
+    return nodes[0]?.role?.value ?? null
+  }
+  const roles = { a: await axRole('a'), b: await axRole('b'), w: await axRole('w') }
   check(
     'contract: …takes no tab stop and no role',
-    inert.every((e) => e.tabindex === null && e.role === null),
-    inert.map((e) => `${e.id}:${e.tabindex}/${e.role}`).join(' ')
+    inert.every((e) => e.tabindex === null) &&
+      Object.values(roles).every((r) => r === 'generic'),
+    inert.map((e) => `${e.id}:${e.tabindex}/${roles[e.id]}`).join(' ')
   )
   const laid = await page.evaluate(() => {
     const r = document.getElementById('row').getBoundingClientRect()

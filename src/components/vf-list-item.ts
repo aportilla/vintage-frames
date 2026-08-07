@@ -115,20 +115,31 @@ export class VfListItem extends LitElement {
    */
   @property({ attribute: false }) listDisabled = false
 
+  /**
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2.
+   */
+  readonly #internals = this.attachInternals()
+
+  constructor() {
+    super()
+    this.#internals.role = 'option'
+  }
+
   override connectedCallback(): void {
     super.connectedCallback()
-    this.setAttribute('role', 'option')
     if (!this.hasAttribute('tabindex')) this.tabIndex = -1
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     if (changed.has('selected')) {
-      this.setAttribute('aria-selected', this.selected ? 'true' : 'false')
+      this.#internals.ariaSelected = this.selected ? 'true' : 'false'
     }
     if (changed.has('disabled') || changed.has('listDisabled')) {
-      if (this.disabled || this.listDisabled) {
-        this.setAttribute('aria-disabled', 'true')
-      } else this.removeAttribute('aria-disabled')
+      this.#internals.ariaDisabled =
+        this.disabled || this.listDisabled ? 'true' : null
     }
     // Internal coordination event: the parent list's roving tab stop may be
     // resting on this very row, so it has to re-sync or the stop goes stale

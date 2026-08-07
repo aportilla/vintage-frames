@@ -124,6 +124,20 @@ Modern requirements that we deliberately keep (accessibility over purity):
 - Disabled pattern: reflected `disabled` attr; the **label/text** dims to
   `--vf-disabled` gray while borders, boxes and glyphs stay black; interaction
   handlers early-return; set `aria-disabled`/`disabled` on internals.
+- **Host ARIA is written through `ElementInternals`, never `setAttribute`.**
+  An internals value is a *default*: a consumer's own `role`/`aria-*` on the
+  tag outranks it, which is the platform's own precedence. A host
+  `setAttribute` has the opposite precedence — the component wins and the
+  consumer is silently overwritten — so the two are not interchangeable, and
+  the kit uses internals everywhere (`role`, `ariaLabel`, `ariaSelected`,
+  `ariaChecked`, `ariaDisabled`, `ariaValueNow`, `ariaKeyShortcuts`, …). This
+  is also why no component needs a first-connect "do I own the role?" latch:
+  an internals default is never on the host to be misread as consumer-supplied
+  on a later connect. **Consequence worth knowing:** these values do not
+  reflect to attributes, so `getAttribute('role')` reads `null` on a
+  `vf-list-item` whose role computes to `option` — read the accessibility tree
+  (or `el.internals`-free equivalents like `matches(':state(…)')` for state).
+  Shadow-internal nodes still take ordinary template attributes.
 - Form-associated controls (`VfFormControl`) also implement
   `formStateRestoreCallback` — the stored state is the last submitted string,
   mapped back onto each control's own value semantics (`applyFormState`;
@@ -2025,7 +2039,27 @@ grid; this makes it the thing the Finder manipulates.
   pointer-only gesture is the kind of gap the kit closes (§1). Focus is the
   dashed rule below the plate, gated on `FocusRuleController` rather than
   `:focus-visible`: the host focuses itself so the press-drag can own the
-  pointer. `role="option"` + `aria-selected` only under `selectable`.
+  pointer.
+- **An icon alone is a picture; an icon in a field is an option.** `option` is
+  invalid without a `listbox` that owns it — written unconditionally the
+  browser drops the role *and* `aria-selected`, which is how a `selectable`
+  icon reached AT as a bare generic in every configuration the kit shipped. So
+  the role follows the container: `role="option"` + `aria-selected` when a
+  `[role="listbox"]` ancestor claims it, otherwise `role="img"` named from
+  `label` (else the art's `alt`), since `img` is not a name-from-content role.
+  Not `button` — that promises Enter/Space activate, while here Return renames
+  and the open route is ⌘O / ⌘↓. Re-derived on every connect, so re-parenting
+  between the two contexts re-grades the icon. **The recipe for a field of
+  icons is a container carrying `role="listbox"`** (`aria-label` +
+  `aria-multiselectable`); `vf-desktop` cannot be it, since it also holds
+  windows and a menu bar and a non-`option` child of a listbox is invalid the
+  same way. Divergence from APG, recorded: its listbox options share one
+  roving tab stop, the kit's stay one stop each.
+- **`selectable` is what makes an icon focusable** — `movable` and `editable`
+  presuppose it, as the Finder did (you cannot move or rename what you have not
+  selected; the rename already opens only on an ALREADY-selected icon). A
+  `movable`-only icon is draggable but not a tab stop, rather than a tab stop
+  that announces nothing.
 - **A name is never abbreviated, and never folded:** no ellipsis, no clipping,
   no wrapping — `white-space: nowrap`, one line always. System 7 solved the
   long-name problem at the other end — HFS capped a filename at 31 characters —

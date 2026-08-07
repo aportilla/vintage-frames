@@ -1067,6 +1067,34 @@ selection color with `vf-list-item`. Clicking selects, Shift adds, and a press
 anywhere else clears — single-selection works with no container managing the
 set, which is what the outside-press listener buys.
 
+**An icon alone is a picture; an icon in a field is an option.** That the
+selection needs no container is a *behavior* win, but ARIA disagrees about the
+announcement: `role="option"` is invalid without a `listbox` that owns it, and
+a browser handed an orphaned one drops the role and `aria-selected` with it. So
+the role follows the container. Unowned, a `selectable` icon is `role="img"`
+named from its `label` — true of what it is, and honest about the fact that
+"selected" has no set to mean anything within. Declare the owner and the
+selection becomes announceable:
+
+```html
+<div role="listbox" aria-label="Desktop" aria-multiselectable="true">
+  <vf-icon label="Macintosh HD" selectable movable editable>…</vf-icon>
+  <vf-icon label="Trash" selectable movable editable>…</vf-icon>
+</div>
+```
+
+One attribute on whatever already holds the field, and the wrapper is
+layout-neutral — placed icons anchor to the nearest *positioned* ancestor, so
+they still sit on the desktop's raster. `vf-desktop` can't be the listbox
+itself: it also holds windows and a menu bar, and a non-`option` child of a
+listbox is invalid the same way the orphan was. The showcase does this.
+
+**`selectable` is what makes an icon focusable**, so `movable` and `editable`
+presuppose it — the Finder's own model, where you cannot move or rename what
+you have not selected, and what the pointer path already assumed (the rename
+opens only on an *already-selected* icon). A `movable`-only icon is draggable
+but takes no tab stop.
+
 **`open` is derived, not shipped.** The Finder's other visual state — the
 window this icon stands for is on screen — redraws the art as a ghost: the
 outline held in solid black, the interior re-filled with the same loose 25%

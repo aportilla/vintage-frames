@@ -260,15 +260,19 @@ export class VfMenuItem extends LitElement {
   #everChecked = false
 
   /**
-   * Whether this component owns the host `role`. Decided on the FIRST connect
-   * only: our own `role` write persists on the element, so re-testing
-   * `hasAttribute('role')` on a reconnect would read that write back as
-   * consumer-supplied and freeze the role wherever it happened to be.
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2.
+   *
+   * This is also what retired the pair of first-connect ownership latches this
+   * component used to carry. They existed because our own host write was
+   * indistinguishable from a consumer's on any later read; an internals default
+   * is never on the host to be misread, so ownership needs no latch and a
+   * consumer's attribute wins whenever it is present rather than only when it
+   * beat us to the first connect.
    */
-  #ownsRole: boolean | undefined
-
-  /** Same first-connect latch, for the host `aria-keyshortcuts` mirror. */
-  #ownsKeyshortcuts: boolean | undefined
+  readonly #internals = this.attachInternals()
 
   /**
    * Swallows the one `click` the browser synthesises after a pointer press: the
@@ -307,8 +311,6 @@ export class VfMenuItem extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback()
-    this.#ownsRole ??= !this.hasAttribute('role')
-    this.#ownsKeyshortcuts ??= !this.hasAttribute('aria-keyshortcuts')
     // Re-derived (not blindly reset) so re-parenting a checkable item keeps its
     // menuitemcheckbox role and aria-checked — updated() does not re-fire on a
     // reconnect, so an unconditional write here stranded it as a plain command.
@@ -324,13 +326,11 @@ export class VfMenuItem extends LitElement {
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     if (changed.has('disabled')) {
-      if (this.disabled) {
-        this.setAttribute('aria-disabled', 'true')
-        // Disabled mid-blink: drop the pending activation. #activate only
-        // checked `disabled` on entry, so the timer would otherwise run to
-        // completion and dispatch vf-menu-select for a now-disabled item.
-        this.#cancelBlink()
-      } else this.removeAttribute('aria-disabled')
+      this.#internals.ariaDisabled = this.disabled ? 'true' : null
+      // Disabled mid-blink: drop the pending activation. #activate only
+      // checked `disabled` on entry, so the timer would otherwise run to
+      // completion and dispatch vf-menu-select for a now-disabled item.
+      if (this.disabled) this.#cancelBlink()
     }
     if (changed.has('checked') && this.checked) this.#everChecked = true
     if (changed.has('checked') || changed.has('checkable')) this.#syncRole()
@@ -338,31 +338,26 @@ export class VfMenuItem extends LitElement {
   }
 
   /**
-   * Mirrors {@link shortcut} onto the host as `aria-keyshortcuts`, normalised
-   * from the Mac display glyphs to the ARIA grammar ("⌘⇧S" → "Meta+Shift+S").
-   * Skipped when the consumer supplied their own value.
+   * Mirrors {@link shortcut} as the host's `aria-keyshortcuts`, normalised from
+   * the Mac display glyphs to the ARIA grammar ("⌘⇧S" → "Meta+Shift+S"). A
+   * consumer's own attribute overrides this the way it overrides the role.
    */
   #syncKeyshortcuts(): void {
-    if (!this.#ownsKeyshortcuts) return
-    const normalized = toAriaKeyshortcuts(this.shortcut)
-    if (normalized) this.setAttribute('aria-keyshortcuts', normalized)
-    else this.removeAttribute('aria-keyshortcuts')
+    this.#internals.ariaKeyShortcuts = toAriaKeyshortcuts(this.shortcut) || null
   }
 
   /**
    * Writes the ARIA role and `aria-checked` for the current state. A checkable
    * item announces its on/off state (`aria-checked` is only valid on the
-   * checkbox role); a plain command stays `role="menuitem"`. Skipped entirely
-   * when the consumer supplied their own role.
+   * checkbox role); a plain command stays `role="menuitem"`.
    */
   #syncRole(): void {
-    if (!this.#ownsRole) return
     if (this.#isCheckable) {
-      this.setAttribute('role', 'menuitemcheckbox')
-      this.setAttribute('aria-checked', this.checked ? 'true' : 'false')
+      this.#internals.role = 'menuitemcheckbox'
+      this.#internals.ariaChecked = this.checked ? 'true' : 'false'
     } else {
-      this.setAttribute('role', 'menuitem')
-      this.removeAttribute('aria-checked')
+      this.#internals.role = 'menuitem'
+      this.#internals.ariaChecked = null
     }
   }
 

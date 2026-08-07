@@ -143,7 +143,7 @@ export class VfProgressBar extends VfPositioned(LitElement) {
   @property({ type: Boolean, reflect: true }) indeterminate = false
 
   /**
-   * Accessible name for the bar, applied as `aria-label` on the host (which
+   * Accessible name for the bar, applied as the host's `aria-label` (which
    * carries `role="progressbar"`). Especially useful in `indeterminate` mode,
    * where there is no `aria-valuenow` to describe the bar. A consumer-supplied
    * `aria-label`/`aria-labelledby` attribute is left alone.
@@ -155,10 +155,20 @@ export class VfProgressBar extends VfPositioned(LitElement) {
   /** Track the fill area's width so the determinate fill can snap to it. */
   private readonly trackSize = new TrackWidthController(this, () => this.track)
 
-  override connectedCallback(): void {
-    super.connectedCallback()
-    this.setAttribute('role', 'progressbar')
-    this.setAttribute('aria-valuemin', '0')
+  /**
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2.
+   */
+  readonly #internals = this.attachInternals()
+
+  constructor() {
+    super()
+    // Constant for the life of the bar — set once rather than rewritten on
+    // every update alongside the values that actually change.
+    this.#internals.role = 'progressbar'
+    this.#internals.ariaValueMin = '0'
   }
 
   /** Effective maximum: a non-positive `max` is treated as the default 100. */
@@ -172,22 +182,17 @@ export class VfProgressBar extends VfPositioned(LitElement) {
   }
 
   protected override updated(changed: PropertyValues<this>): void {
-    // Only clear the attribute when a non-empty label is emptied — on the first
-    // update `changed` carries the class-field default (old value `undefined`),
-    // and blowing away a consumer's own aria-label there would be wrong.
-    if (changed.has('label')) {
-      if (this.label) this.setAttribute('aria-label', this.label)
-      else if (changed.get('label')) this.removeAttribute('aria-label')
-    }
+    // Written unconditionally: an empty label clears the internals default
+    // rather than the host, so a consumer's own aria-label is never in reach
+    // to be blown away and needs no first-update guard.
+    if (changed.has('label')) this.#internals.ariaLabel = this.label || null
     if (changed.has('max')) {
-      this.setAttribute('aria-valuemax', String(this.effectiveMax))
+      this.#internals.ariaValueMax = String(this.effectiveMax)
     }
     if (changed.has('value') || changed.has('max') || changed.has('indeterminate')) {
-      if (this.indeterminate) {
-        this.removeAttribute('aria-valuenow')
-      } else {
-        this.setAttribute('aria-valuenow', String(this.clampedValue))
-      }
+      this.#internals.ariaValueNow = this.indeterminate
+        ? null
+        : String(this.clampedValue)
     }
   }
 

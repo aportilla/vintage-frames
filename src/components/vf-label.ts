@@ -34,11 +34,13 @@ const NAME_FROM_CONTENT_ROLES = new Set([
 /**
  * Whether the target already computes its accessible name from its own
  * content (see {@link VfLabel.for}). An explicit `role` attribute answers
- * exactly; without one, a custom element with visible text is assumed to name
- * itself from it — every interactive `vf-*` control that exposes no `label`
- * property does (the toggles, buttons, rows, options) — and the native tags
- * that do are enumerated. An element with no text has no such name, so the
- * caption may still supply one.
+ * exactly — and on a `vf-*` target that now means a *consumer's* role, since
+ * the kit writes its own through `ElementInternals` (SPEC §2) and they never
+ * land on the tag. Without one, a custom element with visible text is assumed
+ * to name itself from it — every interactive `vf-*` control that exposes no
+ * `label` property does (the toggles, buttons, rows, options) — and the native
+ * tags that do are enumerated. An element with no text has no such name, so
+ * the caption may still supply one.
  */
 function namesFromContent(target: Element): boolean {
   const text = (target.textContent ?? '').trim()

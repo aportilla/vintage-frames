@@ -64,15 +64,24 @@ export class VfSeparator extends VfPositioned(LitElement) {
   /** Render as a vertical rule (1px wide) instead of horizontal. */
   @property({ type: Boolean, reflect: true }) vertical = false
 
-  override connectedCallback(): void {
-    super.connectedCallback()
-    if (!this.hasAttribute('role')) this.setAttribute('role', 'separator')
+  /**
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2. This component already had the right
+   * behavior via a `hasAttribute` guard; internals is the same rule spelled
+   * the way every other component now spells it.
+   */
+  readonly #internals = this.attachInternals()
+
+  constructor() {
+    super()
+    this.#internals.role = 'separator'
   }
 
   protected override updated(changed: PropertyValues<this>): void {
     if (changed.has('vertical')) {
-      if (this.vertical) this.setAttribute('aria-orientation', 'vertical')
-      else this.removeAttribute('aria-orientation')
+      this.#internals.ariaOrientation = this.vertical ? 'vertical' : null
     }
   }
 

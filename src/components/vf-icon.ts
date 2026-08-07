@@ -147,13 +147,51 @@ const clamp = (v: number, max: number): number =>
  * Dragging is a pointer gesture with no keyboard equivalent, which is the kind
  * of gap the kit closes rather than inherits (SPEC §1): a focused movable icon
  * also moves under the arrow keys, one system px at a time and eight with
- * Shift.
+ * Shift. Focus is what `selectable` grants, so the keyboard half of `movable`
+ * and `editable` presupposes it — see the role section below.
  *
  * Opening gets the same treatment. The double-click is the pointer gesture,
  * and its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl
  * standing in for ⌘ off the Mac. Return is deliberately not one of them: the
  * Finder's Return renamed, never opened, so on an editable icon it starts the
  * edit and on a non-editable one it does nothing at all.
+ *
+ * ### An icon alone is a picture; an icon in a field is an option
+ *
+ * `role="option"` is only meaningful inside a `listbox` that owns it. Written
+ * unconditionally it is not merely untidy — the browser *drops* it, and
+ * `aria-selected` with it, so a `selectable` icon announced as a bare generic
+ * and its selection state reached assistive tech nowhere at all.
+ *
+ * So the role follows the container. Owned, the icon is an `option` that names
+ * itself from its plate and publishes `aria-selected`. Unowned, it degrades to
+ * `role="img"` with a name — the same vocabulary the derived open ghost uses,
+ * and true of what it is. Deliberately not `button`: that would promise Enter
+ * and Space activate, and here Return *renames* while the open route is ⌘O / ⌘↓.
+ *
+ * Declaring the owner is one attribute on whatever already holds the field, and
+ * it is what buys the selection state back:
+ *
+ * ```html
+ * <div role="listbox" aria-label="Desktop" aria-multiselectable="true">
+ *   <vf-icon label="Macintosh HD" selectable movable editable>…</vf-icon>
+ *   <vf-icon label="Trash" selectable movable editable>…</vf-icon>
+ * </div>
+ * ```
+ *
+ * A `vf-desktop` cannot be that container itself: it also holds windows and a
+ * menu bar, and a non-`option` child of a listbox is invalid the same way the
+ * orphaned option was. The plain wrapper above is layout-neutral — placed icons
+ * anchor to the nearest *positioned* ancestor, which is still the desktop's
+ * raster. One divergence from the APG listbox is deliberate: its options share
+ * a single roving tab stop, while these stay one stop each, the way a Finder
+ * icon is reached on its own.
+ *
+ * **`selectable` is what makes an icon focusable**, and `movable`/`editable`
+ * presuppose it. That is the Finder's own model — you cannot move or rename
+ * what you have not selected — and the pointer path already assumed it: the
+ * rename opens on a press on the plate of an *already-selected* icon. A
+ * `movable`-only icon is a picture you can drag, not a widget.
  *
  * ### The label is a property, because it is editable
  *
@@ -438,7 +476,14 @@ export class VfIcon extends VfPositioned(LitElement) {
    */
   @property({ reflect: true }) size: VfIconSize = 'large'
 
-  /** Clicking selects. Set `selected` yourself to drive selection some other way. */
+  /**
+   * Clicking selects. Set `selected` yourself to drive selection some other way.
+   *
+   * This is also the flag that makes an icon focusable and gives it a role, so
+   * the keyboard halves of {@link movable} and {@link editable} presuppose it —
+   * as the Finder did. A container carrying `role="listbox"` turns the role from
+   * `img` into a real `option`; see the class doc.
+   */
   @property({ type: Boolean, reflect: true }) selectable = false
 
   /** Whether the icon is selected: the art inverts and the plate goes black. */
@@ -455,11 +500,15 @@ export class VfIcon extends VfPositioned(LitElement) {
 
   /**
    * Drag to move — `movable`, never `draggable`, which is a platform attribute
-   * and accessor (see the class doc). Arrow keys move a focused icon too.
+   * and accessor (see the class doc). Arrow keys move a focused icon too, which
+   * means pairing this with {@link selectable}: focus is what that grants.
    */
   @property({ type: Boolean, reflect: true }) movable = false
 
-  /** The name can be renamed in place: click a selected plate, or press Return. */
+  /**
+   * The name can be renamed in place: click a selected plate, or press Return.
+   * Pair with {@link selectable} — both routes start from a selected icon.
+   */
   @property({ type: Boolean, reflect: true }) editable = false
 
   /**
@@ -524,6 +573,29 @@ export class VfIcon extends VfPositioned(LitElement) {
   /** The art element the ghost derives from, so a rehome moves the listener. */
   #art: HTMLImageElement | HTMLCanvasElement | null = null
 
+  /**
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence. See SPEC §2.
+   */
+  readonly #internals = this.attachInternals()
+
+  /**
+   * Whether a container is claiming this icon as one item of a set — the
+   * `vf-menu` `#inBar` idiom. `option` is invalid without a `listbox` that owns
+   * it: unowned, the browser drops the role and `aria-selected` with it, which
+   * is how a selectable icon reached assistive tech as a bare `generic` in
+   * every configuration the kit shipped.
+   *
+   * Matched on the attribute because that is what the recipe writes
+   * (`<div role="listbox">` — see the class doc). A `vf-list` is deliberately
+   * not a match: it holds `vf-list-item` rows, and its own `listbox` role now
+   * lives in internals rather than on the tag anyway.
+   */
+  get #inListbox(): boolean {
+    return this.closest('[role="listbox"]') !== null
+  }
+
   /** What the current ghost was derived from, so a no-op refresh is free. */
   #ghostKey = ''
 
@@ -586,6 +658,11 @@ export class VfIcon extends VfPositioned(LitElement) {
   override connectedCallback(): void {
     super.connectedCallback()
     this.#syncTabIndex()
+    // Re-derived on every connect, not just the first: whether a listbox owns
+    // this icon is a fact about where it currently sits, and updated() does not
+    // re-fire on a reconnect — so re-parenting an icon into or out of a field
+    // would otherwise strand it on the role it had in the old place.
+    this.#syncRole()
     // On the host, not in the template: the host is the focusable element, so
     // it is where the key events land.
     this.addEventListener('keydown', this.#onKeyDown)
@@ -597,24 +674,15 @@ export class VfIcon extends VfPositioned(LitElement) {
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
+    if (changed.has('selectable')) this.#syncTabIndex()
     if (
       changed.has('selectable') ||
-      changed.has('editable') ||
-      changed.has('movable')
+      changed.has('selected') ||
+      changed.has('label')
     ) {
-      this.#syncTabIndex()
-    }
-    if (changed.has('selectable')) {
-      // A selectable icon is one item of a set; a container holding them should
-      // carry role="listbox" for the pairing to be complete. Inert otherwise —
-      // a plain vf-icon is a picture with a caption and takes no role.
-      if (this.selectable) this.setAttribute('role', 'option')
-      else if (this.getAttribute('role') === 'option') this.removeAttribute('role')
+      this.#syncRole()
     }
     if (changed.has('selected') || changed.has('selectable')) {
-      if (this.selectable) {
-        this.setAttribute('aria-selected', this.selected ? 'true' : 'false')
-      } else this.removeAttribute('aria-selected')
       if (this.selectable && this.selected) this.#outside.attach()
       else this.#outside.detach()
     }
@@ -726,6 +794,9 @@ export class VfIcon extends VfPositioned(LitElement) {
 
   #onArtSlotChange = (): void => {
     this.#trackArt()
+    // The art carries the fallback name for the unowned `img` branch, and it
+    // arrives after the first render — re-state the name now it is readable.
+    this.#syncRole()
   }
 
   #onArtSettled = (): void => {
@@ -925,9 +996,58 @@ export class VfIcon extends VfPositioned(LitElement) {
     </div>`
   }
 
-  /** Focusable exactly when there is something to do with it. */
+  /**
+   * An icon alone is a picture; an icon in a field is an option.
+   *
+   * `option` is only meaningful inside a `listbox` that owns it, so it is
+   * written only when one does. Unowned, the icon degrades to `img` — the same
+   * vocabulary the derived open ghost already uses, and true of what the
+   * element is: a named picture. Deliberately not `button`, which would promise
+   * that Enter and Space activate; here Return *renames* and the open route is
+   * ⌘O / ⌘↓, so the role would lie about the keyboard contract.
+   *
+   * `img` is not a name-from-content role, so the unowned branch has to state
+   * the name that `option` took from the plate by itself — the label, else the
+   * art's own `alt`.
+   */
+  #syncRole(): void {
+    if (!this.selectable) {
+      // A plain vf-icon is a picture with a caption, not a widget: no role, and
+      // the slotted <img> announces itself through its own alt.
+      this.#internals.role = null
+      this.#internals.ariaSelected = null
+      this.#internals.ariaLabel = null
+      return
+    }
+    if (this.#inListbox) {
+      this.#internals.role = 'option'
+      this.#internals.ariaSelected = this.selected ? 'true' : 'false'
+      this.#internals.ariaLabel = null
+      return
+    }
+    this.#internals.role = 'img'
+    // Dropped with the role: aria-selected is invalid on img, and an unowned
+    // icon has no set for "selected" to mean anything within. This is what the
+    // role="listbox" recipe buys back.
+    this.#internals.ariaSelected = null
+    this.#internals.ariaLabel = this.label || this.#artAlt || null
+  }
+
+  /** The slotted art's `alt`, when it is what names the icon. */
+  get #artAlt(): string {
+    return this.#art instanceof HTMLImageElement ? this.#art.alt : ''
+  }
+
+  /**
+   * Focusable exactly when there is something to do with it — which is
+   * `selectable` alone. The Finder's model is that you cannot move or rename
+   * what you have not selected: `editable` is already half-inert without it on
+   * the pointer path (the rename opens on a press on the plate of an ALREADY
+   * selected icon), and a `movable`-only icon was a tab stop that announced
+   * nothing about what it was or that arrow keys moved it.
+   */
   get #interactive(): boolean {
-    return this.selectable || this.editable || this.movable
+    return this.selectable
   }
 
   #syncTabIndex(): void {

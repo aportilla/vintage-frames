@@ -64,11 +64,59 @@ await load(
   ['vf-menu-item', 'vf-menu', 'vf-menu-bar']
 )
 
-const aria = (id) =>
-  page.evaluate((i) => {
-    const el = document.getElementById(i)
-    return { role: el.getAttribute('role'), checked: el.getAttribute('aria-checked') }
-  }, id)
+/**
+ * Computed role/checked/disabled out of Chromium's AX tree.
+ *
+ * Read from the AX tree and not from host attributes because the kit writes
+ * ARIA through ElementInternals (§6.11): the values are defaults that never
+ * appear on the tag, so `getAttribute('role')` is null for every component
+ * whatever its role computes to. The AX tree is also the thing the finding was
+ * ever about — it is what assistive tech reads.
+ */
+const cdp = await page.context().newCDPSession(page)
+await cdp.send('DOM.enable')
+await cdp.send('Accessibility.enable')
+
+async function ax(selector) {
+  const { root } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true })
+  const { nodeId } = await cdp.send('DOM.querySelector', {
+    nodeId: root.nodeId,
+    selector,
+  })
+  if (!nodeId) return { role: null }
+  const { nodes } = await cdp.send('Accessibility.getPartialAXTree', {
+    nodeId,
+    fetchRelatives: false,
+  })
+  const n = nodes[0]
+  if (!n) return { role: null }
+  const prop = (name) => n.properties?.find((p) => p.name === name)?.value?.value ?? null
+  return {
+    role: n.role?.value ?? null,
+    checked: prop('checked'),
+    disabled: prop('disabled'),
+  }
+}
+
+const aria = (id) => ax(`#${id}`)
+
+/**
+ * A closed menu panel is `display: none`, and an unrendered node is ignored by
+ * the AX tree — so every role below reads back as `none` unless the menu that
+ * holds the rows is open. Attributes needed no such staging, which is the one
+ * cost of reading the computed tree instead.
+ */
+const openMenu = () =>
+  page.evaluate(async () => {
+    const menu = document.querySelector('vf-menu')
+    menu.open = true
+    await menu.updateComplete
+    await Promise.all(
+      [...document.querySelectorAll('vf-menu-item')].map((e) => e.updateComplete)
+    )
+  })
+
+await openMenu()
 
 check(
   'an initially-off `checkable` item announces as a toggle from the start',
@@ -80,9 +128,13 @@ check(
   await aria('plain').then((a) => a.role === 'menuitem' && a.checked === null),
   JSON.stringify(await aria('plain'))
 )
+// `checked: 'false'` here is the ROLE's own default, not something the kit
+// wrote: a bare `<div role="menuitemradio">` with no aria-checked reports the
+// same (measured). What this guards is that the author's role survives and the
+// item is not promoted to a checked toggle — `'true'` would be the regression.
 check(
-  'an author-supplied role is left alone (no aria-checked forced on)',
-  await aria('authored').then((a) => a.role === 'menuitemradio' && a.checked === null),
+  'an author-supplied role is left alone (not promoted to a checked toggle)',
+  await aria('authored').then((a) => a.role === 'menuitemradio' && a.checked === 'false'),
   JSON.stringify(await aria('authored'))
 )
 
@@ -99,6 +151,9 @@ await page.evaluate(async () => {
     [...document.querySelectorAll('vf-menu-item')].map((e) => e.updateComplete)
   )
 })
+// The re-parent closes the menu with it; the rows have to be rendered again
+// before the AX tree will report anything about them.
+await openMenu()
 
 check(
   'a checked item keeps menuitemcheckbox + aria-checked across a reconnect',
@@ -336,15 +391,16 @@ await load(
    </vf-list>`,
   ['vf-list', 'vf-list-item']
 )
-const rowAria = () =>
-  page.evaluate(() =>
-    [...document.querySelectorAll('vf-list-item')].map((i) =>
-      i.getAttribute('aria-disabled')
-    )
-  )
+// Computed, not attribute-read: vf-list-item writes aria-disabled through
+// internals now (§6.11), so it is never on the tag.
+const rowAria = async () => [
+  (await ax('vf-list-item:nth-of-type(1)')).disabled,
+  (await ax('vf-list-item:nth-of-type(2)')).disabled,
+  (await ax('vf-list-item:nth-of-type(3)')).disabled,
+]
 check(
   'a disabled list marks every row aria-disabled',
-  await rowAria().then((a) => a.every((v) => v === 'true')),
+  await rowAria().then((a) => a.every((v) => v === true)),
   JSON.stringify(await rowAria())
 )
 await page.evaluate(async () => {
@@ -357,7 +413,7 @@ await page.evaluate(async () => {
 })
 check(
   're-enabling the list clears the rows but keeps a row disabled in its own right',
-  await rowAria().then((a) => a[0] === null && a[1] === 'true' && a[2] === null),
+  await rowAria().then((a) => a[0] === null && a[1] === true && a[2] === null),
   JSON.stringify(await rowAria())
 )
 

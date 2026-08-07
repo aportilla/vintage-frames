@@ -128,13 +128,15 @@ export class VfMenuBar extends VfPositioned(LitElement) {
   #openMenu: VfMenu | null = null
 
   /**
-   * Whether this component owns the host `role`. Decided on the FIRST connect
-   * only (vf-menu-item's latch): our own `role="menubar"` write persists on
-   * the element, so re-testing `hasAttribute('role')` on a reconnect would
-   * read that write back as consumer-supplied and freeze it — while testing
-   * nothing would overwrite a consumer's own `role="toolbar"` on upgrade.
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2. It retired this component's
+   * first-connect role latch: `<vf-menu-bar role="toolbar">` keeps its role
+   * because the attribute outranks the internals default, not because we
+   * checked for it before writing.
    */
-  #ownsRole: boolean | undefined
+  readonly #internals = this.attachInternals()
 
   /** First-letter type-ahead over the open menu's items; see src/type-ahead.ts. */
   readonly #typeAhead = new TypeAheadBuffer()
@@ -165,8 +167,7 @@ export class VfMenuBar extends VfPositioned(LitElement) {
 
   override connectedCallback(): void {
     super.connectedCallback()
-    this.#ownsRole ??= !this.hasAttribute('role')
-    if (this.#ownsRole) this.setAttribute('role', 'menubar')
+    this.#internals.role = 'menubar'
     this.addEventListener('vf-menu-toggle-request', this.#onToggleRequest)
     this.addEventListener('vf-menu-hover', this.#onMenuHover)
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
@@ -215,14 +216,10 @@ export class VfMenuBar extends VfPositioned(LitElement) {
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
-    // Only clear the attribute when a non-empty label is emptied — on the first
-    // update `changed` carries the class-field default (old value `undefined`),
-    // and blowing away a consumer's own aria-label there would be wrong.
-    // The same guarded shape as vf-list's label.
-    if (changed.has('label')) {
-      if (this.label) this.setAttribute('aria-label', this.label)
-      else if (changed.get('label')) this.removeAttribute('aria-label')
-    }
+    // Written unconditionally: an empty label clears the internals default
+    // rather than the host, so a consumer's own aria-label is never in reach
+    // to be blown away and needs no first-update guard.
+    if (changed.has('label')) this.#internals.ariaLabel = this.label || null
   }
 
   protected override render() {

@@ -1311,29 +1311,95 @@ for (const dpr of [1, 2, 3]) {
   await page.close()
 }
 
-// ── ARIA ────────────────────────────────────────────────────────────────────
+// ── ARIA (§6.12: an icon alone is a picture; an icon in a field is an option) ─
 {
-  const page = await build(`${icon('selectable')}${icon('')}`)
-  const attrs = (i) =>
-    page.evaluate((n) => {
-      const el = document.querySelectorAll('vf-icon')[n]
-      return {
-        role: el.getAttribute('role'),
-        selected: el.getAttribute('aria-selected'),
-        tabindex: el.getAttribute('tabindex'),
-      }
-    }, i)
-  const on = await attrs(0)
-  const off = await attrs(1)
+  const page = await build(`
+    <div id="field" role="listbox" aria-label="Desktop" aria-multiselectable="true">
+      ${icon('selectable id="owned"', 'Macintosh HD')}
+    </div>
+    ${icon('selectable id="bare"')}
+    <vf-icon id="noLabel" selectable>
+      <vf-img slot="large"><img src="${ART32}" alt="Hard disk"></vf-img>
+    </vf-icon>
+    ${icon('movable top="0" left="0" id="movOnly"')}
+    ${icon('id="plain"')}
+  `)
+
+  // Computed, not attribute-read: vf-icon writes ARIA through internals, so
+  // nothing lands on the tag. The AX tree is what the finding was about anyway.
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('DOM.enable')
+  await cdp.send('Accessibility.enable')
+  const ax = async (id) => {
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true })
+    const { nodeId } = await cdp.send('DOM.querySelector', {
+      nodeId: root.nodeId,
+      selector: `#${id}`,
+    })
+    const { nodes } = await cdp.send('Accessibility.getPartialAXTree', {
+      nodeId,
+      fetchRelatives: false,
+    })
+    const n = nodes[0]
+    const prop = (name) => n?.properties?.find((p) => p.name === name)?.value?.value ?? null
+    return { role: n?.role?.value ?? null, name: n?.name?.value ?? '', selected: prop('selected') }
+  }
+  const tabIndex = (id) => page.evaluate((i) => document.getElementById(i).tabIndex, id)
+
+  const owned = await ax('owned')
   check(
-    'ARIA  selectable takes role=option + aria-selected + a tab stop',
-    on.role === 'option' && on.selected === 'false' && on.tabindex === '0',
-    JSON.stringify(on)
+    'ARIA  a selectable icon a listbox owns is a real option, named and selectable',
+    owned.role === 'option' && owned.name === 'Macintosh HD' && owned.selected === false,
+    JSON.stringify(owned)
+  )
+  const bare = await ax('bare')
+  check(
+    'ARIA  an UNOWNED selectable icon degrades to a named img, not an orphaned option',
+    bare.role === 'image' && bare.name === 'Read Me' && bare.selected === null,
+    JSON.stringify(bare)
+  )
+  // role=img is not name-from-content, so the unowned branch states the name
+  // itself — the art's alt when there is no label to take it from.
+  const noLabel = await ax('noLabel')
+  check(
+    'ARIA  a label-less unowned icon is named by its art',
+    noLabel.role === 'image' && noLabel.name === 'Hard disk',
+    JSON.stringify(noLabel)
   )
   check(
+    'ARIA  a selectable icon is the tab stop',
+    (await tabIndex('owned')) === 0 && (await tabIndex('bare')) === 0
+  )
+  check(
+    'ARIA  a movable-only icon is NOT a tab stop (it announced nothing when it was)',
+    (await tabIndex('movOnly')) === -1,
+    `tabIndex=${await tabIndex('movOnly')}`
+  )
+  const plain = await ax('plain')
+  check(
     'ARIA  a plain icon takes no role and no tab stop',
-    off.role === null && off.selected === null && off.tabindex === null,
-    JSON.stringify(off)
+    plain.role === 'generic' && (await tabIndex('plain')) === -1,
+    JSON.stringify(plain)
+  )
+
+  // Re-parenting must re-derive: connectedCallback re-runs, updated() does not.
+  await page.evaluate(async () => {
+    document.getElementById('field').append(document.getElementById('bare'))
+    await document.getElementById('bare').updateComplete
+  })
+  check(
+    'ARIA  moving an icon INTO a field promotes it to an option',
+    (await ax('bare')).role === 'option',
+    JSON.stringify(await ax('bare'))
+  )
+  await page.evaluate(async () => {
+    document.body.append(document.getElementById('bare'))
+    await document.getElementById('bare').updateComplete
+  })
+  check(
+    'ARIA  …and moving it back out degrades it again',
+    (await ax('bare')).role === 'image',
+    JSON.stringify(await ax('bare'))
   )
   await page.close()
 }

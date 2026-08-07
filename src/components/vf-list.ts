@@ -149,8 +149,17 @@ export class VfList extends VfPositioned(LitElement) {
   /** The selection last pushed onto the rows; see {@link #applyIfStale}. */
   #appliedValues: string[] = []
 
+  /**
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2.
+   */
+  readonly #internals = this.attachInternals()
+
   constructor() {
     super()
+    this.#internals.role = 'listbox'
     this.addEventListener('click', this.#onClick)
     this.addEventListener('keydown', this.#onKeydown)
     // A row disabled in place may be the very row holding the roving tab
@@ -176,11 +185,6 @@ export class VfList extends VfPositioned(LitElement) {
     this._items?.find((i) => i.tabIndex === 0)?.focus(options)
   }
 
-  override connectedCallback(): void {
-    super.connectedCallback()
-    this.setAttribute('role', 'listbox')
-  }
-
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.#typeAhead.reset()
@@ -188,21 +192,16 @@ export class VfList extends VfPositioned(LitElement) {
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     if (changed.has('multiple')) {
-      if (this.multiple) this.setAttribute('aria-multiselectable', 'true')
-      else this.removeAttribute('aria-multiselectable')
+      this.#internals.ariaMultiSelectable = this.multiple ? 'true' : null
     }
     if (changed.has('disabled')) {
-      if (this.disabled) this.setAttribute('aria-disabled', 'true')
-      else this.removeAttribute('aria-disabled')
+      this.#internals.ariaDisabled = this.disabled ? 'true' : null
       this.#syncItems()
     }
-    // Only clear the attribute when a non-empty label is emptied — on the first
-    // update `changed` carries the class-field default (old value `undefined`),
-    // and blowing away a consumer's own aria-label there would be wrong.
-    if (changed.has('label')) {
-      if (this.label) this.setAttribute('aria-label', this.label)
-      else if (changed.get('label')) this.removeAttribute('aria-label')
-    }
+    // Written unconditionally: an empty label clears the internals default
+    // rather than the host, so a consumer's own aria-label is never in reach
+    // to be blown away and needs no first-update guard.
+    if (changed.has('label')) this.#internals.ariaLabel = this.label || null
     // Programmatic value/values writes: push down into the items. On the
     // first update the class-field defaults themselves are recorded in
     // `changed` (with `undefined` as the old value); skip the push-down while

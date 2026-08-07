@@ -272,12 +272,13 @@ export class VfMenu extends LitElement {
   }
 
   /**
-   * Whether this component owns the host `role`. Decided on the FIRST connect
-   * only (vf-menu-item's latch): our own write persists on the element, so
-   * re-testing `hasAttribute('role')` on a reconnect would read it back as
-   * consumer-supplied and freeze it.
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2. It retired this component's
+   * first-connect role latch.
    */
-  #ownsRole: boolean | undefined
+  readonly #internals = this.attachInternals()
 
   /** First-letter type-ahead while open standalone; see src/type-ahead.ts. */
   readonly #typeAhead = new TypeAheadBuffer()
@@ -381,7 +382,6 @@ export class VfMenu extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback()
-    this.#ownsRole ??= !this.hasAttribute('role')
     this.#syncRole()
     // The bar/standalone split also drives the label's rendered role, and a
     // reconnect alone schedules no re-render — re-parenting between the two
@@ -397,12 +397,9 @@ export class VfMenu extends LitElement {
    * `.label`s (`menuitem`), and while browsers do compute that ownership
    * through a role-less generic, declaring it keeps the chain explicit.
    * Standalone, the host stays role-less — the label is a `button` there.
-   * Skipped when the consumer supplied their own role.
    */
   #syncRole(): void {
-    if (!this.#ownsRole) return
-    if (this.#inBar) this.setAttribute('role', 'none')
-    else this.removeAttribute('role')
+    this.#internals.role = this.#inBar ? 'none' : null
   }
 
   override disconnectedCallback(): void {

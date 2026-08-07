@@ -128,14 +128,33 @@ const activeId = () => page.evaluate(() => document.activeElement?.id ?? null)
 
 // ───────────────────────────── §6.5 / §6.7 / §6.8 — the menu role chain ──
 
+// Host roles and names are read from the computed AX tree, not from
+// attributes: the kit writes host ARIA through ElementInternals (§6.11), so
+// the values are defaults that never land on the tag. The shadow-internal
+// roles below are ordinary template attributes and still read directly.
+const cdp = await page.context().newCDPSession(page)
+await cdp.send('DOM.enable')
+await cdp.send('Accessibility.enable')
+async function axHost(id) {
+  const { root } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true })
+  const { nodeId } = await cdp.send('DOM.querySelector', {
+    nodeId: root.nodeId,
+    selector: `#${id}`,
+  })
+  if (!nodeId) return { role: null, name: '' }
+  const { nodes } = await cdp.send('Accessibility.getPartialAXTree', {
+    nodeId,
+    fetchRelatives: false,
+  })
+  const n = nodes[0]
+  return { role: n?.role?.value ?? null, name: n?.name?.value ?? '' }
+}
+
 let s = await page.evaluate(() => ({
-  barRole: document.getElementById('bar').getAttribute('role'),
-  barLabel: document.getElementById('bar').getAttribute('aria-label'),
   innerBar: document
     .getElementById('bar')
     .shadowRoot.querySelector('.bar')
     .getAttribute('role'),
-  menuHost: document.getElementById('file').getAttribute('role'),
   menuLabel: document
     .getElementById('file')
     .shadowRoot.querySelector('.label')
@@ -146,23 +165,34 @@ let s = await page.evaluate(() => ({
     .shadowRoot.querySelector('.label')
     .getAttribute('role'),
 }))
-check('vf-menu-bar names itself from its label property', s.barLabel === 'Site', `aria-label=${s.barLabel}`)
-check('the bar keeps role=menubar', s.barRole === 'menubar')
+const bar = await axHost('bar')
+const menuHost = await axHost('file')
+check('vf-menu-bar names itself from its label property', bar.name === 'Site', `name=${bar.name}`)
+check('the bar keeps role=menubar', bar.role === 'menubar', `role=${bar.role}`)
 check('the shadow .bar is presentation (ownership chain)', s.innerBar === 'presentation')
-check('a menu host in a bar is role=none', s.menuHost === 'none')
+check('a menu host in a bar is role=none', menuHost.role === 'none', `role=${menuHost.role}`)
 check('…and its label is the menuitem', s.menuLabel === 'menuitem')
 check('a standalone menu host takes no role', s.loneHost === null, `role=${s.loneHost}`)
 check('…and its label is a button (APG menu button)', s.loneLabel === 'button')
 
-s = await page.evaluate(() => {
+// Asserted on the COMPUTED role, not the attribute the consumer themselves
+// wrote — which the component could never have removed and so proved nothing.
+// The mechanism is no longer a first-connect latch either: the kit's role is
+// an internals default, and an attribute simply outranks it (§6.11).
+await page.evaluate(async () => {
   const bar = document.createElement('vf-menu-bar')
+  bar.id = 'authoredBar'
   bar.setAttribute('role', 'toolbar')
   document.body.append(bar)
-  const role = bar.getAttribute('role')
-  bar.remove()
-  return role
+  await bar.updateComplete
 })
-check('a consumer role on the bar survives upgrade (first-connect latch)', s === 'toolbar', `role=${s}`)
+const authoredBar = await axHost('authoredBar')
+check(
+  'a consumer role on the bar outranks the internals default',
+  authoredBar.role === 'toolbar',
+  `role=${authoredBar.role}`
+)
+await page.evaluate(() => document.getElementById('authoredBar').remove())
 
 // ─────────────────────── §5.2 — Enter enters; Home/End in an open bar menu ──
 

@@ -753,217 +753,236 @@ shrink it and watch the arrows come back.
            instead, as the Finder's did, since every icon on this desktop is
            `editable`. Placeholder art on all of them for now, slotted at both
            resource sizes so View → by Small Icon swaps these too. -->
-      <vf-icon
-        id="icon-installer"
-        label="Installer"
-        width="64"
-        left="24"
-        top="40"
-        selectable
-        movable
-        editable
-        data-opens="win-installer"
+      <!-- The field of icons is one listbox, and that is not decoration: an
+           `option` is only meaningful inside a container that owns it, so an
+           unowned selectable icon degrades to `role="img"` and its selection
+           state reaches assistive tech nowhere. Declaring the owner here is what
+           makes the desktop's selection announceable — one selection domain
+           across every icon, which is already how the icons behave (a press
+           anywhere else deselects). vf-desktop itself cannot BE the listbox: it
+           also holds windows and a menu bar, and a non-option child of a listbox
+           is invalid the same way the orphaned option was. Note the divergence
+           from APG's listbox, which ropes its options into a single roving tab
+           stop: these stay one tab stop each, the way a Finder icon is reached
+           on its own. -->
+      <div
+        class="desktop-icons"
+        role="listbox"
+        aria-multiselectable="true"
+        aria-label="Desktop"
       >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-readme"
-        label="Read Me"
-        width="64"
-        left="24"
-        top="100"
-        selectable
-        movable
-        editable
-        data-opens="win-readme"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-controls"
-        label="Controls"
-        width="64"
-        left="24"
-        top="160"
-        selectable
-        movable
-        editable
-        data-opens="win-controls"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-format"
-        label="Format"
-        width="64"
-        left="24"
-        top="220"
-        selectable
-        movable
-        editable
-        data-opens="win-format"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-newdoc"
-        label="New Document"
-        width="64"
-        left="134"
-        top="40"
-        selectable
-        movable
-        editable
-        data-opens="win-newdoc"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-newimage"
-        label="New Image"
-        width="64"
-        left="134"
-        top="100"
-        selectable
-        movable
-        editable
-        data-opens="win-newimage"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-find"
-        label="Find File"
-        width="64"
-        left="134"
-        top="160"
-        selectable
-        movable
-        editable
-        data-opens="win-find"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-charset"
-        label="Character Set"
-        width="64"
-        left="134"
-        top="220"
-        selectable
-        movable
-        editable
-        data-opens="win-charset"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-tools"
-        label="Desk Accessories"
-        width="64"
-        left="244"
-        top="40"
-        selectable
-        movable
-        editable
-        data-opens="win-tools"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-about"
-        label="About"
-        width="64"
-        left="244"
-        top="100"
-        selectable
-        movable
-        editable
-        data-opens="dlg-about"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-pagesetup"
-        label="Page Setup"
-        width="64"
-        left="244"
-        top="160"
-        selectable
-        movable
-        editable
-        data-opens="dlg-pagesetup"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-erase"
-        label="Erase Disk"
-        width="64"
-        left="244"
-        top="220"
-        selectable
-        movable
-        editable
-        data-opens="alert-erase"
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
+        <vf-icon
+          id="icon-installer"
+          label="Installer"
+          width="64"
+          left="24"
+          top="40"
+          selectable
+          movable
+          editable
+          data-opens="win-installer"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-readme"
+          label="Read Me"
+          width="64"
+          left="24"
+          top="100"
+          selectable
+          movable
+          editable
+          data-opens="win-readme"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-controls"
+          label="Controls"
+          width="64"
+          left="24"
+          top="160"
+          selectable
+          movable
+          editable
+          data-opens="win-controls"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-format"
+          label="Format"
+          width="64"
+          left="24"
+          top="220"
+          selectable
+          movable
+          editable
+          data-opens="win-format"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-newdoc"
+          label="New Document"
+          width="64"
+          left="134"
+          top="40"
+          selectable
+          movable
+          editable
+          data-opens="win-newdoc"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-newimage"
+          label="New Image"
+          width="64"
+          left="134"
+          top="100"
+          selectable
+          movable
+          editable
+          data-opens="win-newimage"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-find"
+          label="Find File"
+          width="64"
+          left="134"
+          top="160"
+          selectable
+          movable
+          editable
+          data-opens="win-find"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-charset"
+          label="Character Set"
+          width="64"
+          left="134"
+          top="220"
+          selectable
+          movable
+          editable
+          data-opens="win-charset"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-tools"
+          label="Desk Accessories"
+          width="64"
+          left="244"
+          top="40"
+          selectable
+          movable
+          editable
+          data-opens="win-tools"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-about"
+          label="About"
+          width="64"
+          left="244"
+          top="100"
+          selectable
+          movable
+          editable
+          data-opens="dlg-about"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-pagesetup"
+          label="Page Setup"
+          width="64"
+          left="244"
+          top="160"
+          selectable
+          movable
+          editable
+          data-opens="dlg-pagesetup"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-erase"
+          label="Erase Disk"
+          width="64"
+          left="244"
+          top="220"
+          selectable
+          movable
+          editable
+          data-opens="alert-erase"
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
 
-      <!-- ==================== Finder icons on the desktop ================ -->
-      <!-- What the desktop is FOR, in Example screen (1-bit).png: the volume
-           and the Trash, sitting on the dither. Each is a vf-icon — the art
-           slotted as vf-img at both resource sizes (32×32 ICN#, 16×16 ics#),
-           the name as a property because it is editable. They take the column
-           right of the launcher cluster (left 354), the same grid, reading as
-           the Finder's auto-arrange-along-an-edge — and NOT the right/bottom
-           anchor a real Trash would use, since the desktop is the viewport and
-           a far-edge anchor lands somewhere different at every density.
-           `movable` and not `draggable`, which is a global HTML attribute and
-           an HTMLElement accessor. Click to select — the art inverts, because a 1-bit icon is ink and
-           opaque white on a transparent surround, i.e. an image and its mask,
-           so inverting flips the two and leaves the surround alone. Click the
-           name of a selected icon to rename it. The plate is opaque white in
-           its own right, which is the only reason a name reads on the dither.
-           View → "by Small Icon" swaps every one to its 16×16 member. -->
-      <vf-icon
-        id="icon-hd"
-        label="Macintosh HD"
-        width="64"
-        left="354"
-        top="40"
-        selectable
-        movable
-        editable
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
-      <vf-icon
-        id="icon-trash"
-        label="Trash"
-        width="64"
-        left="354"
-        top="100"
-        selectable
-        movable
-        editable
-      >
-        <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
-        <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
-      </vf-icon>
+        <!-- ==================== Finder icons on the desktop ================ -->
+        <!-- What the desktop is FOR, in Example screen (1-bit).png: the volume
+             and the Trash, sitting on the dither. Each is a vf-icon — the art
+             slotted as vf-img at both resource sizes (32×32 ICN#, 16×16 ics#),
+             the name as a property because it is editable. They take the column
+             right of the launcher cluster (left 354), the same grid, reading as
+             the Finder's auto-arrange-along-an-edge — and NOT the right/bottom
+             anchor a real Trash would use, since the desktop is the viewport and
+             a far-edge anchor lands somewhere different at every density.
+             `movable` and not `draggable`, which is a global HTML attribute and
+             an HTMLElement accessor. Click to select — the art inverts, because a 1-bit icon is ink and
+             opaque white on a transparent surround, i.e. an image and its mask,
+             so inverting flips the two and leaves the surround alone. Click the
+             name of a selected icon to rename it. The plate is opaque white in
+             its own right, which is the only reason a name reads on the dither.
+             View → "by Small Icon" swaps every one to its 16×16 member. -->
+        <vf-icon
+          id="icon-hd"
+          label="Macintosh HD"
+          width="64"
+          left="354"
+          top="40"
+          selectable
+          movable
+          editable
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+        <vf-icon
+          id="icon-trash"
+          label="Trash"
+          width="64"
+          left="354"
+          top="100"
+          selectable
+          movable
+          editable
+        >
+          <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+          <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+        </vf-icon>
+      </div>
 
       <!-- ============== "Desk Accessories" utility palette ============== -->
       <!-- The utility-window archetype: vf-window variant="utility" movable —

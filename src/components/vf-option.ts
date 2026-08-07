@@ -127,9 +127,21 @@ export class VfOption extends LitElement {
    */
   @property({ type: Boolean, reflect: true }) active = false
 
+  /**
+   * ARIA goes through internals, never `setAttribute` on the host: internals
+   * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
+   * — the platform's own precedence, and the opposite of what a host
+   * `setAttribute` gives. See SPEC §2.
+   */
+  readonly #internals = this.attachInternals()
+
+  constructor() {
+    super()
+    this.#internals.role = 'option'
+  }
+
   override connectedCallback(): void {
     super.connectedCallback()
-    this.setAttribute('role', 'option')
     if (!this.hasAttribute('tabindex')) {
       this.setAttribute('tabindex', '-1')
     }
@@ -137,14 +149,10 @@ export class VfOption extends LitElement {
 
   protected override updated(changed: PropertyValues<this>): void {
     if (changed.has('selected')) {
-      this.setAttribute('aria-selected', this.selected ? 'true' : 'false')
+      this.#internals.ariaSelected = this.selected ? 'true' : 'false'
     }
     if (changed.has('disabled')) {
-      if (this.disabled) {
-        this.setAttribute('aria-disabled', 'true')
-      } else {
-        this.removeAttribute('aria-disabled')
-      }
+      this.#internals.ariaDisabled = this.disabled ? 'true' : null
     }
   }
 

@@ -23,6 +23,11 @@
  *  - INTERPLAY: placement seeds vf-window drag / vf-icon moves; a drag then
  *    owns the coordinates — re-activating the window must NOT snap it back to
  *    its authored position — and writing the property again re-places it.
+ *  - CONTRACT: the movable contract, which is what makes a gesture safe outside
+ *    a kit container — a movable host states its own top/left, and its
+ *    positioning parent is a box with a size. Both halves warn, both stay
+ *    usable when broken, a met contract drags exactly and says nothing, and a
+ *    component nobody asked to move takes no position, tab stop or role at all.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:position
@@ -48,6 +53,16 @@ async function build(markup, dpr = 1) {
   const page = await browser.newPage({
     viewport: { width: 1200, height: 900 },
     deviceScaleFactor: dpr,
+  })
+  // The CONTRACT group asserts on these; every other group ignores them.
+  // Lit's own dev-mode notices (`lit.dev/msg/…`) are not the kit talking — one
+  // of them, the update-after-update from vf-icon's plate measurement, fires on
+  // every icon and would drown the silence checks.
+  page.vfWarnings = []
+  page.on('console', (m) => {
+    if (m.type() === 'warning' && !m.text().includes('lit.dev/msg')) {
+      page.vfWarnings.push(m.text())
+    }
   })
   await page.route(ORIGIN, (route) =>
     route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
@@ -437,6 +452,209 @@ for (const dpr of DENSITIES) {
     near(nudged.x - desk.x, 61 * DEVICE_PX_PER_SYSTEM_PX) &&
       near(nudged.y - desk.y, 40 * DEVICE_PX_PER_SYSTEM_PX),
     `${nudged.x - desk.x} × ${nudged.y - desk.y}px CSS`
+  )
+  await page.close()
+}
+
+/* ── CONTRACT ─────────────────────────────────────────────────────────────
+   The movable contract, which is what makes a gesture safe outside a kit
+   container: a host that moves under a gesture states its own `top`/`left`,
+   and its positioning parent is a box with a size. Neither half can be
+   supplied by the component, and both used to fail silently — so each is a
+   console warning here, plus the behavior that has to survive the misuse.
+
+   The failure the frozen-bounds fix exists for: with no stated origin the host
+   is in normal flow, so its first move takes it out, an auto-height parent
+   collapses to whatever is left, and a clamp re-measured per move would then
+   hold the rest of the gesture inside a box the host never sat in — walking it
+   to the parent's origin while the user drags the other way. */
+
+/**
+ * Drag `id` by (dx, dy) CSS px, grabbing its horizontal centre `grabY` below
+ * its top edge — the title bar on a window, the art cell on an icon. Centre,
+ * not a fixed inset: the icons here are sized in raw CSS px and are narrower
+ * than a window's title bar is long.
+ */
+async function dragBy(page, id, dx, dy, grabY) {
+  const before = await rect(page, id)
+  const grabX = before.x + before.w / 2
+  await page.mouse.move(grabX, before.y + grabY)
+  await page.mouse.down()
+  await page.mouse.move(grabX + dx, before.y + grabY + dy, { steps: 5 })
+  await page.mouse.up()
+  await page.evaluate((i) => document.getElementById(i).updateComplete, id)
+  const after = await rect(page, id)
+  return { before, after, dx: after.x - before.x, dy: after.y - before.y }
+}
+
+const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(fragment))
+
+{
+  // Unplaced, in an auto-height static parent — the case that used to fling the
+  // window to the top of the page on the second pointermove.
+  const page = await build(`
+    <div style="padding:40px">
+      <vf-window id="win" heading="Panel" movable width="240" height="140"></vf-window>
+    </div>
+  `)
+  const moved = await dragBy(page, 'win', 30, 30, 9)
+  check(
+    'contract: a movable host still in normal flow warns',
+    warnedAbout(page, 'in normal flow'),
+    page.vfWarnings.join(' | ') || 'no warning'
+  )
+  check(
+    'contract: …and the drag still follows the pointer instead of collapsing',
+    moved.dy > 0,
+    `moved ${moved.dx} × ${moved.dy}px CSS (a re-measured clamp gave −31)`
+  )
+  await page.close()
+}
+
+{
+  // Placed, but the positioning parent has no box: the clamp has no range, so
+  // it falls back to the viewport rather than pinning the host to the origin.
+  const page = await build(`
+    <div style="position:relative">
+      <vf-window id="win" heading="Panel" movable width="240" height="140" top="20" left="20"></vf-window>
+    </div>
+  `)
+  const moved = await dragBy(page, 'win', 30, 30, 9)
+  check(
+    'contract: a positioning parent with no box warns',
+    warnedAbout(page, 'no box'),
+    page.vfWarnings.join(' | ') || 'no warning'
+  )
+  check(
+    'contract: …and the viewport fallback keeps the gesture usable',
+    near(moved.dx, 30) && near(moved.dy, 30),
+    `moved ${moved.dx} × ${moved.dy}px CSS`
+  )
+  await page.close()
+}
+
+{
+  // Out of flow is what the contract actually asks for, and a stylesheet's own
+  // `position: absolute` satisfies it — the showcase places its desktop icons
+  // exactly this way (demo.css), and seed() reads the computed offsets. This
+  // must not warn: it is the older hand-written form of the same thing, not a
+  // fault.
+  const page = await build(`
+    <style>
+      #ico { position: absolute; left: calc(var(--vf-scale, 1) * 20px);
+             top: calc(var(--vf-scale, 1) * 30px); }
+    </style>
+    <vf-desktop id="desk" width="512" height="342">
+      <vf-icon id="ico" label="Disk" movable selectable style="width:64px"></vf-icon>
+    </vf-desktop>
+  `)
+  const moved = await dragBy(page, 'ico', 30, 30, 16)
+  check(
+    'contract: a stylesheet-positioned movable host is out of flow, so it is silent',
+    page.vfWarnings.length === 0,
+    page.vfWarnings.join(' | ') || 'silent'
+  )
+  check(
+    'contract: …and seeds from its computed offsets',
+    near(moved.dx, 30) && near(moved.dy, 30),
+    `moved ${moved.dx} × ${moved.dy}px CSS from a CSS-stated origin`
+  )
+  await page.close()
+}
+
+{
+  // The contract met, on both components. A stated origin is authoritative, so
+  // the seed needs no measuring and no lattice rounding: 30 CSS px at scale 3
+  // is exactly 10 system px, with no ±1 hitch on the first move.
+  const page = await build(`
+    <div style="position:relative;height:700px">
+      <vf-window id="win" heading="Panel" movable width="240" height="140" top="20" left="20"></vf-window>
+    </div>
+    <vf-desktop id="desk" width="512" height="342">
+      <vf-icon id="ico" label="Disk" movable selectable left="60" top="40" style="width:64px"></vf-icon>
+    </vf-desktop>
+  `)
+  const win = await dragBy(page, 'win', 30, 30, 9)
+  const ico = await dragBy(page, 'ico', 30, 30, 16)
+  check(
+    'contract: a placed window drags exactly, with no seed hitch',
+    near(win.dx, 30) && near(win.dy, 30),
+    `moved ${win.dx} × ${win.dy}px CSS`
+  )
+  check(
+    'contract: …and so does a placed icon',
+    near(ico.dx, 30) && near(ico.dy, 30),
+    `moved ${ico.dx} × ${ico.dy}px CSS`
+  )
+  check(
+    'contract: …stated in system px on the hosts',
+    (await page.evaluate(() => {
+      const w = document.getElementById('win')
+      const i = document.getElementById('ico')
+      return `${w.left},${w.top} ${i.left},${i.top}`
+    })) === '30,30 70,50',
+    await page.evaluate(() => {
+      const w = document.getElementById('win')
+      const i = document.getElementById('ico')
+      return `${w.left},${w.top} ${i.left},${i.top}`
+    })
+  )
+  check(
+    'contract: …and a met contract says nothing',
+    page.vfWarnings.length === 0,
+    page.vfWarnings.join(' | ') || 'silent'
+  )
+  await page.close()
+}
+
+{
+  // The standalone guarantee, held as a test rather than as a claim: components
+  // that were never asked to move take no position, no tab stop and no role,
+  // and lay out under the page's own CSS like any other element.
+  const page = await build(`
+    <div id="row" style="display:flex;gap:16px;padding:20px">
+      <vf-icon id="a" label="One" style="width:64px"></vf-icon>
+      <vf-icon id="b" label="Two" style="width:64px"></vf-icon>
+      <vf-window id="w" heading="Panel" width="240" height="140"></vf-window>
+    </div>
+  `)
+  const inert = await page.evaluate(() =>
+    ['a', 'b', 'w'].map((id) => {
+      const e = document.getElementById(id)
+      return {
+        id,
+        position: getComputedStyle(e).position,
+        inlineTop: e.style.top,
+        inlineLeft: e.style.left,
+        tabindex: e.getAttribute('tabindex'),
+        role: e.getAttribute('role'),
+      }
+    })
+  )
+  check(
+    'contract: an unasked component writes no placement of its own',
+    inert.every((e) => e.inlineTop === '' && e.inlineLeft === ''),
+    inert.map((e) => `${e.id}:${e.position}`).join(' ')
+  )
+  check(
+    'contract: …takes no tab stop and no role',
+    inert.every((e) => e.tabindex === null && e.role === null),
+    inert.map((e) => `${e.id}:${e.tabindex}/${e.role}`).join(' ')
+  )
+  const laid = await page.evaluate(() => {
+    const r = document.getElementById('row').getBoundingClientRect()
+    const a = document.getElementById('a').getBoundingClientRect()
+    return { rowTop: r.top, aTop: a.top }
+  })
+  check(
+    'contract: …and stays in the page’s own flow',
+    near(laid.aTop - laid.rowTop, 20),
+    `${laid.aTop - laid.rowTop}px CSS below the row's border edge (20px padding)`
+  )
+  check(
+    'contract: …silently',
+    page.vfWarnings.length === 0,
+    page.vfWarnings.join(' | ') || 'silent'
   )
   await page.close()
 }

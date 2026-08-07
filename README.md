@@ -175,7 +175,8 @@ class keeps the tag, and that the elements still render afterwards.
     </vf-menu>
   </vf-menu-bar>
 
-  <vf-window heading="My Installer" movable width="360" height="220">
+  <vf-window heading="My Installer" movable width="360" height="220"
+             top="40" left="76">
     <p>Welcome!</p>
     <vf-fieldset legend="Install Location">
       <vf-select value="hd">
@@ -332,6 +333,13 @@ clipped at the frame, as the classic content region was — `scrollbars` is how
 the user reaches the rest, and a control's drop-open list still escapes the clip
 and paints past the border. The size is left out of the table above to keep the
 parameter that *makes* each archetype legible.
+
+The three `movable` recipes declare **`top` and `left`** as well, in the same
+unit, for the reason a WIND resource stated a whole rect: a window that moves
+needs a coordinate system to move in (see
+[Positioning](#positioning-inside-a-window--top-and-left)). `vf-dialog` is the
+exception — the platform anchors a modal to the viewport, and unset means
+centered.
 
 The **alert box** is a recipe too, one step further: the kit deliberately
 ships no alert component, because what separates an alert from a modal dialog
@@ -628,7 +636,10 @@ the title bar — the 12px inset governs flow content only, exactly the DITL
 convention), a dialog's content area, a stack's box, a fieldset just inside
 its border, and a scroll area's scrolled plane, so a placed child travels
 with the content around it. In a parent of your own, add `position: relative`
-— the one line of CSS this feature can't write for you.
+— the one line of CSS this feature can't write for you. A parent that holds a
+*movable* element needs a declared size as well: the clamp that keeps a dragged
+window from being lost off an edge has no range to work in otherwise, and a
+`position: relative` box nobody gave a height is the usual way that happens.
 
 Four elements don't take the pair: `vf-option`, `vf-menu-item`, `vf-list-item`
 and `vf-menu` are owned rows of a managing container.
@@ -651,6 +662,33 @@ window never snaps it back, and a zoom that changes what a system px costs
 leaves it exactly where it was dropped. `vf-window`'s grow box does the same
 with `width`/`height`. Setting a property yourself is still the deliberate way
 to re-place a moved element, one axis at a time.
+
+**So a movable element states its rectangle**, the way a WIND resource carried
+one: `<vf-window movable>` takes `top`/`left` *and* `width`/`height`, and
+`<vf-icon movable>` takes `top`/`left` (an icon has no declared height, and its
+`width` is the cell pitch). `vf-dialog` is the exception at both ends — the
+platform anchors it to the viewport, and leaving the pair off means centered.
+
+This is what asking for drag actually asks for: a coordinate system. Without
+one the element is in normal flow, so the first move has to pull it out —
+which reflows everything after it on the page, and collapses an auto-height
+parent to whatever is left. The kit warns once per element and keeps the
+gesture working (the clamp measures its box when the press lands, not while the
+page is rearranging under it), but the drop is placed against a container that
+moved, and nothing can put that back.
+
+Strictly the requirement is **being out of flow**, so `position: absolute` in
+your own stylesheet satisfies it too — a drag seeds from the computed offsets,
+and `left: 10%` or `left: 1em` are perfectly good ways to place a window. The
+attributes are the better answer because they are in the art's own unit and
+scale with the display, which a CSS px constant does not; that is the same
+argument [`vf-stack`](#laying-out-inside-a-window--vf-stack) makes about gaps.
+
+All of which **costs the non-movable case nothing**: a `vf-icon` or `vf-window`
+nobody asked to move takes no position, no tab stop and no role, writes nothing
+to your DOM but its own `--vf-scale`, and lays out in your flex row or grid like
+any other element. That is the case most pages actually want, and it is held as
+a test rather than a promise (`npm run verify:position`, group CONTRACT).
 
 Two consequences worth knowing. Read a moved element's position off the
 **properties** (`win.left`), not `style.left` — the inline value is a live
@@ -992,11 +1030,18 @@ the Finder actually manipulates, where a picture and a caption select together,
 move together and rename together.
 
 ```html
-<vf-icon label="Macintosh HD" width="64" selectable movable editable>
+<vf-icon label="Macintosh HD" width="64" selectable movable editable
+         top="16" left="16">
   <vf-img slot="large"><img src="hd-32.png" alt=""></vf-img>
   <vf-img slot="small"><img src="hd-16.png" alt=""></vf-img>
 </vf-icon>
 ```
+
+`top`/`left` because it is `movable` — a moved icon needs somewhere to be moved
+*from*, and a `vf-desktop` or any sized `position: relative` box is the
+somewhere (see [Positioning](#positioning-inside-a-window--top-and-left)). Drop
+`movable` and the coordinates go with it: a plain `vf-icon` is a picture with a
+caption, and lays out in your own flex row or grid like any other element.
 
 **The art arrives by slot, not as a `src` property** — for the reason `vf-img`
 exists at all. The kit ships no raster files and never builds an `<img>` on your

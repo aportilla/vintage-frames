@@ -194,6 +194,37 @@ Modern requirements that we deliberately keep (accessibility over purity):
     re-rounding onto each new lattice compounds (62 → 63 → 64), and whole
     system px is whole device px at every rung regardless.
     `npm run verify:zoom` group (e).
+  - **The movable contract.** A host that moves under a gesture states its own
+    rectangle, and its positioning parent is a box with a size. Both halves are
+    the consumer's — a component can supply neither for itself — and both used
+    to fail quietly, so each is a one-time `console.warn`
+    (`warnMovableContract`, latched per element like `vf-window`'s size
+    warning). `npm run verify:position` group CONTRACT.
+    - `vf-window[movable]` states `top`/`left` **and** `width`/`height`; a WIND
+      resource carried the whole rect. `vf-icon[movable]` states `top`/`left`
+      only — it is not `VfSized`, its height is its content's, and `width` is
+      the cell pitch. `vf-dialog` is exempt: `showModal()` anchors it to the
+      viewport, and unset means centered.
+    - What the first half actually requires is being **out of flow** when the
+      gesture starts; `top`/`left` are the kit's way and the only one that
+      scales, but a stylesheet's own `position: absolute` satisfies it and
+      `seed()` reads that case from the computed offsets (the showcase places
+      its desktop icons this way — `demo.css`). A host still in flow has to be
+      taken out of it by its first move, which reflows everything after it and
+      collapses an auto-height parent to whatever is left. **The clamp therefore
+      runs against the box measured once by `seed()`, not a fresh one per
+      move**: re-reading it would hold the rest of the gesture inside a box the
+      host never sat in, walking it to the parent's origin while the user drags
+      the other way.
+    - Both faults are checked when a **gesture starts**, not on update: that is
+      when the contract becomes observable and when layout is settled, and an
+      `updated()` check would race a stylesheet that positions the host and
+      latch a warning that was never true.
+    - A parent with no box at all falls back to the viewport, the same as no
+      parent — clamping into nothing would leave the host unable to move, and
+      with no positioned ancestor the initial containing block and the viewport
+      agree anyway. The warning does the teaching; the fallback keeps the
+      gesture usable meanwhile.
 - Do NOT run repo-wide `tsc` while building an individual component group —
   sibling files may not exist yet. A later phase compiles everything.
 

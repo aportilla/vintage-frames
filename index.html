@@ -739,19 +739,26 @@ shrink it and watch the arrows come back.
       </vf-window>
 
       <!-- ================ Launcher icons for every window ================ -->
-      <!-- One vf-icon per demonstration window and dialog, clustered around
-           the top-left so the whole set stays on-canvas at any viewport size
-           or density (demo.css holds the 3×4 grid); the windows themselves
-           start hidden. Double-click — or ⌘O / ⌘↓ — fires `vf-open`, and
+      <!-- One vf-icon per demonstration window and dialog, on a 3×4 grid at a
+           110×60 system-px pitch: columns at 24/134/244 and rows at
+           40/100/160/220, clustered around the top-left so the whole set stays
+           on-canvas at any viewport size or density (~330×270, inside even a 1×
+           1440×900 viewport's ~480×300 canvas). An icon's one-line name
+           straddles its 64px cell, so the column pitch is what keeps
+           neighbours' names clear of each other. The placement is `left`/`top`
+           on each icon, in system px — never CSS: a drag writes back through
+           those same two properties, so an authored icon and a moved one are
+           the same declaration. The windows themselves start hidden. Double-click — or ⌘O / ⌘↓ — fires `vf-open`, and
            demo.ts opens whatever data-opens names; Return starts a rename
            instead, as the Finder's did, since every icon on this desktop is
            `editable`. Placeholder art on all of them for now, slotted at both
            resource sizes so View → by Small Icon swaps these too. -->
       <vf-icon
         id="icon-installer"
-        class="desktop-icon"
         label="Installer"
         width="64"
+        left="24"
+        top="40"
         selectable
         movable
         editable
@@ -762,9 +769,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-readme"
-        class="desktop-icon"
         label="Read Me"
         width="64"
+        left="24"
+        top="100"
         selectable
         movable
         editable
@@ -775,9 +783,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-controls"
-        class="desktop-icon"
         label="Controls"
         width="64"
+        left="24"
+        top="160"
         selectable
         movable
         editable
@@ -788,9 +797,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-format"
-        class="desktop-icon"
         label="Format"
         width="64"
+        left="24"
+        top="220"
         selectable
         movable
         editable
@@ -801,9 +811,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-newdoc"
-        class="desktop-icon"
         label="New Document"
         width="64"
+        left="134"
+        top="40"
         selectable
         movable
         editable
@@ -814,9 +825,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-newimage"
-        class="desktop-icon"
         label="New Image"
         width="64"
+        left="134"
+        top="100"
         selectable
         movable
         editable
@@ -827,9 +839,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-find"
-        class="desktop-icon"
         label="Find File"
         width="64"
+        left="134"
+        top="160"
         selectable
         movable
         editable
@@ -840,9 +853,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-charset"
-        class="desktop-icon"
         label="Character Set"
         width="64"
+        left="134"
+        top="220"
         selectable
         movable
         editable
@@ -853,9 +867,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-tools"
-        class="desktop-icon"
         label="Desk Accessories"
         width="64"
+        left="244"
+        top="40"
         selectable
         movable
         editable
@@ -866,9 +881,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-about"
-        class="desktop-icon"
         label="About"
         width="64"
+        left="244"
+        top="100"
         selectable
         movable
         editable
@@ -879,9 +895,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-pagesetup"
-        class="desktop-icon"
         label="Page Setup"
         width="64"
+        left="244"
+        top="160"
         selectable
         movable
         editable
@@ -892,9 +909,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-erase"
-        class="desktop-icon"
         label="Erase Disk"
         width="64"
+        left="244"
+        top="220"
         selectable
         movable
         editable
@@ -908,7 +926,11 @@ shrink it and watch the arrows come back.
       <!-- What the desktop is FOR, in Example screen (1-bit).png: the volume
            and the Trash, sitting on the dither. Each is a vf-icon — the art
            slotted as vf-img at both resource sizes (32×32 ICN#, 16×16 ics#),
-           the name as a property because it is editable.
+           the name as a property because it is editable. They take the column
+           right of the launcher cluster (left 354), the same grid, reading as
+           the Finder's auto-arrange-along-an-edge — and NOT the right/bottom
+           anchor a real Trash would use, since the desktop is the viewport and
+           a far-edge anchor lands somewhere different at every density.
            `movable` and not `draggable`, which is a global HTML attribute and
            an HTMLElement accessor. Click to select — the art inverts, because a 1-bit icon is ink and
            opaque white on a transparent surround, i.e. an image and its mask,
@@ -918,9 +940,10 @@ shrink it and watch the arrows come back.
            View → "by Small Icon" swaps every one to its 16×16 member. -->
       <vf-icon
         id="icon-hd"
-        class="desktop-icon"
         label="Macintosh HD"
         width="64"
+        left="354"
+        top="40"
         selectable
         movable
         editable
@@ -930,9 +953,10 @@ shrink it and watch the arrows come back.
       </vf-icon>
       <vf-icon
         id="icon-trash"
-        class="desktop-icon"
         label="Trash"
         width="64"
+        left="354"
+        top="100"
         selectable
         movable
         editable

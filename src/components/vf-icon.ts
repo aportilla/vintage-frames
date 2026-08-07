@@ -1,7 +1,8 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { PlacementController, VfPositioned } from '../position.js'
+import { PlacementController, VfPositioned, warnMovableContract } from '../position.js'
+import type { PlacementBounds } from '../position.js'
 import { vfBase, vfBodyDecls, vfFocusUnderline } from '../styles/base.js'
 import { effectiveScale, ScaleController, toSysExact } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -23,10 +24,14 @@ const NUDGE_COARSE = 8
 
 /**
  * Hold a drag origin in `[0, max]`. A `max` at or below zero means the
- * container is smaller than the icon and has no range to clamp into, so the
- * origin is only held off the near edge — which is exactly the case an icon
- * makes for itself, since going `position: absolute` on the first drag can
- * collapse the very parent being measured.
+ * container is genuinely smaller than the icon and has no range to clamp into,
+ * so the origin is only held off the near edge.
+ *
+ * A container with *no* box is a different thing and never reaches here —
+ * `#keepWhole` falls back to the viewport for that, because an empty parent
+ * usually means the movable contract was not met (no `top`/`left`, so the icon
+ * left flow on its first move and collapsed the parent it is measured against)
+ * rather than a container that is really zero-sized.
  */
 const clamp = (v: number, max: number): number =>
   max <= 0 ? Math.max(v, 0) : Math.min(Math.max(v, 0), max)
@@ -534,13 +539,14 @@ export class VfIcon extends VfPositioned(LitElement) {
    * hold whole — losing half of one to an edge reads as a bug rather than as a
    * window pushed aside.
    */
-  #keepWhole = (x: number, y: number): { x: number; y: number } => {
-    const parent = this.offsetParent as HTMLElement | null
-    const pw = toSysExact(parent?.clientWidth ?? window.innerWidth, this)
-    const ph = toSysExact(parent?.clientHeight ?? window.innerHeight, this)
+  #keepWhole = (
+    x: number,
+    y: number,
+    bounds: PlacementBounds
+  ): { x: number; y: number } => {
     return {
-      x: clamp(x, pw - toSysExact(this.offsetWidth, this)),
-      y: clamp(y, ph - toSysExact(this.offsetHeight, this)),
+      x: clamp(x, bounds.width - toSysExact(this.offsetWidth, this)),
+      y: clamp(y, bounds.height - toSysExact(this.offsetHeight, this)),
     }
   }
 
@@ -549,7 +555,9 @@ export class VfIcon extends VfPositioned(LitElement) {
    * so a moved icon is placed the way an authored one is and holds its spot
    * through a zoom (see src/position.ts).
    */
-  readonly #placement = new PlacementController(this, (x, y) => this.#keepWhole(x, y))
+  readonly #placement = new PlacementController(this, (x, y, bounds) =>
+    this.#keepWhole(x, y, bounds)
+  )
 
   /**
    * Drag-to-move, on the same delegate shape as `vf-window`: the placement
@@ -559,6 +567,7 @@ export class VfIcon extends VfPositioned(LitElement) {
   readonly #drag = new DragController(this, {
     onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
       if (!this.movable || event.button !== 0 || this._editing) return null
+      this.#warnIfUnplaced()
       return this.#placement.seed()
     },
     onDrag: (x: number, y: number): void => this.#placement.moveTo(x, y),
@@ -615,6 +624,24 @@ export class VfIcon extends VfPositioned(LitElement) {
     if (changed.has('open') || changed.has('size')) {
       this.#trackArt()
     }
+  }
+
+  /** One warning per element, not per gesture. */
+  #warnedNoPlacement = false
+
+  /**
+   * A movable icon states its origin. Unlike `vf-window` there is no size half
+   * — an icon's height is its content's and `width` is the grid pitch — so this
+   * is the whole of the contract here. Checked at gesture time for the reason
+   * `vf-window` states. See {@link warnMovableContract}.
+   */
+  #warnIfUnplaced(): void {
+    if (this.#warnedNoPlacement) return
+    this.#warnedNoPlacement = warnMovableContract(
+      this,
+      `vf-icon${this.label ? ` ("${this.label}")` : ''}`,
+      '<vf-icon movable label="Read Me" width="64" top="16" left="16">'
+    )
   }
 
   override firstUpdated(): void {
@@ -1050,6 +1077,7 @@ export class VfIcon extends VfPositioned(LitElement) {
           event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
         const dy =
           event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
+        this.#warnIfUnplaced()
         const origin = this.#placement.seed()
         this.#placement.moveTo(origin.x + dx, origin.y + dy)
       }

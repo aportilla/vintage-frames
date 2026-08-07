@@ -1,7 +1,8 @@
 import { html, css, LitElement, nothing } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { PlacementController, VfPositioned } from '../position.js'
+import { PlacementController, VfPositioned, warnMovableContract } from '../position.js'
+import type { PlacementBounds } from '../position.js'
 import { VfSized } from '../size.js'
 import {
   vfBase,
@@ -367,15 +368,20 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * the positioning parent (the desktop, usually) so it can't be pushed fully
    * past an edge and lost. Only a grabbable strip has to stay in — a window
    * pushed mostly off-screen is a thing System 7 let you do.
+   *
+   * The box comes from the placement controller, measured once when the drag
+   * began — see {@link PlacementController.moveTo} for why a fresh measurement
+   * per move is the wrong one.
    */
-  #keepGrabbable = (x: number, y: number): { x: number; y: number } => {
-    const parent = this.offsetParent as HTMLElement | null
-    const pw = toSysExact(parent?.clientWidth ?? window.innerWidth, this)
-    const ph = toSysExact(parent?.clientHeight ?? window.innerHeight, this)
+  #keepGrabbable = (
+    x: number,
+    y: number,
+    bounds: PlacementBounds
+  ): { x: number; y: number } => {
     const width = toSysExact(this.offsetWidth, this)
     return {
-      x: Math.min(Math.max(x, KEEP_GRABBABLE - width), pw - KEEP_GRABBABLE),
-      y: Math.min(Math.max(y, 0), Math.max(0, ph - KEEP_GRABBABLE)),
+      x: Math.min(Math.max(x, KEEP_GRABBABLE - width), bounds.width - KEEP_GRABBABLE),
+      y: Math.min(Math.max(y, 0), Math.max(0, bounds.height - KEEP_GRABBABLE)),
     }
   }
 
@@ -384,8 +390,8 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * window is placed the way an authored one is and holds its spot through a
    * zoom (see src/position.ts).
    */
-  private readonly _placement = new PlacementController(this, (x, y) =>
-    this.#keepGrabbable(x, y)
+  private readonly _placement = new PlacementController(this, (x, y, bounds) =>
+    this.#keepGrabbable(x, y, bounds)
   )
 
   /**
@@ -407,6 +413,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       ) {
         return null
       }
+      this.#warnIfUnplaced()
       return this._placement.seed()
     },
     onDrag: (x: number, y: number): void => this._placement.moveTo(x, y),
@@ -428,6 +435,28 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
 
   /** One warning per element, not per render. */
   #warnedNoSize = false
+
+  /** Ditto, for the movable contract. */
+  #warnedNoPlacement = false
+
+  /**
+   * A movable window states its origin too — the other half of the rectangle a
+   * WIND resource carried. See {@link warnMovableContract} for both faults.
+   *
+   * Checked when a gesture starts rather than on update: the contract is about
+   * gestures, this is the moment it becomes observable, and layout is settled
+   * by then. An `updated()` check would race a stylesheet that positions the
+   * window — the showcase's own icons are placed that way — and latch a
+   * warning that was never true.
+   */
+  #warnIfUnplaced(): void {
+    if (this.#warnedNoPlacement) return
+    this.#warnedNoPlacement = warnMovableContract(
+      this,
+      `vf-window${this.heading ? ` ("${this.heading}")` : ''}`,
+      '<vf-window movable top="30" left="40" width="240" height="176">'
+    )
+  }
 
   /**
    * Both dimensions are required: a window is a fixed box in both axes, and

@@ -108,73 +108,13 @@
   white-space: pre;
 }
 
-/* -------------------------- Finder desktop icons ------------------------- */
-/* Placement only — everything an icon looks like is the component's.
-   Left/top in system px, NOT the right/bottom anchor a real Trash would use:
-   the desktop is the viewport, so a far-edge anchor lands somewhere different
-   at every density (see the vf-desktop note above). HD and Trash take the
-   column to the right of the launcher cluster — the same grid, reading as the
-   Finder's auto-arrange-along-an-edge — so they too are on-canvas at any
-   density. Icons sit UNDER the windows, as desktop icons do. */
-.desktop-icon {
-  position: absolute;
-}
-#icon-hd,
-#icon-trash {
-  left: calc(var(--vf-scale, 1) * 354px);
-}
-#icon-hd {
-  top: calc(var(--vf-scale, 1) * 40px);
-}
-#icon-trash {
-  top: calc(var(--vf-scale, 1) * 100px);
-}
-
-/* ------------------------- Desktop launcher icons ------------------------ */
-/* One launcher per demonstration window/dialog (the windows start hidden;
-   double-click opens — demo.ts). Clustered around the top-left so the whole
-   set is on-canvas at any viewport size or density: a 3×4 grid on a 110×60
-   system-px pitch spans ~330×270, inside even a 1× 1440×900 viewport's
-   ~480×300 canvas. An icon's one-line name straddles its 64px cell, so the
-   column pitch is what keeps neighbours' names clear of each other. */
-#icon-installer,
-#icon-readme,
-#icon-controls,
-#icon-format {
-  left: calc(var(--vf-scale, 1) * 24px);
-}
-#icon-newdoc,
-#icon-newimage,
-#icon-find,
-#icon-charset {
-  left: calc(var(--vf-scale, 1) * 134px);
-}
-#icon-tools,
-#icon-about,
-#icon-pagesetup,
-#icon-erase {
-  left: calc(var(--vf-scale, 1) * 244px);
-}
-#icon-installer,
-#icon-newdoc,
-#icon-tools {
-  top: calc(var(--vf-scale, 1) * 40px);
-}
-#icon-readme,
-#icon-newimage,
-#icon-about {
-  top: calc(var(--vf-scale, 1) * 100px);
-}
-#icon-controls,
-#icon-find,
-#icon-pagesetup {
-  top: calc(var(--vf-scale, 1) * 160px);
-}
-#icon-format,
-#icon-charset,
-#icon-erase {
-  top: calc(var(--vf-scale, 1) * 220px);
-}
+/* Desktop icons carry their own placement — `left`/`top` in system px, on the
+   elements themselves (index.html). That is the kit's way to position anything
+   inside a desktop, and a stylesheet has no business restating it: the
+   attributes are already the art's unit, they scale with the display, and a
+   drag writes back through the same two properties, so a moved icon and an
+   authored one are the same declaration. Hand-written
+   `calc(var(--vf-scale, 1) * Npx)` could only ever be the first of those. */
 
 /* ----------------------- Desk Accessories palette ----------------------- */
 /* The utility windoid centers like every window at open, then floats over
@@ -278,8 +218,12 @@
   flex-wrap: wrap;
 }
 
+/* Kit geometry tokens are stated in system px UNSCALED — the component does the
+   multiplying (`calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px))`).
+   Scaling it here too squared the factor and the cap never bound: at scale 3
+   the list was allowed 1194px instead of 402, so its rail never took over. */
 .da-list {
-  --vf-list-max-height: calc(var(--vf-scale, 1) * 132px);
+  --vf-list-max-height: 132px;
 }
 
 .scroll-demo {

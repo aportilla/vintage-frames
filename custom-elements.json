@@ -3893,7 +3893,7 @@
               "name": "#placement",
               "privacy": "private",
               "readonly": true,
-              "default": "new PlacementController(this, (x, y) => this.#keepWhole(x, y))",
+              "default": "new PlacementController(this, (x, y, bounds) => this.#keepWhole(x, y, bounds) )",
               "description": "Drag and nudge placement: the origin lands in `top`/`left` in system px,\nso a moved icon is placed the way an authored one is and holds its spot\nthrough a zoom (see src/position.ts)."
             },
             {
@@ -3901,8 +3901,29 @@
               "name": "#drag",
               "privacy": "private",
               "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null return this.#placement.seed() }, onDrag: (x: number, y: number): void => this.#placement.moveTo(x, y), })",
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null this.#warnIfUnplaced() return this.#placement.seed() }, onDrag: (x: number, y: number): void => this.#placement.moveTo(x, y), })",
               "description": "Drag-to-move, on the same delegate shape as `vf-window`: the placement\ncontroller seeds the origin — from the in-flow offset the first time — and\nwrites back each move the drag controller has snapped onto the lattice."
+            },
+            {
+              "kind": "field",
+              "name": "#warnedNoPlacement",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "One warning per element, not per gesture."
+            },
+            {
+              "kind": "method",
+              "name": "#warnIfUnplaced",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "A movable icon states its origin. Unlike `vf-window` there is no size half\n— an icon's height is its content's and `width` is the grid pitch — so this\nis the whole of the contract here. Checked at gesture time for the reason\n`vf-window` states. See warnMovableContract."
             },
             {
               "kind": "method",
@@ -16250,14 +16271,14 @@
               "kind": "field",
               "name": "#keepGrabbable",
               "privacy": "private",
-              "description": "Where a dragged window is allowed to end up, in system px: clamped against\nthe positioning parent (the desktop, usually) so it can't be pushed fully\npast an edge and lost. Only a grabbable strip has to stay in — a window\npushed mostly off-screen is a thing System 7 let you do."
+              "description": "Where a dragged window is allowed to end up, in system px: clamped against\nthe positioning parent (the desktop, usually) so it can't be pushed fully\npast an edge and lost. Only a grabbable strip has to stay in — a window\npushed mostly off-screen is a thing System 7 let you do.\n\nThe box comes from the placement controller, measured once when the drag\nbegan — see PlacementController.moveTo for why a fresh measurement\nper move is the wrong one."
             },
             {
               "kind": "field",
               "name": "_placement",
               "privacy": "private",
               "readonly": true,
-              "default": "new PlacementController(this, (x, y) => this.#keepGrabbable(x, y) )",
+              "default": "new PlacementController(this, (x, y, bounds) => this.#keepGrabbable(x, y, bounds) )",
               "description": "Drag placement: the origin lands in `top`/`left` in system px, so a moved\nwindow is placed the way an authored one is and holds its spot through a\nzoom (see src/position.ts)."
             },
             {
@@ -16265,7 +16286,7 @@
               "name": "_drag",
               "privacy": "private",
               "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0) return null // Ignore drags that start on the close/zoom widgets. if ( event .composedPath() .some( (node) => node instanceof HTMLElement && node.classList.contains('box') ) ) { return null } return this._placement.seed() }, onDrag: (x: number, y: number): void => this._placement.moveTo(x, y), })",
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0) return null // Ignore drags that start on the close/zoom widgets. if ( event .composedPath() .some( (node) => node instanceof HTMLElement && node.classList.contains('box') ) ) { return null } this.#warnIfUnplaced() return this._placement.seed() }, onDrag: (x: number, y: number): void => this._placement.moveTo(x, y), })",
               "description": "Title-bar drag-to-move (shared with `vf-dialog` via DragController).\nThe controller owns the pointer bookkeeping and hands over system px; the\nplacement controller seeds the origin and writes the result."
             },
             {
@@ -16286,6 +16307,27 @@
               },
               "default": "false",
               "description": "One warning per element, not per render."
+            },
+            {
+              "kind": "field",
+              "name": "#warnedNoPlacement",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Ditto, for the movable contract."
+            },
+            {
+              "kind": "method",
+              "name": "#warnIfUnplaced",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "A movable window states its origin too — the other half of the rectangle a\nWIND resource carried. See warnMovableContract for both faults.\n\nChecked when a gesture starts rather than on update: the contract is about\ngestures, this is the moment it becomes observable, and layout is settled\nby then. An `updated()` check would race a stylesheet that positions the\nwindow — the showcase's own icons are placed that way — and latch a\nwarning that was never true."
             },
             {
               "kind": "method",
@@ -18686,6 +18728,16 @@
             },
             {
               "kind": "field",
+              "name": "#bounds",
+              "privacy": "private",
+              "type": {
+                "text": "PlacementBounds | null"
+              },
+              "default": "null",
+              "description": "The containing box, measured once per gesture by seed."
+            },
+            {
+              "kind": "field",
               "name": "placed",
               "type": {
                 "text": "boolean"
@@ -18725,9 +18777,50 @@
                   }
                 }
               ],
-              "description": "Place the host at a system-px origin, clamped by its own rule and snapped.\n\nThe clamp runs *here*, during the gesture, which is the moment the user is\nactually pushing against an edge — and nowhere else. Re-clamping later, on\na parent that shrank under a zoom, would move a host nobody moved and would\nnot give the position back when the parent grew again."
+              "description": "Place the host at a system-px origin, clamped by its own rule and snapped.\n\nThe clamp runs *here*, during the gesture, which is the moment the user is\nactually pushing against an edge — and nowhere else. Re-clamping later, on\na parent that shrank under a zoom, would move a host nobody moved and would\nnot give the position back when the parent grew again.\n\nIt runs against the box seed measured, not a fresh one. The\ndifference only shows when the movable contract is unmet: a host with no\nstated origin is in normal flow, so its first move takes it out — and an\nauto-height parent then collapses to whatever is left, which is a box the\nhost never actually sat in. Re-measuring per move would clamp the rest of\nthe gesture into that phantom, walking the host to the parent's origin\nwhile the user drags away from it. The box at the moment of the press is\nthe one the user is pushing against."
+            },
+            {
+              "kind": "method",
+              "name": "#measureBounds",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "PlacementBounds"
+                }
+              },
+              "description": "The positioning parent's content box, in system px.\n\nA parent with no box at all falls back to the viewport, the same as no\nparent — that is the *other* contract failure (a `position: relative`\ncontainer nobody gave a size), and clamping into nothing would leave the\nhost unable to move at all. The viewport keeps the gesture usable while\nwarnMovableContract does the teaching."
             }
           ]
+        },
+        {
+          "kind": "function",
+          "name": "warnMovableContract",
+          "return": {
+            "type": {
+              "text": "boolean"
+            }
+          },
+          "parameters": [
+            {
+              "name": "host",
+              "type": {
+                "text": "HTMLElement & { top?: number | null; left?: number | null }"
+              }
+            },
+            {
+              "name": "what",
+              "type": {
+                "text": "string"
+              }
+            },
+            {
+              "name": "example",
+              "type": {
+                "text": "string"
+              }
+            }
+          ],
+          "description": "The movable contract, as a one-time console warning.\n\nA host that moves under a gesture states its own origin, and its positioning\nparent is a box with a size. Neither half is something the component can\nsupply for itself, and both fail quietly rather than loudly:\n\n- **Unplaced.** A host still in normal flow has to be taken out of it by its\n  first move — which reflows everything after it and can collapse the very\n  parent the clamp is about to measure. What matters is being out of flow,\n  not which mechanism did it: `top`/`left` are the kit's way and the one that\n  scales, but a stylesheet's own `position: absolute` satisfies it too, and\n  PlacementController.seed reads that case from the computed offsets.\n- **Unsized parent.** A positioning parent with no box gives the clamp no\n  range, and the host cannot be dragged away from the parent's origin at all.\n  Only checked for a real ancestor: with no positioned ancestor the host\n  resolves against the initial containing block and the clamp falls back to\n  the viewport, which agree with each other and need no warning.\n\nReturns whether it warned, so the caller can latch — one warning per element,\nnot per render."
         }
       ],
       "exports": [
@@ -18752,6 +18845,14 @@
           "name": "PlacementController",
           "declaration": {
             "name": "PlacementController",
+            "module": "src/position.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "warnMovableContract",
+          "declaration": {
+            "name": "warnMovableContract",
             "module": "src/position.ts"
           }
         }

@@ -150,8 +150,18 @@ class PositionController implements ReactiveController {
   }
 }
 
-/** A moved host's own containment rule, in system px. */
-export type PlacementClamp = (x: number, y: number) => { x: number; y: number }
+/** The box a gesture is clamped into, in system px — see {@link PlacementClamp}. */
+export type PlacementBounds = { width: number; height: number }
+
+/**
+ * A moved host's own containment rule, in system px, against the box measured
+ * once at the start of the gesture.
+ */
+export type PlacementClamp = (
+  x: number,
+  y: number,
+  bounds: PlacementBounds
+) => { x: number; y: number }
 
 /**
  * The gesture half of placement: the piece a *movable* host adds on top of
@@ -191,6 +201,8 @@ export class PlacementController {
   readonly #host: HTMLElement & { top?: number | null; left?: number | null }
   readonly #clamp: PlacementClamp
   #placed = false
+  /** The containing box, measured once per gesture by {@link seed}. */
+  #bounds: PlacementBounds | null = null
 
   constructor(
     host: HTMLElement & { top?: number | null; left?: number | null },
@@ -218,6 +230,7 @@ export class PlacementController {
    */
   seed(): { x: number; y: number } {
     const host = this.#host
+    this.#bounds = this.#measureBounds()
     if (host.left != null || host.top != null) {
       return { x: host.left ?? 0, y: host.top ?? 0 }
     }
@@ -238,12 +251,105 @@ export class PlacementController {
    * actually pushing against an edge — and nowhere else. Re-clamping later, on
    * a parent that shrank under a zoom, would move a host nobody moved and would
    * not give the position back when the parent grew again.
+   *
+   * It runs against the box {@link seed} measured, not a fresh one. The
+   * difference only shows when the movable contract is unmet: a host with no
+   * stated origin is in normal flow, so its first move takes it out — and an
+   * auto-height parent then collapses to whatever is left, which is a box the
+   * host never actually sat in. Re-measuring per move would clamp the rest of
+   * the gesture into that phantom, walking the host to the parent's origin
+   * while the user drags away from it. The box at the moment of the press is
+   * the one the user is pushing against.
    */
   moveTo(x: number, y: number): void {
     const host = this.#host
-    const kept = this.#clamp(x, y)
+    const kept = this.#clamp(x, y, this.#bounds ?? this.#measureBounds())
     host.left = snapSys(kept.x, host)
     host.top = snapSys(kept.y, host)
     this.#placed = true
   }
+
+  /**
+   * The positioning parent's content box, in system px.
+   *
+   * A parent with no box at all falls back to the viewport, the same as no
+   * parent — that is the *other* contract failure (a `position: relative`
+   * container nobody gave a size), and clamping into nothing would leave the
+   * host unable to move at all. The viewport keeps the gesture usable while
+   * {@link warnMovableContract} does the teaching.
+   */
+  #measureBounds(): PlacementBounds {
+    const host = this.#host
+    const parent = host.offsetParent as HTMLElement | null
+    const box = parent && parent.clientWidth > 0 && parent.clientHeight > 0 ? parent : null
+    return {
+      width: toSysExact(box?.clientWidth ?? window.innerWidth, host),
+      height: toSysExact(box?.clientHeight ?? window.innerHeight, host),
+    }
+  }
+}
+
+/** The two ways the movable contract is broken; see {@link warnMovableContract}. */
+type MovableFault = 'unplaced' | 'unsized-parent'
+
+/**
+ * The movable contract, as a one-time console warning.
+ *
+ * A host that moves under a gesture states its own origin, and its positioning
+ * parent is a box with a size. Neither half is something the component can
+ * supply for itself, and both fail quietly rather than loudly:
+ *
+ * - **Unplaced.** A host still in normal flow has to be taken out of it by its
+ *   first move — which reflows everything after it and can collapse the very
+ *   parent the clamp is about to measure. What matters is being out of flow,
+ *   not which mechanism did it: `top`/`left` are the kit's way and the one that
+ *   scales, but a stylesheet's own `position: absolute` satisfies it too, and
+ *   {@link PlacementController.seed} reads that case from the computed offsets.
+ * - **Unsized parent.** A positioning parent with no box gives the clamp no
+ *   range, and the host cannot be dragged away from the parent's origin at all.
+ *   Only checked for a real ancestor: with no positioned ancestor the host
+ *   resolves against the initial containing block and the clamp falls back to
+ *   the viewport, which agree with each other and need no warning.
+ *
+ * Returns whether it warned, so the caller can latch — one warning per element,
+ * not per render.
+ */
+export function warnMovableContract(
+  host: HTMLElement & { top?: number | null; left?: number | null },
+  what: string,
+  example: string
+): boolean {
+  const stated = host.top != null || host.left != null
+  const position = getComputedStyle(host).position
+  const outOfFlow = position === 'absolute' || position === 'fixed'
+
+  let fault: MovableFault | null = null
+  if (!stated && !outOfFlow) {
+    fault = 'unplaced'
+  } else {
+    // The body is never the fault: with no positioned ancestor the host
+    // resolves against the initial containing block, which the viewport
+    // fallback already matches.
+    const parent = host.offsetParent as HTMLElement | null
+    if (
+      parent &&
+      parent !== host.ownerDocument.body &&
+      (parent.clientWidth === 0 || parent.clientHeight === 0)
+    ) {
+      fault = 'unsized-parent'
+    }
+  }
+  if (fault === null) return false
+
+  console.warn(
+    fault === 'unplaced'
+      ? `${what}: movable, but in normal flow — so the first drag has to pull ` +
+          'it out, reflowing everything after it on the page. State the ' +
+          `origin in system px and it never was in flow: ${example}`
+      : `${what}: the positioning parent has no box, so there is nowhere to ` +
+          'drag to. Give it a size (and `position: relative`, if it is not a ' +
+          'kit container) — the clamp is falling back to the viewport ' +
+          'meanwhile.'
+  )
+  return true
 }

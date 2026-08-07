@@ -157,6 +157,11 @@ const INTERNAL = new Set([
   '--vf-button-ring-margin',
   '--vf-title-inset',
   '--vf-window-active',
+  // Same self-set geometry, same recipe: title-bar.ts calls --vf-widget-ring
+  // "internal geometry, not a theming knob" — vf-window's utility variant
+  // widens the widgets' patch ring to 2px, the clearance the windoid dither
+  // needs. The `variant` attribute is the API.
+  '--vf-widget-ring',
   // Written by vf-desktop's own `bezel` property (self-set geometry); the
   // attribute is the API — setting the var by hand skips the corner masks.
   '--vf-desktop-bezel',

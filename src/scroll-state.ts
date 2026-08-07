@@ -1,7 +1,28 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit'
+import { sys } from './scale.js'
 
 /** Sub-pixel scroll slop (fractional `--vf-scale` rounding) to ignore. */
 const OVERFLOW_EPSILON = 1
+
+/**
+ * Vertical slop, in system px — the body face's negative half-leading.
+ *
+ * A face renders its content area at the em (16 system px), but `vf-paragraph`
+ * sets Geneva's authentic 12-system-px line box under it, so half-leading is
+ * `(12 - 16) / 2 = -2`: the inline box spills 2 system px past the block box at
+ * each end, and `scrollHeight` counts the bottom one. There is no ink in that
+ * spill — Geneva 9 draws 9 up / 2 down, inside the 12 — so a box whose content
+ * visually fits would otherwise measure as overflowing and grow a live rail,
+ * a tab stop and a role.
+ *
+ * It has to be system px rather than CSS px because it scales with the art:
+ * 6 CSS px at scale 3, 18 at scale 9. Genuine overflow clears it easily — the
+ * next line of body copy is a whole 12-system-px line box.
+ *
+ * Vertical only: the spill is a leading artifact, so the horizontal axis keeps
+ * the sub-pixel epsilon and still catches a 1-system-px-wide overrun.
+ */
+const LEADING_SPILL_SYS = 2
 
 /**
  * Rail-state tracking for System 7 "always-a-rail" scrollbars.
@@ -183,7 +204,8 @@ export class ScrollStateController implements ReactiveController {
   measure(): void {
     const el = this.getScroll()
     if (!el) return
-    const overY = el.scrollHeight - el.clientHeight > OVERFLOW_EPSILON
+    const overY =
+      el.scrollHeight - el.clientHeight > sys(LEADING_SPILL_SYS, el) + OVERFLOW_EPSILON
     const overX = el.scrollWidth - el.clientWidth > OVERFLOW_EPSILON
     const changed =
       el.getAttribute('data-overflow-y') !== String(overY) ||

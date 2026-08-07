@@ -505,8 +505,18 @@ export class VfIcon extends VfPositioned(LitElement) {
   /**
    * The plate's width in whole, EVEN system px — 0 until the text is measured.
    * See {@link #measurePlate}; this is what keeps every name on the grid.
+   *
+   * Deliberately NOT `@state()`. The width can only be known by rendering the
+   * name and measuring it, so a reactive field would make every icon render
+   * twice — once to measure, once to deliver one number back — and Lit's
+   * change-in-update warning is exactly that round trip being spotted. It
+   * feeds a single inline width and nothing else, so {@link #measurePlate}
+   * writes it straight to the plate instead, the ownership `applyGridSnap()`
+   * has over `--vf-snap-dx`/`-dy`. The template still reads it so a caption
+   * Lit re-creates (one leaving `_editing`, say) is born at the settled width
+   * rather than flashing through the unmeasured one.
    */
-  @state() private _plateWidth = 0
+  #plateWidth = 0
 
   /** The derived open ghost, or null while there is nothing to derive from. */
   @state() private _ghost: HTMLCanvasElement | null = null
@@ -676,9 +686,9 @@ export class VfIcon extends VfPositioned(LitElement) {
    * a fallback face measures fractionally.
    */
   #measurePlate(): void {
-    const plate = this.renderRoot?.querySelector('.name')
+    const plate = this.renderRoot?.querySelector<HTMLElement>('.name')
     if (!plate) {
-      this._plateWidth = 0
+      this.#plateWidth = 0
       return
     }
     let textCss = 0
@@ -700,8 +710,18 @@ export class VfIcon extends VfPositioned(LitElement) {
     // or click — which reserves the cell width until the first character
     // arrives and the box goes back to hugging. The floor is the cell, which
     // is even, so the parity argument is untouched.
-    this._plateWidth =
+    this.#plateWidth =
       this._editing && textCss === 0 ? Math.max(even, CELL[this.size]) : even
+    // Settle the frame we were measured in. The template writes the same
+    // string on any later render, so the two never disagree.
+    plate.style.width = this.#plateWidthCss
+  }
+
+  /** The measured width as the live `calc()` both writers use, or '' at 0. */
+  get #plateWidthCss(): string {
+    return this.#plateWidth
+      ? `calc(var(--vf-scale, 1) * ${this.#plateWidth}px)`
+      : ''
   }
 
   #onArtSlotChange = (): void => {
@@ -882,9 +902,7 @@ export class VfIcon extends VfPositioned(LitElement) {
             <div class="label" part="label"><span
               class="name"
               part="plate"
-              style=${this._plateWidth
-                ? `width: calc(var(--vf-scale, 1) * ${this._plateWidth}px)`
-                : ''}
+              style=${this.#plateWidth ? `width: ${this.#plateWidthCss}` : ''}
               >${caption}</span
             ></div>
             ${editing

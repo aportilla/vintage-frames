@@ -3826,13 +3826,13 @@
             },
             {
               "kind": "field",
-              "name": "_plateWidth",
+              "name": "#plateWidth",
+              "privacy": "private",
               "type": {
                 "text": "number"
               },
-              "privacy": "private",
               "default": "0",
-              "description": "The plate's width in whole, EVEN system px — 0 until the text is measured.\nSee #measurePlate; this is what keeps every name on the grid."
+              "description": "The plate's width in whole, EVEN system px — 0 until the text is measured.\nSee #measurePlate; this is what keeps every name on the grid.\n\nDeliberately NOT `@state()`. The width can only be known by rendering the\nname and measuring it, so a reactive field would make every icon render\ntwice — once to measure, once to deliver one number back — and Lit's\nchange-in-update warning is exactly that round trip being spotted. It\nfeeds a single inline width and nothing else, so #measurePlate\nwrites it straight to the plate instead, the ownership `applyGridSnap()`\nhas over `--vf-snap-dx`/`-dy`. The template still reads it so a caption\nLit re-creates (one leaving `_editing`, say) is born at the settled width\nrather than flashing through the unmeasured one."
             },
             {
               "kind": "field",
@@ -3935,6 +3935,16 @@
                 }
               },
               "description": "Size the plate to a whole, EVEN number of system pixels.\n\nThis is the whole alignment argument, so it is worth stating plainly. The\nframe centers two things over one axis — the art cell and the name — and a\ncentered child's offset is `(box − child) / 2`. That is a whole number\nexactly when the box and the child have the SAME PARITY. The cell is 32 or\n16 and a declared `width` is required even, so if the plate is even too,\nevery offset in the component is whole by construction: no correction, no\nsnapping, nothing for the compositor to round.\n\nThe text is measured rather than the plate, with a Range over its own\ncontents — the plate already carries the width this computed last time, so\nreading the element back would just return it. The measurement is in\nsystem px and so is scale-invariant: the same name is the same number of\nart pixels wide at every display density, which is why nothing here\nre-runs when the scale changes.\n\nRounding UP to even (never down) means the plate never clips the run it\nwas measured from; the leftover is at most one system pixel of extra plate\nafter the text, since the embedded faces advance in whole pixels and only\na fallback face measures fractionally."
+            },
+            {
+              "kind": "field",
+              "name": "#plateWidthCss",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "description": "The measured width as the live `calc()` both writers use, or '' at 0.",
+              "readonly": true
             },
             {
               "kind": "field",

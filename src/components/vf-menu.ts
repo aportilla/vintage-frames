@@ -15,7 +15,7 @@ import {
 import { FocusRuleController } from '../focus-modality.js'
 import { MenuPressController } from '../menu-press.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
-import { emit } from '../events.js'
+import { deferActivation, emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
 /**
@@ -546,12 +546,12 @@ export class VfMenu extends LitElement {
    * clicks that arrive with no preceding pointerdown. A real mouse/touch click
    * is swallowed here because the press gesture already resolved it.
    */
-  #onLabelClick(): void {
+  #onLabelClick(event: MouseEvent): void {
     if (this.#swallowClick) {
       this.#swallowClick = false
       return
     }
-    this.#requestToggle()
+    deferActivation(this, event, () => this.#requestToggle())
   }
 
   #onLabelEnter(): void {

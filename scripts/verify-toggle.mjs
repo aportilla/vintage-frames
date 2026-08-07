@@ -12,6 +12,11 @@
  *  - SHARED: the vfToggle layout metrics are equal BETWEEN the two controls.
  *  - SKELETON: click, Space, and *held* Space activate exactly once on both;
  *    a disabled control never activates, via the mixin's single gate.
+ *  - CANCELLATION: `preventDefault()` in either phase stops the state change,
+ *    the way it stops a native checkbox — the mixin defers its activation to
+ *    the end of the click's propagation to make that possible. Includes the
+ *    two cases that are easy to get backwards: `stopPropagation()` cancels
+ *    nothing, and a control disabled mid-propagation must not act.
  *  - ARIA: role/checked/disabled read out of Chromium's real AX tree.
  *  - TABINDEX: the ownership latch, including the reconnect case that the
  *    extraction FIXED — a standalone radio used to stop self-managing after a
@@ -199,6 +204,98 @@ async function axNode(page, id) {
     r.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
   })
   check('disabled toggles ignore Space (both)', (await drain()).length === 0)
+
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   2b. CANCELLATION — preventDefault() stops the state change, as on a native
+       checkbox. The mixin registers its click listener in the constructor, so
+       it is first in the host's own listener list and used to beat every
+       consumer listener; nothing read `defaultPrevented` either, so not even a
+       capture-phase cancel landed. Both controls, both phases.
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  const page = await build(`
+    <vf-checkbox id="cbBub">A</vf-checkbox>
+    <vf-radio id="rdBub" value="bub">B</vf-radio>
+    <vf-checkbox id="cbCap">C</vf-checkbox>
+    <vf-radio id="rdCap" value="cap">D</vf-radio>
+    <vf-checkbox id="cbStop">E</vf-checkbox>
+    <vf-checkbox id="cbKey">F</vf-checkbox>
+    <vf-checkbox id="cbLive">G</vf-checkbox>
+    <vf-checkbox id="cbFree">H</vf-checkbox>
+  `)
+
+  const out = await page.evaluate(async () => {
+    const r = {}
+    const settle = async (el) => {
+      // stopPropagation() routes the action through a task, never a microtask.
+      await new Promise((res) => setTimeout(res, 0))
+      await el.updateComplete
+      return el.checked
+    }
+
+    // Bubble phase, on the host itself.
+    for (const id of ['cbBub', 'rdBub']) {
+      const el = document.getElementById(id)
+      el.addEventListener('click', (e) => e.preventDefault())
+      el.click()
+      r[id] = await settle(el)
+    }
+
+    // Capture phase, from an ancestor — the only spelling that used to work.
+    for (const id of ['cbCap', 'rdCap']) {
+      const el = document.getElementById(id)
+      document.addEventListener(
+        'click',
+        (e) => {
+          if (e.target === el) e.preventDefault()
+        },
+        { capture: true }
+      )
+      el.click()
+      r[id] = await settle(el)
+    }
+
+    // stopPropagation() cancels NOTHING in HTML — a native control still acts.
+    // The event never reaches the window, so the fallback task has to pick it up.
+    const stop = document.getElementById('cbStop')
+    stop.addEventListener('click', (e) => e.stopPropagation())
+    stop.click()
+    r.cbStop = await settle(stop)
+
+    // Space synthesises a click, so it inherits the same cancellation.
+    const key = document.getElementById('cbKey')
+    key.addEventListener('click', (e) => e.preventDefault())
+    key.focus()
+    key.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+    r.cbKey = await settle(key)
+
+    // Disabled DURING propagation: the gate is at the far end of the deferral,
+    // so the state that decides is the one when the action runs.
+    const live = document.getElementById('cbLive')
+    live.addEventListener('click', () => {
+      live.disabled = true
+    })
+    live.click()
+    r.cbLive = await settle(live)
+
+    // Control: nothing cancels, so it still activates.
+    const free = document.getElementById('cbFree')
+    free.click()
+    r.cbFree = await settle(free)
+    return r
+  })
+
+  check('bubble-phase preventDefault() on the host cancels the checkbox', out.cbBub === false, `checked=${out.cbBub}`)
+  check('bubble-phase preventDefault() on the host cancels the radio', out.rdBub === false, `checked=${out.rdBub}`)
+  check('capture-phase preventDefault() cancels the checkbox', out.cbCap === false, `checked=${out.cbCap}`)
+  check('capture-phase preventDefault() cancels the radio', out.rdCap === false, `checked=${out.rdCap}`)
+  check('stopPropagation() cancels nothing — it still activates', out.cbStop === true, `checked=${out.cbStop}`)
+  check('Space follows click: preventDefault() cancels it too', out.cbKey === false, `checked=${out.cbKey}`)
+  check('disabling mid-propagation stops the activation', out.cbLive === false, `checked=${out.cbLive}`)
+  check('uncancelled click still activates (control)', out.cbFree === true, `checked=${out.cbFree}`)
 
   await page.close()
 }

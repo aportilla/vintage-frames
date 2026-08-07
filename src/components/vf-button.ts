@@ -5,7 +5,7 @@ import { VfPositioned } from '../position.js'
 import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
-import { VfFormControl } from '../form-control.js'
+import { VfShadowRoleControl } from '../form-control.js'
 import {
   BUTTON_FACE,
   BUTTON_FRAME,
@@ -15,6 +15,7 @@ import {
   steppedRectClip,
   steppedRingClip,
 } from '../pixel-frame.js'
+import { deferActivation } from '../events.js'
 
 /**
  * The `slot` name the submit proxy carries — deliberately one no shadow root
@@ -68,9 +69,9 @@ const SUBMITTER_SLOT = 'vf-submitter'
  * @cssprop [--vf-control-height-small=16px] - `size="small"` buttons
  */
 @vfElement('vf-button')
-export class VfButton extends VfPositioned(VfFormControl) {
+export class VfButton extends VfPositioned(VfShadowRoleControl) {
   static override shadowRootOptions: ShadowRootInit = {
-    ...VfFormControl.shadowRootOptions,
+    ...VfShadowRoleControl.shadowRootOptions,
     delegatesFocus: true,
   }
 
@@ -367,41 +368,23 @@ export class VfButton extends VfPositioned(VfFormControl) {
   }
 
   /**
-   * The click that may become an activation.
+   * The click that may become a submission or a reset.
    *
-   * HTML runs a button's activation behavior only once its click has finished
-   * propagating, which is what makes `preventDefault()` on the button — or on
-   * anything above it — cancel the submission. This listener sits on the
-   * inner `<button>`: the *first* stop on that path, not the last. Acting
-   * here would beat every listener a consumer can write, so the ordinary
-   * spelling silently failed and only a capture-phase cancel ever landed.
+   * This listener sits on the inner `<button>` — the *first* stop on the
+   * click's path, not the last — so acting here would beat every listener a
+   * consumer can write. {@link deferActivation} moves the action to the end of
+   * the path instead, which is where HTML runs a native button's activation
+   * behavior and why `preventDefault()` on the button, or anywhere above it,
+   * cancels the submission. Same helper the toggles and the menus use.
    *
-   * So the action is deferred to the end of the path. A listener added to the
-   * window *during* dispatch still runs when the event reaches it — each
-   * node's listener list is read as that node is reached — and by then
-   * `defaultPrevented` is final. The one ordering HTML has that this doesn't:
-   * a window listener registered before ours still runs after us.
+   * The two guards are this component's own: `#activating` keeps the submit
+   * proxy's own synthesised click from re-entering, and a `type="button"`
+   * button has no activation behavior to defer in the first place.
    */
   private handleClick = (event: MouseEvent): void => {
     if (this.isDisabled || this.#activating) return
     if (this.resolvedType === 'button') return
-    const view = this.ownerDocument.defaultView
-    if (!view) return
-
-    let timer = 0
-    const act = (): void => {
-      view.removeEventListener('click', act)
-      view.clearTimeout(timer)
-      if (event.defaultPrevented) return
-      this.activate()
-    }
-    view.addEventListener('click', act)
-    // stopPropagation() cancels nothing in HTML — a native button still
-    // submits — but it does stop the event ever reaching the window. A task
-    // picks the action up in that case. A task and never a microtask: those
-    // interleave BETWEEN the listeners of a trusted dispatch, which would put
-    // the action back before the path is done.
-    timer = view.setTimeout(act, 0)
+    deferActivation(this, event, () => this.activate())
   }
 
   /**

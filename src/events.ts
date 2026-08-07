@@ -59,3 +59,55 @@ export function emitNative(host: EventTarget, type: 'input' | 'change'): void {
     new Event(type, { bubbles: true, composed: type === 'input' })
   )
 }
+
+/**
+ * Run a control's **activation behavior** the way HTML runs a native one's: at
+ * the *end* of the click's propagation, and not at all if anything on the path
+ * called `preventDefault()`.
+ *
+ * This is what makes `preventDefault()` on a native checkbox — or on any
+ * ancestor — actually stop it from checking. A handler that acts where it sits
+ * cannot reproduce it: a listener on the control (or, worse, one registered in
+ * the constructor, which is first in the host's own listener list) beats every
+ * listener a consumer can write, so only a capture-phase cancel ever landed —
+ * and even that needs someone to *read* `defaultPrevented`, which is the half
+ * that is easy to forget.
+ *
+ * The deferral works because each node's listener list is read as that node is
+ * reached, so a listener added to the window *during* dispatch still runs when
+ * the event gets there — by which point `defaultPrevented` is final. The one
+ * ordering HTML has that this doesn't: a window listener registered before this
+ * one still runs before the action.
+ *
+ * `stopPropagation()` cancels nothing in HTML — a native button still submits —
+ * but it does stop the event ever reaching the window, so a task picks the
+ * action up in that case. A task and **never** a microtask: microtasks
+ * interleave *between* the listeners of a trusted dispatch, which would put the
+ * action back before the path is done.
+ *
+ * Callers keep their own guards (disabled, re-entrancy, gesture latches) — this
+ * owns the timing alone. `vf-button` runs the same shape inline, with the
+ * submit proxy's re-entrancy guard woven through it.
+ *
+ * @param host    the element whose ownerDocument supplies the window to defer on
+ * @param event   the click being deferred; its `defaultPrevented` is the verdict
+ * @param action  run once, at the end of the path, unless cancelled
+ */
+export function deferActivation(
+  host: Element,
+  event: Event,
+  action: () => void
+): void {
+  const view = host.ownerDocument.defaultView
+  if (!view) return
+
+  let timer = 0
+  const act = (): void => {
+    view.removeEventListener('click', act)
+    view.clearTimeout(timer)
+    if (event.defaultPrevented) return
+    action()
+  }
+  view.addEventListener('click', act)
+  timer = view.setTimeout(act, 0)
+}

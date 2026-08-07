@@ -1,6 +1,7 @@
 import { LitElement, type PropertyValues } from 'lit'
 import { ScaleController } from './scale.js'
 import { GridSnapController } from './grid-snap.js'
+import { deferActivation } from './events.js'
 
 type Constructor<T = object> = new (...args: any[]) => T
 type AbstractConstructor<T = object> = abstract new (...args: any[]) => T
@@ -170,8 +171,20 @@ export const VfToggleControl = <T extends Constructor<LitElement>>(Base: T) => {
       this.activate()
     }
 
-    #handleClick = (): void => {
-      this.#interact()
+    /**
+     * A native toggle's checked state flips in its *activation behavior*,
+     * which HTML runs once the click has finished propagating — so
+     * `preventDefault()` anywhere on the path stops it. Acting here directly
+     * could not reproduce that: this listener is registered in the
+     * constructor, first in the host's own listener list, so it beat every
+     * consumer listener and nothing read `defaultPrevented` anyway.
+     *
+     * The disabled gate deliberately stays in {@link #interact}, at the far
+     * end of the deferral — the state that matters is the one when the action
+     * runs, not when the click started.
+     */
+    #handleClick = (event: MouseEvent): void => {
+      deferActivation(this, event, () => this.#interact())
     }
 
     #handleKeydown = (event: KeyboardEvent): void => {
@@ -184,8 +197,16 @@ export const VfToggleControl = <T extends Constructor<LitElement>>(Base: T) => {
       // the same so the two modalities are interchangeable for any consumer
       // bound to `click`; {@link #handleClick} receives it and the disabled
       // gate in {@link #interact} still guards the activation itself.
+      //
+      // `cancelable` because the browser's own keyboard-synthesised click is:
+      // without it `preventDefault()` on the click is a no-op and Space would
+      // be the one modality a consumer could not cancel.
       this.dispatchEvent(
-        new MouseEvent('click', { bubbles: true, composed: true })
+        new MouseEvent('click', {
+          bubbles: true,
+          composed: true,
+          cancelable: true,
+        })
       )
     }
   }

@@ -7,7 +7,7 @@ import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { ScaleController } from '../scale.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { releaseAfterGesture } from '../document-listeners.js'
-import { emit } from '../events.js'
+import { deferActivation, emit } from '../events.js'
 
 /** The Mac modifier glyphs, in the order System 7 printed them.
  *
@@ -394,12 +394,18 @@ export class VfMenuItem extends LitElement {
     }
   }
 
-  #onClick(): void {
+  /**
+   * The gesture latch is read *now* — it is about a press that already
+   * resolved this click — but the activation itself defers to the end of the
+   * path, so `preventDefault()` on the item (or above it) cancels the command
+   * the way it cancels a native control's. See {@link deferActivation}.
+   */
+  #onClick(event: MouseEvent): void {
     if (this.#swallowClick) {
       this.#swallowClick = false
       return
     }
-    this.activate()
+    deferActivation(this, event, () => this.activate())
   }
 
   #onKeydown(event: KeyboardEvent): void {

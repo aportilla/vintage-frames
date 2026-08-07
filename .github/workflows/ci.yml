@@ -50,9 +50,7 @@ jobs:
             exit 1
           fi
 
-      # The suite. It starts and stops its own dev server; `verify:buttons`
-      # reports SKIP here because it diffs against local design material that
-      # is deliberately not in the repo (see .gitignore), and the runner counts
-      # that separately from a pass.
+      # The suite. It starts and stops its own dev server, so nothing here has
+      # to sequence one.
       - name: npm test
         run: npm test

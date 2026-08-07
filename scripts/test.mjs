@@ -150,20 +150,13 @@ function run(name) {
     }, TIMEOUT_MS)
     child.on('close', (code) => {
       clearTimeout(timer)
-      // A script may exit 0 having deliberately checked nothing — verify:buttons
-      // needs the reference sheet, which is local design material a clean
-      // checkout does not carry. It says so with a SKIP line, and that gets its
-      // own column rather than being counted as a pass.
-      const skipped = code === 0 && /^SKIP: /m.test(output)
       resolve({
         name,
         ok: code === 0,
-        skipped,
-        skipReason: skipped ? output.match(/^SKIP: (.*)$/m)[1] : null,
         code,
         output,
         ms: Date.now() - started,
-        counts: skipped ? null : tally(output),
+        counts: tally(output),
       })
     })
   })
@@ -179,12 +172,8 @@ async function runAll(names) {
       const name = queue.shift()
       const result = await run(name)
       done.push(result)
-      const label = result.skipped ? 'SKIP' : result.ok ? 'ok  ' : 'FAIL'
-      const count = result.counts
-        ? ` ${result.counts.passed}/${result.counts.total}`
-        : result.skipped
-          ? ` — ${result.skipReason}`
-          : ''
+      const label = result.ok ? 'ok  ' : 'FAIL'
+      const count = result.counts ? ` ${result.counts.passed}/${result.counts.total}` : ''
       console.log(
         `${label} ${result.name.replace('verify:', '').padEnd(18)}` +
           `${String((result.ms / 1000).toFixed(1) + 's').padStart(7)}${count}`
@@ -221,23 +210,13 @@ const checks = results.reduce(
   }),
   { passed: 0, total: 0 }
 )
-const skips = results.filter((r) => r.skipped)
 const notRun = suite.length - results.length
 
 console.log(
-  `\n${results.length - failures.length - skips.length}/${results.length} scripts passed` +
+  `\n${results.length - failures.length}/${results.length} scripts passed` +
     (checks.total ? `, ${checks.passed}/${checks.total} checks` : '') +
-    (skips.length ? `, ${skips.length} skipped` : '') +
     (notRun ? `, ${notRun} not run (--bail)` : '')
 )
-if (skips.length) {
-  console.log(
-    `skipped: ${skips.map((s) => s.name.replace('verify:', '')).join(', ')} ` +
-      `— asserted nothing, so this run does not cover ${
-        skips.length === 1 ? 'it' : 'them'
-      }`
-  )
-}
 if (failures.length) {
   console.log(`failing: ${failures.map((f) => f.name.replace('verify:', '')).join(', ')}`)
 }

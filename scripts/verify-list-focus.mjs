@@ -10,9 +10,7 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:list-focus
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { ORIGIN, check, launch, report } from './harness.mjs'
 
 const MARKUP = `
   <vf-list id="list" multiple style="width: 200px">
@@ -22,12 +20,6 @@ const MARKUP = `
     <vf-list-item id="r3" value="d">Delta</vf-list-item>
   </vf-list>
 `
-
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
 
 /** Rows whose computed outline actually paints, in document order. */
 const ringed = (page) =>
@@ -42,7 +34,7 @@ const ringed = (page) =>
 
 const focused = (page) => page.evaluate(() => document.activeElement?.id ?? null)
 
-const browser = await chromium.launch()
+const browser = await launch()
 const page = await browser.newPage()
 
 await page.route(ORIGIN, (route) =>
@@ -93,8 +85,4 @@ check(
 await page.evaluate(() => document.getElementById('r2').blur())
 check('blurring the list clears every ring', (await ringed(page)).length === 0)
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

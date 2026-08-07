@@ -25,17 +25,9 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:updates
  */
-import { chromium } from 'playwright'
+import { ORIGIN, check, launch, report } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
-
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /**
  * Instrumentation installed before the module import — components attach their
@@ -616,8 +608,4 @@ async function axNode(page, id) {
     : null
 }
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

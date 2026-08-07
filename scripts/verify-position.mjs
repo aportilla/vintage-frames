@@ -32,21 +32,14 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:position
  */
-import { chromium } from 'playwright'
+import { ORIGIN, check, launch, results } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 const DENSITIES = (process.env.VF_POSITION_DPR ?? '1,2,3').split(',').map(Number)
 
 /** Device pixels per system pixel — the kit's constant (src/scale.ts). */
 const DEVICE_PX_PER_SYSTEM_PX = 3
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /** Markup FIRST, module SECOND — the same upgrade order as the other scripts. */
 async function build(markup, dpr = 1) {

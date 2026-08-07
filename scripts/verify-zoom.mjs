@@ -21,21 +21,13 @@
  *   npm run dev          # in another shell (port 5173) — parts b/c/d
  *   npm run verify:zoom  # compiles src/zoom.ts to scripts/.tmp first
  */
-import { chromium } from 'playwright'
+import { ORIGIN, check, launch, report, results } from './harness.mjs'
 import {
   DEVICE_PX_PER_SYSTEM_PX,
   ZOOM_LADDER,
   devicePxPerSystemPx,
   quantizeZoom,
 } from './.tmp/zoom.js'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
-
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
 
 /* ── (a) pure functions ─────────────────────────────────────────────────── */
 
@@ -181,7 +173,7 @@ const chromeZoom = (cdp, dpr, Z) =>
 
 /* ── (b) Chrome-shaped zoom, end to end ─────────────────────────────────── */
 
-const browser = await chromium.launch()
+const browser = await launch()
 
 console.log('\n— (b) Chromium via CDP: dpr folds the zoom in —')
 
@@ -622,8 +614,4 @@ console.log('\n— (e) a dragged window / moved icon / grown window holds its sy
   await page.close()
 }
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

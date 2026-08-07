@@ -44,6 +44,7 @@
     "ui-kit"
   ],
   "scripts": {
+    "test": "node scripts/test.mjs",
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.build.json && npm run analyze",
     "prepack": "npm run build && npm run verify:manifest",

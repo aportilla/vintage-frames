@@ -13,9 +13,8 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:blog
  */
-import { chromium } from 'playwright'
+import { ORIGIN, launch } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 const DPR = Number(process.env.VF_BLOG_DPR ?? 2)
 
 const failures = []
@@ -25,7 +24,7 @@ const check = (label, actual, expected) => {
   console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label} → ${JSON.stringify(actual)}`)
 }
 
-const browser = await chromium.launch()
+const browser = await launch()
 const page = await browser.newPage({
   viewport: { width: 1320, height: 950 },
   deviceScaleFactor: DPR,

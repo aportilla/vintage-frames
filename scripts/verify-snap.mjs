@@ -24,9 +24,8 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:snap
  */
-import { chromium } from 'playwright'
+import { ORIGIN, launch } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 // ?nosnap: blog.html turns snapping on itself, which would correct the
 // perturbation before the broken baseline is measured — the page has to stay
 // inert so enableSnap() below is the only thing that flips the switch.
@@ -160,7 +159,7 @@ const settle = (page) =>
     () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
   )
 
-const browser = await chromium.launch()
+const browser = await launch()
 
 for (const path of PAGES) {
   for (const dpr of DENSITIES) {

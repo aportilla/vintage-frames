@@ -11,9 +11,7 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:desktop
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { ORIGIN, check, launch, report } from './harness.mjs'
 
 const MARKUP = `
   <vf-desktop id="desk" style="height: 400px">
@@ -23,12 +21,6 @@ const MARKUP = `
   </vf-desktop>
   <vf-window id="lone" heading="Standalone" width="200" height="80">lone</vf-window>
 `
-
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
 
 /** Which windows carry the `active` attribute, in document order. */
 const activeAttrs = (page) =>
@@ -44,7 +36,7 @@ const settle = (page) =>
     () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
   )
 
-const browser = await chromium.launch()
+const browser = await launch()
 const page = await browser.newPage()
 
 // The demo index.html imports src/index.ts, which defines *every* component —
@@ -132,8 +124,4 @@ check(
   `active = [${clicked}]`
 )
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

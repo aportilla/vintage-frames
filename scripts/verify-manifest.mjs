@@ -1,3 +1,4 @@
+import { check, results } from './harness.mjs'
 /**
  * Verifies custom-elements.json against the source it claims to describe.
  *
@@ -26,12 +27,6 @@ import { join } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const read = (p) => readFileSync(join(ROOT, p), 'utf8')
-
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
 
 /** Every .ts file under src, flattened, so a name can be searched kit-wide. */
 const srcFiles = []

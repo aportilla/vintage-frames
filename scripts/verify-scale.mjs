@@ -20,9 +20,7 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:scale
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { check, launch, makeBuild, report } from './harness.mjs'
 
 /** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
 const DEFAULT_SCALE = 3
@@ -43,34 +41,10 @@ const COMPONENTS = `
   <vf-window heading="Win" width="200" height="120"><vf-button>In window</vf-button></vf-window>
 `
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /** A page built the parse-time way: markup first, module second. */
-async function build(markup) {
-  const page = await browser.newPage()
-  await page.route(ORIGIN, (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
-  )
-  await page.goto(ORIGIN)
-  await page.unroute(ORIGIN)
-  await page.setContent(markup)
-  await page.evaluate(() => import('/src/index.js'))
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll('*')]
-        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
-        .map((e) => e.updateComplete)
-    )
-  )
-  return page
-}
-
+const build = makeBuild(browser)
 /** Per-tag inline + computed --vf-scale, first instance of each tag. */
 const scales = (page) =>
   page.evaluate(() => {
@@ -243,8 +217,4 @@ const heights = (page, ids) =>
   await page.close()
 }
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

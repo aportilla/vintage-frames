@@ -35,9 +35,7 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:icon
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { ORIGIN, check, launch, report } from './harness.mjs'
 
 /** A 1×1 transparent PNG stands in for art: the cell is reserved, not measured. */
 const ART32 =
@@ -45,13 +43,7 @@ const ART32 =
 const ART16 =
   'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2716%27 height=%2716%27%3E%3Crect width=%2716%27 height=%2716%27 fill=%27%23000%27/%3E%3C/svg%3E'
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /** Markup FIRST, module SECOND — the upgrade order verify:scale depends on. */
 async function build(markup, { dpr = 1 } = {}) {
@@ -1404,8 +1396,4 @@ for (const dpr of [1, 2, 3]) {
   await page.close()
 }
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

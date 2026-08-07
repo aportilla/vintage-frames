@@ -17,17 +17,9 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:define
  */
-import { chromium } from 'playwright'
+import { ORIGIN, check, launch, report } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
-
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 const page = await browser.newPage()
 
 const warnings = []
@@ -134,8 +126,4 @@ const fresh = await page.evaluate(async () => {
 })
 check('an unclaimed name registers normally', fresh === true)
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

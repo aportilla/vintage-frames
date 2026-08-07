@@ -55,10 +55,9 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:focus
  */
-import { chromium } from 'playwright'
-import { inflateSync } from 'node:zlib'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import {
+  check, decodePng, isBlack, isWhite, launch, makeBuild, report, rgb,
+} from './harness.mjs'
 
 /** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
 const S = 3
@@ -67,93 +66,14 @@ const PAD = 9
 /** …and for a control whose rule sits below its box, past a 2px hard shadow. */
 const BELOW_PAD = 6 * S
 
-// ── minimal PNG decode (Playwright PNGs: 8-bit RGBA/RGB, non-interlaced) ──
-function decodePng(buf) {
-  let pos = 8
-  let ihdr
-  const idat = []
-  while (pos < buf.length) {
-    const len = buf.readUInt32BE(pos)
-    const type = buf.toString('ascii', pos + 4, pos + 8)
-    if (type === 'IHDR') ihdr = buf.subarray(pos + 8, pos + 8 + len)
-    else if (type === 'IDAT') idat.push(buf.subarray(pos + 8, pos + 8 + len))
-    pos += 12 + len
-  }
-  const width = ihdr.readUInt32BE(0)
-  const height = ihdr.readUInt32BE(4)
-  const bpp = ihdr[9] === 6 ? 4 : 3
-  const raw = inflateSync(Buffer.concat(idat))
-  const stride = width * bpp
-  const out = Buffer.alloc(height * stride)
-  for (let y = 0; y < height; y++) {
-    const filter = raw[y * (stride + 1)]
-    const row = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1))
-    const prev = y > 0 ? out.subarray((y - 1) * stride, y * stride) : null
-    const cur = out.subarray(y * stride, (y + 1) * stride)
-    for (let x = 0; x < stride; x++) {
-      const a = x >= bpp ? cur[x - bpp] : 0
-      const b = prev ? prev[x] : 0
-      const c = x >= bpp && prev ? prev[x - bpp] : 0
-      let v = row[x]
-      switch (filter) {
-        case 1: v += a; break
-        case 2: v += b; break
-        case 3: v += (a + b) >> 1; break
-        case 4: {
-          const p = a + b - c
-          const pa = Math.abs(p - a)
-          const pb = Math.abs(p - b)
-          const pc = Math.abs(p - c)
-          v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c
-          break
-        }
-      }
-      cur[x] = v & 0xff
-    }
-  }
-  return { width, height, bpp, data: out }
-}
-
-const rgb = (png, x, y) => {
-  const i = (y * png.width + x) * png.bpp
-  return [png.data[i], png.data[i + 1], png.data[i + 2]]
-}
-const isBlack = (png, x, y) => rgb(png, x, y).every((c) => c < 32)
-const isWhite = (png, x, y) => rgb(png, x, y).every((c) => c > 224)
-
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /** A page with the kit loaded and every vf-* element upgraded. */
-async function build(markup) {
-  const page = await browser.newPage({ viewport: { width: 900, height: 500 } })
-  await page.route(ORIGIN, (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
-  )
-  await page.goto(ORIGIN)
-  await page.unroute(ORIGIN)
-  await page.setContent(
-    `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff;padding:24px">${markup}`
-  )
-  await page.evaluate(() => import('/src/index.js'))
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll('*')]
-        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
-        .map((e) => e.updateComplete)
-    )
-  )
-  await page.evaluate(() => document.fonts.ready)
-  await page.evaluate(
-    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
-  )
-  return page
-}
+const build = makeBuild(browser, {
+  viewport: { width: 900, height: 500 },
+  bodyStyle: 'margin:0;background:#fff;padding:24px',
+  settle: true,
+})
 
 /**
  * The rendered state of one control: its computed focus declarations plus a
@@ -1015,8 +935,4 @@ for (const [tag, markup, frame, shadow] of [
   await page.close()
 }
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

@@ -29,9 +29,7 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:menu-press
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { ORIGIN, check, launch, report } from './harness.mjs'
 
 const MARKUP = `
   <vf-menu-bar>
@@ -55,13 +53,7 @@ const MARKUP = `
   </div>
 `
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /** Markup FIRST, module SECOND — the upgrade order verify:scale depends on. */
 async function build({ reducedMotion } = {}) {
@@ -333,8 +325,4 @@ await reduced.waitForTimeout(50)
   )
 }
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

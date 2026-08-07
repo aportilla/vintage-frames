@@ -11,6 +11,7 @@ npm install
 npm run dev      # dev server on http://localhost:5173
 npm run build    # library build to dist/
 npm run typecheck
+npm test         # the whole verify suite (starts its own dev server)
 ```
 
 `npm run dev` serves three demo pages:
@@ -1186,6 +1187,36 @@ npm run verify:icon   # the cell metrics at dpr 1/2/3; art, plate and text all o
                       # lattice, transparency, inversion — incl. from a source
                       # that taints its canvas
 ```
+
+## Tests
+
+```sh
+npm test                  # all 32 verify scripts, in parallel
+npm test -- focus button   # only the ones whose name matches
+npm test -- --bail         # stop at the first failing script
+npm run verify:focus       # one script, against a dev server you started
+```
+
+The `verify:*` scripts referenced throughout this README **are** the test
+suite. They are Playwright *drivers*: Node reaches into a real page and asserts
+what the browser actually computed — rendered pixels, resolved `calc()`, the
+accessibility tree, the device-pixel grid at three densities.
+
+That direction is deliberate. jsdom has no layout, no `clip-path`, no
+`devicePixelRatio` and no accessibility tree, so it can resolve none of what
+this kit exists to guarantee. And an in-page test runner can't help either:
+`:focus-visible` and the kit's focus-modality rule only respond to **trusted**
+input, which nothing running inside the page can produce — `verify:focus`
+presses a real Tab key and clicks a real mouse. Clipped screenshots, per-context
+`deviceScaleFactor` and the CDP accessibility domain are all Node-side too.
+
+`npm test` starts a dev server on the port it will poll, runs every script in
+parallel, prints one table and exits nonzero if any fail. A server already
+listening is reused and left running — it's yours. What the scripts share (the
+page builder, `check()`, the tally, a PNG decoder, the accessibility-tree
+walker) lives in [`scripts/harness.mjs`](./scripts/harness.mjs); each script
+keeps its own prose header explaining what it defends and why, which is the
+part worth reading.
 
 ## Utilities & style toolkit
 

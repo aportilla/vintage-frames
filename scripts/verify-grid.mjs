@@ -26,9 +26,8 @@
  * Override the pages with VF_GRID_PAGES (comma-separated paths) and the
  * densities with VF_GRID_DPR.
  */
-import { chromium } from 'playwright'
+import { ORIGIN, launch } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 // ?nosnap: blog.html turns applyGridSnap() on itself, which would quietly
 // paper over exactly the ORIGIN faults this script exists to catch.
 const PAGES = (process.env.VF_GRID_PAGES ?? '/,/blog.html?nosnap').split(',')
@@ -87,7 +86,7 @@ const audit = async (page) =>
     return { total, faults, dpr }
   })
 
-const browser = await chromium.launch()
+const browser = await launch()
 let failed = false
 
 for (const path of PAGES) {

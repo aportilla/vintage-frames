@@ -34,43 +34,17 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:archetypes
  */
-import { chromium } from 'playwright'
+import { check, launch, makeBuild, results } from './harness.mjs'
 import zlib from 'node:zlib'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 
 /** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
 const S = 3
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
 const near = (a, b, eps = 0.01) => Math.abs(a - b) <= eps
 
-const browser = await chromium.launch()
+const browser = await launch()
 
-async function build(markup) {
-  const page = await browser.newPage({ viewport: { width: 1200, height: 900 } })
-  await page.route(ORIGIN, (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
-  )
-  await page.goto(ORIGIN)
-  await page.unroute(ORIGIN)
-  await page.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0">${markup}`)
-  await page.evaluate(() => import('/src/index.js'))
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll('*')]
-        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
-        .map((e) => e.updateComplete)
-    )
-  )
-  await page.evaluate(() => document.fonts.ready)
-  return page
-}
-
+const build = makeBuild(browser)
 /** Computed props of a shadow part, plus its rect relative to the frame. */
 const partMetrics = (page, hostId, part, props) =>
   page.evaluate(

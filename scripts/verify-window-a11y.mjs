@@ -27,52 +27,11 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window-a11y
  */
-import { chromium } from 'playwright'
+import { attr, check, launch, makeBuild, results, walk } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+const browser = await launch()
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
-
-async function build(markup) {
-  const page = await browser.newPage({ viewport: { width: 1200, height: 900 } })
-  await page.route(ORIGIN, (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
-  )
-  await page.goto(ORIGIN)
-  await page.unroute(ORIGIN)
-  await page.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0">${markup}`)
-  await page.evaluate(() => import('/src/index.js'))
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll('*')]
-        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
-        .map((e) => e.updateComplete)
-    )
-  )
-  await page.evaluate(() => document.fonts.ready)
-  return page
-}
-
-/** Walk the pierced DOM (CDP getDocument) for a node; see verify-chrome. */
-const walk = (node, match) => {
-  if (match(node)) return node
-  for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
-    const found = walk(child, match)
-    if (found) return found
-  }
-  return null
-}
-const attr = (node, name) => {
-  const a = node.attributes ?? []
-  for (let i = 0; i < a.length; i += 2) if (a[i] === name) return a[i + 1]
-  return null
-}
+const build = makeBuild(browser)
 
 /** The AX node computed for a shadow part of a vf-* host, via CDP. */
 async function axForPart(page, cdp, hostId, partName) {

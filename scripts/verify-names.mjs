@@ -29,74 +29,14 @@
  *   npm run dev            # in another shell (port 5173)
  *   npm run verify:names
  */
-import { chromium } from 'playwright'
+import { attr, ax, axFor, check, launch, makeBuild, results, walk } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+const browser = await launch()
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
-
-async function build(markup) {
-  const page = await browser.newPage({ viewport: { width: 1200, height: 700 } })
-  await page.route(ORIGIN, (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
-  )
-  await page.goto(ORIGIN)
-  await page.unroute(ORIGIN)
-  await page.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0">${markup}`)
-  await page.evaluate(() => import('/src/index.js'))
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll('*')]
-        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
-        .map((e) => e.updateComplete)
-    )
-  )
-  await page.evaluate(() => document.fonts.ready)
-  return page
-}
-
-/** Walk the pierced DOM (CDP getDocument) for a node; see verify-chrome. */
-const walk = (node, match) => {
-  if (match(node)) return node
-  for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
-    const found = walk(child, match)
-    if (found) return found
-  }
-  return null
-}
-const attr = (node, name) => {
-  const a = node.attributes ?? []
-  for (let i = 0; i < a.length; i += 2) if (a[i] === name) return a[i + 1]
-  return null
-}
-
-/** CDP session with the Accessibility domain up, one per page. */
-async function ax(page) {
-  const cdp = await page.context().newCDPSession(page)
-  await cdp.send('Accessibility.enable')
-  return cdp
-}
+const build = makeBuild(browser, { viewport: { width: 1200, height: 700 } })
 
 /** The AX node computed for a shadow part of a vf-* host (verify-window-a11y's
  * idiom), or for the host itself when partName is null. */
-async function axFor(cdp, hostId, partName = null) {
-  const doc = await cdp.send('DOM.getDocument', { depth: -1, pierce: true })
-  const host = walk(doc.root, (n) => attr(n, 'id') === hostId)
-  const el = partName ? host && walk(host, (n) => attr(n, 'part') === partName) : host
-  if (!el) return null
-  const { nodes } = await cdp.send('Accessibility.getPartialAXTree', {
-    nodeId: el.nodeId,
-    fetchRelatives: false,
-  })
-  return nodes[0] ?? null
-}
-
 const axName = (node) => node?.name?.value ?? ''
 const axDescription = (node) => node?.description?.value ?? ''
 

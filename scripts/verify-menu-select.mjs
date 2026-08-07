@@ -10,9 +10,7 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:menu-select
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { ORIGIN, check, launch, report } from './harness.mjs'
 
 const MARKUP = `
   <div id="host">
@@ -28,13 +26,7 @@ const MARKUP = `
   </div>
 `
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 const page = await browser.newPage()
 
 await page.route(ORIGIN, (route) =>
@@ -129,8 +121,4 @@ check(
   `got ${JSON.stringify(entries.map((e) => e.name))}`
 )
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

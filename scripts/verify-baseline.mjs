@@ -19,70 +19,14 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:baseline
  */
-import { chromium } from 'playwright'
-import { inflateSync } from 'node:zlib'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
-
-// ── minimal PNG decode (Playwright PNGs: 8-bit RGBA/RGB, non-interlaced) ──
-function decodePng(buf) {
-  let pos = 8
-  let ihdr
-  const idat = []
-  while (pos < buf.length) {
-    const len = buf.readUInt32BE(pos)
-    const type = buf.toString('ascii', pos + 4, pos + 8)
-    if (type === 'IHDR') ihdr = buf.subarray(pos + 8, pos + 8 + len)
-    else if (type === 'IDAT') idat.push(buf.subarray(pos + 8, pos + 8 + len))
-    pos += 12 + len
-  }
-  const width = ihdr.readUInt32BE(0)
-  const height = ihdr.readUInt32BE(4)
-  const bpp = ihdr[9] === 6 ? 4 : 3
-  const raw = inflateSync(Buffer.concat(idat))
-  const stride = width * bpp
-  const out = Buffer.alloc(height * stride)
-  for (let y = 0; y < height; y++) {
-    const filter = raw[y * (stride + 1)]
-    const row = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1))
-    const prev = y > 0 ? out.subarray((y - 1) * stride, y * stride) : null
-    const cur = out.subarray(y * stride, (y + 1) * stride)
-    for (let x = 0; x < stride; x++) {
-      const a = x >= bpp ? cur[x - bpp] : 0
-      const b = prev ? prev[x] : 0
-      const c = x >= bpp && prev ? prev[x - bpp] : 0
-      let v = row[x]
-      switch (filter) {
-        case 1: v += a; break
-        case 2: v += b; break
-        case 3: v += (a + b) >> 1; break
-        case 4: {
-          const p = a + b - c
-          const pa = Math.abs(p - a)
-          const pb = Math.abs(p - b)
-          const pc = Math.abs(p - c)
-          v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c
-          break
-        }
-      }
-      cur[x] = v & 0xff
-    }
-  }
-  return { width, height, bpp, data: out }
-}
+import { ORIGIN, check, decodePng, launch, report } from './harness.mjs'
 
 const isInk = (png, x, y) => {
   const i = (y * png.width + x) * png.bpp
   return png.data[i] < 128 && png.data[i + 1] < 128 && png.data[i + 2] < 128
 }
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /**
  * Renders one closed pill with its border-box top at `hostTop` (CSS px) and
@@ -186,8 +130,4 @@ check(
   fmt(whole)
 )
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

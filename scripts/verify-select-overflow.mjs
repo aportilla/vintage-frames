@@ -30,21 +30,14 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:select-overflow
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { ORIGIN, check, launch, results } from './harness.mjs'
 
 /** Matches src/motion.ts — the pace a held arrow rolls the list at. */
 const MENU_SCROLL_INTERVAL_MS = 66
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
 const near = (a, b, tol = 0.02) => Math.abs(a - b) < tol
 
-const browser = await chromium.launch()
+const browser = await launch()
 
 const options = (n) =>
   Array.from({ length: n }, (_, i) => `<vf-option value="o${i}">Option ${i}</vf-option>`).join('')

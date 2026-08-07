@@ -26,42 +26,15 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:toggle
  */
-import { chromium } from 'playwright'
-
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+import { check, launch, makeBuild, report } from './harness.mjs'
 
 /** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
 const S = 3
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
+const browser = await launch()
 
 /** Markup FIRST, module SECOND — the upgrade order verify:scale depends on. */
-async function build(markup) {
-  const page = await browser.newPage({ viewport: { width: 1200, height: 900 } })
-  await page.route(ORIGIN, (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
-  )
-  await page.goto(ORIGIN)
-  await page.unroute(ORIGIN)
-  await page.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0">${markup}`)
-  await page.evaluate(() => import('/src/index.js'))
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll('*')]
-        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
-        .map((e) => e.updateComplete)
-    )
-  )
-  await page.evaluate(() => document.fonts.ready)
-  return page
-}
-
+const build = makeBuild(browser)
 const hostProps = (page, id, props) =>
   page.evaluate(
     ([hostId, wanted]) => {
@@ -451,8 +424,4 @@ async function axNode(page, id) {
   await page.close()
 }
 
-await browser.close()
-
-const failed = results.filter((r) => !r).length
-console.log(`\n${results.length - failed}/${results.length} checks passed`)
-process.exit(failed ? 1 : 0)
+await report(browser)

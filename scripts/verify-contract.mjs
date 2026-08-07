@@ -28,41 +28,17 @@
  *   npm run dev             # in another shell (port 5173)
  *   npm run verify:contract
  */
-import { chromium } from 'playwright'
+import { check, launch, makeBuild, results } from './harness.mjs'
 
-const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
+const browser = await launch()
 
-const results = []
-function check(name, pass, detail = '') {
-  results.push(pass)
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
-}
-
-const browser = await chromium.launch()
-
-async function build(markup) {
-  const page = await browser.newPage({ viewport: { width: 1200, height: 700 } })
+const build = makeBuild(browser, {
+  viewport: { width: 1200, height: 700 },
   // Synchronous selection blinks (the kit honors prefers-reduced-motion), so
   // a select/menu commit lands before the next evaluate — the probe idiom
   // every keyboard-driving verify script here uses.
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.route(ORIGIN, (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
-  )
-  await page.goto(ORIGIN)
-  await page.unroute(ORIGIN)
-  await page.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0">${markup}`)
-  await page.evaluate(() => import('/src/index.js'))
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll('*')]
-        .filter((e) => e.tagName.toLowerCase().startsWith('vf-'))
-        .map((e) => e.updateComplete)
-    )
-  )
-  await page.evaluate(() => document.fonts.ready)
-  return page
-}
+  reducedMotion: true,
+})
 
 /* ────────────────────────────────────────────────────────────────────────────
    1. REMOVAL — §8.2: unmounting an open modal is a close path

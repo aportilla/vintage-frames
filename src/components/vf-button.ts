@@ -1,4 +1,4 @@
-import { css, html, unsafeCSS } from 'lit'
+import { css, html, nothing, unsafeCSS } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
@@ -15,6 +15,14 @@ import {
   steppedRectClip,
   steppedRingClip,
 } from '../pixel-frame.js'
+
+/**
+ * The `slot` name the submit proxy carries — deliberately one no shadow root
+ * offers, so the proxy stays unslotted and therefore unrendered. Declared
+ * above the class rather than at the module tail: `@vfElement` upgrades
+ * synchronously, and a const below it would be in its temporal dead zone.
+ */
+const SUBMITTER_SLOT = 'vf-submitter'
 
 /**
  * The classic System 7 push button ("OK", "Cancel", "Install", …).
@@ -35,8 +43,23 @@ import {
  * rather than a ring around the control.
  *
  * Form-associated: place it inside a `<form>` and `type="submit"` submits the
- * form (contributing its `name`/`value` to the submission), `type="reset"`
- * resets it. Enter and Space activate it via the inner native button.
+ * form (contributing its `name`/`value` and any `form*` override to the
+ * submission), `type="reset"` resets it. Enter and Space activate it via the
+ * inner native button, and the submission runs at the end of the click's
+ * propagation, so `preventDefault()` on the button cancels it the way it
+ * cancels a native one.
+ *
+ * One thing the platform will not allow: `event.submitter` cannot BE a
+ * form-associated custom element. It is the transient native proxy this
+ * button submits through — so read the submitting button as
+ * `event.submitter.closest('vf-button')`, and its identity from
+ * `submitter.name`/`.value` rather than by comparing element references.
+ *
+ * A host-level `aria-label` / `aria-labelledby` names the inner button, and
+ * `description` (or a host-level `aria-describedby`) describes it — the same
+ * bridge the fields use, since the role lives on a shadow-internal node the
+ * platform can't deliver those to. A `<label for>` deliberately does not
+ * name it: a `<button>` is not a labelable element.
  *
  * @slot - The button label.
  * @csspart button - The inner native `<button>` element.
@@ -91,8 +114,25 @@ export class VfButton extends VfPositioned(VfFormControl) {
         pointer-events: none;
       }
       /* Disabled default: the fat outer ring dims to gray; the inner button
-         border stays solid black (see button:disabled). */
+         border stays solid black (see button:disabled) — the System 7 reading,
+         where the ring and the title dim together and the button's own frame
+         does not. (The original dimmed with a 50% stipple; gray standing in
+         for it is the kit's one liberty here — SPEC §1.)
+
+         Both disabled routes need a selector, because only one of them is an
+         attribute: an ancestor <fieldset disabled> disables the control
+         through formDisabledCallback, which sets the form-disabled custom
+         state and never touches the disabled attribute. Keyed on the
+         attribute alone, a default button inside a disabled fieldset greyed
+         its label — that comes from the inner <button>'s own :disabled —
+         while its ring stayed solid black. Separate rules rather than one
+         :is() list: an engine that doesn't parse :state() drops the whole
+         selector it appears in, and the attribute case should survive that
+         on its own. */
       :host([variant='default'][disabled])::before {
+        background: var(--vf-disabled, #c0c0c0);
+      }
+      :host([variant='default']:state(form-disabled))::before {
         background: var(--vf-disabled, #c0c0c0);
       }
       /* The native button paints no box of its own — its frame and face are
@@ -166,20 +206,30 @@ export class VfButton extends VfPositioned(VfFormControl) {
       button:focus-visible {
         outline: none;
       }
+      /* …and off the host too. Blink doesn't currently propagate
+         :focus-visible to a delegatesFocus host, so today this paints nothing
+         — but SPEC §vf-button claims the ring is off on both, and that claim
+         should hold because the component says so, not because one engine
+         happens to agree. Its own rule, not a selector list with the above:
+         one unparsed selector would drop the other with it. */
+      :host(:focus-visible) {
+        outline: none;
+      }
       button:focus-visible .label::after {
         ${vfFocusUnderline}
       }
       /* Small: the 16px button from the reference's third row. The corner
          traces are identical (verified against the 80×16 sample sheet row),
          so only the metrics change — and the label drops to the body face,
-         matching the sheet's smaller Geneva-9-style labels. */
+         matching the sheet's smaller Geneva-9-style labels. The padding is
+         the 14px above, deliberately: it was tuned from 10 to match the tall
+         button, so this rule states only what actually differs. */
       :host([size='small']) {
         ${vfBodyDecls}
       }
       :host([size='small']) button {
         height: calc(var(--vf-scale, 1) * var(--vf-control-height-small, 16px));
         min-width: calc(var(--vf-scale, 1) * 48px);
-        padding: 0 calc(var(--vf-scale, 1) * 14px);
       }
       /* Disabled: only the label dims to gray; the solid black border stays. */
       button:disabled {
@@ -204,14 +254,51 @@ export class VfButton extends VfPositioned(VfFormControl) {
    * Activation behavior, mirroring native `<button type>`:
    * `'submit'` submits the associated form, `'reset'` resets it and
    * `'button'` (the default) does nothing beyond the `click` event.
+   *
+   * Two deliberate departures from `<button>`, both pointing the same way — a
+   * `vf-button` never submits unless it was asked to. HTML's *missing*-value
+   * default is `submit`; here it is `button`, because a custom element that
+   * silently submitted the form it happens to sit in is the wrong surprise.
+   * The *invalid*-value default follows the missing one rather than HTML's
+   * (which is also `submit`), so a misspelling does nothing instead of
+   * submitting.
    */
-  @property() type: 'button' | 'submit' | 'reset' = 'button'
+  @property({ reflect: true }) type: 'button' | 'submit' | 'reset' = 'button'
 
   /** Form field name; submitted as `name=value` when `type="submit"`. */
   @property({ reflect: true }) name = ''
 
   /** Value submitted under `name` when `type="submit"`. */
   @property({ reflect: true }) value = ''
+
+  /**
+   * The submission overrides native `<button>` carries, honored on
+   * `type="submit"` only, exactly as HTML honors them: each is handed to the
+   * native proxy {@link activate} submits through, so the *behavior* is the
+   * platform's rather than an emulation of it.
+   *
+   * One difference from the native IDL, in the getters only: `formAction`
+   * returns the string you set, where `HTMLButtonElement.formAction` returns
+   * it resolved against the document's base URL. The submission itself
+   * resolves normally — it is the proxy's `formaction` doing the work.
+   */
+  @property({ attribute: 'formaction', reflect: true }) formAction = ''
+
+  /** See {@link formAction}. Overrides the form's `enctype`. */
+  @property({ attribute: 'formenctype', reflect: true }) formEnctype = ''
+
+  /** See {@link formAction}. Overrides the form's `method`. */
+  @property({ attribute: 'formmethod', reflect: true }) formMethod = ''
+
+  /**
+   * See {@link formAction}. Skips the form's constraint validation, so a
+   * "Save Draft" button submits past a failing `required`.
+   */
+  @property({ type: Boolean, attribute: 'formnovalidate', reflect: true })
+  formNoValidate = false
+
+  /** See {@link formAction}. Overrides the form's `target`. */
+  @property({ attribute: 'formtarget', reflect: true }) formTarget = ''
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -221,6 +308,27 @@ export class VfButton extends VfPositioned(VfFormControl) {
 
   @query('button') private buttonEl!: HTMLButtonElement | null
 
+  /** True while {@link activate} runs — see the re-entrancy note there. */
+  #activating = false
+
+  /**
+   * {@link type}, resolved the way HTML resolves an enumerated attribute:
+   * ASCII case-insensitively, with anything unrecognized falling to the
+   * default.
+   *
+   * Comparing the raw property is the bug this replaces. `type="SUBMIT"` — a
+   * perfectly valid spelling on a native button — passed the `!== 'button'`
+   * guard and then failed the `=== 'submit'` one, so it submitted the form
+   * with its `name`/`value` silently dropped: the action taken, the payload
+   * lost, and in that order.
+   */
+  private get resolvedType(): 'button' | 'submit' | 'reset' {
+    const value = String(this.type ?? '').toLowerCase()
+    if (value === 'submit') return 'submit'
+    if (value === 'reset') return 'reset'
+    return 'button'
+  }
+
   /**
    * Forwards a synthetic activation to the real `<button>` in the shadow
    * root. A `click()` on the host dispatches at the host and propagates *up*,
@@ -229,9 +337,16 @@ export class VfButton extends VfPositioned(VfFormControl) {
    * bubbles back out composed, exactly as a pointer's does. This is what the
    * fields' implicit submission (Enter) activates as the form's default
    * button; a disabled button swallows it natively, as it should.
+   *
+   * Before the first render there is no inner button to forward to. A native
+   * `click()` always fires, so rather than doing nothing this falls back to
+   * dispatching at the host — no activation behavior to run yet, but the
+   * event a caller asked for.
    */
   override click(): void {
-    this.buttonEl?.click()
+    const button = this.buttonEl
+    if (button) button.click()
+    else super.click()
   }
 
   override render() {
@@ -240,39 +355,111 @@ export class VfButton extends VfPositioned(VfFormControl) {
         part="button"
         class="vf-snap"
         type="button"
+        aria-label=${this.hostAriaLabel || nothing}
+        aria-describedby=${this.describedBy}
         ?disabled=${this.isDisabled}
         @click=${this.handleClick}
       >
         <span class="label"><slot></slot></span>
       </button>
+      ${this.renderDescription()}
     `
   }
 
+  /**
+   * The click that may become an activation.
+   *
+   * HTML runs a button's activation behavior only once its click has finished
+   * propagating, which is what makes `preventDefault()` on the button — or on
+   * anything above it — cancel the submission. This listener sits on the
+   * inner `<button>`: the *first* stop on that path, not the last. Acting
+   * here would beat every listener a consumer can write, so the ordinary
+   * spelling silently failed and only a capture-phase cancel ever landed.
+   *
+   * So the action is deferred to the end of the path. A listener added to the
+   * window *during* dispatch still runs when the event reaches it — each
+   * node's listener list is read as that node is reached — and by then
+   * `defaultPrevented` is final. The one ordering HTML has that this doesn't:
+   * a window listener registered before ours still runs after us.
+   */
   private handleClick = (event: MouseEvent): void => {
-    if (this.isDisabled || this.type === 'button') return
-    // Respect a click whose default was already prevented (e.g. cancelled in
-    // the capture phase) before emulating the native submit/reset action.
-    if (event.defaultPrevented) return
-    const form = this.internals.form
-    if (!form) return
-    // A form-associated custom element can't be a form's native submitter, so
-    // briefly insert a real native button, activate it — carrying submitter
-    // identity and this button's name/value into the submission — then remove
-    // it (the standard technique for a shadow-DOM form button).
-    const proxy = document.createElement('button')
-    proxy.type = this.type
-    proxy.style.position = 'absolute'
-    proxy.style.width = '0'
-    proxy.style.height = '0'
-    proxy.style.overflow = 'hidden'
-    proxy.style.clipPath = 'inset(50%)'
-    if (this.type === 'submit' && this.name) {
-      proxy.name = this.name
-      proxy.value = this.value
+    if (this.isDisabled || this.#activating) return
+    if (this.resolvedType === 'button') return
+    const view = this.ownerDocument.defaultView
+    if (!view) return
+
+    let timer = 0
+    const act = (): void => {
+      view.removeEventListener('click', act)
+      view.clearTimeout(timer)
+      if (event.defaultPrevented) return
+      this.activate()
     }
-    form.append(proxy)
-    proxy.click()
-    proxy.remove()
+    view.addEventListener('click', act)
+    // stopPropagation() cancels nothing in HTML — a native button still
+    // submits — but it does stop the event ever reaching the window. A task
+    // picks the action up in that case. A task and never a microtask: those
+    // interleave BETWEEN the listeners of a trusted dispatch, which would put
+    // the action back before the path is done.
+    timer = view.setTimeout(act, 0)
+  }
+
+  /**
+   * The activation behavior HTML gives a `<button type="submit"|"reset">`,
+   * performed through a transient native proxy.
+   *
+   * A form-associated custom element cannot be a form's submitter: the
+   * platform rejects one outright (`requestSubmit(vfButton)` throws a
+   * TypeError, "not a submit button"), and a bare `requestSubmit()` submits
+   * with `event.submitter === null` and none of this button's name/value.
+   *
+   * The proxy is a child of THIS element carrying a `slot` no shadow root
+   * offers, which is three things at once. It is a light-DOM descendant of
+   * the host, so `event.submitter.closest('vf-button')` finds the button that
+   * submitted — as close to submitter identity as the platform permits, and
+   * the reason it lives here rather than at the end of the form. Being
+   * unslotted it is never rendered, never measured and never in the
+   * accessibility tree, so it needs no clipping to hide. And being off the
+   * flattened tree, its own click cannot travel back up through the shadow
+   * `<button>` this component's own handler is bound to — which, slotted,
+   * would have been an infinite recursion rather than a stray event.
+   */
+  private activate(): void {
+    const type = this.resolvedType
+    const form = this.internals.form
+    if (!form || type === 'button' || this.isDisabled) return
+
+    const proxy = document.createElement('button')
+    proxy.type = type
+    proxy.slot = SUBMITTER_SLOT
+    // Without this the proxy's click reaches the form and the host as a
+    // SECOND click for one press — a delegating `e.target.closest('button')`
+    // handler firing twice, on a target already removed from the document.
+    // Ending propagation at the proxy costs nothing: HTML runs the activation
+    // behavior after the dispatch either way, cancelled only by
+    // preventDefault().
+    proxy.addEventListener('click', (event) => event.stopPropagation())
+    if (type === 'submit') {
+      if (this.name) {
+        proxy.name = this.name
+        proxy.value = this.value
+      }
+      // HTML honors these on a submit button only.
+      if (this.formAction) proxy.formAction = this.formAction
+      if (this.formEnctype) proxy.formEnctype = this.formEnctype
+      if (this.formMethod) proxy.formMethod = this.formMethod
+      if (this.formTarget) proxy.formTarget = this.formTarget
+      proxy.formNoValidate = this.formNoValidate
+    }
+
+    this.#activating = true
+    try {
+      this.append(proxy)
+      proxy.click()
+    } finally {
+      proxy.remove()
+      this.#activating = false
+    }
   }
 }
 

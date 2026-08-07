@@ -190,8 +190,14 @@ export class VfTextControlBase extends VfFormControl {
         (el instanceof HTMLButtonElement && el.type === 'submit') ||
         (el instanceof HTMLInputElement &&
           (el.type === 'submit' || el.type === 'image')) ||
+        // Lowercased for the same reason the two legs above need no such
+        // care: `type` is an enumerated attribute, so `type="SUBMIT"` is a
+        // submit button. A native element's IDL getter normalizes it for
+        // free; a custom element's plain property hands back what was
+        // written, so the comparison does it here (vf-button.ts resolves its
+        // own the same way).
         (el.localName === 'vf-button' &&
-          (el as { type?: string }).type === 'submit')
+          (el as { type?: string }).type?.toLowerCase() === 'submit')
     )
     if (defaultButton) {
       if (defaultButton.matches(':disabled')) return

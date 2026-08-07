@@ -311,6 +311,18 @@ constraint. A `description` (or the validation error, while there is one)
 reaches assistive tech alongside the name. `npm run verify:names` asserts
 the computed accessibility tree for all of it.
 
+`vf-button` is a full member of that vocabulary: `type="submit"`/`"reset"`
+(including `formaction`, `formmethod`, `formtarget`, `formenctype` and
+`formnovalidate`), `name`/`value` in the submission, and — the part that is
+easy to get subtly wrong — the submission runs at the *end* of the click's
+propagation, so `preventDefault()` on the button cancels it exactly as it
+cancels a native one. There is one thing the platform simply won't allow: a
+form-associated custom element can never be a form's `event.submitter`.
+The submitter is an internal proxy parented to the button, so read the
+submitting control as `event.submitter.closest('vf-button')` and tell buttons
+apart by `submitter.name`/`.value` rather than by comparing element
+references. `npm run verify:button` asserts the whole contract.
+
 ## Window archetypes — enabling the 1992 HIG, not enforcing it
 
 The 1992 *Macintosh Human Interface Guidelines* names five standard windows.

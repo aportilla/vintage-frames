@@ -47,8 +47,11 @@ export class VfButtonGroup extends VfPositioned(LitElement) {
       :host {
         /* Neutralize each default button's ring-reservation margin and reserve
            the ring space here instead, so faces — not margin boxes — align and
-           equalize. The gap (12px) always exceeds the ring's ${RING_INSET}px
-           reach, so rings never collide. */
+           equalize. The default gap (12px) clears the ring's ${RING_INSET}px
+           reach on both sides, so rings never collide; a rethemed gap under
+           2 × ${RING_INSET}px is the one value that puts two adjacent default
+           rings into each other, and is left to the consumer rather than
+           clamped, since it only arises for two defaults in one row. */
         --vf-button-ring-margin: 0px;
         --vf-button-flex: 1 1 auto;
         display: inline-grid;

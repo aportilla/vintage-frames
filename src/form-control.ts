@@ -117,12 +117,32 @@ export class VfFormControl extends LitElement {
    */
   protected get hostLabel(): string {
     return (
-      idrefText(this, 'aria-labelledby') ||
-      this.getAttribute('aria-label')?.trim() ||
+      this.hostAriaLabel ||
       [...this.internals.labels]
         .map((label) => label.textContent?.trim() ?? '')
         .filter(Boolean)
         .join(' ')
+    )
+  }
+
+  /**
+   * The ARIA half of {@link hostLabel} — `aria-labelledby`, then `aria-label`,
+   * in html-aam's order — without the `<label for>` leg.
+   *
+   * Split out because that leg does not apply to every control. A `<button>`
+   * is not a labelable element, so no caption names a native one and none
+   * should name a `vf-button` either (`verify:names` asserts that a `vf-label
+   * for=` leaves a button's own name alone). What a button DOES need is the
+   * other half: on a control whose role sits on a shadow-internal node, a
+   * consumer's `aria-label` is otherwise inert, because it lands on a generic
+   * host AccName never consults — so an icon button labelled the ordinary way
+   * was announced by its glyph.
+   */
+  protected get hostAriaLabel(): string {
+    return (
+      idrefText(this, 'aria-labelledby') ||
+      this.getAttribute('aria-label')?.trim() ||
+      ''
     )
   }
 

@@ -145,11 +145,15 @@ Modern requirements that we deliberately keep (accessibility over purity):
   `:state(form-disabled)` while an ancestor `<fieldset disabled>` disables
   them, the one disabled state consumer CSS can't otherwise see.
 - **The name/description bridge.** On the controls whose role lives on a
-  shadow-internal node (the three fields, `vf-select`, `vf-swatch`), a
+  shadow-internal node (the three fields, `vf-select`, `vf-swatch`,
+  `vf-button`), a
   host-level `aria-labelledby`, `aria-label` or associated `<label for>`
   resolves — in html-aam precedence — to the inner focusable element's
   `aria-label` whenever the `label` property is empty (`hostLabel`,
-  src/form-control.ts). A `description` property (or, when it's empty, a
+  src/form-control.ts). `vf-button` takes the ARIA half alone
+  (`hostAriaLabel`): a `<button>` is not a labelable element, so no caption
+  names a native one and none names this one either — its slotted content is
+  the name a bridge doesn't override. A `description` property (or, when it's empty, a
   host-level `aria-describedby`) renders as a hidden span in the control's own
   shadow root with the inner control's `aria-describedby` pointing at it — the
   shadow-internal IDREF idiom `vf-dialog`'s title patch uses — and a failing constraint's
@@ -273,7 +277,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-control-height` | `22px` | text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well |
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
-| `--vf-button-group-gap` | `12px` | gap between buttons in a `vf-button-group` (always exceeds the default ring's reach, so rings never collide) |
+| `--vf-button-group-gap` | `12px` | gap between buttons in a `vf-button-group` — the default clears the default ring's 4px reach on both sides, so rings never collide; retheming it below **8px** is the one value that puts two adjacent `variant="default"` rings into each other |
 | `--vf-popup-height` | `18px` | `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) |
 | `--vf-popup-inset-top` | `4px` | room a clipped popup panel keeps clear at the **top** screen edge. Environmental rather than per-instance — a page has one menu bar and every popup on it should respect the same reserve — so it is declared once on `:root` or the `vf-desktop`: `24px` clears a `vf-menu-bar` (the 20px bar plus the default 4). Authored (unscaled) system px, like `--vf-popup-height`; `positionPanel` reads it back off the panel and converts with `sys()` |
 | `--vf-popup-inset-bottom` | `4px` | the same reserve at the **bottom** screen edge |
@@ -865,9 +869,23 @@ carries the live recipe.
 - **Attributes/props:** `variant?: 'default'` (the double-ring default button,
   e.g. "Install"), `size?: 'small'` (the compact 16px button from the
   reference's third row: height `var(--vf-control-height-small, 16px)`,
-  `min-width: 48px`, `padding: 0 10px`, label in the body face at
-  `var(--vf-font-size, 16px)` — same traced corners), `disabled`,
-  `type: 'button' | 'submit' | 'reset'` (default `'button'`).
+  `min-width: 48px`, the same `padding: 0 14px` as the tall button, label in
+  the body face at `var(--vf-font-size, 16px)` — same traced corners),
+  `disabled`, `type: 'button' | 'submit' | 'reset'` (reflected; default
+  `'button'`), plus the submission overrides `formaction`, `formenctype`,
+  `formmethod`, `formnovalidate` and `formtarget`, each honored on
+  `type="submit"` only, as HTML honors them — they are handed to the native
+  proxy below, so the behavior is the platform's rather than an emulation.
+  (`formAction`'s *getter* returns the string as set, where the native IDL
+  returns it resolved against the base URL; the submission resolves normally.)
+  `type` is read the way HTML reads an enumerated attribute — ASCII
+  case-insensitively, unrecognized values falling to the default — so
+  `type="SUBMIT"` is a submit button. Two deliberate departures, both pointing
+  the same way: HTML's missing-value default is `submit` and this one is
+  `button`, because an element that silently submitted the form it sits in is
+  the wrong surprise; and the invalid-value default follows the missing one
+  rather than HTML's `submit`, so a misspelling does nothing instead of
+  submitting.
 - **Visual:** inner `<button>`: height `var(--vf-button-height, 20px)`,
   `min-width: 64px`, `padding: 0 14px`, bold black text, font per tokens.
   The button is 20px, not the fields' 22px: both 1x sheets measure the face at
@@ -900,7 +918,14 @@ carries the live recipe.
     `npm run shot:verify` assert the rendered pixels.
   - `disabled`: only the label dims to `var(--vf-disabled, #c0c0c0)`; the 1px
     black border stays black. (For `variant="default"`, the fat outer ring
-    dims to `var(--vf-disabled)` while the inner black border stays.)
+    dims to `var(--vf-disabled)` while the inner black border stays — the ring
+    and the title dim together, the button's own frame does not. System 7
+    dimmed both with a 50% stipple; flat gray standing in for it is the kit's
+    liberty, per §1.) The ring rule is keyed on **both** disabled routes —
+    `[disabled]` and `:state(form-disabled)` — as separate rules: an ancestor
+    `<fieldset disabled>` arrives through `formDisabledCallback` and sets no
+    attribute, and keyed on the attribute alone it left a solid black ring
+    around a greyed label.
   - `variant="default"`: the ring is a host `::before` at
     `inset: -4px` — `background: var(--vf-black)` clipped by an `evenodd`
     donut polygon (outer corner insets `[5,3,2,1,1]`; hole opens at row 3 with
@@ -913,16 +938,51 @@ carries the live recipe.
   `0 1 auto`); `vf-button-group` sets these to `0` and `1 1 auto` so grouped
   faces align and stretch to a shared width. Standalone, both defaults are inert.
 - **Behavior:** form-associated. `type="submit"` submits by inserting a
-  transient native proxy button carrying this button's `name`/`value` and
-  clicking it — a form-associated custom element can't be a native submitter
-  itself, and a bare `requestSubmit()` would submit with `event.submitter ===
-  null` and no name/value; `reset` → the same proxy path. Enter/Space work
+  transient native proxy button carrying this button's `name`/`value` and any
+  `form*` override, then clicking it — a form-associated custom element can't
+  be a native submitter itself (`requestSubmit(vfButton)` throws a `TypeError`,
+  "not a submit button"), and a bare `requestSubmit()` would submit with
+  `event.submitter === null` and no name/value; `reset` → the same proxy path.
+  Enter/Space work
   natively via the inner button, and the host overrides `click()` to forward
   to it (a click dispatched at the host propagates up, never down into the
-  shadow tree) — which is also how the fields' Enter reaches this button as
-  the form's default button (see `requestImplicitSubmit`, text-control.ts).
+  shadow tree; before the first render there is no inner button, so it falls
+  back to dispatching at the host, since a native `click()` always fires) —
+  which is also how the fields' Enter reaches this button as
+  the form's default button (see `requestImplicitSubmit`, text-control.ts;
+  its `vf-button` leg lowercases `type` for the enumerated rule above).
+  - **When the action runs.** At the *end* of the click's propagation, not
+    where the listener sits. HTML runs a button's activation behavior once the
+    click has finished propagating, which is what lets `preventDefault()` on
+    the button cancel the submission; this component's listener is on the
+    inner `<button>`, first on that path rather than last, so acting there beat
+    every listener a consumer could write and only a capture-phase cancel ever
+    landed. It now defers by adding a listener to the window *during* dispatch
+    (each node's listener list is read as that node is reached), so both
+    phases cancel. `stopPropagation()` cancels nothing, per HTML — the event
+    then never reaches the window and a task picks the action up instead; a
+    task and never a microtask, which would interleave between the listeners
+    of a trusted dispatch.
+  - **Submitter identity.** `event.submitter` can never *be* the `vf-button` —
+    the platform forbids it. It is the proxy, which is parented to the host
+    and carries a `slot` name no shadow root offers: unslotted, so it is never
+    rendered, measured or in the a11y tree, and off the flattened tree so its
+    own click can't travel back up through the shadow `<button>` the click
+    handler is bound to. Being a light-DOM descendant is what makes
+    `event.submitter.closest('vf-button')` resolve to the component — the
+    closest to identity the platform allows. Its own click is stopped at the
+    proxy, so one press is one click at the form (`stopPropagation` leaves the
+    activation behavior alone).
+- **Name:** the slotted label, with a host-level `aria-label`/`aria-labelledby`
+  bridged to the inner button when present (see §4's name bridge); a
+  `<label for>` deliberately doesn't name it. `description` and a host-level
+  `aria-describedby` reach it through the same shadow-internal span the fields
+  use.
 - **Slots:** default (label). **Parts:** `button`.
 - **Events:** none custom (native `click` suffices).
+- **Verified by:** `npm run verify:button` (the form contract, the name
+  bridge, the enumerated `type`, both disabled routes and the pinned metrics);
+  `verify:buttons` (the clip-path traces), `verify:focus` (the dashed rule).
 
 #### `vf-button-group` (`VfButtonGroup`, vf-button-group.ts)
 - **Attributes/props:** `vertical` (stack in a column instead of a row),
@@ -932,7 +992,8 @@ carries the live recipe.
   (default): one auto column per button, all `grid-auto-columns: 1fr`, so under
   the shrink-wrapped grid they equalize to the widest button's intrinsic width;
   `align-items: center` puts every face on one baseline (a `size="small"` button
-  still shares the row). Gap is `--vf-button-group-gap` (default 12px).
+  still shares the row). Gap is `--vf-button-group-gap` (default 12px; see the
+  §3 note on values under 8px).
   `vertical` switches to `grid-auto-flow: row` (a single column sized to the
   widest, each button stretched to it). `natural` falls back to `inline-flex`
   so the columns don't equalize.

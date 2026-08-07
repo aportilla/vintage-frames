@@ -179,7 +179,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog. `size=\"small\"` renders the compact 16px button with a\nbody-face label.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` to the submission), `type=\"reset\"`\nresets it. Enter and Space activate it via the inner native button.",
+          "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog. `size=\"small\"` renders the compact 16px button with a\nbody-face label.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` and any `form*` override to the\nsubmission), `type=\"reset\"` resets it. Enter and Space activate it via the\ninner native button, and the submission runs at the end of the click's\npropagation, so `preventDefault()` on the button cancels it the way it\ncancels a native one.\n\nOne thing the platform will not allow: `event.submitter` cannot BE a\nform-associated custom element. It is the transient native proxy this\nbutton submits through — so read the submitting button as\n`event.submitter.closest('vf-button')`, and its identity from\n`submitter.name`/`.value` rather than by comparing element references.\n\nA host-level `aria-label` / `aria-labelledby` names the inner button, and\n`description` (or a host-level `aria-describedby`) describes it — the same\nbridge the fields use, since the role lives on a shadow-internal node the\nplatform can't deliver those to. A `<label for>` deliberately does not\nname it: a `<button>` is not a labelable element.",
           "name": "VfButton",
           "cssProperties": [
             {
@@ -242,8 +242,9 @@
                 "text": "'button' | 'submit' | 'reset'"
               },
               "default": "'button'",
-              "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.",
-              "attribute": "type"
+              "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.\n\nTwo deliberate departures from `<button>`, both pointing the same way — a\n`vf-button` never submits unless it was asked to. HTML's *missing*-value\ndefault is `submit`; here it is `button`, because a custom element that\nsilently submitted the form it happens to sit in is the wrong surprise.\nThe *invalid*-value default follows the missing one rather than HTML's\n(which is also `submit`), so a misspelling does nothing instead of\nsubmitting.",
+              "attribute": "type",
+              "reflects": true
             },
             {
               "kind": "field",
@@ -265,6 +266,61 @@
               "default": "''",
               "description": "Value submitted under `name` when `type=\"submit\"`.",
               "attribute": "value",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "formAction",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The submission overrides native `<button>` carries, honored on\n`type=\"submit\"` only, exactly as HTML honors them: each is handed to the\nnative proxy activate submits through, so the *behavior* is the\nplatform's rather than an emulation of it.\n\nOne difference from the native IDL, in the getters only: `formAction`\nreturns the string you set, where `HTMLButtonElement.formAction` returns\nit resolved against the document's base URL. The submission itself\nresolves normally — it is the proxy's `formaction` doing the work.",
+              "attribute": "formaction",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "formEnctype",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "See formAction. Overrides the form's `enctype`.",
+              "attribute": "formenctype",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "formMethod",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "See formAction. Overrides the form's `method`.",
+              "attribute": "formmethod",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "formNoValidate",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "See formAction. Skips the form's constraint validation, so a\n\"Save Draft\" button submits past a failing `required`.",
+              "attribute": "formnovalidate",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "formTarget",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "See formAction. Overrides the form's `target`.",
+              "attribute": "formtarget",
               "reflects": true
             },
             {
@@ -292,6 +348,26 @@
               "privacy": "private"
             },
             {
+              "kind": "field",
+              "name": "#activating",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "True while activate runs — see the re-entrancy note there."
+            },
+            {
+              "kind": "field",
+              "name": "resolvedType",
+              "type": {
+                "text": "'button' | 'submit' | 'reset'"
+              },
+              "privacy": "private",
+              "description": "type, resolved the way HTML resolves an enumerated attribute:\nASCII case-insensitively, with anything unrecognized falling to the\ndefault.\n\nComparing the raw property is the bug this replaces. `type=\"SUBMIT\"` — a\nperfectly valid spelling on a native button — passed the `!== 'button'`\nguard and then failed the `=== 'submit'` one, so it submitted the form\nwith its `name`/`value` silently dropped: the action taken, the payload\nlost, and in that order.",
+              "readonly": true
+            },
+            {
               "kind": "method",
               "name": "click",
               "return": {
@@ -299,12 +375,24 @@
                   "text": "void"
                 }
               },
-              "description": "Forwards a synthetic activation to the real `<button>` in the shadow\nroot. A `click()` on the host dispatches at the host and propagates *up*,\nnever down to the inner button's listener — so the native control, the\nactual activation surface, is handed the call instead. Its click then\nbubbles back out composed, exactly as a pointer's does. This is what the\nfields' implicit submission (Enter) activates as the form's default\nbutton; a disabled button swallows it natively, as it should."
+              "description": "Forwards a synthetic activation to the real `<button>` in the shadow\nroot. A `click()` on the host dispatches at the host and propagates *up*,\nnever down to the inner button's listener — so the native control, the\nactual activation surface, is handed the call instead. Its click then\nbubbles back out composed, exactly as a pointer's does. This is what the\nfields' implicit submission (Enter) activates as the form's default\nbutton; a disabled button swallows it natively, as it should.\n\nBefore the first render there is no inner button to forward to. A native\n`click()` always fires, so rather than doing nothing this falls back to\ndispatching at the host — no activation behavior to run yet, but the\nevent a caller asked for."
             },
             {
               "kind": "field",
               "name": "handleClick",
-              "privacy": "private"
+              "privacy": "private",
+              "description": "The click that may become an activation.\n\nHTML runs a button's activation behavior only once its click has finished\npropagating, which is what makes `preventDefault()` on the button — or on\nanything above it — cancel the submission. This listener sits on the\ninner `<button>`: the *first* stop on that path, not the last. Acting\nhere would beat every listener a consumer can write, so the ordinary\nspelling silently failed and only a capture-phase cancel ever landed.\n\nSo the action is deferred to the end of the path. A listener added to the\nwindow *during* dispatch still runs when the event reaches it — each\nnode's listener list is read as that node is reached — and by then\n`defaultPrevented` is final. The one ordering HTML has that this doesn't:\na window listener registered before ours still runs after us."
+            },
+            {
+              "kind": "method",
+              "name": "activate",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The activation behavior HTML gives a `<button type=\"submit\"|\"reset\">`,\nperformed through a transient native proxy.\n\nA form-associated custom element cannot be a form's submitter: the\nplatform rejects one outright (`requestSubmit(vfButton)` throws a\nTypeError, \"not a submit button\"), and a bare `requestSubmit()` submits\nwith `event.submitter === null` and none of this button's name/value.\n\nThe proxy is a child of THIS element carrying a `slot` no shadow root\noffers, which is three things at once. It is a light-DOM descendant of\nthe host, so `event.submitter.closest('vf-button')` finds the button that\nsubmitted — as close to submitter identity as the platform permits, and\nthe reason it lives here rather than at the end of the form. Being\nunslotted it is never rendered, never measured and never in the\naccessibility tree, so it needs no clipping to hide. And being off the\nflattened tree, its own click cannot travel back up through the shadow\n`<button>` this component's own handler is bound to — which, slotted,\nwould have been an infinite recursion rather than a stray event."
             },
             {
               "kind": "field",
@@ -448,6 +536,20 @@
               },
               "privacy": "protected",
               "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
               "readonly": true,
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -882,7 +984,7 @@
                 "text": "'button' | 'submit' | 'reset'"
               },
               "default": "'button'",
-              "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.",
+              "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.\n\nTwo deliberate departures from `<button>`, both pointing the same way — a\n`vf-button` never submits unless it was asked to. HTML's *missing*-value\ndefault is `submit`; here it is `button`, because a custom element that\nsilently submitted the form it happens to sit in is the wrong surprise.\nThe *invalid*-value default follows the missing one rather than HTML's\n(which is also `submit`), so a misspelling does nothing instead of\nsubmitting.",
               "fieldName": "type"
             },
             {
@@ -902,6 +1004,51 @@
               "default": "''",
               "description": "Value submitted under `name` when `type=\"submit\"`.",
               "fieldName": "value"
+            },
+            {
+              "name": "formaction",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "The submission overrides native `<button>` carries, honored on\n`type=\"submit\"` only, exactly as HTML honors them: each is handed to the\nnative proxy activate submits through, so the *behavior* is the\nplatform's rather than an emulation of it.\n\nOne difference from the native IDL, in the getters only: `formAction`\nreturns the string you set, where `HTMLButtonElement.formAction` returns\nit resolved against the document's base URL. The submission itself\nresolves normally — it is the proxy's `formaction` doing the work.",
+              "fieldName": "formAction"
+            },
+            {
+              "name": "formenctype",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "See formAction. Overrides the form's `enctype`.",
+              "fieldName": "formEnctype"
+            },
+            {
+              "name": "formmethod",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "See formAction. Overrides the form's `method`.",
+              "fieldName": "formMethod"
+            },
+            {
+              "name": "formnovalidate",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "See formAction. Skips the form's constraint validation, so a\n\"Save Draft\" button submits past a failing `required`.",
+              "fieldName": "formNoValidate"
+            },
+            {
+              "name": "formtarget",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "See formAction. Overrides the form's `target`.",
+              "fieldName": "formTarget"
             },
             {
               "name": "top",
@@ -1429,6 +1576,20 @@
               },
               "privacy": "protected",
               "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
               "readonly": true,
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -7378,6 +7539,20 @@
             },
             {
               "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "description",
               "type": {
                 "text": "string"
@@ -8995,6 +9170,20 @@
               },
               "privacy": "protected",
               "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
               "readonly": true,
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -11253,6 +11442,20 @@
             },
             {
               "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "description",
               "type": {
                 "text": "string"
@@ -12407,6 +12610,20 @@
             },
             {
               "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "description",
               "type": {
                 "text": "string"
@@ -13436,6 +13653,20 @@
               },
               "privacy": "protected",
               "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
               "readonly": true,
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -14513,6 +14744,20 @@
               },
               "privacy": "protected",
               "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
               "readonly": true,
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -15620,6 +15865,20 @@
               },
               "privacy": "protected",
               "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
               "readonly": true,
               "inheritedFrom": {
                 "name": "VfFormControl",
@@ -16861,6 +17120,16 @@
             },
             {
               "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
               "name": "description",
               "type": {
                 "text": "string"
@@ -17585,6 +17854,20 @@
               },
               "privacy": "protected",
               "description": "The accessible name the *host* carries, for controls whose role lives on a\nshadow-internal node (the fields, `vf-select`, `vf-swatch`). On those, a\nconsumer's `aria-label`, `aria-labelledby` or `<label for>` used to be\nsilently inert — the host is a generic wrapper AccName never consults, and\na host-level IDREF cannot reach into a shadow tree — so the bridge\nresolves them to text for the control to hand to its inner focusable\nelement. The explicit `label` property still wins: templates read\n`this.label || this.hostLabel`.\n\nPrecedence is html-aam's — `aria-labelledby`, then `aria-label`, then the\nassociated `<label for>` elements (`internals.labels`). Referenced text is\nflattened at render time, so an edit to a referenced element's *text*\nlands on the control's next render rather than instantly — the one\ndivergence from a native control, recorded in SPEC §4.\n\nControls whose role sits on the host itself (the toggles, the slider, the\nradio group, the bars) never need this: the platform reads their host\nattributes directly.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfFormControl",
+                "module": "src/form-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "hostAriaLabel",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "description": "The ARIA half of hostLabel — `aria-labelledby`, then `aria-label`,\nin html-aam's order — without the `<label for>` leg.\n\nSplit out because that leg does not apply to every control. A `<button>`\nis not a labelable element, so no caption names a native one and none\nshould name a `vf-button` either (`verify:names` asserts that a `vf-label\nfor=` leaves a button's own name alone). What a button DOES need is the\nother half: on a control whose role sits on a shadow-internal node, a\nconsumer's `aria-label` is otherwise inert, because it lands on a generic\nhost AccName never consults — so an icon button labelled the ordinary way\nwas announced by its glyph.",
               "readonly": true,
               "inheritedFrom": {
                 "name": "VfFormControl",

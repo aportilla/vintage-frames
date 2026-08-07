@@ -79,6 +79,7 @@
     "verify:chrome": "node scripts/verify-chrome.mjs",
     "verify:window-a11y": "node scripts/verify-window-a11y.mjs",
     "verify:archetypes": "node scripts/verify-archetypes.mjs",
+    "verify:button": "node scripts/verify-button.mjs",
     "verify:toggle": "node scripts/verify-toggle.mjs",
     "verify:text": "node scripts/verify-text.mjs",
     "verify:stack": "node scripts/verify-stack.mjs",

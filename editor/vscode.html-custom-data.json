@@ -31,7 +31,7 @@
     },
     {
       "name": "vf-button",
-      "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog. `size=\"small\"` renders the compact 16px button with a\nbody-face label.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` to the submission), `type=\"reset\"`\nresets it. Enter and Space activate it via the inner native button.\n---\n\n\n### **Slots:**\n - _default_ - The button label.\n\n### **CSS Properties:**\n - **--vf-button-height** - `vf-button` face (the default ring's inner box is 80×20) _(default: 20px)_\n- **--vf-control-height-small** - `size=\"small\"` buttons _(default: 16px)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` element.",
+      "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog. `size=\"small\"` renders the compact 16px button with a\nbody-face label.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` and any `form*` override to the\nsubmission), `type=\"reset\"` resets it. Enter and Space activate it via the\ninner native button, and the submission runs at the end of the click's\npropagation, so `preventDefault()` on the button cancels it the way it\ncancels a native one.\n\nOne thing the platform will not allow: `event.submitter` cannot BE a\nform-associated custom element. It is the transient native proxy this\nbutton submits through — so read the submitting button as\n`event.submitter.closest('vf-button')`, and its identity from\n`submitter.name`/`.value` rather than by comparing element references.\n\nA host-level `aria-label` / `aria-labelledby` names the inner button, and\n`description` (or a host-level `aria-describedby`) describes it — the same\nbridge the fields use, since the role lives on a shadow-internal node the\nplatform can't deliver those to. A `<label for>` deliberately does not\nname it: a `<button>` is not a labelable element.\n---\n\n\n### **Slots:**\n - _default_ - The button label.\n\n### **CSS Properties:**\n - **--vf-button-height** - `vf-button` face (the default ring's inner box is 80×20) _(default: 20px)_\n- **--vf-control-height-small** - `size=\"small\"` buttons _(default: 16px)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` element.",
       "attributes": [
         {
           "name": "variant",
@@ -45,7 +45,7 @@
         },
         {
           "name": "type",
-          "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.",
+          "description": "Activation behavior, mirroring native `<button type>`:\n`'submit'` submits the associated form, `'reset'` resets it and\n`'button'` (the default) does nothing beyond the `click` event.\n\nTwo deliberate departures from `<button>`, both pointing the same way — a\n`vf-button` never submits unless it was asked to. HTML's *missing*-value\ndefault is `submit`; here it is `button`, because a custom element that\nsilently submitted the form it happens to sit in is the wrong surprise.\nThe *invalid*-value default follows the missing one rather than HTML's\n(which is also `submit`), so a misspelling does nothing instead of\nsubmitting.",
           "values": [
             { "name": "button" },
             { "name": "submit" },
@@ -60,6 +60,31 @@
         {
           "name": "value",
           "description": "Value submitted under `name` when `type=\"submit\"`.",
+          "values": []
+        },
+        {
+          "name": "formaction",
+          "description": "The submission overrides native `<button>` carries, honored on\n`type=\"submit\"` only, exactly as HTML honors them: each is handed to the\nnative proxy activate submits through, so the *behavior* is the\nplatform's rather than an emulation of it.\n\nOne difference from the native IDL, in the getters only: `formAction`\nreturns the string you set, where `HTMLButtonElement.formAction` returns\nit resolved against the document's base URL. The submission itself\nresolves normally — it is the proxy's `formaction` doing the work.",
+          "values": []
+        },
+        {
+          "name": "formenctype",
+          "description": "See formAction. Overrides the form's `enctype`.",
+          "values": []
+        },
+        {
+          "name": "formmethod",
+          "description": "See formAction. Overrides the form's `method`.",
+          "values": []
+        },
+        {
+          "name": "formnovalidate",
+          "description": "See formAction. Skips the form's constraint validation, so a\n\"Save Draft\" button submits past a failing `required`.",
+          "values": []
+        },
+        {
+          "name": "formtarget",
+          "description": "See formAction. Overrides the form's `target`.",
           "values": []
         },
         {

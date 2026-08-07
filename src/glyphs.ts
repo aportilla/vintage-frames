@@ -2,18 +2,17 @@ import { html } from 'lit'
 import type { TemplateResult } from 'lit'
 
 /**
- * Pixel-exact 1-bit glyphs reconstructed from the **Classic Macintosh UI Kit**
- * sprite sheet (`Classic Macintosh UI Kit Reference/ui-sprites/`). Each glyph's
- * `d` is a run-length-merged fill path traced directly from the original PNG's
- * pixel grid. Rendered at its native pixel size (or an integer multiple) with
- * `shape-rendering: crispEdges` it is pixel-exact — so consumers MUST size the
- * SVG to `w`×`h` px (or a whole multiple), never a fractional scale, or the
- * 1-bit edges snap unevenly to the device grid. It inherits `currentColor`
- * (fully themeable) and ships as inline SVG — no external raster assets,
- * matching the library's zero-CSS, `var(--vf-*)`-themeable design (see SPEC §1).
+ * Pixel-exact 1-bit glyphs. Each glyph's `d` is a run-length-merged fill path
+ * on the System 7 pixel grid, one rectangle per run of ink. Rendered at its
+ * native pixel size (or an integer multiple) with `shape-rendering: crispEdges`
+ * it is pixel-exact — so consumers MUST size the SVG to `w`×`h` px (or a whole
+ * multiple), never a fractional scale, or the 1-bit edges snap unevenly to the
+ * device grid. It inherits `currentColor` (fully themeable) and ships as inline
+ * SVG — no external raster assets, matching the library's zero-CSS,
+ * `var(--vf-*)`-themeable design (see SPEC §1).
  *
- * The sprites are authoritative per SPEC.md: "When this spec is ambiguous, the
- * reference images win." These replace the earlier anti-aliased approximations
+ * This file is the authoritative source for these marks (the glyph-sprites note
+ * at the top of SPEC.md). They replace the earlier anti-aliased approximations
  * (the checkbox ✕ was a 1.5px SVG stroke; the radio was a `border-radius: 50%`
  * box; the menu ✓ was a font-dependent Unicode character; the popup ▼ was a
  * CSS-border triangle) with the exact System 7 pixel shapes.

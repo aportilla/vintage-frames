@@ -4,20 +4,15 @@ Lit 3 web components that faithfully emulate the look and feel of classic Mac OS
 System 7 (1991–1997). This document is the single source of truth for visual
 design and public APIs. Every component MUST follow it.
 
-> **Reference images:** the `Classic Macintosh UI Kit Reference/` folder at the
-> repo root contains authoritative pixel references (`Windows.png`,
-> `Controls.png`, `Menus.png`, `Icons & symbols.png`, example screens). When
-> this spec is ambiguous, the reference images win.
->
-> **Glyph sprites:** `Classic Macintosh UI Kit Reference/ui-sprites/` holds the
-> individual 1-bit control glyphs (checkbox ✕, radio ring/dot, menu ✓, popup ▼,
-> scroll arrows). Each is reconstructed pixel-for-pixel as an inline-SVG fill
-> path in `src/glyphs.ts` (shared, `currentColor`-themeable, zero raster assets)
-> and consumed by the components below — the authoritative source for these
-> marks. A glyph is *geometry*, which is why redrawing it loses nothing. A
-> **picture** is different — redrawn it is lost — and the kit ships no raster
-> art at all: an icon is the consumer's asset, slotted through `vf-img` (the
-> demo's 32×32 alert icon is `demo/icons/alert.png`).
+> **Glyph sprites:** the individual 1-bit control glyphs (checkbox ✕, radio
+> ring/dot, menu ✓, popup ▼, scroll arrows) are each reconstructed
+> pixel-for-pixel as an inline-SVG fill path in `src/glyphs.ts` (shared,
+> `currentColor`-themeable, zero raster assets) and consumed by the components
+> below — the authoritative source for these marks. A glyph is *geometry*,
+> which is why redrawing it loses nothing. A **picture** is different — redrawn
+> it is lost — and the kit ships no raster art at all: an icon is the
+> consumer's asset, slotted through `vf-img` (the demo's 32×32 alert icon is
+> `demo/icons/alert.png`).
 
 ## 1. Design principles
 

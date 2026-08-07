@@ -11,8 +11,8 @@
  *   small button     80 × 16
  *   text field      170 × 22, 215 × 22   (no shadow — 22 IS the border box)
  *   popup pill      157 × 19  → border box 156 × 18 plus its 1px hard shadow
- *                               (`ui-sprites/Pop-up menu REFERENCE.png` shows
- *                               the shadow row/column outside the border)
+ *                               (the sheet draws the shadow row/column outside
+ *                               the border)
  *   little arrows    15 × 25
  *
  * So the token split: --vf-control-height stays the *field* height, with
@@ -31,7 +31,7 @@
  */
 import { ORIGIN, check, launch, report } from './harness.mjs'
 
-/** Native sprite size from `ui-sprites/Little arrows.png`. */
+/** Native size of the little-arrows sprite. */
 const STEPPER_H = 25
 /** --vf-control-height: the text-field height. */
 const CONTROL_H = 22

@@ -144,10 +144,10 @@ What that costs, bundled and minified with `lit` external:
 
 | Imported | min | gzip |
 | --- | --- | --- |
-| `vf-separator.js` — sets no chrome type, so it carries no Chicago face | 16.1 KB | 8.5 KB |
-| `vf-button.js` | 32.1 KB | 15.6 KB |
-| …plus `vf-checkbox.js` | 38.4 KB | 17.4 KB |
-| the root import — all 30 elements | 270 KB | 78.9 KB |
+| `vf-separator.js` — sets no chrome type, so it carries no Chicago face | 16.5 KB | 8.5 KB |
+| `vf-button.js` | 32.7 KB | 16.0 KB |
+| …plus `vf-checkbox.js` | 38.3 KB | 17.7 KB |
+| the root import — all 30 elements | 280 KB | 85.2 KB |
 
 The first component pays for the shared floor (the body face, `scale.ts` and
 its zoom tracker, `grid-snap.ts`, the recipes it composes); each one after it

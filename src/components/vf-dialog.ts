@@ -146,10 +146,23 @@ export class VfDialog extends VfModalDialog {
         flex: 0 1 auto;
         min-height: 0;
       }
+      /* hidden, not auto, until the controller says otherwise — the two have
+         to agree on what "overflowing" means or the dialog scrolls without a
+         rail.
+         ScrollStateController deliberately ignores the body face's negative
+         half-leading (LEADING_SPILL_SYS, scroll-state.ts): vf-paragraph sets
+         Geneva's 12-system-px line box under a 16-system-px em, so the inline
+         box spills 2 inkless system px past the block box and scrollHeight
+         counts it. auto doesn't know that — it saw 6 CSS px of overflow at
+         scale 3 and handed the user a fixed info dialog that rubber-banded
+         under the wheel with no scrollbar to explain it.
+         hidden still scrolls programmatically (scrollIntoView on a focused
+         control keeps working); it just refuses to invent a user-facing scroll
+         the component has decided doesn't exist. */
       .content {
         flex: 0 1 auto;
         min-height: 0;
-        overflow-y: auto;
+        overflow-y: hidden;
       }
       /* Only while genuinely over-stuffed (ScrollStateController's measured
          signal): reserve the real 16px channel — modern Chromium draws a

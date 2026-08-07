@@ -829,6 +829,18 @@ striped title bar over a white body), the dBoxProc modal dialog box with
   `.vf-scroll-frame` overlay, and becomes a keyboard stop (`tabindex="0"`,
   `role="group"`, the kit's dotted ring) so the copy is scrollable without a
   pointer. The drop-open exemption is unchanged.
+  - **The CSS and the controller state the same thing.** `.content` is
+    `overflow-y: hidden` until the controller flags overflow, then
+    `overflow-y: scroll`. It is deliberately never `auto`: the controller
+    ignores the body face's negative half-leading (`LEADING_SPILL_SYS`,
+    src/scroll-state.ts — `vf-paragraph` sets a 12-system-px line box under a
+    16-system-px em, so the inline box spills 2 inkless system px past the
+    block box and `scrollHeight` counts it), and `auto` has no way to know
+    that. With `auto` the two disagreed, and a fixed info dialog whose copy
+    ends in a `vf-paragraph` rubber-banded under the wheel with no rail to
+    explain it — 6 CSS px at scale 3. `hidden` still scrolls
+    programmatically, so `scrollIntoView` on a focused control is unaffected.
+    `npm run verify:contract`, OVERFLOW group.
 - **Visual (`frame="plain"`):** `vfModalFrame` (§4 — 1px outer, 2px gap, 2px
   inner band, no shadow, per `Windows/modal dialog.png`), no title bar, and
   immovable like the original dBoxProc dialog (nothing renders a drag handle).

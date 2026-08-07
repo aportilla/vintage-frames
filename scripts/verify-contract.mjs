@@ -135,6 +135,7 @@ const build = makeBuild(browser, {
       tabindex: content.getAttribute('tabindex'),
       role: content.getAttribute('role'),
       frameShown: getComputedStyle(frame).display !== 'none',
+      overflowY: getComputedStyle(content).overflowY,
     }
   })
   check(
@@ -144,6 +145,35 @@ const build = makeBuild(browser, {
       fits.role === null &&
       fits.frameShown === false,
     JSON.stringify(fits)
+  )
+  // The CSS has to agree with the controller. `auto` here let a dialog the kit
+  // had judged non-overflowing still scroll under the wheel: the body face's
+  // negative half-leading spills 2 inkless system px past the block box (see
+  // LEADING_SPILL_SYS, scroll-state.ts), which the controller ignores by design
+  // and `auto` cannot. A fixed info dialog rubber-banded with no rail to
+  // explain it.
+  check(
+    'overflow: a fitting dialog is not a user-scrollable box at all',
+    fits.overflowY === 'hidden',
+    `overflow-y: ${fits.overflowY}`
+  )
+
+  // The symptom itself: a real wheel over the content must not move it.
+  const box = await page.evaluate(() => {
+    const c = document.getElementById('fits').shadowRoot.querySelector('.content')
+    const r = c.getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  await page.mouse.move(box.x, box.y)
+  await page.mouse.wheel(0, 240)
+  await page.waitForTimeout(120)
+  const wheeled = await page.evaluate(
+    () => document.getElementById('fits').shadowRoot.querySelector('.content').scrollTop
+  )
+  check(
+    'overflow: the wheel cannot scroll a fitting dialog',
+    wheeled === 0,
+    `scrollTop=${wheeled}`
   )
   await page.close()
 }
@@ -169,6 +199,7 @@ const build = makeBuild(browser, {
       overflowAttr: content.getAttribute('data-overflow-y'),
       scrollable: content.scrollHeight - content.clientHeight > 1,
       scrolled,
+      overflowY: getComputedStyle(content).overflowY,
       tabindex: content.getAttribute('tabindex'),
       role: content.getAttribute('role'),
       frameShown: getComputedStyle(frame).display !== 'none',
@@ -180,6 +211,13 @@ const build = makeBuild(browser, {
   })
   check('overflow: over-stuffed sized dialog measures scrollable', r.scrollable && r.overflowAttr === 'true')
   check('overflow: the content region actually scrolls', r.scrolled)
+  // The other half of the invariant the fitting case asserts: user-scrollable
+  // exactly when the controller flagged overflow, never otherwise.
+  check(
+    'overflow: a genuinely overflowing dialog reserves the real scroll channel',
+    r.overflowY === 'scroll',
+    `overflow-y: ${r.overflowY}`
+  )
   check('overflow: scrollable region is a keyboard stop with a role', r.tabindex === '0' && r.role === 'group')
   check('overflow: the System 7 rail frame is shown', r.frameShown)
   check('overflow: the default button stays on-screen (footer pinned)', r.okOnScreen)

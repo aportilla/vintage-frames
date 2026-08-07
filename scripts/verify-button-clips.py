@@ -16,6 +16,7 @@ Checked at 80x20 (row 1) and 80x16 (row 3) to prove height independence.
 """
 
 import json
+import os
 import re
 import sys
 import importlib.util
@@ -25,6 +26,18 @@ spec = importlib.util.spec_from_file_location(
 )
 extract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(extract)
+
+# The reference sheet is local design material, not distributed with the
+# library (see .gitignore) — so on a clean checkout, and therefore on CI, it
+# simply is not here. That is a SKIP and not a failure: this script diffs the
+# generated polygons against the artwork they were traced from, and with no
+# artwork there is nothing to diff. It is announced loudly rather than passed
+# silently, and scripts/test.mjs reports it in its own column, so a skip can
+# never be mistaken for a green check.
+if not os.path.exists(extract.PATH):
+    print(f"SKIP: no reference sheet at {extract.PATH!r} — nothing to diff against.")
+    print("      (local design material; run this on a checkout that has it)")
+    sys.exit(0)
 
 WIDTH, HEIGHT, PIXELS = extract.read_png(extract.PATH)
 

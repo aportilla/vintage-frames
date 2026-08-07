@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes the in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Chromium only: every verify script drives it and nothing drives the
+      # other engines. --with-deps pulls the system libraries the runner lacks.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - run: npm run typecheck
+
+      # Builds dist/, emits the .d.ts files and regenerates the manifest, so a
+      # change that only breaks the library build is caught here rather than at
+      # publish time.
+      - run: npm run build
+
+      # The manifest and the two editor formats are generated and committed. If
+      # `npm run build` just changed them, the committed copies were stale —
+      # which ships wrong autocomplete to anyone pointing an editor at the
+      # package.
+      - name: Check the committed manifest is current
+        run: |
+          if ! git diff --quiet -- custom-elements.json editor/; then
+            echo "::error::custom-elements.json / editor/ are stale — run 'npm run analyze' and commit the result."
+            git diff --stat -- custom-elements.json editor/
+            exit 1
+          fi
+
+      # The suite. It starts and stops its own dev server; `verify:buttons`
+      # reports SKIP here because it diffs against local design material that
+      # is deliberately not in the repo (see .gitignore), and the runner counts
+      # that separately from a pass.
+      - name: npm test
+        run: npm test

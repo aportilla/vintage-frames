@@ -2117,11 +2117,24 @@ grid; this makes it the thing the Finder manipulates.
   added because a double-click is a pointer-only gesture (§1). Return is
   deliberately not one: the Finder's Return renamed, never opened, so it
   starts the edit on an editable icon and does nothing on a non-editable
-  one. `editable`: a press on the plate of an
+  one. A double-click opens the icon **wherever it lands, the name included** —
+  the handler is on the frame, and the name is as much the icon as the art is.
+  `editable`: a press on the plate of an
   ALREADY-selected icon opens a rename field overlaying it (the press that does
   the selecting never does); the whole name starts selected, Return commits,
   Escape reverts, and the hidden plate keeps rendering the draft so the box
-  widens as you type. `movable` — **not `draggable`**, which is a global HTML
+  widens as you type. **The two pointer gestures on a name are the same press**,
+  and only the second one tells them apart, so the rename *waits*: the press
+  arms a field that opens `RENAME_DELAY_MS` (800ms, `src/motion.ts`) later, and
+  a press landing inside that window — wherever in the icon it falls — calls it
+  off, leaving the double-click to open with no rename flashing up behind it.
+  The window is long deliberately: no API reports what the browser counts as a
+  double-click (it follows a user-movable platform setting), and reading a lone
+  click as a pair costs only a wait, while reading a pair as a lone click
+  renames when the user meant to open. A press that travels into a drag, a press
+  outside, and any key call it off too — so a name drags like the art does, and
+  Return opens the field at once, having no second half to wait for.
+  `movable` — **not `draggable`**, which is a global HTML
   attribute and an `HTMLElement` accessor (the `align` trap of §5 Group G in a
   second costume) — drags via `DragController` on the `vf-window` delegate
   shape, plus arrow-key nudging (1 system px, 8 with Shift) because a

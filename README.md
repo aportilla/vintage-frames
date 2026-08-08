@@ -1170,6 +1170,24 @@ setting, in preference to a second attribute that could disagree with it. With
 `editable`, a click on the plate of an already-selected icon opens the rename
 box, Return commits, Escape reverts, and the plate widens as you type.
 
+**The name and the art are one target, and the second click decides.** A
+double-click opens the icon wherever it lands — the Finder never made you aim at
+the 32 pixels of art, and the name is as much the icon as the picture is. But
+the name is also where a single click renames, so both gestures begin with the
+same press and only the second one tells them apart. The rename therefore
+*waits*: a press on the plate arms a field that opens once the double-click
+window has passed (`RENAME_DELAY_MS`, 800ms), and any press landing inside that
+window calls it off, leaving the double-click to open with no rename box
+flashing up behind it. A press that travels into a drag does the same — a name
+is a drag handle, exactly like the art — as does a press elsewhere, or any key.
+Return still opens the field at once: a keypress has no second half to wait for.
+
+The window leans long on purpose. Nothing reports what the *browser* counts as a
+double-click — it follows a platform setting the user can move — and the two
+mistakes are not symmetrical: reading a lone click as a pair costs a wait before
+the box appears, while reading a pair as a lone click renames when the user
+asked to open.
+
 **A name is never abbreviated, and never folded.** No ellipsis, no clipping, no
 wrapping — one line, always. System 7 solved the long-name problem at the
 *other* end — HFS capped a filename at 31 characters — so the Finder could
@@ -1219,7 +1237,9 @@ npm run verify:icon   # the cell metrics at dpr 1/2/3; art, plate and text all o
                       # whole system px with the plate even, and not one gray
                       # pixel in a field of names; one-line names that overflow
                       # rather than abbreviate; the 31-char cap and its event;
-                      # single-selection with no container; the rename gesture;
+                      # single-selection with no container; the rename gesture —
+                      # deferred past the double-click window, so the name opens
+                      # the icon and drags it like the art does;
                       # that `draggable` is never touched; keyboard-only focus;
                       # the open ghost read off the rendered pixels — ring,
                       # lattice, transparency, inversion — incl. from a source
@@ -1278,7 +1298,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `steppedRectClip`, `steppedRingClip`, `steppedCornerClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET`, `SCREEN_CORNER` | Pixel-stepped corner profiles and their `clip-path` traces (no antialiased `border-radius`), plus the screen-corner mask `vf-menu-bar rounded` paints |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow and inactive-window reporting for the always-a-rail scrollbars (a non-frontmost window's rails blank, per the HIG); a track's measured width, for drawing your own 1-bit fill on the system-pixel grid; document-level listeners scoped to an open panel or in-flight gesture (paired attach/detach + disconnect cleanup in one place) |
 | `focusModality`, `trackFocusModality`, `FocusRuleController` | Whether the keyboard or a pointer last drove the page, and that resolved against a host's own focus as one reactive flag — what a control consults to mark keyboard focus only, wherever `:focus-visible` can't say so: a *clicked* text input matches it, and so does any control that suppresses the browser's mouse focus and calls `focus()` itself |
-| `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share |
+| `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS`, `RENAME_DELAY_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share; and the window a press on an icon's name waits out before it renames, so a double-click there opens instead |
 | `defineElement`, `vfElement` | Register a custom element without the duplicate-copy footgun — `vfElement` is the kit's `@customElement`, and both skip (with a warning) rather than throwing when the tag is already taken (see below) |
 | `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfPositioned`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), explicit placement (`top`/`left` in system px — the mixin every kit element already wears), the native-`<dialog>` lifecycle |
 | `registerEmbeddedFont`, `registerDisplayFace`, `registerBodyFace`, `VF_DISPLAY_FAMILY`, `VF_BODY_FAMILY` | Register the bitmap faces on `document.fonts` yourself; the two constants are the family names they register under (`'VF Display'`, `'VF Body'`) |

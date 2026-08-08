@@ -10,6 +10,7 @@ import { DragController } from '../drag.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
+import { RENAME_DELAY_MS } from '../motion.js'
 import { deriveOpenArt } from '../open-art.js'
 
 /** Which member of the icon family paints — the two System 7 resource sizes. */
@@ -154,6 +155,26 @@ const clamp = (v: number, max: number): number =>
  * Finder's Return renamed, never opened, so on an editable icon it starts the
  * edit and on a non-editable one it does nothing at all.
  *
+ * ### The name and the art are one target, and the second click decides
+ *
+ * A double-click opens the icon *wherever it lands* — the name is as much the
+ * icon as the picture is, and the Finder never made you aim at the 32 pixels of
+ * art. But the name is also where a single click renames, so the two gestures
+ * begin with the same press and only the second one tells them apart.
+ *
+ * So the rename waits for it. A press on the plate of an already-selected icon
+ * arms the field rather than opening it, and the next press inside
+ * {@link RENAME_DELAY_MS} calls it off — leaving the double-click to open, with
+ * no rename box flashing up behind it. Nothing needs to *undo* an edit that
+ * began: the press that starts one and the press that opens are the same
+ * press, so the only thing that can be got right is not committing early.
+ *
+ * The window is generous in the one direction that is cheap. Reading a lone
+ * click as a pair costs a wait before the box appears; reading a pair as a lone
+ * click renames when the user asked to open. The same reasoning covers a press
+ * that turns into a drag, a press elsewhere, and any key — each calls the
+ * pending rename off, because none of them is the click it is waiting for.
+ *
  * ### An icon alone is a picture; an icon in a field is an option
  *
  * `role="option"` is only meaningful inside a `listbox` that owns it. Written
@@ -198,8 +219,9 @@ const clamp = (v: number, max: number): number =>
  * text that lives in the consumer's DOM. An empty `label` draws no plate at
  * all — that *is* the "no label" parameter, in preference to a second attribute
  * that could disagree with it. `editable` then lets a click on the plate of an
- * already-selected icon open the rename box, as the Finder's does, with Return
- * committing, Escape reverting, and the plate widening as you type.
+ * already-selected icon open the rename box a moment later, as the Finder's
+ * does (see above), with Return committing, Escape reverting, and the plate
+ * widening as you type.
  *
  * ### A name is never abbreviated, and never folded
  *
@@ -243,9 +265,10 @@ const clamp = (v: number, max: number): number =>
  * @cssprop --vf-icon-label-height - The name plate's line box
  * @fires vf-select - Selection changed by user interaction. `detail: { selected: boolean }`.
  * @fires vf-change - The name was committed. `detail: { label: string, previous: string }`.
- * @fires vf-open - The icon was opened — double-clicked, or ⌘O / ⌘↓ from the
- *   keyboard (Ctrl off the Mac), the System 7 shortcuts. Return renames
- *   instead, as the Finder's did. `detail: {}`.
+ * @fires vf-open - The icon was opened — double-clicked anywhere on it, its
+ *   name included, or ⌘O / ⌘↓ from the keyboard (Ctrl off the Mac), the
+ *   System 7 shortcuts. Return renames instead, as the Finder's did.
+ *   `detail: {}`.
  * @fires vf-name-too-long - A rename was typed or pasted past `maxlength`, and
  *   the field refused the excess. `detail: { attempted, accepted, limit }` —
  *   enough to raise the alert System 7 raised rather than drop the characters
@@ -506,6 +529,11 @@ export class VfIcon extends VfPositioned(LitElement) {
   /**
    * The name can be renamed in place: click a selected plate, or press Return.
    * Pair with {@link selectable} — both routes start from a selected icon.
+   *
+   * The pointer route opens the field once the double-click window has passed
+   * ({@link RENAME_DELAY_MS}), so double-clicking the *name* opens the icon the
+   * way double-clicking its art does. Return opens it at once — a keypress has
+   * no second half to wait for.
    */
   @property({ type: Boolean, reflect: true }) editable = false
 
@@ -600,6 +628,16 @@ export class VfIcon extends VfPositioned(LitElement) {
   /** The name editing started from, for Escape to put back. */
   #committed = ''
 
+  /** A rename waiting out the double-click window; 0 when none is pending. */
+  #renameTimer = 0
+
+  /**
+   * When the last press on this icon landed, so the next one can tell whether
+   * it is the second half of a double-click. `-Infinity` until there is one,
+   * which is what keeps the very first press from reading as a pair.
+   */
+  #lastPressTime = -Infinity
+
   /**
    * Clicking elsewhere deselects, the way it does on a real desktop. Attached
    * only while this icon is both selectable and selected, so an unselected
@@ -644,13 +682,23 @@ export class VfIcon extends VfPositioned(LitElement) {
    * controller seeds the origin — from the in-flow offset the first time — and
    * writes back each move the drag controller has snapped onto the lattice.
    */
+  /** Where the in-flight drag started, so a move can be told from jitter. */
+  #dragOrigin = { x: 0, y: 0 }
+
   readonly #drag = new DragController(this, {
     onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
       if (!this.movable || event.button !== 0 || this._editing) return null
       this.#warnIfUnplaced()
-      return this.#placement.seed()
+      return (this.#dragOrigin = this.#placement.seed())
     },
-    onDrag: (x: number, y: number): void => this.#placement.moveTo(x, y),
+    onDrag: (x: number, y: number): void => {
+      // Moving an icon is not renaming it, so a press that travels calls off
+      // the rename it armed. Measured against the seeded origin rather than
+      // taken from the move itself: a stationary press still reports jitter,
+      // and every one of those steps snaps back onto the same system px.
+      if (x !== this.#dragOrigin.x || y !== this.#dragOrigin.y) this.#disarmRename()
+      this.#placement.moveTo(x, y)
+    },
   })
 
   override connectedCallback(): void {
@@ -669,6 +717,8 @@ export class VfIcon extends VfPositioned(LitElement) {
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.removeEventListener('keydown', this.#onKeyDown)
+    // A timer outliving the element would open a field in a torn-down tree.
+    this.#disarmRename()
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
@@ -879,10 +929,32 @@ export class VfIcon extends VfPositioned(LitElement) {
   }
 
   /**
+   * Wait out the double-click window, then rename. The press that starts the
+   * gesture cannot know yet which gesture it is — see {@link RENAME_DELAY_MS}.
+   */
+  #armRename(): void {
+    this.#disarmRename()
+    this.#renameTimer = window.setTimeout(() => {
+      this.#renameTimer = 0
+      this.startEditing()
+    }, RENAME_DELAY_MS)
+  }
+
+  /** Call off a pending rename: this gesture turned out to be another one. */
+  #disarmRename(): void {
+    if (!this.#renameTimer) return
+    clearTimeout(this.#renameTimer)
+    this.#renameTimer = 0
+  }
+
+  /**
    * Open the rename field. The whole name starts selected, as the Finder's did
    * — the common rename is a replacement, not an edit.
    */
   startEditing(): void {
+    // Whether it opens here or is already open, nothing is left waiting to open
+    // it again a moment from now.
+    this.#disarmRename()
     if (!this.editable || this._editing) return
     this.#committed = this.label
     this._draft = this.label
@@ -1068,6 +1140,16 @@ export class VfIcon extends VfPositioned(LitElement) {
       .some((n) => n instanceof HTMLElement && n.classList.contains('label'))
     const wasSelected = this.selected
 
+    // A press landing inside the rename delay of the previous one is the second
+    // half of a double-click, wherever in the icon either of them fell: the name
+    // and the art are one target for opening, so the plate can't take a press
+    // that belongs to the pair (see the class doc).
+    const doubling = event.timeStamp - this.#lastPressTime < RENAME_DELAY_MS
+    this.#lastPressTime = event.timeStamp
+    // Whatever this press turns out to be, it is not the lone click a pending
+    // rename is still waiting to be sure of.
+    this.#disarmRename()
+
     if (this.selectable) {
       // Shift/⌘ toggles this icon without disturbing the rest; a plain press
       // selects, and every other selected icon's outside listener clears it.
@@ -1077,14 +1159,18 @@ export class VfIcon extends VfPositioned(LitElement) {
 
     // A click on the plate of an icon that was ALREADY selected opens the
     // rename box — the Finder gesture. The press that does the selecting never
-    // does, or every first click would start an edit.
-    if (this.editable && onPlate && wasSelected && !event.shiftKey && !event.metaKey) {
-      // Suppress the focus the browser would land on the host from the mousedown
-      // that follows: it arrives after the render that opens the field, and
-      // would blur it — committing the rename before it was ever visible.
-      event.preventDefault()
-      this.startEditing()
-      return
+    // does, or every first click would start an edit. It opens on a delay
+    // rather than under the press, so the second click of a double-click can
+    // still arrive and claim the gesture for opening instead.
+    if (
+      this.editable &&
+      onPlate &&
+      wasSelected &&
+      !doubling &&
+      !event.shiftKey &&
+      !event.metaKey
+    ) {
+      this.#armRename()
     }
 
     if (this.#interactive) {
@@ -1099,14 +1185,25 @@ export class VfIcon extends VfPositioned(LitElement) {
     this.#drag.onPointerDown(event)
   }
 
+  /**
+   * The whole icon opens, name included: the handler is bound to the frame, and
+   * the press path is what keeps the plate from having spent the gesture on a
+   * rename before the second click gets here.
+   *
+   * Still guarded on the field: a double-click inside an open rename box is a
+   * word being selected, not an icon being opened.
+   */
   #onDoubleClick = (): void => {
     if (this._editing) return
     emit(this, 'vf-open', {})
   }
 
   #onOutsidePointerDown = (event: PointerEvent): void => {
-    if (event.shiftKey || event.metaKey) return
     if (event.composedPath().includes(this)) return
+    // Wherever that press went, it wasn't this name: a rename still waiting to
+    // open is called off even where the modifier keeps the selection.
+    this.#disarmRename()
+    if (event.shiftKey || event.metaKey) return
     this.#setSelected(false)
   }
 
@@ -1171,6 +1268,10 @@ export class VfIcon extends VfPositioned(LitElement) {
   }
 
   #onKeyDown = (event: KeyboardEvent): void => {
+    // The keyboard has taken over from the press that armed it — Return opens
+    // the field now, an arrow moves the icon, Tab leaves — so a rename waiting
+    // on the double-click window is called off whichever key this is.
+    this.#disarmRename()
     if (this._editing || event.defaultPrevented) return
     // ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl standing in for ⌘ off
     // the Mac. A double-click is a pointer gesture, and this is its keyboard

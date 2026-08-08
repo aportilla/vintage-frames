@@ -14,11 +14,13 @@
  *  - RENAME: the Finder gesture — a press on the plate of an ALREADY-selected
  *    icon opens the field with the whole name selected; the first press never
  *    does. Return commits and fires vf-change, Escape puts the old name back,
- *    and the plate widens as you type.
- *  - OPENING: vf-open comes from a double-click or its keyboard route, ⌘O /
- *    ⌘↓ — never from Return, which renames (the Finder's Return never
- *    opened): it starts the edit on an editable icon and does nothing on a
- *    non-editable one.
+ *    and the plate widens as you type. The field opens on a DELAY, and a second
+ *    press (or a drag) inside it calls the rename off — which is what leaves
+ *    the name double-clickable.
+ *  - OPENING: vf-open comes from a double-click anywhere on the icon, the name
+ *    included, or its keyboard route, ⌘O / ⌘↓ — never from Return, which
+ *    renames (the Finder's Return never opened): it starts the edit on an
+ *    editable icon and does nothing on a non-editable one.
  *  - MOVABLE: that the parameter is `movable` and the platform's `draggable`
  *    is untouched — the trap the component exists to avoid — plus a drag and
  *    an arrow-key nudge landing on whole system px.
@@ -76,6 +78,22 @@ const icon = (attrs = '', label = 'Read Me') =>
      <vf-img slot="large"><img src="${ART32}" alt=""></vf-img>
      <vf-img slot="small"><img src="${ART16}" alt=""></vf-img>
    </vf-icon>`
+
+/**
+ * The component's own double-click window, read from the module rather than
+ * repeated here: every wait below is stated against it, so moving the constant
+ * moves the test with it instead of silently making these races.
+ */
+const RENAME_DELAY = await (async () => {
+  const page = await build('')
+  const ms = await page.evaluate(() =>
+    import('/src/index.js').then((m) => m.RENAME_DELAY_MS)
+  )
+  await page.close()
+  return ms
+})()
+/** Long enough that the next press is a fresh click and any armed rename has fired. */
+const PAST_DELAY = RENAME_DELAY + 150
 
 /** Rects of the host and the two inner boxes, in CSS px. */
 const boxes = (page, index = 0) =>
@@ -1022,7 +1040,9 @@ for (const dpr of [1, 2, 3]) {
   const page = await build(icon('selectable editable', 'Read Me'))
   await page.evaluate(() => {
     globalThis.__changes = []
+    globalThis.__opens = 0
     document.addEventListener('vf-change', (e) => globalThis.__changes.push(e.detail))
+    document.addEventListener('vf-open', () => globalThis.__opens++)
   })
   const plate = () =>
     page.evaluate(() => {
@@ -1038,9 +1058,17 @@ for (const dpr of [1, 2, 3]) {
   await page.mouse.click(p.x, p.y)
   check('RENAME  the press that selects never starts an edit', (await editing()) === false)
 
-  // Second press on the plate does.
+  // A second press on the plate, clear of the first, arms the rename — but the
+  // field does not open UNDER it. Both Finder gestures on a name start with the
+  // same press, so the rename waits out the window a double-click would land in.
+  await page.waitForTimeout(PAST_DELAY)
   await page.mouse.click(p.x, p.y)
-  check('RENAME  a press on an already-selected plate opens the field', await editing())
+  check(
+    'RENAME  a press on an already-selected plate does not open the field under it',
+    (await editing()) === false
+  )
+  await page.waitForTimeout(PAST_DELAY)
+  check('RENAME  …it opens once the double-click window has passed', await editing())
   check(
     'RENAME  the whole name starts selected',
     await page.evaluate(() => {
@@ -1074,7 +1102,7 @@ for (const dpr of [1, 2, 3]) {
   // Escape reverts.
   p = await plate()
   await page.mouse.click(p.x, p.y)
-  await page.waitForTimeout(60)
+  await page.waitForTimeout(PAST_DELAY)
   await page.keyboard.type('Discarded')
   await page.keyboard.press('Escape')
   await page.waitForTimeout(60)
@@ -1086,6 +1114,83 @@ for (const dpr of [1, 2, 3]) {
         globalThis.__changes.length === 1
     ),
     await page.evaluate(() => document.querySelector('vf-icon').label)
+  )
+
+  // The gesture the delay exists for: a double-click on the NAME of a selected
+  // icon opens it, exactly as one on the art does, and the rename its first
+  // press armed never arrives.
+  await page.waitForTimeout(PAST_DELAY)
+  p = await plate()
+  await page.mouse.dblclick(p.x, p.y)
+  check(
+    'RENAME  a double-click on the plate opens the icon',
+    (await page.evaluate(() => globalThis.__opens)) === 1,
+    `${await page.evaluate(() => globalThis.__opens)} opens`
+  )
+  await page.waitForTimeout(PAST_DELAY)
+  check(
+    'RENAME  …and the rename it armed never opens behind it',
+    (await editing()) === false
+  )
+  await page.close()
+}
+
+// A press that travels is a drag, not a rename: the icon moves and the field
+// stays shut, rather than opening under the pointer mid-gesture.
+{
+  const page = await build(
+    `<div id="desk" style="position:relative;width:600px;height:400px">
+       ${icon('selectable editable movable', 'Drag Me')}
+     </div>`
+  )
+  const el = () => page.locator('vf-icon')
+  const plate = () =>
+    page.evaluate(() => {
+      const b = document
+        .querySelector('vf-icon')
+        .shadowRoot.querySelector('.label')
+        .getBoundingClientRect()
+      return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+    })
+  await page.evaluate(() => {
+    globalThis.__opens = 0
+    document.addEventListener('vf-open', () => globalThis.__opens++)
+  })
+
+  // Select first: the rename gesture only arms on an already-selected icon.
+  await el().click()
+  await page.waitForTimeout(PAST_DELAY)
+  const before = await el().evaluate((n) => n.getBoundingClientRect().x)
+  const p = await plate()
+  await page.mouse.move(p.x, p.y)
+  await page.mouse.down()
+  await page.mouse.move(p.x + 40, p.y + 24, { steps: 4 })
+  await page.mouse.up()
+  const after = await el().evaluate((n) => n.getBoundingClientRect().x)
+  check('RENAME  the name is a drag handle like the art', after > before, `${before} → ${after}`)
+  await page.waitForTimeout(PAST_DELAY)
+  check(
+    'RENAME  …and dragging by it calls the pending rename off',
+    (await page.evaluate(
+      () => !document.querySelector('vf-icon').shadowRoot.querySelector('input')
+    ))
+  )
+
+  // The showcase's own configuration — movable AND editable, which is where the
+  // drag's preventDefault() on the press meets the double-click on the name.
+  const moved = await plate()
+  await page.mouse.dblclick(moved.x, moved.y)
+  check(
+    'RENAME  a movable icon still opens from a double-click on its name',
+    (await page.evaluate(() => globalThis.__opens)) === 1,
+    `${await page.evaluate(() => globalThis.__opens)} opens`
+  )
+  await page.waitForTimeout(PAST_DELAY)
+  check(
+    'RENAME  …with no rename following it',
+    (await page.evaluate(
+      () => !document.querySelector('vf-icon').shadowRoot.querySelector('input')
+    ))
   )
   await page.close()
 }
@@ -1147,6 +1252,28 @@ for (const dpr of [1, 2, 3]) {
     `y ${beforeY} → ${await y()}`
   )
 
+  // The name is part of the icon: double-clicking it opens, the same as the
+  // art. On an UNSELECTED icon that is two presses doing three different jobs —
+  // the first selects, the pair opens, and the rename the second press would
+  // otherwise have armed never runs.
+  const notesPlate = await page.evaluate(() => {
+    const b = document
+      .getElementById('notes')
+      .shadowRoot.querySelector('.label')
+      .getBoundingClientRect()
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+  })
+  await page.mouse.dblclick(notesPlate.x, notesPlate.y)
+  check('OPENING  a double-click on the name opens too', (await opens()) === 4)
+  await page.waitForTimeout(PAST_DELAY)
+  check(
+    'OPENING  …and leaves no rename field behind it',
+    (await page.evaluate(
+      () => !document.getElementById('notes').shadowRoot.querySelector('input')
+    )) && (await opens()) === 4,
+    `${await opens()} opens`
+  )
+
   await page.locator('#notes').click()
   await page.keyboard.press('Enter')
   await page.waitForTimeout(60)
@@ -1154,7 +1281,7 @@ for (const dpr of [1, 2, 3]) {
     'OPENING  Return on an editable icon starts the rename, not an open',
     (await page.evaluate(
       () => !!document.getElementById('notes').shadowRoot.querySelector('input')
-    )) && (await opens()) === 3
+    )) && (await opens()) === 4
   )
   await page.close()
 }

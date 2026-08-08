@@ -272,9 +272,10 @@ $<VfMenu>('#menu-special').addEventListener('vf-menu-select', (event) => {
 
 /* ------------------------------------------------------------------ *
  * Launcher icons: each one's data-opens names the window or dialog it
- * stands for. `vf-open` is the icon's open gesture — a double-click, or
- * ⌘O / ⌘↓ from the keyboard; Return starts a rename instead, since every
- * icon on this desktop is `editable`, as every Finder icon was. A window
+ * stands for. `vf-open` is the icon's open gesture — a double-click anywhere
+ * on it, the name included, or ⌘O / ⌘↓ from the keyboard; Return starts a
+ * rename instead, since every icon on this desktop is `editable`, as every
+ * Finder icon was. A window
  * centers on the current raster, un-hides and comes
  * to the front of its tier; a dialog or alert shows modally (the native
  * <dialog> centers itself). While the target is on screen its launcher

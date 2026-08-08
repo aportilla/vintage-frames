@@ -745,7 +745,8 @@ shrink it and watch the arrows come back.
            neighbours' names clear of each other. The placement is `left`/`top`
            on each icon, in system px — never CSS: a drag writes back through
            those same two properties, so an authored icon and a moved one are
-           the same declaration. The windows themselves start hidden. Double-click — or ⌘O / ⌘↓ — fires `vf-open`, and
+           the same declaration. The windows themselves start hidden. Double-click — anywhere on the icon,
+           its name included — or ⌘O / ⌘↓ fires `vf-open`, and
            demo.ts opens whatever data-opens names; Return starts a rename
            instead, as the Finder's did, since every icon on this desktop is
            `editable`. Placeholder art on all of them for now, slotted at both
@@ -950,7 +951,10 @@ shrink it and watch the arrows come back.
              an HTMLElement accessor. Click to select — the art inverts, because a 1-bit icon is ink and
              opaque white on a transparent surround, i.e. an image and its mask,
              so inverting flips the two and leaves the surround alone. Click the
-             name of a selected icon to rename it. The plate is opaque white in
+             name of a selected icon and the rename box opens a moment later,
+             once a double-click could no longer be coming — double-click it
+             and the icon opens, exactly as double-clicking its art does. The
+             plate is opaque white in
              its own right, which is the only reason a name reads on the dither.
              View → "by Small Icon" swaps every one to its 16×16 member. -->
         <vf-icon

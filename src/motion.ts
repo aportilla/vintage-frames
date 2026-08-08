@@ -28,6 +28,26 @@ export function prefersReducedMotion(): boolean {
 export const PRESS_HOLD_MS = 200
 
 /**
+ * How long (ms) a press on a selected icon's name waits before it opens the
+ * rename box — long enough that a double-click has already declared itself.
+ *
+ * The Finder's two pointer gestures on a name are the same press: click once
+ * and it renames, click twice and it opens. Only the *second* press tells them
+ * apart, so the rename cannot commit to opening until the window for one has
+ * passed — which is what makes this a delay rather than an immediate response.
+ * A press landing inside the window calls the pending rename off outright, so
+ * the number is only an upper bound on how slow a double-click may be and still
+ * read as one.
+ *
+ * No API reports what the *browser* counts as a double-click: it follows a
+ * platform setting the user can move (Windows offers up to 900 ms, macOS a
+ * comparable slider, both defaulting near 500). Overshooting it costs a wait
+ * before a rename box appears; undershooting it renames when the user meant to
+ * open. So the number leans long deliberately.
+ */
+export const RENAME_DELAY_MS = 800
+
+/**
  * Milliseconds per row while the pointer rests on a menu scroll arrow — the
  * pace a clipped popup rolls its list through the panel at (~15 rows/s).
  *

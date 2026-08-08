@@ -27,7 +27,7 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window-a11y
  */
-import { attr, check, launch, makeBuild, results, walk } from './harness.mjs'
+import { attr, check, launch, makeBuild, results, walk, within } from './harness.mjs'
 
 const browser = await launch()
 
@@ -196,6 +196,8 @@ const WINDOW_ORDER = `[...document.getElementById('desk').children]
     `border ${after.border}, stripes ${after.stripes}`)
 
   // Close it: Enter on the focused (native button) close box fires vf-close.
+  // Bounded: the listener resolves only if the event arrives, so an Enter that
+  // lands on the wrong element has to fail this check rather than wait forever.
   const closed = page.evaluate(() =>
     new Promise((resolve) => {
       document.getElementById('w1').addEventListener(
@@ -203,8 +205,9 @@ const WINDOW_ORDER = `[...document.getElementById('desk').children]
     })
   )
   await page.keyboard.press('Enter')
+  const detail = await within(closed)
   check('Enter on it fires vf-close — a static-body window is closable by keyboard',
-    (await closed).reason === 'close', JSON.stringify(await closed))
+    detail?.reason === 'close', detail ? JSON.stringify(detail) : 'no vf-close within 5s')
   await page.close()
 }
 

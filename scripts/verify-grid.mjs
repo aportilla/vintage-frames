@@ -26,7 +26,7 @@
  * Override the pages with VF_GRID_PAGES (comma-separated paths) and the
  * densities with VF_GRID_DPR.
  */
-import { ORIGIN, launch } from './harness.mjs'
+import { ORIGIN, heartbeat, launch } from './harness.mjs'
 
 // ?nosnap: blog.html turns applyGridSnap() on itself, which would quietly
 // paper over exactly the ORIGIN faults this script exists to catch.
@@ -108,6 +108,7 @@ for (const path of PAGES) {
     console.log(
       `${ok ? 'ok  ' : 'FAIL'} ${path.padEnd(12)} dpr ${dpr}   ${clean}/${total} on grid`
     )
+    heartbeat(`${path} dpr ${dpr}`) // reports per line, so it feeds the watchdog itself
     for (const f of faults) {
       console.log(
         `       ${f.kind.padEnd(6)} ${f.label.padEnd(26)} ${f.detail}` +

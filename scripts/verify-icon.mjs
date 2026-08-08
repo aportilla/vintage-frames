@@ -674,10 +674,13 @@ for (const dpr of [1, 2, 3]) {
         ? JSON.stringify(skewed)
         : `all on ${rows[0].artCentre}, incl. a ${Math.max(...rows.map((r) => r.plateW))}px name`
     )
+    // One screenshot, not two: measured twice, a failure could report a count
+    // that isn't the one that failed.
+    const grays = await grayPixels(page)
     check(
       `CRISP dpr${dpr} ${declared ? 'width=64' : 'auto   '}  and not one gray pixel, with smoothing left ON`,
-      (await grayPixels(page)) === 0,
-      `${await grayPixels(page)} gray px`
+      grays === 0,
+      `${grays} gray px`
     )
     await page.close()
   }

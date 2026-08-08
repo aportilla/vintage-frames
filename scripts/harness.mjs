@@ -30,6 +30,53 @@ export const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 /** Every check's outcome, in order, for {@link report} to count. */
 export const results = []
 
+// ───────────────────────────────────────────────────────────── the watchdog
+
+/**
+ * A stalled script must not be able to stall the suite.
+ *
+ * Playwright bounds its own calls, but not a promise the *page* returns: the
+ * idiom `page.evaluate(() => new Promise(r => el.addEventListener(evt, r)))`
+ * waits forever if the event never fires, and a click that missed or a dialog
+ * that didn't close is exactly how that happens. One such wait cost a CI run
+ * its whole 20-minute budget and printed nothing, because a script that never
+ * exits never flushes the checks it had already passed.
+ *
+ * So: no progress for this long and the script prints what it got, names the
+ * check it stalled *after*, and exits 1 — a diagnosable failure instead of a
+ * hang. `VF_STALL_TIMEOUT=0` turns it off (for a debugging session under a
+ * breakpoint).
+ */
+const STALL_MS = Number(process.env.VF_STALL_TIMEOUT ?? 120_000)
+let stallTimer
+let lastProgress = 'the first check (nothing has been checked yet)'
+
+function onStall() {
+  const failed = results.filter((r) => !r).length
+  console.log(
+    `\n[watchdog] no progress for ${STALL_MS / 1000}s after: ${lastProgress}\n` +
+      '[watchdog] whatever ran next never resolved — usually an in-page promise ' +
+      'waiting for an event that never fired.'
+  )
+  console.log(`\n${results.length - failed}/${results.length} checks passed (STALLED — incomplete)`)
+  process.exit(1)
+}
+
+/**
+ * Restart the stall clock. {@link check} calls it; the few scripts that report
+ * per-line instead of per-check (grid, snap, blog, control-heights) call it
+ * from their own `check` so they are covered too.
+ */
+export function heartbeat(label) {
+  if (!(STALL_MS > 0)) return
+  if (label) lastProgress = label
+  clearTimeout(stallTimer)
+  stallTimer = setTimeout(onStall, STALL_MS)
+  // Never the reason the process stays alive — only the reason it stops.
+  stallTimer.unref?.()
+}
+heartbeat()
+
 /**
  * Record one assertion. Deliberately not `expect`: a script runs ALL of its
  * checks and reports every failure, where a throwing assertion would abandon
@@ -39,7 +86,20 @@ export const results = []
 export function check(name, pass, detail = '') {
   results.push(pass)
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`)
+  heartbeat(name)
 }
+
+/**
+ * Await a promise the *page* returned, with a deadline.
+ *
+ * Playwright times out its own calls, but not a promise the page hands back:
+ * `page.evaluate(() => new Promise(r => el.addEventListener('x', r)))` waits
+ * forever when the event never fires. Wrapping that wait here turns a missing
+ * event into `undefined` — a check that fails naming what didn't arrive —
+ * instead of a script that never returns.
+ */
+export const within = (promise, ms = 5000) =>
+  Promise.race([promise, new Promise((r) => setTimeout(r, ms))])
 
 /**
  * Close the browser, print the tally, exit with the suite's verdict. The

@@ -71,6 +71,32 @@ const serverUp = async () => {
   }
 }
 
+/**
+ * Signal a child and everything it started.
+ *
+ * Every child here is a process *tree* — `npm run X` forks a shell, which
+ * forks node, which starts a browser — and `child.kill()` signals only the npm
+ * at the top. The rest keep running, and keep the stdio pipes open, so the
+ * `close` event this runner waits on never fires: killing the timed-out script
+ * left it just as stuck as before. Spawning detached puts each child in its
+ * own process group, and a negative pid signals the whole group.
+ */
+const killTree = (child, signal) => {
+  if (!child?.pid) return
+  try {
+    process.kill(-child.pid, signal)
+  } catch {
+    try {
+      child.kill(signal)
+    } catch {
+      /* already gone */
+    }
+  }
+}
+
+/** In-flight scripts, so a killed runner doesn't strand a browser either. */
+const running = new Set()
+
 let server = null
 async function startServer() {
   if (await serverUp()) {
@@ -86,7 +112,9 @@ async function startServer() {
   server = spawn('npm', ['run', '--silent', 'dev', '--', '--port', port, '--strictPort'], {
     cwd: ROOT,
     stdio: 'ignore',
-    detached: false,
+    // Its own group: `npm run dev` is a wrapper around vite, and signalling
+    // only the wrapper leaves the server itself listening.
+    detached: true,
   })
   server.on('error', (error) => {
     console.error(`could not start the dev server: ${error.message}`)
@@ -106,17 +134,22 @@ async function startServer() {
 }
 function stopServer() {
   if (!server) return
-  server.kill('SIGTERM')
+  killTree(server, 'SIGTERM')
   server = null
 }
-// A killed runner must not leave a server behind.
+// A killed runner must not leave a server — or a browser — behind.
+function stopEverything() {
+  stopServer()
+  for (const child of running) killTree(child, 'SIGKILL')
+  running.clear()
+}
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
-    stopServer()
+    stopEverything()
     process.exit(130)
   })
 }
-process.on('exit', stopServer)
+process.on('exit', stopEverything)
 
 // ── running one script ─────────────────────────────────────────────────────
 /**
@@ -140,25 +173,46 @@ function run(name) {
     const child = spawn('npm', ['run', '--silent', name], {
       cwd: ROOT,
       env: { ...process.env, VF_ORIGIN: ORIGIN, FORCE_COLOR: '0' },
+      detached: true, // see killTree: the script is a tree, not a process
     })
+    running.add(child)
+
     let output = ''
+    let timedOut = false
+    let settled = false
     child.stdout.on('data', (d) => (output += d))
     child.stderr.on('data', (d) => (output += d))
-    const timer = setTimeout(() => {
-      output += `\n[runner] timed out after ${TIMEOUT_MS / 1000}s`
-      child.kill('SIGKILL')
-    }, TIMEOUT_MS)
-    child.on('close', (code) => {
+
+    const finish = (code) => {
+      if (settled) return
+      settled = true
       clearTimeout(timer)
+      clearTimeout(abandon)
+      running.delete(child)
       resolve({
         name,
-        ok: code === 0,
+        ok: !timedOut && code === 0,
         code,
+        timedOut,
         output,
         ms: Date.now() - started,
         counts: tally(output),
       })
-    })
+    }
+
+    let abandon
+    const timer = setTimeout(() => {
+      timedOut = true
+      output += `\n[runner] no exit after ${TIMEOUT_MS / 1000}s — killed`
+      killTree(child, 'SIGKILL')
+      // `close` waits for every descendant to release the pipes. A browser
+      // that outlives the signal must not take the whole run down with it, so
+      // the result is reported either way.
+      abandon = setTimeout(() => finish(null), 10_000)
+    }, TIMEOUT_MS)
+
+    child.on('error', () => finish(null))
+    child.on('close', finish)
   })
 }
 
@@ -172,7 +226,7 @@ async function runAll(names) {
       const name = queue.shift()
       const result = await run(name)
       done.push(result)
-      const label = result.ok ? 'ok  ' : 'FAIL'
+      const label = result.ok ? 'ok  ' : result.timedOut ? 'HUNG' : 'FAIL'
       const count = result.counts ? ` ${result.counts.passed}/${result.counts.total}` : ''
       console.log(
         `${label} ${result.name.replace('verify:', '').padEnd(18)}` +
@@ -196,11 +250,21 @@ results.sort((a, b) => a.name.localeCompare(b.name))
 const failures = results.filter((r) => !r.ok)
 
 for (const failure of failures) {
-  console.log(`\n${'─'.repeat(72)}\n${failure.name} — exit ${failure.code}\n${'─'.repeat(72)}`)
-  // The tail is where the tally and the failing checks are; the headers above
-  // it are prose.
+  const why = failure.timedOut ? 'never exited' : `exit ${failure.code}`
+  console.log(`\n${'─'.repeat(72)}\n${failure.name} — ${why}\n${'─'.repeat(72)}`)
   const lines = failure.output.split('\n')
-  console.log(lines.slice(Math.max(0, lines.length - 40)).join('\n').trimEnd())
+  // The failing lines, wherever they are. A tail alone hid them: one bad check
+  // among icon's 129 scrolls off the end behind 100 passing ones, and CI then
+  // reports a count with nothing to act on.
+  const bad = lines.filter((l) => /^\s*(FAIL|not ok|✗|\[watchdog\]|\[runner\])\b/.test(l))
+  if (bad.length) {
+    console.log(bad.slice(0, 40).join('\n'))
+    if (bad.length > 40) console.log(`… and ${bad.length - 40} more failing lines`)
+  }
+  // Plus the tail, which carries the tally and any stack trace.
+  const tail = bad.length ? 12 : 40
+  console.log(`\n  … last ${tail} lines:`)
+  console.log(lines.slice(Math.max(0, lines.length - tail)).join('\n').trimEnd())
 }
 
 const checks = results.reduce(
@@ -218,6 +282,7 @@ console.log(
     (notRun ? `, ${notRun} not run (--bail)` : '')
 )
 if (failures.length) {
-  console.log(`failing: ${failures.map((f) => f.name.replace('verify:', '')).join(', ')}`)
+  const label = (f) => f.name.replace('verify:', '') + (f.timedOut ? ' (hung)' : '')
+  console.log(`failing: ${failures.map(label).join(', ')}`)
 }
 process.exit(failures.length ? 1 : 0)

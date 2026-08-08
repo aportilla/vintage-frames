@@ -24,7 +24,7 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:snap
  */
-import { ORIGIN, launch } from './harness.mjs'
+import { ORIGIN, heartbeat, launch } from './harness.mjs'
 
 // ?nosnap: blog.html turns snapping on itself, which would correct the
 // perturbation before the broken baseline is measured — the page has to stay
@@ -43,6 +43,7 @@ let failed = false
 const check = (ok, label, detail = '') => {
   if (!ok) failed = true
   console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `   ${detail}` : ''}`)
+  heartbeat(label) // this script reports per line, so it feeds the watchdog itself
   return ok
 }
 

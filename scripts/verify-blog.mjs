@@ -13,7 +13,7 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:blog
  */
-import { ORIGIN, launch } from './harness.mjs'
+import { ORIGIN, heartbeat, launch } from './harness.mjs'
 
 const DPR = Number(process.env.VF_BLOG_DPR ?? 2)
 
@@ -22,6 +22,7 @@ const check = (label, actual, expected) => {
   const ok = JSON.stringify(actual) === JSON.stringify(expected)
   if (!ok) failures.push(`${label}\n       expected ${JSON.stringify(expected)}\n       actual   ${JSON.stringify(actual)}`)
   console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label} → ${JSON.stringify(actual)}`)
+  heartbeat(label) // this script reports per line, so it feeds the watchdog itself
 }
 
 const browser = await launch()

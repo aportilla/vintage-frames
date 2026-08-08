@@ -597,7 +597,16 @@ for (const dpr of [1, 2, 3]) {
 // it, odd and even natural widths, and one that used to fringe (`sdlkfsdf`).
 const CRISP_NAMES = ['sdlkfsdf', 'Read Me', 'System Folder', 'abcd', 'Macintosh HD', 'a']
 
-/** Gray = neither black nor white: exactly the fringe, straight off the pixels. */
+/**
+ * Neither black nor white: exactly the fringe, straight off the pixels.
+ *
+ * "Not neutral" counts too. A fringe is only *gray* where text antialiases in
+ * grayscale — filtered per LCD subpixel it comes out coloured instead, and a
+ * detector that required r=g=b saw none of it. That is not a hypothetical:
+ * every CRISP check below passed on CI while the teeth check underneath them
+ * reported the fringe it had deliberately induced was gone. The launch args in
+ * harness.mjs settle the rasterizer; this makes the reading honest either way.
+ */
 const grayPixels = async (page) => {
   const shot = await page.screenshot()
   return page.evaluate(async (b64) => {
@@ -613,7 +622,9 @@ const grayPixels = async (page) => {
     let n = 0
     for (let i = 0; i < d.length; i += 4) {
       const r = d[i]
-      if (r === d[i + 1] && r === d[i + 2] && r > 8 && r < 247) n++
+      // A colour cast is a fringe: the fixtures are black art on white.
+      if (r !== d[i + 1] || r !== d[i + 2]) n++
+      else if (r > 8 && r < 247) n++
     }
     return n
   }, shot.toString('base64'))

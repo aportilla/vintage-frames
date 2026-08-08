@@ -115,8 +115,29 @@ export async function report(browser) {
 
 // ────────────────────────────────────────────────────────────── the browser
 
-/** One Chromium for a script. Headless runs at dpr 1, so the default scale is 3. */
-export const launch = (options) => chromium.launch(options)
+/**
+ * One Chromium for a script. Headless runs at dpr 1, so the default scale is 3.
+ *
+ * The args pin text rasterization, the one part of a "rendered pixels" suite
+ * that is otherwise not the same on every machine. Linux Chromium hints glyph
+ * outlines through FreeType and antialiases them per LCD subpixel; macOS does
+ * neither, and `-webkit-font-smoothing` — which the kit sets to `none` — is
+ * implemented on macOS only. The difference broke these assertions in both
+ * directions at once: subpixel filtering paints *colour* into art that is
+ * meant to be 1-bit (verify:snap counted 540 such pixels on a clean page),
+ * while hinting rounds glyph outlines back onto whole pixels and hides the
+ * half-pixel faults the fringe checks exist to catch (verify:icon's teeth
+ * check found no fringe when it deliberately forced one).
+ *
+ * So: rasterize the outline as authored, and antialias in grayscale. Subpixel
+ * *positioning* stays on deliberately — that is what lets a glyph sit at half
+ * a pixel, which is the fault being detected.
+ */
+export const launch = (options = {}) =>
+  chromium.launch({
+    ...options,
+    args: ['--font-render-hinting=none', '--disable-lcd-text', ...(options.args ?? [])],
+  })
 
 /**
  * Build the page builder a script uses.

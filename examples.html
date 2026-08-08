@@ -14,11 +14,13 @@
       stage and prints the same template underneath, so the sample cannot
       drift from the thing above it.
 
-      The API tables document what the kit ADDS. Parameters the platform
-      already defines are stated once under "Standards & conventions".
+      Order: install, then every component, then the two sections whose
+      subject is the page rather than one element — sizing and focus — and
+      the reference tables. There is no cross-cutting "conventions" chapter:
+      what a component does is stated in that component's own section.
 
-      The page pins no --vf-scale, so every specimen self-scales to true
-      ~72dpi. It calls applyGridSnap(); load with ?nosnap to turn that off.
+      The page pins no --vf-scale, so every specimen self-scales. It calls
+      applyGridSnap(); load with ?nosnap to turn that off.
     -->
     <link rel="stylesheet" href="/demo/examples.css" />
     <script type="module" src="/demo/examples.ts"></script>
@@ -44,168 +46,13 @@
       </aside>
 
       <main class="main">
-        <!-- ================================================================
-             GUIDE
-             ============================================================= -->
-
-        <section class="doc" id="overview" data-toc="Overview">
+        <section class="doc" id="install" data-toc="Install">
           <h1 class="hero">
             <vf-img width="19" height="16">
               <img src="/demo/icons/vintage-frames.png" alt="" />
             </vf-img>
             <vf-label>Vintage Frames</vf-label>
           </h1>
-          <p class="lede">
-            Every element in the kit, the parameters it takes, and a live
-            specimen of each state.
-          </p>
-
-          <!-- The one demo composed rather than isolated: every element used
-               here has its own section further down, so the markup block is
-               collapsed (data-source="hidden"). Sizes and positions are all
-               stated in system px — no stylesheet, no em arithmetic, no
-               --vf-scale. The About window is LAST in the source because
-               vf-desktop marks its topmost document window active. -->
-          <template
-            data-example
-            data-stage="desktop"
-            data-source="hidden"
-            data-caption="Pull down a menu, drag a title bar, click a window to bring it forward, tab into a control."
-          >
-            <vf-desktop width="512" height="400">
-              <vf-menu-bar>
-                <vf-menu label="File">
-                  <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
-                  <vf-menu-item value="open" shortcut="⌘O">Open…</vf-menu-item>
-                  <vf-separator></vf-separator>
-                  <vf-menu-item value="print" shortcut="⌘P" disabled>Print</vf-menu-item>
-                  <vf-menu-item value="quit" shortcut="⌘Q">Quit</vf-menu-item>
-                </vf-menu>
-                <vf-menu label="Edit">
-                  <vf-menu-item value="undo" shortcut="⌘Z">Undo</vf-menu-item>
-                  <vf-separator></vf-separator>
-                  <vf-menu-item value="cut" shortcut="⌘X">Cut</vf-menu-item>
-                  <vf-menu-item value="copy" shortcut="⌘C">Copy</vf-menu-item>
-                </vf-menu>
-                <vf-menu label="View">
-                  <vf-menu-item value="by-icon" checked>by Icon</vf-menu-item>
-                  <vf-menu-item value="by-name" checkable>by Name</vf-menu-item>
-                </vf-menu>
-              </vf-menu-bar>
-
-              <vf-window
-                heading="Find"
-                closable
-                movable
-                width="192"
-                height="104"
-                left="32"
-                top="272"
-              >
-                <vf-stack fill-width gap="10">
-                  <vf-stack fill-width direction="row" gap="8">
-                    <vf-label for="hero-find">Find:</vf-label>
-                    <vf-text-field fill-width id="hero-find" value="System 7"></vf-text-field>
-                  </vf-stack>
-                  <vf-stack fill-width place="end">
-                    <vf-button variant="default">Find</vf-button>
-                  </vf-stack>
-                </vf-stack>
-              </vf-window>
-
-              <vf-window
-                variant="utility"
-                heading="Desk Accessories"
-                movable
-                flush
-                width="82"
-                height="67"
-                left="464"
-                top="64"
-              >
-                <vf-grid
-                  columns="3"
-                  rows="2"
-                  cell-width="26"
-                  cell-height="26"
-                  frameless
-                  role="group"
-                  aria-label="Desk accessories"
-                >
-                  <vf-img width="16" height="16"><img src="/demo/icons/alarm-clock.png" alt="" /></vf-img>
-                  <vf-img width="16" height="16"><img src="/demo/icons/calculator.png" alt="" /></vf-img>
-                  <vf-img width="16" height="16"><img src="/demo/icons/chooser.png" alt="" /></vf-img>
-                  <vf-img width="16" height="16"><img src="/demo/icons/key-caps.png" alt="" /></vf-img>
-                  <vf-img width="16" height="16"><img src="/demo/icons/note-pad.png" alt="" /></vf-img>
-                  <vf-img width="16" height="16"><img src="/demo/icons/puzzle.png" alt="" /></vf-img>
-                </vf-grid>
-              </vf-window>
-
-              <vf-window
-                heading="Read Me"
-                movable
-                scrollbars="vertical"
-                width="240"
-                height="208"
-                left="296"
-                top="112"
-              >
-                <vf-stack fill-width gap="10" pad="10">
-                  <vf-paragraph>
-                    One document window is frontmost at a time: it wears the stripes,
-                    the widgets and the grow box, and the others go plain.
-                  </vf-paragraph>
-                  <vf-paragraph>
-                    The palette at the right is a utility window: it floats above the
-                    document windows and stands outside the single-active rule.
-                  </vf-paragraph>
-                </vf-stack>
-              </vf-window>
-
-              <!-- Last, so the desktop seeds it topmost — and the topmost
-                   document window is the one it marks active. -->
-              <vf-window
-                heading="Vintage Frames"
-                movable
-                width="288"
-                height="224"
-                left="16"
-                top="32"
-              >
-                <!-- A declared width rather than fill-width: 256 of the 262
-                     system px the body offers. -->
-                <vf-stack width="256" gap="12">
-                  <vf-stack direction="row" gap="8">
-                    <vf-img width="19" height="16">
-                      <img src="/demo/icons/vintage-frames.png" alt="" />
-                    </vf-img>
-                    <vf-label>Vintage Frames</vf-label>
-                  </vf-stack>
-                  <vf-paragraph>
-                    Lit web components that rebuild the Mac OS System 7 interface.
-                    30 elements: window and dialog shells, menus, lists, form
-                    controls, icons.
-                  </vf-paragraph>
-                  <vf-separator fill-width></vf-separator>
-                  <vf-stack fill-width direction="row" gap="12">
-                    <vf-checkbox checked>Crisp</vf-checkbox>
-                    <vf-select value="Chicago" label="Face">
-                      <vf-option>Chicago</vf-option>
-                      <vf-option>Geneva</vf-option>
-                      <vf-option>Monaco</vf-option>
-                    </vf-select>
-                    <vf-slider fill-width value="60" label="Level"></vf-slider>
-                  </vf-stack>
-                  <vf-stack fill-width place="end">
-                    <vf-button-group>
-                      <vf-button>Cancel</vf-button>
-                      <vf-button variant="default">OK</vf-button>
-                    </vf-button-group>
-                  </vf-stack>
-                </vf-stack>
-              </vf-window>
-            </vf-desktop>
-          </template>
 
           <h2>Install</h2>
           <pre class="snippet"><code>npm install vintage-frames</code></pre>
@@ -213,8 +60,10 @@
 
           <p>
             The kit ships no stylesheet. Every visual constant is a
-            <code>--vf-*</code> custom property with an inlined fallback, and the two
-            bitmap faces register themselves on <code>document.fonts</code>.
+            <code>--vf-*</code> custom property with an inlined fallback
+            (<a href="#tokens">the token table</a>), every component's internals are
+            reachable through <code>::part()</code>, and the two bitmap faces register
+            themselves on <code>document.fonts</code>.
           </p>
 
           <p>
@@ -225,241 +74,18 @@
           <pre class="snippet"><code>import 'vintage-frames/vf-button.js'
 import 'vintage-frames/vf-checkbox.js'</code></pre>
 
-          <h3>Sizing</h3>
           <p>
-            Components are authored in <em>system pixels</em> — the 1-bit art grid —
-            and each one maps a system pixel onto a whole number of device pixels:
-            three at 100% zoom. The mapping follows <code>devicePixelRatio</code> and
-            zoom, needs no setup, and does not compound when components nest.
-          </p>
-          <p>
-            A component's box is therefore never stated in fixed CSS pixels. Windows
-            and dialogs declare their own size in system px —
-            <code>&lt;vf-window width="240" height="176"&gt;</code>. The demos below
-            size everything else in <code>em</code> against the component's own type
-            (on a <code>vf-*</code> host <code>1em</code> is the kit's 16-pixel face)
-            or as a percentage of its container.
-          </p>
-
-          <h3>Zoom</h3>
-          <p>
-            The kit renders <code>round(3 × zoom)</code> device pixels per system
-            pixel — always a whole number. The steps are the same on every display:
-          </p>
-
-          <table class="api">
-            <thead>
-              <tr><th>zoom</th><th>device px per system px</th><th>size vs 100%</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>50–80%</td><td>2</td><td>67%</td></tr>
-              <tr><td>90–110%</td><td>3</td><td>100%</td></tr>
-              <tr><td>125%</td><td>4</td><td>133%</td></tr>
-              <tr><td>150–175%</td><td>5</td><td>167%</td></tr>
-              <tr><td>200%</td><td>6</td><td>200%</td></tr>
-              <tr><td>300%</td><td>9</td><td>300%</td></tr>
-            </tbody>
-          </table>
-
-          <ul>
-            <li>
-              90% and 110% both round to 3, so the steps nearest 100% do not move.
-            </li>
-            <li>Ties round up: 150% renders 167% of true size, not 133%.</li>
-            <li>
-              Chrome and Firefox report zoom through <code>devicePixelRatio</code>;
-              Safari holds it at the hardware and moves the viewport instead. The kit
-              tracks both.
-            </li>
-            <li>
-              Pinch-to-zoom is not followed — it magnifies already-rasterized pixels
-              at compositing time. A page that pins <code>--vf-scale</code> opts out
-              of zoom-following as well.
-            </li>
-          </ul>
-
-          <p>Zoom this page:</p>
-          <pre class="snippet"><code id="zoom-readout">measuring…</code></pre>
-
-          <p>
-            One thing is left to the host page: the
-            <a href="#grid">device-pixel grid</a>.
-          </p>
-        </section>
-
-        <section class="doc" id="grid" data-toc="Device-pixel grid">
-          <h2>Staying on the device-pixel grid</h2>
-          <p>
-            A component is built from whole system pixels, so every edge inside it
-            sits on the grid — but only <em>relative to its own origin</em>. Land that
-            origin, or its size, on a fractional device pixel and the 1-bit interior
-            rasterizes wrong: stepped corners staircase asymmetrically, hairline
-            borders and glyph stems smear across two device rows and go gray. Two
-            rules are the page's, and one call covers the first:
-          </p>
-
-          <ol>
-            <li>
-              <strong>State every <code>line-height</code> in whole pixels, and keep
-              <code>padding</code>, <code>margin</code> and <code>gap</code> on
-              integers</strong> — or call <code>applyGridSnap()</code> and forget it.
-              Line boxes are the biggest offender:
-              <code>1.65 × 17px = 28.05px</code>, and every line of prose nudges
-              everything after it further off.
-            </li>
-            <li>
-              <strong>Position a box that contains components from its start edge — or
-              give it a whole-pixel size.</strong> Anything right-aligned, centered or
-              sharing <code>space-between</code> computes its origin as
-              <code>edge − width</code>, so a width derived from a text run lands it
-              off the grid.
-            </li>
-          </ol>
-
-          <pre class="snippet"><code>import { applyGridSnap, requestGridSnap } from 'vintage-frames'
-
-applyGridSnap()    // every component measures its own paint and cancels the
-                   // fractional remainder — returns a cleanup function
-requestGridSnap()  // re-run after moving components in a way that resizes nothing</code></pre>
-
-          <p>
-            The correction never touches the host's own <code>position</code>,
-            <code>left</code>/<code>top</code> or <code>margin</code>; its whole
-            footprint on your DOM is <code>--vf-snap-dx</code> /
-            <code>--vf-snap-dy</code> on each corrected host. Opt one element out with
-            <code>nosnap</code>. This page calls it — load
-            <a href="/examples.html?nosnap"><code>?nosnap</code></a> to compare with
-            it off at 100% zoom. <a href="#vf-paragraph"><code>vf-paragraph</code></a>
-            and <a href="#vf-label"><code>vf-label</code></a> state their line box in
-            whole system pixels, so text set on them satisfies rule 1 without the
-            call.
+            Events are named <code>vf-*</code> and dispatched
+            <code>bubbles: true, composed: true</code>, so one delegated listener
+            catches them however deep the shadow roots go. Native events are
+            untouched.
           </p>
 
           <p>
-            <code>npm run verify:grid</code> checks every <code>vf-*</code> host at dpr
-            1/2/3, and <code>npm run verify:snap</code> checks that a page knocked off
-            the grid gets back on it. Point them at your own pages with
-            <code>VF_GRID_PAGES</code> / <code>VF_SNAP_PAGES</code>.
+            Each component sizes itself, with nothing to set up —
+            <a href="#sizing">Sizing and the device-pixel grid</a>, at the end of the
+            page, is what that means on your display.
           </p>
-        </section>
-
-        <section class="doc" id="conventions" data-toc="Conventions">
-          <h2>Conventions</h2>
-          <p>What holds across the kit. Everything else is per component.</p>
-
-          <ul>
-            <li>
-              <strong>Attributes.</strong> Every property is an attribute of the same
-              name in lowercase (<code>cellWidth</code> → <code>cell-width</code> is
-              the only camelCase pair). Booleans are boolean attributes: present means
-              true, so <code>disabled</code> and <code>disabled="false"</code> both
-              disable.
-            </li>
-            <li>
-              <strong>Forms.</strong> Value-bearing controls are
-              <a href="https://html.spec.whatwg.org/multipage/custom-elements.html#form-associated-custom-elements">form-associated
-              custom elements</a>: a plain <code>&lt;form&gt;</code> submits them, they
-              appear in <code>form.elements</code>, and <code>form.reset()</code>
-              restores them. <code>name</code>, <code>value</code>,
-              <code>readonly</code>, <code>placeholder</code>, <code>type</code>,
-              <code>min</code>/<code>max</code>/<code>step</code> and
-              <code>required</code> mean what they mean on
-              <a href="https://html.spec.whatwg.org/multipage/input.html#the-input-element"><code>&lt;input&gt;</code></a>.
-              Validation is real: <code>reportValidity()</code> blocks with the native
-              message, <code>:invalid</code> matches on the host, and Enter cannot
-              submit past a failing constraint.
-            </li>
-            <li>
-              <strong>Disabled</strong> blocks interaction, drops the tab stop and
-              honors an ancestor <code>&lt;fieldset disabled&gt;</code>. It dims the
-              <em>label</em>, never the borders or glyphs.
-            </li>
-            <li>
-              <strong>Names.</strong> <code>&lt;label for&gt;</code>,
-              <code>aria-label</code>/<code>aria-labelledby</code> and
-              <code>aria-describedby</code> on the host all reach the control, bridged
-              inward where its focusable element sits in a shadow root. A control's own
-              <code>label</code> property beats all of them, and
-              <a href="#vf-label"><code>&lt;vf-label for&gt;</code></a> does both jobs
-              at once: click-to-focus and the name.
-            </li>
-            <li>
-              <strong>Placement.</strong> Nearly every component takes
-              <code>top</code>/<code>left</code> in whole system px and absolutely
-              positions itself within its parent, the unset coordinate 0; set neither
-              and it renders in flow. The exceptions are the owned rows
-              (<code>vf-option</code>, <code>vf-menu-item</code>,
-              <code>vf-list-item</code>, <code>vf-menu</code>) and
-              <code>vf-dialog</code>, whose box the platform owns. A drag writes
-              through the same properties, so read a moved element's position off
-              <code>el.left</code>, not <code>style.left</code>.
-            </li>
-            <li>
-              <strong>Roles and keys</strong> follow
-              <a href="https://www.w3.org/TR/wai-aria-1.2/">WAI-ARIA 1.2</a> and the
-              matching <a href="https://www.w3.org/WAI/ARIA/apg/patterns/">APG
-              pattern</a>; each component's table names its own.
-            </li>
-            <li>
-              <strong>Events</strong> are named <code>vf-*</code> and dispatched
-              <code>bubbles: true, composed: true</code>, so one delegated listener
-              catches them all however deep the shadow roots go. Native events are
-              untouched.
-            </li>
-            <li>
-              <strong>Styling.</strong> Every visual constant is a custom property
-              (<a href="#tokens">the token table</a>), and each component's internals
-              are reachable through <code>::part()</code>.
-            </li>
-          </ul>
-
-          <pre class="snippet"><code>vf-menu-bar::part(bar) { padding-inline: 24px; }
-vf-button::part(button) { min-width: 96px; }
-:root { --vf-shadow-offset: 1px; }</code></pre>
-
-          <p>
-            <strong>Focus</strong> is added rather than reproduced: keyboard access
-            postdates System 7, so the kit draws its own mark. Most controls carry a
-            1px dashed rule on the system-pixel grid — inside the control under the
-            ink it marks, or below the whole box where there is no interior to give.
-            The few with no face to draw on, like a window's close box or a list row,
-            keep a dotted ring.
-          </p>
-
-          <template
-            data-example
-            data-caption="Tab into each of these — a click leaves them unmarked."
-          >
-            <div class="specimen">
-              <vf-button>Open</vf-button>
-              <span class="specimen__name">under the label</span>
-            </div>
-            <div class="specimen">
-              <vf-checkbox>Verify</vf-checkbox>
-              <span class="specimen__name">under the box</span>
-            </div>
-            <div class="specimen">
-              <vf-select value="hd">
-                <vf-option value="hd">Macintosh HD</vf-option>
-                <vf-option value="floppy">Untitled</vf-option>
-              </vf-select>
-              <span class="specimen__name">under the whole pill</span>
-            </div>
-          </template>
-
-          <template
-            data-example
-            data-stage="column"
-            data-caption="Every vf-* event, caught by one listener on the container. The log below is this page's, not a component."
-          >
-            <vf-checkbox>Notify me</vf-checkbox>
-            <vf-select value="draft">
-              <vf-option value="draft">Draft</vf-option>
-              <vf-option value="sent">Sent</vf-option>
-            </vf-select>
-            <vf-slider value="40" label="Volume" style="width: 15em"></vf-slider>
-            <pre class="log" data-log></pre>
-          </template>
         </section>
 
         <!-- ================================================================
@@ -475,7 +101,7 @@ vf-button::part(button) { min-width: 96px; }
             <code>active</code>, clearing <code>active</code> on the others. DOM order
             is kept in step with the stacking, so tabbing walks the stack — worth
             knowing if you style windows by <code>:nth-child</code>. Utility windows
-            live on a floating tier above every document window and stand outside the
+            float on their own tier above the document windows, outside the
             single-active rule both ways.
           </p>
 
@@ -581,10 +207,9 @@ vf-button::part(button) { min-width: 96px; }
         <section class="doc" id="vf-window" data-group="Chrome &amp; shells" data-toc="vf-window">
           <h2><code>vf-window</code></h2>
           <p>
-            The window shell, parameterized from the full document window down to the
-            slim windoid. The 1992 <em>Macintosh Human Interface Guidelines</em> names
-            five standard windows; the kit ships two shells, and each archetype is a
-            one-line recipe over them.
+            The window shell, from the full document window down to the slim windoid.
+            The 1992 <em>Macintosh Human Interface Guidelines</em> names five standard
+            windows; two shells cover them, each archetype a one-line recipe.
           </p>
 
           <table class="api api--wide">
@@ -826,7 +451,7 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td><code>size</code></td><td class="wrap"><code>'small'</code></td><td>—</td><td class="wrap">The compact 16px button, label in the body face</td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the <em>label</em> only; the 1px border stays black (the default ring dims, its inner border does not)</td></tr>
               <tr><td><code>type</code></td><td class="wrap"><code>'button' | 'submit' | 'reset'</code></td><td><code>'button'</code></td><td class="wrap">Form-associated: <code>submit</code> calls <code>requestSubmit()</code>, <code>reset</code> calls <code>reset()</code></td></tr>
-              <tr><td><code>name</code>, <code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Standard — see <a href="#conventions">Forms</a></td></tr>
+              <tr><td><code>name</code>, <code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Standard — the submitting button's pair in the form data. A form-associated custom element can never be a form's <code>event.submitter</code>, so read the control as <code>event.submitter.closest('vf-button')</code></td></tr>
             </tbody>
           </table>
 
@@ -960,7 +585,7 @@ vf-button::part(button) { min-width: 96px; }
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected</td></tr>
-              <tr><td><code>disabled</code>, <code>name</code></td><td>—</td><td>—</td><td class="wrap">Standard — see <a href="#conventions">Forms</a></td></tr>
+              <tr><td><code>disabled</code>, <code>name</code></td><td>—</td><td>—</td><td class="wrap">Standard; form-associated. <code>disabled</code> dims the label only, drops the tab stop, and follows an ancestor <code>&lt;fieldset disabled&gt;</code></td></tr>
               <tr><td><code>value</code></td><td>string</td><td><code>'on'</code></td><td class="wrap">Submitted when checked, as on a native checkbox</td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ checked: boolean }</code>, on user interaction</td></tr>
               <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>box</code>, <code>label</code>. Role <code>checkbox</code>; Space toggles.</td></tr>
@@ -1039,9 +664,9 @@ vf-button::part(button) { min-width: 96px; }
             <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>type</code></td><td>—</td><td>—</td><td class="wrap">Standard — see <a href="#conventions">Forms</a>. <code>type</code> defaults to <code>'text'</code> and passes through to the inner input</td></tr>
+              <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>type</code></td><td>—</td><td>—</td><td class="wrap">Standard; form-associated — a plain <code>&lt;form&gt;</code> submits it, <code>form.elements</code> holds it, <code>form.reset()</code> restores it. <code>type</code> defaults to <code>'text'</code> and passes through to the inner input</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name, for a field with no visible caption. Left empty, a host-level <code>aria-label</code>/<code>aria-labelledby</code> or an associated <code>&lt;label for&gt;</code> is bridged in instead</td></tr>
-              <tr><td><code>required</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Real constraint validation — see <a href="#conventions">Forms</a></td></tr>
+              <tr><td><code>required</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Real constraint validation: <code>reportValidity()</code> blocks with the native message, <code>:invalid</code> matches on the host, and Enter cannot submit past it</td></tr>
               <tr><td><code>description</code></td><td>string</td><td><code>''</code></td><td class="wrap">Hint text for assistive tech (<code>aria-describedby</code> can't cross the shadow boundary on its own); a failing constraint's message joins it</td></tr>
               <tr><td><code>vf-input</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on every keystroke</td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on commit</td></tr>
@@ -1140,13 +765,12 @@ vf-button::part(button) { min-width: 96px; }
           <p>
             A list taller than the screen is clipped, not scrolled — System 7 put no
             scrollbar on a menu. The edge row with items beyond it shows a solid arrow
-            instead; rest the pointer on it and the list rolls one row at a time until
-            the arrow runs out. Both edges can overflow at once, and the clamp gives
-            ground a whole row at a time, so a clipped panel still opens with its
-            selected row over the closed pill. The end the list no longer reaches
-            opens as blank rows — the travel it will roll through. Set
-            <code>--vf-popup-inset-top</code> once on <code>:root</code> to keep
-            clamped panels clear of a menu bar (<code>24px</code> for a
+            instead; rest the pointer on it and the list rolls a row at a time until
+            the arrow runs out. The clamp gives ground a whole row at a time, so a
+            clipped panel still opens with its selected row over the closed pill, and
+            the end it no longer reaches opens as blank rows — the travel it will roll
+            through. Set <code>--vf-popup-inset-top</code> once on <code>:root</code>
+            to keep clamped panels clear of a menu bar (<code>24px</code> for a
             <code>vf-menu-bar</code>).
           </p>
 
@@ -1634,13 +1258,12 @@ vf-button::part(button) { min-width: 96px; }
           <h2><code>vf-stack</code></h2>
           <p>
             A flexbox whose <code>gap</code>, <code>pad</code>, <code>width</code> and
-            <code>height</code> are declared in whole system pixels. It is one of two
-            ways to lay a window's insides out without a stylesheet; the other is
-            placing each child with its own <code>top</code>/<code>left</code> (see
-            <a href="#conventions">Conventions</a>).
+            <code>height</code> are declared in whole system pixels — one of the two
+            ways to lay a window's insides out without a stylesheet. The other is
+            placing each child by coordinate, below.
           </p>
           <p>
-            A page's own stylesheet cannot state system pixels. Scaling is per
+            A page's own stylesheet cannot state system pixels: scaling is per
             component — each element sets <code>--vf-scale</code> on itself, never on
             the document — so <code>var(--vf-scale, 1)</code> outside a
             <code>vf-*</code> ancestor falls back to <code>1</code> and comes out 3×
@@ -1725,6 +1348,36 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td colspan="4" class="wrap">Slot: default. Children are <code>flex: 0 0 auto</code>, and a light-DOM declaration beats anything here, so <code>align-self: stretch</code> in your own stylesheet is the escape hatch for a cross-axis fill a direction doesn't offer. No parts, tokens, events or role. Not a <code>vf-button-group</code> (which equalizes widths and aligns faces) and not a grid.</td></tr>
             </tbody>
           </table>
+
+          <h3>The other way: <code>top</code> and <code>left</code></h3>
+          <p>
+            Nearly every component takes <code>top</code> and <code>left</code> in
+            whole system px. Set either and the element is absolutely positioned
+            within its parent, the coordinate you left out defaulting to 0; set
+            neither and it renders in flow. (0,0) is CSS's nearest positioned
+            ancestor, and every kit container is one — a container of your own needs
+            <code>position: relative</code>.
+          </p>
+          <p>
+            The four owned rows don't take the pair (<code>vf-option</code>,
+            <code>vf-menu-item</code>, <code>vf-list-item</code>,
+            <code>vf-menu</code>), and <code>vf-dialog</code> takes it in viewport
+            coordinates, unset meaning centered. A drag writes through the same two
+            properties, so read a moved element's position off <code>el.left</code>
+            rather than <code>style.left</code>, which holds a live
+            <code>calc()</code>.
+          </p>
+
+          <template data-example data-caption="A placed layout: every child states its own top/left in system px against the window's content region, so the panel needs no stylesheet at all.">
+            <vf-window heading="Rename" width="300" height="140">
+              <vf-label left="12" top="30" for="ex-place-name">New name:</vf-label>
+              <vf-text-field left="92" top="26" id="ex-place-name" value="untitled folder"></vf-text-field>
+              <vf-button-group left="120" top="96">
+                <vf-button>Cancel</vf-button>
+                <vf-button variant="default">OK</vf-button>
+              </vf-button-group>
+            </vf-window>
+          </template>
         </section>
 
         <!-- ================================================================
@@ -1988,6 +1641,186 @@ vf-button::part(button) { min-width: 96px; }
              REFERENCE
              ============================================================= -->
 
+        <section class="doc" id="sizing" data-group="Reference" data-toc="Sizing &amp; the grid">
+          <h2>Sizing and the device-pixel grid</h2>
+          <p>
+            Components are authored in <em>system pixels</em> — the 1-bit art grid,
+            where a border is 1 and a push button 20 tall. On a Macintosh that pixel
+            was 1/72 inch, and reproducing it is the whole job: each component asks
+            the display how dense it is and renders one system pixel as the
+            <em>whole</em> number of device pixels nearest that size,
+            <code>round(96/72 × devicePixelRatio)</code> — 96 being CSS's reference
+            dpi, the only density anchor a browser exposes.
+          </p>
+
+          <table class="api">
+            <thead>
+              <tr>
+                <th>Display</th><th>true 1/72″ wants</th><th>device px per system px</th><th><code>--vf-scale</code></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1×</td><td>1.33</td><td>1</td><td>1</td></tr>
+              <tr><td>1.5× (Windows 150%)</td><td>2.0</td><td>3</td><td>2</td></tr>
+              <tr><td>2× Retina</td><td>2.67</td><td>3</td><td>1.5</td></tr>
+              <tr><td>3×</td><td>4.0</td><td>3</td><td>1</td></tr>
+            </tbody>
+          </table>
+
+          <p>
+            The count is always whole because the art has to land on the device-pixel
+            grid — that is the one thing that never bends. Where rounding to a whole
+            count is not enough, the count steps again: a 3× display would like 4
+            device pixels, but 4/3 is not a length a browser's layout grid can hold,
+            so its dithers would drift off-grid a fraction further with every repeat.
+            It takes 3 instead. Size yields to the grid, never the other way round.
+          </p>
+          <p>
+            So the same button is 20 CSS px tall on a 1× monitor and 30 on a 2× one,
+            landing within a quarter of its 1984 physical size on both. Pin it instead
+            by declaring <code>--vf-scale</code> in a stylesheet the page loads
+            <em>before</em> the components upgrade —
+            <code>:root { --vf-scale: 1 }</code> is a fixed 20-px button everywhere —
+            and keep <code>--vf-scale × devicePixelRatio</code> whole when you do.
+            This page pins nothing, so every specimen above is self-scaled.
+          </p>
+          <p>
+            A component's box is therefore never stated in fixed CSS pixels. Windows,
+            dialogs and the other declared boxes take their size in system px
+            (<code>&lt;vf-window width="240" height="176"&gt;</code>); the demos above
+            size everything else in <code>em</code> against the component's own type
+            (on a <code>vf-*</code> host <code>1em</code> is the kit's 16-pixel face)
+            or as a percentage of its container.
+          </p>
+
+          <h3>Zoom</h3>
+          <p>
+            Zoom needs no rule of its own. Zooming multiplies device pixels per CSS
+            pixel — that is what zoom <em>is</em> — so it arrives as a denser display
+            and walks the same table: a 2× display at 200% zoom is density 4, which
+            wants 5 device pixels per system pixel. The art grows with the page
+            instead of dividing the zoom back out.
+          </p>
+
+          <ul>
+            <li>
+              The target is a step function, so <strong>zoom sometimes changes
+              nothing</strong> — 100% and 125% on a 2× display both round to 3 device
+              pixels, and the art holds still while the copy around it grows. That is
+              the nearest whole count being the same count, not a bug; bending it to
+              feel responsive would put the art off the grid.
+            </li>
+            <li>
+              Chrome and Firefox report zoom through <code>devicePixelRatio</code>;
+              Safari holds it at the hardware and moves the viewport instead. The kit
+              tracks both.
+            </li>
+            <li>
+              Pinch-to-zoom is not followed — it magnifies already-rasterized pixels
+              at compositing time. A pinned <code>--vf-scale</code> opts out of
+              density-following as well.
+            </li>
+          </ul>
+
+          <p>Zoom this page:</p>
+          <pre class="snippet"><code id="zoom-readout">measuring…</code></pre>
+
+          <h3>Staying on the grid</h3>
+          <p>
+            A component is built from whole system pixels, so every edge inside it
+            sits on the grid — but only <em>relative to its own origin</em>. Land that
+            origin, or its size, on a fractional device pixel and the 1-bit interior
+            rasterizes wrong: stepped corners staircase asymmetrically, hairline
+            borders and glyph stems smear across two device rows and go gray. Two
+            rules are the page's, and one call covers the first:
+          </p>
+
+          <ol>
+            <li>
+              <strong>State every <code>line-height</code> in whole pixels, and keep
+              <code>padding</code>, <code>margin</code> and <code>gap</code> on
+              integers</strong> — or call <code>applyGridSnap()</code> and forget it.
+              Line boxes are the biggest offender:
+              <code>1.65 × 17px = 28.05px</code>, and every line of prose nudges
+              everything after it further off.
+            </li>
+            <li>
+              <strong>Position a box that contains components from its start edge — or
+              give it a whole-pixel size.</strong> Anything right-aligned, centered or
+              sharing <code>space-between</code> computes its origin as
+              <code>edge − width</code>, so a width derived from a text run lands it
+              off the grid.
+            </li>
+          </ol>
+
+          <pre class="snippet"><code>import { applyGridSnap, requestGridSnap } from 'vintage-frames'
+
+applyGridSnap()    // every component measures its own paint and cancels the
+                   // fractional remainder — returns a cleanup function
+requestGridSnap()  // re-run after moving components in a way that resizes nothing</code></pre>
+
+          <p>
+            The correction never touches the host's own <code>position</code>,
+            <code>left</code>/<code>top</code> or <code>margin</code>; its whole
+            footprint on your DOM is <code>--vf-snap-dx</code> /
+            <code>--vf-snap-dy</code> on each corrected host. Opt one element out with
+            <code>nosnap</code>. This page calls it — load
+            <a href="/examples.html?nosnap"><code>?nosnap</code></a> to compare with
+            it off at 100% zoom. <a href="#vf-paragraph"><code>vf-paragraph</code></a>
+            and <a href="#vf-label"><code>vf-label</code></a> state their line box in
+            whole system pixels, so text set on them satisfies rule 1 without the
+            call.
+          </p>
+
+          <p>
+            <code>npm run verify:grid</code> checks every <code>vf-*</code> host at dpr
+            1/2/3, and <code>npm run verify:snap</code> checks that a page knocked off
+            the grid gets back on it. Point them at your own pages with
+            <code>VF_GRID_PAGES</code> / <code>VF_SNAP_PAGES</code>.
+          </p>
+        </section>
+
+        <section class="doc" id="focus" data-group="Reference" data-toc="Focus">
+          <h2>Focus</h2>
+          <p>
+            Keyboard focus is added rather than reproduced — keyboard access postdates
+            System 7 — so the kit draws its own mark instead of leaving the browser's
+            ring: a 1px dashed rule on the system-pixel grid, inside the control under
+            the ink it marks (a button's label, a checkbox's box, a field's well), or
+            below the whole box where there is no interior to give (a popup menu, clear
+            of its shadow; a slider, under the full rail, so the mark stays put as the
+            handle travels). The few with no face to draw on — a window's close box, a
+            list row, a scroll viewport — keep a dotted ring, and
+            <code>vf-menu</code> and <code>vf-select</code> mark only while closed.
+          </p>
+          <p>
+            Either way it is <strong>keyboard-only</strong>: a mouse click never draws
+            it, including on the controls where <code>:focus-visible</code> is true
+            after a pointer. What the mark follows is the page's last input modality.
+          </p>
+
+          <template
+            data-example
+            data-caption="Tab into each of these — a click leaves them unmarked."
+          >
+            <div class="specimen">
+              <vf-button>Open</vf-button>
+              <span class="specimen__name">under the label</span>
+            </div>
+            <div class="specimen">
+              <vf-checkbox>Verify</vf-checkbox>
+              <span class="specimen__name">under the box</span>
+            </div>
+            <div class="specimen">
+              <vf-select value="hd">
+                <vf-option value="hd">Macintosh HD</vf-option>
+                <vf-option value="floppy">Untitled</vf-option>
+              </vf-select>
+              <span class="specimen__name">under the whole pill</span>
+            </div>
+          </template>
+        </section>
+
         <section class="doc" id="tokens" data-group="Reference" data-toc="Design tokens">
           <h2>Design tokens</h2>
           <p>
@@ -2000,6 +1833,10 @@ vf-button::part(button) { min-width: 96px; }
             Line boxes are lengths too. Re-theme these with whole numbers, or you put
             the components below them off the device-pixel grid.
           </p>
+
+          <pre class="snippet"><code>:root { --vf-shadow-offset: 1px; }
+vf-menu-bar::part(bar) { padding-inline: 24px; }
+vf-button::part(button) { min-width: 96px; }</code></pre>
 
           <table class="api api--wide">
             <caption>All tokens</caption>
@@ -2071,8 +1908,8 @@ vf-button::part(button) { min-width: 96px; }
               <tr><td class="wrap"><code>applyScale</code>, <code>ScaleController</code>, <code>onScaleChange</code></td><td class="wrap">Put your own markup, or a custom component, on the same sizing the kit gives itself</td></tr>
               <tr><td class="wrap"><code>applyGridSnap</code>, <code>requestGridSnap</code>, <code>GridSnapController</code></td><td class="wrap">Automatic device-pixel-grid snapping; one controller line plus the <code>vf-snap</code> class on your painted root adds it to a custom component</td></tr>
               <tr><td class="wrap"><code>applyCursor</code>, <code>CURSOR_ARROW</code>, <code>CURSOR_I_BEAM</code>, <code>CURSOR_CROSSHAIR</code>, <code>CURSOR_WAIT</code></td><td class="wrap">Replace the native pointer with the embedded System 7 set, drawn on the system-pixel grid — the I-beam over editable text, the crosshair for <code>data-vf-cursor</code> claims, the wristwatch while <code>aria-busy="true"</code>. Every kind takes your own art instead, or <code>null</code> to disable it</td></tr>
-              <tr><td class="wrap"><code>getZoom</code>, <code>truePixelRatio</code>, <code>onZoomChange</code>, <code>devicePxPerSystemPx</code>, <code>resetZoomBaseline</code></td><td class="wrap">The zoom half of scaling: tracked page zoom, device px per CSS px <em>including</em> zoom, a zoom subscription, the zoom→target quantization, and the "current state is 100%" escape hatch</td></tr>
-              <tr><td class="wrap"><code>sys</code>, <code>toSys</code>, <code>toSysExact</code>, <code>sysLength</code>, <code>sysLengths</code>, <code>effectiveScale</code>, <code>getScale</code>, <code>snapSys</code>, <code>systemPxQuantum</code>, <code>snapToSystemPx</code>, <code>snapToDevicePx</code>, <code>DEVICE_PX_PER_SYSTEM_PX</code></td><td class="wrap">Convert between system (art) px and CSS px in a custom control's own JS geometry; snap what you write onto the system grid or the finer device grid. <code>snapSys</code> is the system-px form a placement is stored in</td></tr>
+              <tr><td class="wrap"><code>getZoom</code>, <code>truePixelRatio</code>, <code>onZoomChange</code>, <code>devicePxPerSystemPx</code>, <code>resetZoomBaseline</code></td><td class="wrap">The zoom half of scaling: tracked page zoom, device px per CSS px <em>including</em> zoom, a zoom subscription, the density→target derivation, and the "current state is 100%" escape hatch</td></tr>
+              <tr><td class="wrap"><code>sys</code>, <code>toSys</code>, <code>toSysExact</code>, <code>sysLength</code>, <code>sysLengths</code>, <code>effectiveScale</code>, <code>getScale</code>, <code>snapSys</code>, <code>systemPxQuantum</code>, <code>snapToSystemPx</code>, <code>snapToDevicePx</code></td><td class="wrap">Convert between system (art) px and CSS px in a custom control's own JS geometry; snap what you write onto the system grid or the finer device grid. <code>snapSys</code> is the system-px form a placement is stored in. <code>CLASSIC_DPI</code> / <code>CSS_REFERENCE_DPI</code> / <code>SYSTEM_PX_IN_CSS_PX</code> are the constants the target is derived from</td></tr>
               <tr><td class="wrap"><code>vfBase</code>, <code>vfDisplay</code>, <code>vfDisplayDecls</code>, <code>vfBodyDecls</code>, <code>vfStaticText</code>, <code>vfPanel</code>, <code>vfChromeFrame</code>, <code>vfModalFrame</code>, <code>vfTitleBar</code>, <code>vfWindowWidgets</code>, <code>vfHardShadowDecls</code>, <code>vfStripes</code>, <code>vfDots</code>, <code>vfFocus</code>, <code>vfFocusRing</code>, <code>vfFocusUnderline</code>, <code>vfToggle</code>, <code>vfField</code>, <code>vfScrollbars</code></td><td class="wrap">The 1-bit CSS recipes — compose into <code>static styles</code></td></tr>
               <tr><td class="wrap"><code>glyphSvg</code> + <code>CHECKMARK</code>, <code>CARET_DOWN</code>, <code>STEPPER</code>, <code>RADIO_RING</code>, <code>SLIDER_THUMB</code>, …</td><td class="wrap">The 1-bit sprite set, rendered inline as SVG</td></tr>
               <tr><td class="wrap"><code>steppedRectClip</code>, <code>steppedRingClip</code>, <code>BUTTON_FRAME</code>, <code>BUTTON_FACE</code>, <code>RING_FRAME</code>, <code>RING_HOLE</code>, <code>RING_INSET</code></td><td class="wrap">Pixel-stepped corner profiles and their <code>clip-path</code> traces</td></tr>

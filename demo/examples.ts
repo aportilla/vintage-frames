@@ -253,9 +253,9 @@ function replaceElements(_key: string, value: unknown): unknown {
 /* ------------------------------------------------------------------ *
  * The zoom readout — the one snippet on the page that rewrites itself.
  *
- * The Overview's "Zoom is followed, in whole steps" section invites the
- * reader to zoom the page and watch the target move, so this line has to
- * report the numbers the kit is actually rendering with: the resolved
+ * The Zoom part of "Sizing and the device-pixel grid" invites the reader to
+ * zoom the page and watch the target move, so this line has to report the
+ * numbers the kit is actually rendering with: the resolved
  * --vf-scale off a live component, the tracked zoom, and trueDpr (device px
  * per CSS px INCLUDING zoom — what devicePixelRatio stops being in Safari
  * under zoom). onScaleChange is the one subscription that covers every way

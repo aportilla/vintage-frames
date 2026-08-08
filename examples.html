@@ -70,7 +70,7 @@
             data-example
             data-stage="desktop"
             data-source="hidden"
-            data-caption="Not a screenshot. Pull down a menu, drag a title bar, click a window to bring it forward, tab into a control."
+            data-caption="Pull down a menu, drag a title bar, click a window to bring it forward, tab into a control."
           >
             <vf-desktop width="512" height="400">
               <vf-menu-bar>
@@ -152,20 +152,18 @@
               >
                 <vf-stack fill-width gap="10" pad="10">
                   <vf-paragraph>
-                    Every component is drawn in system pixels and renders each one
-                    as three device pixels, so it is true ~72dpi size on any
-                    display.
+                    One document window is frontmost at a time: it wears the stripes,
+                    the widgets and the grow box, and the others go plain.
                   </vf-paragraph>
                   <vf-paragraph>
-                    Drop one on a blank page and it brings its own artwork, its own
-                    bitmap type and its own scaling. No global CSS.
+                    The palette at the right is a utility window: it floats above the
+                    document windows and stands outside the single-active rule.
                   </vf-paragraph>
                 </vf-stack>
               </vf-window>
 
               <!-- Last, so the desktop seeds it topmost — and the topmost
-                   document window is the one it marks active. The pitch should
-                   be the window wearing the stripes. -->
+                   document window is the one it marks active. -->
               <vf-window
                 heading="Vintage Frames"
                 movable
@@ -184,9 +182,9 @@
                     <vf-label>Vintage Frames</vf-label>
                   </vf-stack>
                   <vf-paragraph>
-                    Lit web components that rebuild the Mac OS System 7 interface:
-                    the window you are reading this in, the striped bar above it,
-                    and the controls below.
+                    Lit web components that rebuild the Mac OS System 7 interface.
+                    30 elements: window and dialog shells, menus, lists, form
+                    controls, icons.
                   </vf-paragraph>
                   <vf-separator fill-width></vf-separator>
                   <vf-stack fill-width direction="row" gap="12">
@@ -214,45 +212,39 @@
           <pre class="snippet"><code>import 'vintage-frames' // registers every &lt;vf-*&gt; element</code></pre>
 
           <p>
-            That is the whole setup — the kit ships no stylesheet. Every visual
-            constant is a <code>--vf-*</code> custom property with an inlined
-            fallback, the bitmap faces register themselves, and
-            <code>vf-desktop</code> paints its own dither, so a component dropped on
-            a blank page renders correctly with <strong>no global CSS at all</strong>.
+            The kit ships no stylesheet. Every visual constant is a
+            <code>--vf-*</code> custom property with an inlined fallback, and the two
+            bitmap faces register themselves on <code>document.fonts</code>.
           </p>
 
           <p>
             The root import registers all 30 elements. To ship less, import by name —
             same elements, one module each. Those subpaths and the root are the whole
-            export surface; a deeper path fails at resolve time rather than as a 404
-            in production.
+            export surface.
           </p>
           <pre class="snippet"><code>import 'vintage-frames/vf-button.js'
 import 'vintage-frames/vf-checkbox.js'</code></pre>
 
-          <h3>Sizing takes care of itself</h3>
+          <h3>Sizing</h3>
           <p>
             Components are authored in <em>system pixels</em> — the 1-bit art grid —
-            and each one maps a system pixel onto a whole number of device pixels by
-            itself, so the artwork stays crisp at any <code>devicePixelRatio</code>
-            and re-adapts when the window moves to a different display or the reader
-            zooms. No setup, and nesting never compounds it.
+            and each one maps a system pixel onto a whole number of device pixels:
+            three at 100% zoom. The mapping follows <code>devicePixelRatio</code> and
+            zoom, needs no setup, and does not compound when components nest.
           </p>
           <p>
-            So a component's box is never stated in fixed CSS pixels.
-            <strong>Windows and dialogs declare their own size</strong> in system px —
-            <code>&lt;vf-window width="240" height="176"&gt;</code>. Anything else in
-            the demos below is sized in <code>em</code> against the component's own
-            type (on a <code>vf-*</code> host <code>1em</code> is the kit's 16-pixel
-            face) or as a percentage of its container.
+            A component's box is therefore never stated in fixed CSS pixels. Windows
+            and dialogs declare their own size in system px —
+            <code>&lt;vf-window width="240" height="176"&gt;</code>. The demos below
+            size everything else in <code>em</code> against the component's own type
+            (on a <code>vf-*</code> host <code>1em</code> is the kit's 16-pixel face)
+            or as a percentage of its container.
           </p>
 
-          <h3>Zoom is followed, in whole steps</h3>
+          <h3>Zoom</h3>
           <p>
-            Browser zoom moves the target with the reader: the kit renders
-            <code>round(3 × zoom)</code> device pixels per system pixel, so at 200%
-            the art is 6 device px per system px. The steps are the same on every
-            display:
+            The kit renders <code>round(3 × zoom)</code> device pixels per system
+            pixel — always a whole number. The steps are the same on every display:
           </p>
 
           <table class="api">
@@ -271,32 +263,26 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
 
           <ul>
             <li>
-              <strong>The steps nearest 100% hold still</strong> — 90% and 110%
-              both round to 3.
+              90% and 110% both round to 3, so the steps nearest 100% do not move.
+            </li>
+            <li>Ties round up: 150% renders 167% of true size, not 133%.</li>
+            <li>
+              Chrome and Firefox report zoom through <code>devicePixelRatio</code>;
+              Safari holds it at the hardware and moves the viewport instead. The kit
+              tracks both.
             </li>
             <li>
-              <strong>Ties round up</strong> — 150% renders 167% of true size,
-              not 133%.
-            </li>
-            <li>
-              <strong>Every engine agrees.</strong> Chrome and Firefox report
-              zoom through <code>devicePixelRatio</code>, Safari holds its
-              <code>devicePixelRatio</code> at the hardware and moves the
-              viewport instead; the kit tracks both signals.
-            </li>
-            <li>
-              <strong>Pinch-to-zoom is not followed</strong> — it magnifies
-              already-rasterized pixels at compositing time. A page that pins
-              <code>--vf-scale</code> opts out of zoom-following too.
+              Pinch-to-zoom is not followed — it magnifies already-rasterized pixels
+              at compositing time. A page that pins <code>--vf-scale</code> opts out
+              of zoom-following as well.
             </li>
           </ul>
 
-          <p>Zoom this page and watch it step:</p>
+          <p>Zoom this page:</p>
           <pre class="snippet"><code id="zoom-readout">measuring…</code></pre>
 
           <p>
-            One thing is left for the host page, and getting it wrong is what makes
-            an otherwise correct integration look muddy: the
+            One thing is left to the host page: the
             <a href="#grid">device-pixel grid</a>.
           </p>
         </section>
@@ -304,13 +290,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="grid" data-toc="Device-pixel grid">
           <h2>Staying on the device-pixel grid</h2>
           <p>
-            A component is built entirely from whole system pixels, so every edge
-            inside it sits on the grid — but only <em>relative to its own origin</em>.
-            Land that origin, or its size, on a fractional device pixel and the whole
-            1-bit interior rasterizes wrong: stepped corners staircase asymmetrically,
-            hairline borders and glyph stems smear across two device rows and go gray.
-            The kit handles its own half. Two rules are the page's, and one call
-            covers the first:
+            A component is built from whole system pixels, so every edge inside it
+            sits on the grid — but only <em>relative to its own origin</em>. Land that
+            origin, or its size, on a fractional device pixel and the 1-bit interior
+            rasterizes wrong: stepped corners staircase asymmetrically, hairline
+            borders and glyph stems smear across two device rows and go gray. Two
+            rules are the page's, and one call covers the first:
           </p>
 
           <ol>
@@ -339,15 +324,15 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
 
           <p>
             The correction never touches the host's own <code>position</code>,
-            <code>left</code>/<code>top</code> or <code>margin</code>, so it cannot
-            collide with your layout; its whole footprint on your DOM is
-            <code>--vf-snap-dx</code> / <code>--vf-snap-dy</code> on each corrected
-            host. Opt one element out with <code>nosnap</code>. This page calls it —
-            load <a href="/examples.html?nosnap"><code>?nosnap</code></a> to turn it
-            off and A/B at 100% zoom. Text set on the kit's own faces has another
-            option: <a href="#vf-paragraph"><code>vf-paragraph</code></a> and
-            <a href="#vf-label"><code>vf-label</code></a> state their line box in
-            whole system pixels themselves.
+            <code>left</code>/<code>top</code> or <code>margin</code>; its whole
+            footprint on your DOM is <code>--vf-snap-dx</code> /
+            <code>--vf-snap-dy</code> on each corrected host. Opt one element out with
+            <code>nosnap</code>. This page calls it — load
+            <a href="/examples.html?nosnap"><code>?nosnap</code></a> to compare with
+            it off at 100% zoom. <a href="#vf-paragraph"><code>vf-paragraph</code></a>
+            and <a href="#vf-label"><code>vf-label</code></a> state their line box in
+            whole system pixels, so text set on them satisfies rule 1 without the
+            call.
           </p>
 
           <p>
@@ -433,12 +418,12 @@ vf-button::part(button) { min-width: 96px; }
 :root { --vf-shadow-offset: 1px; }</code></pre>
 
           <p>
-            One affordance is <strong>added</strong> rather than reproduced: keyboard
-            access postdates System 7, so the kit draws its own focus mark. Most
-            controls carry it as a 1px dashed rule on the system-pixel grid — inside
-            the control under the ink it marks, or below the whole box where there is
-            no interior to give. The few with no face to draw on, like a window's
-            close box or a list row, keep a dotted ring.
+            <strong>Focus</strong> is added rather than reproduced: keyboard access
+            postdates System 7, so the kit draws its own mark. Most controls carry a
+            1px dashed rule on the system-pixel grid — inside the control under the
+            ink it marks, or below the whole box where there is no interior to give.
+            The few with no face to draw on, like a window's close box or a list row,
+            keep a dotted ring.
           </p>
 
           <template
@@ -484,8 +469,8 @@ vf-button::part(button) { min-width: 96px; }
         <section class="doc" id="vf-desktop" data-group="Chrome &amp; shells" data-toc="vf-desktop">
           <h2><code>vf-desktop</code></h2>
           <p>
-            The gray desktop container: the classic 50% dither, plus window
-            management. A pointerdown <em>or keyboard focus entering</em> a slotted
+            The gray desktop container: a 50% dither, plus window management. A
+            pointerdown <em>or keyboard focus entering</em> a slotted
             <code>vf-window</code> brings it to front and marks it
             <code>active</code>, clearing <code>active</code> on the others. DOM order
             is kept in step with the stacking, so tabbing walks the stack — worth
@@ -636,9 +621,9 @@ vf-button::part(button) { min-width: 96px; }
               >
                 <vf-paragraph>DragThing 2.9 — read me before installing.</vf-paragraph>
                 <vf-paragraph>
-                  This window carries the document archetype at full anatomy: the
-                  System 7 rails sit on the window's own frame rather than inset in its
-                  body, and the grow box lands in the corner cell between them.
+                  The document archetype at full anatomy: the rails sit on the
+                  window's own frame rather than inset in its body, and the grow box
+                  lands in the corner cell between them.
                 </vf-paragraph>
               </vf-window>
               <vf-window
@@ -821,9 +806,8 @@ vf-button::part(button) { min-width: 96px; }
         <section class="doc" id="vf-button" data-group="Buttons &amp; toggles" data-toc="vf-button">
           <h2><code>vf-button</code></h2>
           <p>
-            The push button, with pixel-stepped corners traced from the reference
-            sheet rather than rounded. Pressing inverts the face; Tab draws the
-            dashed rule under the label.
+            The push button: pixel-stepped corners, not rounded. Pressing inverts the
+            face; Tab draws the dashed rule under the label.
           </p>
 
           <template data-example data-caption="Every declarative state. Press and Tab for the two that are interaction-only.">
@@ -910,9 +894,8 @@ vf-button::part(button) { min-width: 96px; }
           <p>
             A color-swatch button: a white-inset color well sized in system pixels.
             With no <code>color</code> it shows the transparency checker, and a
-            translucent value layers over it. Flat by default, for the table of
-            swatches that is its usual home; <code>shadow</code> raises a lone well
-            onto the kit's hard drop shadow.
+            translucent value layers over it. Flat by default;
+            <code>shadow</code> adds the kit's hard drop shadow.
           </p>
 
           <template data-example data-caption="The six-color palette, a translucent well, the no-color checker, a large square, and a disabled one — all flat, the default.">
@@ -1155,14 +1138,13 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <p>
-            A list taller than the screen is <strong>clipped, never scrolled</strong> —
-            System 7 put no scrollbar on a menu. The edge slot with items beyond it
-            shows a solid arrow instead of a row; rest the pointer on it and the list
-            rolls one row at a time until the arrow runs out. Both edges can overflow
-            at once, and the clamp gives ground a whole <em>row</em> at a time, so even
-            a clipped popup opens with its selected row over the closed pill. A panel
-            that had to slide to fit opens with <strong>blank rows</strong> at the end
-            the list no longer reaches — the exact travel it rolls through. Set
+            A list taller than the screen is clipped, not scrolled — System 7 put no
+            scrollbar on a menu. The edge row with items beyond it shows a solid arrow
+            instead; rest the pointer on it and the list rolls one row at a time until
+            the arrow runs out. Both edges can overflow at once, and the clamp gives
+            ground a whole row at a time, so a clipped panel still opens with its
+            selected row over the closed pill. The end the list no longer reaches
+            opens as blank rows — the travel it will roll through. Set
             <code>--vf-popup-inset-top</code> once on <code>:root</code> to keep
             clamped panels clear of a menu bar (<code>24px</code> for a
             <code>vf-menu-bar</code>).
@@ -1351,7 +1333,7 @@ vf-button::part(button) { min-width: 96px; }
             gesture itself when there is no bar to own it:
           </p>
 
-          <template data-example data-caption="No bar. The label slot takes markup — here 16×16 pixel art, which is how the showcase draws its Apple menu.">
+          <template data-example data-caption="No bar. The label slot takes markup — here 16×16 pixel art.">
             <vf-menu label="Apple">
               <vf-img slot="label" width="16" height="16">
                 <img src="/demo/icons/puzzle.png" alt="" />
@@ -1492,7 +1474,7 @@ vf-button::part(button) { min-width: 96px; }
           <template data-example data-caption="axis='both' reserves both rails; the horizontal one here has nothing to scroll, so it stays an empty channel.">
             <vf-scroll-area axis="both" label="Release notes" style="width: 16em; height: 9em">
               <vf-paragraph>System 7.0 introduced virtual memory, file sharing, aliases, TrueType fonts and the Application menu.</vf-paragraph>
-              <vf-paragraph>It also replaced the MultiFinder switch with permanent multitasking, which is why every window on this page can be frontmost or not.</vf-paragraph>
+              <vf-paragraph>It also replaced the MultiFinder switch with permanent multitasking.</vf-paragraph>
               <vf-paragraph>Scroll me.</vf-paragraph>
             </vf-scroll-area>
           </template>
@@ -1547,8 +1529,7 @@ vf-button::part(button) { min-width: 96px; }
             A lattice of equal cells with 1px rules between them: a tool palette, a
             color picker's swatch table, a pattern chooser. Switching the pen from
             solid to dashed changes no layout, and the rules run <em>behind</em> the
-            cells, so an item spanning two cells covers the boundary it swallowed
-            and a cell's own ink is never crossed.
+            cells, so an item spanning two cells covers the boundary it swallowed.
           </p>
           <p>
             A cell is centered in its well on both axes — a palette usually holds
@@ -1652,31 +1633,28 @@ vf-button::part(button) { min-width: 96px; }
         <section class="doc" id="vf-stack" data-group="Menus, lists &amp; containers" data-toc="vf-stack">
           <h2><code>vf-stack</code></h2>
           <p>
-            The layout primitive: a flexbox whose <code>gap</code>, <code>pad</code>,
-            <code>width</code> and <code>height</code> are declared in whole system
-            pixels, so a window's insides need no
-            <code>calc(var(--vf-scale, 1) * …)</code> in your stylesheet. It is one of
-            two stylesheet-free ways to lay those insides out; the other is placing
-            each child with its own <code>top</code>/<code>left</code> (see
+            A flexbox whose <code>gap</code>, <code>pad</code>, <code>width</code> and
+            <code>height</code> are declared in whole system pixels. It is one of two
+            ways to lay a window's insides out without a stylesheet; the other is
+            placing each child with its own <code>top</code>/<code>left</code> (see
             <a href="#conventions">Conventions</a>).
           </p>
           <p>
-            A page's own CSS often <em>cannot</em> say "8 system px". Scaling is per
+            A page's own stylesheet cannot state system pixels. Scaling is per
             component — each element sets <code>--vf-scale</code> on itself, never on
-            the document — so <code>var(--vf-scale, 1)</code> in your stylesheet
-            resolves only inside a <code>vf-*</code> ancestor. On a plain
-            <code>&lt;div&gt;</code> the fallback <code>1</code> wins and the gap comes
-            out 3× too tight, silently.
+            the document — so <code>var(--vf-scale, 1)</code> outside a
+            <code>vf-*</code> ancestor falls back to <code>1</code> and comes out 3×
+            too tight, silently.
           </p>
           <p>
-            <strong>The content governs the box.</strong> A column is as wide as its
-            widest child and a row as tall as its tallest; children keep the size they
-            were drawn at. The stack distributes, never resizes, and shrink-wraps. It
-            paints nothing, takes no role, and returns face, line box, color and
-            selectability to <code>inherit</code>.
+            The content governs the box. A column is as wide as its widest child and a
+            row as tall as its tallest; children keep the size they were drawn at. The
+            stack distributes, never resizes, and shrink-wraps. It paints nothing,
+            takes no role, and returns face, line box, color and selectability to
+            <code>inherit</code>.
           </p>
 
-          <template data-example data-caption="A column of labelled rows, then an action row. Each row is filled to the panel and the field takes what the caption leaves; the popup and the buttons keep their drawn widths. The action row is a filled column whose one child sits at the end — which is what a right-aligned OK/Cancel is.">
+          <template data-example data-caption="A column of labelled rows, then an action row. Each row is filled to the panel and the field takes what the caption leaves; the popup and the buttons keep their drawn widths. A right-aligned OK/Cancel is a filled column whose one child sits at the end.">
             <vf-stack gap="12" width="300">
               <vf-stack fill-width direction="row" gap="8">
                 <vf-label width="72" for="ex-stack-name">Name:</vf-label>
@@ -1700,7 +1678,7 @@ vf-button::part(button) { min-width: 96px; }
             </vf-stack>
           </template>
 
-          <template data-example data-caption="fill-width names the outcome, not an axis, so it means the same thing wherever it lands: the group box and the rule take the panel's width, and in the row below the field takes what the caption leaves. The buttons ask for nothing and stay as wide as their labels. A rule has no width of its own — without fill-width it would be there and invisible.">
+          <template data-example data-caption="fill-width names the outcome, not an axis: the group box and the rule take the panel's width, and in the row below the field takes what the caption leaves. The buttons ask for nothing and stay as wide as their labels. A rule has no width of its own — without fill-width it would be there and invisible.">
             <vf-stack gap="6" width="260">
               <vf-fieldset fill-width legend="Fills the panel">
                 <vf-label>a group box takes the width</vf-label>
@@ -1774,7 +1752,7 @@ vf-button::part(button) { min-width: 96px; }
             </div>
             <vf-label>Display face (default)</vf-label>
             <vf-label face="body">Body face — also the fine print, at its own size</vf-label>
-            <vf-label dim>Dimmed, the way System 7 dims a caption</vf-label>
+            <vf-label dim>Dimmed, with the dim attribute</vf-label>
           </template>
 
           <table class="api">
@@ -1854,8 +1832,8 @@ vf-button::part(button) { min-width: 96px; }
             the 32×32 <code>ICN#</code> and <code>small</code> the 16×16
             <code>ics#</code>. <code>size</code> picks which one paints <em>and</em>
             the cell it paints in. The cell is reserved whether or not there is art
-            filling it — a folder is 32×20 of ink and a document 25×32, and a row of
-            them keeps one baseline because the cell is the unit, not the ink.
+            filling it — a folder is 32×20 of ink and a document 25×32 — so a row of
+            icons keeps one baseline.
           </p>
 
           <template data-example data-caption="Click to select: the art inverts and the transparent surround around it stays clear. Shift adds, and a press anywhere else clears — single selection with no container managing the set.">
@@ -1877,13 +1855,13 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <p>
-            <code>open</code> is the Finder's other visual state — the window this icon
-            stands for is on screen — and redraws the art as a ghost: outline held,
-            interior re-filled with the same loose dither the scroll rails use. It
-            costs no second file and no second fetch, and works on cross-origin art.
+            <code>open</code> — the window this icon stands for is on screen — redraws
+            the art as a ghost: outline held, interior re-filled with the same loose
+            dither the scroll rails use. It is derived from the art already slotted,
+            so it costs no second file and works on cross-origin art.
           </p>
 
-          <template data-example data-caption="open — the same PNGs as the icons above; nothing extra ships. A selected open icon inverts exactly as a closed one does. Set it when handling vf-open, clear it when the window goes away.">
+          <template data-example data-caption="open — the same PNGs as the icons above. A selected open icon inverts as a closed one does. Set it when handling vf-open, clear it when the window goes away.">
             <vf-icon label="SimpleText" width="64" open selectable>
               <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
               <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
@@ -1899,17 +1877,14 @@ vf-button::part(button) { min-width: 96px; }
           </template>
 
           <p>
-            A name is <strong>never abbreviated, and never folded</strong> — no
-            ellipsis, no clipping, no wrapping. HFS capped a filename at 31 characters,
-            so the Finder could always draw one in full. Wider than its cell, a name
-            overflows it, centered: <code>width</code> is the cell pitch, not a bound
-            on the name. That also keeps the name crisp, since one run has one width
-            to center. Your side of it is one rule — <strong>a declared
-            <code>width</code> must be even</strong>, since the component cannot round
-            a number you chose.
+            A name is never abbreviated and never folded — no ellipsis, no clipping,
+            no wrapping. Wider than its cell, it overflows, centered:
+            <code>width</code> is the cell pitch, not a bound on the name. One rule is
+            yours: a declared <code>width</code> must be even, since the component
+            cannot round a number you chose.
           </p>
 
-          <template data-example data-caption="A 31-character name at the limit: it overflows the 64px cell on one line rather than folding into it. Type past the limit in a rename and vf-name-too-long carries what was tried, so a host can raise the alert System 7 raised instead of dropping the characters silently.">
+          <template data-example data-caption="A 31-character name at the limit: it overflows the 64px cell on one line rather than folding into it. Type past the limit in a rename and vf-name-too-long carries what was tried.">
             <vf-icon label="Quarterly Results Final v2 (2)!" width="64" selectable editable>
               <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
               <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
@@ -1921,7 +1896,7 @@ vf-button::part(button) { min-width: 96px; }
             <pre class="log" data-log></pre>
           </template>
 
-          <template data-example data-caption='size="small" swaps to the 16×16 member of the family. An empty label draws no plate at all — the state a freshly made icon starts in. It stays selectable and renameable: focus the last one and press Return to name it. Commit an empty name over a real one and the edit is refused, as System 7 refused it.'>
+          <template data-example data-caption='size="small" swaps to the 16×16 member of the family. An empty label draws no plate. It stays selectable and renameable: focus the last one and press Return to name it. Committing an empty name over a real one is refused.'>
             <vf-icon size="small" label="SimpleText" width="64" selectable>
               <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
               <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
@@ -2083,8 +2058,8 @@ vf-button::part(button) { min-width: 96px; }
         <section class="doc" id="toolkit" data-group="Reference" data-toc="Utilities &amp; toolkit">
           <h2>Utilities &amp; style toolkit</h2>
           <p>
-            The shared toolkit the components are built from is exported from the
-            package root, so a custom control can match the kit pixel-for-pixel:
+            The toolkit the components are built from is exported from the package
+            root, for a custom control that has to match them:
           </p>
 
           <pre class="snippet"><code>import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'</code></pre>
@@ -2136,9 +2111,8 @@ vf-button::part(button) { min-width: 96px; }
           </p>
 
           <p>
-            Deeper detail lives in <code>SPEC.md</code> — the full design spec, every
-            token, slot, part and event, with the pixel traces they came from — and
-            <code>README.md</code>.
+            <code>SPEC.md</code> has the full design spec — every token, slot, part
+            and event, with the pixel traces they came from.
           </p>
         </section>
       </main>

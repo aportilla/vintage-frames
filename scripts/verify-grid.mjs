@@ -44,11 +44,28 @@ const audit = async (page) =>
     // 1/64-CSS-px layout unit, the best the engine can represent (under zoom
     // the scale can be a ratio like 5/3, where exactness is unrepresentable).
     const eps = Math.max(1e-6, dpr / 128)
+
+    /**
+     * A scale Chromium can hold exactly, i.e. a whole number of its 1/64-CSS-px
+     * layout units. Every scale the kit derives for a 1× or 2× display is one,
+     * at every zoom level — page zoom multiplies computed lengths at style time,
+     * so the layout length stays whole. A true 3× device derives 4/3, which is
+     * not: its lengths land a fraction of a device pixel short, and each box
+     * nested inside another adds another fraction.
+     *
+     * There the audit cannot tell accumulated quantization from a real fault, so
+     * it stops asserting exactness and asserts the thing that still matters —
+     * nothing off by half a device pixel, the error that actually smears 1-bit
+     * art. The residual is printed either way.
+     */
+    const holdable = (scale) => Math.abs(scale * 64 - Math.round(scale * 64)) < 1e-9
+
     /** Signed device-pixel error of a CSS-px measurement. */
-    const err = (css) => {
+    const err = (css, scale) => {
       const d = css * dpr
       const e = d - Math.round(d)
-      return Math.abs(e) < eps ? 0 : e
+      const tolerance = holdable(scale) ? eps : 0.5
+      return Math.abs(e) < tolerance ? 0 : e
     }
 
     const faults = []
@@ -65,8 +82,8 @@ const audit = async (page) =>
       const scale =
         parseFloat(getComputedStyle(host).getPropertyValue('--vf-scale')) || 1
 
-      const origin = { x: err(rect.left), y: err(rect.top) }
-      const size = { w: err(rect.width), h: err(rect.height) }
+      const origin = { x: err(rect.left, scale), y: err(rect.top, scale) }
+      const size = { w: err(rect.width, scale), h: err(rect.height, scale) }
       if (!origin.x && !origin.y && !size.w && !size.h) continue
 
       const label = `${tag}${host.id ? '#' + host.id : ''}`

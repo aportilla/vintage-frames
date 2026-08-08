@@ -3966,14 +3966,6 @@
             },
             {
               "kind": "field",
-              "name": "#drag",
-              "privacy": "private",
-              "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null this.#warnIfUnplaced() return (this.#dragOrigin = this.#placement.seed()) }, onDrag: (x: number, y: number): void => { // Moving an icon is not renaming it, so a press that travels calls off // the rename it armed. Measured against the seeded origin rather than // taken from the move itself: a stationary press still reports jitter, // and every one of those steps snaps back onto the same system px. if (x !== this.#dragOrigin.x || y !== this.#dragOrigin.y) this.#disarmRename() this.#placement.moveTo(x, y) }, })",
-              "description": "Drag-to-move, on the same delegate shape as `vf-window`: the placement\ncontroller seeds the origin — from the in-flow offset the first time — and\nwrites back each move the drag controller has snapped onto the lattice."
-            },
-            {
-              "kind": "field",
               "name": "#dragOrigin",
               "privacy": "private",
               "type": {
@@ -3981,6 +3973,13 @@
               },
               "default": "{ x: 0, y: 0 }",
               "description": "Where the in-flight drag started, so a move can be told from jitter."
+            },
+            {
+              "kind": "field",
+              "name": "#drag",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null this.#warnIfUnplaced() return (this.#dragOrigin = this.#placement.seed()) }, onDrag: (x: number, y: number): void => { // Moving an icon is not renaming it, so a press that travels calls off // the rename it armed. Measured against the seeded origin rather than // taken from the move itself: a stationary press still reports jitter, // and every one of those steps snaps back onto the same system px. if (x !== this.#dragOrigin.x || y !== this.#dragOrigin.y) this.#disarmRename() this.#placement.moveTo(x, y) }, })"
             },
             {
               "kind": "field",

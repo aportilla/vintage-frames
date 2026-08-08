@@ -20,10 +20,10 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:scale
  */
-import { check, launch, makeBuild, report } from './harness.mjs'
+import { SCALE, check, launch, makeBuild, report } from './harness.mjs'
 
-/** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
-const DEFAULT_SCALE = 3
+/** Headless Chromium runs at dpr 1, where the kit derives 1 device px per system px. */
+const DEFAULT_SCALE = SCALE
 
 const COMPONENTS = `
   <vf-button id="btn">Button</vf-button>

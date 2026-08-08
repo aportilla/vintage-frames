@@ -61,7 +61,8 @@ export type {
 
 /**
  * Display scaling. `applyScale(document.documentElement)` is the one call an
- * app makes to opt into true classic size (3 device px per system px); the rest
+ * app makes to opt into true classic size (the whole device-px count nearest
+ * 1/72 inch on this display); the rest
  * is the system↔CSS px conversion custom components need so their JS geometry
  * stays in the same coordinate system as CSS.
  */
@@ -80,13 +81,16 @@ export {
   snapSys,
   systemPxQuantum,
   toSysExact,
-  DEVICE_PX_PER_SYSTEM_PX,
+  CLASSIC_DPI,
+  CSS_REFERENCE_DPI,
+  SYSTEM_PX_IN_CSS_PX,
 } from './scale.js'
 
 /**
  * Browser-zoom tracking, the zoom half of display scaling: the kit follows the
- * user's zoom by default (6 device px per system px at 200%), and these are
- * the readouts a page or custom control needs to stay on the same grid —
+ * user's zoom by default (zoom multiplies the density the target is computed
+ * from), and these are the readouts a page or custom control needs to stay on
+ * the same grid —
  * `truePixelRatio()` is device px per CSS px *including* zoom, the number
  * `window.devicePixelRatio` stops being in Safari at any non-100% zoom.
  * `resetZoomBaseline()` declares the current state to be 100%, for the one

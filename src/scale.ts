@@ -1,8 +1,9 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit'
 import {
-  DEVICE_PX_PER_SYSTEM_PX,
+  CLASSIC_DPI,
+  CSS_REFERENCE_DPI,
+  SYSTEM_PX_IN_CSS_PX,
   devicePxPerSystemPx,
-  getZoom,
   onZoomChange,
   truePixelRatio,
 } from './zoom.js'
@@ -12,24 +13,30 @@ import {
  * screens.
  *
  * Vintage Frames' components are authored in *system pixels* (the 1-bit art
- * grid: a 1px border, a 13px checkbox, a 22px control). To read at their true
- * classic size — and stay pixel-crisp — each system pixel must map to a whole
- * number of device pixels. The target is **3 × zoom device pixels per system
- * pixel**, rounded whole (`src/zoom.ts`): at 100% zoom the scale adapts to the
- * display alone —
+ * grid: a 1px border, a 13px checkbox, a 22px control). A system pixel is
+ * 1/{@link CLASSIC_DPI} inch — the Macintosh screen the art was drawn for — and
+ * the job here is to put that size on a modern display without ever landing on
+ * a fractional device pixel.
  *
- *   1× display  → scale 3.0   (3 CSS px × 1 dpr = 3 device px)
- *   2× retina   → scale 1.5   (1.5 CSS px × 2 dpr = 3 device px)
- *   3× display  → scale 1.0   (1 CSS px × 3 dpr = 3 device px)
+ * So the device-pixel count is *computed from the display*
+ * ({@link devicePxPerSystemPx}): `round(96/72 × trueDpr)`, the whole count
+ * nearest 1/72 inch, where 96 is {@link CSS_REFERENCE_DPI} and `trueDpr` is
+ * {@link truePixelRatio} — device px per CSS px *including* zoom, which
+ * `window.devicePixelRatio` reports in Chrome/Firefox but not Safari. The scale
+ * is that count divided back into CSS px:
  *
- * — and as the user zooms, the target moves with them (6 device px at 200%,
- * 2 at 50%), so the kit grows with the page instead of dividing the zoom back
- * out and holding its physical size while the copy around it doubles. The
- * invariant is `--vf-scale × trueDpr = a whole device-px count`, where
- * `trueDpr` is {@link truePixelRatio} — device px per CSS px *including* zoom,
- * which `window.devicePixelRatio` reports in Chrome/Firefox but not Safari.
- * Because the count is always whole, the art is crisp at every density and
- * every zoom level.
+ *   1× display  → 1 device px  → scale 1.0    (1 CSS px × 1 dpr)
+ *   1.5× (Win)  → 2 device px  → scale 1.333  (1.333 CSS px × 1.5 dpr)
+ *   2× retina   → 3 device px  → scale 1.5    (1.5 CSS px × 2 dpr)
+ *   3× display  → 4 device px  → scale 1.333  (1.333 CSS px × 3 dpr)
+ *
+ * Zoom needs no term of its own: it multiplies device px per CSS px, so it is
+ * already inside `trueDpr`, and a zoomed page walks the same ladder (a 2×
+ * display at 200% is trueDpr 4 → 5 device px). The kit therefore grows with the
+ * page instead of dividing the zoom back out and holding its physical size
+ * while the copy around it doubles. The invariant is `--vf-scale × trueDpr = a
+ * whole device-px count`; because the count is always whole, the art is crisp
+ * at every density and every zoom level.
  *
  * Components multiply their metrics by the inherited `--vf-scale` custom
  * property in `calc()`; JS geometry uses {@link sys} / {@link toSys} to
@@ -42,16 +49,17 @@ import {
  * `--vf-scale` yourself.
  */
 
-export { DEVICE_PX_PER_SYSTEM_PX }
+export { CLASSIC_DPI, CSS_REFERENCE_DPI, SYSTEM_PX_IN_CSS_PX }
 
 /**
  * The CSS scale factor for the current display and zoom:
- * `devicePxPerSystemPx(zoom) / trueDpr`. At 100% zoom that reduces exactly to
- * the historical `3 / devicePixelRatio`.
+ * `devicePxPerSystemPx(trueDpr) / trueDpr`. The numerator is whole, so the
+ * product with `trueDpr` is whole — the scale contract — and the value is
+ * `SYSTEM_PX_IN_CSS_PX` (1.333) to within the rounding.
  */
 export function getScale(): number {
   const dpr = truePixelRatio() || 1
-  return devicePxPerSystemPx(getZoom()) / dpr
+  return devicePxPerSystemPx(dpr) / dpr
 }
 
 /**
@@ -346,8 +354,9 @@ export function applyScale(
 
 /**
  * Reactive controller that makes true-size rendering the DEFAULT for a
- * component: on connect it sets `--vf-scale` to the display scale (3 / dpr) on
- * the host — UNLESS a `--vf-scale` is already in scope (a consumer or ancestor
+ * component: on connect it sets `--vf-scale` to the display scale
+ * ({@link getScale}) on the host — UNLESS a `--vf-scale` is already in scope
+ * (a consumer or ancestor
  * override always wins) — and keeps it synced as the display's dpr changes.
  * Because `--vf-scale` is a plain inherited multiplier, a component whose
  * ancestor already set it just inherits that value (no compounding).

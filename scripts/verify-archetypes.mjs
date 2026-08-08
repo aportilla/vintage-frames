@@ -34,17 +34,19 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:archetypes
  */
-import { check, launch, makeBuild, results } from './harness.mjs'
+import { check, launch, makeBuild, results, scaleAt } from './harness.mjs'
 import zlib from 'node:zlib'
 
-/** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
-const S = 3
+/** These are 1-bit raster measurements, not scale-policy ones, so the fixture
+ *  PINS --vf-scale and every figure below is in that unit. */
+const PINNED_SCALE = 3
+const S = PINNED_SCALE
 
 const near = (a, b, eps = 0.01) => Math.abs(a - b) <= eps
 
 const browser = await launch()
 
-const build = makeBuild(browser)
+const build = makeBuild(browser, { bodyStyle: `margin:0;--vf-scale:${PINNED_SCALE}` })
 /** Computed props of a shadow part, plus its rect relative to the frame. */
 const partMetrics = (page, hostId, part, props) =>
   page.evaluate(

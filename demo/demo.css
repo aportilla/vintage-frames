@@ -9,7 +9,8 @@
  * (a label column's width, the gap under a paragraph) — never a face or a size.
  *
  * Display scaling: the components render at true 72dpi size by default (each
- * system pixel = 3 device pixels; see src/scale.ts), driven by the inherited
+ * system pixel takes the whole number of device pixels nearest 1/72 inch on
+ * this display — 1 at 1×, 3 at 2×; see src/scale.ts), driven by the inherited
  * --vf-scale custom property (set on <vf-desktop> and every component). This
  * demo layout is authored in system pixels too and multiplied by --vf-scale in
  * calc(), so window sizes, positions, gaps and the chrome labels scale in

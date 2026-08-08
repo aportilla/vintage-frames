@@ -56,11 +56,13 @@
  *   npm run verify:focus
  */
 import {
-  check, decodePng, isBlack, isWhite, launch, makeBuild, report, rgb,
+  check, decodePng, isBlack, isWhite, launch, makeBuild, report, rgb, scaleAt,
 } from './harness.mjs'
 
-/** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
-const S = 3
+/** These are 1-bit art measurements, not scale-policy ones, so the fixture PINS
+ *  --vf-scale (see bodyStyle below) and every figure here is in that unit. */
+const PINNED_SCALE = 3
+const S = PINNED_SCALE
 /** Padding around the screenshot clip, in device px. */
 const PAD = 9
 /** …and for a control whose rule sits below its box, past a 2px hard shadow. */
@@ -71,7 +73,8 @@ const browser = await launch()
 /** A page with the kit loaded and every vf-* element upgraded. */
 const build = makeBuild(browser, {
   viewport: { width: 900, height: 500 },
-  bodyStyle: 'margin:0;background:#fff;padding:24px',
+  bodyStyle: `margin:0;background:#fff;padding:24px;--vf-scale:${PINNED_SCALE}`,
+
   settle: true,
 })
 

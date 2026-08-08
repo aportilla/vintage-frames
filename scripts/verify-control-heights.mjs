@@ -53,6 +53,8 @@ const OPTIONS = `
 `
 
 const MARKUP = `
+  <!-- Raster/geometry figures below are stated at a pinned scale of 3. -->
+  <style>:root { --vf-scale: 3 }</style>
   <vf-text-field id="text" value="abc"></vf-text-field>
   <vf-number-field id="num" value="5"></vf-number-field>
   <vf-number-field id="themed" value="5" style="--vf-control-height: 30px"></vf-number-field>
@@ -154,7 +156,7 @@ const num = await geom('num')
 const themed = await geom('themed')
 const s = num.scale
 
-check('page is at the default 3-device-px-per-system-px scale', s === 3 / num.dpr, `scale=${s}`)
+check('the fixture pins --vf-scale so every figure below is in one unit', s === 3, `scale=${s}`)
 
 // ── vf-number-field: the well follows the token, not the sprite ──
 check(

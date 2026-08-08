@@ -26,11 +26,12 @@
 /* ── vf hook 1 ─────────────────────────────────────────────────────────────
  * Pin the display scale.
  *
- * Left alone, every component sets its OWN --vf-scale to round(3 × zoom) /
- * trueDpr — 3.0 on a 1× display, 1.5 on retina, at 100% zoom — so the UI
- * reproduces its true ~72dpi physical size and follows the user's zoom. That
- * is right for a faux desktop and much too large next to 17px body copy: at
- * 3.0 a push button is 60px tall with a 48px label.
+ * Left alone, every component derives its OWN --vf-scale from the display:
+ * round(96/72 × trueDpr) device px per system px, divided back into CSS px —
+ * 1.0 on a 1× display, 1.5 on retina, at 100% zoom — so the UI reproduces its
+ * true ~72dpi physical size and follows the user's zoom. That is right for a
+ * faux desktop, and beside 17px body copy it changes the chrome-to-copy
+ * proportion per display, which a page may or may not want.
  *
  * A value in scope always beats the component default, so one declaration here
  * settles it for the whole page. 1 = the authored size — a 20px button with a
@@ -40,8 +41,8 @@
 :root {
   /*
    * No --vf-scale. The components are shown in their default state: each one
-   * sets its own to round(3 × zoom) / trueDpr, so a system pixel is exactly
-   * 3 device pixels at 100% zoom (more as the user zooms in, always a whole
+   * derives its own from the display, so a system pixel is the whole number of
+   * device pixels nearest 1/72 inch (more as the user zooms in, always a whole
    * count) and the controls reproduce their true ~72dpi size. Nothing
    * on this page overrides that, and nothing on this page reads it either —
    * the layout below is plain CSS, as a host page's would be.

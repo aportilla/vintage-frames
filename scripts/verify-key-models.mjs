@@ -24,6 +24,7 @@
 import { ORIGIN, check, launch, report } from './harness.mjs'
 
 const MARKUP = `
+  <style>:root { --vf-scale: 3 }</style>
   <vf-menu-bar id="bar" label="Site">
     <vf-menu id="file" label="File">
       <vf-menu-item id="f-new" value="new">New Window</vf-menu-item>

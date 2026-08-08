@@ -33,10 +33,10 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:text
  */
-import { check, launch, makeBuild, report } from './harness.mjs'
+import { SCALE, check, launch, makeBuild, report } from './harness.mjs'
 
-/** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
-const S = 3
+/** Headless Chromium runs at dpr 1, where the kit derives 1 device px per system px. */
+const S = SCALE
 
 const browser = await launch()
 

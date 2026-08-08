@@ -32,12 +32,26 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:position
  */
-import { ORIGIN, check, launch, results } from './harness.mjs'
+import {
+  ORIGIN,
+  check,
+  devicePxPerSystemPxAt,
+  launch,
+  results,
+  scaleAt,
+  devicePxFor,
+  gridTolerance,
+  holdableScale,
+} from './harness.mjs'
 
 const DENSITIES = (process.env.VF_POSITION_DPR ?? '1,2,3').split(',').map(Number)
 
-/** Device pixels per system pixel — the kit's constant (src/scale.ts). */
-const DEVICE_PX_PER_SYSTEM_PX = 3
+/**
+ * Device pixels per system pixel at the density under test — derived, not
+ * constant (src/zoom.ts): 1 at dpr 1, 3 at dpr 2, 4 at dpr 3. Reassigned at the
+ * top of each density's pass below.
+ */
+let DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
 
 const browser = await launch()
 
@@ -92,6 +106,7 @@ const near = (a, b) => Math.abs(a - b) < 0.001
    origin — whatever the display is doing — and land on whole device pixels. */
 
 for (const dpr of DENSITIES) {
+  DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(dpr)
   const page = await build(
     `
     <div id="parent" style="position:relative;width:900px;height:600px">
@@ -103,18 +118,23 @@ for (const dpr of DENSITIES) {
   const [parent, placed] = await Promise.all([rect(page, 'parent'), rect(page, 'placed')])
   const dx = (placed.x - parent.x) * dpr
   const dy = (placed.y - parent.y) * dpr
+  const scale = scaleAt(dpr)
   check(
-    `dpr ${dpr}: left="40" top="25" is 120 × 75 device px from the parent`,
-    near(dx, 40 * DEVICE_PX_PER_SYSTEM_PX) && near(dy, 25 * DEVICE_PX_PER_SYSTEM_PX),
+    `dpr ${dpr}: left="40" top="25" is ${40 * DEVICE_PX_PER_SYSTEM_PX} × ${25 * DEVICE_PX_PER_SYSTEM_PX} device px from the parent`,
+    near(dx, devicePxFor(40, scale, dpr)) && near(dy, devicePxFor(25, scale, dpr)),
     `${dx} × ${dy} device px`
   )
   check(
     `dpr ${dpr}: …and the origin lands on whole device pixels`,
-    near(dx, Math.round(dx)) && near(dy, Math.round(dy)),
-    `${dx} / ${dy}`
+    Math.abs(dx - Math.round(dx)) <= gridTolerance(scale, dpr) &&
+      Math.abs(dy - Math.round(dy)) <= gridTolerance(scale, dpr),
+    `${dx} / ${dy}` + (holdableScale(scale) ? '' : ' (3× device: 4/3 is not a holdable scale)')
   )
   await page.close()
 }
+
+// Every group below builds at the default density, so put the target back.
+DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
 
 /* ── DEFAULTS ─────────────────────────────────────────────────────────────
    Either coordinate alone is a complete placement — the other is 0. Neither
@@ -579,13 +599,16 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
     near(ico.dx, 30) && near(ico.dy, 30),
     `moved ${ico.dx} × ${ico.dy}px CSS`
   )
+  // 30 CSS px of pointer travel is 30 / scale system px — the scale is derived
+  // from the display, so the figure cannot be written down as a constant.
+  const step = 30 / scaleAt(1)
   check(
     'contract: …stated in system px on the hosts',
     (await page.evaluate(() => {
       const w = document.getElementById('win')
       const i = document.getElementById('ico')
       return `${w.left},${w.top} ${i.left},${i.top}`
-    })) === '30,30 70,50',
+    })) === `${20 + step},${20 + step} ${60 + step},${40 + step}`,
     await page.evaluate(() => {
       const w = document.getElementById('win')
       const i = document.getElementById('ico')

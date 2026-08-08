@@ -34,12 +34,24 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:stack
  */
-import { check, launch, makeBuild, results } from './harness.mjs'
+import {
+  check,
+  devicePxPerSystemPxAt,
+  launch,
+  makeBuild,
+  results,
+  scaleAt,
+  devicePxFor,
+} from './harness.mjs'
 
 const DENSITIES = (process.env.VF_STACK_DPR ?? '1,2,3').split(',').map(Number)
 
-/** Device pixels per system pixel — the kit's constant (src/scale.ts). */
-const DEVICE_PX_PER_SYSTEM_PX = 3
+/**
+ * Device pixels per system pixel at the density under test — derived, not
+ * constant (src/zoom.ts): 1 at dpr 1, 3 at dpr 2, 4 at dpr 3. Reassigned at the
+ * top of each density's pass below.
+ */
+let DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
 
 const browser = await launch()
 
@@ -83,6 +95,7 @@ const near = (a, b) => Math.abs(a - b) < 0.001
    therefore measure exactly N × 3 device px — whatever the display is doing. */
 
 for (const dpr of DENSITIES) {
+  DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(dpr)
   const page = await build(
     `
     <vf-stack id="col" gap="12">
@@ -98,17 +111,23 @@ for (const dpr of DENSITIES) {
     dpr
   )
 
+  // On a true 3× device the scale is 4/3, which the engine's 1/64-CSS-px
+  // layout grid cannot hold, so the figure to assert is the ideal SNAPPED to
+  // that grid — exact, rather than the ideal with a tolerance hung off it.
+  // Every scale a 1× or 2× display derives, at any zoom, is holdable and this
+  // resolves to the ideal itself.
+  const scale = scaleAt(dpr)
   const colGap = (await gapBetween(page, 'a', 'b')) * dpr
   check(
     `dpr ${dpr}: gap="12" down a column is 12 system px`,
-    near(colGap, 12 * DEVICE_PX_PER_SYSTEM_PX),
+    near(colGap, devicePxFor(12, scale, dpr)),
     `${colGap} device px`
   )
 
   const rowGap = (await gapBetween(page, 'c', 'd', 'x')) * dpr
   check(
     `dpr ${dpr}: gap="7" across a row is 7 system px`,
-    near(rowGap, 7 * DEVICE_PX_PER_SYSTEM_PX),
+    near(rowGap, devicePxFor(7, scale, dpr)),
     `${rowGap} device px`
   )
 
@@ -118,6 +137,9 @@ for (const dpr of DENSITIES) {
       (v) => parseFloat(v) * d
     )
   }, dpr)
+  // The ideal, not the grid-snapped figure the gaps above use: padding is read
+  // back through getComputedStyle, which resolves the calc() at full precision.
+  // Only a *used* value — what getBoundingClientRect reports — is quantized.
   const want = [10, 4, 6, 2].map((n) => n * DEVICE_PX_PER_SYSTEM_PX)
   check(
     `dpr ${dpr}: pad="10 4 6 2" is CSS shorthand order, in system px`,
@@ -128,14 +150,25 @@ for (const dpr of DENSITIES) {
   await page.close()
 }
 
+// Every group below builds at the default density, so put the target back.
+DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
+
 /* ── SCOPE ────────────────────────────────────────────────────────────────
    The fixture that justifies the component. This page sets no --vf-scale and
    calls no applyScale(), so nothing but a vf-* host has one in scope. The
    stack spaces its children in system px anyway; the hand-written calc()
-   beside it silently falls back to 1 and comes out 3× too tight. */
+   beside it silently falls back to 1 and comes out too tight.
+
+   Built at dpr 2 deliberately: the kit derives its scale from the display, and
+   at dpr 1 that derivation IS 1 — the same number the fallback produces — so
+   the fixture would agree with the bug it exists to catch. At dpr 2 the scale
+   is 1.5 and the two answers separate. */
 
 {
-  const page = await build(`
+  const SCOPE_DPR = 2
+  const scope = scaleAt(SCOPE_DPR)
+  const page = await build(
+    `
     <vf-stack id="s" gap="12">
       <div id="sa" style="height:12px"></div>
       <div id="sb" style="height:12px"></div>
@@ -144,13 +177,15 @@ for (const dpr of DENSITIES) {
       <div id="ha" style="height:12px"></div>
       <div id="hb" style="height:12px"></div>
     </div>
-  `)
+  `,
+    SCOPE_DPR
+  )
 
   const stackGap = await gapBetween(page, 'sa', 'sb')
   const handGap = await gapBetween(page, 'ha', 'hb')
   check(
     'scope: a stack with no vf-* ancestor still spaces in system px',
-    near(stackGap, 12 * DEVICE_PX_PER_SYSTEM_PX),
+    near(stackGap, 12 * scope),
     `${stackGap}px CSS`
   )
   check(

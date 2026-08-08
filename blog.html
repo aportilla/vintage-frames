@@ -16,12 +16,13 @@
       kit's sizing and interaction mechanics survive contact with a real page.
 
       The controls are in their DEFAULT state throughout. The page sets no
-      --vf-scale anywhere, so each component sizes itself to 3 device px per
-      system px (`3 / devicePixelRatio`) — true ~72dpi physical size, the same
-      thing a lone <vf-button> dropped on a blank page would do. That means the
-      controls render markedly larger on a 1× monitor than on a retina laptop
-      while the page's own 17px copy does not move at all; the readout in the
-      bar above states what this display resolved to.
+      --vf-scale anywhere, so each component derives its own from the display:
+      the whole number of device pixels nearest the classic 1/72 inch,
+      round(96/72 × trueDpr) — 1 on a 1× monitor, 3 on a retina one. That is
+      the same thing a lone <vf-button> dropped on a blank page would do, and
+      it means the controls sit differently against the page's own 17px copy on
+      each display; the readout in the bar above states what this one resolved
+      to.
 
       Three deliberate choices worth copying:
 

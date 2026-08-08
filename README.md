@@ -134,22 +134,34 @@ page. `npm run verify:define` asserts that path.
 
 ## Sizing
 
-Every component is authored in *system pixels* — the 1-bit art grid — and
-renders each one as exactly 3 device pixels at 100% zoom. This is on by
-default, needs no setup, and nested components never double-scale.
+Every component is authored in *system pixels* — the 1-bit art grid, where a
+border is 1 and a push button 20 tall. On a Macintosh that pixel was 1/72 inch,
+and reproducing it is the whole job: each component asks the display how dense
+it is and renders one system pixel as the **whole** number of device pixels
+nearest that size, `round(96/72 × devicePixelRatio)`, 96 being CSS's reference
+dpi — the only density anchor a browser exposes. On by default, no setup, and
+nested components never double-scale.
 
-| Display | `--vf-scale` at 100% zoom (`3 / dpr`) |
-| --- | --- |
-| 1× standard | 3.0 |
-| 2× retina | 1.5 |
-| 3× hi-dpi | 1.0 |
+| Display | true 1/72″ wants | device px per system px | `--vf-scale` |
+| --- | --- | --- | --- |
+| 1× standard | 1.33 | 1 | 1 |
+| 1.25× (Windows 125%) | 1.67 | 2 | 1.6 |
+| 1.5× (Windows 150%) | 2.0 | 2 | 1.333 |
+| 2× retina | 2.67 | 3 | 1.5 |
+| 3× | 4.0 | 4 | 1.333 |
 
-Reproducing true 72dpi size means the CSS size changes with the display: the
-same push button is 60px tall on a 1× monitor and 20px on a 3× one, while the
-page's own 17px copy is 17px on both. That is right for a full-screen faux
-desktop and often wrong beside prose. Pin it with the inherited `--vf-scale`
-custom property, declared in a stylesheet the page loads *before* the
-components upgrade:
+The count is whole because the art has to land on the device-pixel grid, and
+rounding to the nearest costs at most half a device pixel per system pixel: a
+1× monitor renders 25% small, a 2× display 12% large, a 1.5× or 3× one exactly
+right. On a native 3× display one thing does not come out exact — see
+[docs/THREE-X-DISPLAYS.md](./docs/THREE-X-DISPLAYS.md), which is a platform
+limit rather than a setting.
+
+So the CSS size follows the display: the same push button is 20px tall on a 1×
+monitor and 30px on a 2× one, while the page's own 17px copy is 17px on both.
+That is right for a full-screen faux desktop and can be wrong beside prose. Pin
+it with the inherited `--vf-scale` custom property, declared in a stylesheet
+the page loads *before* the components upgrade:
 
 ```css
 :root { --vf-scale: 1; }  /* fixed authored size: a 20px button, 16px label */
@@ -168,31 +180,36 @@ applyScale() // → returns a cleanup function
 
 ### Zoom
 
-Browser zoom moves the target with the reader: **`round(3 × zoom)` device
-pixels per system pixel**, always whole. The response is quantized, ties round
-up, and it is the same on every display and in every engine — Chrome and
-Firefox report zoom through `devicePixelRatio`, Safari pins its dpr to the
-hardware and moves `innerWidth` instead, and the kit tracks both (`src/zoom.ts`).
+Zoom needs no rule of its own. Zooming multiplies device pixels per CSS pixel —
+that is what zoom *is* — so it arrives as a denser display and walks the same
+table. Chrome and Firefox report it through `devicePixelRatio`; Safari pins its
+dpr to the hardware and moves `innerWidth` instead; the kit tracks both and
+`truePixelRatio()` is the number that folds them together (`src/zoom.ts`).
 
-| zoom | device px / system px | size vs. 100% |
-| --- | --- | --- |
-| 25–33% | 1 | 33% |
-| 50–80% | 2 | 67% |
-| 85–115% | 3 | 100% |
-| 125% | 4 | 133% |
-| 150–175% | 5 | 167% |
-| 200% | 6 | 200% |
-| 250% | 8 | 267% |
-| 300% | 9 | 300% |
-| 400% | 12 | 400% |
-| 500% | 15 | 500% |
+A 2× display, through the ladder:
 
-The steps nearest 100% hold still — 90% and 110% both round to 3. Resizing the
-window is never read as zoom; a viewport change counts only when both axes
-rescale together to a real zoom level. Page load is the baseline: a page that
-loads already-zoomed reads that as its 100%, and `resetZoomBaseline()` declares
-the current state to be 100% again. Pinch-to-zoom is not followed (it changes
-no rasterization density), and a pinned `--vf-scale` opts out entirely.
+| zoom | trueDpr | true 1/72″ wants | device px / system px |
+| --- | --- | --- | --- |
+| 50% | 1.0 | 1.33 | 1 |
+| 75% | 1.5 | 2.0 | 2 |
+| 100% | 2.0 | 2.67 | 3 |
+| 110% | 2.2 | 2.93 | 3 |
+| 125% | 2.5 | 3.33 | 3 |
+| 150% | 3.0 | 4.0 | 4 |
+| 200% | 4.0 | 5.33 | 5 |
+| 300% | 6.0 | 8.0 | 8 |
+
+The target is a step function, so **zoom sometimes changes nothing** — 100%,
+110% and 125% all round to 3, and the art holds still while the copy around it
+grows. That is the nearest whole count being the same count; bending it to feel
+more responsive would put the art off the grid. It is monotonic by
+construction: a deeper zoom never renders the art smaller.
+
+Resizing the window is never read as zoom; a viewport change counts only when
+both axes rescale together to a real zoom level. Page load is the baseline: a
+page that loads already-zoomed reads that as its 100%, and `resetZoomBaseline()`
+declares the current state to be 100% again. Pinch-to-zoom is not followed (it
+changes no rasterization density), and a pinned `--vf-scale` opts out entirely.
 
 ```sh
 npm run verify:zoom
@@ -210,8 +227,8 @@ Three rules. One call covers the second:
 
 **1. Keep `--vf-scale × trueDpr` a whole number.** `trueDpr` is device px per
 CSS px *including* zoom (`truePixelRatio()` reads it correctly in every
-engine). The default scale is `round(3 × zoom) / trueDpr`, always whole. A
-hand-picked scale is your responsibility:
+engine). The derived scale is `devicePxPerSystemPx(trueDpr) / trueDpr`, whole
+by construction. A hand-picked scale is your responsibility:
 
 | `--vf-scale` | 1× display | 2× retina | 3× hi-dpi |
 | --- | --- | --- | --- |
@@ -731,10 +748,10 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | Export | What it's for |
 | --- | --- |
 | `applyScale`, `ScaleController`, `onScaleChange` | Opt a subtree, or your own component, into true-size rendering |
-| `getZoom`, `truePixelRatio`, `onZoomChange`, `devicePxPerSystemPx`, `resetZoomBaseline` | The zoom half of scaling: tracked page zoom; device px per CSS px *including* zoom (what `devicePixelRatio` stops being in Safari under zoom); a zoom subscription; the zoom→target quantization; and the "current state is 100%" escape hatch |
+| `getZoom`, `truePixelRatio`, `onZoomChange`, `devicePxPerSystemPx`, `resetZoomBaseline` | The zoom half of scaling: tracked page zoom; device px per CSS px *including* zoom (what `devicePixelRatio` stops being in Safari under zoom); a zoom subscription; the density→target derivation; and the "current state is 100%" escape hatch |
 | `applyGridSnap`, `requestGridSnap`, `GridSnapController` | Automatic device-pixel-grid snapping; add it to your own component with one controller line plus the `vf-snap` class on its painted root |
 | `applyCursor`, `CURSOR_ARROW`, `CURSOR_I_BEAM`, `CURSOR_CROSSHAIR`, `CURSOR_WAIT` | Replace the native pointer with the embedded System 7 set; the constants are that art, exported for remixing |
-| `sys`, `toSys`, `toSysExact`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapSys`, `systemPxQuantum`, `snapToSystemPx`, `snapToDevicePx`, `DEVICE_PX_PER_SYSTEM_PX` | Convert between system (art) px and CSS px against the effective `--vf-scale`. `sysLength`/`sysLengths` emit a live system-px length (or 1–4 value shorthand) for a position or size written onto an element; `snapSys` puts a system-px coordinate on the placement lattice, `snapToSystemPx`/`snapToDevicePx` are its CSS-px twins |
+| `sys`, `toSys`, `toSysExact`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapSys`, `systemPxQuantum`, `snapToSystemPx`, `snapToDevicePx`| Convert between system (art) px and CSS px against the effective `--vf-scale`. `sysLength`/`sysLengths` emit a live system-px length (or 1–4 value shorthand) for a position or size written onto an element; `snapSys` puts a system-px coordinate on the placement lattice, `snapToSystemPx`/`snapToDevicePx` are its CSS-px twins. `CLASSIC_DPI` / `CSS_REFERENCE_DPI` / `SYSTEM_PX_IN_CSS_PX` are the constants the target is derived from |
 | `VfPositioned`, `VfSized`, `PlacementController` | The `top`/`left` and `width`/`height` mixins, plus the gesture half that states a drag's result in those same properties |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfModalFrame`, `vfTitleBar`, `vfWindowWidgets`, `vfHardShadowDecls`, `vfStripes`, `vfDots`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |

@@ -89,9 +89,10 @@ if (snapping) applyGridSnap()
  * Display scale — reported, never set.
  *
  * The page declares no --vf-scale, so every component's ScaleController takes
- * over and writes `round(3 × zoom) / trueDpr` on its own host: one system
- * pixel is exactly 3 device pixels at 100% zoom, and the target follows the
- * user's zoom in whole steps — both the true ~72dpi size and the reason the
+ * over and writes `devicePxPerSystemPx(trueDpr) / trueDpr` on its own host:
+ * one system pixel is the whole number of device pixels nearest 1/72 inch on
+ * this display, and the target follows the user's zoom in whole steps —
+ * because zoom raises trueDpr — both the true ~72dpi size and the reason the
  * art stays crisp at any density and zoom. Read the resolved value off a
  * component rather than the document root — the root does not have one.
  * ------------------------------------------------------------------ */

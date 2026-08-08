@@ -101,12 +101,32 @@ async function measure(dpr, hostTop) {
 
 const fmt = (m) => `above=${m.above} below=${m.below} cap=${m.capHeight} syspx`
 
-// Whole-CSS-px placements — dpr 1 and 3 must be exactly canonical.
-for (const dpr of [1, 3]) {
-  const m = await measure(dpr, 48)
+// dpr 1: --vf-scale is 1, so a whole CSS px IS a whole system px and the
+// placement must be exactly canonical.
+{
+  const m = await measure(1, 48)
   check(
-    `dpr ${dpr}: label ink sits 3 above / 4 below the cap (canonical)`,
+    'dpr 1: label ink sits 3 above / 4 below the cap (canonical)',
     m.above === 3 && m.below === 4 && m.capHeight === 9,
+    fmt(m)
+  )
+}
+
+// dpr 3: a true 3× device derives --vf-scale 4/3, which Chromium's 1/64-CSS-px
+// layout grid cannot hold, so the font size and the ascent it is a fraction of
+// both quantize and the run lands one device px (¼ system px) off canonical —
+// the same class of miss as the dpr-2 whole-px host below, and the same
+// reasoning: the cap is intact, the ink is crisp, and this is the closest the
+// engine can place it. It was exact under the old fixed target only because
+// that made this display's scale exactly 1.
+{
+  const m = await measure(3, 48)
+  const devicePx = 1 / 4 // one system px is 4 device px here, so one device px is ¼
+  check(
+    'dpr 3: within 1 device px of canonical (4/3 is not a holdable scale)',
+    Math.abs(m.above - 3) <= devicePx + 1e-9 &&
+      Math.abs(m.below - 4) <= devicePx + 1e-9 &&
+      m.capHeight === 9,
     fmt(m)
   )
 }

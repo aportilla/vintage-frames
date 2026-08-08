@@ -2,12 +2,18 @@
  * Browser-zoom tracking — the zoom half of the display-scale model.
  *
  * Every component renders one system pixel (the 1-bit art unit) as a whole
- * number of device pixels. At 100% zoom that number is
- * {@link DEVICE_PX_PER_SYSTEM_PX} (3); as the user zooms, the target moves
- * with them — `clamp(round(3 × zoom), 1, 24)` — so at 200% the art is 6 device
- * px per system px and the kit grows *with* the page instead of un-zooming
- * itself back to physical size. Always whole device pixels, because the layout
- * contract's rule 1 is not negotiable.
+ * number of device pixels, and that number is *derived from the display*, not
+ * fixed: the Macintosh pixel this art was drawn for is 1/72 inch, so the target
+ * is the whole device-pixel count that lands nearest that size —
+ * `clamp(round(trueDpr × 96/72), 1, 24)`, where 96 is CSS's reference dpi and
+ * `trueDpr` is device px per CSS px (see {@link devicePxPerSystemPx} for the
+ * worked displays). A 2× Retina display works out to 3, which is where the
+ * kit's old hard-coded 3 came from — it was that one display's answer written
+ * down as a constant, 3× too large on a 1× monitor and a quarter short on a 3×
+ * one. Zoom needs no separate term: it multiplies device px per CSS px, which
+ * is what zoom *is*, so it arrives inside `trueDpr` and the art grows *with*
+ * the page instead of un-zooming itself back to physical size. Always whole
+ * device pixels, because the layout contract's rule 1 is not negotiable.
  *
  * The work is knowing the zoom at all. Zoom multiplies device-px-per-CSS-px in
  * every engine — that is what zoom is — but the engines differ in whether they
@@ -52,13 +58,34 @@
  * density, and is not reported by either path.
  *
  * Everything here is reported *quantized*: measured zoom snaps to the nearest
- * ladder level browsers actually offer (within 2%), so `round(3z)`'s threshold
- * at exactly z = 1.5 can't flutter between 4 and 5 device px on a
- * width-derived 1.4998 vs 1.5001.
+ * ladder level browsers actually offer (within 2%), so a zoom that sits exactly
+ * on a rounding threshold can't flutter between two device-px targets on a
+ * width-derived 1.4998 vs 1.5001. The thresholds move with the display — the
+ * target flips where `96/72 × trueDpr` hits a half — and on a 1.5× display
+ * (Windows at 150%) two real ladder rungs, 75% and 125%, land exactly on one.
  */
 
-/** Device pixels each authored system pixel occupies at 100% zoom. */
-export const DEVICE_PX_PER_SYSTEM_PX = 3
+/** The screen the art was drawn for: one system pixel is 1/72 inch. */
+export const CLASSIC_DPI = 72
+
+/**
+ * CSS's reference pixel — 1 CSS px = 1/96 inch — which is the only density
+ * anchor the platform offers. `devicePixelRatio` is device px per *CSS* px, so
+ * `96 × dpr` is the display's density as far as a browser will say it; nothing
+ * reports a panel's real ppi (a `resolution` media query in `dpi` is defined as
+ * 96 × dppx — the same number wearing different units).
+ *
+ * Real hardware differs from the nominal figure, and it differs in the kit's
+ * favor: macOS lays a Retina display out at ~109 logical dpi, so its dpr 2 is
+ * really ~218 ppi. Both anchors round to the same whole target there (218/72 =
+ * 3.03, 192/72 = 2.67), while a *measured* ppi would not — a 254-ppi MacBook
+ * Pro panel would ask for 4 and render the art larger than the iMac beside it.
+ * The nominal anchor is the stable thing to compute from.
+ */
+export const CSS_REFERENCE_DPI = 96
+
+/** One system pixel in CSS px, before rounding to whole device px: 96/72. */
+export const SYSTEM_PX_IN_CSS_PX = CSS_REFERENCE_DPI / CLASSIC_DPI
 
 /**
  * Hard bounds on the device-px-per-system-px target. 1 is the floor below
@@ -67,6 +94,30 @@ export const DEVICE_PX_PER_SYSTEM_PX = 3
  */
 const MIN_TARGET = 1
 const MAX_TARGET = 24
+
+/**
+ * ONE THING THIS DELIBERATELY DOES NOT DO, because it was tried and was worse.
+ *
+ * A whole target does not make `target / trueDpr` — the `--vf-scale` every
+ * metric multiplies by — a length the *engine* can hold: Blink lays out in 1/64
+ * CSS px, so a scale of 4/3 (a 3× display, or a 2× one at 150% zoom) quantizes
+ * to 85/64 and a 7-system-px gap measures 27.98 device px instead of 28. Over a
+ * repeated fill that error accumulates, which is what takes the desktop dither
+ * to 38% mid-gray at that scale.
+ *
+ * Preferring counts whose scale IS holdable (multiples of a quarter CSS px)
+ * fixes that and breaks something worse: the holdable set depends on the
+ * *denominator* of trueDpr, which jumps around, so the target stops being
+ * monotonic. On a 2× display that shipped 3 device px at 100%, 5 at 125% and 3
+ * again at 150% — zooming in made the art smaller. Nothing rescues it either:
+ * at 110% zoom (trueDpr 2.2) the smallest holdable count is 11, four times the
+ * art's size, so no policy can be both holdable and near true size everywhere.
+ *
+ * So the rounding stands, and sub-quantum drift is accepted as the engine's
+ * price for a fractional density — the same price the kit paid at every
+ * fractional zoom before any of this. Where it shows is tiled art; the fix
+ * belongs in those two dither tiles, not in the size of every component.
+ */
 
 /**
  * Zoom levels browsers actually offer — Chrome's set plus Safari's 85% and
@@ -86,9 +137,10 @@ const LADDER_TOLERANCE = 0.02
 /**
  * Snap a measured zoom to the nearest {@link ZOOM_LADDER} entry within 2%,
  * else return it unchanged (Firefox steps and OS-level zoom can land off the
- * ladder). Exists specifically because `round(3z)` has a threshold at exactly
- * z = 1.5: without snapping, a width-derived 1.4998 and 1.5001 give 4 and 5
- * device px — a 25% size flip — on alternating resize events.
+ * ladder). Exists because the device-px target rounds, so some zoom level on
+ * any given display sits exactly on a threshold: without snapping, a
+ * width-derived 1.4998 and 1.5001 on a 2× display give 4 and 5 device px — a
+ * 25% size flip — on alternating resize events.
  */
 export function quantizeZoom(raw: number): number {
   if (!Number.isFinite(raw) || raw <= 0) return 1
@@ -99,13 +151,47 @@ export function quantizeZoom(raw: number): number {
 }
 
 /**
- * Device px per system px the kit aims for at `zoom`: `clamp(round(3z), 1, 24)`.
- * `Math.round` ties go *up* (4.5 → 5), deliberately: a zoom-driven
- * accessibility response should err toward larger, so 150% zoom renders 167%
- * of true size rather than 133%.
+ * Device px per system px the kit aims for on a display of `trueDpr`: the whole
+ * count nearest the classic 1/72 inch — `round(96/72 × trueDpr)` — stepped by
+ * at most one to a count whose `--vf-scale` the layout grid can hold exactly
+ * ({@link SCALE_GRID}), and clamped to [1, 24].
+ *
+ *   display              ideal  target  --vf-scale
+ *   1×                    1.33     1      1
+ *   1.25× (Win 125%)      1.67     2      1.6
+ *   1.5×  (Win 150%)      2.0      2      1.333
+ *   2×    Retina          2.67     3      1.5
+ *   3×                    4.0      4      1.333
+ *
+ * Monotonic by construction: `round` of an increasing quantity never goes
+ * backwards, so a denser display — or a deeper zoom, which is the same thing —
+ * never renders the art smaller.
+ *
+ * The 2× row is where the kit's old hard-coded 3 came from — one display's
+ * answer written down as a constant. The 1× row is why that was wrong: it
+ * rendered every system pixel 3 device px wide on a display where 1.33 is true,
+ * three times the size the art was drawn at.
+ *
+ * The target is a step function, so zoom moves it in steps, and *not moving* is
+ * a correct answer: 100% and 125% on a 2× display both round to 3, so the art
+ * holds its size while the copy around it grows. Rounding to the nearest whole
+ * count is the whole contract — bending it to make zoom feel responsive would
+ * put the art off the device grid, which is the one thing that never bends.
+ *
+ * Pass {@link truePixelRatio}, not `devicePixelRatio`: zoom belongs in this
+ * number. A 2× display at 200% zoom is `trueDpr` 4 → 5 device px per system px,
+ * so the art grows with the page. `Math.round` ties go *up* (4.5 → 5)
+ * deliberately: a zoom-driven accessibility response should err toward larger,
+ * and the representability step prefers the larger count for the same reason.
+ *
+ * Rounding is what costs physical accuracy, and it is bounded at half a device
+ * pixel per system pixel: a 1× monitor renders 25% small, a 2× display 12%
+ * large, a 1.5× and a 3× one exact. Nothing does better while every system
+ * pixel is a whole number of device pixels, and that is the invariant — art off
+ * the device grid is not the art.
  */
-export function devicePxPerSystemPx(zoom: number): number {
-  const target = Math.round(DEVICE_PX_PER_SYSTEM_PX * zoom)
+export function devicePxPerSystemPx(trueDpr: number): number {
+  const target = Math.round(SYSTEM_PX_IN_CSS_PX * trueDpr)
   return Math.min(MAX_TARGET, Math.max(MIN_TARGET, target))
 }
 

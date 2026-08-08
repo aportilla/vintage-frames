@@ -45,6 +45,16 @@ const options = (n) =>
 /**
  * A page holding one absolutely-placed popup, so the pill's y is a number the
  * expected geometry can be computed from rather than measured back out of it.
+ *
+ * The fixture PINS --vf-scale at 3. Every figure in this file — 48px rows, the
+ * band arithmetic, the slot counts — is stated in that unit, and the subject is
+ * the clamp, not the scale. It used to come out of the display: the old fixed
+ * target made the scale 3/dpr, so the `dpr` argument below was also a row-size
+ * knob ("a higher density means a SMALLER row"). The kit now derives the target
+ * from the density, so dpr no longer varies the row and `dpr` here varies only
+ * the device grid the clamped panel has to land on. Re-parameterizing the
+ * density sweep onto pinned scales instead is worth doing; the clamp assertions
+ * hold either way.
  */
 async function build({ count, selected = 0, top = 200, height = 900, dpr = 1, style = '' }) {
   const page = await browser.newPage({
@@ -58,7 +68,7 @@ async function build({ count, selected = 0, top = 200, height = 900, dpr = 1, st
   await page.unroute(ORIGIN)
   await page.setContent(
     `<!doctype html><meta charset="utf-8">
-     <body style="margin:0;${style}">
+     <body style="margin:0;--vf-scale:3;${style}">
        <div style="position:absolute;top:${top}px;left:100px">
          <vf-select id="sel" value="o${selected}">${options(count)}</vf-select>
        </div>`

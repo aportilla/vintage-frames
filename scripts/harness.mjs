@@ -25,6 +25,71 @@ import { inflateSync } from 'node:zlib'
 /** Where the dev server is. `npm test` passes this through to every child. */
 export const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 
+/**
+ * CSS px per system px at `dpr` — the kit's own derivation, restated here
+ * because harness.mjs is plain JS and cannot import the TypeScript source:
+ * `round(96/72 × trueDpr)` whole device px per system px (src/zoom.ts,
+ * `devicePxPerSystemPx`), divided back into CSS px.
+ *
+ *   dpr 1 → 1 device px  → scale 1
+ *   dpr 2 → 3 device px  → scale 1.5
+ *   dpr 3 → 4 device px  → scale 1.333…
+ *
+ * A script that measures CSS px multiplies its authored system-px figures by
+ * this rather than by a literal — the constant that used to sit at the top of
+ * nine scripts was 3, which was the *old* fixed target and only ever right on a
+ * 2× display.
+ */
+export const devicePxPerSystemPxAt = (dpr = 1) =>
+  Math.min(24, Math.max(1, Math.round((96 / 72) * dpr)))
+
+/** Chromium's layout grid: used lengths are stored in 1/64 CSS px. */
+export const LAYOUT_UNIT = 1 / 64
+
+/**
+ * Whether the engine can hold `scale` exactly, and so render every whole count
+ * of system px on a whole device px.
+ *
+ * True at every scale the kit derives for a 1× or 2× display, at every zoom:
+ * page zoom multiplies computed lengths at style time, so the layout length is
+ * `systemPx × target / baseDpr` — whole, or a half. A *true* 3× device is the
+ * case that is not: its 4/3 divides into thirds, which 1/64ths cannot express.
+ */
+export const holdableScale = (scale) =>
+  Math.abs(scale / LAYOUT_UNIT - Math.round(scale / LAYOUT_UNIT)) < 1e-9
+
+/**
+ * The CSS length the engine will actually produce for `systemPx` at `scale` —
+ * the ideal, snapped to the layout grid. Asserting against this rather than
+ * against the ideal keeps a test exact on hardware where the ideal is
+ * unrepresentable, instead of loosening it with a tolerance.
+ */
+export const cssPxFor = (systemPx, scale) => {
+  const exact = systemPx * scale
+  const units = exact / LAYOUT_UNIT
+  // Blink FLOORS to the layout unit on this path (measured: 32 system px at
+  // scale 4/3 is 42.6667 exactly and lands at 2730/64, not 2731/64), so a
+  // floor with a hair of float slack is what reproduces it.
+  return (Math.abs(units - Math.round(units)) < 1e-9
+    ? Math.round(units)
+    : Math.floor(units)) * LAYOUT_UNIT
+}
+
+/** …the same figure in device px. */
+export const devicePxFor = (systemPx, scale, dpr) => cssPxFor(systemPx, scale) * dpr
+
+/**
+ * How far off a whole device pixel a measurement may land: zero where the scale
+ * is holdable, one layout unit where it is not (a true 3× device).
+ */
+export const gridTolerance = (scale, dpr = 1) =>
+  holdableScale(scale) ? 1e-6 : Math.max(1e-6, dpr * LAYOUT_UNIT)
+
+export const scaleAt = (dpr = 1) => devicePxPerSystemPxAt(dpr) / dpr
+
+/** The scale at headless Chromium's default density. */
+export const SCALE = scaleAt(1)
+
 // ─────────────────────────────────────────────────────────── checks & tally
 
 /** Every check's outcome, in order, for {@link report} to count. */

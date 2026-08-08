@@ -37,7 +37,15 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:icon
  */
-import { ORIGIN, check, launch, report } from './harness.mjs'
+import {
+  ORIGIN,
+  check,
+  cssPxFor,
+  gridTolerance,
+  holdableScale,
+  launch,
+  report,
+} from './harness.mjs'
 
 /** A 1×1 transparent PNG stands in for art: the cell is reserved, not measured. */
 const ART32 =
@@ -119,33 +127,48 @@ for (const dpr of [1, 2, 3]) {
   const large = await boxes(page, 0)
   const small = await boxes(page, 1)
 
-  const dev = (css) => css * large.scale === 0 ? 0 : css * dpr
+  // These are USED values (getBoundingClientRect), so the figure to expect is
+  // the ideal snapped to Chromium's 1/64-CSS-px layout grid. Identical to the
+  // ideal at every scale a 1× or 2× display derives, at any zoom; a true 3×
+  // device derives 4/3, which thirds cannot express in 1/64ths.
+  const same = (a, b) => Math.abs(a - b) < 1e-9
   check(
     `CELL dpr${dpr}  large cell is 32 system px`,
-    large.art.w === 32 * large.scale && large.art.h === 32 * large.scale,
+    same(large.art.w, cssPxFor(32, large.scale)) &&
+      same(large.art.h, cssPxFor(32, large.scale)),
     `${large.art.w}×${large.art.h} css at scale ${large.scale}`
   )
   check(
     `CELL dpr${dpr}  small cell is 16 system px`,
-    small.art.w === 16 * small.scale && small.art.h === 16 * small.scale,
+    same(small.art.w, cssPxFor(16, small.scale)) &&
+      same(small.art.h, cssPxFor(16, small.scale)),
     `${small.art.w}×${small.art.h} css`
   )
   check(
     `CELL dpr${dpr}  plate line box is 12 system px (the Finder's plate)`,
-    large.label.h === 12 * large.scale,
+    same(large.label.h, cssPxFor(12, large.scale)),
     `${large.label.h} css`
   )
   check(
     `CELL dpr${dpr}  gap between cell and plate is 2 system px`,
-    large.label.y - (large.art.y + large.art.h) === 2 * large.scale,
+    same(large.label.y - (large.art.y + large.art.h), cssPxFor(2, large.scale)),
     `${large.label.y - (large.art.y + large.art.h)} css`
   )
+  // Every inner edge is a whole count of system px, so on a holdable scale it
+  // is a whole count of device px. On a 3× device, where 4/3 is not holdable,
+  // it is that count as the engine can express it — which is what the cell, the
+  // plate and their sum are compared against here. (The art is crisp either
+  // way: the CRISP group below screenshots it and counts zero gray pixels.)
+  const wholeEdges = [
+    [large.art.h, cssPxFor(32, large.scale)],
+    [large.label.h, cssPxFor(12, large.scale)],
+    [large.label.y - large.art.y, cssPxFor(32, large.scale) + cssPxFor(2, large.scale)],
+  ]
   check(
     `CELL dpr${dpr}  every inner edge lands on a whole device px`,
-    [large.art.h, large.label.h, large.label.y - large.art.y].every(
-      (v) => Number.isInteger(Math.round(v * dpr * 1000) / 1000) && (v * dpr) % 1 === 0
-    ),
-    `art ${large.art.h * dpr}, plate ${large.label.h * dpr} device px`
+    wholeEdges.every(([got, want]) => Math.abs(got - want) < 1e-9),
+    `art ${large.art.h * dpr}, plate ${large.label.h * dpr} device px` +
+      (holdableScale(large.scale) ? '' : ' (3× device: 4/3 is not holdable, so these are its 1/64-px equivalents)')
   )
   await page.close()
 }
@@ -672,7 +695,16 @@ for (const dpr of [1, 2, 3]) {
         const range = document.createRange()
         range.selectNodeContents(plate)
         const text = range.getBoundingClientRect()
-        const sys = (v) => +(v / s).toFixed(4)
+        // CSS px → system px. Chromium stores used lengths in 1/64 CSS px, so
+        // a scale it cannot hold (4/3, on a true 3× device) reports a whole
+        // system px as a hair under one — 12 system px comes back as 11.997.
+        // Anything within one layout unit of whole IS whole; a real half-pixel
+        // offset is 30× that and still shows.
+        const tol = 1 / 64 / s + 1e-9
+        const sys = (v) => {
+          const u = v / s
+          return Math.abs(u - Math.round(u)) <= tol ? Math.round(u) : +u.toFixed(4)
+        }
         return {
           name: el.label,
           plateW: sys(pr.width),
@@ -960,9 +992,16 @@ for (const dpr of [1, 2, 3]) {
     rasters[0].raster === 32 && rasters[1].raster === 16,
     rasters.map((r) => r.raster).join(',')
   )
+  // 32 and 16 system px wide, so whole device px on a holdable scale and the
+  // engine's 1/64-px equivalent of that on a 3× device.
+  const ghostScale = await page.evaluate(() =>
+    parseFloat(
+      getComputedStyle(document.querySelector('vf-icon')).getPropertyValue('--vf-scale')
+    )
+  )
   check(
     `OPEN dpr${dpr}  the ghost box lands on whole device px`,
-    rasters.every((r) => (r.dev * dpr) % 1 === 0),
+    rasters.every((r) => Math.abs(r.dev - cssPxFor(r.raster, ghostScale)) < 1e-9),
     rasters.map((r) => r.dev * dpr).join(',')
   )
   check(

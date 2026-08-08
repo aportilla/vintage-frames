@@ -212,7 +212,8 @@ Modern requirements that we deliberately keep (accessibility over purity):
     is placed the way an authored one is and holds its spot through a zoom.
     Writing resolved CSS px instead was the bug: `--vf-scale` moved under the
     constant and every zoom step re-read it as a different number of system px
-    (`3z / round(3z)` — 10% at 110% zoom, where nothing else moves). Values are
+    (by the ratio the scale itself moved — visible even at zoom levels where
+    the target does not change, and nothing else on the page does). Values are
     snapped to `snapSys` at gesture time and never re-snapped afterwards:
     re-rounding onto each new lattice compounds (62 → 63 → 64), and whole
     system px is whole device px at every rung regardless.
@@ -265,7 +266,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 
 | Token | Default | Used for |
 | --- | --- | --- |
-| `--vf-scale` | *(display factor, `3 / dpr`)* | multiplies every length token below (see note) |
+| `--vf-scale` | *(display factor, derived per display — see note)* | multiplies every length token below (see note) |
 | `--vf-font-family` | `'VF Body', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | body text (list rows, page copy) |
 | `--vf-font-family-display` | `'VF Display', 'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
 | `--vf-font-size` | `16px` | body face size |
@@ -319,9 +320,12 @@ Every length in this doc is a **system pixel** value; components multiply it by
 
 **`--vf-scale` (display scaling).** Every length above is authored in *system
 pixels* and multiplied by `--vf-scale`. It defaults to the true-size factor for
-the current display **and zoom** — `round(3 × zoom) / trueDpr`, so one system
-pixel maps to a whole count of device pixels (exactly 3 at 100% zoom) and the
-1-bit art stays crisp at any density and any zoom level — applied per component
+the current display **and zoom** — `devicePxPerSystemPx(trueDpr) / trueDpr`,
+where the target is `round(96/72 × trueDpr)`: the whole number of device pixels
+nearest the classic 1/72 inch, 96 being CSS's reference dpi. One system pixel
+therefore maps to a whole count of device pixels (1 on a 1× display, 3 on a 2×
+one, 4 on a 3× one) and the 1-bit art stays crisp at any density and any zoom
+level — applied per component
 by a `ScaleController` (`src/scale.ts`), which re-adapts on dpr and zoom
 changes. `trueDpr` is device px per CSS px *including* browser zoom
 (`truePixelRatio()`, `src/zoom.ts`): `window.devicePixelRatio` reports that

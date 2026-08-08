@@ -12,39 +12,47 @@ The central technical constraint is that the art is 1-bit. Every pixel is black 
 
 Every length in the kit is authored in **system pixels**, the unit of the original art: a button face is 20 system px tall, a menu row 16, a title bar 18. Components never state a CSS length directly; every metric is written as `calc(var(--vf-scale) * Npx)`, so a single inherited custom property scales the entire design — borders, type, glyphs, spacing, the desktop dither — by the same factor.
 
-The default value of `--vf-scale` is `3 / devicePixelRatio`, chosen so that one system pixel always maps to exactly 3 device pixels. This reproduces the original ~72 dpi physical size and guarantees whole-device-pixel edges at any density:
+A system pixel is 1/72 inch — the Macintosh screen the art was drawn for. CSS's reference pixel is 1/96 inch, and that ratio is the only density anchor a browser exposes: no API reports a panel's real ppi, and a `resolution` media query in `dpi` is defined as 96 × dppx, the same number wearing different units. So the kit computes the whole number of device pixels nearest true size, `round(96/72 × trueDpr)`, and divides it back into CSS px to get `--vf-scale`:
 
-| Display | `--vf-scale` (`3 / devicePixelRatio`) | one system px |
-| --- | --- | --- |
-| 1× standard | 3.0 | 3 device px |
-| 2× retina | 1.5 | 3 device px |
-| 3× hi-dpi | 1.0 | 3 device px |
+| Display | true 1/72″ wants | one system px | `--vf-scale` |
+| --- | --- | --- | --- |
+| 1× standard | 1.33 | 1 device px | 1 |
+| 1.25× (Windows 125%) | 1.67 | 2 device px | 1.6 |
+| 1.5× (Windows 150%) | 2.0 | 2 device px | 1.333 |
+| 2× retina | 2.67 | 3 device px | 1.5 |
+| 3× | 4.0 | 4 device px | 1.333 |
+
+The count is rounded because it must be whole, and rounding costs at most half a device pixel per system pixel: a 1× monitor renders 25% small, a 2× display 12% large, a 1.5× or 3× one exactly right.
+
+**This was a hard-coded 3 until 2026-08-08**, on every display — which is the 2× row's answer, written down as a constant. It made a 1× monitor render the art three times the size it was drawn at, and the error was invisible for as long as the work happened on a Retina Mac, where the constant and the derivation agree. The lesson is not subtle: a number that is right on the machine you develop on is the one you are least likely to question.
 
 The underlying requirement is that **`--vf-scale × trueDpr` is a whole number** — one system pixel must occupy a countable number of device pixels, or the art is fractional before layout even begins. (`trueDpr` is device pixels per CSS pixel *including* browser zoom; the distinction from `devicePixelRatio` is the subject of the next subsection, and at 100% zoom the two are the same number.) The default satisfies this on every display; an integrator who sets a custom scale is responsible for keeping the product whole.
 
-This model has a consequence worth stating: physical accuracy means the CSS size varies with the display. The same push button is 60 CSS px tall on a 1× monitor and 20 on a 3× one, while the host page's own 17px body text is the same on both. For a full-screen recreation this is correct behavior. For controls embedded in an ordinary page it changes the chrome-to-copy proportions per display, so the kit leaves the choice to the page: keep the true-size default, or pin `--vf-scale` to a whole number for a fixed relationship to the page's type. The [README](./README.md#display-scaling--true-classic-size-crisp-on-any-screen) covers both options.
+This model has a consequence worth stating: physical accuracy means the CSS size varies with the display. The same push button is 20 CSS px tall on a 1× monitor and 30 on a 2× one, while the host page's own 17px body text is the same on both. For a full-screen recreation this is correct behavior. For controls embedded in an ordinary page it changes the chrome-to-copy proportions per display, so the kit leaves the choice to the page: keep the true-size default, or pin `--vf-scale` to a whole number for a fixed relationship to the page's type. The [README](./README.md#display-scaling--true-classic-size-crisp-on-any-screen) covers both options.
 
 ### Honoring browser zoom
 
 Physical accuracy as first implemented had a second consequence, and this one was a bug. Browser page zoom multiplies device-pixels-per-CSS-pixel by the zoom factor — that is what zoom *is* — and in Chrome and Firefox the multiplied value is what `devicePixelRatio` reports. `3 / devicePixelRatio` divided the zoom straight back out: at 200% zoom the components held their physical size while the page around them doubled. The kit un-zoomed itself, and a user who zoomed precisely because 20px chrome is too small got exactly the same 20px chrome. (Safari was the accidental exception — it pins `devicePixelRatio` to the hardware, so the kit grew with the page there, but at zoom levels where the product stopped being whole it grew *off the device-pixel grid*, which is the same class of bug wearing the other engine's clothes.)
 
-The fix moves the target with the user: **`round(3 × zoom)` device pixels per system pixel**, clamped to [1, 24]. The response is quantized — fractional targets are exactly what the invariant forbids — which buys three properties worth their cost: every display steps at the same zoom levels; ties round up (150% renders 167% of true size, not 133%, because an accessibility response should err toward larger); and the steps adjacent to 100% do nothing (90% and 110% both round to 3), since below 3 device px per system px no finer crisp move exists.
+The fix needs no zoom term at all. Zoom multiplies device pixels per CSS pixel, so it arrives inside `trueDpr` and reaches the target as a denser display: `round(96/72 × trueDpr)`, clamped to [1, 24]. The response is quantized — fractional targets are exactly what the invariant forbids — and two properties follow from rounding rather than from policy. It is **monotonic**: a deeper zoom can never render the art smaller, because `round` of an increasing quantity does not go backwards. And it sometimes **does nothing**: on a 2× display, 100%, 110% and 125% all round to 3 device pixels, so the art holds still while the copy around it grows. That is the nearest whole count being the same count, and bending it to feel more responsive would put the art off the grid.
+
+A policy that *did* bend it was tried and reverted. Preferring counts whose `--vf-scale` the layout engine can store exactly (the reason is [docs/THREE-X-DISPLAYS.md](./docs/THREE-X-DISPLAYS.md)) breaks monotonicity outright, because the storable set depends on the *denominator* of `trueDpr` rather than on its size: it shipped 3 device pixels at 100%, 5 at 125% and 3 again at 150%, so zooming in made the art shrink. `verify:zoom` now asserts monotonicity across 800 densities, which is the check that would have caught it before a human did.
 
 The invariant is restated rather than weakened: `--vf-scale × trueDpr` stays whole, where `trueDpr = baseline dpr × zoom` is the density the page actually rasterizes at. The engines differ only in whether they report that number, which makes the worked values the clearest statement of the model — a 2× retina display:
 
 | zoom | `trueDpr` | Chrome `devicePixelRatio` | Safari `devicePixelRatio` | target (device px / system px) | `--vf-scale` |
 | --- | --- | --- | --- | --- | --- |
-| 50% | 1.0 | 1.0 | 2 | 2 | 2.0 |
+| 50% | 1.0 | 1.0 | 2 | 1 | 1.0 |
 | 75% | 1.5 | 1.5 | 2 | 2 | 1.3333 |
 | 100% | 2.0 | 2.0 | 2 | 3 | 1.5 |
-| 125% | 2.5 | 2.5 | 2 | 4 | 1.6 |
-| 150% | 3.0 | 3.0 | 2 | 5 | 1.6667 |
+| 125% | 2.5 | 2.5 | 2 | 3 | 1.2 |
+| 150% | 3.0 | 3.0 | 2 | 4 | 1.3333 |
 | 175% | 3.5 | 3.5 | 2 | 5 | 1.4286 |
-| 200% | 4.0 | 4.0 | 2 | 6 | 1.5 |
+| 200% | 4.0 | 4.0 | 2 | 5 | 1.25 |
 
-`--vf-scale` comes out the same in both engines at the same zoom, because it is computed from `trueDpr`, which they agree on once the tracking is done — where before the fix they disagreed at every zoom level. Note also that at 100% → 200% the scale does not change at all; the kit grows purely because the CSS pixel grew. The fix, at heart, was to stop dividing the zoom back out.
+`--vf-scale` comes out the same in both engines at the same zoom, because it is computed from `trueDpr`, which they agree on once the tracking is done — where before the fix they disagreed at every zoom level. Note that the scale *falls* as the zoom rises while the art grows anyway: the target is what governs physical size, and the CSS pixel is growing underneath it. The fix, at heart, was to stop dividing the zoom back out.
 
-The engineering is in knowing the zoom at all, since no browser reports it directly (`src/zoom.ts`). Two signals are watched: `devicePixelRatio`, and the inner viewport shrinking against a stationary outer window — Safari's tell, since its dpr never moves. The hazard in the first signal is that a dpr change is ambiguous: dragging the window to a different-density monitor changes the same number, and that case already rendered perfectly — physical size holds across the move — so misreading it as zoom would regress working behavior. The discriminator is that page zoom moves neither the window nor the screen's logical geometry: a `screen.*`/`screenX/Y` signature that is unchanged (or uniformly scaled by the dpr ratio, in engines that report those members in zoom-affected CSS px) means zoom, and anything else means a display change, which rebases the baseline and reports nothing. A misclassification is bounded in a way worth stating plainly: the target is an integer by construction and `trueDpr` telescopes back to the real value however the product is split, so a wrong call costs *physical size* — visible, reportable — and never crispness. The residual holes (a display-mode switch at an identical logical size; a page that loads already-zoomed, which reads its load state as 100%) are documented, with `resetZoomBaseline()` as the escape hatch.
+The engineering is in knowing the zoom at all, since no browser reports it directly (`src/zoom.ts`). Two signals are watched: `devicePixelRatio`, and the inner viewport shrinking against a stationary outer window — Safari's tell, since its dpr never moves. The hazard in the first signal is that a dpr change is ambiguous: dragging the window to a different-density monitor changes the same number, and that case must re-derive rather than re-zoom — each display gets the whole count nearest true size for *its* density — so misreading it as zoom would leave the art sized for the panel it came from. The discriminator is that page zoom moves neither the window nor the screen's logical geometry: a `screen.*`/`screenX/Y` signature that is unchanged (or uniformly scaled by the dpr ratio, in engines that report those members in zoom-affected CSS px) means zoom, and anything else means a display change, which rebases the baseline and reports nothing. A misclassification is bounded in a way worth stating plainly: the target is an integer by construction and `trueDpr` telescopes back to the real value however the product is split, so a wrong call costs *physical size* — visible, reportable — and never crispness. The residual holes (a display-mode switch at an identical logical size; a page that loads already-zoomed, which reads its load state as 100%) are documented, with `resetZoomBaseline()` as the escape hatch.
 
 ## 2. Stepped corners
 

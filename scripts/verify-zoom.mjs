@@ -23,45 +23,57 @@
  */
 import { ORIGIN, check, launch, report, results } from './harness.mjs'
 import {
-  DEVICE_PX_PER_SYSTEM_PX,
+  SYSTEM_PX_IN_CSS_PX,
   ZOOM_LADDER,
   devicePxPerSystemPx,
   quantizeZoom,
 } from './.tmp/zoom.js'
 
+/** The target on a `dpr` display at zoom `z` — zoom rides inside trueDpr. */
+const targetAt = (dpr, z) => devicePxPerSystemPx(dpr * z)
+
+/** The clamps, restated so the bound checks below can skip what they guard. */
+const MIN = 1
+const MAX = 24
+
 /* ── (a) pure functions ─────────────────────────────────────────────────── */
 
 console.log('— (a) pure zoom→target math —')
 
-// The quantization table (README, "Following the user's zoom"): identical on
-// every display, stepping only at the zoom levels where round(3z) moves.
+// The target is derived from the DISPLAY, so the table is keyed on trueDpr —
+// density × zoom — not on zoom alone: round(96/72 × trueDpr), the whole count
+// of device px nearest the classic 1/72 inch.
 const TABLE = [
-  [0.25, 1],
-  [0.33, 1],
-  [0.5, 2],
-  [0.67, 2],
-  [0.75, 2],
-  [0.8, 2],
-  [0.85, 3], // Safari's step below 100%: ties round up, so it holds size
-  [0.9, 3],
-  [1, 3],
-  [1.1, 3],
-  [1.15, 3], // Safari's step above 100%: inside the do-nothing band
-  [1.25, 4],
-  [1.5, 5], // ties round UP: 4.5 → 5, erring toward larger
-  [1.75, 5],
-  [2, 6],
-  [2.5, 8], // 7.5 → 8, same rule
-  [3, 9],
-  [4, 12],
-  [5, 15],
+  [0.25, 1], // the floor holds the art together below a third of a device px
+  [0.5, 1],
+  [0.75, 1],
+  [1, 1], // a 1× monitor: 1.33 rounds down
+  [1.25, 2],
+  [1.5, 2], // exact — 2 device px IS 1/72 inch at this density
+  [1.75, 2],
+  [2, 3], // 2× Retina: 2.67 rounds up. The old hard-coded 3, derived
+  [2.2, 3], // …and 110% zoom on it, where nothing moves: 2.93 still rounds to 3
+  [2.5, 3], // 125%: 3.33 still rounds to 3. The nearest count IS the same count
+  [3, 4], // 150% (or a 3× display): exact
+  [4, 5], // 5.33 rounds down
+  [6, 8], // a 2× display at 300% zoom
+  [9, 12],
+  [15, 20],
 ]
 check(
-  'the whole quantization table',
-  TABLE.every(([z, target]) => devicePxPerSystemPx(z) === target),
-  TABLE.map(([z, t]) => `${z}→${devicePxPerSystemPx(z)}${devicePxPerSystemPx(z) === t ? '' : '≠' + t}`).join(' ')
+  'the whole quantization table, keyed on trueDpr',
+  TABLE.every(([dpr, target]) => devicePxPerSystemPx(dpr) === target),
+  TABLE.map(([d, t]) => `${d}→${devicePxPerSystemPx(d)}${devicePxPerSystemPx(d) === t ? '' : '≠' + t}`).join(' ')
 )
-check('zoom 1 is exactly today', devicePxPerSystemPx(1) === DEVICE_PX_PER_SYSTEM_PX)
+check(
+  'a 2× display is the row the old constant 3 came from',
+  devicePxPerSystemPx(2) === 3 && Math.abs(3 / 2 - 1.5) < 1e-9
+)
+check(
+  'the classic pixel is 96/72 CSS px before rounding',
+  Math.abs(SYSTEM_PX_IN_CSS_PX - 4 / 3) < 1e-9,
+  String(SYSTEM_PX_IN_CSS_PX)
+)
 check(
   'the floor: art never drops below 1 device px per system px',
   devicePxPerSystemPx(0.1) === 1 && devicePxPerSystemPx(0) === 1
@@ -70,6 +82,27 @@ check(
   'the ceiling guards a mis-measured zoom',
   devicePxPerSystemPx(50) === 24,
   `50 → ${devicePxPerSystemPx(50)}`
+)
+// MONOTONIC, and this is the check that would have caught the version that
+// wasn't: a denser display — or a deeper zoom, which reaches here as the same
+// number — must never render the art smaller. A policy that preferred counts
+// whose --vf-scale the layout grid can hold exactly failed this at the third
+// step on a 2× display (3 device px at 100%, 5 at 125%, 3 again at 150%),
+// because the holdable set depends on the denominator of trueDpr rather than
+// on its size.
+check(
+  'the target never shrinks as the display gets denser',
+  Array.from({ length: 800 }, (_, i) => (i + 1) / 32).every(
+    (d, i, all) => i === 0 || devicePxPerSystemPx(d) >= devicePxPerSystemPx(all[i - 1])
+  )
+)
+check(
+  'the rounding never costs more than half a device px per system px',
+  Array.from({ length: 400 }, (_, i) => (i + 1) / 16).every((dpr) => {
+    const ideal = (96 / 72) * dpr
+    const t = devicePxPerSystemPx(dpr)
+    return ideal < MIN || ideal > MAX || Math.abs(t - ideal) <= 0.5 + 1e-9
+  })
 )
 check(
   'measured zoom snaps to the ladder across the 1.5 threshold',
@@ -189,14 +222,14 @@ for (const dpr of [1, 2, 3]) {
   const base = await measure(page)
   check(
     `dpr ${dpr}: zoom 1 is bit-identical to today`,
-    base.zoom === 1 && base.scale === 3 / dpr && base.trueDpr === dpr,
+    base.zoom === 1 && base.scale === targetAt(dpr, 1) / dpr && base.trueDpr === dpr,
     `scale ${base.scale}, trueDpr ${base.trueDpr}`
   )
 
   for (const Z of ZOOM_LADDER) {
     await chromeZoom(cdp, dpr, Z)
     const m = await measure(page)
-    const target = devicePxPerSystemPx(Z)
+    const target = targetAt(dpr, Z)
     const devices = m.height * m.trueDpr
     // CDP stores deviceScaleFactor as float32, so the page reports e.g.
     // 0.33000001311302185 for 0.33. The module must treat the *reported* dpr
@@ -216,8 +249,8 @@ for (const dpr of [1, 2, 3]) {
     // The table's last column: physical size relative to 100%.
     const physical = (m.height * m.trueDpr) / (base.height * base.trueDpr)
     check(
-      `dpr ${dpr} zoom ${Z}: physical size is ${target}/3 of 100%`,
-      Math.abs(physical - target / 3) < 0.01,
+      `dpr ${dpr} zoom ${Z}: physical size is ${target}/${targetAt(dpr, 1)} of 100%`,
+      Math.abs(physical - target / targetAt(dpr, 1)) < 0.01,
       physical.toFixed(4)
     )
   }
@@ -227,7 +260,7 @@ for (const dpr of [1, 2, 3]) {
   const back = await measure(page)
   check(
     `dpr ${dpr}: returning to 100% returns to exactly the launch state`,
-    back.zoom === 1 && back.scale === 3 / dpr && back.height === base.height,
+    back.zoom === 1 && back.scale === targetAt(dpr, 1) / dpr && back.height === base.height,
     `zoom ${back.zoom}, scale ${back.scale}`
   )
   await page.close()
@@ -253,7 +286,7 @@ for (const dpr of [1, 2]) {
       screenHeight: 1440,
     })
     const m = await measure(page)
-    const target = devicePxPerSystemPx(Z)
+    const target = targetAt(dpr, Z)
     // The tracker must arrive at the same --vf-scale as (b) did for this Z:
     // scale = target / (dpr × Z) — even though devicePixelRatio never moved.
     // The ladder values here survive float32 exactly, so the compare is exact.
@@ -298,7 +331,7 @@ for (const dpr of [1, 2]) {
   const dragged = await measure(page)
   check(
     `dpr ${dpr}: a width-only edge drag never moves the scale`,
-    dragged.zoom === 1 && dragged.scale === 3 / dpr,
+    dragged.zoom === 1 && dragged.scale === targetAt(dpr, 1) / dpr,
     `zoom ${dragged.zoom}, --vf-scale ${dragged.scale}`
   )
 
@@ -316,7 +349,7 @@ for (const dpr of [1, 2]) {
   const tiled = await measure(page)
   check(
     `dpr ${dpr}: an off-ladder both-axes change is not zoom`,
-    tiled.zoom === 1 && tiled.scale === 3 / dpr,
+    tiled.zoom === 1 && tiled.scale === targetAt(dpr, 1) / dpr,
     `zoom ${tiled.zoom}, --vf-scale ${tiled.scale}`
   )
 
@@ -333,7 +366,7 @@ for (const dpr of [1, 2]) {
   check(
     `dpr ${dpr}: a real zoom after the rebase still lands`,
     rezoomed.zoom === 1.5 &&
-      Math.abs(rezoomed.scale - devicePxPerSystemPx(1.5) / (dpr * 1.5)) < 1e-9,
+      Math.abs(rezoomed.scale - targetAt(dpr, 1.5) / (dpr * 1.5)) < 1e-9,
     `zoom ${rezoomed.zoom}, --vf-scale ${rezoomed.scale}`
   )
 
@@ -352,7 +385,7 @@ for (const dpr of [1, 2]) {
     `dpr ${dpr}: Safari's 115% step is recognized`,
     safariStep.zoom === 1.15 &&
       Math.abs(safariStep.trueDpr - dpr * 1.15) < 1e-9 &&
-      Math.abs(safariStep.scale - devicePxPerSystemPx(1.15) / (dpr * 1.15)) < 1e-9,
+      Math.abs(safariStep.scale - targetAt(dpr, 1.15) / (dpr * 1.15)) < 1e-9,
     `zoom ${safariStep.zoom}, trueDpr ${safariStep.trueDpr}, --vf-scale ${safariStep.scale}`
   )
 
@@ -368,7 +401,7 @@ for (const dpr of [1, 2]) {
   const restored = await measure(page)
   check(
     `dpr ${dpr}: back to 100% is exactly the launch scale`,
-    restored.zoom === 1 && restored.scale === 3 / dpr,
+    restored.zoom === 1 && restored.scale === targetAt(dpr, 1) / dpr,
     `zoom ${restored.zoom}, --vf-scale ${restored.scale}`
   )
   await page.close()
@@ -393,7 +426,7 @@ for (const dpr of [1, 2]) {
   const m = await measure(page)
   check(
     'an edge drag with the outer size tracking is a window resize, not zoom',
-    m.zoom === 1 && m.scale === 3,
+    m.zoom === 1 && m.scale === targetAt(1, 1),
     `zoom ${m.zoom}, --vf-scale ${m.scale}`
   )
   await page.close()
@@ -431,15 +464,22 @@ console.log('\n— (d) a monitor move is not a zoom —')
     after.zoom === 1,
     `zoom ${after.zoom}`
   )
+  // Physical size does NOT hold across a density change, and must not: the
+  // target is derived from the display, so a 2× panel's 3 device px per system
+  // px is a 1× panel's 1. What holds is the *intent* — each display renders the
+  // whole count nearest 1/72 inch that its own grid can hold. (Under the old
+  // fixed target this check read "physical size held", which was true of the
+  // device-pixel count and false of the inches it was claiming.)
   check(
-    'physical size held across the move',
-    Math.abs(before.height * before.trueDpr - after.height * after.trueDpr) <
-      layoutTolerance(2),
-    `${(before.height * before.trueDpr).toFixed(3)} → ${(after.height * after.trueDpr).toFixed(3)} device px`
+    'the move re-derives the target for the new display',
+    Math.abs(before.scale * before.trueDpr - targetAt(2, 1)) < 1e-9 &&
+      Math.abs(after.scale * after.trueDpr - targetAt(1, 1)) < 1e-9,
+    `${(before.height * before.trueDpr).toFixed(3)} → ${(after.height * after.trueDpr).toFixed(3)} device px ` +
+      `(${targetAt(2, 1)} → ${targetAt(1, 1)} device px per system px)`
   )
   check(
-    '--vf-scale × trueDpr is still 3',
-    Math.abs(after.scale * after.trueDpr - 3) < 1e-9,
+    '--vf-scale × trueDpr is still the new display’s whole target',
+    Math.abs(after.scale * after.trueDpr - targetAt(1, 1)) < 1e-9,
     `${after.scale} × ${after.trueDpr}`
   )
 
@@ -456,7 +496,8 @@ console.log('\n— (d) a monitor move is not a zoom —')
   const zoomed = await measure(page)
   check(
     'the same ratio with the screen held reads as zoom',
-    zoomed.zoom === 2 && Math.abs(zoomed.scale * zoomed.trueDpr - 6) < 1e-9,
+    zoomed.zoom === 2 &&
+      Math.abs(zoomed.scale * zoomed.trueDpr - devicePxPerSystemPx(zoomed.trueDpr)) < 1e-9,
     `zoom ${zoomed.zoom}, scale ${zoomed.scale}, trueDpr ${zoomed.trueDpr}`
   )
   await page.close()

@@ -25,10 +25,10 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:forced-colors
  */
-import { ORIGIN, check, decodePng, launch, report } from './harness.mjs'
+import { ORIGIN, SCALE, check, decodePng, launch, report } from './harness.mjs'
 
-/** Headless Chromium runs at dpr 1, so the default scale is 3/1. */
-const S = 3
+/** Headless Chromium runs at dpr 1, where the kit derives 1 device px per system px. */
+const S = 3 // pinned on the fixture body: these are raster measurements
 
 const rgbAt = (png, x, y) => {
   const i = (Math.round(y) * png.width + Math.round(x)) * png.bpp
@@ -56,7 +56,7 @@ async function build(markup) {
   await page.goto(ORIGIN)
   await page.unroute(ORIGIN)
   await page.setContent(
-    `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff;padding:24px">${markup}` +
+    `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff;padding:24px;--vf-scale:3">${markup}` +
       // Probe elements resolving the forced palette at runtime, so the pixel
       // expectations below come from the emulated theme rather than guesses.
       `<div id="sys-probe" style="position:absolute;left:-100px;color:CanvasText;background-color:Canvas"></div>` +

@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""Extend the System 7 bitmap faces with glyphs they ship without.
+"""Build the two shipped bitmap faces: stamp the kit's family name, add glyphs.
 
-Chicago (the genuine chrome strike, produced by `import-bdf.py --em 16`) lacks
-only `×` — MacRoman never carried it. Geneva (the genuine body strike) ships
-deliberately untouched for now: its two gaps — `×`, and `⌘`, which only the
-Chicago strike ever drew — fall back per glyph to the system font, and the
-known backfill is a Geneva entry in this script (the ⌘ would trace Chicago's
-own ink, per fonts/README's trace-don't-invent rule). This script draws the
-missing glyphs as pixels, injects them into each WOFF2, and re-embeds the
-base64 into the `src/styles/*-font.ts` modules that register the faces at
-runtime.
+Two things happen here, and the first applies to both faces. Every built face
+is renamed to the name the kit registers it under — `VF Display`, `VF Body`,
+matching the --vf-font-family-display / --vf-font-family tokens that select
+them — because what ships is the kit's artifact and should not carry Apple's
+face name in its binary or in a consumer's font-family stack. See FONTS.
+
+The second is glyph backfill, and only Chicago needs it: the genuine chrome
+strike (produced by `import-bdf.py --em 16`) lacks only `×`, which MacRoman
+never carried. Geneva ships with its glyph set deliberately untouched: its two
+gaps — `×`, and `⌘`, which only the Chicago strike ever drew — fall back per
+glyph to the system font, and the known backfill is a `specs` row here (the ⌘
+would trace Chicago's own ink, per fonts/README's trace-don't-invent rule).
+So Geneva is built with an empty `specs` list: not a no-op, because the
+rename is the rest of the build.
 
 Run it (needs fonttools + brotli — see fonts/README.md):
 
@@ -17,8 +22,8 @@ Run it (needs fonttools + brotli — see fonts/README.md):
 
 Reads the pristine  fonts/<Family>.woff2,  writes  fonts/<Family>.ext.woff2,
 and rewrites FONT_WOFF2_BASE64 in the matching TS module. Idempotent: it always
-rebuilds every custom glyph from the untouched source, so re-running can never
-compound. To add a glyph, add one row to a font's `specs` list and re-run.
+rebuilds from the untouched source, so re-running can never compound. To add a
+glyph, add one row to a font's `specs` list and re-run.
 
 --- The pixel grid -----------------------------------------------------------
 Both faces are 1024 units/em and designed on a 64-unit pixel (so they land on
@@ -83,20 +88,57 @@ def bmp(bitmap, x0, y0, advance):
 
 
 # name, codepoint, bitmap, x0, y0(bottom edge), advance — all in font units.
+#
+# "shipped" is the family name the built face carries and the kit registers.
+# It is deliberately NOT the source strike's name: what ships is the kit's own
+# artifact, and naming it after Apple's face would put a trademark in the
+# binary and in every consumer's font-family stack. The provenance is not
+# hidden by this — it is documented at length in fonts/README.md, which is
+# where a description belongs. (The *fallback* entries in the recipes' family
+# stacks still name Chicago, Charcoal and Geneva: those refer to faces the
+# reader may have installed, which is a different claim entirely.)
 FONTS = {
     "Chicago": {  # the real strike needs only ×; geometry borrowed from its '+'
-        "module": "chicago-font.ts",
+        "module": "display-font.ts",
+        "shipped": "VF Display",
         "specs": [
             ("multiply", 0x00D7, X_MULT, 64, 128, 448),
         ],
     },
+    "Geneva": {  # ships un-extended — built only to carry the shipped name
+        "module": "body-font.ts",
+        "shipped": "VF Body",
+        "specs": [],
+    },
 }
+
+
+def set_family(font, family):
+    """Restate every name record that identifies the face, in place.
+
+    Each record is rewritten under its own platform/encoding/language, so a
+    face that carries both the Mac and Windows sets stays consistent across
+    them — a stale record in either is what font-management tools surface.
+    """
+    ps = family.replace(" ", "-")
+    values = {1: family, 3: f"vintage-frames: {family}", 4: family, 6: ps, 16: family}
+    name = font["name"]
+    for rec in list(name.names):
+        if rec.nameID in values:
+            name.setName(values[rec.nameID], rec.nameID, rec.platformID, rec.platEncID, rec.langID)
 
 
 def build(family, cfg):
     src = os.path.join(HERE, f"{family}.woff2")
     ext = os.path.join(HERE, f"{family}.ext.woff2")
-    font = TTFont(src, recalcBBoxes=True)
+    # recalcTimestamp=False keeps the source strike's head.modified instead of
+    # stamping "now". Without it every run rewrote the base64 in a TS module
+    # with no change anyone could see in a diff: the timestamp shifts, brotli
+    # compresses different bytes, and the file lands a few bytes bigger or
+    # smaller (3436–3456 across consecutive runs of the same input). The build
+    # is a pure function of the strike, so its output should be one too.
+    font = TTFont(src, recalcBBoxes=True, recalcTimestamp=False)
+    set_family(font, cfg["shipped"])
     glyf, hmtx = font["glyf"], font["hmtx"]
     order = font.getGlyphOrder()
 
@@ -128,9 +170,17 @@ def build(family, cfg):
 
     data = open(ext, "rb").read()
     # sanity-check the round-trip before touching the TS module
-    check = TTFont(ext).getBestCmap()
+    saved = TTFont(ext)
+    check = saved.getBestCmap()
     missing = [hex(u) for _, u, *_ in cfg["specs"] if u not in check]
     assert not missing, f"{family}: glyphs missing after save: {missing}"
+    # The shipped name is the point of the build for an un-extended face, so it
+    # is asserted rather than assumed — and asserted on what was written, not
+    # on the in-memory object that wrote it.
+    stale = sorted(
+        {r.toUnicode() for r in saved["name"].names if r.nameID in (1, 4, 16)} - {cfg["shipped"]}
+    )
+    assert not stale, f"{family}: name records still say {stale}"
 
     b64 = base64.b64encode(data).decode()
     ts = os.path.join(STYLES, cfg["module"])
@@ -143,7 +193,10 @@ def build(family, cfg):
     )
     text = re.sub(r"\(\d+ bytes\)", f"({len(data)} bytes)", text, count=1)
     open(ts, "w").write(text)
-    print(f"{family}: +{len(cfg['specs'])} glyphs -> {len(data)} bytes, re-embedded {cfg['module']}")
+    print(
+        f"{family} -> {cfg['shipped']}: +{len(cfg['specs'])} glyphs, "
+        f"{len(data)} bytes, re-embedded {cfg['module']}"
+    )
 
 
 if __name__ == "__main__":

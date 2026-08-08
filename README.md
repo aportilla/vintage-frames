@@ -877,15 +877,23 @@ broken state each script exists to observe).
 Two System 7 bitmap faces ship inside the components and register themselves on
 `document.fonts`, so they render inside every shadow root with no global CSS:
 
-- **Chicago** — the genuine Chicago 12pt strike, the *chrome* face: menu bar,
-  menus, window and dialog titles, buttons, checkboxes, radios, popup menus,
-  fieldset legends, and editable text/number fields (System 7 typed its dialog
-  fields in Chicago). Converted from the original bitmap
-  ([fonts/README.md](./fonts/README.md) has the pipeline and provenance), so
-  every label occupies exactly the pixels a real Mac gave it.
-- **Geneva** — the genuine Geneva 9pt strike, the *body* face: list rows and
-  page copy. Converted the same way, so body copy is likewise the pixels a
+- **`VF Display`** — the *chrome* face: menu bar, menus, window and dialog
+  titles, buttons, checkboxes, radios, popup menus, fieldset legends, and
+  editable text/number fields (System 7 typed its dialog fields in Chicago).
+  The artwork is the genuine Chicago 12pt strike, converted from the original
+  bitmap ([fonts/README.md](./fonts/README.md) has the pipeline and
+  provenance), so every label occupies exactly the pixels a real Mac gave it.
+- **`VF Body`** — the *body* face: list rows and page copy. The genuine Geneva
+  9pt strike, converted the same way, so body copy is likewise the pixels a
   real Mac would have set.
+
+**They ship under the kit's names, not the strikes'.** A family name goes in
+the font binary and in every consumer's `font-family` stack, which makes it a
+claim rather than a description — and the artwork's provenance is Apple's to be
+named by, so it is described in `fonts/README.md` instead of asserted in the
+font. The *fallbacks* after each shipped family still name `Chicago`,
+`Charcoal` and `Geneva`: those select faces the reader may already have
+installed, which is the opposite direction and claims nothing.
 
 Both render on their native 1024-upm pixel grid (one design pixel = one system
 pixel) and scale with `--vf-scale` (see [Display scaling](#display-scaling--true-classic-size-crisp-on-any-screen)),
@@ -1273,7 +1281,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `emit`, `prefersReducedMotion`, `runSelectionBlink`, `BLINK_INTERVAL_MS`, `BLINK_FLIPS`, `PRESS_HOLD_MS` | The `bubbles`+`composed` event convention; the sanctioned ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share |
 | `defineElement`, `vfElement` | Register a custom element without the duplicate-copy footgun — `vfElement` is the kit's `@customElement`, and both skip (with a warning) rather than throwing when the tag is already taken (see below) |
 | `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfPositioned`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin — see below), explicit placement (`top`/`left` in system px — the mixin every kit element already wears), the native-`<dialog>` lifecycle |
-| `registerEmbeddedFont`, `registerChicago`, `registerGeneva`, `CHICAGO_FAMILY`, `GENEVA_FAMILY` | Register the bitmap faces on `document.fonts` yourself |
+| `registerEmbeddedFont`, `registerDisplayFace`, `registerBodyFace`, `VF_DISPLAY_FAMILY`, `VF_BODY_FAMILY` | Register the bitmap faces on `document.fonts` yourself; the two constants are the family names they register under (`'VF Display'`, `'VF Body'`) |
 
 `VfToggleControl` is a **mixin** rather than a plain base class, because the
 kit's two toggles sit on different bases and have to stay there: `vf-checkbox`

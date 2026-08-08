@@ -171,7 +171,11 @@ Modern requirements that we deliberately keep (accessibility over purity):
   complete — `checkValidity`/`reportValidity`/`validity`/`validationMessage`/
   `willValidate`/`setCustomValidity` — `:invalid` matches on the host,
   `form.reportValidity()` blocks, and `disabled`/`readonly` bar validation
-  per HTML's own rules. AT wiring is `aria-required`/`aria-invalid` on the
+  per HTML's own rules. One divergence the platform imposes: `willValidate`
+  is `true` on a `vf-button type="button"`, where a native button is barred
+  from constraint validation. A form-associated custom element cannot opt
+  out of the candidate set, so this is a limit to know rather than a bug to
+  file. AT wiring is `aria-required`/`aria-invalid` on the
   inner control (plus internals mirrors for host-role controls) — never a
   forwarded native `required`, which would put UA `:user-invalid` styling on
   the artwork. Enter's implicit submission routes through the browser's
@@ -262,8 +266,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | Token | Default | Used for |
 | --- | --- | --- |
 | `--vf-scale` | *(display factor, `3 / dpr`)* | multiplies every length token below (see note) |
-| `--vf-font-family` | `'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | body text (list rows, page copy) |
-| `--vf-font-family-display` | `'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
+| `--vf-font-family` | `'VF Body', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | body text (list rows, page copy) |
+| `--vf-font-family-display` | `'VF Display', 'Chicago', 'ChicagoFLF', 'Charcoal', 'Geneva', 'Helvetica Neue', Helvetica, Arial, sans-serif` | chrome text (menus, buttons, titles, fields) |
 | `--vf-font-size` | `16px` | body face size |
 | `--vf-font-size-display` | `16px` | chrome face size |
 | `--vf-line-height` | `12px` | the body face's native line — the pitch wrapped body copy sits on (`vf-paragraph`, `vf-label[face="body"]`); retheming the body face to another strike states this alongside `--vf-font-family` / `--vf-font-size` |

@@ -113,8 +113,11 @@ const partMetrics = (page, hostId, part, props) =>
     check(`title ${p} identical across window/dialog`, winTitle[p] === dlgTitle[p],
       `${winTitle[p]} vs ${dlgTitle[p]}`)
   }
-  check('title is set in the Chicago display face',
-    winTitle['font-family'].startsWith('Chicago'), winTitle['font-family'])
+  check('title is set in the display face',
+    // The shipped family carries a space, so it computes quoted — compare the
+    // first entry of the stack unquoted rather than prefix-matching the string.
+    winTitle['font-family'].split(',')[0].replace(/["']/g, '') === 'VF Display',
+    winTitle['font-family'])
   check('title smoothing is off (1-bit edges)',
     winTitle['-webkit-font-smoothing'] === 'none')
   check(`title patch pads 8px x${S} either side`,

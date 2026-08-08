@@ -24,6 +24,12 @@
  *  - LABEL STALENESS (§6.4): an in-place text edit to a vf-label caption
  *    (Text.data, the Lit/React update path — no slotchange) re-derives the
  *    pushed accessible name.
+ *  - DISABLED PARITY: a control disabled by an ancestor <fieldset disabled>
+ *    renders pixel-for-pixel as one disabled by its own attribute. Only the
+ *    attribute is visible to a `:host([disabled])` rule, so styling disabled
+ *    from the attribute alone draws an *enabled* control inside a disabled
+ *    fieldset — the vf-button default-ring bug of 2026-08-07, generalized to
+ *    every form-associated control so the next one can't reopen it.
  *
  *   npm run dev             # in another shell (port 5173)
  *   npm run verify:contract
@@ -572,6 +578,113 @@ const build = makeBuild(browser, {
   )
   check('label: removing the label still takes the name back', r.afterRemove === '', r.afterRemove)
   await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   7. DISABLED PARITY — one disabled appearance, whichever way it was reached
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  // A control can learn it is disabled two ways: its own reflected attribute,
+  // or an ancestor <fieldset disabled> arriving through the form-associated
+  // lifecycle. Only the first is visible to a `:host([disabled])` rule, so a
+  // component that styles disabled from the attribute alone renders *enabled*
+  // inside a disabled fieldset — which is exactly the vf-button default-ring
+  // bug fixed on 2026-08-07. vf-select and vf-number-field still specify the
+  // idea twice (a resolved-getter class path *and* an attribute rule), so this
+  // holds the pair to one rendering rather than to one mechanism.
+  const CASES = [
+    ['vf-button', '<vf-button id="c">Install</vf-button>'],
+    // The default ring is the surface that actually regressed — its own case.
+    ['vf-button[default]', '<vf-button id="c" variant="default">Install</vf-button>'],
+    ['vf-checkbox', '<vf-checkbox id="c">Verify</vf-checkbox>'],
+    ['vf-number-field', '<vf-number-field id="c" value="5"></vf-number-field>'],
+    [
+      'vf-radio-group',
+      '<vf-radio-group id="c" name="g"><vf-radio value="a">A</vf-radio><vf-radio value="b">B</vf-radio></vf-radio-group>',
+    ],
+    [
+      'vf-select',
+      '<vf-select id="c" value="hd"><vf-option value="hd">Macintosh HD</vf-option></vf-select>',
+    ],
+    ['vf-slider', '<vf-slider id="c" value="40" style="width:200px"></vf-slider>'],
+    ['vf-swatch', '<vf-swatch id="c" color="#ff6600"></vf-swatch>'],
+    ['vf-text-area', '<vf-text-area id="c" value="Hello"></vf-text-area>'],
+    ['vf-text-field', '<vf-text-field id="c" value="Hello"></vf-text-field>'],
+  ]
+
+  // vf-swatch dims nothing on purpose: the kit dims *labels*, and a swatch's
+  // only label is its fill, which has to keep reading as its color
+  // (vf-swatch.ts:41). So it is the one control whose disabled render is
+  // expected to equal its enabled one.
+  const DIMS_NOTHING = new Set(['vf-swatch'])
+
+  const drift = []
+  const indistinct = []
+  for (const [name, markup] of CASES) {
+    // Shoot a padded wrapper, never the host box. A default vf-button's ring
+    // and a vf-swatch's hard shadow are painted *outside* the border box — a
+    // default button measures 20 system px, the height of its face alone — so
+    // an element-clipped screenshot silently drops the exact pixels the
+    // default-ring bug lived in. This was verified by reintroducing that bug:
+    // clipped to the host, the two renders agree and the check passes.
+    const page = await build(
+      `<form><fieldset id="fs" style="border:0;padding:0;margin:0">
+         <div id="shot" style="display:inline-block;padding:24px;background:#fff">${markup}</div>
+       </fieldset></form>`,
+      { viewport: { width: 600, height: 300 }, settle: true }
+    )
+    const shot = async () => {
+      await page.evaluate(
+        () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+      )
+      return page.locator('#shot').screenshot()
+    }
+
+    const enabled = await shot()
+    await page.evaluate(async () => {
+      const c = document.getElementById('c')
+      c.disabled = true
+      await c.updateComplete
+    })
+    const byAttribute = await shot()
+    await page.evaluate(async () => {
+      const c = document.getElementById('c')
+      c.disabled = false
+      await c.updateComplete
+      document.getElementById('fs').disabled = true
+      await new Promise((r) => setTimeout(r, 0))
+      await c.updateComplete
+    })
+    const byFieldset = await shot()
+
+    // The fieldset path must not be leaving the attribute behind — that would
+    // make the two renders agree for the wrong reason.
+    const viaAttribute = await page.evaluate(() =>
+      document.getElementById('c').hasAttribute('disabled')
+    )
+    if (viaAttribute) drift.push(`${name}:reflected-attribute-in-fieldset-path`)
+    else if (!byFieldset.equals(byAttribute)) drift.push(name)
+
+    const dimmed = !byAttribute.equals(enabled)
+    if (dimmed === DIMS_NOTHING.has(name)) indistinct.push(`${name}:${dimmed}`)
+
+    await page.close()
+  }
+
+  check(
+    'disabled parity: <fieldset disabled> renders exactly as the disabled attribute',
+    drift.length === 0,
+    drift.length ? drift.join(', ') : `${CASES.length} controls agree pixel-for-pixel`
+  )
+  // Without this the check above passes for a control that draws no disabled
+  // state at all — two identical renders of nothing.
+  check(
+    'disabled parity: …and disabled is a distinct appearance where it should be',
+    indistinct.length === 0,
+    indistinct.length
+      ? `unexpected dimming outcome — ${indistinct.join(', ')}`
+      : `${CASES.length - DIMS_NOTHING.size} dim, vf-swatch deliberately does not`
+  )
 }
 
 await browser.close()

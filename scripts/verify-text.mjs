@@ -287,12 +287,12 @@ const heightOf = (page, id) =>
 
   check(
     'label: chrome face by default',
-    styles['l-default'].family === 'Chicago' && styles['l-default'].smoothing === 'none',
+    styles['l-default'].family === 'VF Display' && styles['l-default'].smoothing === 'none',
     `${styles['l-default'].family} / smoothing ${styles['l-default'].smoothing}`
   )
   check(
     'label: face="body" switches to the body face',
-    styles['l-body'].family === 'Geneva',
+    styles['l-body'].family === 'VF Body',
     styles['l-body'].family
   )
   check(
@@ -302,12 +302,12 @@ const heightOf = (page, id) =>
   )
   check(
     'paragraph: body face by default',
-    styles['p-default'].family === 'Geneva',
+    styles['p-default'].family === 'VF Body',
     styles['p-default'].family
   )
   check(
     'paragraph: face="display" switches to the chrome face',
-    styles['p-display'].family === 'Chicago' && styles['p-display'].smoothing === 'none',
+    styles['p-display'].family === 'VF Display' && styles['p-display'].smoothing === 'none',
     `${styles['p-display'].family} / smoothing ${styles['p-display'].smoothing}`
   )
 

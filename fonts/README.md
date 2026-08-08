@@ -6,14 +6,20 @@ registered on `document.fonts` at runtime (see
 for *why* it's JS and not `@font-face` — font faces can't cross a shadow-root
 boundary).
 
-| Face | What it is | Role | Used by |
-| --- | --- | --- | --- |
-| **Chicago** | the genuine Chicago 12pt strike | *chrome* | menus, titles, buttons, controls (`vfDisplay`) |
-| **Geneva** | the genuine Geneva 9pt strike | *body* copy | fields, list rows, prose (`vfBase` default) |
+| Face | Ships as | Artwork | Role | Used by |
+| --- | --- | --- | --- | --- |
+| **Chicago** | `VF Display` | the genuine Chicago 12pt strike | *chrome* | menus, titles, buttons, controls (`vfDisplay`) |
+| **Geneva** | `VF Body` | the genuine Geneva 9pt strike | *body* copy | fields, list rows, prose (`vfBase` default) |
+
+**The shipped faces carry the kit's name, not the strike's** — see
+[Naming](#naming--what-ships-vs-what-it-came-from) below. This file's left-hand
+column is the *source* strike throughout; `VF Display` / `VF Body` is what the
+binary, the CSS stack and `--vf-font-family*` all say.
 
 ```
 Chicago.woff2            Geneva.woff2  ← pristine sources (see provenance)
-Chicago.ext.woff2        ← generated: source + our glyphs (Geneva ships un-extended)
+Chicago.ext.woff2        Geneva.ext.woff2  ← generated: source, renamed, + our
+                            glyphs (Geneva adds none — the rename is its build)
 add-glyphs.py            ← rebuilds the .ext fonts and re-embeds them into TS
 dfont-to-bdf.py          ← extracts a suitcase's bitmap strike as a BDF
 import-bdf.py            ← converts a classic Mac BDF strike to a pixel-grid woff2
@@ -31,6 +37,58 @@ instead of rendering.
 
 The **`.ext.woff2`** files (and the base64 in `src/styles/*-font.ts`) are
 generated — never hand-edit them. Edit `add-glyphs.py` and re-run.
+
+## Naming — what ships vs. what it came from
+
+The two embedded faces register as **`VF Display`** and **`VF Body`**, matching
+the `--vf-font-family-display` / `--vf-font-family` tokens that select them.
+Neither ships under the name of the strike it was made from.
+
+The line is between a *description* and a *claim*. Saying "the artwork is
+Apple's Chicago 12pt strike, re-emmed onto a 16px box" is a description, it is
+true, and this file is where it belongs. A family name is a claim: it is
+stamped into the font binary, it appears in every consumer's `font-family`
+stack, and a font-management tool will report it as the face's identity. The
+kit has no standing to make that claim about Apple's name, and the rename is
+what keeps the honest description from turning into one.
+
+Two consequences worth knowing:
+
+- **`add-glyphs.py` stamps the name into the binary**, rewriting name IDs 1, 3,
+  4, 6 and 16 across every platform record, and asserts on re-read that no
+  record still says otherwise. Declaring it only in the TS module would leave
+  the woff2 self-identifying as `Chicago 15` — which is what it did before
+  2026-08-08, when the constant said `'Chicago'` and nothing checked the file.
+  That is also why **Geneva is built at all** despite adding no glyphs: the
+  rename is the whole of its build step.
+- **The fallback entries still name Chicago, Charcoal and Geneva**, after the
+  shipped family, and that is correct rather than an oversight. Those select
+  faces the *reader* may have installed — a real Mac has them — so the stack
+  degrades toward the same shapes on a machine that owns them. Naming a font
+  you hope to find is not the same act as naming a font you hand out.
+
+**None of this touches the imported collection.** `imported/` keeps every
+strike under its own Apple name, on the point-size scheme above — `Chicago 12`,
+`Geneva 9`, `NewYork 18` — and that is correct for what it is: strikes
+presented *as* the originals, browsed by the showcase's Character Set window,
+never shipped in the npm package (`imported/` is gitignored, and `files`
+wouldn't carry it anyway). The rename applies only to the two faces the
+components embed, which are the kit's own artifact.
+
+The two trees cannot collide: the kit registers `VF Display` / `VF Body`, the
+collection registers Apple names, and `../Chicago.woff2` / `../Geneva.woff2`
+are build *inputs* — never registered at runtime, never shipped, renamed on
+the way into the `.ext` build.
+
+One thing does need cleaning up before the collection is broken out, and it
+predates the rename. **`Chicago-12-em16.woff2` and `Geneva-9-em16-a12.woff2`
+are not native strikes** — they are the kit-grid re-emmings (`--em 16`, upm
+1024 against the native 960 and 768), and `import-bdf.py` wrote them here
+only because `imported/` is where it writes everything. Each carries the
+*same* family name as the native strike beside it (`Chicago 12`, `Geneva 9`),
+so within the collection those two pairs are distinguishable by filename
+alone. A set presented as the original strikes wants them gone — they are
+kit build byproducts, and the kit already has its copies one directory up.
 
 ## Provenance
 
@@ -318,6 +376,16 @@ glyph's advance width.
    It rebuilds each `.ext.woff2` from the pristine source (idempotent — always
    from scratch, so re-running never compounds) and rewrites `FONT_WOFF2_BASE64`
    + the byte-count comment in `src/styles/*-font.ts`.
+
+   **Byte-reproducible since 2026-08-08**: re-running on an unchanged source
+   produces an identical file, so a diff in the embedded base64 always means a
+   real change. It didn't before — fontTools stamps `head.modified` with the
+   current time on save, which shifted the compressed size a few bytes every
+   run (3436–3456 for the same input); `recalcTimestamp=False` keeps the
+   source strike's own date instead. **`import-bdf.py` still has this**, via
+   `FontBuilder.save()`. It matters less there (its output is untracked, and
+   the two tracked pristine sources are regenerated deliberately), but a
+   re-import will churn bytes for no reason until it takes the same flag.
 3. `npm run build` to bundle the updated base64.
 
 ## Verify

@@ -42,6 +42,7 @@ body {
   background: var(--vf-black, #000);
   font-family: var(
     --vf-font-family,
+    'VF Body',
     'Geneva',
     'Helvetica Neue',
     Helvetica,

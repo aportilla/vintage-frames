@@ -10,7 +10,7 @@
  * promise.
  *
  * Each face is inlined as a base64 WOFF2 data URL by its wrapper module (e.g.
- * `chicago-font.ts`), so there is no separate asset to ship or to resolve
+ * `display-font.ts`), so there is no separate asset to ship or to resolve
  * through a consumer's bundler; the font is available the moment the wrapper is
  * imported, with no network round trip.
  */

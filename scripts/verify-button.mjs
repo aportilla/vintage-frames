@@ -463,7 +463,7 @@ const build = makeBuild(browser, {
     m.small.height === 16 && m.small.minWidth === 48 && m.small.padding === 14,
     JSON.stringify(m.small))
   check('the tall button sets the chrome face, the small one the body face',
-    m.normal.face === 'Chicago' && m.small.face === 'Geneva',
+    m.normal.face === 'VF Display' && m.small.face === 'VF Body',
     `${m.normal.face} / ${m.small.face}`)
 
   await page.keyboard.press('Tab')

@@ -237,7 +237,10 @@ function decodePng(buf) {
     ['font-family', 'text-align', 'display', 'margin-bottom', '-webkit-font-smoothing'])
   check('plain heading is drawn in content, centered, in the display face',
     title !== null && title['text-align'] === 'center' && title.display === 'block' &&
-    title['font-family'].startsWith('Chicago'), title && title['font-family'])
+    // Quoted in the computed value (the family name has a space), so compare
+    // the first stack entry unquoted rather than prefix-matching.
+    title['font-family'].split(',')[0].replace(/["']/g, '') === 'VF Display',
+    title && title['font-family'])
   check(`plain heading keeps 16px x${S} below itself`,
     title['margin-bottom'] === `${16 * S}px`, title['margin-bottom'])
 

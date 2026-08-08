@@ -101,7 +101,7 @@
      rule 2) and `pre` keeping the author's line breaks so the long lines
      overflow x instead of wrapping. */
   margin: 0;
-  font-family: var(--vf-font-family, 'Geneva', sans-serif);
+  font-family: var(--vf-font-family, 'VF Body', 'Geneva', sans-serif);
   font-size: calc(var(--vf-scale, 1) * 16px);
   line-height: calc(var(--vf-scale, 1) * 20px);
   font-weight: var(--vf-font-weight, 700);

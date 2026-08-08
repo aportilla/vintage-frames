@@ -3,6 +3,7 @@ import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
+import { vfTileSize } from '../styles/recipes/tile.js'
 import { ScaleController, effectiveScale, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
@@ -113,7 +114,7 @@ export class VfDesktop extends VfPositioned(LitElement) {
           --vf-desktop-pattern,
           url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23ffffff'/%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
         );
-        background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+        ${vfTileSize(1, 2)}
         /* Forced colors: the checker is opaque literal white-and-black (a
            preserved url() tile), which ignores a dark theme entirely. A
            backdrop is decoration, and high-contrast mode is a request for

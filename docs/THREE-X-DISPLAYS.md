@@ -1,15 +1,18 @@
 # Native 3× displays
 
-**Short version:** the kit renders on a native 3× display, and almost all of it
-is exactly as crisp as anywhere else. What it cannot do there is hold every
-layout edge *exactly* on the device-pixel grid, because the scale that display
-needs — `4/3` — is not a number a browser's layout engine can store. The
-visible consequence is confined to the two dither tiles. Everything else —
-borders, stepped corners, bitmap type, magnified art, stripes, scroll rails —
-still rasterizes 1-bit, because painting snaps even when layout cannot.
+**Short version:** a native 3× display renders 1-bit, like every other display.
+It is the one density where the kit cannot hold every layout edge *exactly* on
+the device-pixel grid — the scale it needs, `4/3`, is not a number a browser's
+layout engine can store — but nothing visibly degrades: solid edges are snapped
+back by paint, and the tiled fills, which are not, round their cell to a size
+the grid can express (`vfTileSize`, added 2026-08-08).
 
-This is a platform limit, not a tuning problem. Below is why, what exactly
-degrades, and what would fix it.
+Measured on the showcase at dpr 3: the desktop dither went from **36% mid-gray
+to zero**, the windoid dot bar from 11% to zero, and everything else was already
+zero.
+
+This document is the why: what the platform limit is, what it costs, and what
+it does *not* reach.
 
 ## What a "native 3× display" means here
 
@@ -69,34 +72,48 @@ which is whole (or a half) whenever `baseDpr` is 1 or 2. **So a 1× or 2×
 display is exact at every zoom level the browser offers.** Only a display whose
 *base* density divides into thirds is not, and it is not at any zoom.
 
-## What actually degrades
+## What it costs, and what paints anyway
 
-Measured on the showcase and a component sweep at dpr 3, scale 4/3, counting
-pixels that are neither pure black nor pure white:
+Measured at dpr 3, scale 4/3, counting pixels that are neither pure black nor
+pure white:
 
-| | gray |
-| --- | --- |
-| Buttons, windows, dialogs, checkboxes, radios, sliders, menu bars, fields | **0%** |
-| Bitmap type, both faces | **0%** |
-| `vf-img` / `vf-icon` magnified art | **0%** |
-| Barber stripes, racing stripes, scroll rails | **0%** |
-| `--vf-desktop-pattern`, the desktop's 50% dither | **38%** |
-| `--vf-dots-pattern`, the windoid bar | **1.7%** |
+| | before | now |
+| --- | --- | --- |
+| Buttons, windows, dialogs, checkboxes, radios, sliders, menu bars, fields | 0% | 0% |
+| Bitmap type, both faces | 0% | 0% |
+| `vf-img` / `vf-icon` magnified art | 0% | 0% |
+| Barber stripes, racing stripes, scroll rails | 0% | 0% |
+| `--vf-desktop-pattern`, the desktop's 50% dither | **36%** | **0%** |
+| `--vf-dots-pattern`, the windoid bar | **11%** | **0%** |
 
-The split is not arbitrary. A solid edge is **pixel-snapped at paint time** —
+The split was never arbitrary. A solid edge is **pixel-snapped at paint time** —
 Skia rounds the border box to whole device pixels before rasterizing, which
 absorbs a 1/32-px layout error completely. A **tiled** background is not: each
 repeat is placed at `k × tileSize`, so an unrepresentable tile size drifts a
 little further with every repeat, and by the thirtieth tile the phase is half a
 pixel out. The two dithers are the kit's only 2-system-pixel tiles, which is
-why they are the only casualties: at 4/3 a 2-px tile is `2.6666… CSS px`, while
+why they were the only casualties: at 4/3 a 2-px tile is `2.6666… CSS px`, while
 the 12-px barber stripe is `16` exactly and the 9-px sunburst `12` exactly.
 
-Text is affected in one narrow way: at 4/3 the font size and the ascent
-override it is a fraction of both quantize, so a run can sit one device pixel
-(¼ system pixel) off its canonical position. The glyphs stay crisp; the whole
-run shifts. `verify:baseline` asserts this bound explicitly rather than
-pretending it is exact.
+**The fix is `vfTileSize` (`src/styles/recipes/tile.ts`).** A tiled fill rounds
+its *cell* — not its tile — to `--vf-tile-quantum`, the smallest CSS length that
+is both whole in device pixels and holdable by the layout grid (`tileQuantum()`,
+`src/scale.ts`, written by `ScaleController`). The cell is the unit that has to
+land whole: rounding the tile instead was tried and is worse, because a 1.5×
+display's smallest holdable tile is three device pixels, which a two-cell dither
+cannot divide evenly — the dot bar went from 19% mid-gray to 40%.
+
+It costs pitch, and only ever on a texture. At dpr 3 the dither's cell paints at
+1 CSS px rather than 1.333, so the tile is 6 device pixels where the art asks
+for 8 — a 25% finer dither, still a dither. The four callers are the desktop
+dither, the windoid dots, `vf-swatch`'s transparency checker and the scroll
+rails' trough; measured art is never rounded this way and does not need to be.
+
+Text keeps one narrow residual: at 4/3 the font size and the ascent override it
+is a fraction of both quantize, so a run can sit one device pixel (¼ system
+pixel) off its canonical position. The glyphs stay crisp; the whole run shifts.
+`verify:baseline` asserts that bound explicitly rather than pretending it is
+exact.
 
 ## Why the kit does not simply pick a different target
 
@@ -121,23 +138,30 @@ there is no holdable answer to prefer.
 Rounding to the nearest whole count is monotonic by construction, which is the
 property a zoom response must have. It is what ships.
 
-## What would fix it properly
+## What this does not reach
 
-The layout error is not fixable — but the *visible* symptom is entirely in two
-tiles, and those are fixable:
+The same cell rounding runs at every density, and it helps wherever a holdable
+step exists within twice the cell (`tileQuantum` gives up past that, resolving
+to the scale itself so `round()` is an exact no-op and nothing changes). Desktop
+dither, measured:
 
-1. **Paint the dithers as one element-sized image** instead of a repeating
-   tile. A single image is scaled once, so there is nothing to accumulate.
-   `vf-desktop` already knows its raster size in system pixels, which is what
-   such an image needs.
-2. **Or author the tiles at a system-pixel size whose CSS length stays whole.**
-   At 4/3, tiles that are a multiple of 3 system px are exact (a 6-px tile is
-   8 CSS px). This trades one unrepresentable density for another, so it is the
-   weaker fix.
+| display | before | now |
+| --- | --- | --- |
+| 1×, 2× | 0% | 0% — nothing to fix, nothing changed |
+| 1.25× (Windows 125%) | 65% | 65% — finest holdable step is five device px, too coarse to take |
+| 1.5× (Windows 150%) | 66% | **0.9%** |
+| 2.5× | 49% | **0%** |
+| 3× | 36% | **0%** |
 
-Neither is done. `--vf-desktop-pattern` and `--vf-dots-pattern` are public
-tokens, so changing how they are consumed is a deliberate API decision rather
-than a bug fix.
+So 1.25× — and other densities whose finest holdable step is far from the art's
+own — keeps a smeared dither. Its cell wants 1.6 CSS px and the nearest holdable
+length is 4, two and a half times too coarse; taking it would trade a smeared
+dither for a visibly wrong one. Nothing in the platform offers a third option.
+
+The windoid dots keep a smaller residual (16–19%) at those same densities for a
+different reason: its layer is inset `calc(var(--vf-scale) * 2px)` from the bar,
+so at an unholdable scale the whole tiled fill starts at a fractional origin,
+which no tile sizing corrects.
 
 ## How the test suite treats it
 

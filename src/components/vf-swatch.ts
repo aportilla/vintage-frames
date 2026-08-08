@@ -4,6 +4,7 @@ import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
+import { vfTileSize } from '../styles/recipes/tile.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { VfShadowRoleControl } from '../form-control.js'
@@ -134,8 +135,7 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
         /* One checker tile per 4 system px; with a color layered on in
            render() the single size repeats across both layers, which is
            harmless — a uniform gradient tiles invisibly. */
-        background-size: calc(var(--vf-scale, 1) * 4px)
-          calc(var(--vf-scale, 1) * 4px);
+        ${vfTileSize(2, 2)}
         /* Forced colors would delete the color layer (a gradient) and keep
            the checker, showing "transparent" for every color. The fill is
            CONTENT, not chrome — the color is the one thing the control

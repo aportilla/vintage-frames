@@ -115,8 +115,10 @@ const MAX_TARGET = 24
  *
  * So the rounding stands, and sub-quantum drift is accepted as the engine's
  * price for a fractional density — the same price the kit paid at every
- * fractional zoom before any of this. Where it shows is tiled art; the fix
- * belongs in those two dither tiles, not in the size of every component.
+ * fractional zoom before any of this. Where it showed was tiled art, and that
+ * is fixed where it belongs: a tiled fill rounds its own cell to a size the
+ * device grid can express ({@link vfTileSize}, `--vf-tile-quantum`), rather
+ * than every component on the page resizing around it.
  */
 
 /**

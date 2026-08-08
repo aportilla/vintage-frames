@@ -1,4 +1,5 @@
 import { css } from 'lit'
+import { vfTileSize } from './tile.js'
 
 /**
  * Racing stripes for title bars. Apply the class to an absolutely-positioned
@@ -47,7 +48,7 @@ export const vfDots = css`
       --vf-dots-pattern,
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
     );
-    background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+    ${vfTileSize(1, 2)}
     pointer-events: none;
   }
   /* Forced colors preserves url() tiles verbatim, so the dots would stay

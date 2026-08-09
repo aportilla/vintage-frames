@@ -19,7 +19,7 @@ binary, the CSS stack and `--vf-font-family*` all say.
 ```
 Chicago.woff2            Geneva.woff2  ← pristine sources (see provenance)
 Chicago.ext.woff2        Geneva.ext.woff2  ← generated: source, renamed, + our
-                            glyphs (Geneva adds none — the rename is its build)
+                            glyphs (the × each strike lacked)
 add-glyphs.py            ← rebuilds the .ext fonts and re-embeds them into TS
 dfont-to-bdf.py          ← extracts a suitcase's bitmap strike as a BDF
 import-bdf.py            ← converts a classic Mac BDF strike to a pixel-grid woff2
@@ -136,10 +136,11 @@ on a 1px gap) with its own ink, the same day; that retired face survives in
 git history alongside ChiKareGo. Same Apple-IP distribution posture as
 Chicago.
 
-Unlike Chicago, Geneva ships **un-extended** for now — the embedded base64 is
-the pristine strike, so `×` and `⌘` (which it never carried) fall back per
-glyph to the system font. The known backfill is a Geneva entry in
-`add-glyphs.py`; its docstring carries the measured drawing metrics.
+Like Chicago, Geneva gains `×` in `add-glyphs.py` (2026-08-09, the saltire in
+its own `+`'s box). Its one remaining gap is `⌘`, which only the Chicago
+strike ever drew — that still falls back per glyph to the system font, and its
+known backfill is a second Geneva `specs` row tracing Chicago's ink, per the
+rule below.
 
 ## Why we modify the fonts
 
@@ -149,8 +150,8 @@ em dash in "US$25 — see the Read Me" was the giveaway). Both strikes carry
 full MacRoman natively — `…`, curly quotes, the dashes, `•`, the accented
 Latin — which leaves exactly two gaps:
 
-- **`×`** (U+00D7), which MacRoman never included — patched into Chicago
-  (geometry from its own `+`); still open in Geneva.
+- **`×`** (U+00D7), which MacRoman never included — patched into both faces,
+  each with geometry from its own `+`.
 - **`⌘`** (U+2318), which only the Chicago strike ever drew — still open in
   Geneva (trace Chicago's ink when backfilling, per the rule below).
 
@@ -341,8 +342,8 @@ for drawing into Geneva, measured from the strike:
 | Geneva | 7px | 5px | 1×1 px, 1px bearing | 5–8px band |
 
 Geneva ink sits flush left with its 1px gap carried in the advance (its `+`
-is 5×5 at y 1, 6px advance — the geometry for its future `×`). Chicago's one
-spec (`×`) borrows its whole geometry from that strike's own `+`: 5×5 ink,
+is 5×5 at y 1, 6px advance — the geometry its `×` reuses). Chicago's `×`
+likewise borrows its whole geometry from that strike's own `+`: 5×5 ink,
 1px bearing each side, 7px advance. Chicago glyphs generally
 carry a 1px bearing on both sides of their ink — the spacing the menu bar
 and shortcut-column constants are traced against.

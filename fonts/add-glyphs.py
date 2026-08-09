@@ -7,14 +7,12 @@ matching the --vf-font-family-display / --vf-font-family tokens that select
 them — because what ships is the kit's artifact and should not carry Apple's
 face name in its binary or in a consumer's font-family stack. See FONTS.
 
-The second is glyph backfill, and only Chicago needs it: the genuine chrome
-strike (produced by `import-bdf.py --em 16`) lacks only `×`, which MacRoman
-never carried. Geneva ships with its glyph set deliberately untouched: its two
-gaps — `×`, and `⌘`, which only the Chicago strike ever drew — fall back per
-glyph to the system font, and the known backfill is a `specs` row here (the ⌘
-would trace Chicago's own ink, per fonts/README's trace-don't-invent rule).
-So Geneva is built with an empty `specs` list: not a no-op, because the
-rename is the rest of the build.
+The second is glyph backfill: both genuine strikes lack `×`, which MacRoman
+never carried, and each face gains it here — the same saltire, dropped into
+each strike's own `+` box. Geneva's one remaining gap is `⌘`, which only the
+Chicago strike ever drew; it falls back per glyph to the system font, and the
+known backfill is another `specs` row here (tracing Chicago's own ink, per
+fonts/README's trace-don't-invent rule).
 
 Run it (needs fonttools + brotli — see fonts/README.md):
 
@@ -31,9 +29,9 @@ the CSS pixel grid at 16px: 1024 / 16 = 64). Everything below is expressed in
 whole pixels and multiplied by PX. Reference metrics for drawing into Geneva,
 measured from the strike: 7px caps, 5px x-height, 1x1 px period dot with a
 1px bearing, quotes in the 5-8px band; its ink sits flush left with the 1px
-gap carried in the advance (its '+' is 5x5 at y 1, 6px advance). Chicago's
-one spec borrows its whole geometry from that strike's own '+' (5x5 ink, 1px
-bearing each side, 7px advance).
+gap carried in the advance (its '+' is 5x5 at y 1, 6px advance — the box its
+`×` reuses). Chicago's `×` likewise borrows its whole geometry from that
+strike's own '+' (5x5 ink, 1px bearing each side, 7px advance).
 
 Glyphs are bitmaps (top row first, '#' = ink). `bmp()` rasterises each to
 TrueType contours as one clockwise rectangle per maximal horizontal run of ink
@@ -105,10 +103,12 @@ FONTS = {
             ("multiply", 0x00D7, X_MULT, 64, 128, 448),
         ],
     },
-    "Geneva": {  # ships un-extended — built only to carry the shipped name
+    "Geneva": {  # × in its own '+' box: flush-left 5x5 ink at y 1, 6px advance
         "module": "body-font.ts",
         "shipped": "VF Body",
-        "specs": [],
+        "specs": [
+            ("multiply", 0x00D7, X_MULT, 0, 64, 384),
+        ],
     },
 }
 

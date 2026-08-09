@@ -240,47 +240,6 @@ function systemPxStep(el: Element): number {
   return systemPxQuantum(el) * effectiveScale(el)
 }
 
-/**
- * The step a *repeating tile's* size has to land on: the smallest CSS length
- * that is both a whole number of device pixels and a length the engine can hold
- * exactly (Chromium lays out in 1/64 CSS px, Gecko in 1/60).
- *
- * A single edge tolerates an unholdable length — paint-time snapping rounds it
- * to the device grid — but a tiled fill does not, because each repeat is placed
- * at `k × tileSize` and the error compounds: at `--vf-scale` 4/3 the desktop
- * dither's 2-system-px tile is 2.6667 CSS px, the engine stores 2.65625, and by
- * the 32nd repeat the tile boundary has walked a whole device pixel across the
- * grid. Measured, that is 36% of the desktop rasterizing to mid-gray.
- *
- * Rounding the tile to this step costs pitch and buys crispness — a texture
- * (the desktop dither, the windoid dots, the swatch checker, the scroll rails)
- * can afford a tile 12% coarse far more than it can afford being gray. Measured
- * art is never rounded this way.
- *
- *   dpr 1    → 1      dpr 2   → 0.5    dpr 3   → 1
- *
- * …but only where the step is fine enough to be worth it. A fractional density
- * has no fine holdable step at all — 1.25× has none below 4 CSS px, five device
- * pixels, where the art wants 1.6 — and rounding a tile to that does more
- * damage to the pitch than the fringe it prevents. Measured on the windoid dot
- * bar at 1.5×: 19% mid-gray unrounded, 40% rounded to the 2px step, because
- * three device pixels cannot hold a two-cell tile evenly. So past a quarter of
- * a system pixel the quantum gives up and returns the scale itself, which makes
- * the `round()` in {@link vfTileSize} an exact no-op and leaves those densities
- * exactly as they were.
- */
-export function tileQuantum(
-  dpr: number = truePixelRatio() || 1,
-  scale: number = getScale()
-): number {
-  for (let k = 1; k <= 64; k++) {
-    const step = k / dpr // the length k device px, in CSS px
-    if (Math.abs(step * 64 - Math.round(step * 64)) > 1e-9) continue
-    return step <= scale * 2 ? step : scale
-  }
-  return scale
-}
-
 /* ── The shared scale tracker ───────────────────────────────────────────── */
 
 type ScaleListener = (scale: number) => void
@@ -469,12 +428,6 @@ export class ScaleController implements ReactiveController {
     const set = (): void => {
       this.owns = true
       this.host.style.setProperty('--vf-scale', String(getScale()))
-      // Controller-owned and undocumented, like the grid-snap offsets: the step
-      // a repeating tile rounds its size to on this display ({@link
-      // tileQuantum}). Written here because it moves with the density and
-      // nothing else has to know that; the recipes that read it fall back to
-      // 1px, which is correct at any whole dpr.
-      this.host.style.setProperty('--vf-tile-quantum', `${tileQuantum()}px`)
     }
     const take = (): void => {
       this.pending = false

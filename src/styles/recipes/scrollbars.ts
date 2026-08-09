@@ -1,5 +1,4 @@
 import { css } from 'lit'
-import { vfTileSize } from './tile.js'
 
 /**
  * System 7 scrollbars. Add the `vf-scroll` class to a BORDERLESS element with
@@ -69,7 +68,7 @@ export const vfScrollbars = css`
   .vf-scroll::-webkit-scrollbar-track {
     background-color: var(--vf-white, #fff);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='2'%3E%3Crect width='1' height='1'/%3E%3Crect x='2' y='1' width='1' height='1'/%3E%3C/svg%3E");
-    ${vfTileSize(1, 4, 2)}
+    background-size: calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 2px);
   }
   /* Interior rail dividing the content from the scrollbar channel. The outer
      edges are drawn by the .vf-scroll-frame overlay (see the border trims

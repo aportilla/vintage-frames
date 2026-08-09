@@ -152,9 +152,8 @@ export function quantizeZoom(raw: number): number {
 
 /**
  * Device px per system px the kit aims for on a display of `trueDpr`: the whole
- * count nearest the classic 1/72 inch — `round(96/72 × trueDpr)` — stepped by
- * at most one to a count whose `--vf-scale` the layout grid can hold exactly
- * ({@link SCALE_GRID}), and clamped to [1, 24].
+ * count nearest the classic 1/72 inch — `round(96/72 × trueDpr)` — clamped to
+ * [1, 24].
  *
  *   display              ideal  target  --vf-scale
  *   1×                    1.33     1      1

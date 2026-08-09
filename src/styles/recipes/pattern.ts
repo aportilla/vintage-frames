@@ -1,14 +1,21 @@
 import { css, unsafeCSS } from 'lit'
-import { tileImage, vfTileMaskSize, vfTileSize } from './tile.js'
+import { tileImage, tileRects, tileSpan, vfTileMaskSize, vfTileSize, type TileRect } from './tile.js'
 
 /**
  * The windoid bar's dither: a 2-system-px motif with a single black pixel at
- * its origin, laid into the span a repeating fill has to take. Transparent
- * ground, because the layer floats over the bar and the same art doubles as
- * the forced-colors mask, where the ground would be opacity rather than paint.
+ * its origin, stated once as rect data. Transparent ground, because the layer
+ * floats over the bar and the same art doubles as the forced-colors mask,
+ * where the ground would be opacity rather than paint. The SVG tile below is
+ * the CSS-repeated form (the no-declared-width fallback and the forced-colors
+ * mask); `vf-window` renders the exact fill — the whole-surface raster or a
+ * consumer token's placed tile grid — from the same data (src/tile-grid.ts).
  */
-const DOT_MOTIF = 2
-const DOT_TILE = tileImage(DOT_MOTIF, DOT_MOTIF, "%3Crect width='1' height='1' fill='%23000000'/%3E")
+export const DOT_MOTIF = 2
+export const DOT_RECTS: readonly TileRect[] = [[0, 0, 1, 1, '#000000']]
+const DOT_TILE = tileImage(DOT_MOTIF, DOT_MOTIF, tileRects(DOT_RECTS))
+
+/** The dots' tile size in system px (30) — the consumer token's documented box. */
+export const DOT_SPAN = tileSpan(DOT_MOTIF)
 
 /**
  * Racing stripes for title bars. Apply the class to an absolutely-positioned
@@ -44,11 +51,15 @@ export const vfStripes = css`
  * layer inset 2px top/bottom and FLUSH left/right: the close-up reference art
  * runs the dots all the way into the side borders (the Windows/ sheet hand-
  * insets them 2px, which the close-up shows is not the bar's own geometry).
- * The motif is 2×2 with a single black pixel at its origin, drawn as a
- * crisp 1-bit SVG for the same reason
- * as vf-desktop's checker: gradient hard stops feather at scale, SVG rects
- * don't. It ships inside the 30-system-px tile a repeating fill has to span
- * ({@link vfTileSize}); override the whole tile via `--vf-dots-pattern`.
+ *
+ * The layer's own CSS-repeated tile (a crisp 1-bit SVG on the 30-system-px
+ * span, overridable via `--vf-dots-pattern`) is the fallback for a window
+ * with no declared width. A `vf-window` that knows its width renders the
+ * exact fill INTO the layer instead — the whole-surface raster, or a consumer
+ * token's placed tile grid (src/tile-grid.ts) — and marks the layer
+ * `vf-tile-grid`, which switches the repeat off: the dot art is transparent-
+ * grounded, so a drifting CSS-repeated copy underneath would show through
+ * between the exactly-placed dots.
  */
 export const vfDots = css`
   .vf-dots {
@@ -57,17 +68,30 @@ export const vfDots = css`
     background-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
     ${vfTileSize(DOT_MOTIF)}
     pointer-events: none;
+    /* The consumer-token art channel for the placed tile grid. */
+    --_vf-tile-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
+  }
+  .vf-dots.vf-tile-grid {
+    background-image: none;
   }
   /* Forced colors preserves url() tiles verbatim, so the dots would stay
      literal black — invisible on a dark high-contrast theme. Repainted as the
      ink token through the same tile as a mask (the vf-grid rules idiom), so
-     the windoid bar's signature follows the user's palette. */
+     the windoid bar's signature follows the user's palette. The exact-fill
+     children hide here and the span mask takes over — no mask pipeline
+     rasterizes exactly at a zoom-minted scale anyway (image-rendering does
+     not reach masks), so forced-colors keeps the span approach and its zoom
+     caveat, unchanged. */
   @media (forced-colors: active) {
     .vf-dots {
       background-image: none;
       background-color: var(--vf-black, #000);
       mask-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
       ${vfTileMaskSize(DOT_MOTIF)}
+    }
+    .vf-dots .vf-tile,
+    .vf-dots .vf-tile-raster {
+      display: none;
     }
   }
 `

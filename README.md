@@ -162,8 +162,8 @@ rounding to the nearest costs at most half a device pixel per system pixel: a
 1× monitor renders 25% small, a 2× display 12% large, a 1.5× or 3× one exactly
 right. Some displays derive a scale the browser's layout engine cannot store
 exactly (1.25×, 1.5×, 2.5× and a native 3×) — paint snaps every box back onto
-the grid, and repeating fills span a size the grid can express, so what is left
-is a hairline one device pixel thin. See
+the grid, and the tiled fills are placed rather than CSS-repeated (see *The
+tile grid* below), so what is left is a hairline one device pixel thin. See
 [docs/THREE-X-DISPLAYS.md](./docs/THREE-X-DISPLAYS.md); it is a platform limit
 rather than a setting.
 
@@ -297,6 +297,37 @@ npm run verify:snap   # …and that applyGridSnap() recovers a page knocked off 
 Point both at your own pages with `VF_GRID_PAGES` / `VF_SNAP_PAGES` (and
 `VF_ORIGIN` / `VF_SNAP_DPR`). Both need a page that doesn't call
 `applyGridSnap()` itself.
+
+### The tile grid
+
+A repeating fill was the one surface paint snapping couldn't save: CSS
+`background-repeat` places every copy at `k × tileSize` from ONE stored
+length, the engine quantizes that length to its layout grid (1/64 CSS px in
+Chromium), and the error compounds with `k` until the 1-bit art smears gray.
+The kit's tile spans (`lcm(motif, 15)` system px) make that length exact for
+every density the ladder derives — but zoom mints scales with arbitrary prime
+denominators (20/17 at Safari's 85%, 30/23 at its 115%), and no finite span
+can hold those.
+
+So the four tiled surfaces (desktop dither, windoid dots, swatch checker,
+barber stripes) no longer repeat in CSS. The kit's own art renders as **one
+whole-surface raster** at one image pixel per system pixel, magnified
+nearest-neighbor — the same mechanism as `vf-img`, and 1-bit at every scale:
+nearest-neighbor sampling can only produce source colors, and one box has no
+interior seams to drift. A consumer pattern token (`--vf-desktop-pattern` and
+friends) renders instead as a **flat grid of placed tiles** at the token's
+documented 30- or 60-px tile geometry, each tile positioned by a single
+`calc()` quantized once, so nothing accumulates; raster token art magnifies
+nearest-neighbor too. The token contract is unchanged, with one nudge: a
+token swapped at runtime without touching the component wants a
+`requestUpdate()`.
+
+The one surface that cannot convert is the scroll trough — a
+`::-webkit-scrollbar` pseudo-element can host no children — so it keeps the
+span construction and, under Safari zoom, that caveat. `npm run verify:tile`
+holds the four converted surfaces to zero gray pixels at eight densities: the
+ladder plus 1.7 and 2.3, the emulated stand-ins for Safari's broken zoom
+rungs.
 
 ## Layout
 
@@ -764,7 +795,8 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `sys`, `toSys`, `toSysExact`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapSys`, `systemPxQuantum`, `snapToSystemPx`, `snapToDevicePx`| Convert between system (art) px and CSS px against the effective `--vf-scale`. `sysLength`/`sysLengths` emit a live system-px length (or 1–4 value shorthand) for a position or size written onto an element; `snapSys` puts a system-px coordinate on the placement lattice, `snapToSystemPx`/`snapToDevicePx` are its CSS-px twins. `CLASSIC_DPI` / `CSS_REFERENCE_DPI` / `SYSTEM_PX_IN_CSS_PX` are the constants the target is derived from |
 | `VfPositioned`, `VfSized`, `PlacementController` | The `top`/`left` and `width`/`height` mixins, plus the gesture half that states a drag's result in those same properties |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfModalFrame`, `vfTitleBar`, `vfWindowWidgets`, `vfHardShadowDecls`, `vfStripes`, `vfDots`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
-| `vfTileSize`, `vfTileMaskSize`, `tileImage`, `tileSpan`, `TILE_LATTICE` | A repeating fill's span and its art. State the motif in system px; the tile spans `lcm(motif, 15)`, the smallest whole number of motifs whose CSS length every derived scale can hold exactly, so no repeat drifts off the device grid |
+| `vfTileSize`, `vfTileMaskSize`, `tileImage`, `tileSpan`, `TILE_LATTICE` | A CSS-repeating fill's span and its art. State the motif in system px; the tile spans `lcm(motif, 15)`, the smallest whole number of motifs whose CSS length every derived scale can hold exactly. Still load-bearing for the scroll trough, the underlays and the forced-colors masks; the converted surfaces render through the tile grid below |
+| `vfTileGrid`, `tileGrid`, `tileRaster`, `tileRects`, `patternOverride`, `TileRasterCache` | The exact tiled fill (see "The tile grid"): a motif stated as rect data (`TileRect[]`) renders as one whole-surface raster (`tileRaster`, kit art) or a flat grid of placed tiles (`tileGrid`, consumer pattern tokens) — 1-bit at every scale, zoom-minted ones included |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `steppedRectClip`, `steppedRingClip`, `steppedCornerClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET`, `SCREEN_CORNER` | Pixel-stepped corner profiles and their `clip-path` traces, plus the screen-corner mask |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow and inactive-window reporting for the scrollbars; a track's measured width; document-level listeners scoped to an open panel or in-flight gesture |

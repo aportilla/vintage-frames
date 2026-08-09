@@ -279,7 +279,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-surface` | *(set by containers)* | bg behind legends/label patches; `vf-window` and `vf-dialog` both set it to white |
 | `--vf-disabled` | `#C0C0C0` | dimmed text, borders, glyphs (the kit's dim gray) |
 | `--vf-desktop` | `#808080` | base color under the desktop dither — occluded by the default (opaque) tile, so it only shows through a custom `--vf-desktop-pattern` |
-| `--vf-desktop-pattern` | *(1-bit SVG tile)* | `vf-desktop`'s background-image layer — a 50% checker drawn as opaque black-on-white rects, on a 30-system-px tile (see *Tiled fills*; override the whole tile) |
+| `--vf-desktop-pattern` | *(1-bit tile)* | the desktop dither's art — a 50% checker drawn as opaque black-on-white rects, on a 30-system-px tile (see *Tiled fills*; override the whole tile — consumer art renders as a placed tile grid at that same geometry) |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-control-height` | `22px` | text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well |
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
@@ -301,8 +301,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-list-max-height` | `200px` | `vf-list` max height before its rail takes over (the host adds the 2px frame) |
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
 | `--vf-titlebar-height-utility` | `12px` | the slim `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` |
-| `--vf-dots-pattern` | *(1-bit SVG tile)* | the windoid bar's dot-grid dither — a 2×2 motif, one black pixel at its origin, on a 30-system-px tile (`vfDots`; override the whole tile like `--vf-desktop-pattern`) |
-| `--vf-swatch-checker` | *(SVG tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 motif of 2×2 white/`#c0c0c0` checks, on a 60-system-px tile (override the whole tile like `--vf-desktop-pattern`) |
+| `--vf-dots-pattern` | *(1-bit tile)* | the windoid bar's dot-grid dither — a 2×2 motif, one black pixel at its origin, on a 30-system-px tile (`vfDots`; override the whole tile like `--vf-desktop-pattern`) |
+| `--vf-swatch-checker` | *(tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 motif of 2×2 white/`#c0c0c0` checks, on a 60-system-px tile (override the whole tile like `--vf-desktop-pattern`) |
 | `--vf-menubar-height` | `20px` | `vf-menu-bar` |
 | `--vf-separator-color` | `var(--vf-black, #000)` | `vf-separator` rule color — `vf-menu` sets it to `--vf-disabled` for the dimmed menu rule |
 | `--vf-separator-style` | `solid` | `vf-separator` rule style — `vf-menu` sets `dotted` (see `Menus.png`) |
@@ -311,7 +311,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-focus-underline-offset` | `4px` | where the dashed focus rule sits, from the underlined element's padding-box bottom (negative drops it below) — see §4 |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
 | `--vf-progress-track` | `#ffffff` | progress track (white) |
-| `--vf-progress-stripes` | *(1-bit SVG tile)* | the indeterminate barber stripes — a 12×12 motif drawn as rects so the staircase stays whole system px at any scale, on a 60-system-px tile (override the whole tile) |
+| `--vf-progress-stripes` | *(1-bit tile)* | the indeterminate barber stripes — a 12×12 motif drawn as rects so the staircase stays whole system px at any scale, on a 60-system-px tile (override the whole tile) |
 | `--vf-scrollbar-thumb` | `#ffffff` | scrollbar thumb/elevator (white) |
 | `--vf-scrollbar-track` | `#c0c0c0` | scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average |
 | `--vf-highlight` | `#000000` | selection background |
@@ -388,19 +388,41 @@ repeats, each placed at `k × tileSize`, so the error compounds until the tile
 boundary has walked a whole device pixel. Unfixed, 75% of the desktop dither
 rasterizes to mid-gray at dpr 1.5.
 
-So a repeating fill is authored as a **motif** and tiled at the span
-`lcm(motif, 15)` system px (`vfTileSize`, `tileImage`): a whole number of
-motifs, so the art is exactly what it was, and holdable at every scale the
-ladder derives, so every repeat lands on the grid. 15 is what covers them all —
-a scale `p/q` needs `q` to divide `64 × span`, the 64 already absorbs every
-power of two, and every derived scale (1, 3/2, 4/3, 8/5, 6/5, 5/4) has an odd
-part of 1, 3 or 5. The kit's five tiled surfaces span 30 (the desktop dither,
-the windoid dots) or 60 (the swatch checker, the barber stripes, the scroll
-trough) system px, and the art carries that span through an SVG `<pattern>` so
-the source stays the two or three rects that are the artwork. This costs
-nothing but a larger tile texture: no rounding, no display-derived property to
-keep in sync, no `round()`, and identical behavior in every engine. A pattern
-token overrides the whole **tile**, not the motif. `npm run verify:tile`.
+The span construction (`vfTileSize`, `tileImage`, `tileSpan`) makes the
+stored length exact for every scale the *density* ladder derives: a fill
+authored as a **motif** tiles at `lcm(motif, 15)` system px — a whole number
+of motifs, so the art is unchanged, and holdable because a scale `p/q` needs
+`q` to divide `64 × span`, the 64 absorbs every power of two, and every
+derived scale (1, 3/2, 4/3, 8/5, 6/5, 5/4) has an odd part of 1, 3 or 5. But
+**zoom mints scales the lattice cannot hold** — 20/17 at Safari's 85%, 30/23
+at its 115%, arbitrary primes with no finite cover (ZOOM-TILE-DRIFT.md) — so
+the four convertible surfaces no longer repeat in CSS at all
+(`src/tile-grid.ts`, TILE-GRID-PLAN.md):
+
+- **Kit art renders as one whole-surface raster** — the motif, stated once as
+  rect data (`TileRect[]`), encoded at one image px per system px
+  (`tileRaster`) and magnified nearest-neighbor
+  (`image-rendering: pixelated`, the `vf-img` mechanism). Nearest-neighbor
+  can only produce source colors and one box has no interior seams, so the
+  fill is 1-bit at every scale, holdable or not. (Raster, not SVG, because
+  Chromium rasterizes an SVG image at the box's *stored* fractional size and
+  ignores `image-rendering` for SVG — measured; the crisp path does not exist.)
+- **A consumer pattern token renders as a flat grid of placed tiles** at the
+  token's documented 30/60-system-px tile geometry: each tile positioned by
+  one single-multiplication `calc()` quantized once, every box paint-snapped
+  independently — never laid out with CSS grid/flex/flow, whose summed track
+  sizes would re-import the accumulation. The token still overrides the whole
+  **tile**, not the motif; a token swapped at runtime without touching the
+  component wants a `requestUpdate()`.
+
+The span construction stays load-bearing for the scroll trough (a
+`::-webkit-scrollbar` pseudo-element can host no children — it keeps the zoom
+caveat), for the CSS-repeated underlays beneath the opaque kit fills, and for
+the forced-colors mask branches (no mask pipeline rasterizes exactly at a
+zoom-minted scale, so forced-colors-plus-zoom remains the one accepted
+residual). `npm run verify:tile` asserts zero gray on the four converted
+surfaces at eight densities — the ladder plus 1.7 and 2.3, the emulated
+stand-ins for Safari's broken rungs.
 
 **`--vf-cursor` (hiding the pointer for a page-drawn cursor).** A page that
 draws its own cursor — a JS-positioned image on the system-pixel grid, which
@@ -446,16 +468,18 @@ enabled well.
 - `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer
   inset `2px` top/bottom and **flush left/right** (the close-up reference runs
   the dots into the side borders; the `Windows/` sheet's 2px side inset is the
-  artist's, not the bar's), tiled with a 2×2 crisp SVG motif carrying one black
-  pixel at its origin (`--vf-dots-pattern` to retheme), traced from the
-  window reference. An SVG tile for the same reason as the desktop
-  dither: gradient hard stops feather at scale, SVG rects don't.
-- `vfTileSize` / `tileImage` — the span a REPEATING fill takes, and its art.
-  Every metric in the kit is `calc(var(--vf-scale, 1) * Npx)`, and paint snaps
-  each box to the device grid on its own — but a tiled fill is one snapped box
-  holding N *unsnapped* repeats, each placed at `k × tileSize`, so a tile size
-  the layout grid cannot hold drifts a fraction of a device pixel further with
-  every repeat. See *Tiled fills* below.
+  artist's, not the bar's), a 2×2 motif carrying one black pixel at its origin
+  (`--vf-dots-pattern` to retheme). A width-declaring window renders the exact
+  fill into the layer (see *Tiled fills*); the layer's own CSS-repeated SVG
+  tile is the fallback for a window with no declared width.
+- `vfTileSize` / `tileImage` — the span a CSS-REPEATING fill takes, and its
+  art. Every metric in the kit is `calc(var(--vf-scale, 1) * Npx)`, and paint
+  snaps each box to the device grid on its own — but a tiled fill is one
+  snapped box holding N *unsnapped* repeats, each placed at `k × tileSize`, so
+  a tile size the layout grid cannot hold drifts a fraction of a device pixel
+  further with every repeat. Load-bearing for the scroll trough, the underlays
+  and the forced-colors masks; the converted surfaces render through
+  `vfTileGrid` / `tileGrid` / `tileRaster` instead. See *Tiled fills* below.
 - `vfHardShadowDecls` — the hard 1-bit drop shadow on its own, for composing
   into a surface that supplies its own border:
   `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
@@ -647,14 +671,14 @@ Full-bleed classic desktop container.
 - **Visual:** `display: block; position: relative;` — the paint lives on an
   inner screen surface (part `desktop`, `overflow: hidden` — the
   whole-system-px raster, inset by `bezel` when one is set).
-  Screen background = classic 50% dither, drawn as a crisp SVG tile: a 2×2 motif
-  with an opaque white base and two black pixels on the diagonal, laid into the
-  30-system-px tile a repeating fill has to span (see *Tiled fills*) and scaled
-  by `--vf-scale`, overridable via `--vf-desktop-pattern`. (A
-  `repeating-conic-gradient` feathers its hard stops at scale; the SVG rects stay
-  pixel-exact.) The tile is opaque black-on-white — the authentic System 7
-  dither — so it covers `var(--vf-desktop, #808080)` beneath it; that base color
-  shows only under a custom pattern with transparent cells (or `none`).
+  Screen surface = classic 50% dither: a 2×2 motif with an opaque white base
+  and two black pixels on the diagonal, rendered as the exact fill (one
+  whole-surface raster; a consumer `--vf-desktop-pattern` renders as a placed
+  tile grid on the token's 30-system-px tile — see *Tiled fills*) over a
+  CSS-repeated underlay of the same art. The art is opaque black-on-white —
+  the authentic System 7 dither — so it covers `var(--vf-desktop, #808080)`
+  beneath it; that base color shows only under a custom pattern with
+  transparent cells (or `none`).
 - **Slots:** default (menu bar, windows, anything).
 - **Behavior:** manages stacking of slotted `vf-window` children: `pointerdown`
   *or `focusin`* on a window brings it to front (incrementing z-index counter)
@@ -1072,8 +1096,8 @@ The color-swatch button: a well of solid color — a palette cell.
   (accessible name; defaults to `color`, or "transparent"), `disabled`.
 - **Visual:** inner `<button>` sized `width × height`: 1px black border, 1px
   white inset (the button's own padding + background) and a `fill` span
-  carrying the color. The checker is a crisp SVG tile like the desktop dither
-  (gradient hard stops feather at scale); `--vf-swatch-checker` overrides the
+  carrying the checker as an exact fill with the color painted over it in a
+  `tint` child (see *Tiled fills*); `--vf-swatch-checker` overrides the
   pattern.
   - `shadow`: adds the shared hard shadow (`vfHardShadowDecls` — the same
     `--vf-shadow-offset` token as windows and menus, painting outside the box
@@ -1420,15 +1444,15 @@ The classic popup menu control ("Macintosh HD ▼").
   Determinate fill: `var(--vf-progress-fill, #000000)` (solid black) from left,
   with a 1px black leading edge
   line. Indeterminate: full-width animated diagonal black/white barber stripes
-  (45°, drawn as a crisp 1-bit `crispEdges` SVG tile — a 12px `\` cell whose
-  bands are a *staircase of axis-aligned 1px rects*, not diagonal polygons and
-  not a `repeating-linear-gradient`; a diagonal edge only rasterizes crisply at
-  the SVG's own resolution and then blurs to a gray fringe when the background is
-  scaled up, whereas axis-aligned rects stay pixel-exact at any scale). Animated
-  via `background-position` keyframes
-  that advance exactly one whole 12px cell per cycle so the loop wraps
-  seamlessly (no phase-jump seam), ~0.4s `steps(4, end)` infinite — chunky and
-  steppy, not smooth. Override the tile via `--vf-progress-stripes`.
+  (45°, a 12px `\` cell whose bands are a *staircase of axis-aligned 1px
+  rects*, not diagonal polygons and not a `repeating-linear-gradient` — a
+  diagonal edge blurs to a gray fringe when scaled, axis-aligned rects stay
+  pixel-exact). The art rides an exact-fill strip inside the fill (see *Tiled
+  fills*), animated by `left` keyframes that advance exactly one whole 12px
+  cell per cycle so the loop wraps seamlessly (no phase-jump seam), ~0.4s
+  `steps(4, end)` infinite — chunky and steppy, not smooth; each stepped value
+  is one quantized length, so no CSS length ever carries an accumulating
+  phase. Override the tile via `--vf-progress-stripes`.
 - **Behavior:** `role="progressbar"` + `aria-valuenow/min/max` (omit valuenow
   when indeterminate); `label` → host `aria-label`.
 - **Parts:** `track`, `fill`.

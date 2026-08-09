@@ -1,9 +1,17 @@
-import { html, css, LitElement, unsafeCSS } from 'lit'
+import { html, css, LitElement, unsafeCSS, type PropertyValues } from 'lit'
 import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
-import { tileImage, vfTileSize } from '../styles/recipes/tile.js'
+import {
+  tileImage,
+  tileRaster,
+  tileRects,
+  tileSpan,
+  vfTileSize,
+  type TileRect,
+} from '../styles/recipes/tile.js'
+import { TileRasterCache, patternOverride, tileGrid, vfTileGrid } from '../tile-grid.js'
 import { ScaleController, effectiveScale, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
@@ -27,20 +35,25 @@ const DEFAULT_SCREEN_WIDTH = 512
 const DEFAULT_SCREEN_HEIGHT = 342
 
 /**
- * The desktop's 50% checker: a 2-system-px motif, laid into the span a
- * repeating fill has to take ({@link tileImage}). Declared above the class
- * because `@vfElement` upgrades synchronously at module evaluation, so a
- * module-tail const would be in its temporal dead zone by the time `styles`
- * is read.
+ * The desktop's 50% checker: a 2-system-px motif — an opaque white base with
+ * two black pixels on the diagonal — stated once as rect data and derived into
+ * both artifacts: the SVG tile for the CSS-repeated underlay ({@link tileImage})
+ * and the raster tile for the placed grid ({@link tileRaster}). Declared above
+ * the class because `@vfElement` upgrades synchronously at module evaluation,
+ * so a module-tail const would be in its temporal dead zone by the time
+ * `styles` is read.
  */
 const DITHER_MOTIF = 2
-const DITHER_TILE = tileImage(
-  DITHER_MOTIF,
-  DITHER_MOTIF,
-  "%3Crect width='2' height='2' fill='%23ffffff'/%3E" +
-    "%3Crect width='1' height='1' fill='%23000000'/%3E" +
-    "%3Crect x='1' y='1' width='1' height='1' fill='%23000000'/%3E"
-)
+const DITHER_RECTS: readonly TileRect[] = [
+  [0, 0, 2, 2, '#ffffff'],
+  [0, 0, 1, 1, '#000000'],
+  [1, 1, 1, 1, '#000000'],
+]
+const DITHER_TILE = tileImage(DITHER_MOTIF, DITHER_MOTIF, tileRects(DITHER_RECTS))
+const DITHER_TILE_RASTER = tileRaster(DITHER_MOTIF, DITHER_MOTIF, DITHER_RECTS)
+
+/** The dither's tile size in system px (30) — the box each placed tile spans. */
+const DITHER_SPAN = tileSpan(DITHER_MOTIF)
 
 /**
  * `<vf-desktop>` — the full-bleed classic desktop container.
@@ -72,8 +85,11 @@ const DITHER_TILE = tileImage(
  * with the classic corner mask.
  *
  * Custom properties:
- * - `--vf-desktop-pattern` — the background-image tile (default a 1-bit 50%
- *   checker dither, drawn as opaque black-on-white on a 30-system-px tile).
+ * - `--vf-desktop-pattern` — the dither's tile art (default a 1-bit 50%
+ *   checker, opaque black-on-white on a 30-system-px tile). Overriding it
+ *   renders the token as a placed tile grid at that same 30-px geometry
+ *   (src/tile-grid.ts); a token swapped at runtime without touching the
+ *   component wants a `requestUpdate()`.
  * - `--vf-desktop` — base color painted *under* the pattern layer (default
  *   `#808080`). The default tile is opaque, so this only becomes visible when
  *   `--vf-desktop-pattern` is overridden with a tile that has transparent
@@ -85,14 +101,16 @@ const DITHER_TILE = tileImage(
  * @cssprop [--vf-desktop=#808080] - base color under the desktop dither —
  *   occluded by the default (opaque) tile, so it only shows through a custom
  *   `--vf-desktop-pattern`
- * @cssprop --vf-desktop-pattern - `vf-desktop`'s background-image layer — a 50%
- *   checker drawn as opaque black-on-white rects, on a 30-system-px tile
- *   (override the whole tile)
+ * @cssprop --vf-desktop-pattern - the desktop dither's art — a 50% checker
+ *   drawn as opaque black-on-white rects, on a 30-system-px tile. Override the
+ *   whole tile; consumer art renders as a placed tile grid at that same
+ *   geometry (raster art magnifies nearest-neighbor, the `vf-img` idiom)
  */
 @vfElement('vf-desktop')
 export class VfDesktop extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
+    vfTileGrid,
     css`
       :host {
         display: block;
@@ -118,6 +136,12 @@ export class VfDesktop extends VfPositioned(LitElement) {
         /* Clip here rather than on the host so dragged windows crop at the
            raster's corrected edge, not the host's possibly-fractional one. */
         overflow: hidden;
+        /* An isolated stacking context, so the tile grid's z-index: -1 below
+           resolves HERE — above this element's own underlay background, under
+           every slotted child. Without it the negative z-index would resolve
+           against some ancestor stacking context and paint the tiles beneath
+           this background. */
+        isolation: isolate;
         background-color: var(--vf-desktop, #808080);
         /* Classic 50% checker dither as a crisp 1-bit SVG tile — a 2×2 motif
            painting an opaque white base with two black pixels on the diagonal.
@@ -126,9 +150,16 @@ export class VfDesktop extends VfPositioned(LitElement) {
            --vf-desktop note in the class doc). Scaled with --vf-scale so each
            system pixel lands on whole device pixels; unlike a conic-gradient
            (whose hard stops the browser feathers into a blur), the SVG rects are
-           pixel-exact. The motif ships inside the 30-system-px tile a repeating
-           fill has to span (vfTileSize); override the whole tile via
-           --vf-desktop-pattern. */
+           pixel-exact.
+
+           This CSS-repeated layer is the UNDERLAY: what actually shows is the
+           whole-surface raster (or, under a consumer pattern token, the
+           placed tile grid) rendered over it — see src/tile-grid.ts — which
+           is what keeps the dither 1-bit at the zoom-minted scales a
+           repeating fill cannot hold. The declaration stays as
+           belt-and-braces paint beneath the (opaque) kit fill. Override the
+           whole tile via --vf-desktop-pattern — the tile grid renders the
+           same token at the same documented geometry. */
         background-image: var(--vf-desktop-pattern, ${unsafeCSS(DITHER_TILE)});
         ${vfTileSize(DITHER_MOTIF)}
         /* Forced colors: the checker is opaque literal white-and-black (a
@@ -141,6 +172,33 @@ export class VfDesktop extends VfPositioned(LitElement) {
         @media (forced-colors: active) {
           background-image: none;
         }
+      }
+      /* With a consumer pattern token in play the exact fill is the placed
+         tile grid, and the CSS-repeated underlay must not paint: a
+         translucent consumer tile would show the underlay's *drifting* copy
+         of the same art through itself. The base color stays — that is the
+         layer translucent art composites over, as documented. */
+      .screen.patterned {
+        background-image: none;
+      }
+      /* The dither's exact fill — the whole-surface raster (kit art) or the
+         placed tile grid (consumer art) — kept under every slotted child
+         (menu bar, windows) by the negative z-index the .screen isolation
+         scopes. The grid's tiles resolve the pattern token stated once here
+         rather than per tile. */
+      .screen > .vf-tile-grid,
+      .screen > .vf-tile-raster {
+        z-index: -1;
+        /* Forced colors: hidden with the underlay's tile, same posture — the
+           desktop goes flat Canvas (a backdrop is decoration). */
+        @media (forced-colors: active) {
+          display: none;
+        }
+      }
+      .screen > .vf-tile-grid {
+        position: absolute;
+        inset: 0;
+        --_vf-tile-image: var(--vf-desktop-pattern, ${unsafeCSS(DITHER_TILE_RASTER)});
       }
       /* Bezeled, the screen is inset by exactly one bezel width. The host
          is always the declared screen + 2×bezel (written in updated()), so
@@ -240,6 +298,17 @@ export class VfDesktop extends VfPositioned(LitElement) {
 
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
+
+  /**
+   * The consumer's `--vf-desktop-pattern` override, or `''` for the kit
+   * dither — which of the two exact-fill paths render() takes (see
+   * src/tile-grid.ts). Re-read every update; a token swapped at runtime
+   * without touching the component wants a `requestUpdate()`.
+   */
+  private _pattern = ''
+
+  /** The whole-surface dither raster, cached against its ceiled size. */
+  readonly #raster = new TileRasterCache()
 
   /** Monotonic z-index counter for window stacking. */
   private _zCounter = 0
@@ -542,6 +611,11 @@ export class VfDesktop extends VfPositioned(LitElement) {
     }
   }
 
+  protected override willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed)
+    this._pattern = patternOverride(this, '--vf-desktop-pattern')
+  }
+
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     // Written as a host custom property (the self-set-geometry channel, like
     // --vf-scale / --vf-snap-*) so the stylesheet's inset stays live against
@@ -570,9 +644,39 @@ export class VfDesktop extends VfPositioned(LitElement) {
   }
 
   protected override render(): unknown {
+    // The fill's geometry comes from the declared raster (the same ??
+    // fallbacks updated() applies), so it is scale-independent: density and
+    // zoom changes re-render nothing — every length is live against
+    // --vf-scale — and only a new declared size changes what is rendered.
+    // Kit art is the whole-surface raster, ceiled up to whole 30-px tiles so
+    // a resize drag only re-encodes the image when it crosses a tile
+    // boundary (the .screen clip crops the overdraw); a consumer pattern
+    // token switches to the placed tile grid at the token's documented
+    // 30-px tile geometry. See src/tile-grid.ts for why each path is exact.
+    const w = this.width ?? DEFAULT_SCREEN_WIDTH
+    const h = this.height ?? DEFAULT_SCREEN_HEIGHT
+    const cols = Math.ceil(w / DITHER_SPAN)
+    const rows = Math.ceil(h / DITHER_SPAN)
+    const fill = this._pattern
+      ? html`<div class="vf-tile-grid">
+          ${tileGrid({ cols, rows, tile: DITHER_SPAN })}
+        </div>`
+      : html`<div
+          class="vf-tile-raster"
+          style="width:${sysLength(cols * DITHER_SPAN)};height:${sysLength(
+            rows * DITHER_SPAN
+          )};background-image:${this.#raster.for(
+            DITHER_MOTIF,
+            DITHER_MOTIF,
+            DITHER_RECTS,
+            cols * DITHER_SPAN,
+            rows * DITHER_SPAN
+          )}"
+        ></div>`
     return html`
       <div class=${this.bezel > 0 ? 'desktop vf-snap bezeled' : 'desktop vf-snap'}>
-        <div class="screen" part="desktop">
+        <div class="screen${this._pattern ? ' patterned' : ''}" part="desktop">
+          ${fill}
           <slot @slotchange=${this._onSlotChange}></slot>
           ${this.bezel > 0
             ? html`<div class="corner tl"></div>

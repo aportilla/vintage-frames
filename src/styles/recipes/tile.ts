@@ -48,10 +48,21 @@ export function tileSpan(motif: number): number {
  * @param motifHeight the motif's height in system px
  * @param motif       the motif's markup, URL-encoded as the rest of the kit's
  *                    inline SVG is (`%3Crect …/%3E`)
+ * @param spanWidth   explicit tile width in system px (default
+ *                    `tileSpan(motifWidth)`) — a placed tile grid
+ *                    (src/tile-grid.ts) may size its tile independently of the
+ *                    lattice, since each placed box paint-snaps on its own
+ * @param spanHeight  explicit tile height in system px, likewise
  */
-export function tileImage(motifWidth: number, motifHeight: number, motif: string): string {
-  const w = tileSpan(motifWidth)
-  const h = tileSpan(motifHeight)
+export function tileImage(
+  motifWidth: number,
+  motifHeight: number,
+  motif: string,
+  spanWidth = tileSpan(motifWidth),
+  spanHeight = tileSpan(motifHeight)
+): string {
+  const w = spanWidth
+  const h = spanHeight
   return (
     `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' ` +
     `width='${w}' height='${h}' shape-rendering='crispEdges'%3E` +
@@ -59,6 +70,77 @@ export function tileImage(motifWidth: number, motifHeight: number, motif: string
     `patternUnits='userSpaceOnUse'%3E${motif}%3C/pattern%3E%3C/defs%3E` +
     `%3Crect width='${w}' height='${h}' fill='url(%23m)'/%3E%3C/svg%3E")`
   )
+}
+
+/**
+ * One rect of a 1-bit motif, stated as data: `[x, y, w, h, fill]` in system px
+ * over the motif cell, painted in order. `fill` is a CSS hex color; omitted
+ * means black, the SVG default. The motif stated once as data is what lets a
+ * surface derive BOTH of its artifacts — the SVG tile ({@link tileImage} via
+ * {@link tileRects}) and the raster tile ({@link tileRaster}) — from the same
+ * two or three rects that are actually the artwork.
+ */
+export type TileRect = readonly [x: number, y: number, w: number, h: number, fill?: string]
+
+/** {@link TileRect} data as the URL-encoded rect markup {@link tileImage} takes. */
+export function tileRects(rects: readonly TileRect[]): string {
+  return rects
+    .map(([x, y, w, h, fill]) => {
+      const pos = (x ? `x='${x}' ` : '') + (y ? `y='${y}' ` : '')
+      const paint = fill ? ` fill='${encodeURIComponent(fill)}'` : ''
+      return `%3Crect ${pos}width='${w}' height='${h}'${paint}/%3E`
+    })
+    .join('')
+}
+
+/**
+ * The motif tiled over `spanWidth × spanHeight` system px as a RASTER image —
+ * a PNG data URI at one image px per system px — for the whole-surface fill a
+ * converted tiled surface paints (src/tile-grid.ts).
+ *
+ * A raster because of how engines rasterize a fill's art, not how they place
+ * its box. Chromium rasterizes an SVG image at the box's *stored* (layout)
+ * size — fractional at every scale the layout grid can't hold — and ignores
+ * `image-rendering` for SVG entirely, so the 1-bit rects antialias to gray no
+ * matter how exactly the box paint-snapped (measured; inline `crispEdges`
+ * patterns smear the same way). A raster source under
+ * `image-rendering: pixelated` is sampled nearest-neighbor, which can only
+ * ever produce source colors: the art is 1-bit by construction at every
+ * scale, holdable or not.
+ *
+ * Encoded through an offscreen canvas (a PNG encoder, not a render surface:
+ * the motif is drawn once into a cell, pattern-filled across the span, read
+ * out as a data URI and released — kit art only, so there is nothing
+ * cross-origin to taint). Where canvas is unavailable the SVG tile is
+ * returned instead, so the declaration still paints.
+ */
+export function tileRaster(
+  motifWidth: number,
+  motifHeight: number,
+  rects: readonly TileRect[],
+  spanWidth = tileSpan(motifWidth),
+  spanHeight = tileSpan(motifHeight)
+): string {
+  const svg = () => tileImage(motifWidth, motifHeight, tileRects(rects), spanWidth, spanHeight)
+  if (typeof document === 'undefined') return svg()
+  const cell = document.createElement('canvas')
+  cell.width = motifWidth
+  cell.height = motifHeight
+  const cellCtx = cell.getContext('2d')
+  if (!cellCtx) return svg()
+  for (const [x, y, w, h, fill] of rects) {
+    cellCtx.fillStyle = fill ?? '#000000'
+    cellCtx.fillRect(x, y, w, h)
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = spanWidth
+  canvas.height = spanHeight
+  const ctx = canvas.getContext('2d')
+  const pattern = ctx?.createPattern(cell, 'repeat')
+  if (!ctx || !pattern) return svg()
+  ctx.fillStyle = pattern
+  ctx.fillRect(0, 0, spanWidth, spanHeight)
+  return `url("${canvas.toDataURL('image/png')}")`
 }
 
 /**

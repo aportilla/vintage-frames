@@ -148,14 +148,22 @@ const page = await build(
   const leak = await page.evaluate(() => {
     const sr = (id, sel) => document.getElementById(id).shadowRoot.querySelector(sel)
     const stripes = getComputedStyle(sr('pbi', '.fill.stripes'))
-    const dots = getComputedStyle(sr('pal', '.vf-dots'))
+    const strip = getComputedStyle(sr('pbi', '.vf-tile-strip'))
+    const stripRaster = getComputedStyle(sr('pbi', '.vf-tile-strip .vf-tile-raster'))
+    const dotsRaster = getComputedStyle(sr('pal', '.vf-dots .vf-tile-raster'))
     const close = getComputedStyle(sr('doc', '.close'))
     const fill = getComputedStyle(sr('sw', '.fill'))
     return {
-      stripesImage: stripes.backgroundImage.startsWith('url("data:image/svg+xml'),
+      // The art rides the exact-fill raster (src/tile-grid.ts), painted as a
+      // raster data URI, visible, with the layer unmasked and the animation
+      // on the strip — the forced-colors branches must not leak into any of
+      // that in normal mode.
+      stripRasterImage: stripRaster.backgroundImage.startsWith('url("data:image/png'),
+      stripRasterShown: stripRaster.display !== 'none',
       stripesMask: stripes.maskImage,
-      stripesAnim: stripes.animationName,
-      dotsImage: dots.backgroundImage.startsWith('url("data:image/svg+xml'),
+      stripAnim: strip.animationName,
+      dotsImage: dotsRaster.backgroundImage.startsWith('url("data:image/png'),
+      dotsShown: dotsRaster.display !== 'none',
       closeShadow: close.boxShadow !== 'none',
       closeAdjust: close.forcedColorAdjust,
       fillAdjust: fill.forcedColorAdjust,
@@ -163,11 +171,17 @@ const page = await build(
     }
   })
   check(
-    'normal mode: the barber stripes still paint as the background tile, unmasked, on vf-barber',
-    leak.stripesImage && leak.stripesMask === 'none' && leak.stripesAnim === 'vf-barber',
-    `mask=${leak.stripesMask} anim=${leak.stripesAnim}`
+    'normal mode: the barber strip paints its raster art, unmasked, animated by vf-barber',
+    leak.stripRasterImage &&
+      leak.stripRasterShown &&
+      leak.stripesMask === 'none' &&
+      leak.stripAnim === 'vf-barber',
+    `mask=${leak.stripesMask} anim=${leak.stripAnim}`
   )
-  check('normal mode: the windoid dots still paint as the background tile', leak.dotsImage)
+  check(
+    'normal mode: the windoid dots paint their raster art',
+    leak.dotsImage && leak.dotsShown
+  )
   check(
     'normal mode: the close box keeps its box-shadow patch and default color adjust',
     leak.closeShadow && leak.closeAdjust === 'auto',

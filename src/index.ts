@@ -163,9 +163,24 @@ export {
   vfTileSize,
   vfTileMaskSize,
   tileImage,
+  tileRaster,
+  tileRects,
   tileSpan,
   TILE_LATTICE,
 } from './styles/base.js'
+export type { TileRect } from './styles/base.js'
+
+/**
+ * The exact tiled fill (TILE-GRID-PLAN.md): a surface's own art as one
+ * whole-surface raster (`tileRaster` + the `vf-tile-raster` rules), and a
+ * consumer pattern token as a flat grid of absolutely placed tiles
+ * (`tileGrid()`), each box paint-snapped to the device grid on its own — so
+ * the fill stays 1-bit at the zoom-minted scales a CSS `background-repeat`
+ * length cannot hold. `vfTileGrid` carries the container and tile rules;
+ * `patternOverride` reads whether a token is in play; `TileRasterCache`
+ * memoizes the encoded raster against its size.
+ */
+export { vfTileGrid, tileGrid, patternOverride, TileRasterCache } from './tile-grid.js'
 
 /** Glyph sprites (`glyphSvg(CHECKMARK, 'check')`) and their pixel geometry. */
 export {

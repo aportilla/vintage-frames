@@ -3,10 +3,11 @@
 **Short version:** on a native 3× display — and on Windows at 125% and 150%,
 and at 2.5× — the scale the kit derives is a fraction the browser's layout
 engine cannot store exactly. Solid art is unaffected, because paint snaps every
-box to the device grid on its own. Repeating fills were affected, badly, until
-they started spanning a size the grid can express; two residuals remain, and
-this document is the whole account of what the limit reaches and what it
-doesn't.
+box to the device grid on its own. Repeating fills were affected, badly —
+first fixed by spanning a size the grid can express, then converted off CSS
+repetition entirely (TILE-GRID-PLAN.md), which also closed the zoom rungs the
+span could never cover. Two residuals remain, and this document is the whole
+account of what the limit reaches and what it doesn't.
 
 ## What the limit is
 
@@ -65,7 +66,7 @@ unsnapped repeats, each placed at `k × tileSize`, so an unrepresentable tile
 size drifts a little further with every repeat and the phase is half a pixel out
 by the thirtieth tile.
 
-**The fix is the span** (`vfTileSize` / `tileImage`,
+**The first fix was the span** (`vfTileSize` / `tileImage`,
 `src/styles/recipes/tile.ts`). A repeating fill is authored as its motif and
 tiled at `lcm(motif, 15)` system px: a whole number of motifs, so the art is
 unchanged, and holdable at every scale in the table above, so every repeat lands
@@ -73,21 +74,27 @@ exactly. 15 covers them all because every derived scale's denominator has an odd
 part of 1, 3 or 5. The art carries the span through an SVG `<pattern>`, so the
 source stays the two or three rects that are the artwork.
 
-Nothing is traded away for it. The pitch is untouched — one system pixel of
-texture is still the same count of device pixels as every other edge on the
-screen — there is no rounding, no display-derived custom property to keep in
-sync, no `round()`, and the behavior is identical in every engine. The cost is a
-tile texture of at most 60 system px square, for art that repeats forever.
+**The fills no longer repeat in CSS at all** — the span construction is exact
+for every scale in the table above but cannot cover the scales *zoom* mints
+(20/17, 30/23 — arbitrary primes; ZOOM-TILE-DRIFT.md), so the four
+convertible surfaces (desktop dither, windoid dots, swatch checker, barber
+stripes) now render their art as one whole-surface raster, or a consumer
+pattern token as a flat grid of placed tiles (`src/tile-grid.ts`,
+TILE-GRID-PLAN.md). The span stays load-bearing for the scroll trough (a
+pseudo-element can host no children), the belt-and-braces underlays, and the
+forced-colors masks.
 
-Desktop dither, measured over the fill's interior (`npm run verify:tile`):
+Desktop dither, measured over the fill's interior (`npm run verify:tile`) —
+the span's numbers, before the conversion took even the residual cases to
+zero:
 
-| display | before | now |
-| --- | --- | --- |
-| 1×, 2× | 0% | 0% — nothing to fix |
-| 1.25× | 75% | **0%** |
-| 1.5× | 75% | **0%** |
-| 2.5× | 55% | **0%** |
-| 3× | 43% | **0%** |
+| display | before | with the span | now (converted) |
+| --- | --- | --- | --- |
+| 1×, 2× | 0% | 0% — nothing to fix | 0% |
+| 1.25× | 75% | **0%** | 0% |
+| 1.5× | 75% | **0%** | 0% |
+| 2.5× | 55% | **0%** | 0% |
+| 3× | 43% | **0%** | 0% |
 
 ## The two residuals
 
@@ -108,13 +115,16 @@ every fractional scale, and a 1-system-px border paints
 | 3× | 4 device px | **3** |
 
 So the kit's hairlines are thin at every density above 1×, including plain
-retina — and because a tiled layer inset by a frame's border inherits that
-floored offset, a *correctly sized* tile inside one still starts on a half
-device pixel at 1.25×/1.5×/2.5× and smears. That is why `verify:tile` prints the
-windoid dots', swatch checker's and barber stripes' residual rather than failing
-on it: their tiles are exact, their origins are not, and the cause is the
-border. The desktop dither, whose layer fills its host from (0,0), is held to
-zero.
+retina. The floored border used to smear the tiled layers inset by one — a
+correctly sized CSS-repeated tile starting on a half device pixel — but the
+converted fills retired that: the kit's whole-surface raster overdraws from
+the layer's origin and is held to **zero** gray on all four surfaces at every
+density, fractional origin or not. What remains of it is confined to the
+consumer-token path: a *placed tile grid* inside a floored border has every
+seam on a fractional device pixel at 1.25×/1.5×/2.5×, and the engine
+antialiases each box's painted edge there — a per-seam hairline (a few dozen
+pixels, printed by `verify:tile` rather than failed) where the old residual
+was surface-wide smear.
 
 Measured, `box-shadow: inset 0 0 0 calc(var(--vf-scale) * 1px)` over matching
 padding paints the true thickness at every density — 1, 2, 2, 3, 3, 4 — so a fix
@@ -159,5 +169,8 @@ holdableScale(scale)        // whether the engine can store it at all
 wherever the scale is holdable — which is every scale a 1× or 2× display
 derives, at every zoom — and elsewhere fall back to asserting nothing is off by
 half a device pixel, the error that actually smears 1-bit art. `verify:tile`
-holds every tiled surface's span to the arithmetic at six densities, and the one
-surface whose layer starts at its host's origin to a zero-gray raster.
+holds all four converted surfaces to a zero-gray raster at eight densities —
+the ladder plus the 1.7/2.3 broken-rung proxies — asserts the consumer tile
+grid's box geometry everywhere and its raster on the whole-origin densities,
+and keeps the trough's span arithmetic (headless Chromium paints no
+`::-webkit-scrollbar` skin, so arithmetic is all that can guard it).

@@ -1,4 +1,4 @@
-import { html, css, LitElement, nothing } from 'lit'
+import { html, css, LitElement, nothing, type PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { PlacementController, VfPositioned, warnMovableContract } from '../position.js'
@@ -13,7 +13,14 @@ import {
   vfTitleBar,
   vfWindowWidgets,
 } from '../styles/base.js'
-import { ScaleController, snapSys, toSysExact } from '../scale.js'
+import { DOT_MOTIF, DOT_RECTS, DOT_SPAN } from '../styles/recipes/pattern.js'
+import {
+  TileRasterCache,
+  patternOverride,
+  tileGrid,
+  vfTileGrid,
+} from '../tile-grid.js'
+import { ScaleController, snapSys, sysLength, toSysExact } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
 import { chromeTitleBar, widgetLabel, closeBox, zoomBox } from '../chrome.js'
@@ -39,6 +46,15 @@ const MIN_HEIGHT = 54
  * enough of the title bar to grab it back by.
  */
 const KEEP_GRABBABLE = 24
+
+/** The chrome frame's border on each side of the title bar, in system px. */
+const FRAME_BORDER = 1
+
+/**
+ * The windoid dots layer's height in system px: the 12px utility bar minus
+ * its 2px inset top and bottom (`vfDots`).
+ */
+const DOTS_LAYER_HEIGHT = 8
 
 /**
  * `<vf-window>` — the System 7 desktop-window shell.
@@ -84,7 +100,8 @@ const KEEP_GRABBABLE = 24
  * @fires vf-zoom - Zoom box clicked. Detail `{}`.
  * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 motif,
  *   one black pixel at its origin, on a 30-system-px tile (`vfDots`; override
- *   the whole tile like `--vf-desktop-pattern`)
+ *   the whole tile like `--vf-desktop-pattern` — consumer art renders as a
+ *   placed tile grid at that same geometry)
  * @cssprop --vf-titlebar-height - window/dialog title bars
  * @cssprop [--vf-titlebar-height-utility=12px] - the slim
  *   `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom
@@ -96,6 +113,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     vfBase,
     vfStripes,
     vfDots,
+    vfTileGrid,
     vfFocus,
     vfChromeFrame,
     vfTitleBar,
@@ -364,6 +382,52 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   private readonly gridSnap = new GridSnapController(this)
 
   /**
+   * The consumer's `--vf-dots-pattern` override, or `''` for the kit dots —
+   * which exact-fill path the utility bar takes (src/tile-grid.ts). Re-read
+   * every update; a runtime token swap wants a `requestUpdate()`.
+   */
+  private _dotsPattern = ''
+
+  /** The whole-surface dots raster, cached against its ceiled size. */
+  readonly #dotsRaster = new TileRasterCache()
+
+  protected override willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed)
+    if (this.variant === 'utility') {
+      this._dotsPattern = patternOverride(this, '--vf-dots-pattern')
+    }
+  }
+
+  /**
+   * The exact dots fill rendered into the utility bar's `.vf-dots` layer
+   * (src/tile-grid.ts): the bar interior is the declared width minus the
+   * frame borders. The kit raster is ceiled to whole 30-px tiles so a
+   * grow-box resize only re-encodes the image when it crosses a tile
+   * boundary — the layer's clip crops the overdraw; a consumer
+   * `--vf-dots-pattern` renders the placed tile grid at the token's
+   * documented 30-px geometry instead. A window with no declared width
+   * renders neither and the layer keeps its CSS-repeated tile.
+   */
+  private _dotsTexture(): unknown {
+    if (this.width == null) return undefined
+    const barW = Math.max(1, this.width - 2 * FRAME_BORDER)
+    if (this._dotsPattern) {
+      return tileGrid({ cols: Math.ceil(barW / DOT_SPAN), rows: 1, tile: DOT_SPAN })
+    }
+    // One motif of overdraw each way: floored bar geometry can leave the
+    // layer a fraction of a system px larger than its stated box, and the
+    // raster must overshoot rather than stretch. The layer's clip crops it.
+    const w = Math.ceil((barW + DOT_MOTIF) / DOT_SPAN) * DOT_SPAN
+    const h = DOTS_LAYER_HEIGHT + DOT_MOTIF
+    return html`<div
+      class="vf-tile-raster"
+      style="width:${sysLength(w)};height:${sysLength(
+        h
+      )};background-image:${this.#dotsRaster.for(DOT_MOTIF, DOT_MOTIF, DOT_RECTS, w, h)}"
+    ></div>`
+  }
+
+  /**
    * Where a dragged window is allowed to end up, in system px: clamped against
    * the positioning parent (the desktop, usually) so it can't be pushed fully
    * past an edge and lost. Only a grabbable strip has to stay in — a window
@@ -586,7 +650,8 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
               ? zoomBox(widgetLabel('Zoom', this.heading), this._onZoomClick)
               : nothing}
           `,
-          this.variant === 'utility' ? 'vf-dots' : 'vf-stripes'
+          this.variant === 'utility' ? 'vf-dots' : 'vf-stripes',
+          this.variant === 'utility' ? this._dotsTexture() : undefined
         )}
         <div class="body" part="body">
           ${this.scrollbars

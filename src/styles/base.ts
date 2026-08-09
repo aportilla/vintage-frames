@@ -35,4 +35,13 @@ export { vfFocus, vfFocusRing, vfFocusUnderline } from './recipes/focus.js'
 export { vfToggle } from './recipes/toggle.js'
 export { vfField } from './recipes/field.js'
 export { vfScrollbars } from './recipes/scrollbars.js'
-export { TILE_LATTICE, tileImage, tileSpan, vfTileMaskSize, vfTileSize } from './recipes/tile.js'
+export {
+  TILE_LATTICE,
+  tileImage,
+  tileRaster,
+  tileRects,
+  tileSpan,
+  vfTileMaskSize,
+  vfTileSize,
+} from './recipes/tile.js'
+export type { TileRect } from './recipes/tile.js'

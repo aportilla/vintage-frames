@@ -15,6 +15,11 @@ import type { DragController } from './drag.js'
  * — which have to stay in lockstep with DragController's three handlers, and
  * where a dropped `pointercancel` would strand a drag — live in one place.
  *
+ * `texture` is the exact fill a width-declaring utility window renders INTO
+ * the dots layer — the whole-surface raster or a consumer token's tile grid
+ * (src/tile-grid.ts). Passing it marks the layer `vf-tile-grid`, which is
+ * what switches the layer's own CSS-repeated tile off (see `vfDots`).
+ *
  * A `<div>`, deliberately not a `<header>`: per HTML-AAM a `<header>` maps to
  * the `banner` landmark unless a sectioning ancestor demotes it, and inside a
  * shadow root nothing in the chain qualifies — so every window and dialog was
@@ -27,7 +32,8 @@ import type { DragController } from './drag.js'
 export const chromeTitleBar = (
   drag: DragController,
   content: unknown,
-  textureClass: 'vf-stripes' | 'vf-dots' = 'vf-stripes'
+  textureClass: 'vf-stripes' | 'vf-dots' = 'vf-stripes',
+  texture?: unknown
 ): TemplateResult => html`
   <div
     class="vf-title-bar"
@@ -37,7 +43,9 @@ export const chromeTitleBar = (
     @pointerup=${drag.onPointerUp}
     @pointercancel=${drag.onPointerUp}
   >
-    <div class=${textureClass}></div>
+    <div class=${texture ? `${textureClass} vf-tile-grid` : textureClass}>
+      ${texture ?? null}
+    </div>
     ${content}
   </div>
 `

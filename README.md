@@ -153,9 +153,12 @@ nested components never double-scale.
 The count is whole because the art has to land on the device-pixel grid, and
 rounding to the nearest costs at most half a device pixel per system pixel: a
 1× monitor renders 25% small, a 2× display 12% large, a 1.5× or 3× one exactly
-right. On a native 3× display one thing does not come out exact — see
-[docs/THREE-X-DISPLAYS.md](./docs/THREE-X-DISPLAYS.md), which is a platform
-limit rather than a setting.
+right. Some displays derive a scale the browser's layout engine cannot store
+exactly (1.25×, 1.5×, 2.5× and a native 3×) — paint snaps every box back onto
+the grid, and repeating fills span a size the grid can express, so what is left
+is a hairline one device pixel thin. See
+[docs/THREE-X-DISPLAYS.md](./docs/THREE-X-DISPLAYS.md); it is a platform limit
+rather than a setting.
 
 So the CSS size follows the display: the same push button is 20px tall on a 1×
 monitor and 30px on a 2× one, while the page's own 17px copy is 17px on both.
@@ -716,7 +719,7 @@ to drive `vf-button`, and geometry a component sets on itself.
 ## Tests
 
 ```sh
-npm test                   # all 32 verify scripts, in parallel
+npm test                   # all 33 verify scripts, in parallel
 npm test -- focus button   # only the ones whose name matches
 npm test -- --bail         # stop at the first failing script
 npm run verify:focus       # one script, against a dev server you started
@@ -754,6 +757,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `sys`, `toSys`, `toSysExact`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapSys`, `systemPxQuantum`, `snapToSystemPx`, `snapToDevicePx`| Convert between system (art) px and CSS px against the effective `--vf-scale`. `sysLength`/`sysLengths` emit a live system-px length (or 1–4 value shorthand) for a position or size written onto an element; `snapSys` puts a system-px coordinate on the placement lattice, `snapToSystemPx`/`snapToDevicePx` are its CSS-px twins. `CLASSIC_DPI` / `CSS_REFERENCE_DPI` / `SYSTEM_PX_IN_CSS_PX` are the constants the target is derived from |
 | `VfPositioned`, `VfSized`, `PlacementController` | The `top`/`left` and `width`/`height` mixins, plus the gesture half that states a drag's result in those same properties |
 | `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfModalFrame`, `vfTitleBar`, `vfWindowWidgets`, `vfHardShadowDecls`, `vfStripes`, `vfDots`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
+| `vfTileSize`, `vfTileMaskSize`, `tileImage`, `tileSpan`, `TILE_LATTICE` | A repeating fill's span and its art. State the motif in system px; the tile spans `lcm(motif, 15)`, the smallest whole number of motifs whose CSS length every derived scale can hold exactly, so no repeat drifts off the device grid |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `steppedRectClip`, `steppedRingClip`, `steppedCornerClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET`, `SCREEN_CORNER` | Pixel-stepped corner profiles and their `clip-path` traces, plus the screen-corner mask |
 | `DragController`, `ScrollStateController`, `TrackWidthController`, `DocumentListenersController` | Pointer-drag wiring; per-axis overflow and inactive-window reporting for the scrollbars; a track's measured width; document-level listeners scoped to an open panel or in-flight gesture |

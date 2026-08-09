@@ -1,12 +1,35 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, unsafeCSS } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
+import { tileImage, vfTileMaskSize, vfTileSize } from '../styles/recipes/tile.js'
 import { ScaleController, sys, toSys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { TrackWidthController } from '../track-width.js'
+
+/**
+ * The barber motif: a 12-system-px cell whose two black \ bands are a staircase
+ * of axis-aligned 1px rects, laid into the span a repeating fill has to take
+ * ({@link tileImage}). Declared once here rather than inline twice — the
+ * forced-colors branch masks with the same art — and above the class, since
+ * `@vfElement` upgrades at module evaluation.
+ */
+const BARBER_MOTIF = 12
+const BARBER_TILE = tileImage(
+  BARBER_MOTIF,
+  BARBER_MOTIF,
+  "%3Crect x='0' y='0' width='6' height='1'/%3E%3Crect x='1' y='1' width='6' height='1'/%3E" +
+    "%3Crect x='2' y='2' width='6' height='1'/%3E%3Crect x='3' y='3' width='6' height='1'/%3E" +
+    "%3Crect x='4' y='4' width='6' height='1'/%3E%3Crect x='5' y='5' width='6' height='1'/%3E" +
+    "%3Crect x='6' y='6' width='6' height='1'/%3E%3Crect x='0' y='7' width='1' height='1'/%3E" +
+    "%3Crect x='7' y='7' width='5' height='1'/%3E%3Crect x='0' y='8' width='2' height='1'/%3E" +
+    "%3Crect x='8' y='8' width='4' height='1'/%3E%3Crect x='0' y='9' width='3' height='1'/%3E" +
+    "%3Crect x='9' y='9' width='3' height='1'/%3E%3Crect x='0' y='10' width='4' height='1'/%3E" +
+    "%3Crect x='10' y='10' width='2' height='1'/%3E%3Crect x='0' y='11' width='5' height='1'/%3E" +
+    "%3Crect x='11' y='11' width='1' height='1'/%3E"
+)
 
 /**
  * `<vf-progress-bar>` — the System 7 progress indicator.
@@ -25,9 +48,9 @@ import { TrackWidthController } from '../track-width.js'
  * @csspart fill - The determinate fill or the indeterminate stripe layer.
  * @cssprop [--vf-progress-fill=#000000] - determinate progress fill (solid
  *   black)
- * @cssprop --vf-progress-stripes - the indeterminate barber-stripe tile, drawn
- *   as rects so the staircase stays whole system px at any scale (override the
- *   whole pattern)
+ * @cssprop --vf-progress-stripes - the indeterminate barber stripes — a 12×12
+ *   motif drawn as rects so the staircase stays whole system px at any scale,
+ *   on a 60-system-px tile (override the whole tile)
  * @cssprop [--vf-progress-track=#ffffff] - progress track (white)
  */
 @vfElement('vf-progress-bar')
@@ -68,14 +91,12 @@ export class VfProgressBar extends VfPositioned(LitElement) {
            background is scaled up, whereas these rects stay pixel-exact at any
            scale (same reason the desktop dither uses rects). --vf-scale maps
            each system pixel to whole device pixels; each staircase step is one
-           whole system pixel. Override the whole pattern via
+           whole system pixel. The motif ships inside the 60-system-px tile a
+           repeating fill has to span (vfTileSize). Override the whole tile via
            --vf-progress-stripes. */
         background-color: var(--vf-white, #fff);
-        background-image: var(
-          --vf-progress-stripes,
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' shape-rendering='crispEdges'%3E%3Crect x='0' y='0' width='6' height='1'/%3E%3Crect x='1' y='1' width='6' height='1'/%3E%3Crect x='2' y='2' width='6' height='1'/%3E%3Crect x='3' y='3' width='6' height='1'/%3E%3Crect x='4' y='4' width='6' height='1'/%3E%3Crect x='5' y='5' width='6' height='1'/%3E%3Crect x='6' y='6' width='6' height='1'/%3E%3Crect x='0' y='7' width='1' height='1'/%3E%3Crect x='7' y='7' width='5' height='1'/%3E%3Crect x='0' y='8' width='2' height='1'/%3E%3Crect x='8' y='8' width='4' height='1'/%3E%3Crect x='0' y='9' width='3' height='1'/%3E%3Crect x='9' y='9' width='3' height='1'/%3E%3Crect x='0' y='10' width='4' height='1'/%3E%3Crect x='10' y='10' width='2' height='1'/%3E%3Crect x='0' y='11' width='5' height='1'/%3E%3Crect x='11' y='11' width='1' height='1'/%3E%3C/svg%3E")
-        );
-        background-size: calc(var(--vf-scale, 1) * 12px) calc(var(--vf-scale, 1) * 12px);
+        background-image: var(--vf-progress-stripes, ${unsafeCSS(BARBER_TILE)});
+        ${vfTileSize(BARBER_MOTIF)}
         /* Advance exactly one whole cell (12px) per cycle so the loop wraps
            with zero phase jump (no seam), in 4 chunky steps — steppy, not
            smooth. */
@@ -104,11 +125,8 @@ export class VfProgressBar extends VfPositioned(LitElement) {
         .fill.stripes {
           background-image: none;
           background-color: var(--vf-progress-fill, CanvasText);
-          mask-image: var(
-            --vf-progress-stripes,
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' shape-rendering='crispEdges'%3E%3Crect x='0' y='0' width='6' height='1'/%3E%3Crect x='1' y='1' width='6' height='1'/%3E%3Crect x='2' y='2' width='6' height='1'/%3E%3Crect x='3' y='3' width='6' height='1'/%3E%3Crect x='4' y='4' width='6' height='1'/%3E%3Crect x='5' y='5' width='6' height='1'/%3E%3Crect x='6' y='6' width='6' height='1'/%3E%3Crect x='0' y='7' width='1' height='1'/%3E%3Crect x='7' y='7' width='5' height='1'/%3E%3Crect x='0' y='8' width='2' height='1'/%3E%3Crect x='8' y='8' width='4' height='1'/%3E%3Crect x='0' y='9' width='3' height='1'/%3E%3Crect x='9' y='9' width='3' height='1'/%3E%3Crect x='0' y='10' width='4' height='1'/%3E%3Crect x='10' y='10' width='2' height='1'/%3E%3Crect x='0' y='11' width='5' height='1'/%3E%3Crect x='11' y='11' width='1' height='1'/%3E%3C/svg%3E")
-          );
-          mask-size: calc(var(--vf-scale, 1) * 12px) calc(var(--vf-scale, 1) * 12px);
+          mask-image: var(--vf-progress-stripes, ${unsafeCSS(BARBER_TILE)});
+          ${vfTileMaskSize(BARBER_MOTIF)}
           animation-name: vf-barber-mask;
         }
       }

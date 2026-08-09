@@ -279,7 +279,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-surface` | *(set by containers)* | bg behind legends/label patches; `vf-window` and `vf-dialog` both set it to white |
 | `--vf-disabled` | `#C0C0C0` | dimmed text, borders, glyphs (the kit's dim gray) |
 | `--vf-desktop` | `#808080` | base color under the desktop dither — occluded by the default (opaque) tile, so it only shows through a custom `--vf-desktop-pattern` |
-| `--vf-desktop-pattern` | *(1-bit SVG tile)* | `vf-desktop`'s background-image layer — a 50% checker drawn as opaque black-on-white rects (override the whole pattern) |
+| `--vf-desktop-pattern` | *(1-bit SVG tile)* | `vf-desktop`'s background-image layer — a 50% checker drawn as opaque black-on-white rects, on a 30-system-px tile (see *Tiled fills*; override the whole tile) |
 | `--vf-shadow-offset` | `2px` | window/menu hard shadow offset |
 | `--vf-control-height` | `22px` | text fields — `vf-text-field`, `vf-text-area`, the `vf-number-field` well |
 | `--vf-button-height` | `20px` | `vf-button` face (the default ring's inner box is 80×20) |
@@ -301,8 +301,8 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-list-max-height` | `200px` | `vf-list` max height before its rail takes over (the host adds the 2px frame) |
 | `--vf-titlebar-height` | `18px` | window/dialog title bars |
 | `--vf-titlebar-height-utility` | `12px` | the slim `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` |
-| `--vf-dots-pattern` | *(1-bit SVG tile)* | the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`) |
-| `--vf-swatch-checker` | *(SVG tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like `--vf-desktop-pattern`) |
+| `--vf-dots-pattern` | *(1-bit SVG tile)* | the windoid bar's dot-grid dither — a 2×2 motif, one black pixel at its origin, on a 30-system-px tile (`vfDots`; override the whole tile like `--vf-desktop-pattern`) |
+| `--vf-swatch-checker` | *(SVG tile)* | `vf-swatch`'s no-color transparency checker — a 4×4 motif of 2×2 white/`#c0c0c0` checks, on a 60-system-px tile (override the whole tile like `--vf-desktop-pattern`) |
 | `--vf-menubar-height` | `20px` | `vf-menu-bar` |
 | `--vf-separator-color` | `var(--vf-black, #000)` | `vf-separator` rule color — `vf-menu` sets it to `--vf-disabled` for the dimmed menu rule |
 | `--vf-separator-style` | `solid` | `vf-separator` rule style — `vf-menu` sets `dotted` (see `Menus.png`) |
@@ -311,7 +311,7 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-focus-underline-offset` | `4px` | where the dashed focus rule sits, from the underlined element's padding-box bottom (negative drops it below) — see §4 |
 | `--vf-progress-fill` | `#000000` | determinate progress fill (solid black) |
 | `--vf-progress-track` | `#ffffff` | progress track (white) |
-| `--vf-progress-stripes` | *(1-bit SVG tile)* | the indeterminate barber-stripe tile, drawn as rects so the staircase stays whole system px at any scale (override the whole pattern) |
+| `--vf-progress-stripes` | *(1-bit SVG tile)* | the indeterminate barber stripes — a 12×12 motif drawn as rects so the staircase stays whole system px at any scale, on a 60-system-px tile (override the whole tile) |
 | `--vf-scrollbar-thumb` | `#ffffff` | scrollbar thumb/elevator (white) |
 | `--vf-scrollbar-track` | `#c0c0c0` | scrollbar trough — **Firefox fallback only**; the WebKit path draws the dot-dither tile instead, and this is its flat 25%-black average |
 | `--vf-highlight` | `#000000` | selection background |
@@ -376,6 +376,32 @@ surroundings. It corrects the origin only: a fractional *size*, and a
 `--vf-scale × trueDpr` that isn't whole, are still the page's to get
 right.
 
+**Tiled fills.** A repeating `background-image` is the one place where "one
+system pixel is a whole number of device pixels" is not enough on its own. That
+contract holds — but the CSS *length* expressing it need not be one the engine
+can store: Chromium lays out in 1/64 CSS px (Gecko in 1/60), and at
+`--vf-scale` 4/3 a 2-system-px tile is 2.6667 CSS px, held as 2.65625. A single
+edge survives that, because paint snaps each box to the device grid on its own —
+which is why every border, stepped corner and magnified icon rasterizes exactly
+at 4/3. A tiled fill does not: it is ONE snapped box holding N *unsnapped*
+repeats, each placed at `k × tileSize`, so the error compounds until the tile
+boundary has walked a whole device pixel. Unfixed, 75% of the desktop dither
+rasterizes to mid-gray at dpr 1.5.
+
+So a repeating fill is authored as a **motif** and tiled at the span
+`lcm(motif, 15)` system px (`vfTileSize`, `tileImage`): a whole number of
+motifs, so the art is exactly what it was, and holdable at every scale the
+ladder derives, so every repeat lands on the grid. 15 is what covers them all —
+a scale `p/q` needs `q` to divide `64 × span`, the 64 already absorbs every
+power of two, and every derived scale (1, 3/2, 4/3, 8/5, 6/5, 5/4) has an odd
+part of 1, 3 or 5. The kit's five tiled surfaces span 30 (the desktop dither,
+the windoid dots) or 60 (the swatch checker, the barber stripes, the scroll
+trough) system px, and the art carries that span through an SVG `<pattern>` so
+the source stays the two or three rects that are the artwork. This costs
+nothing but a larger tile texture: no rounding, no display-derived property to
+keep in sync, no `round()`, and identical behavior in every engine. A pattern
+token overrides the whole **tile**, not the motif. `npm run verify:tile`.
+
 **`--vf-cursor` (hiding the pointer for a page-drawn cursor).** A page that
 draws its own cursor — a JS-positioned image on the system-pixel grid, which
 is what `applyCursor()` (`src/cursor.ts`) sets up with the kit's embedded
@@ -420,10 +446,16 @@ enabled well.
 - `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer
   inset `2px` top/bottom and **flush left/right** (the close-up reference runs
   the dots into the side borders; the `Windows/` sheet's 2px side inset is the
-  artist's, not the bar's), tiled with a 2×2 crisp SVG carrying one black
-  pixel at the tile origin (`--vf-dots-pattern` to retheme), traced from the
+  artist's, not the bar's), tiled with a 2×2 crisp SVG motif carrying one black
+  pixel at its origin (`--vf-dots-pattern` to retheme), traced from the
   window reference. An SVG tile for the same reason as the desktop
   dither: gradient hard stops feather at scale, SVG rects don't.
+- `vfTileSize` / `tileImage` — the span a REPEATING fill takes, and its art.
+  Every metric in the kit is `calc(var(--vf-scale, 1) * Npx)`, and paint snaps
+  each box to the device grid on its own — but a tiled fill is one snapped box
+  holding N *unsnapped* repeats, each placed at `k × tileSize`, so a tile size
+  the layout grid cannot hold drifts a fraction of a device pixel further with
+  every repeat. See *Tiled fills* below.
 - `vfHardShadowDecls` — the hard 1-bit drop shadow on its own, for composing
   into a surface that supplies its own border:
   `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
@@ -615,9 +647,10 @@ Full-bleed classic desktop container.
 - **Visual:** `display: block; position: relative;` — the paint lives on an
   inner screen surface (part `desktop`, `overflow: hidden` — the
   whole-system-px raster, inset by `bezel` when one is set).
-  Screen background = classic 50% dither, drawn as a crisp SVG tile: a 2×2 grid with an
-  opaque white base and two black pixels on the diagonal, `background-size: 2px
-  2px` scaled by `--vf-scale`, overridable via `--vf-desktop-pattern`. (A
+  Screen background = classic 50% dither, drawn as a crisp SVG tile: a 2×2 motif
+  with an opaque white base and two black pixels on the diagonal, laid into the
+  30-system-px tile a repeating fill has to span (see *Tiled fills*) and scaled
+  by `--vf-scale`, overridable via `--vf-desktop-pattern`. (A
   `repeating-conic-gradient` feathers its hard stops at scale; the SVG rects stay
   pixel-exact.) The tile is opaque black-on-white — the authentic System 7
   dither — so it covers `var(--vf-desktop, #808080)` beneath it; that base color

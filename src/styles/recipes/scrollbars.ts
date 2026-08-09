@@ -1,4 +1,20 @@
-import { css } from 'lit'
+import { css, unsafeCSS } from 'lit'
+import { tileImage, vfTileSize } from './tile.js'
+
+/**
+ * The trough's 25% lattice: a 4×2-system-px motif with a dot at (0,0) and
+ * (2,1), laid into the span a repeating fill has to take. A rail is the one
+ * tiled surface the verify suite cannot check — headless Chromium does not
+ * paint `::-webkit-scrollbar` skins at all — so it is held to the same
+ * construction as the surfaces that ARE measured rather than to a measurement.
+ */
+const TROUGH_MOTIF_X = 4
+const TROUGH_MOTIF_Y = 2
+const TROUGH_TILE = tileImage(
+  TROUGH_MOTIF_X,
+  TROUGH_MOTIF_Y,
+  "%3Crect width='1' height='1'/%3E%3Crect x='2' y='1' width='1' height='1'/%3E"
+)
 
 /**
  * System 7 scrollbars. Add the `vf-scroll` class to a BORDERLESS element with
@@ -62,13 +78,13 @@ export const vfScrollbars = css`
     cursor: var(--vf-cursor, default);
   }
   /* Loose 1-bit dither: a 25%-density dot lattice — dotted vertical lines two
-     pixels apart, each column phase-shifted by one row. A 4×2 tile with a dot
+     pixels apart, each column phase-shifted by one row. A 4×2 motif with a dot
      at (0,0) and (2,1) reproduces the sprite exactly, far airier than a 50%
      checkerboard. */
   .vf-scroll::-webkit-scrollbar-track {
     background-color: var(--vf-white, #fff);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='2'%3E%3Crect width='1' height='1'/%3E%3Crect x='2' y='1' width='1' height='1'/%3E%3C/svg%3E");
-    background-size: calc(var(--vf-scale, 1) * 4px) calc(var(--vf-scale, 1) * 2px);
+    background-image: ${unsafeCSS(TROUGH_TILE)};
+    ${vfTileSize(TROUGH_MOTIF_X, TROUGH_MOTIF_Y)}
   }
   /* Interior rail dividing the content from the scrollbar channel. The outer
      edges are drawn by the .vf-scroll-frame overlay (see the border trims

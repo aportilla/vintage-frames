@@ -1,4 +1,14 @@
-import { css } from 'lit'
+import { css, unsafeCSS } from 'lit'
+import { tileImage, vfTileMaskSize, vfTileSize } from './tile.js'
+
+/**
+ * The windoid bar's dither: a 2-system-px motif with a single black pixel at
+ * its origin, laid into the span a repeating fill has to take. Transparent
+ * ground, because the layer floats over the bar and the same art doubles as
+ * the forced-colors mask, where the ground would be opacity rather than paint.
+ */
+const DOT_MOTIF = 2
+const DOT_TILE = tileImage(DOT_MOTIF, DOT_MOTIF, "%3Crect width='1' height='1' fill='%23000000'/%3E")
 
 /**
  * Racing stripes for title bars. Apply the class to an absolutely-positioned
@@ -34,20 +44,18 @@ export const vfStripes = css`
  * layer inset 2px top/bottom and FLUSH left/right: the close-up reference art
  * runs the dots all the way into the side borders (the Windows/ sheet hand-
  * insets them 2px, which the close-up shows is not the bar's own geometry).
- * The tile is 2×2 with a single black pixel at the tile origin, drawn as a
+ * The motif is 2×2 with a single black pixel at its origin, drawn as a
  * crisp 1-bit SVG for the same reason
  * as vf-desktop's checker: gradient hard stops feather at scale, SVG rects
- * don't. Override the whole pattern via `--vf-dots-pattern`.
+ * don't. It ships inside the 30-system-px tile a repeating fill has to span
+ * ({@link vfTileSize}); override the whole tile via `--vf-dots-pattern`.
  */
 export const vfDots = css`
   .vf-dots {
     position: absolute;
     inset: calc(var(--vf-scale, 1) * 2px) 0;
-    background-image: var(
-      --vf-dots-pattern,
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
-    );
-    background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+    background-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
+    ${vfTileSize(DOT_MOTIF)}
     pointer-events: none;
   }
   /* Forced colors preserves url() tiles verbatim, so the dots would stay
@@ -58,11 +66,8 @@ export const vfDots = css`
     .vf-dots {
       background-image: none;
       background-color: var(--vf-black, #000);
-      mask-image: var(
-        --vf-dots-pattern,
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
-      );
-      mask-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+      mask-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
+      ${vfTileMaskSize(DOT_MOTIF)}
     }
   }
 `

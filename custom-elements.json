@@ -1969,7 +1969,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window. The windows' light-DOM order is kept\nin step with the stacking order (bottom-most first, at pointer-gesture\nends), so tabbing walks the stack the way the eye does and Shift+Tab is\nits exact mirror.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\nThe desktop is a raster with an explicit size, always: **`width` and\n`height`**, in system px, the way a WIND resource declared a window's —\nthe host box renders at the declared screen plus `2 × bezel` per axis, a\nwhole number of system pixels by construction (default 512×342, the\ncompact Mac's screen). Pure CSS sizing is not supported; the page sets\nthe numbers — directly, or via VfDesktop.fitWithin on\n`resize`/`onScaleChange` for a viewport-filling desktop — and positions\nthe sized box with its own stylesheet, keeping any sub-system-pixel\nslack on its side. `bezel` (system px) draws the black screen surround —\nthe CRT's unlit margin — around the screen, rounding its top corners\nwith the classic corner mask.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image pattern layer (default a\n  1-bit 50% checker dither, drawn as opaque black-on-white).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
+          "description": "`<vf-desktop>` — the full-bleed classic desktop container.\n\nRenders the 50%-dither gray desktop pattern and manages the stacking order\nand `active` state of slotted `vf-window` children: a `pointerdown` or\n`focusin` (keyboard focus) anywhere inside a window brings it to the front\nand makes it the single active window. The windows' light-DOM order is kept\nin step with the stacking order (bottom-most first, at pointer-gesture\nends), so tabbing walks the stack the way the eye does and Shift+Tab is\nits exact mirror.\n\nUtility windows (`vf-window[variant=\"utility\"]`) stack in a floating tier\nabove every document-tier window, restack only among themselves, and stand\noutside the single-active invariant entirely — clicking a palette neither\ndeactivates the active document window nor greys the palette, exactly as\nSystem 7's floating windoids behaved while their application was frontmost.\n\nThe desktop is a raster with an explicit size, always: **`width` and\n`height`**, in system px, the way a WIND resource declared a window's —\nthe host box renders at the declared screen plus `2 × bezel` per axis, a\nwhole number of system pixels by construction (default 512×342, the\ncompact Mac's screen). Pure CSS sizing is not supported; the page sets\nthe numbers — directly, or via VfDesktop.fitWithin on\n`resize`/`onScaleChange` for a viewport-filling desktop — and positions\nthe sized box with its own stylesheet, keeping any sub-system-pixel\nslack on its side. `bezel` (system px) draws the black screen surround —\nthe CRT's unlit margin — around the screen, rounding its top corners\nwith the classic corner mask.\n\nCustom properties:\n- `--vf-desktop-pattern` — the background-image tile (default a 1-bit 50%\n  checker dither, drawn as opaque black-on-white on a 30-system-px tile).\n- `--vf-desktop` — base color painted *under* the pattern layer (default\n  `#808080`). The default tile is opaque, so this only becomes visible when\n  `--vf-desktop-pattern` is overridden with a tile that has transparent\n  cells (or with `none`).",
           "name": "VfDesktop",
           "cssProperties": [
             {
@@ -1978,7 +1978,7 @@
               "default": "#808080"
             },
             {
-              "description": "`vf-desktop`'s background-image layer — a 50% checker drawn as opaque black-on-white rects (override the whole pattern)",
+              "description": "`vf-desktop`'s background-image layer — a 50% checker drawn as opaque black-on-white rects, on a 30-system-px tile (override the whole tile)",
               "name": "--vf-desktop-pattern"
             }
           ],
@@ -8489,7 +8489,7 @@
               "default": "#000000"
             },
             {
-              "description": "the indeterminate barber-stripe tile, drawn as rects so the staircase stays whole system px at any scale (override the whole pattern)",
+              "description": "the indeterminate barber stripes — a 12×12 motif drawn as rects so the staircase stays whole system px at any scale, on a 60-system-px tile (override the whole tile)",
               "name": "--vf-progress-stripes"
             },
             {
@@ -13099,7 +13099,7 @@
           "name": "VfSwatch",
           "cssProperties": [
             {
-              "description": "`vf-swatch`'s no-color transparency checker — a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like `--vf-desktop-pattern`)",
+              "description": "`vf-swatch`'s no-color transparency checker — a 4×4 motif of 2×2 white/`#c0c0c0` checks, on a 60-system-px tile (override the whole tile like `--vf-desktop-pattern`)",
               "name": "--vf-swatch-checker"
             }
           ],
@@ -16154,7 +16154,7 @@
           "name": "VfWindow",
           "cssProperties": [
             {
-              "description": "the windoid bar's dot-grid dither — a 2×2 tile, one black pixel at the origin (`vfDots`; override the whole pattern like `--vf-desktop-pattern`)",
+              "description": "the windoid bar's dot-grid dither — a 2×2 motif, one black pixel at its origin, on a 30-system-px tile (`vfDots`; override the whole tile like `--vf-desktop-pattern`)",
               "name": "--vf-dots-pattern"
             },
             {

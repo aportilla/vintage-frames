@@ -1,12 +1,28 @@
-import { css, html } from 'lit'
+import { css, html, unsafeCSS } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
+import { tileImage, vfTileSize } from '../styles/recipes/tile.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { VfShadowRoleControl } from '../form-control.js'
+
+/**
+ * The transparency checker: a 4-system-px motif of 2×2 checks, laid into the
+ * span a repeating fill has to take ({@link tileImage}). Above the class for
+ * the same reason as vf-desktop's dither — `@vfElement` upgrades at module
+ * evaluation, before a module-tail const is initialized.
+ */
+const CHECKER_MOTIF = 4
+const CHECKER_TILE = tileImage(
+  CHECKER_MOTIF,
+  CHECKER_MOTIF,
+  "%3Crect width='4' height='4' fill='%23ffffff'/%3E" +
+    "%3Crect width='2' height='2' fill='%23c0c0c0'/%3E" +
+    "%3Crect x='2' y='2' width='2' height='2' fill='%23c0c0c0'/%3E"
+)
 
 /**
  * `<vf-swatch>` — a color-swatch button: the color well of a palette cell.
@@ -46,8 +62,8 @@ import { VfShadowRoleControl } from '../form-control.js'
  *   `shadow`, the drop shadow).
  * @csspart fill - The color area inside the inset.
  * @cssprop --vf-swatch-checker - `vf-swatch`'s no-color transparency checker —
- *   a 4×4 tile of 2×2 white/`#c0c0c0` checks (override the whole pattern like
- *   `--vf-desktop-pattern`)
+ *   a 4×4 motif of 2×2 white/`#c0c0c0` checks, on a 60-system-px tile
+ *   (override the whole tile like `--vf-desktop-pattern`)
  */
 @vfElement('vf-swatch')
 export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
@@ -63,15 +79,13 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
         display: inline-flex;
         cursor: var(--vf-cursor, default);
         /* The transparency checker: 2×2-system-px white/#c0c0c0 checks on a
-           4×4 SVG tile — crisp 1-bit rects for the same reason as vf-desktop's
-           dither (gradient hard stops feather at scale). Resolved into a
+           4×4 SVG motif — crisp 1-bit rects for the same reason as vf-desktop's
+           dither (gradient hard stops feather at scale), shipped inside the
+           60-system-px tile a repeating fill has to span. Resolved into a
            private property once so the .fill rule below and render()'s
            translucent-color layering share one definition; override the
-           public token to retheme the whole pattern. */
-        --_checker: var(
-          --vf-swatch-checker,
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='4' height='4' fill='%23ffffff'/%3E%3Crect width='2' height='2' fill='%23c0c0c0'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23c0c0c0'/%3E%3C/svg%3E")
-        );
+           public token to retheme the whole tile. */
+        --_checker: var(--vf-swatch-checker, ${unsafeCSS(CHECKER_TILE)});
         /* How deep a shadow this swatch actually casts — nothing unless the
            shadow attribute is set. Resolved here once so the focus rule below
            can compose the real depth rather than assume one, and so a consumer
@@ -131,11 +145,10 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
         width: 100%;
         height: 100%;
         background-image: var(--_checker);
-        /* One checker tile per 4 system px; with a color layered on in
-           render() the single size repeats across both layers, which is
-           harmless — a uniform gradient tiles invisibly. */
-        background-size: calc(var(--vf-scale, 1) * 4px)
-          calc(var(--vf-scale, 1) * 4px);
+        /* One checker motif per 4 system px, tiled at the 60-px span; with a
+           color layered on in render() the single size repeats across both
+           layers, which is harmless — a uniform gradient tiles invisibly. */
+        ${vfTileSize(CHECKER_MOTIF)}
         /* Forced colors would delete the color layer (a gradient) and keep
            the checker, showing "transparent" for every color. The fill is
            CONTENT, not chrome — the color is the one thing the control

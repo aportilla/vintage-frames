@@ -160,6 +160,11 @@ export {
   vfToggle,
   vfField,
   vfScrollbars,
+  vfTileSize,
+  vfTileMaskSize,
+  tileImage,
+  tileSpan,
+  TILE_LATTICE,
 } from './styles/base.js'
 
 /** Glyph sprites (`glyphSvg(CHECKMARK, 'check')`) and their pixel geometry. */

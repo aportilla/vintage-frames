@@ -3,6 +3,7 @@ import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
+import { tileImage, vfTileSize } from '../styles/recipes/tile.js'
 import { ScaleController, effectiveScale, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
@@ -24,6 +25,22 @@ const UTILITY_Z_BAND = 1_000_000
  */
 const DEFAULT_SCREEN_WIDTH = 512
 const DEFAULT_SCREEN_HEIGHT = 342
+
+/**
+ * The desktop's 50% checker: a 2-system-px motif, laid into the span a
+ * repeating fill has to take ({@link tileImage}). Declared above the class
+ * because `@vfElement` upgrades synchronously at module evaluation, so a
+ * module-tail const would be in its temporal dead zone by the time `styles`
+ * is read.
+ */
+const DITHER_MOTIF = 2
+const DITHER_TILE = tileImage(
+  DITHER_MOTIF,
+  DITHER_MOTIF,
+  "%3Crect width='2' height='2' fill='%23ffffff'/%3E" +
+    "%3Crect width='1' height='1' fill='%23000000'/%3E" +
+    "%3Crect x='1' y='1' width='1' height='1' fill='%23000000'/%3E"
+)
 
 /**
  * `<vf-desktop>` — the full-bleed classic desktop container.
@@ -55,8 +72,8 @@ const DEFAULT_SCREEN_HEIGHT = 342
  * with the classic corner mask.
  *
  * Custom properties:
- * - `--vf-desktop-pattern` — the background-image pattern layer (default a
- *   1-bit 50% checker dither, drawn as opaque black-on-white).
+ * - `--vf-desktop-pattern` — the background-image tile (default a 1-bit 50%
+ *   checker dither, drawn as opaque black-on-white on a 30-system-px tile).
  * - `--vf-desktop` — base color painted *under* the pattern layer (default
  *   `#808080`). The default tile is opaque, so this only becomes visible when
  *   `--vf-desktop-pattern` is overridden with a tile that has transparent
@@ -69,7 +86,8 @@ const DEFAULT_SCREEN_HEIGHT = 342
  *   occluded by the default (opaque) tile, so it only shows through a custom
  *   `--vf-desktop-pattern`
  * @cssprop --vf-desktop-pattern - `vf-desktop`'s background-image layer — a 50%
- *   checker drawn as opaque black-on-white rects (override the whole pattern)
+ *   checker drawn as opaque black-on-white rects, on a 30-system-px tile
+ *   (override the whole tile)
  */
 @vfElement('vf-desktop')
 export class VfDesktop extends VfPositioned(LitElement) {
@@ -101,19 +119,18 @@ export class VfDesktop extends VfPositioned(LitElement) {
            raster's corrected edge, not the host's possibly-fractional one. */
         overflow: hidden;
         background-color: var(--vf-desktop, #808080);
-        /* Classic 50% checker dither as a crisp 1-bit SVG tile — a 2×2 grid
+        /* Classic 50% checker dither as a crisp 1-bit SVG tile — a 2×2 motif
            painting an opaque white base with two black pixels on the diagonal.
            Black-on-white is the authentic System 7 dither, so the tile is
            deliberately opaque and covers the background-color above (see the
            --vf-desktop note in the class doc). Scaled with --vf-scale so each
            system pixel lands on whole device pixels; unlike a conic-gradient
            (whose hard stops the browser feathers into a blur), the SVG rects are
-           pixel-exact. Override the whole pattern via --vf-desktop-pattern. */
-        background-image: var(
-          --vf-desktop-pattern,
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23ffffff'/%3E%3Crect width='1' height='1' fill='%23000000'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000000'/%3E%3C/svg%3E")
-        );
-        background-size: calc(var(--vf-scale, 1) * 2px) calc(var(--vf-scale, 1) * 2px);
+           pixel-exact. The motif ships inside the 30-system-px tile a repeating
+           fill has to span (vfTileSize); override the whole tile via
+           --vf-desktop-pattern. */
+        background-image: var(--vf-desktop-pattern, ${unsafeCSS(DITHER_TILE)});
+        ${vfTileSize(DITHER_MOTIF)}
         /* Forced colors: the checker is opaque literal white-and-black (a
            preserved url() tile), which ignores a dark theme entirely. A
            backdrop is decoration, and high-contrast mode is a request for

@@ -82,9 +82,9 @@ const KEEP_GRABBABLE = 24
  *   compatible with vf-dialog's `vf-close`). The window does NOT
  *   remove itself; the consumer decides what closing means.
  * @fires vf-zoom - Zoom box clicked. Detail `{}`.
- * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,
- *   one black pixel at the origin (`vfDots`; override the whole pattern like
- *   `--vf-desktop-pattern`)
+ * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 motif,
+ *   one black pixel at its origin, on a 30-system-px tile (`vfDots`; override
+ *   the whole tile like `--vf-desktop-pattern`)
  * @cssprop --vf-titlebar-height - window/dialog title bars
  * @cssprop [--vf-titlebar-height-utility=12px] - the slim
  *   `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom

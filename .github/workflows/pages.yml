@@ -1,0 +1,67 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# GITHUB_TOKEN needs to write a Pages deployment and mint the OIDC token
+# deploy-pages authenticates with. Everything else stays read-only.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time. Unlike CI, an in-flight run is not cancelled: a
+# half-finished deploy is worse than a superseded one, so a newer push queues.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Reports where the site will be served from — and enables Pages on the
+      # repo, with Actions as the source, the first time this runs.
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      # base_path is the URL prefix of the deployed site: '/vintage-frames' for
+      # the project site, '/' behind a custom domain. Passing it means the build
+      # never has to hard-code which one this repo is.
+      - name: Build the demo pages
+        run: npm run build:pages
+        env:
+          VF_BASE: ${{ steps.pages.outputs.base_path }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

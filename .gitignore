@@ -1,5 +1,8 @@
 node_modules/
 dist/
+
+# npm run build:pages — the demo site the Pages workflow builds and uploads
+dist-pages/
 *.local
 .DS_Store
 

@@ -421,7 +421,10 @@ function loadStrike(family: CharsetFamily, font: CharsetFont): Promise<boolean> 
     // register-embedded-font.ts: window content inherits the kit's
     // font-weight 700, and a face registered at the default 400 would have
     // the browser synthesize faux-bold over the strike, smearing every stem.
-    const face = new FontFace(name, `url(/fonts/imported/${font.file})`, {
+    // Root-relative through the site's base, not the origin's: a Pages project
+    // site serves this page under /<repo>/, and fonts/ is under that too.
+    const url = `${import.meta.env.BASE_URL}fonts/imported/${font.file}`
+    const face = new FontFace(name, `url(${url})`, {
       style: 'normal',
       weight: '100 900',
     })

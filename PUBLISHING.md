@@ -177,10 +177,14 @@ Skip all of this for 0.1.0. Worth knowing it exists:
   long-lived token anywhere — plus a provenance badge on the npm page proving
   the tarball came from a public build of your repo. The right move once
   releases are frequent enough that laptop publishing chafes.
-- **GitHub Pages for the demos.** The showcase/blog/reference pages are the
-  best advertisement this library has, but `vite.config.ts` is lib-mode — a
-  Pages deploy needs a second Vite config with the three HTML pages as
-  `rollupOptions.input`. Natural home for MAKING-OF.md when that ships, too.
+- ~~**GitHub Pages for the demos.**~~ **Done 2026-08-08:**
+  `vite.pages.config.ts` builds the three pages with the project-site base
+  path, and `.github/workflows/pages.yml` deploys them on every push to `main`.
+  Two things to know: the demo pages serve the embedded Apple strikes and the
+  System 7 icon crops from a public URL, which is the distribution question
+  below arriving in its hosted form; and the Character Set window's strikes are
+  untracked, so on the deployed site that one panel shows its own
+  "collection isn't built" note. Natural home for MAKING-OF.md when that ships.
 - **Branch protection on `main`** — matters when a second contributor shows
   up, noise before then.
 - **`npm dist-tags`** — `npm publish --tag next` publishes without moving

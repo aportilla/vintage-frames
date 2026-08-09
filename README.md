@@ -56,6 +56,13 @@ npm run typecheck
 npm test           # the whole verify suite (starts its own dev server)
 ```
 
+The same three pages are published at
+**[aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/)**,
+deployed by `.github/workflows/pages.yml` on every push to `main`.
+`npm run build:pages` builds that site locally (`vite.pages.config.ts`, a
+separate config because `vite.config.ts` is lib mode) and `npm run preview:pages`
+serves the built copy under the same base path the deploy uses.
+
 | Page | What it is |
 | --- | --- |
 | [`/examples.html`](http://localhost:5173/examples.html) | **Component reference** — every element, its API, and a live specimen of each state. Each code sample is the demo's own source, so it can't drift |

@@ -13,5 +13,5 @@
     "noEmit": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "demo", "vite.config.ts"]
+  "include": ["src", "demo", "vite.config.ts", "vite.pages.config.ts"]
 }

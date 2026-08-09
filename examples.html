@@ -59,33 +59,11 @@
           <pre class="snippet"><code>import 'vintage-frames' // registers every &lt;vf-*&gt; element</code></pre>
 
           <p>
-            The kit ships no stylesheet. Every visual constant is a
-            <code>--vf-*</code> custom property with an inlined fallback
-            (<a href="#tokens">the token table</a>), every component's internals are
-            reachable through <code>::part()</code>, and the two bitmap faces register
-            themselves on <code>document.fonts</code>.
-          </p>
-
-          <p>
-            The root import registers all 30 elements. To ship less, import by name —
-            same elements, one module each. Those subpaths and the root are the whole
-            export surface.
+            The root import registers all the Vintage Frames elements. You can also import just the individual elements you need.
           </p>
           <pre class="snippet"><code>import 'vintage-frames/vf-button.js'
 import 'vintage-frames/vf-checkbox.js'</code></pre>
 
-          <p>
-            Events are named <code>vf-*</code> and dispatched
-            <code>bubbles: true, composed: true</code>, so one delegated listener
-            catches them however deep the shadow roots go. Native events are
-            untouched.
-          </p>
-
-          <p>
-            Each component sizes itself, with nothing to set up —
-            <a href="#sizing">Sizing and the device-pixel grid</a>, at the end of the
-            page, is what that means on your display.
-          </p>
         </section>
 
         <!-- ================================================================

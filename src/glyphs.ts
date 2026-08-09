@@ -152,6 +152,71 @@ export const STEPPER_DOWN_FILL: Glyph = {
 }
 
 /**
+ * Authentic System 7 scroll arrows (arrow + stem), traced from the Classic
+ * Macintosh UI Kit sprites — a hollow outline at rest that fills solid black
+ * while the button is pressed (the `*_FILL` variants). Each is stated on the
+ * scrollbar's full 16-unit cell (same convention as {@link STEPPER}): the
+ * outermost ring of that cell is the frame and divider lines, which the DOM
+ * rail draws as real borders, so the rail renders these through a
+ * `viewBox="1 1 14 14"` window onto the interior (src/scroll-rail.ts) — the
+ * ink never reaches the outer ring, so nothing is cropped.
+ */
+export const SCROLL_ARROW_UP: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M7 3h2v1h-2zM6 4h1v1h-1zM9 4h1v1h-1zM5 5h1v1h-1zM10 5h1v1h-1zM4 6h1v1h-1zM11 6h1v1h-1zM3 7h1v1h-1zM12 7h1v1h-1zM2 8h4v1h-4zM10 8h4v1h-4zM5 9h1v1h-1zM10 9h1v1h-1zM5 10h1v1h-1zM10 10h1v1h-1zM5 11h1v1h-1zM10 11h1v1h-1zM5 12h6v1h-6z',
+}
+
+/** {@link SCROLL_ARROW_UP}, pressed — the arrow flood-filled solid. */
+export const SCROLL_ARROW_UP_FILL: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M7 3h2v1h-2zM6 4h4v1h-4zM5 5h6v1h-6zM4 6h8v1h-8zM3 7h10v1h-10zM2 8h12v1h-12zM5 9h6v1h-6zM5 10h6v1h-6zM5 11h6v1h-6zM5 12h6v1h-6z',
+}
+
+/** The ▼ scroll arrow (vertical increment). */
+export const SCROLL_ARROW_DOWN: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M5 3h6v1h-6zM5 4h1v1h-1zM10 4h1v1h-1zM5 5h1v1h-1zM10 5h1v1h-1zM5 6h1v1h-1zM10 6h1v1h-1zM2 7h4v1h-4zM10 7h4v1h-4zM3 8h1v1h-1zM12 8h1v1h-1zM4 9h1v1h-1zM11 9h1v1h-1zM5 10h1v1h-1zM10 10h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM7 12h2v1h-2z',
+}
+
+/** {@link SCROLL_ARROW_DOWN}, pressed. */
+export const SCROLL_ARROW_DOWN_FILL: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M5 3h6v1h-6zM5 4h6v1h-6zM5 5h6v1h-6zM5 6h6v1h-6zM2 7h12v1h-12zM3 8h10v1h-10zM4 9h8v1h-8zM5 10h6v1h-6zM6 11h4v1h-4zM7 12h2v1h-2z',
+}
+
+/** The ◀ scroll arrow (horizontal decrement). */
+export const SCROLL_ARROW_LEFT: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M8 2h1v1h-1zM7 3h2v1h-2zM6 4h1v1h-1zM8 4h1v1h-1zM5 5h1v1h-1zM8 5h5v1h-5zM4 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM4 9h1v1h-1zM12 9h1v1h-1zM5 10h1v1h-1zM8 10h5v1h-5zM6 11h1v1h-1zM8 11h1v1h-1zM7 12h2v1h-2zM8 13h1v1h-1z',
+}
+
+/** {@link SCROLL_ARROW_LEFT}, pressed. */
+export const SCROLL_ARROW_LEFT_FILL: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M8 2h1v1h-1zM7 3h2v1h-2zM6 4h3v1h-3zM5 5h8v1h-8zM4 6h9v1h-9zM3 7h10v1h-10zM3 8h10v1h-10zM4 9h9v1h-9zM5 10h8v1h-8zM6 11h3v1h-3zM7 12h2v1h-2zM8 13h1v1h-1z',
+}
+
+/** The ▶ scroll arrow (horizontal increment). */
+export const SCROLL_ARROW_RIGHT: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M7 2h1v1h-1zM7 3h2v1h-2zM7 4h1v1h-1zM9 4h1v1h-1zM3 5h5v1h-5zM10 5h1v1h-1zM3 6h1v1h-1zM11 6h1v1h-1zM3 7h1v1h-1zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM11 9h1v1h-1zM3 10h5v1h-5zM10 10h1v1h-1zM7 11h1v1h-1zM9 11h1v1h-1zM7 12h2v1h-2zM7 13h1v1h-1z',
+}
+
+/** {@link SCROLL_ARROW_RIGHT}, pressed. */
+export const SCROLL_ARROW_RIGHT_FILL: Glyph = {
+  w: 16,
+  h: 16,
+  d: 'M7 2h1v1h-1zM7 3h2v1h-2zM7 4h3v1h-3zM3 5h8v1h-8zM3 6h9v1h-9zM3 7h10v1h-10zM3 8h10v1h-10zM3 9h9v1h-9zM3 10h8v1h-8zM7 11h3v1h-3zM7 12h2v1h-2zM7 13h1v1h-1z',
+}
+
+/**
  * Render a single-color glyph as a crisp, theme-colored inline SVG.
  *
  * Size and color come from CSS on the passed `className` (the SVG fills with

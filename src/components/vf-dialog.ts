@@ -12,11 +12,12 @@ import {
   vfTitleBar,
   vfWindowWidgets,
   vfDisplayDecls,
-  vfScrollbars,
+  vfScrollRail,
 } from '../styles/base.js'
 import { snapSys, toSysExact } from '../scale.js'
 import { DragController } from '../drag.js'
 import { ScrollStateController } from '../scroll-state.js'
+import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
 import { chromeTitleBar, widgetLabel, closeBox } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
@@ -64,9 +65,8 @@ import './vf-button-group.js'
  *   `--vf-desktop-pattern`)
  * @cssprop --vf-titlebar-height - window/dialog title bars
  * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
- * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
- *   the WebKit path draws the dot-dither tile instead, and this is its flat
- *   25%-black average
+ * @cssprop --vf-scrollbar-track - the scroll trough's base color under the
+ *   dot-dither (white)
  */
 @vfElement('vf-dialog')
 export class VfDialog extends VfModalDialog {
@@ -78,7 +78,7 @@ export class VfDialog extends VfModalDialog {
     vfModalFrame,
     vfTitleBar,
     vfWindowWidgets,
-    vfScrollbars,
+    vfScrollRail,
     modalDialogStyles,
     css`
       :host {
@@ -134,11 +134,11 @@ export class VfDialog extends VfModalDialog {
         overflow: hidden;
         padding: calc(var(--vf-scale, 1) * 16px);
       }
-      /* The scroll region's positioned wrapper (the .vf-scroll-frame overlay
-         insets against it). Shrink-only (flex-grow 0): with slack in the box
-         the footer sits right after the content, exactly where block flow put
-         it before this wrapper existed — the wrap only gives height back when
-         the content doesn't fit. */
+      /* The scroll region's positioned wrapper (the .scroll-frame overlay and
+         the rail overlay anchor against it). Shrink-only (flex-grow 0): with
+         slack in the box the footer sits right after the content, exactly
+         where block flow put it before this wrapper existed — the wrap only
+         gives height back when the content doesn't fit. */
       .content-wrap {
         position: relative;
         display: flex;
@@ -165,19 +165,45 @@ export class VfDialog extends VfModalDialog {
         overflow-y: hidden;
       }
       /* Only while genuinely over-stuffed (ScrollStateController's measured
-         signal): reserve the real 16px channel — modern Chromium draws a
-         zero-width overlay bar for a styled ::-webkit-scrollbar otherwise —
-         and box the rail with the recipe's frame overlay, which also draws
-         the bar's outer line. While the content fits, none of this matches
-         and the body renders exactly as it always has. */
+         signal) does the region scroll — reserving the 16px channel as its
+         own padding (what the native gutter used to reserve) — and only then
+         do the rail and the 1px frame boxing it appear. While the content
+         fits, none of this matches and the body renders exactly as it always
+         has. */
       .content[data-overflow-y='true'] {
         overflow-y: scroll;
-        scrollbar-gutter: stable;
+        padding-right: calc(var(--vf-scale, 1) * 16px);
       }
-      .content-wrap .vf-scroll-frame {
+      /* The rail rides the wrapper as an OVERLAY pinned to its right edge,
+         inside the boxing frame's lines (the 1px insets; the fourth side is
+         its own divider) — deliberately out of the layout flow: a rail
+         column's two fixed 15px arrow cells would hand the region a 32px
+         minimum height, and a short dialog would then measure as fitting
+         with the rail shown and overflowing without it, flip-flopping
+         forever. An overlay cannot move the box; the channel the content
+         pays for is the padding above. Hidden until the region actually
+         scrolls. */
+      .content-wrap .vf-rail {
+        position: absolute;
+        top: calc(var(--vf-scale, 1) * 1px);
+        right: calc(var(--vf-scale, 1) * 1px);
+        bottom: calc(var(--vf-scale, 1) * 1px);
         display: none;
       }
-      .content[data-overflow-y='true'] + .vf-scroll-frame {
+      .content[data-overflow-y='true'] ~ .vf-rail {
+        display: grid;
+      }
+      /* The 1px frame boxing the scrolling region and its rail — an overlay
+         (spanning both grid columns via inset 0) so the fitting dialog keeps
+         no reserved line. */
+      .scroll-frame {
+        position: absolute;
+        inset: 0;
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        pointer-events: none;
+        display: none;
+      }
+      .content[data-overflow-y='true'] ~ .scroll-frame {
         display: block;
       }
       /* A scrollable region is a keyboard stop (tabindex in the template);
@@ -294,9 +320,15 @@ export class VfDialog extends VfModalDialog {
     }
   )
 
+  /** Syncs the drawn rail to the content region and drives its interactions. */
+  private readonly _rail = new ScrollRailController(this, {
+    getScroll: () => this._content,
+  })
+
   /** Content changed under the fixed box — re-measure the overflow. */
   private _onBodySlotChange(): void {
     this._scrollState.measure()
+    this._rail.sync()
   }
 
   private _onCloseClick(): void {
@@ -327,7 +359,8 @@ export class VfDialog extends VfModalDialog {
               : nothing}
             <slot @slotchange=${this._onBodySlotChange}></slot>
           </div>
-          <div class="vf-scroll-frame" aria-hidden="true"></div>
+          ${renderScrollRail(this._rail, 'vertical')}
+          <div class="scroll-frame" aria-hidden="true"></div>
         </div>
         <div class="footer ${this._hasButtons ? '' : 'empty'}" part="footer">
           <vf-button-group class="buttons" part="buttons">

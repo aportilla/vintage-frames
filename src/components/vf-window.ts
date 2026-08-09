@@ -264,7 +264,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         padding: 0;
       }
       /* The edge-rail composition pulls the scroll area one system px OUT of
-         the body on every side so its frame overlay repaints the window's
+         the body on every side so its frame border repaints the window's
          border (see .edge-scroll below) — clipping the body would shave
          exactly that overhang off. The scroll area does its own clipping. */
       :host([scrollbars]) .body {
@@ -274,12 +274,10 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       /* --- Edge scroll rails (scrollbars) ----------------------------- */
       /* The TeachText composition (SPEC §5 vf-scroll-area), internalized:
          the built-in scroll area is pulled one system pixel under the window
-         frame on every side, so its own frame overlay repaints the window's
+         frame on every side, so its own frame border repaints the window's
          border lines exactly (no doubled frame), the rails run edge to edge,
-         and a resizable window's grow box (z-index 1) lands in the scrollbar
-         corner cell. The scrollbar anchors ride the window's whole-pixel box;
-         drag and grow keep it on coordinates the engine's scrollbar rects can
-         hold (see snapSys). */
+         and a resizable window's grow box (z-index 1) lands over the rail
+         corner cell. */
       .edge-scroll {
         width: calc(100% + var(--vf-scale, 1) * 2px);
         height: calc(100% + var(--vf-scale, 1) * 2px);
@@ -589,12 +587,12 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     if (!resize || event.pointerId !== resize.pointerId) return
     // The grow box writes the same `width`/`height` an author declares, in the
     // same unit: whole system px, snapped onto the placement lattice, so the
-    // window stays a whole count of art pixels — every interior metric (and an
-    // edge-mounted scroll rail's anchors) stays whole with it, the right/bottom
-    // borders land on the device grid like the left/top edges, and the box a
-    // user grew holds its size through a zoom instead of being re-read as a
-    // different number of art pixels at every step. Only the pointer delta
-    // crosses units: clientX is real (scaled) CSS px.
+    // window stays a whole count of art pixels — every interior metric stays
+    // whole with it, the right/bottom borders land on the device grid like
+    // the left/top edges, and the box a user grew holds its size through a
+    // zoom instead of being re-read as a different number of art pixels at
+    // every step. Only the pointer delta crosses units: clientX is real
+    // (scaled) CSS px.
     const width = Math.max(
       MIN_WIDTH,
       resize.baseWidth + toSysExact(event.clientX - resize.startX, this)

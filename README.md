@@ -124,10 +124,10 @@ at resolve time rather than as a 404 in production. Bundled and minified with
 
 | Imported | min | gzip |
 | --- | --- | --- |
-| `vf-separator.js` — sets no chrome type, so it carries no display face | 16.5 KB | 8.5 KB |
-| `vf-button.js` | 32.7 KB | 16.0 KB |
-| …plus `vf-checkbox.js` | 38.3 KB | 17.7 KB |
-| the root import — all 30 elements | 280 KB | 85.2 KB |
+| `vf-separator.js` — sets no chrome type, so it carries no display face | 16.5 KB | 8.6 KB |
+| `vf-button.js` | 35.9 KB | 17.2 KB |
+| …plus `vf-checkbox.js` | 41.5 KB | 18.9 KB |
+| the root import — all 30 elements | 293 KB | 90.4 KB |
 
 The first component pays for the shared floor; each one after it costs a couple
 of KB. Cherry-picking is worth it up to roughly a third of the kit.
@@ -322,12 +322,14 @@ nearest-neighbor too. The token contract is unchanged, with one nudge: a
 token swapped at runtime without touching the component wants a
 `requestUpdate()`.
 
-The one surface that cannot convert is the scroll trough — a
-`::-webkit-scrollbar` pseudo-element can host no children — so it keeps the
-span construction and, under Safari zoom, that caveat. `npm run verify:tile`
-holds the four converted surfaces to zero gray pixels at eight densities: the
-ladder plus 1.7 and 2.3, the emulated stand-ins for Safari's broken zoom
-rungs.
+The scroll trough converted with the rest when the kit took over drawing its
+scroll rails: once the one holdout (a `::-webkit-scrollbar` pseudo-element can
+host no children), it is ordinary DOM now and renders through the same
+whole-surface raster as the desktop dither — 1-bit at every scale, Safari's
+zoom-minted ones included. `npm run verify:tile` holds the four converted
+surfaces to zero gray pixels at eight densities — the ladder plus 1.7 and 2.3,
+the emulated stand-ins for Safari's broken zoom rungs — and
+`npm run verify:scrollbars` holds the trough to the same bar.
 
 ## Layout
 
@@ -757,7 +759,7 @@ to drive `vf-button`, and geometry a component sets on itself.
 ## Tests
 
 ```sh
-npm test                   # all 33 verify scripts, in parallel
+npm test                   # all 34 verify scripts, in parallel
 npm test -- focus button   # only the ones whose name matches
 npm test -- --bail         # stop at the first failing script
 npm run verify:focus       # one script, against a dev server you started
@@ -794,8 +796,9 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `applyCursor`, `CURSOR_ARROW`, `CURSOR_I_BEAM`, `CURSOR_CROSSHAIR`, `CURSOR_WAIT` | Replace the native pointer with the embedded System 7 set; the constants are that art, exported for remixing |
 | `sys`, `toSys`, `toSysExact`, `sysLength`, `sysLengths`, `effectiveScale`, `getScale`, `snapSys`, `systemPxQuantum`, `snapToSystemPx`, `snapToDevicePx`| Convert between system (art) px and CSS px against the effective `--vf-scale`. `sysLength`/`sysLengths` emit a live system-px length (or 1–4 value shorthand) for a position or size written onto an element; `snapSys` puts a system-px coordinate on the placement lattice, `snapToSystemPx`/`snapToDevicePx` are its CSS-px twins. `CLASSIC_DPI` / `CSS_REFERENCE_DPI` / `SYSTEM_PX_IN_CSS_PX` are the constants the target is derived from |
 | `VfPositioned`, `VfSized`, `PlacementController` | The `top`/`left` and `width`/`height` mixins, plus the gesture half that states a drag's result in those same properties |
-| `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfModalFrame`, `vfTitleBar`, `vfWindowWidgets`, `vfHardShadowDecls`, `vfStripes`, `vfDots`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollbars` | The 1-bit CSS recipes — compose into `static styles` |
-| `vfTileSize`, `vfTileMaskSize`, `tileImage`, `tileSpan`, `TILE_LATTICE` | A CSS-repeating fill's span and its art. State the motif in system px; the tile spans `lcm(motif, 15)`, the smallest whole number of motifs whose CSS length every derived scale can hold exactly. Still load-bearing for the scroll trough, the underlays and the forced-colors masks; the converted surfaces render through the tile grid below |
+| `vfBase`, `vfDisplay`, `vfDisplayDecls`, `vfBodyDecls`, `vfStaticText`, `vfPanel`, `vfChromeFrame`, `vfModalFrame`, `vfTitleBar`, `vfWindowWidgets`, `vfHardShadowDecls`, `vfStripes`, `vfDots`, `vfFocus`, `vfFocusRing`, `vfFocusUnderline`, `vfToggle`, `vfField`, `vfScrollRail` | The 1-bit CSS recipes — compose into `static styles` |
+| `ScrollRailController`, `renderScrollRail` | The kit-drawn System 7 scroll rails: the template helper renders the rail subtree (arrows, dither trough, the fixed 16px thumb) as a sibling of your scrolling element, and the controller syncs it to the native scrolling — which stays the platform's; only the native bar is hidden — while driving thumb drag, trough paging and arrow auto-repeat |
+| `vfTileSize`, `vfTileMaskSize`, `tileImage`, `tileSpan`, `TILE_LATTICE` | A CSS-repeating fill's span and its art. State the motif in system px; the tile spans `lcm(motif, 15)`, the smallest whole number of motifs whose CSS length every derived scale can hold exactly. Still load-bearing for the underlays and the forced-colors masks; the converted surfaces (the scroll trough among them) render through the tile grid below |
 | `vfTileGrid`, `tileGrid`, `tileRaster`, `tileRects`, `patternOverride`, `TileRasterCache` | The exact tiled fill (see "The tile grid"): a motif stated as rect data (`TileRect[]`) renders as one whole-surface raster (`tileRaster`, kit art) or a flat grid of placed tiles (`tileGrid`, consumer pattern tokens) — 1-bit at every scale, zoom-minted ones included |
 | `glyphSvg` + the glyph constants (`CHECKMARK`, `CARET_DOWN`, `STEPPER`, …) | The 1-bit sprite set, rendered inline as SVG |
 | `steppedRectClip`, `steppedRingClip`, `steppedCornerClip`, `BUTTON_FRAME`, `BUTTON_FACE`, `RING_FRAME`, `RING_HOLE`, `RING_INSET`, `SCREEN_CORNER` | Pixel-stepped corner profiles and their `clip-path` traces, plus the screen-corner mask |

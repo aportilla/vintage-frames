@@ -149,17 +149,15 @@ export function toSysExact(value: number, el: Element): number {
  * applied.
  *
  * At an integral density the snap is to whole CSS px — still whole device px
- * (1 CSS px = dpr device px), but also a coordinate WebKit can hold its
- * scrollbar rects to. WebKit pins scrollbar rects to whole CSS px, so a
- * scroll-bearing box whose edge lands on a half CSS px (an odd device px at
- * dpr 2) gets its rail painted one device pixel off its frame — dragging or
- * growing a document window in Safari fluttered a white hairline between the
- * rail and the frame as edges alternated half/whole CSS px. The costs: drag
- * granularity of one CSS px instead of one device px (imperceptible), and the
- * dpr-2 baseline nudge (MAKING-OF §5) always takes its known whole-CSS-px
- * rendering rather than sometimes its exact half-px one — a hard black/white
- * rail edge outranks a one-device-px text nudge. Fractional densities (where
- * WebKit doesn't run) keep the finest crisp grid: whole device px.
+ * (1 CSS px = dpr device px). Historically that was also what kept WebKit's
+ * native scrollbar rects (which it pinned to whole CSS px) on the frame; the
+ * kit now draws its own scroll rails, so the whole-CSS-px lift survives on
+ * its remaining merits: drag granularity of one CSS px instead of one device
+ * px is imperceptible, engines still quantize sub-CSS-px paint per box (the
+ * border-floor wobble), and the dpr-2 baseline nudge (MAKING-OF §5) always
+ * takes its known whole-CSS-px rendering rather than sometimes its exact
+ * half-px one. Fractional densities keep the finest crisp grid: whole device
+ * px.
  */
 export function snapToDevicePx(value: number): number {
   const dpr = truePixelRatio() || 1
@@ -181,16 +179,15 @@ export function snapToDevicePx(value: number): number {
  *
  * The step is the smallest run of system px that is also whole in CSS px —
  * one system px at dpr 1 and 3, two at dpr 2's 1.5 scale, where an odd count
- * lands an edge on a half CSS px. That lift is not optional at dpr 2:
- * browsers place scrollbar geometry in CSS-px terms, and a scroll-bearing
- * box with a half-CSS edge renders measurably wrong in BOTH engines — WebKit
- * pins the whole scrollbar rect to whole CSS px and shifts the rail a device
- * pixel off its frame (the slow-resize hairline flutter), and Blink paints a
- * half-CSS-height window's bottom rail edge one device pixel thick. Single-
- * pixel steps at dpr 2 would blemish every other position; the kit prefers
- * the every-step-perfect grid. A scale whole in neither (a fractional
- * density) falls back to single system px: whole device px, the finest crisp
- * grid there.
+ * lands an edge on a half CSS px. The lift earns its keep at dpr 2: engines
+ * still quantize sub-CSS-px paint per box (floored borders distribute their
+ * half-CSS slack by snap direction — the border-floor wobble), so whole-CSS
+ * edges are the positions every line renders the same at. It was once also
+ * load-bearing for the native scrollbars WebKit pinned to whole CSS px; the
+ * kit draws its own rails now, and the lattice keeps its gesture and
+ * art-crispness roles. A scale whole in no small run (a fractional density)
+ * falls back to single system px: whole device px, the finest crisp grid
+ * there.
  */
 export function snapToSystemPx(value: number, el: Element): number {
   const step = systemPxStep(el)
@@ -203,10 +200,9 @@ export function snapToSystemPx(value: number, el: Element): number {
  * why dpr 2 takes two). Identical to the historical behavior at 100% zoom
  * (k = 1 for scales 3 and 1, k = 2 for 1.5); under zoom the scale can be a
  * ratio like 5/3, where k = 3 is what keeps every drag step whole in CSS px —
- * without it the step fell through to a single system px and revived the
- * half-CSS-px edge that makes WebKit shift a scroll rail one device pixel off
- * its frame. A scale whole in no k ≤ 4 falls back to single system px: whole
- * device px, the finest crisp grid there. The float tolerance absorbs a scale
+ * the positions every engine-quantized line (see {@link snapToSystemPx})
+ * renders the same at. A scale whole in no k ≤ 4 falls back to single system
+ * px: whole device px, the finest crisp grid there. The float tolerance absorbs a scale
  * that round-trips through a custom-property string (5/3 stringifies and parses
  * exactly, but k × scale can land a few ulps off a whole number).
  *

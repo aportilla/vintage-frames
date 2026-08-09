@@ -33,9 +33,8 @@ export interface DragTarget {
  * tracks the delta from the press point, and hands the {@link DragTarget} a new
  * origin in system px, snapped onto the placement lattice — whole art pixels,
  * the way QuickDraw moved windows, which is also what keeps the pixel art
- * inside fringe-free and WebKit's scrollbar rects pinned to the frame (see
- * {@link snapSys}). The target decides how to apply it; all three write it
- * through `top`/`left` (`src/position.ts`).
+ * inside fringe-free (see {@link snapSys}). The target decides how to apply
+ * it; all three write it through `top`/`left` (`src/position.ts`).
  */
 export class DragController implements ReactiveController {
   #pointerId: number | null = null

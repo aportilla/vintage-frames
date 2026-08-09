@@ -8,7 +8,7 @@
  * Everything visual comes from the components; this module is behavior only.
  */
 import { VfParagraph, VfWindow, applyCursor } from '../src/index.js'
-import { effectiveScale, onScaleChange } from '../src/scale.js'
+import { effectiveScale, onScaleChange, snapSys, systemPxQuantum } from '../src/scale.js'
 import type {
   VfDesktop,
   VfDialog,
@@ -148,13 +148,20 @@ const clamp = (value: number, lo: number, hi: number): number =>
   Math.min(Math.max(value, lo), hi)
 
 /**
- * Park a window in the middle of the screen area below the menu bar, in
- * whole system px (grid rule 3), through the component's own `top`/`left`
- * placement — the properties stay live against the scale the way the old
- * hand-written `calc(var(--vf-scale) * Npx)` idiom did, with the calc now the
- * component's business. `nudge` staggers a batch down-right so Show All
- * Windows deals a cascade rather than one exact pile; a window too large for
- * the raster pins to the top-left of what room there is.
+ * Park a window in the middle of the screen area below the menu bar, on the
+ * placement lattice ({@link snapSys}) — the same k-system-px rung a drag
+ * lands on — through the component's own `top`/`left` placement; the
+ * properties stay live against the scale the way the old hand-written
+ * `calc(var(--vf-scale) * Npx)` idiom did, with the calc now the component's
+ * business. The lattice matters here, not just whole system px (grid rule 3):
+ * it is the drag contract — a centered window sits on the same k-system-px
+ * rung a drag would land it on, so activating or nudging it never re-snaps
+ * it. The clamp bounds sit on the
+ * same lattice (floored, so a pinned window never overhangs the raster), and
+ * the 24px cascade nudge is divisible by every k ≤ 4, so a staggered batch
+ * stays on it too. `nudge` staggers a batch down-right so Show All Windows
+ * deals a cascade rather than one exact pile; a window too large for the
+ * raster pins to the top-left of what room there is.
  *
  * One nuance inherited from the placement contract: a property write is a
  * no-op when the value hasn't changed, and a drag owns the coordinates once
@@ -167,15 +174,18 @@ const clamp = (value: number, lo: number, hi: number): number =>
 function centerWindow(win: VfWindow, nudge = 0): void {
   const w = win.width ?? 0
   const h = win.height ?? 0
+  const k = systemPxQuantum(win)
+  const down = (v: number): number => Math.floor(v / k) * k
+  const up = (v: number): number => Math.ceil(v / k) * k
   win.left = clamp(
-    Math.round((desktop.width - w) / 2) + nudge,
+    snapSys((desktop.width - w) / 2, win) + nudge,
     0,
-    Math.max(0, desktop.width - w)
+    Math.max(0, down(desktop.width - w))
   )
   win.top = clamp(
-    MENU_BAR + Math.round((desktop.height - MENU_BAR - h) / 2) + nudge,
-    MENU_BAR,
-    Math.max(MENU_BAR, desktop.height - h)
+    snapSys(MENU_BAR + (desktop.height - MENU_BAR - h) / 2, win) + nudge,
+    up(MENU_BAR),
+    Math.max(up(MENU_BAR), down(desktop.height - h))
   )
 }
 

@@ -2,20 +2,24 @@ import { css, html, LitElement, nothing } from 'lit'
 import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
-import { vfBase, vfScrollbars, vfFocusRing } from '../styles/base.js'
+import { vfBase, vfFocusRing, vfScrollRail } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { ScrollStateController } from '../scroll-state.js'
+import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
 
 /**
  * `<vf-scroll-area>` — a container whose scrollbars look like System 7.
  *
- * White box with a 1px black frame and an inner scrolling viewport. The
- * WebKit scrollbars are the shared `vfScrollbars` recipe: the classic 16px bar
- * whose outer line is the frame (painted as an overlay above the borderless
- * viewport — see the recipe comment for the Safari reason), a loose 1-bit
- * dot-dither trough, a white boxed thumb, and boxed arrow buttons that nest
- * cleanly under the frame. Firefox falls back to `scrollbar-color`.
+ * White box with a 1px black frame, an inner scrolling viewport, and scroll
+ * rails the kit draws itself as shadow DOM (the shared `vfScrollRail` recipe):
+ * boxed arrow buttons at each end, a loose 1-bit dot-dither trough, and the
+ * classic fixed 16px thumb. The native scrollbar is hidden, never the native
+ * scrolling — wheel, trackpad momentum, keyboard, touch and assistive-tech
+ * scrolling stay the platform's, and {@link ScrollRailController} keeps the
+ * rail in sync while driving the classic interactions (thumb drag, trough
+ * paging, arrow stepping with auto-repeat). Every engine renders the same
+ * rail — there is no Firefox fallback skin anymore.
  *
  * Each reserved scroll rail is a permanent placeholder: an empty white channel
  * sits in the gutter even when the content fits, filling in with the
@@ -28,9 +32,8 @@ import { ScrollStateController } from '../scroll-state.js'
  * @slot - Scrollable content.
  * @csspart viewport - The inner scrolling container.
  * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
- * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
- *   the WebKit path draws the dot-dither tile instead, and this is its flat
- *   25%-black average
+ * @cssprop --vf-scrollbar-track - the scroll trough's base color under the
+ *   dot-dither (white)
  */
 @vfElement('vf-scroll-area')
 export class VfScrollArea extends VfPositioned(LitElement) {
@@ -42,7 +45,8 @@ export class VfScrollArea extends VfPositioned(LitElement) {
   /**
    * Which scroll rails to reserve as permanent placeholders: `vertical`
    * (default), `horizontal`, or `both`. Each reserved rail shows an empty white
-   * channel until its axis overflows; the unreserved axis scrolls on demand.
+   * channel until its axis overflows; the unreserved axis still scrolls
+   * natively (wheel, keyboard) but draws no rail.
    */
   @property({ reflect: true }) axis: 'vertical' | 'horizontal' | 'both' =
     'vertical'
@@ -71,6 +75,12 @@ export class VfScrollArea extends VfPositioned(LitElement) {
     }
   )
 
+  /** Syncs the drawn rails to the viewport and drives their interactions. */
+  private readonly rail = new ScrollRailController(this, {
+    getScroll: () => this.viewport,
+    getContent: () => this.content,
+  })
+
   /** Whether the content actually overflows the viewport (either axis). */
   @state() private _scrollable = false
 
@@ -86,65 +96,67 @@ export class VfScrollArea extends VfPositioned(LitElement) {
 
   static override styles = [
     vfBase,
-    vfScrollbars,
+    vfScrollRail,
     css`
       :host {
         display: block;
       }
+      /* The snapped wrapper: a real 1px frame (the rails' outer line is this
+         border), a grid that reserves each rail as its own edge column/row —
+         the rails size themselves to the 15px inside the frame — and the
+         scroller and rails riding the grid-snap offset as one. */
       .box {
-        /* The snapped wrapper: .vf-snap makes it the positioned anchor the
-           .vf-scroll-frame overlay insets against, and the scroller and frame
-           ride its grid-snap offset as one. The host doesn't clip — the
-           shifted box may paint up to half a device pixel outside it. */
         width: 100%;
         height: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        background: var(--vf-white, #fff);
+      }
+      :host(:not([axis])) .box,
+      :host([axis='vertical']) .box,
+      :host([axis='both']) .box {
+        grid-template-columns: 1fr auto;
+      }
+      :host([axis='horizontal']) .box,
+      :host([axis='both']) .box {
+        grid-template-rows: 1fr auto;
       }
       .viewport {
-        /* Borderless: the 1px frame is the .vf-scroll-frame overlay painted on
-           top, so the scrollbar rect anchors on whole CSS px — WebKit snaps
-           scrollbar rects to whole CSS px, and a border here would put the
-           anchors on half CSS px at dpr 2 and set the whole rail one device
-           pixel adrift in Safari (see the vfScrollbars recipe comment). */
+        grid-area: 1 / 1;
         background: var(--vf-white, #fff);
-        width: 100%;
-        height: 100%;
-        /* 9 = the old 8px inset + the 1px the dropped border occupied, keeping
-           the content's position relative to the frame. */
-        padding: calc(var(--vf-scale, 1) * 9px);
-      }
-      /* Reserve a rail per the host's axis. overflow-*: scroll keeps the
-         styled track (and its divider) painted even with nothing to scroll, so
-         the idle rail shows; ScrollStateController toggles data-overflow-* to
-         fill it in on overflow. The unreserved axis is auto (on-demand).
+        /* Native scrolling on every axis; the bar itself is hidden by the
+           recipe (.vf-scroll) and the reservation is the rail element, not a
+           native gutter. The unreserved axis still scrolls, railless.
 
-         scrollbar-gutter: stable reserves the vertical (inline-end) 16px channel
-         — required because modern Chromium draws a zero-width overlay bar for a
-         styled ::-webkit-scrollbar, so overflow alone reserves nothing. There is
-         no gutter property for the horizontal (block) axis, so a reserved
-         horizontal rail relies on overflow-x: scroll (classic scrollbars);
-         overlay browsers won't reserve it, matching their skin limitation. */
-      :host(:not([axis])) .viewport,
-      :host([axis='vertical']) .viewport,
-      :host([axis='both']) .viewport {
-        overflow-y: scroll;
-        scrollbar-gutter: stable;
+           8px inset plus border-floor compensation: engines floor the
+           fractional frame border to whole CSS px, and the mod() term is
+           exactly what they floored away — so slotted content (and the (0,0)
+           of placed children) sits exactly 9 system px from the frame box at
+           every scale, as it did under the borderless-scroller construction.
+           (mod is 0 at whole scales.) */
+        overflow: auto;
+        min-width: 0;
+        min-height: 0;
+        padding: calc(
+          var(--vf-scale, 1) * 8px + mod(var(--vf-scale, 1) * 1px, 1px)
+        );
       }
-      :host(:not([axis])) .viewport,
-      :host([axis='vertical']) .viewport {
-        overflow-x: auto;
+      .vf-rail--vertical {
+        grid-area: 1 / 2;
       }
-      :host([axis='horizontal']) .viewport,
-      :host([axis='both']) .viewport {
-        overflow-x: scroll;
+      .vf-rail--horizontal {
+        grid-area: 2 / 1;
       }
-      :host([axis='horizontal']) .viewport {
-        overflow-y: auto;
+      .vf-rail-corner {
+        grid-area: 2 / 2;
       }
       /* The positioning anchor for slotted children placed with top/left
          (src/position.ts). It must be THIS wrapper and not .box: .content
          rides the scroll, so positioned children travel with the content —
          anchored to .box they would hang fixed over the rail while the plane
-         moved beneath them. Inside the viewport's 9px padding, so (0,0) is
+         moved beneath them. Inside the viewport's 8px padding, so (0,0) is
          where flow content starts. */
       .content {
         position: relative;
@@ -163,6 +175,8 @@ export class VfScrollArea extends VfPositioned(LitElement) {
     // A fitting scroll area used to be a focusable stop with role: generic and
     // no name, a dead Tab press. Whenever it IS a stop it carries a role:
     // `region` when labelled (a named landmark), `group` when not.
+    const vertical = this.axis !== 'horizontal'
+    const horizontal = this.axis === 'horizontal' || this.axis === 'both'
     return html`
       <div class="box vf-snap">
         <div
@@ -174,7 +188,11 @@ export class VfScrollArea extends VfPositioned(LitElement) {
         >
           <div class="content"><slot></slot></div>
         </div>
-        <div class="vf-scroll-frame" aria-hidden="true"></div>
+        ${vertical ? renderScrollRail(this.rail, 'vertical') : nothing}
+        ${horizontal ? renderScrollRail(this.rail, 'horizontal') : nothing}
+        ${vertical && horizontal
+          ? html`<div class="vf-rail-corner" aria-hidden="true"></div>`
+          : nothing}
       </div>
     `
   }

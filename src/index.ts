@@ -138,7 +138,7 @@ export {
 /**
  * The 1-bit style recipes. Compose them into a custom element's
  * `static styles` to inherit the kit's type, panel frame, window chrome, focus
- * ring, field well and System 7 scrollbar skin.
+ * ring, field well and System 7 scroll-rail skin.
  */
 export {
   vfBase,
@@ -159,7 +159,7 @@ export {
   vfFocusUnderline,
   vfToggle,
   vfField,
-  vfScrollbars,
+  vfScrollRail,
   vfTileSize,
   vfTileMaskSize,
   tileImage,
@@ -218,6 +218,8 @@ export type { SteppedProfile } from './pixel-frame.js'
 export { DragController } from './drag.js'
 export type { DragTarget } from './drag.js'
 export { ScrollStateController } from './scroll-state.js'
+export { ScrollRailController, renderScrollRail } from './scroll-rail.js'
+export type { RailAxis, ScrollRailOptions } from './scroll-rail.js'
 export { TrackWidthController } from './track-width.js'
 export { DocumentListenersController } from './document-listeners.js'
 export type { DocumentListenerSpec } from './document-listeners.js'

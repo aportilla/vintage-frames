@@ -113,8 +113,14 @@
 
       <!-- ================= "Controls" kitchen-sink window =============== -->
       <vf-window id="win-controls" heading="Controls" movable resizable hidden width="590" height="560">
-        <div class="controls-grid">
-          <vf-stack fill-width gap="10">
+        <!-- Two columns as a row of stacks with a stated split (294 + fill),
+             not a 1fr grid: a 1fr track resolves wherever the viewport puts
+             it — a fractional-CSS box, off the device-pixel grid the layout
+             contract (rule 3) asks every container to stay on. The stated
+             split keeps both columns whole at any window position or grow
+             step. -->
+        <vf-stack fill-width direction="row" gap="16" place="start">
+          <vf-stack width="294" gap="10">
             <vf-fieldset fill-width legend="Text">
               <vf-stack fill-width gap="10">
                 <!-- vf-label `for` does what a native <label for> does: click
@@ -237,7 +243,7 @@
               <vf-button size="small">Small</vf-button>
             </vf-button-group>
           </vf-stack>
-          <vf-separator vertical></vf-separator>
+          <vf-separator vertical fill-height></vf-separator>
           <vf-stack fill-width gap="10">
             <vf-fieldset fill-width legend="Desk Accessories">
               <!-- Each row's `icon` slot carries the DA's 16×16 System 7 small
@@ -347,7 +353,7 @@
               </vf-stack>
             </vf-fieldset>
           </vf-stack>
-        </div>
+        </vf-stack>
       </vf-window>
 
       <!-- ================ "DragThing 2.9 Installer" window ============== -->

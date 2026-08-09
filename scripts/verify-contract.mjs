@@ -135,7 +135,7 @@ const build = makeBuild(browser, {
   const fits = await page.evaluate(() => {
     const dlg = document.getElementById('fits')
     const content = dlg.shadowRoot.querySelector('.content')
-    const frame = dlg.shadowRoot.querySelector('.content-wrap .vf-scroll-frame')
+    const frame = dlg.shadowRoot.querySelector('.content-wrap .scroll-frame')
     return {
       overflowAttr: content.getAttribute('data-overflow-y'),
       tabindex: content.getAttribute('tabindex'),
@@ -195,7 +195,7 @@ const build = makeBuild(browser, {
   const r = await page.evaluate(() => {
     const dlg = document.getElementById('stuffed')
     const content = dlg.shadowRoot.querySelector('.content')
-    const frame = dlg.shadowRoot.querySelector('.content-wrap .vf-scroll-frame')
+    const frame = dlg.shadowRoot.querySelector('.content-wrap .scroll-frame')
     const ok = document.getElementById('ok')
     const okRect = ok.getBoundingClientRect()
     const before = content.scrollTop

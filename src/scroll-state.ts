@@ -37,9 +37,10 @@ const LEADING_SPILL_SYS = 2
  *
  * This controller supplies the missing signal. It measures scroll vs. client
  * size on both axes and writes `data-overflow-x` / `data-overflow-y`
- * (`"true"` | `"false"`) onto the scroll element. The shared `vfScrollbars`
- * recipe keys the dither, thumb and arrows off those attributes, so a bar is a
- * bare white rail at `"false"` and the full System 7 scrollbar at `"true"`.
+ * (`"true"` | `"false"`) onto the scroll element. The shared `vfScrollRail`
+ * recipe keys the drawn rail's dither, thumb and arrows off those attributes,
+ * so a rail is a bare white channel at `"false"` and the full System 7
+ * scrollbar at `"true"`.
  *
  * It also supplies the HIG's inactive-window treatment: a window that isn't
  * frontmost must not display interactive scroll UX, so System 7 blanked a
@@ -53,11 +54,11 @@ const LEADING_SPILL_SYS = 2
  * no inactive state, and a bare scroll component on a page always draws live.
  *
  * The controller reports BOTH axes always; each component decides which rails
- * it *reserves* purely in CSS (`overflow-{x,y}: scroll` + `scrollbar-gutter`).
- * An unreserved axis (`overflow: auto`) only renders a bar when it overflows —
- * at which point its attribute already reads `"true"` — so the idle rules never
- * touch it. The attributes exist only on managed elements, so a plain
- * `.vf-scroll` used without a controller is untouched.
+ * it *reserves* by which rail elements it renders (`renderScrollRail`,
+ * src/scroll-rail.ts). An unreserved axis still scrolls natively but draws no
+ * rail, so the idle rules never touch it. The attributes exist only on
+ * managed elements, so a plain `.vf-scroll` used without a controller is
+ * untouched.
  *
  * Re-measures on every signal that can change overflow: the viewport resizing
  * (host size, `--vf-scale`), the content resizing (a passed content element —
@@ -68,17 +69,14 @@ const LEADING_SPILL_SYS = 2
  * FUTURE: once `@container scroll-state(scrollable)` container queries reach
  * baseline support, slotted-content components could drop this JS and gate the
  * same recipe rules with a pure-CSS `@container` query instead (a native
- * `<textarea>`'s own scrollbar would still need the imperative path). The
- * window-activity half has the same trajectory via `@container style()`
- * queries: vf-window cascades a custom property under `:host(:not([active]))`
- * and the recipe gates on `style(--vf-window-active: false)`, retiring
- * {@link observeWindow}'s MutationObserver and composed-tree walk. Either
- * migration must keep the {@link refreshWebKitScrollbars} poke at each flip —
- * Safari resolves scrollbar pseudo styles only when a scrollbar is
- * (re)created or its scroller relays out, not when a selector starts
- * matching, however that selector is expressed (and Playwright WebKit does
- * not reproduce the staleness, so only real Safari can green-light removing
- * it). See the matching notes in styles/base.ts `vfScrollbars`.
+ * `<textarea>` changing scrollHeight on input would still need the imperative
+ * path). The window-activity half has the same trajectory via `@container
+ * style()` queries: vf-window cascades a custom property under
+ * `:host(:not([active]))` and the recipe gates on
+ * `style(--vf-window-active: false)`, retiring {@link observeWindow}'s
+ * MutationObserver and composed-tree walk. The rails being ordinary DOM,
+ * either migration is a plain selector swap — the old scrollbar-pseudo
+ * re-resolution caveat retired with `::-webkit-scrollbar`.
  */
 export class ScrollStateController implements ReactiveController {
   private resizeObserver?: ResizeObserver
@@ -193,7 +191,6 @@ export class ScrollStateController implements ReactiveController {
       this.vfWindow !== null && !this.vfWindow.hasAttribute('active')
     if (el.hasAttribute('data-window-inactive') === inactive) return
     el.toggleAttribute('data-window-inactive', inactive)
-    refreshWebKitScrollbars(el)
   }
 
   /**
@@ -213,40 +210,7 @@ export class ScrollStateController implements ReactiveController {
     el.setAttribute('data-overflow-y', String(overY))
     el.setAttribute('data-overflow-x', String(overX))
     if (changed) {
-      refreshWebKitScrollbars(el)
       this.onOverflowChange?.({ x: overX, y: overY })
     }
   }
-}
-
-/**
- * Force WebKit to rebuild an element's scrollbars after the overflow
- * attributes flip.
- *
- * Safari resolves `::-webkit-scrollbar` pseudo-element styles when a scrollbar
- * is (re)created or its scroller relaid out — not when an attribute selector
- * starts or stops matching. Typing into a `vf-text-area` flips
- * `data-overflow-y` to `"true"`, but Safari keeps showing the idle rail until
- * something unrelated (blurring the field, say, whose `:focus` border
- * treatment repaints the box) makes it re-resolve. Tearing the scrollbars down
- * and back up inside one task — overflow to `hidden` and immediately back,
- * with a forced layout between — recreates them under the current attributes
- * with no intermediate paint (no frame boundary is crossed), no focus or
- * selection change, and scroll offsets restored in case the `hidden` clamp
- * moved them. Chromium restyles scrollbars on attribute changes by itself, so
- * only WebKit takes this path.
- */
-function refreshWebKitScrollbars(el: HTMLElement): void {
-  const isWebKit =
-    typeof window !== 'undefined' &&
-    typeof (window as { webkitConvertPointFromNodeToPage?: unknown })
-      .webkitConvertPointFromNodeToPage === 'function'
-  if (!isWebKit) return
-  const { scrollTop, scrollLeft } = el
-  const prev = el.style.overflow
-  el.style.overflow = 'hidden'
-  void el.offsetHeight
-  el.style.overflow = prev
-  el.scrollTop = scrollTop
-  el.scrollLeft = scrollLeft
 }

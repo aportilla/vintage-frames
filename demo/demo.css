@@ -195,12 +195,6 @@
 
 /* --------------------------- Controls window --------------------------- */
 
-.controls-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: calc(var(--vf-scale, 1) * 16px);
-}
-
 /* vf-number-field is the kit's one odd-height control — 25 system px, its
    little-arrows sprite's native size — so a row centering the 16px caption
    against it lands on a half pixel, and no container can round that (it would

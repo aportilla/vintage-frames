@@ -7,10 +7,11 @@ import {
 } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
-import { vfBase, vfFocusRing, vfScrollbars } from '../styles/base.js'
+import { vfBase, vfFocusRing, vfScrollRail } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { ScrollStateController } from '../scroll-state.js'
+import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
 import { emit } from '../events.js'
 import type { VfListItem } from './vf-list-item.js'
@@ -21,10 +22,12 @@ const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
 /**
  * `<vf-list>` — the classic System 7 list box.
  *
- * A white, black-bordered scrolling box of `<vf-list-item>` rows with
- * System 7-styled scrollbars (dither track, boxed arrow buttons). The vertical
- * rail is a permanent placeholder — an empty white channel when the rows fit,
- * filling in with dither/thumb/arrows only on overflow (driven by
+ * A white, black-bordered scrolling box of `<vf-list-item>` rows with the
+ * kit-drawn System 7 scroll rail (dither trough, boxed arrow buttons, fixed
+ * thumb — the shared `vfScrollRail` subtree, synced to the native scrolling
+ * by {@link ScrollRailController}). The vertical rail is a permanent
+ * placeholder — an empty white channel when the rows fit, filling in with
+ * dither/thumb/arrows only on overflow (driven by
  * {@link ScrollStateController}). Selection inverts rows. Supports single and
  * multiple selection, roving tabindex, arrow-key navigation, and classic Finder
  * first-letter type-ahead.
@@ -38,15 +41,14 @@ const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
  * @cssprop [--vf-list-max-height=200px] - `vf-list` max height before its rail
  *   takes over (the host adds the 2px frame)
  * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
- * @cssprop --vf-scrollbar-track - scrollbar trough — **Firefox fallback only**;
- *   the WebKit path draws the dot-dither tile instead, and this is its flat
- *   25%-black average
+ * @cssprop --vf-scrollbar-track - the scroll trough's base color under the
+ *   dot-dither (white)
  */
 @vfElement('vf-list')
 export class VfList extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
-    vfScrollbars,
+    vfScrollRail,
     css`
       :host {
         display: block;
@@ -55,34 +57,41 @@ export class VfList extends VfPositioned(LitElement) {
       :host([disabled]) {
         color: var(--vf-disabled, #c0c0c0);
       }
+      /* The snapped wrapper: a real 1px frame (the rail's outer line), the
+         [rows | rail] grid — the rail sizes itself to the 15px inside the
+         frame — and everything riding the grid-snap offset as one. */
       .box {
-        /* The snapped wrapper: .vf-snap makes it the positioned anchor the
-           .vf-scroll-frame overlay insets against, and the scroller and frame
-           ride its grid-snap offset as one. */
+        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        background: var(--vf-white, #fff);
+        display: grid;
+        grid-template-columns: 1fr auto;
       }
       .list {
-        /* Background lives on the scroller rather than the host so it rides
-           the snap offset (see .vf-snap in base.ts); +2px keeps the clamped
-           total the height it was when a border supplied the frame. The frame
-           is now the .vf-scroll-frame overlay painted on top — the scroller
-           itself is borderless so its scrollbar rect anchors on whole CSS px
-           (WebKit snaps scrollbar rects to whole CSS px; a border here set the
-           rail a device pixel adrift in Safari at dpr 2 — see vfScrollbars).
-           The 1px padding keeps the rows inside the frame lines; none on the
-           right, where the rows run to the scroll rail. */
+        grid-area: 1 / 1;
+        min-width: 0;
         background: var(--vf-white, #fff);
-        max-height: calc(
-          var(--vf-scale, 1) * (var(--vf-list-max-height, 200px) + 2px)
-        );
-        padding: calc(var(--vf-scale, 1) * 1px) 0 calc(var(--vf-scale, 1) * 1px)
-          calc(var(--vf-scale, 1) * 1px);
-        /* Reserve the vertical rail always. overflow-y: scroll keeps the styled
-           track painted; scrollbar-gutter: stable reserves the 16px channel
-           (modern Chromium draws a zero-width overlay bar otherwise, so overflow
-           alone reserves nothing). ScrollStateController toggles data-overflow-y
-           so it reads as a bare white rail until the rows overflow. */
-        overflow-y: scroll;
-        scrollbar-gutter: stable;
+        /* The clamp is the content box's — the .box border adds the 2px frame
+           on top, keeping the clamped total where it always was. */
+        max-height: calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px));
+        /* Native scrolling; the bar itself is hidden by the recipe
+           (.vf-scroll) and the reservation is the rail element, not a native
+           gutter. The rows run to the rail on the right.
+
+           The mod() padding is border-floor compensation: engines floor a
+           fractional border-width to whole CSS px (1.5px renders 1px), which
+           would put the rows a fraction of a system px inside the frame at
+           scale 1.5 or 4/3 — and the rows are LIGHT-DOM components, so their
+           origins are the page's device-pixel-grid contract, not just ours.
+           Padding is stored exactly, so border + mod(border's fraction)
+           restores the exact 1-system-px inset the borderless-scroller
+           construction used to give them, at every scale (mod is 0 at whole
+           ones). */
+        padding: mod(calc(var(--vf-scale, 1) * 1px), 1px);
+        padding-right: 0;
+        overflow-y: auto;
+      }
+      .vf-rail--vertical {
+        grid-area: 1 / 2;
       }
       /* The viewport is itself the Tab stop while the list is disabled (see
          render()); the ring keeps that stop visible, inset to stay in-box. */
@@ -110,6 +119,12 @@ export class VfList extends VfPositioned(LitElement) {
       this._scrollable = overflow.x || overflow.y
     }
   )
+
+  /** Syncs the drawn rail to the row viewport and drives its interactions. */
+  private readonly rail = new ScrollRailController(this, {
+    getScroll: () => this.viewport,
+    getContent: () => this.content,
+  })
 
   /** Whether the rows actually overflow the box (either axis). */
   @state() private _scrollable = false
@@ -251,7 +266,7 @@ export class VfList extends VfPositioned(LitElement) {
             <slot @slotchange=${this.#onSlotChange}></slot>
           </div>
         </div>
-        <div class="vf-scroll-frame" aria-hidden="true"></div>
+        ${renderScrollRail(this.rail, 'vertical')}
       </div>
     `
   }

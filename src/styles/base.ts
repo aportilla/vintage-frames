@@ -34,7 +34,7 @@ export { vfTitleBar, vfWindowWidgets } from './recipes/title-bar.js'
 export { vfFocus, vfFocusRing, vfFocusUnderline } from './recipes/focus.js'
 export { vfToggle } from './recipes/toggle.js'
 export { vfField } from './recipes/field.js'
-export { vfScrollbars } from './recipes/scrollbars.js'
+export { vfScrollRail } from './recipes/scroll-rail.js'
 export {
   TILE_LATTICE,
   tileImage,

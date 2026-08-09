@@ -105,8 +105,10 @@ page with snapping off, for comparison.
 | `vf-icon` | Finder icon: art in a 32×32 or 16×16 cell with a name plate below. `selectable`, `open`, `movable`, `editable` |
 
 [SPEC.md](./SPEC.md) has the full design spec, every token, slot, part and
-event. The [reference page](http://localhost:5173/examples.html) has the same
-material as live specimens.
+event. [DESIGN-TOKENS.md](./DESIGN-TOKENS.md) lists every `--vf-*` theming
+token with its default and what reads it. The
+[reference page](http://localhost:5173/examples.html) has the same material as
+live specimens.
 
 ### Taking only what you use
 
@@ -752,7 +754,8 @@ Theming tokens are split by reach. A token only a few components read is
 documented on each of them as an `@cssprop`, generated from the SPEC §3 table —
 45 tags across 22 components. The 18 kit-wide knobs (`--vf-scale`, the palette,
 both type stacks, the focus rule, the cursor) are described once in
-[SPEC.md](./SPEC.md). Three kinds of token are deliberately undocumented: the
+[SPEC.md](./SPEC.md), and the whole set is listed with defaults in
+[DESIGN-TOKENS.md](./DESIGN-TOKENS.md). Three kinds of token are deliberately undocumented: the
 controller-owned grid-snap offsets, the private channels `vf-button-group` uses
 to drive `vf-button`, and geometry a component sets on itself.
 

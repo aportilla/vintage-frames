@@ -979,7 +979,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The transient press-drag highlight, managed by the menu</td></tr>
               <tr><td><code>activate()</code></td><td>Method</td><td>—</td><td class="wrap">Blink, then select — what the press gesture calls for the row a drag was released over</td></tr>
               <tr><td><code>vf-menu-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, item }</code></td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>item</code>, <code>check</code>, <code>label</code>, <code>shortcut</code>. Token: <code>--vf-menu-row-height</code> (16px), <code>--vf-menu-shortcut-column</code> (22px), <code>--vf-select-gutter</code>.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>item</code>, <code>check</code>, <code>label</code>, <code>shortcut</code>. Token: <code>--vf-menu-row-height</code> (16px), <code>--vf-menu-shortcut-column</code> (23px), <code>--vf-select-gutter</code>.</td></tr>
             </tbody>
           </table>
         </section>
@@ -1799,137 +1799,6 @@ requestGridSnap()  // re-run after moving components in a way that resizes nothi
           </template>
         </section>
 
-        <section class="doc" id="tokens" data-group="Reference" data-toc="Design tokens">
-          <h2>Design tokens</h2>
-          <p>
-            Every visual constant, with its inlined fallback. Override at
-            <code>:root</code>, on a subtree, or on one element. Every length below is
-            a <em>system pixel</em> value, so a re-themed metric stays crisp on any
-            display.
-          </p>
-          <p class="note note--sharp">
-            Line boxes are lengths too. Re-theme these with whole numbers, or you put
-            the components below them off the device-pixel grid.
-          </p>
-
-          <pre class="snippet"><code>:root { --vf-shadow-offset: 1px; }
-vf-menu-bar::part(bar) { padding-inline: 24px; }
-vf-button::part(button) { min-width: 96px; }</code></pre>
-
-          <table class="api api--wide">
-            <caption>All tokens</caption>
-            <thead><tr><th>Token</th><th>Default</th><th>Used for</th></tr></thead>
-            <tbody>
-              <tr><td><code>--vf-font-family</code></td><td class="wrap">VF Body, Geneva, …</td><td class="wrap">Body face (list rows, page copy)</td></tr>
-              <tr><td><code>--vf-font-family-display</code></td><td class="wrap">VF Display, Chicago, …</td><td class="wrap">Chrome face (menus, buttons, titles, fields)</td></tr>
-              <tr><td><code>--vf-font-size</code></td><td><code>16px</code></td><td class="wrap">Body face size</td></tr>
-              <tr><td><code>--vf-font-size-display</code></td><td><code>16px</code></td><td class="wrap">Chrome face size</td></tr>
-              <tr><td><code>--vf-font-weight</code></td><td><code>700</code></td><td class="wrap">All text — the display face is inherently bold</td></tr>
-              <tr><td><code>--vf-font-smoothing-display</code></td><td><code>none</code></td><td class="wrap">Crisp 1-bit chrome edges; set <code>antialiased</code> if you point the display family at a vector face</td></tr>
-              <tr><td><code>--vf-black</code></td><td><code>#000000</code></td><td class="wrap">Borders, text, stripes, selection bg</td></tr>
-              <tr><td><code>--vf-white</code></td><td><code>#ffffff</code></td><td class="wrap">Content wells, control faces</td></tr>
-              <tr><td><code>--vf-surface</code></td><td class="wrap">set by containers</td><td class="wrap">Backdrop behind legends and label patches</td></tr>
-              <tr><td><code>--vf-disabled</code></td><td><code>#c0c0c0</code></td><td class="wrap">Dimmed text and glyphs</td></tr>
-              <tr><td><code>--vf-desktop</code></td><td><code>#808080</code></td><td class="wrap">Base color under the desktop dither</td></tr>
-              <tr><td><code>--vf-desktop-pattern</code></td><td class="wrap">SVG tile</td><td class="wrap">The desktop's 50% dither</td></tr>
-              <tr><td><code>--vf-dots-pattern</code></td><td class="wrap">SVG tile</td><td class="wrap">The windoid bar's dot-grid dither</td></tr>
-              <tr><td><code>--vf-swatch-checker</code></td><td class="wrap">SVG tile</td><td class="wrap"><code>vf-swatch</code>'s transparency checker</td></tr>
-              <tr><td><code>--vf-progress-stripes</code></td><td class="wrap">SVG tile</td><td class="wrap">Indeterminate barber stripes</td></tr>
-              <tr><td><code>--vf-shadow-offset</code></td><td><code>2px</code></td><td class="wrap">Window / menu hard shadow</td></tr>
-              <tr><td><code>--vf-control-height</code></td><td><code>22px</code></td><td class="wrap">Text fields, and the number field's well</td></tr>
-              <tr><td><code>--vf-button-height</code></td><td><code>20px</code></td><td class="wrap"><code>vf-button</code> face</td></tr>
-              <tr><td><code>--vf-control-height-small</code></td><td><code>16px</code></td><td class="wrap"><code>size="small"</code> buttons</td></tr>
-              <tr><td><code>--vf-button-ring-margin</code></td><td><code>4px</code></td><td class="wrap">Room reserved for the default ring (<code>vf-button-group</code> zeroes it)</td></tr>
-              <tr><td><code>--vf-button-flex</code></td><td><code>0 1 auto</code></td><td class="wrap">The inner button's flex (the group sets <code>1 1 auto</code>)</td></tr>
-              <tr><td><code>--vf-button-group-gap</code></td><td><code>12px</code></td><td class="wrap">Gap between grouped buttons</td></tr>
-              <tr><td><code>--vf-popup-height</code></td><td><code>18px</code></td><td class="wrap"><code>vf-select</code> pill</td></tr>
-              <tr><td><code>--vf-menu-row-height</code></td><td><code>16px</code></td><td class="wrap"><code>vf-menu-item</code> row pitch</td></tr>
-              <tr><td><code>--vf-select-gutter</code></td><td><code>16px</code></td><td class="wrap">The ✓ column, shared by select, option and menu item</td></tr>
-              <tr><td><code>--vf-field-width</code></td><td><code>180px</code></td><td class="wrap">Default width of the text field and area</td></tr>
-              <tr><td><code>--vf-number-field-width</code></td><td><code>4em</code></td><td class="wrap">Width of the number field's well</td></tr>
-              <tr><td><code>--vf-list-max-height</code></td><td><code>200px</code></td><td class="wrap"><code>vf-list</code></td></tr>
-              <tr><td><code>--vf-line-height</code></td><td><code>12px</code></td><td class="wrap">The body face's native line — the pitch wrapped body copy sits on; re-theme it alongside the body font tokens</td></tr>
-              <tr><td><code>--vf-line-height-display</code></td><td><code>16px</code></td><td class="wrap">The display face's native line — wrapped chrome copy, captions and the text area</td></tr>
-              <tr><td><code>--vf-label-line-height</code></td><td class="wrap">follows the face</td><td class="wrap"><code>vf-label</code>'s own line box, overriding both face tokens for captions alone</td></tr>
-              <tr><td><code>--vf-paragraph-line-height</code></td><td class="wrap">follows the face</td><td class="wrap"><code>vf-paragraph</code>'s own line box, overriding both face tokens for paragraphs alone</td></tr>
-              <tr><td><code>--vf-titlebar-height</code></td><td><code>18px</code></td><td class="wrap">Window / dialog title bars</td></tr>
-              <tr><td><code>--vf-titlebar-height-utility</code></td><td><code>12px</code></td><td class="wrap">The windoid bar</td></tr>
-              <tr><td><code>--vf-title-inset</code></td><td class="wrap"><code>16px</code> / <code>60px</code></td><td class="wrap">The centered title's clearance from the widgets</td></tr>
-              <tr><td><code>--vf-menubar-height</code></td><td><code>20px</code></td><td class="wrap"><code>vf-menu-bar</code></td></tr>
-              <tr><td><code>--vf-separator-color</code> / <code>-style</code></td><td class="wrap"><code>--vf-black</code> / <code>solid</code></td><td class="wrap">Menus set the dimmed dotted rule</td></tr>
-              <tr><td><code>--vf-focus-outline</code></td><td class="wrap"><code>1px dotted #000</code></td><td class="wrap">The dotted ring, for the controls with no face to draw on</td></tr>
-              <tr><td><code>--vf-focus-offset</code></td><td><code>2px</code></td><td class="wrap">Its <code>outline-offset</code></td></tr>
-              <tr><td><code>--vf-focus-underline-offset</code></td><td><code>4px</code></td><td class="wrap">Where the dashed focus rule sits, from the underlined element's padding-box bottom</td></tr>
-              <tr><td><code>--vf-progress-fill</code> / <code>-track</code></td><td class="wrap"><code>#000000</code> / <code>#ffffff</code></td><td class="wrap"><code>vf-progress-bar</code></td></tr>
-              <tr><td><code>--vf-scrollbar-thumb</code></td><td><code>#ffffff</code></td><td class="wrap">The elevator</td></tr>
-              <tr><td><code>--vf-scrollbar-track</code></td><td><code>#c0c0c0</code></td><td class="wrap">Firefox fallback only — the dither's flat average</td></tr>
-              <tr><td><code>--vf-highlight</code> / <code>-text</code></td><td class="wrap"><code>#000000</code> / <code>#ffffff</code></td><td class="wrap">Selection colors</td></tr>
-              <tr><td><code>--vf-cursor</code></td><td class="wrap">unset — each spot keeps its classic pointer</td><td class="wrap">Read wherever the kit states a cursor of its own (control hosts, title-bar widgets, scroll rails, editable wells, a modal's backdrop). <code>applyCursor()</code> sets it to <code>none</code> for you, paired with the page-side <code>* { cursor: none !important }</code> blanket</td></tr>
-              <tr><td><code>--vf-snap-dx</code> / <code>-dy</code></td><td class="wrap">written by the kit</td><td class="wrap">Reserved: the grid-snap correction. Do not set these</td></tr>
-            </tbody>
-          </table>
-        </section>
-
-        <section class="doc" id="toolkit" data-group="Reference" data-toc="Utilities &amp; toolkit">
-          <h2>Utilities &amp; style toolkit</h2>
-          <p>
-            The toolkit the components are built from is exported from the package
-            root, for a custom control that has to match them:
-          </p>
-
-          <pre class="snippet"><code>import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'</code></pre>
-
-          <table class="api api--wide">
-            <caption>Exports</caption>
-            <thead><tr><th>Export</th><th>What it is for</th></tr></thead>
-            <tbody>
-              <tr><td class="wrap"><code>applyScale</code>, <code>ScaleController</code>, <code>onScaleChange</code></td><td class="wrap">Put your own markup, or a custom component, on the same sizing the kit gives itself</td></tr>
-              <tr><td class="wrap"><code>applyGridSnap</code>, <code>requestGridSnap</code>, <code>GridSnapController</code></td><td class="wrap">Automatic device-pixel-grid snapping; one controller line plus the <code>vf-snap</code> class on your painted root adds it to a custom component</td></tr>
-              <tr><td class="wrap"><code>applyCursor</code>, <code>CURSOR_ARROW</code>, <code>CURSOR_I_BEAM</code>, <code>CURSOR_CROSSHAIR</code>, <code>CURSOR_WAIT</code></td><td class="wrap">Replace the native pointer with the embedded System 7 set, drawn on the system-pixel grid — the I-beam over editable text, the crosshair for <code>data-vf-cursor</code> claims, the wristwatch while <code>aria-busy="true"</code>. Every kind takes your own art instead, or <code>null</code> to disable it</td></tr>
-              <tr><td class="wrap"><code>getZoom</code>, <code>truePixelRatio</code>, <code>onZoomChange</code>, <code>devicePxPerSystemPx</code>, <code>resetZoomBaseline</code></td><td class="wrap">The zoom half of scaling: tracked page zoom, device px per CSS px <em>including</em> zoom, a zoom subscription, the density→target derivation, and the "current state is 100%" escape hatch</td></tr>
-              <tr><td class="wrap"><code>sys</code>, <code>toSys</code>, <code>toSysExact</code>, <code>sysLength</code>, <code>sysLengths</code>, <code>effectiveScale</code>, <code>getScale</code>, <code>snapSys</code>, <code>systemPxQuantum</code>, <code>snapToSystemPx</code>, <code>snapToDevicePx</code></td><td class="wrap">Convert between system (art) px and CSS px in a custom control's own JS geometry; snap what you write onto the system grid or the finer device grid. <code>snapSys</code> is the system-px form a placement is stored in. <code>CLASSIC_DPI</code> / <code>CSS_REFERENCE_DPI</code> / <code>SYSTEM_PX_IN_CSS_PX</code> are the constants the target is derived from</td></tr>
-              <tr><td class="wrap"><code>vfBase</code>, <code>vfDisplay</code>, <code>vfDisplayDecls</code>, <code>vfBodyDecls</code>, <code>vfStaticText</code>, <code>vfPanel</code>, <code>vfChromeFrame</code>, <code>vfModalFrame</code>, <code>vfTitleBar</code>, <code>vfWindowWidgets</code>, <code>vfHardShadowDecls</code>, <code>vfStripes</code>, <code>vfDots</code>, <code>vfFocus</code>, <code>vfFocusRing</code>, <code>vfFocusUnderline</code>, <code>vfToggle</code>, <code>vfField</code>, <code>vfScrollRail</code></td><td class="wrap">The 1-bit CSS recipes — compose into <code>static styles</code></td></tr>
-              <tr><td class="wrap"><code>glyphSvg</code> + <code>CHECKMARK</code>, <code>CARET_DOWN</code>, <code>STEPPER</code>, <code>RADIO_RING</code>, <code>SLIDER_THUMB</code>, …</td><td class="wrap">The 1-bit sprite set, rendered inline as SVG</td></tr>
-              <tr><td class="wrap"><code>steppedRectClip</code>, <code>steppedRingClip</code>, <code>BUTTON_FRAME</code>, <code>BUTTON_FACE</code>, <code>RING_FRAME</code>, <code>RING_HOLE</code>, <code>RING_INSET</code></td><td class="wrap">Pixel-stepped corner profiles and their <code>clip-path</code> traces</td></tr>
-              <tr><td class="wrap"><code>DragController</code>, <code>ScrollStateController</code>, <code>TrackWidthController</code>, <code>DocumentListenersController</code></td><td class="wrap">Pointer-drag wiring; per-axis overflow and inactive-window reporting for the always-a-rail scrollbars; a track's measured width; document-level listeners scoped to an open panel or in-flight gesture</td></tr>
-              <tr><td class="wrap"><code>focusModality</code>, <code>trackFocusModality</code>, <code>FocusRuleController</code></td><td class="wrap">Whether the keyboard or a pointer last drove the page, resolved against a host's own focus as one reactive flag — what a control consults to mark keyboard focus only, wherever <code>:focus-visible</code> cannot say so</td></tr>
-              <tr><td class="wrap"><code>emit</code>, <code>prefersReducedMotion</code>, <code>runSelectionBlink</code>, <code>BLINK_INTERVAL_MS</code>, <code>BLINK_FLIPS</code>, <code>PRESS_HOLD_MS</code>, <code>RENAME_DELAY_MS</code></td><td class="wrap">The <code>bubbles</code>+<code>composed</code> event convention; the ~250ms selection blink; the tap-vs-hold threshold both press-drag surfaces share; the rename delay</td></tr>
-              <tr><td class="wrap"><code>VfFormControl</code>, <code>VfTextControlBase</code>, <code>VfToggleControl</code>, <code>VfModalDialog</code>, <code>modalDialogStyles</code></td><td class="wrap">Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin), the native-<code>&lt;dialog&gt;</code> lifecycle</td></tr>
-              <tr><td class="wrap"><code>VfPositioned</code>, <code>VfSized</code>, <code>PlacementController</code></td><td class="wrap">The <code>top</code>/<code>left</code> and <code>width</code>/<code>height</code> mixins, in whole system px, plus the gesture half that states a drag's result in those same properties</td></tr>
-              <tr><td class="wrap"><code>defineElement</code>, <code>vfElement</code></td><td class="wrap">Register a custom element without the duplicate-copy footgun — both skip with a warning rather than throwing when the tag is already taken</td></tr>
-              <tr><td class="wrap"><code>registerEmbeddedFont</code>, <code>registerDisplayFace</code>, <code>registerBodyFace</code>, <code>VF_DISPLAY_FAMILY</code>, <code>VF_BODY_FAMILY</code></td><td class="wrap">Register the bitmap faces on <code>document.fonts</code> yourself; the constants are the family names they register under (<code>'VF Display'</code>, <code>'VF Body'</code>)</td></tr>
-            </tbody>
-          </table>
-
-          <h3>Authoring a control on the kit's terms</h3>
-          <p>
-            <code>VfToggleControl</code> is a mixin rather than a base class, so apply
-            it over whichever base your control needs:
-          </p>
-
-          <pre class="snippet"><code>class MyToggle extends VfToggleControl(VfFormControl) {
-  @property({ type: Boolean, reflect: true }) override checked = false
-  protected override get toggleInternals() { return this.internals }
-  protected override get toggleDisabled() { return this.isDisabled }
-  protected override activate() {
-    this.checked = !this.checked
-    this.focus()
-    emit(this, 'vf-change', { checked: this.checked })
-  }
-}</code></pre>
-
-          <p>
-            You get the click/Space wiring (including the held-Space auto-repeat guard),
-            one disabled gate every activation passes through,
-            <code>aria-checked</code>/<code>aria-disabled</code> mirroring, and a
-            self-managed host tabindex that never clobbers a consumer's own.
-          </p>
-
-          <p>
-            <code>SPEC.md</code> has the full design spec — every token, slot, part
-            and event, with the pixel traces they came from.
-          </p>
-        </section>
       </main>
     </div>
   </body>

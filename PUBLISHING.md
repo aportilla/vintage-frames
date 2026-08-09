@@ -180,11 +180,12 @@ Skip all of this for 0.1.0. Worth knowing it exists:
 - ~~**GitHub Pages for the demos.**~~ **Done 2026-08-08:**
   `vite.pages.config.ts` builds the three pages with the project-site base
   path, and `.github/workflows/pages.yml` deploys them on every push to `main`.
-  Two things to know: the demo pages serve the embedded Apple strikes and the
-  System 7 icon crops from a public URL, which is the distribution question
-  below arriving in its hosted form; and the Character Set window's strikes are
-  untracked, so on the deployed site that one panel shows its own
-  "collection isn't built" note. Natural home for MAKING-OF.md when that ships.
+  What it publishes is the thing to know: the embedded Apple strikes, the
+  System 7 icon crops, and — since `fonts/imported/` was un-gitignored the same
+  day, so the Character Set window works on the deployed site — the whole
+  80-strike collection under its own Apple family names, copied in by
+  `scripts/copy-strikes.mjs`. That is the distribution question below arriving
+  in hosted form, at collection scale. Natural home for MAKING-OF.md too.
 - **Branch protection on `main`** — matters when a second contributor shows
   up, noise before then.
 - **`npm dist-tags`** — `npm publish --tag next` publishes without moving
@@ -195,7 +196,7 @@ Skip all of this for 0.1.0. Worth knowing it exists:
 
 - [ ] `LICENSE` file (MIT text, your name)
 - [ ] `author` / `repository` / `homepage` / `bugs` in package.json
-- [ ] Apple-strike **distribution** decision made (both embedded faces) — the naming half is done (2026-08-08: they ship as `VF Display`/`VF Body`), the embed-Apple-artwork-at-all question is not; demo caution-icon provenance noted (repo/demo pages only — it doesn't ship)
+- [ ] Apple-strike **distribution** decision made (both embedded faces) — the naming half is done (2026-08-08: they ship as `VF Display`/`VF Body`), the embed-Apple-artwork-at-all question is not; demo caution-icon provenance noted (repo/demo pages only — it doesn't ship). Scope grew 2026-08-08: `fonts/imported/` is now tracked and served from the demo site, so the repo distributes ~80 strikes under their original names — still outside the npm tarball, but public
 - [x] Working notes committed rather than left ambient (2026-08-06)
 - [ ] npm account, email verified, 2FA on, `npm login` done
 - [ ] `git push origin main`

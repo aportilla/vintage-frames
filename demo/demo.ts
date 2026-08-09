@@ -480,8 +480,9 @@ async function renderCharset(): Promise<void> {
     charsetSpecimen.style.removeProperty('--vf-paragraph-line-height')
     const note = new VfParagraph()
     note.textContent =
-      `fonts/imported/${font.file} didn't load — the strike collection is ` +
-      'untracked and built locally; fonts/README.md has the pipeline.'
+      `fonts/imported/${font.file} didn't load — rebuild the strike with ` +
+      'fonts/import-bdf.py, then rerun charset-manifest.py; fonts/README.md ' +
+      'has the pipeline.'
     charsetSpecimen.append(note)
     charsetCountEl.textContent = ''
     return

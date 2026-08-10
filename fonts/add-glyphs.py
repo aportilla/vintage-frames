@@ -7,12 +7,23 @@ matching the --vf-font-family-display / --vf-font-family tokens that select
 them — because what ships is the kit's artifact and should not carry Apple's
 face name in its binary or in a consumer's font-family stack. See FONTS.
 
-The second is glyph backfill: both genuine strikes lack `×`, which MacRoman
-never carried, and each face gains it here — the same saltire, dropped into
-each strike's own `+` box. Geneva's one remaining gap is `⌘`, which only the
-Chicago strike ever drew; it falls back per glyph to the system font, and the
-known backfill is another `specs` row here (tracing Chicago's own ink, per
-fonts/README's trace-don't-invent rule).
+The second is glyph backfill. Chicago gains the one character it lacked (`×`).
+Geneva carries the kit's body-copy backfill: the characters modern web copy
+reaches for that old MacRoman never held. Every spec row states its source,
+best kind first:
+
+    traced   — another glyph's ink, verbatim (the donor is named)
+    composed — a strike capital under the strike's own accent, at the
+               placement the native É / Ñ / Å establish (accent ink in rows
+               y8-9 over a y7 gap; a dieresis is one row at y8)
+    derived  — strike ink rearranged (the donors are named)
+    drawn    — nothing to trace anywhere; an original 1-bit drawing, awaiting
+               review on the proof page
+
+Review the results on the proofing page: glyph-proof.html on the dev server
+renders every backfilled glyph oversized, in context, and beside its bitmap —
+it reads demo/glyph-proof-manifest.ts, which this script regenerates on every
+run (generated, like the charset manifest — never hand-edit).
 
 Run it (needs fonttools + brotli — see fonts/README.md):
 
@@ -40,6 +51,7 @@ centre — no reverse-winding needed). y0 is the font-unit y of the bitmap's
 BOTTOM edge; x0 its LEFT edge; advance the glyph's advance width.
 """
 import base64
+import json
 import os
 import re
 
@@ -48,10 +60,11 @@ from fontTools.ttLib import TTFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STYLES = os.path.join(HERE, "..", "src", "styles")
+DEMO = os.path.join(HERE, "..", "demo")
 PX = 64  # font units per design pixel
 
 # The multiplication sign, an X on the math axis (aligned with the strike's
-# own '+'): a 5x5 saltire.
+# own '+'): a 5x5 saltire. Shared by both faces, each in its own '+' box.
 X_MULT = [
     "#...#",
     ".#.#.",
@@ -59,6 +72,324 @@ X_MULT = [
     ".#.#.",
     "#...#",
 ]
+
+# The command key, traced verbatim from the Chicago strike's own ⌘ — the one
+# strike that ever drew it (fonts/README's trace-don't-invent rule). 9x9 on
+# the baseline; it rides above Geneva's 7px cap band, which is what tracing
+# means — redrawing it smaller would be inventing.
+CMD_KEY = [
+    ".##...##.",
+    "#..#.#..#",
+    "#..#.#..#",
+    ".#######.",
+    "...#.#...",
+    ".#######.",
+    "#..#.#..#",
+    "#..#.#..#",
+    ".##...##.",
+]
+
+# The checkmark, traced verbatim from the Chicago strike's own ✓ (like ⌘,
+# Chicago is the only strike that drew one).
+CHECKMARK_INK = [
+    "........#",
+    ".......##",
+    "......##.",
+    ".....##..",
+    "#...##...",
+    "##.##....",
+    ".###.....",
+    "..#......",
+]
+
+# Geneva's capitals, dumped from the strike — the bases the composed accented
+# caps sit on. Do not edit these: they must stay bit-identical to the strike's
+# own A/E/O/U (the I is a bare 1px stem, inlined below).
+GENEVA_A = ["..#..", "..#..", ".#.#.", ".#.#.", "#####", "#...#", "#...#"]
+GENEVA_E = ["####", "#...", "#...", "###.", "#...", "#...", "####"]
+GENEVA_O = [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."]
+GENEVA_U = ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."]
+
+
+def cap(accent, base):
+    """Compose an accented capital: accent rows, one blank row, the base cap —
+    the exact vertical grammar of the strike's own É/Ñ/Å (ink tops out at y9,
+    or y8 for a one-row dieresis)."""
+    width = max(len(r) for r in accent + base)
+    return [r.ljust(width, ".") for r in accent] + ["." * width] + [
+        r.ljust(width, ".") for r in base
+    ]
+
+
+# name, codepoint, bitmap, x0, y0(bottom edge), advance — all in font units —
+# and the source note the proof page displays.
+#
+# Geneva spacing convention throughout: ink flush left (x0 0) with the 1px gap
+# carried in the advance; the exceptions keep a donor's own bearings (comma,
+# period, ’, », A and I carry 1px bearings in the strike).
+GENEVA_SPECS = [
+    ("multiply", 0x00D7, X_MULT, 0, 64, 384,
+     "drawn — the saltire in the strike's own + box, on the math axis"),
+    ("command", 0x2318, CMD_KEY, 0, 0, 640,
+     "traced — Chicago's ⌘, verbatim, on Geneva's flush-left spacing"),
+    ("checkmark", 0x2713, CHECKMARK_INK, 0, 0, 640,
+     "traced — Chicago's ✓, verbatim, on Geneva's flush-left spacing"),
+
+    # -- currency & math ------------------------------------------------------
+    ("euro", 0x20AC, [
+        ".###.",
+        "#....",
+        "#####",
+        "#....",
+        "#####",
+        "#....",
+        ".###.",
+    ], 0, 0, 384,
+     "drawn — the strike's own C, curve left open (its corner stubs dropped), crossed by two full-width bars (the € postdates every source strike)"),
+    ("minus", 0x2212, ["#####"], 0, 192, 384,
+     "derived — the crossbar of the strike's own +, alone on the math axis"),
+    ("periodcentered", 0x00B7, ["#"], 64, 192, 192,
+     "derived — the strike's period dot raised to the math axis, its bearing kept"),
+    ("onesuperior", 0x00B9, [".#", "##", ".#", ".#", ".#"], 0, 128, 192,
+     "drawn — a 2x5 digit at superscript height (top at cap height)"),
+    ("twosuperior", 0x00B2, ["##.", "..#", ".#.", "#..", "###"], 0, 128, 256,
+     "drawn — a 3x5 digit at superscript height"),
+    ("threesuperior", 0x00B3, ["##.", "..#", ".#.", "..#", "##."], 0, 128, 256,
+     "drawn — a 3x5 digit at superscript height"),
+    ("onehalf", 0x00BD, [
+        ".#.......",
+        "##...#...",
+        ".#...#...",
+        ".#..#....",
+        "....#.##.",
+        "...#....#",
+        "...#...#.",
+        "......###",
+    ], 0, 0, 640,
+     "drawn — mini 1 over mini 2 across a fraction slash, full cap band"),
+    ("onequarter", 0x00BC, [
+        ".#.......",
+        "##...#...",
+        ".#...#...",
+        ".#..#....",
+        "....#.#.#",
+        "...#..#.#",
+        "...#..###",
+        "........#",
+    ], 0, 0, 640,
+     "drawn — mini 1 over mini 4 across a fraction slash"),
+    ("threequarters", 0x00BE, [
+        "##.......",
+        "..#..#...",
+        ".#...#...",
+        "..#.#....",
+        "##..#.#.#",
+        "...#..#.#",
+        "...#..###",
+        "........#",
+    ], 0, 0, 640,
+     "drawn — the superscript ³ drawing over mini 4, matching ¼'s slash and denominator"),
+
+    # -- typographic ----------------------------------------------------------
+    ("prime", 0x2032, [".#", ".#", "#."], 64, 256, 256,
+     "derived — the strike's ’ ink, dropped to sit on the x-height band"),
+    ("doubleprime", 0x2033, [".#..#", ".#..#", "#..#."], 64, 256, 448,
+     "derived — two of the strike's ’ ink, one gap apart"),
+    ("quotesinglbase", 0x201A, [".#", ".#", "#."], 64, -128, 256,
+     "traced — the strike's comma, verbatim (a low-9 quote is a comma)"),
+    ("quotedblbase", 0x201E, [".#..#", ".#..#", "#..#."], 64, -128, 448,
+     "derived — the strike's comma, doubled one gap apart"),
+    ("daggerdbl", 0x2021, [".#.", "###", ".#.", ".#.", "###", ".#."], 0, 128, 256,
+     "derived — the strike's † with its own crossbar repeated below"),
+    ("guilsinglleft", 0x2039, ["..#", ".#.", "#..", ".#.", "..#"], 0, 0, 320,
+     "derived — one chevron of the strike's «"),
+    ("guilsinglright", 0x203A, ["#..", ".#.", "..#", ".#.", "#.."], 64, 0, 320,
+     "derived — one chevron of the strike's », its bearing kept"),
+    ("fraction", 0x2044, [
+        "...#",
+        "...#",
+        "..#.",
+        "..#.",
+        ".#..",
+        ".#..",
+        "#...",
+        "#...",
+    ], 64, 0, 384,
+     "traced — the strike's /, verbatim (one drawing serves both slashes at 9pt)"),
+    ("perthousand", 0x2030, [
+        ".#######...",
+        "#..#..#....",
+        "#..#.#.....",
+        ".##..##.##.",
+        "...##..#..#",
+        "..#.#..#..#",
+        ".#...##.##.",
+    ], 0, 0, 768,
+     "derived — the strike's % with its lower loop doubled into a shared-wall 00 (Adam's ink, 2026-08-09)"),
+    ("fi", 0xFB01, [
+        "..##.#",
+        ".#....",
+        "###.##",
+        ".#...#",
+        ".#...#",
+        ".#...#",
+        ".#...#",
+    ], 0, 0, 448,
+     "derived — the strike's f and i, joined at f's own advance"),
+    ("fl", 0xFB02, [
+        "..####",
+        ".#...#",
+        "###..#",
+        ".#...#",
+        ".#...#",
+        ".#...#",
+        ".#...#",
+    ], 0, 0, 448,
+     "derived — the strike's f and l, joined at f's own advance"),
+
+    # -- accented capitals ----------------------------------------------------
+    # The strike's own caps under the strike's own accents (shapes from its
+    # lowercase à á â ä; placement from its native É/Ñ/Å). Ã Õ Ñ Ö Ü É are
+    # native — only these fifteen were missing.
+    ("Aacute", 0x00C1, cap(["...#.", "..#.."], GENEVA_A), 64, 0, 448,
+     "composed — the strike's A under its own acute"),
+    ("Acircumflex", 0x00C2, cap(["..#..", ".#.#."], GENEVA_A), 64, 0, 448,
+     "composed — the strike's A under its own circumflex"),
+    ("Egrave", 0x00C8, cap([".#..", "..#."], GENEVA_E), 0, 0, 320,
+     "composed — the strike's E under its own grave (its É, mirrored)"),
+    ("Ecircumflex", 0x00CA, cap([".#..", "#.#."], GENEVA_E), 0, 0, 320,
+     "composed — the strike's E under its own circumflex (placed as its ê)"),
+    ("Edieresis", 0x00CB, cap(["#..#"], GENEVA_E), 0, 0, 320,
+     "composed — the strike's E under its own dieresis (dots over the stems, as its ë)"),
+    ("Igrave", 0x00CC, cap(["#.", ".#"], [".#"] * 7), 0, 0, 192,
+     "composed — the strike's I under its own grave (accent left of the stem, as its ì)"),
+    ("Iacute", 0x00CD, cap([".#", "#."], [".#"] * 7), 0, 0, 192,
+     "composed — the strike's I under its own acute (as its í)"),
+    ("Icircumflex", 0x00CE, cap([".#.", "#.#"], [".#."] * 7), 0, 0, 256,
+     "composed — the strike's I under its own circumflex (as its î; a wider letter, like î vs í)"),
+    ("Idieresis", 0x00CF, cap(["#.#"], [".#."] * 7), 0, 0, 256,
+     "composed — the strike's I under its own dieresis (as its ï)"),
+    ("Ograve", 0x00D2, cap([".#...", "..#.."], GENEVA_O), 0, 0, 384,
+     "composed — the strike's O under its own grave"),
+    ("Oacute", 0x00D3, cap(["...#.", "..#.."], GENEVA_O), 0, 0, 384,
+     "composed — the strike's O under its own acute"),
+    ("Ocircumflex", 0x00D4, cap(["..#..", ".#.#."], GENEVA_O), 0, 0, 384,
+     "composed — the strike's O under its own circumflex"),
+    ("Ugrave", 0x00D9, cap([".#...", "..#.."], GENEVA_U), 0, 0, 384,
+     "composed — the strike's U under its own grave"),
+    ("Uacute", 0x00DA, cap(["...#.", "..#.."], GENEVA_U), 0, 0, 384,
+     "composed — the strike's U under its own acute"),
+    ("Ucircumflex", 0x00DB, cap(["..#..", ".#.#."], GENEVA_U), 0, 0, 384,
+     "composed — the strike's U under its own circumflex"),
+
+    # -- arrows & marks -------------------------------------------------------
+    # No strike anywhere carries text arrows (every imported Symbol strike was
+    # checked), so these are drawings: 1px chevron heads on the math axis,
+    # matching the face's stroke weight.
+    ("arrowleft", 0x2190, [
+        "..#....",
+        ".#.....",
+        "#######",
+        ".#.....",
+        "..#....",
+    ], 0, 64, 512, "drawn — chevron-headed arrow on the math axis"),
+    ("arrowright", 0x2192, [
+        "....#..",
+        ".....#.",
+        "#######",
+        ".....#.",
+        "....#..",
+    ], 0, 64, 512, "drawn — chevron-headed arrow on the math axis"),
+    ("arrowup", 0x2191, [
+        "..#..",
+        ".#.#.",
+        "#.#.#",
+        "..#..",
+        "..#..",
+        "..#..",
+        "..#..",
+    ], 0, 0, 384, "drawn — chevron-headed arrow, cap height"),
+    ("arrowdown", 0x2193, [
+        "..#..",
+        "..#..",
+        "..#..",
+        "..#..",
+        "#.#.#",
+        ".#.#.",
+        "..#..",
+    ], 0, 0, 384, "drawn — chevron-headed arrow, cap height"),
+    ("multiplicationx", 0x2715, [
+        "#.....#",
+        ".#...#.",
+        "..#.#..",
+        "...#...",
+        "..#.#..",
+        ".#...#.",
+        "#.....#",
+    ], 0, 0, 512, "drawn — the ballot X: the × saltire at full cap size"),
+    ("blackstar", 0x2605, [
+        "...#...",
+        "..###..",
+        "#######",
+        ".#####.",
+        "..###..",
+        ".##.##.",
+        ".#...#.",
+    ], 0, 0, 512, "drawn — a five-point star filled solid, cap size (Adam's ink, 2026-08-09)"),
+
+    # -- Mac modifier keys ----------------------------------------------------
+    # ⌘ is traced above; no strike ever drew the other three (they entered the
+    # UI after the bitmap era), so they are drawings at ⌘-compatible weight.
+    ("shift", 0x21E7, [
+        "....#....",
+        "...#.#...",
+        "..#...#..",
+        ".#.....#.",
+        "##.....##",
+        "..#...#..",
+        "..#...#..",
+        "..#...#..",
+        "..#####..",
+    ], 0, 0, 640, "drawn — the shift key outline (Adam's ink, 2026-08-09)"),
+    ("option", 0x2325, [
+        "##..###",
+        "..#....",
+        "...#...",
+        "....#..",
+        ".....##",
+    ], 0, 64, 512, "drawn — the option key switch"),
+    ("control", 0x2303, [
+        "..#..",
+        ".#.#.",
+        "#...#",
+    ], 0, 192, 384, "drawn — the control chevron, in the cap's upper band"),
+]
+
+CHICAGO_SPECS = [
+    ("multiply", 0x00D7, X_MULT, 64, 128, 448,
+     "drawn — the saltire in the strike's own + box, on the math axis"),
+]
+
+# "shipped" is the family name the built face carries and the kit registers.
+# It is deliberately NOT the source strike's name: what ships is the kit's own
+# artifact, and naming it after Apple's face would put a trademark in the
+# binary and in every consumer's font-family stack. The provenance is not
+# hidden by this — it is documented at length in fonts/README.md, which is
+# where a description belongs. (The *fallback* entries in the recipes' family
+# stacks still name Chicago, Charcoal and Geneva: those refer to faces the
+# reader may have installed, which is a different claim entirely.)
+FONTS = {
+    "Chicago": {  # the real strike needs only ×; geometry borrowed from its '+'
+        "module": "display-font.ts",
+        "shipped": "VF Display",
+        "specs": CHICAGO_SPECS,
+    },
+    "Geneva": {  # the body-copy backfill lives here — see GENEVA_SPECS
+        "module": "body-font.ts",
+        "shipped": "VF Body",
+        "specs": GENEVA_SPECS,
+    },
+}
 
 
 def bmp(bitmap, x0, y0, advance):
@@ -83,34 +414,6 @@ def bmp(bitmap, x0, y0, advance):
             else:
                 c += 1
     return pen.glyph(), advance
-
-
-# name, codepoint, bitmap, x0, y0(bottom edge), advance — all in font units.
-#
-# "shipped" is the family name the built face carries and the kit registers.
-# It is deliberately NOT the source strike's name: what ships is the kit's own
-# artifact, and naming it after Apple's face would put a trademark in the
-# binary and in every consumer's font-family stack. The provenance is not
-# hidden by this — it is documented at length in fonts/README.md, which is
-# where a description belongs. (The *fallback* entries in the recipes' family
-# stacks still name Chicago, Charcoal and Geneva: those refer to faces the
-# reader may have installed, which is a different claim entirely.)
-FONTS = {
-    "Chicago": {  # the real strike needs only ×; geometry borrowed from its '+'
-        "module": "display-font.ts",
-        "shipped": "VF Display",
-        "specs": [
-            ("multiply", 0x00D7, X_MULT, 64, 128, 448),
-        ],
-    },
-    "Geneva": {  # × in its own '+' box: flush-left 5x5 ink at y 1, 6px advance
-        "module": "body-font.ts",
-        "shipped": "VF Body",
-        "specs": [
-            ("multiply", 0x00D7, X_MULT, 0, 64, 384),
-        ],
-    },
-}
 
 
 def set_family(font, family):
@@ -142,7 +445,7 @@ def build(family, cfg):
     glyf, hmtx = font["glyf"], font["hmtx"]
     order = font.getGlyphOrder()
 
-    for name, uni, bitmap, x0, y0, adv in cfg["specs"]:
+    for name, uni, bitmap, x0, y0, adv, _source in cfg["specs"]:
         glyph, advance = bmp(bitmap, x0, y0, adv)
         if name not in order:
             order.append(name)
@@ -199,7 +502,48 @@ def build(family, cfg):
     )
 
 
+def write_manifest():
+    """Regenerate demo/glyph-proof-manifest.ts — the proof page's data file."""
+    entries = []
+    for family, cfg in FONTS.items():
+        for name, uni, bitmap, x0, y0, adv, source in cfg["specs"]:
+            entries.append({
+                "face": cfg["shipped"],
+                "char": chr(uni),
+                "name": name,
+                "codepoint": uni,
+                "rows": bitmap,
+                "x0": x0 // PX,
+                "y0": y0 // PX,
+                "advance": adv // PX,
+                "source": source,
+            })
+    body = json.dumps(entries, ensure_ascii=False, indent=2)
+    path = os.path.join(DEMO, "glyph-proof-manifest.ts")
+    with open(path, "w") as f:
+        f.write(
+            "// GENERATED by fonts/add-glyphs.py — do not edit. Every glyph the\n"
+            "// kit adds to the shipped faces, with its bitmap (top row first,\n"
+            "// '#' = ink), placement in design px (y0 = bottom edge, baseline 0)\n"
+            "// and provenance. Rendered by glyph-proof.html.\n"
+            "export interface BackfillGlyph {\n"
+            "  face: string\n"
+            "  char: string\n"
+            "  name: string\n"
+            "  codepoint: number\n"
+            "  rows: string[]\n"
+            "  x0: number\n"
+            "  y0: number\n"
+            "  advance: number\n"
+            "  source: string\n"
+            "}\n\n"
+            f"export const BACKFILL_GLYPHS: BackfillGlyph[] = {body}\n"
+        )
+    print(f"manifest -> demo/glyph-proof-manifest.ts ({len(entries)} glyphs)")
+
+
 if __name__ == "__main__":
     for family, cfg in FONTS.items():
         build(family, cfg)
+    write_manifest()
     print("done — rebuild the library (npm run build) to bundle the updated fonts")

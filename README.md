@@ -513,7 +513,10 @@ Two bitmap faces ship inside the components and register themselves on
   titles, buttons, checkboxes, radios, popup menus, fieldset legends, and
   editable text/number fields. Converted from the genuine Chicago 12pt strike.
 - **`VF Body`** — the body face: list rows and page copy. The genuine Geneva
-  9pt strike.
+  9pt strike, extended with a body-copy backfill drawn in its idiom (`€`,
+  `−`, `·`, the uppercase accents, arrows, `⌘ ⇧ ⌥ ⌃`, fractions — see
+  [fonts/README.md](./fonts/README.md)) so modern copy doesn't fall back
+  mid-sentence.
 
 They ship under the kit's names rather than the strikes', since a family name
 goes into the font binary and every consumer's `font-family` stack.

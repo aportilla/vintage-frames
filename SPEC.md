@@ -461,13 +461,21 @@ enabled well.
 - `vfStaticText` — the `face` / `size` / `dim` host switches shared by
   `vf-label` and `vf-paragraph`. All `:host([attr])`, one specificity step above
   the plain `:host` rule each component sets its own default face in.
-- `vfStripes` — a `.vf-stripes` class:
-  `background: repeating-linear-gradient(to bottom, var(--vf-black, #000) 0 1px, transparent 1px 2px);`
-  Position it absolutely inside the title bar, inset `3px 1px` (top/bottom 3px,
-  left/right 1px) so exactly six 1px stripes show at the 18px bar height, their
-  top and bottom edges aligned with the close box's and one system px of clear
-  white between the stripes and the frame border — the same buffer the widgets'
-  patch ring keeps.
+- `vfStripes` — a `.vf-stripes` class for the racing-stripe layer. Position it
+  absolutely inside the title bar, inset `3px 1px` (top/bottom 3px, left/right
+  1px) so exactly six 1px stripes show at the 18px bar height, their top and
+  bottom edges aligned with the close box's and one system px of clear white
+  between the stripes and the frame border — the same buffer the widgets'
+  patch ring keeps. The paint is split by engine, each side the measured best
+  (the full three-engine matrix is in `scripts/verify-tile.mjs`): Blink and
+  WebKit draw the `repeating-linear-gradient(to bottom, var(--vf-black, #000)
+  0 1px, transparent 1px 2px)` — the one paint whose stops land at device
+  precision inside Blink's CSS-px-rounded box, where placed rows, the
+  whole-surface raster and inline SVG all drop, fuse or wobble a stripe —
+  while Gecko (gated by `@supports (-moz-appearance: none)`) renders six
+  placed solid rows (`chromeTitleBar` supplies the spans), because solid
+  quads device-snap and never ride the GPU gradient pipeline that softens a
+  hard stop at default zoom.
 - `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer
   inset `2px` top/bottom and **flush left/right** (the close-up reference runs
   the dots into the side borders; the `Windows/` sheet's 2px side inset is the

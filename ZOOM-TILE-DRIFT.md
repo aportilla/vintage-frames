@@ -164,7 +164,7 @@ quantize and nothing to accumulate.
 | `vf-swatch` checker | tile behind the color | **yes** | Declared size; retires its inset residual |
 | `vf-progress-bar` barber stripes | tile + `background-position` keyframes | **yes** | Needs the animator (below); retires its inset residual |
 | Scroll trough dither | `::-webkit-scrollbar-track` | **no — cannot** | A pseudo-element can't host an element. Keeps the span approach and this doc's zoom caveat; Firefox already approximates via `scrollbar-color` |
-| Title-bar racing stripes (`vfStripes`) | `repeating-linear-gradient` | **no — needn't** | ≤6 repeats in an 11-system-px band; accumulation can't reach half a device pixel |
+| Title-bar racing stripes (`vfStripes`) | `repeating-linear-gradient` | **no — needn't** (drift); Gecko split off 2026-08-09 for a different failure | ≤6 repeats in an 11-system-px band; accumulation can't reach half a device pixel. The later Gecko report (one stripe soft at default zoom) was GPU WebRender's gradient-texture sampling, not drift — fixed by rendering Gecko's stripes as placed solid rows, while Blink/WebKit keep the gradient (measured the only paint that stays whole inside Blink's CSS-px-rounded box; see verify-tile.mjs) |
 
 `tile.ts` is not deleted. The span construction remains load-bearing for the
 trough, for the CSS underlay layer (below), and for the forced-colors mask

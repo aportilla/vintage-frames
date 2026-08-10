@@ -11,9 +11,9 @@
  * 30/23 at its 115%) that no finite lattice can hold. TILE-GRID-PLAN.md /
  * ZOOM-TILE-DRIFT.md carry the full analysis.
  *
- * The four convertible surfaces (desktop dither, windoid dots, swatch
- * checker, barber stripes) therefore no longer repeat in CSS
- * (src/tile-grid.ts):
+ * The five converted surfaces (desktop dither, windoid dots, swatch
+ * checker, barber stripes, title-bar racing stripes) therefore no longer
+ * repeat in CSS (src/tile-grid.ts):
  *
  * - KIT ART renders as one whole-surface raster at one image px per system
  *   px, stretched 100%/100% under image-rendering: pixelated. Nearest-
@@ -29,6 +29,33 @@
  *   pixel-pure at every ladder scale (asserted). At a zoom-minted scale the
  *   engine antialiases each box's fractional painted edge, so what remains
  *   there is a bounded per-seam hairline — never surface-wide smear.
+ *
+ * The title-bar racing stripes joined 2026-08-09 with a per-engine split
+ * (vfStripes, src/styles/recipes/pattern.ts) after a three-engine ×
+ * eight-density measurement of every candidate:
+ *
+ * - Blink pixel-snaps a painted BOX to whole CSS px, not device px. Inside
+ *   the bar's floored frame border (layer origin on a half CSS px at scale
+ *   3/2) that killed every box-shaped mechanism: placed solid rows painted
+ *   a 1.5-CSS-px stripe as 2 or 4 device rows and FUSED neighbors at dpr 3;
+ *   the whole-surface raster resampled into the CSS-rounded box and dropped
+ *   a device row (one stripe thin at dpr 2/3); inline SVG rects wobbled a
+ *   stripe's position under the stretched viewBox. The gradient's stops are
+ *   the one paint that lands at device precision inside the rounded box —
+ *   so Blink and WebKit KEEP the repeating-linear-gradient, asserted here
+ *   at the integer densities; the fractional densities keep their shipped
+ *   soft edge (printed, not failed — the same residual the gradient always
+ *   had there).
+ *
+ * - Gecko device-snaps solid boxes (headless parity with its gradient at
+ *   every density), and its GPU WebRender gradient pipeline is what softens
+ *   a hard stop at default zoom (the reported bug). So Gecko alone renders
+ *   the six stripes as placed spans — display-gated by @supports
+ *   (-moz-appearance: none); this Chromium harness can only guard their
+ *   template, which it does.
+ *
+ * No consumer pattern token (token: null — the active-window signal is not
+ * a themeable texture).
  *
  * The scroll trough cannot convert (a pseudo-element hosts no children) and
  * keeps the span arithmetic, checked here; headless Chromium paints no
@@ -109,7 +136,24 @@ const SURFACES = [
     tiles: null, // strip width follows the measured track — count not asserted
     insetLayer: true,
   },
+  {
+    name: 'title stripes ',
+    // No heading: the centered title patch is hidden by page CSS below — a
+    // centered box's fractional edges would count impure at zoom-minted
+    // scales, and the patch is verify-chrome's story, not the stripes'.
+    markup: '<vf-window id="doc" width="240" height="80"></vf-window>',
+    host: '#doc',
+    layer: '.vf-stripes',
+    token: null, // no consumer art — the stripes are not a themeable texture
+    stripes: true, // engine-split paint, not a tile fill (see the header)
+    // The close box and its patch ring overlap the band's left end.
+    padSysX: 20,
+  },
 ]
+
+/** Densities where the stripes' gradient is asserted whole-and-pure (the
+ * integer ladder; the fractional densities keep their shipped soft edge). */
+const STRIPE_PURE_DPRS = [1, 2, 3]
 
 /**
  * Densities where a surface's consumer-path (placed tile grid) raster is
@@ -151,7 +195,8 @@ async function build(dpr, { consumerArt = false, reducedMotion = true, bodyStyle
   await page.setContent(
     '<!doctype html><meta charset="utf-8"><style>body{margin:0}' +
       '[id]{position:absolute;left:0}' +
-      '#desk{top:0}#windoid{top:340px}#sw{top:440px}#pb{top:520px}' +
+      '#desk{top:0}#windoid{top:340px}#sw{top:440px}#pb{top:520px}#doc{top:600px}' +
+      '#doc::part(title){display:none}' +
       bodyStyle +
       '</style><body>' +
       SURFACES.map((s) => s.markup).join('')
@@ -178,7 +223,7 @@ async function build(dpr, { consumerArt = false, reducedMotion = true, bodyStyle
           document.documentElement.style.setProperty(token, `url("${tile.toDataURL('image/png')}")`)
         }
       },
-      SURFACES.map((s) => [s.token, { ...s.motif, span: s.tile }])
+      SURFACES.filter((s) => s.token).map((s) => [s.token, { ...s.motif, span: s.tile }])
     )
   }
   await page.evaluate(() => import('/src/index.js'))
@@ -268,6 +313,79 @@ for (const dpr of DENSITIES) {
   console.log(`\ndpr ${dpr}  (1 system px = ${n} device px)  — kit art`)
 
   for (const s of SURFACES) {
+    if (s.stripes) {
+      // The Gecko spans: display-gated off in this Chromium harness, so
+      // only their template can be guarded here — six rows on the 2px
+      // rhythm, each top one multiplication against --vf-scale.
+      const spans = await page.evaluate(
+        ([host, layer]) =>
+          [
+            ...document.querySelector(host).shadowRoot.querySelector(layer).children,
+          ].map((el) => el.style.top),
+        [s.host, s.layer]
+      )
+      const wantTops = [0, 2, 4, 6, 8, 10].map((r) => `calc(var(--vf-scale, 1) * ${r}px)`)
+      check(
+        `${s.name}: six Gecko stripe rows in the template, on the 2px rhythm`,
+        spans.length === 6 && spans.every((t, i) => t === wantTops[i]),
+        spans.join(' ')
+      )
+      // The gradient, at the densities Blink holds it whole: six black runs
+      // down the band, each exactly n device rows on a 2n rhythm. Deliberately
+      // NOT anchored to the layer's rect — Blink rounds the painted box to
+      // whole CSS px, so the band may sit a device row off its layout rect;
+      // uniformity is the art's claim, the box edge is every box's story.
+      if (STRIPE_PURE_DPRS.includes(dpr)) {
+        const r = await page.evaluate(
+          ([hostSel, layerSel]) => {
+            const host = document.querySelector(hostSel)
+            const lr = host.shadowRoot.querySelector(layerSel).getBoundingClientRect()
+            const hr = host.getBoundingClientRect()
+            return { x: lr.left - hr.left, y: lr.top - hr.top, h: lr.height }
+          },
+          [s.host, s.layer]
+        )
+        const png = decodePng(await page.locator(s.host).screenshot())
+        const y0 = Math.floor(r.y * dpr) - 1
+        const y1 = Math.ceil((r.y + r.h) * dpr) + 1
+        let bad = ''
+        for (const colSys of [25, 80, 150]) {
+          const x = Math.ceil(r.x * dpr) + colSys * n
+          const found = []
+          let start = null
+          for (let y = y0; y <= y1; y++) {
+            const i = (y * png.width + x) * png.bpp
+            const black =
+              png.data[i] === 0 && png.data[i + 1] === 0 && png.data[i + 2] === 0
+            if (black && start === null) start = y
+            if (!black && start !== null) {
+              found.push({ start, len: y - start })
+              start = null
+            }
+          }
+          const even =
+            found.length === 6 &&
+            found.every((v) => v.len === n) &&
+            found.every((v, i) => i === 0 || v.start - found[i - 1].start === 2 * n)
+          if (!even)
+            bad += ` col${colSys}:[${found.map((v) => `${v.start}+${v.len}`).join(' ')}]`
+        }
+        check(
+          `${s.name}: six whole ${n}-device-px stripes on the ${2 * n}-px rhythm`,
+          bad === '',
+          bad || '3 columns even'
+        )
+        const { impure, counted } = await impureIn(page, s, dpr, n)
+        check(`${s.name}: rasterizes 1-bit`, impure === 0, `${impure}/${counted} impure`)
+      } else {
+        const { impure, counted } = await impureIn(page, s, dpr, n)
+        console.log(
+          `  --   ${s.name}: ${impure}/${counted} impure (the gradient's shipped soft ` +
+            `edge inside the floored border; see STRIPE_PURE_DPRS)`
+        )
+      }
+      continue
+    }
     const raster = await page.evaluate(
       ([host, layer]) => {
         const el = document.querySelector(host).shadowRoot.querySelector(layer)
@@ -304,6 +422,7 @@ for (const dpr of DENSITIES) {
   console.log(`\ndpr ${dpr}  (1 system px = ${n} device px)  — consumer pattern tokens`)
 
   for (const s of SURFACES) {
+    if (!s.token) continue // kit-art-only surface (the stripes take no token)
     const rects = await page.evaluate(
       ([host, layer]) => {
         const el = document.querySelector(host).shadowRoot.querySelector(layer)

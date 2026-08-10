@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit'
 import type { DragController } from './drag.js'
+import { sysLength } from './scale.js'
 
 /**
  * The title-bar element shared by `vf-window` and `vf-dialog`: the
@@ -15,10 +16,14 @@ import type { DragController } from './drag.js'
  * — which have to stay in lockstep with DragController's three handlers, and
  * where a dropped `pointercancel` would strand a drag — live in one place.
  *
- * `texture` is the exact fill a width-declaring utility window renders INTO
- * the dots layer — the whole-surface raster or a consumer token's tile grid
- * (src/tile-grid.ts). Passing it marks the layer `vf-tile-grid`, which is
- * what switches the layer's own CSS-repeated tile off (see `vfDots`).
+ * The standard bar's stripe rows render here unconditionally — Gecko's
+ * rendering of the racing stripes, display:none under the gradient every
+ * other engine paints (see {@link vfStripes} for the per-engine split and
+ * its measurements). `texture` is the dots' different story: the exact fill
+ * a width-declaring utility window renders INTO the dots layer — the
+ * whole-surface raster or a consumer token's tile grid (src/tile-grid.ts).
+ * Passing it marks the layer `vf-tile-grid`, which is what switches the
+ * layer's own CSS-repeated tile off (see `vfDots`).
  *
  * A `<div>`, deliberately not a `<header>`: per HTML-AAM a `<header>` maps to
  * the `banner` landmark unless a sectioning ancestor demotes it, and inside a
@@ -29,6 +34,19 @@ import type { DragController } from './drag.js'
  * Internal to the kit: it bakes in our own `part` name and class contract, so
  * it is deliberately not re-exported from index.ts (same call as `number.ts`).
  */
+/**
+ * The six racing stripes as placed solid rows on the band's 2px rhythm, each
+ * positioned by one multiplication against `--vf-scale` — Gecko's rendering,
+ * where a solid quad device-snaps and never rides the GPU gradient pipeline
+ * that softens a hard stop (`vfStripes` has the per-engine measurements;
+ * every other engine hides these spans and paints the gradient). Static —
+ * the rows fill the layer's width, so no component measurement is involved
+ * and an undeclared-width window carries them all the same.
+ */
+const RACING_STRIPES: TemplateResult = html`${[0, 2, 4, 6, 8, 10].map(
+  (row) => html`<span style="top:${sysLength(row)}"></span>`
+)}`
+
 export const chromeTitleBar = (
   drag: DragController,
   content: unknown,
@@ -44,7 +62,7 @@ export const chromeTitleBar = (
     @pointercancel=${drag.onPointerUp}
   >
     <div class=${texture ? `${textureClass} vf-tile-grid` : textureClass}>
-      ${texture ?? null}
+      ${texture ?? (textureClass === 'vf-stripes' ? RACING_STRIPES : null)}
     </div>
     ${content}
   </div>

@@ -88,10 +88,13 @@
       bar.dispatchEvent(new PointerEvent('pointermove', at(13.6, 11.5)))
       bar.dispatchEvent(new PointerEvent('pointerup', at(13.6, 11.5)))
 
+      // The gesture writes whole system px through the top/left properties;
+      // the inline style is a live calc(), so it is unreadable by parseFloat
+      // and the properties are the surface to assert. --vf-scale is pinned to
+      // 1 on this page, so device px = property × dpr.
       const dpr = window.devicePixelRatio || 1
-      const toDevice = (v) => parseFloat(v) * dpr
-      const onGrid = ['top', 'left'].every((side) => {
-        const device = toDevice(win.style[side])
+      const onGrid = [win.top, win.left].every((v) => {
+        const device = v * dpr
         return Number.isFinite(device) && Math.abs(device - Math.round(device)) < 1e-6
       })
       document.getElementById('marker').style.background = onGrid ? '#0f0' : 'red'

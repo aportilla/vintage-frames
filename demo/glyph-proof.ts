@@ -41,6 +41,7 @@ function contextFor(g: BackfillGlyph): string {
 
 const NATIVE: Record<string, string> = {
   euro: 'Total: 1.234,56 € — about US$25',
+  currency: 'Total: 1.234,56 € — about US$25',
   minus: 'ΔT = −40° … 5 − 3 = 2, x−y',
   periodcentered: 'May 3 · 4 min read · 98 pt',
   checkmark: '✓ Done — 3 of 3 checks passed',
@@ -67,6 +68,7 @@ const NATIVE: Record<string, string> = {
   arrowdown: 'scroll ↓ for more',
   multiplicationx: '✕ close — ✓ or ✕',
   blackstar: '★★★☆ — 3-star rating',
+  whitestar: '★★★☆☆ — 3 of 5 stars',
   shift: 'press ⇧⌘S to Save As…',
   option: '⌥⌘Esc force-quits',
   control: '⌃C to interrupt',
@@ -142,7 +144,8 @@ const lines: Array<[string, string]> = [
   ['body-face', '« ‹Voilà› » — ‚einfach‘ „doppelt“ — the ﬁne print ﬂows · 5⁄8 · notes† and second‡'],
   ['body-face', NATIVE_ACCENT],
   ['body-face', '← ↑ → ↓ · ✓ done, ✕ close, ★★★ · ⌘Q ⇧⌘S ⌥⌘Esc ⌃C · a·b − c'],
-  ['display-face', 'Chrome face for contrast: 3×5 — press ⌘Q to Quit'],
+  ['display-face', 'Chrome: ⌘N ⇧⌘S ⌥⌘Esc ⌃C · ← Back / Next → · 45 € · 5⁄8 ½ ¾ · ‹Voilà› ﬁne ﬂoor'],
+  ['display-face', 'ÉCOLE, ÈVE, ÎLE, HÔTEL, OÙ, DÉJÀ VU · ✓ ✕ ★ · 3×5 − 2 · a·b · 5′10″ · 4,5 ‰'],
 ]
 for (const [cls, text] of lines) {
   specimens.appendChild(el('div', cls, text))

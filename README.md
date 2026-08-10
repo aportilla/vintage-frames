@@ -511,7 +511,9 @@ Two bitmap faces ship inside the components and register themselves on
 
 - **`VF Display`** — the chrome face: menu bar, menus, window and dialog
   titles, buttons, checkboxes, radios, popup menus, fieldset legends, and
-  editable text/number fields. Converted from the genuine Chicago 12pt strike.
+  editable text/number fields. Converted from the genuine Chicago 12pt strike,
+  extended with the same backfill in its own heavier idiom — so a shortcut
+  string like `⇧⌘S` renders every key in chrome pixels.
 - **`VF Body`** — the body face: list rows and page copy. The genuine Geneva
   9pt strike, extended with a body-copy backfill drawn in its idiom (`€`,
   `−`, `·`, the uppercase accents, arrows, `⌘ ⇧ ⌥ ⌃`, fractions — see

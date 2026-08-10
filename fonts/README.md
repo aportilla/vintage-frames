@@ -115,10 +115,19 @@ byte slots MacRoman later assigned to `⁄ € ‹` (0xDA–0xDC) this strike's 
 is the ✓, ◆ and apple menu symbols over again, and `› ﬁ ﬂ` are absent — the
 source (the macfonts collection's OS 1-6-era `Chicago_15.sfd`) predates that
 extension of the charset, and the conversion faithfully carries the old
-slots' ink under the new slots' names. So `€` typed in Chicago renders a
-black diamond. Whether a System 7-era Chicago strike drew those six
+slots' ink under the new slots' names. So `€` typed in the raw strike renders
+a black diamond. Whether a System 7-era Chicago strike drew those six
 differently is unverified — the collection's OS 9 `Chicago` suitcase lost
 its resource fork and is empty.
+
+The **shipped** face corrects this (2026-08-09): `add-glyphs.py` reinks those
+three glyphs — `⁄` traced from the strike's own `/`, `‹ ›` derived from its
+`« »`, `€` drawn on its `C` — and adds the absent `› ﬁ ﬂ`. Nothing is lost:
+the ✓ ◆  drawings those slots duplicated remain at their own codepoints
+(U+2713 / U+25C6 / U+F8FF), and the build asserts it. The pristine
+`Chicago.woff2` and the `imported/` collection keep the quirk — they present
+the source strike as it is; the correction is the kit's artifact, like the
+rename.
 
 **Geneva.woff2** is likewise the original Apple bitmap: `dfont-to-bdf.py`
 extracts the strike from `Geneva_12.dfont` (the macfonts suitcase collection)
@@ -136,17 +145,21 @@ on a 1px gap) with its own ink, the same day; that retired face survives in
 git history alongside ChiKareGo. Same Apple-IP distribution posture as
 Chicago.
 
-Geneva additionally carries the kit's **body-copy backfill** (2026-08-09): 47
-added glyphs covering what modern web copy reaches for that old MacRoman never
-held — `× ⌘ ✓ € − · ′ ″ ‚ „ ‡ ‹ › ⁄ ‰ ﬁ ﬂ ½ ¼ ¾ ¹ ² ³ ← ↑ → ↓ ✕ ★ ⇧ ⌥ ⌃` and
-the fifteen uppercase accents the era predates (`Á Â È Ê Ë Ì Í Î Ï Ò Ó Ô Ù Ú
-Û`). Every spec states its provenance — *traced* (a donor glyph's ink
-verbatim: ⌘ and ✓ are Chicago's, riding above Geneva's cap band because
-tracing keeps the donor's size), *composed* (the strike's own capitals under
-its own accents, at the placement its native É/Ñ/Å establish), *derived*
-(strike ink rearranged: the comma becomes `‚`, one `«` chevron becomes `‹`),
-or *drawn* (nothing to trace anywhere — the `€` postdates every strike, and no
-strike drew text arrows). See `add-glyphs.py` and the proof page below.
+**Both shipped faces carry the kit's backfill** (2026-08-09): the glyphs
+modern web copy and chrome reach for that old MacRoman never held —
+`× ⌘ ✓ € − · ′ ″ ‚ „ ‡ ‹ › ⁄ ‰ ﬁ ﬂ ½ ¼ ¾ ¹ ² ³ ← ↑ → ↓ ✕ ★ ⇧ ⌥ ⌃` and the
+fifteen uppercase accents the era predates (`Á Â È Ê Ë Ì Í Î Ï Ò Ó Ô Ù Ú Û`)
+— each drawn in its own strike's idiom (Geneva flush-left and 1px-stroked;
+Chicago on its 1px bearings with 2px stems where its letters have them, the
+modifier keys sized to its own 9×9 `⌘`). Every spec states its provenance —
+*traced* (a donor glyph's ink verbatim: Geneva's ⌘ and ✓ are Chicago's,
+riding above Geneva's cap band because tracing keeps the donor's size),
+*composed* (the strike's own capitals under its own accents, at the placement
+its native É/Ñ establish), *derived* (strike ink rearranged: the comma
+becomes `‚`, one `«` chevron becomes `‹`), or *drawn* (nothing to trace
+anywhere — the `€` postdates every strike, and no strike drew text arrows).
+Drawings shared by both faces live in module constants so they cannot drift.
+See `add-glyphs.py` and the proof page below.
 
 ## Why we modify the fonts
 
@@ -154,12 +167,12 @@ The UI types punctuation the sources lack, and a missing glyph falls back
 *per glyph* to the system font — a smooth glyph beside the pixel labels (the
 em dash in "US$25 — see the Read Me" was the giveaway). Both strikes carry
 full MacRoman natively — `…`, curly quotes, the dashes, `•`, the accented
-lowercase — but old MacRoman is not the modern web, so the body face carries
-a backfill (the list above). What still deliberately falls back: `☆`, the
-Icelandic set (`Ý ý Ð ð Þ þ`), `⎋ ⌫ ⏎` — characters with no strike source
-and no real presence in body copy. The display face keeps only its `×` patch;
-its era quirk at 0xDA–0xDC (see Provenance) means `€ ⁄ ‹` render wrong-glyph
-ink there rather than falling back — an open call, tracked separately.
+lowercase — but old MacRoman is not the modern web, so both faces carry the
+backfill (the list above), and the display face's 0xDA–0xDC era quirk is
+corrected in the shipped build (see Provenance). What still deliberately
+falls back: the Icelandic set (`Ý ý Ð ð Þ þ`) and `⎋ ⌫ ⏎` in both faces, and
+`☆` in the body face — characters with no strike source and no real presence
+in copy. (The chrome face carries `☆`: an outline ring of its `★`.)
 
 (The `✓`, `▼` and scroll arrows the *components* draw are handled differently
 — as inline SVG sprites in [`../src/glyphs.ts`](../src/glyphs.ts) and

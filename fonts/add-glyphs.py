@@ -7,18 +7,25 @@ matching the --vf-font-family-display / --vf-font-family tokens that select
 them — because what ships is the kit's artifact and should not carry Apple's
 face name in its binary or in a consumer's font-family stack. See FONTS.
 
-The second is glyph backfill. Chicago gains the one character it lacked (`×`).
-Geneva carries the kit's body-copy backfill: the characters modern web copy
-reaches for that old MacRoman never held. Every spec row states its source,
-best kind first:
+The second is glyph backfill: both faces carry the kit's backfill of what
+modern web copy reaches for that old MacRoman never held, each drawn in its
+own strike's idiom (Geneva flush-left with the 1px gap in the advance;
+Chicago with its 1px bearings and heavier stems). Chicago's build also
+CORRECTS its source's pre-extension slot ink: the strike predates the
+MacRoman extension, so the bytes later assigned to `⁄ € ‹` carry the ✓ ◆
+drawings over again — those three glyphs get proper ink here, losing nothing,
+because the real ✓ ◆  are independently mapped at U+2713 / U+25C6 / U+F8FF.
+Every spec row states its source, best kind first:
 
     traced   — another glyph's ink, verbatim (the donor is named)
     composed — a strike capital under the strike's own accent, at the
-               placement the native É / Ñ / Å establish (accent ink in rows
-               y8-9 over a y7 gap; a dieresis is one row at y8)
+               placement the native É / Ñ establish
     derived  — strike ink rearranged (the donors are named)
     drawn    — nothing to trace anywhere; an original 1-bit drawing, awaiting
                review on the proof page
+
+Drawings shared by both faces (the modifier keys, superscripts, fractions,
+the saltire) live in module constants so the two can never drift apart.
 
 Review the results on the proofing page: glyph-proof.html on the dev server
 renders every backfilled glyph oversized, in context, and beside its bitmap —
@@ -37,12 +44,17 @@ glyph, add one row to a font's `specs` list and re-run.
 --- The pixel grid -----------------------------------------------------------
 Both faces are 1024 units/em and designed on a 64-unit pixel (so they land on
 the CSS pixel grid at 16px: 1024 / 16 = 64). Everything below is expressed in
-whole pixels and multiplied by PX. Reference metrics for drawing into Geneva,
-measured from the strike: 7px caps, 5px x-height, 1x1 px period dot with a
-1px bearing, quotes in the 5-8px band; its ink sits flush left with the 1px
-gap carried in the advance (its '+' is 5x5 at y 1, 6px advance — the box its
-`×` reuses). Chicago's `×` likewise borrows its whole geometry from that
-strike's own '+' (5x5 ink, 1px bearing each side, 7px advance).
+whole pixels and multiplied by PX. Reference metrics, measured from the
+strikes:
+
+  Geneva — 7px caps, 5px x-height, 1x1 period dot with a 1px bearing, quotes
+  in the 5-8px band; ink flush left, the 1px gap carried in the advance (its
+  '+' is 5x5 at y 1, 6px advance — the box its `×` reuses). Accents: rows
+  y8-9 over a y7 gap (dieresis one row at y8), per its native É/Ñ/Å.
+
+  Chicago — 9px caps, 7px x-height, 2px stems, 2x2 period dot; 1px bearing
+  both sides of the ink (its '+' is 5x5 at y 2, 7px advance). Accents: rows
+  y10-11 over a y9 gap (dieresis one row at y10), per its native É/Ñ/Ö.
 
 Glyphs are bitmaps (top row first, '#' = ink). `bmp()` rasterises each to
 TrueType contours as one clockwise rectangle per maximal horizontal run of ink
@@ -63,8 +75,10 @@ STYLES = os.path.join(HERE, "..", "src", "styles")
 DEMO = os.path.join(HERE, "..", "demo")
 PX = 64  # font units per design pixel
 
+# --- Drawings shared by both faces -------------------------------------------
+
 # The multiplication sign, an X on the math axis (aligned with the strike's
-# own '+'): a 5x5 saltire. Shared by both faces, each in its own '+' box.
+# own '+'): a 5x5 saltire. Each face sets it in its own '+' box.
 X_MULT = [
     "#...#",
     ".#.#.",
@@ -75,8 +89,8 @@ X_MULT = [
 
 # The command key, traced verbatim from the Chicago strike's own ⌘ — the one
 # strike that ever drew it (fonts/README's trace-don't-invent rule). 9x9 on
-# the baseline; it rides above Geneva's 7px cap band, which is what tracing
-# means — redrawing it smaller would be inventing.
+# the baseline; in Geneva it rides above the 7px cap band, which is what
+# tracing means — redrawing it smaller would be inventing.
 CMD_KEY = [
     ".##...##.",
     "#..#.#..#",
@@ -102,6 +116,76 @@ CHECKMARK_INK = [
     "..#......",
 ]
 
+# The shift key (Adam's ink, 2026-08-09): a 9x9 outline arrow — the same box
+# as the traced ⌘, so shortcut strings read as a matched set in both faces.
+SHIFT_KEY = [
+    "....#....",
+    "...#.#...",
+    "..#...#..",
+    ".#.....#.",
+    "##.....##",
+    "..#...#..",
+    "..#...#..",
+    "..#...#..",
+    "..#####..",
+]
+
+# The option key switch and the control chevron — 1px strokes, matching the
+# ⌘'s own ring weight in both faces.
+OPTION_KEY = [
+    "##..###",
+    "..#....",
+    "...#...",
+    "....#..",
+    ".....##",
+]
+CONTROL_KEY = [
+    "..#..",
+    ".#.#.",
+    "#...#",
+]
+
+# Superscript digits, 5 rows with the top at each face's cap height. The 3
+# articulates all three strokes (Adam's call on ¾, 2026-08-09).
+SUP_1 = [".#", "##", ".#", ".#", ".#"]
+SUP_2 = ["##.", "..#", ".#.", "#..", "###"]
+SUP_3 = ["##.", "..#", ".#.", "..#", "##."]
+
+# Fractions: mini numerator over a fraction slash over a mini denominator,
+# spanning the full cap band. ¾'s numerator is the superscript-³ drawing.
+ONE_HALF = [
+    ".#.......",
+    "##...#...",
+    ".#...#...",
+    ".#..#....",
+    "....#.##.",
+    "...#....#",
+    "...#...#.",
+    "......###",
+]
+ONE_QUARTER = [
+    ".#.......",
+    "##...#...",
+    ".#...#...",
+    ".#..#....",
+    "....#.#.#",
+    "...#..#.#",
+    "...#..###",
+    "........#",
+]
+THREE_QUARTERS = [
+    "##.......",
+    "..#..#...",
+    ".#...#...",
+    "..#.#....",
+    "##..#.#.#",
+    "...#..#.#",
+    "...#..###",
+    "........#",
+]
+
+# --- Geneva ------------------------------------------------------------------
+
 # Geneva's capitals, dumped from the strike — the bases the composed accented
 # caps sit on. Do not edit these: they must stay bit-identical to the strike's
 # own A/E/O/U (the I is a bare 1px stem, inlined below).
@@ -110,11 +194,17 @@ GENEVA_E = ["####", "#...", "#...", "###.", "#...", "#...", "####"]
 GENEVA_O = [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."]
 GENEVA_U = ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."]
 
+# Chicago's capitals, likewise dumped from the strike (its I is a 2px stem).
+CHICAGO_A = [".####.", "##..##", "##..##", "##..##", "######", "##..##", "##..##", "##..##", "##..##"]
+CHICAGO_E = ["#####", "##...", "##...", "##...", "####.", "##...", "##...", "##...", "#####"]
+CHICAGO_O = [".####.", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", ".####."]
+CHICAGO_U = ["##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", ".####."]
+
 
 def cap(accent, base):
     """Compose an accented capital: accent rows, one blank row, the base cap —
-    the exact vertical grammar of the strike's own É/Ñ/Å (ink tops out at y9,
-    or y8 for a one-row dieresis)."""
+    the exact vertical grammar of each strike's own É/Ñ (ink tops out one gap
+    row above the cap; a dieresis is a single accent row)."""
     width = max(len(r) for r in accent + base)
     return [r.ljust(width, ".") for r in accent] + ["." * width] + [
         r.ljust(width, ".") for r in base
@@ -150,44 +240,17 @@ GENEVA_SPECS = [
      "derived — the crossbar of the strike's own +, alone on the math axis"),
     ("periodcentered", 0x00B7, ["#"], 64, 192, 192,
      "derived — the strike's period dot raised to the math axis, its bearing kept"),
-    ("onesuperior", 0x00B9, [".#", "##", ".#", ".#", ".#"], 0, 128, 192,
+    ("onesuperior", 0x00B9, SUP_1, 0, 128, 192,
      "drawn — a 2x5 digit at superscript height (top at cap height)"),
-    ("twosuperior", 0x00B2, ["##.", "..#", ".#.", "#..", "###"], 0, 128, 256,
+    ("twosuperior", 0x00B2, SUP_2, 0, 128, 256,
      "drawn — a 3x5 digit at superscript height"),
-    ("threesuperior", 0x00B3, ["##.", "..#", ".#.", "..#", "##."], 0, 128, 256,
+    ("threesuperior", 0x00B3, SUP_3, 0, 128, 256,
      "drawn — a 3x5 digit at superscript height"),
-    ("onehalf", 0x00BD, [
-        ".#.......",
-        "##...#...",
-        ".#...#...",
-        ".#..#....",
-        "....#.##.",
-        "...#....#",
-        "...#...#.",
-        "......###",
-    ], 0, 0, 640,
+    ("onehalf", 0x00BD, ONE_HALF, 0, 0, 640,
      "drawn — mini 1 over mini 2 across a fraction slash, full cap band"),
-    ("onequarter", 0x00BC, [
-        ".#.......",
-        "##...#...",
-        ".#...#...",
-        ".#..#....",
-        "....#.#.#",
-        "...#..#.#",
-        "...#..###",
-        "........#",
-    ], 0, 0, 640,
+    ("onequarter", 0x00BC, ONE_QUARTER, 0, 0, 640,
      "drawn — mini 1 over mini 4 across a fraction slash"),
-    ("threequarters", 0x00BE, [
-        "##.......",
-        "..#..#...",
-        ".#...#...",
-        "..#.#....",
-        "##..#.#.#",
-        "...#..#.#",
-        "...#..###",
-        "........#",
-    ], 0, 0, 640,
+    ("threequarters", 0x00BE, THREE_QUARTERS, 0, 0, 640,
      "drawn — the superscript ³ drawing over mini 4, matching ¼'s slash and denominator"),
 
     # -- typographic ----------------------------------------------------------
@@ -340,34 +403,242 @@ GENEVA_SPECS = [
     # -- Mac modifier keys ----------------------------------------------------
     # ⌘ is traced above; no strike ever drew the other three (they entered the
     # UI after the bitmap era), so they are drawings at ⌘-compatible weight.
-    ("shift", 0x21E7, [
-        "....#....",
-        "...#.#...",
-        "..#...#..",
-        ".#.....#.",
-        "##.....##",
-        "..#...#..",
-        "..#...#..",
-        "..#...#..",
-        "..#####..",
-    ], 0, 0, 640, "drawn — the shift key outline (Adam's ink, 2026-08-09)"),
-    ("option", 0x2325, [
-        "##..###",
-        "..#....",
-        "...#...",
-        "....#..",
-        ".....##",
-    ], 0, 64, 512, "drawn — the option key switch"),
-    ("control", 0x2303, [
-        "..#..",
-        ".#.#.",
-        "#...#",
-    ], 0, 192, 384, "drawn — the control chevron, in the cap's upper band"),
+    ("shift", 0x21E7, SHIFT_KEY, 0, 0, 640,
+     "drawn — the shift key outline (Adam's ink, 2026-08-09)"),
+    ("option", 0x2325, OPTION_KEY, 0, 64, 512, "drawn — the option key switch"),
+    ("control", 0x2303, CONTROL_KEY, 0, 192, 384,
+     "drawn — the control chevron, in the cap's upper band"),
 ]
 
+# Chicago spacing convention throughout: 1px bearing each side of the ink
+# (x0 64, advance = ink + 2), matching the strike's own letters; the I family
+# keeps the strike's deeper 2px bearings.
+#
+# The first three rows REPLACE wrong ink, not add: the source strike predates
+# the MacRoman extension, so its 0xDA-0xDC slots carry the ✓ ◆  drawings
+# again under the names `fraction`, `currency` and `guilsinglleft`. Reinking
+# those glyphs corrects U+2044 / U+20AC / U+2039 while the real ✓ ◆  stay
+# reachable at U+2713 / U+25C6 / U+F8FF — nothing is lost.
 CHICAGO_SPECS = [
     ("multiply", 0x00D7, X_MULT, 64, 128, 448,
      "drawn — the saltire in the strike's own + box, on the math axis"),
+
+    # -- corrections: the pre-extension slot ink ------------------------------
+    ("fraction", 0x2044, [
+        "....#",
+        "....#",
+        "...#.",
+        "...#.",
+        "..#..",
+        "..#..",
+        ".#...",
+        ".#...",
+        "#....",
+        "#....",
+    ], 64, 0, 448,
+     "traced — the strike's /, verbatim (replaces the slot's ✓ ink; ✓ stays at U+2713)"),
+    ("currency", 0x20AC, [
+        ".####.",
+        "##....",
+        "##....",
+        "######",
+        "##....",
+        "######",
+        "##....",
+        "##....",
+        ".####.",
+    ], 64, 0, 512,
+     "drawn — the strike's own C, curve left open, crossed by two full-width bars (replaces the slot's ◆ ink; ◆ stays at U+25C6)"),
+    ("guilsinglleft", 0x2039, ["...#", "..#.", ".#..", "#...", ".#..", "..#.", "...#"], 64, 0, 384,
+     "derived — one chevron of the strike's « (replaces the slot's  ink;  stays at U+F8FF)"),
+    ("guilsinglright", 0x203A, ["#...", ".#..", "..#.", "...#", "..#.", ".#..", "#..."], 64, 0, 384,
+     "derived — one chevron of the strike's » (the slot was empty)"),
+
+    # -- currency & math ------------------------------------------------------
+    ("minus", 0x2212, ["#####"], 64, 256, 448,
+     "traced — the strike's hyphen, verbatim (already the width of its + crossbar)"),
+    ("periodcentered", 0x00B7, ["##", "##"], 64, 256, 256,
+     "derived — the strike's 2x2 period dot raised to the math axis"),
+    ("onesuperior", 0x00B9, SUP_1, 64, 256, 256,
+     "drawn — a 2x5 digit at superscript height (top at cap height)"),
+    ("twosuperior", 0x00B2, SUP_2, 64, 256, 320,
+     "drawn — a 3x5 digit at superscript height"),
+    ("threesuperior", 0x00B3, SUP_3, 64, 256, 320,
+     "drawn — a 3x5 digit at superscript height"),
+    ("onehalf", 0x00BD, ONE_HALF, 64, 0, 704,
+     "drawn — the body face's ½, on Chicago's bearings (1px minis match its 1px /)"),
+    ("onequarter", 0x00BC, ONE_QUARTER, 64, 0, 704,
+     "drawn — the body face's ¼, on Chicago's bearings"),
+    ("threequarters", 0x00BE, THREE_QUARTERS, 64, 0, 704,
+     "drawn — the body face's ¾, on Chicago's bearings"),
+
+    # -- typographic ----------------------------------------------------------
+    ("prime", 0x2032, ["##", "##", ".#", "#."], 64, 256, 256,
+     "derived — the strike's ’ ink, dropped to sit on the x-height band"),
+    ("doubleprime", 0x2033, ["##.##", "##.##", ".#..#", "#..#."], 64, 256, 448,
+     "derived — two of the strike's ’ ink, one gap apart"),
+    ("quotesinglbase", 0x201A, ["##", "##", ".#", "#."], 64, -128, 256,
+     "traced — the strike's comma, verbatim (a low-9 quote is a comma)"),
+    ("quotedblbase", 0x201E, ["##.##", "##.##", ".#..#", "#..#."], 64, -128, 448,
+     "derived — the strike's comma, doubled one gap apart"),
+    ("daggerdbl", 0x2021, [".#.", "###", ".#.", ".#.", "###", ".#."], 64, 192, 320,
+     "derived — the strike's † with its own crossbar repeated below"),
+    ("perthousand", 0x2030, [
+        ".##.###.....",
+        "#..#..#.....",
+        "#..#.#......",
+        ".##..#......",
+        "....#.......",
+        "....#.......",
+        "...#..##.##.",
+        "...#.#..#..#",
+        "..#..#..#..#",
+        "..#...##.##.",
+    ], 64, 0, 896,
+     "derived — the strike's % with its lower loop doubled into a shared-wall 00 (Adam's motif)"),
+    ("fi", 0xFB01, [
+        "..###.##",
+        ".##.....",
+        "####..##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+    ], 64, 0, 640,
+     "derived — the strike's f and i, joined at f's own advance"),
+    ("fl", 0xFB02, [
+        "..###.##",
+        ".##...##",
+        "####..##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+        ".##...##",
+    ], 64, 0, 640,
+     "derived — the strike's f and l, joined at f's own advance"),
+
+    # -- accented capitals ----------------------------------------------------
+    # The strike's own caps under the strike's own accents (shapes from its
+    # lowercase à á â ä; placement from its native É/Ñ/Ö: accent rows y10-11
+    # over a y9 gap). Ã Õ Ñ Ö Ü É are native — the same fifteen were missing.
+    ("Aacute", 0x00C1, cap(["...#..", "..#..."], CHICAGO_A), 64, 0, 512,
+     "composed — the strike's A under its own acute"),
+    ("Acircumflex", 0x00C2, cap(["..##..", ".#..#."], CHICAGO_A), 64, 0, 512,
+     "composed — the strike's A under its own circumflex"),
+    ("Egrave", 0x00C8, cap([".#...", "..#.."], CHICAGO_E), 64, 0, 448,
+     "composed — the strike's E under its own grave (its É, mirrored)"),
+    ("Ecircumflex", 0x00CA, cap([".##..", "#..#."], CHICAGO_E), 64, 0, 448,
+     "composed — the strike's E under its own circumflex"),
+    ("Edieresis", 0x00CB, cap([".#..#"], CHICAGO_E), 64, 0, 448,
+     "composed — the strike's E under its own dieresis"),
+    ("Igrave", 0x00CC, cap(["#.", ".#"], ["##"] * 9), 128, 0, 384,
+     "composed — the strike's I under its own grave (as its ì)"),
+    ("Iacute", 0x00CD, cap([".#", "#."], ["##"] * 9), 128, 0, 384,
+     "composed — the strike's I under its own acute (as its í)"),
+    ("Icircumflex", 0x00CE, cap([".##.", "#..#"], [".##."] * 9), 64, 0, 384,
+     "composed — the strike's I under its own circumflex (as its î)"),
+    ("Idieresis", 0x00CF, cap(["#..#"], [".##."] * 9), 64, 0, 384,
+     "composed — the strike's I under its own dieresis (as its ï)"),
+    ("Ograve", 0x00D2, cap(["..#...", "...#.."], CHICAGO_O), 64, 0, 512,
+     "composed — the strike's O under its own grave"),
+    ("Oacute", 0x00D3, cap(["...#..", "..#..."], CHICAGO_O), 64, 0, 512,
+     "composed — the strike's O under its own acute"),
+    ("Ocircumflex", 0x00D4, cap(["..##..", ".#..#."], CHICAGO_O), 64, 0, 512,
+     "composed — the strike's O under its own circumflex"),
+    ("Ugrave", 0x00D9, cap(["..#...", "...#.."], CHICAGO_U), 64, 0, 512,
+     "composed — the strike's U under its own grave"),
+    ("Uacute", 0x00DA, cap(["...#..", "..#..."], CHICAGO_U), 64, 0, 512,
+     "composed — the strike's U under its own acute"),
+    ("Ucircumflex", 0x00DB, cap(["..##..", ".#..#."], CHICAGO_U), 64, 0, 512,
+     "composed — the strike's U under its own circumflex"),
+
+    # -- arrows & marks -------------------------------------------------------
+    # Drawn at Chicago's weight: 2px shafts and stems (its letter stems are
+    # 2px), solid 2px-tipped heads.
+    ("arrowleft", 0x2190, [
+        "..#......",
+        ".##......",
+        "#########",
+        "#########",
+        ".##......",
+        "..#......",
+    ], 64, 128, 704, "drawn — 2px-shaft arrow on the math axis"),
+    ("arrowright", 0x2192, [
+        "......#..",
+        "......##.",
+        "#########",
+        "#########",
+        "......##.",
+        "......#..",
+    ], 64, 128, 704, "drawn — 2px-shaft arrow on the math axis"),
+    ("arrowup", 0x2191, [
+        "...##...",
+        "..####..",
+        ".######.",
+        "...##...",
+        "...##...",
+        "...##...",
+        "...##...",
+        "...##...",
+        "...##...",
+    ], 64, 0, 640, "drawn — 2px-stem arrow, cap height"),
+    ("arrowdown", 0x2193, [
+        "...##...",
+        "...##...",
+        "...##...",
+        "...##...",
+        "...##...",
+        "...##...",
+        ".######.",
+        "..####..",
+        "...##...",
+    ], 64, 0, 640, "drawn — 2px-stem arrow, cap height"),
+    ("multiplicationx", 0x2715, [
+        "##....##",
+        ".##..##.",
+        "..####..",
+        "...##...",
+        "..####..",
+        ".##..##.",
+        "##....##",
+    ], 64, 64, 640, "drawn — the ballot X at the strike's 2px stroke"),
+    ("blackstar", 0x2605, [
+        "....#....",
+        "...###...",
+        "...###...",
+        "#########",
+        ".#######.",
+        "..#####..",
+        "..#####..",
+        ".###.###.",
+        ".#.....#.",
+    ], 64, 0, 704, "drawn — the five-point star at the 9px cap band (Adam's ink, 2026-08-09)"),
+    ("whitestar", 0x2606, [
+        "....#....",
+        "...#.#...",
+        "...#.#...",
+        "###...###",
+        ".#.....#.",
+        "..#...#..",
+        "..#.#.#..",
+        ".###.###.",
+        ".#.....#.",
+    ], 64, 0, 704,
+     "drawn — the same star as an outline ring, hollow interior (Adam's ink, 2026-08-09)"),
+
+    # -- Mac modifier keys ----------------------------------------------------
+    # The load-bearing group: vf-menu-item shortcut strings render in this
+    # face, and until now ⇧ ⌥ ⌃ fell back to the system font beside the ⌘.
+    # All three are 1px strokes — the weight of the strike's own ⌘ rings.
+    ("shift", 0x21E7, SHIFT_KEY, 64, 0, 704,
+     "drawn — the shift key outline (Adam's ink), the same 9x9 box as the strike's ⌘"),
+    ("option", 0x2325, OPTION_KEY, 64, 128, 576, "drawn — the option key switch"),
+    ("control", 0x2303, CONTROL_KEY, 64, 320, 448,
+     "drawn — the control chevron, in the cap's upper band"),
 ]
 
 # "shipped" is the family name the built face carries and the kit registers.
@@ -379,7 +650,7 @@ CHICAGO_SPECS = [
 # stacks still name Chicago, Charcoal and Geneva: those refer to faces the
 # reader may have installed, which is a different claim entirely.)
 FONTS = {
-    "Chicago": {  # the real strike needs only ×; geometry borrowed from its '+'
+    "Chicago": {  # chrome backfill + the pre-extension slot corrections
         "module": "display-font.ts",
         "shipped": "VF Display",
         "specs": CHICAGO_SPECS,
@@ -477,6 +748,11 @@ def build(family, cfg):
     check = saved.getBestCmap()
     missing = [hex(u) for _, u, *_ in cfg["specs"] if u not in check]
     assert not missing, f"{family}: glyphs missing after save: {missing}"
+    # The corrected slots must not have cost the classic symbols their homes:
+    # the ✓ ◆  drawings stay reachable at their true codepoints.
+    if family == "Chicago":
+        for keep in (0x2713, 0x25C6, 0xF8FF, 0x2318):
+            assert keep in check, f"Chicago: U+{keep:04X} lost its mapping"
     # The shipped name is the point of the build for an un-extended face, so it
     # is asserted rather than assumed — and asserted on what was written, not
     # on the in-memory object that wrote it.

@@ -8,7 +8,6 @@
  *
  *   button face      80 × 20   (no shadow; the default ring's inner box, and the
  *                               ring traces in pixel-frame.ts assume it)
- *   small button     80 × 16
  *   text field      170 × 22, 215 × 22   (no shadow — 22 IS the border box)
  *   popup pill      157 × 19  → border box 156 × 18 plus its 1px hard shadow
  *                               (the sheet draws the shadow row/column outside
@@ -39,8 +38,6 @@ const CONTROL_H = 22
 const BUTTON_H = 20
 /** --vf-popup-height: the vf-select pill's border box. */
 const POPUP_H = 18
-/** --vf-control-height-small: the compact button. */
-const SMALL_H = 16
 /** Derived: the option row = the pill's content height. */
 const OPTION_H = POPUP_H - 2
 /** How far the default ring outsets the button box (RING_INSET, pixel-frame.ts). */
@@ -64,7 +61,6 @@ const MARKUP = `
 
   <vf-button id="btn">OK</vf-button>
   <vf-button id="def" variant="default">Install</vf-button>
-  <vf-button id="small" size="small">Small</vf-button>
 
   <div id="scope" style="--vf-button-height: 30px">
     <vf-button id="btn-themed">Themed</vf-button>
@@ -256,7 +252,6 @@ const face = (id) =>
 
 const btn = await face('btn')
 const def = await face('def')
-const small = await face('small')
 
 check(
   'the button face is --vf-button-height (20), not the 22px field height',
@@ -277,11 +272,6 @@ check(
   'the default ring outsets that face by RING_INSET, giving the reference 28',
   def.ringTop === -RING_INSET * s && def.host + 2 * RING_INSET * s === 28 * s,
   `ringTop=${def.ringTop} ringBox=${def.host + 2 * RING_INSET * s} expected=${28 * s}`
-)
-check(
-  'the small button is untouched at 16',
-  small.face === SMALL_H * s,
-  `face=${small.face} expected=${SMALL_H * s}`
 )
 check(
   'the button face lands on whole device pixels',

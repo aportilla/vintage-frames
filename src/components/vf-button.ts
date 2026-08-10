@@ -2,7 +2,7 @@ import { css, html, nothing, unsafeCSS } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
-import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline } from '../styles/base.js'
+import { vfBase, vfDisplay, vfFocusUnderline } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { VfShadowRoleControl } from '../form-control.js'
@@ -31,8 +31,7 @@ const SUBMITTER_SLOT = 'vf-submitter'
  * A rounded-rectangle control with a 1px black border and white face that
  * inverts to white-on-black while pressed. `variant="default"` draws the
  * classic bold double ring around the button, marking it as the default
- * action of a dialog. `size="small"` renders the compact 16px button with a
- * body-face label.
+ * action of a dialog.
  *
  * The rounded corners are not `border-radius` arcs: frame, face, and ring are
  * stepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button
@@ -66,7 +65,6 @@ const SUBMITTER_SLOT = 'vf-submitter'
  * @csspart button - The inner native `<button>` element.
  * @cssprop [--vf-button-height=20px] - `vf-button` face (the default ring's
  *   inner box is 80×20)
- * @cssprop [--vf-control-height-small=16px] - `size="small"` buttons
  */
 @vfElement('vf-button')
 export class VfButton extends VfPositioned(VfShadowRoleControl) {
@@ -219,19 +217,6 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
       button:focus-visible .label::after {
         ${vfFocusUnderline}
       }
-      /* Small: the 16px button from the reference's third row. The corner
-         traces are identical (verified against the 80×16 sample sheet row),
-         so only the metrics change — and the label drops to the body face,
-         matching the sheet's smaller Geneva-9-style labels. The padding is
-         the 14px above, deliberately: it was tuned from 10 to match the tall
-         button, so this rule states only what actually differs. */
-      :host([size='small']) {
-        ${vfBodyDecls}
-      }
-      :host([size='small']) button {
-        height: calc(var(--vf-scale, 1) * var(--vf-control-height-small, 16px));
-        min-width: calc(var(--vf-scale, 1) * 48px);
-      }
       /* Disabled: only the label dims to gray; the solid black border stays. */
       button:disabled {
         color: var(--vf-disabled, #c0c0c0);
@@ -244,12 +229,6 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
    * default button (activated by Return in real System 7 dialogs).
    */
   @property({ reflect: true }) variant?: 'default'
-
-  /**
-   * When set to `'small'`, renders the compact 16px button from the
-   * reference sheet's third row: same pixel-traced corners, body-face label.
-   */
-  @property({ reflect: true }) size?: 'small'
 
   /**
    * Activation behavior, mirroring native `<button type>`:

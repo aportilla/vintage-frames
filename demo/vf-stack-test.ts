@@ -88,11 +88,6 @@ const CHILD_KINDS: readonly ChildKind[] = [
     markup: '<vf-button variant="default">OK</vf-button>',
   },
   {
-    id: 'button-small',
-    name: 'vf-button (small)',
-    markup: '<vf-button size="small">Set…</vf-button>',
-  },
-  {
     id: 'button-group',
     name: 'vf-button-group',
     markup: `<vf-button-group>
@@ -310,17 +305,14 @@ interface Preset {
 
 const PRESETS: readonly Preset[] = [
   {
-    // Where the page starts. Three buttons and nothing else: the plainest
-    // thing a stack can hold, and three different widths and heights, so
-    // every parameter shows its effect on the first click.
+    // Where the page starts. Two buttons and nothing else: the plainest
+    // thing a stack can hold, with different widths (and the default ring's
+    // margin a different outer height), so every parameter shows its effect
+    // on the first click.
     id: 'buttons',
-    name: 'Three buttons',
+    name: 'Two buttons',
     config: () => defaults(),
-    children: [
-      { kind: 'button' },
-      { kind: 'button-default' },
-      { kind: 'button-small' },
-    ],
+    children: [{ kind: 'button' }, { kind: 'button-default' }],
   },
   {
     id: 'panel',

@@ -92,15 +92,15 @@
             placeholder="Search posts"
             label="Search posts"
           ></vf-text-field>
-          <!-- Two buttons of different sizes, one of them variant="default":
-               exactly the row an ad-hoc flex row gets subtly wrong, because the
-               default button reserves its ring with a 4-system-px margin and so
-               lines up its *ring* with the other button's *face*. The group
-               zeroes that margin, reserves the ring space itself, and centers
-               the cross axis. `natural` keeps each button its own width — the
+          <!-- Two buttons, one of them variant="default": exactly the row an
+               ad-hoc flex row gets subtly wrong, because the default button
+               reserves its ring with a 4-system-px margin and so lines up its
+               *ring* with the other button's *face*. The group zeroes that
+               margin, reserves the ring space itself, and centers the cross
+               axis. `natural` keeps each button its own width — the
                uniform-width default is a dialog convention, not a header one. -->
           <vf-button-group natural>
-            <vf-button id="search-go" size="small">Search</vf-button>
+            <vf-button id="search-go">Search</vf-button>
             <vf-button id="subscribe" variant="default">Subscribe</vf-button>
           </vf-button-group>
         </div>
@@ -176,8 +176,8 @@
             something, so the argument happens before the code does.
           </p>
           <footer class="post__footer">
-            <vf-button size="small" data-action="save" data-post="post-scope">Save</vf-button>
-            <vf-button size="small" data-action="share" data-post="post-scope">Share</vf-button>
+            <vf-button data-action="save" data-post="post-scope">Save</vf-button>
+            <vf-button data-action="share" data-post="post-scope">Share</vf-button>
             <vf-label class="post__saved" data-saved-for="post-scope" hidden>Saved</vf-label>
           </footer>
         </article>
@@ -203,8 +203,8 @@
             thing's documentation is.
           </p>
           <footer class="post__footer">
-            <vf-button size="small" data-action="save" data-post="post-boring">Save</vf-button>
-            <vf-button size="small" data-action="share" data-post="post-boring">Share</vf-button>
+            <vf-button data-action="save" data-post="post-boring">Save</vf-button>
+            <vf-button data-action="share" data-post="post-boring">Share</vf-button>
             <vf-label class="post__saved" data-saved-for="post-boring" hidden>Saved</vf-label>
           </footer>
         </article>
@@ -229,8 +229,8 @@
             design systems never have to ask.
           </p>
           <footer class="post__footer">
-            <vf-button size="small" data-action="save" data-post="post-bitmap">Save</vf-button>
-            <vf-button size="small" data-action="share" data-post="post-bitmap">Share</vf-button>
+            <vf-button data-action="save" data-post="post-bitmap">Save</vf-button>
+            <vf-button data-action="share" data-post="post-bitmap">Share</vf-button>
             <vf-label class="post__saved" data-saved-for="post-bitmap" hidden>Saved</vf-label>
           </footer>
         </article>
@@ -255,8 +255,8 @@
             actually useful.
           </p>
           <footer class="post__footer">
-            <vf-button size="small" data-action="save" data-post="post-manual">Save</vf-button>
-            <vf-button size="small" data-action="share" data-post="post-manual">Share</vf-button>
+            <vf-button data-action="save" data-post="post-manual">Save</vf-button>
+            <vf-button data-action="share" data-post="post-manual">Share</vf-button>
             <vf-label class="post__saved" data-saved-for="post-manual" hidden>Saved</vf-label>
           </footer>
         </article>
@@ -275,8 +275,8 @@
             the app to a new user.
           </p>
           <footer class="post__footer">
-            <vf-button size="small" data-action="save" data-post="post-undo">Save</vf-button>
-            <vf-button size="small" data-action="share" data-post="post-undo">Share</vf-button>
+            <vf-button data-action="save" data-post="post-undo">Save</vf-button>
+            <vf-button data-action="share" data-post="post-undo">Share</vf-button>
             <vf-label class="post__saved" data-saved-for="post-undo" hidden>Saved</vf-label>
           </footer>
         </article>

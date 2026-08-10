@@ -438,9 +438,7 @@ const build = makeBuild(browser, {
 
 /* ══════════════════════════════ 10. the metrics, pinned ═════════════════ */
 {
-  const page = await build(
-    `<vf-button id="n">Button</vf-button><vf-button id="s" size="small">Button</vf-button>`
-  )
+  const page = await build(`<vf-button id="n">Button</vf-button>`)
   const m = await page.evaluate(() => {
     const read = (id) => {
       const host = document.getElementById(id)
@@ -454,17 +452,13 @@ const build = makeBuild(browser, {
         hostOutline: getComputedStyle(host).outlineStyle,
       }
     }
-    return { normal: read('n'), small: read('s') }
+    return { normal: read('n') }
   })
   check('the button face is 20 system px, min-width 64, padding 14',
     m.normal.height === 20 && m.normal.minWidth === 64 && m.normal.padding === 14,
     JSON.stringify(m.normal))
-  check('size=small is 16 tall and 48 wide, sharing the 14px padding',
-    m.small.height === 16 && m.small.minWidth === 48 && m.small.padding === 14,
-    JSON.stringify(m.small))
-  check('the tall button sets the chrome face, the small one the body face',
-    m.normal.face === 'VF Display' && m.small.face === 'VF Body',
-    `${m.normal.face} / ${m.small.face}`)
+  check('the button sets the chrome face',
+    m.normal.face === 'VF Display', m.normal.face)
 
   await page.keyboard.press('Tab')
   const outlines = await page.evaluate(() => {

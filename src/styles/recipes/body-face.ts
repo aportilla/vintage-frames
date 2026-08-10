@@ -13,9 +13,9 @@ import '../body-font.js'
  * --vf-font-family, 16px so its 1024-upm pixel grid lands exactly, and the
  * body smoothing token. The mirror image of {@link vfDisplayDecls}, and the
  * body face's single definition: {@link vfBase} applies it to every host, and
- * the handful of places that switch *back* to it from the display face
- * (vf-button's small size, vf-label/vf-paragraph's `face="body"`) compose this
- * rather than repeating the family stack.
+ * the places that switch *back* to it from the display face
+ * (vf-label/vf-paragraph's `face="body"`) compose this rather than repeating
+ * the family stack.
  *
  * 'VF Body' is the embedded face (../body-font.ts); 'Geneva' after it is the
  * installed one a real Mac already has. See {@link vfDisplayDecls}.

@@ -416,7 +416,6 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template data-example data-caption="Every declarative state. Press and Tab for the two that are interaction-only.">
             <vf-button>Quit</vf-button>
             <vf-button variant="default">Install</vf-button>
-            <vf-button size="small">Eject</vf-button>
             <vf-button disabled>Print</vf-button>
             <vf-button variant="default" disabled>Install</vf-button>
           </template>
@@ -426,7 +425,6 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>variant</code></td><td class="wrap"><code>'default'</code></td><td>—</td><td class="wrap">The double-ring default button. The 3px ring sits 1px clear of the face and reserves 4px of margin, which is why buttons sharing a row belong in a <a href="#vf-button-group"><code>vf-button-group</code></a></td></tr>
-              <tr><td><code>size</code></td><td class="wrap"><code>'small'</code></td><td>—</td><td class="wrap">The compact 16px button, label in the body face</td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the <em>label</em> only; the 1px border stays black (the default ring dims, its inner border does not)</td></tr>
               <tr><td><code>type</code></td><td class="wrap"><code>'button' | 'submit' | 'reset'</code></td><td><code>'button'</code></td><td class="wrap">Form-associated: <code>submit</code> calls <code>requestSubmit()</code>, <code>reset</code> calls <code>reset()</code></td></tr>
               <tr><td><code>name</code>, <code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Standard — the submitting button's pair in the form data. A form-associated custom element can never be a form's <code>event.submitter</code>, so read the control as <code>event.submitter.closest('vf-button')</code></td></tr>
@@ -441,7 +439,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Part</td><td><code>button</code></td><td class="wrap">The inner <code>&lt;button&gt;</code> — put a <code>min-width</code> here</td></tr>
               <tr><td>Events</td><td>—</td><td class="wrap">None custom; native <code>click</code> suffices</td></tr>
               <tr><td>Role</td><td class="wrap">native <code>&lt;button&gt;</code></td><td class="wrap">Enter and Space activate</td></tr>
-              <tr><td>Tokens</td><td class="wrap"><code>--vf-button-height</code> (20px), <code>--vf-control-height-small</code> (16px), <code>--vf-button-ring-margin</code>, <code>--vf-button-flex</code></td><td class="wrap">The last two are the hooks <code>vf-button-group</code> sets; standalone they are inert</td></tr>
+              <tr><td>Tokens</td><td class="wrap"><code>--vf-button-height</code> (20px), <code>--vf-button-ring-margin</code>, <code>--vf-button-flex</code></td><td class="wrap">The last two are the hooks <code>vf-button-group</code> sets; standalone they are inert</td></tr>
             </tbody>
           </table>
         </section>

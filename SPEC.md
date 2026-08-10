@@ -294,7 +294,6 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-paragraph-line-height` | follows the face | `vf-paragraph`'s own line box, above the face tokens — same contract as the label's, for paragraphs alone |
 | `--vf-icon-label-height` | `12px` | `vf-icon`'s name plate line box — the Finder's own plate height, tighter than the face's 16px em, which centers in it (keep an override even, or the baseline lands on a half pixel) |
 | `--vf-icon-gap` | `2px` | space between a `vf-icon`'s art cell and its name plate |
-| `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-select-gutter` | `16px` | checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) |
 | `--vf-field-width` | `180px` | default width of `vf-text-field` / `vf-text-area` |
 | `--vf-field-placeholder` | `#767676` | placeholder text in the editable fields — kept off `--vf-disabled`: a placeholder sits in an *enabled* well and holds AA contrast (4.54:1 on white), where the disabled gray's 1.82:1 is exempt as an inactive control |
@@ -349,8 +348,8 @@ README). Re-theme these tokens with whole numbers.
 render at exactly that size — one design px = one system px, always. "Smaller"
 is a *family* switch: System 7's fine print was Geneva 9 — the collection's
 smallest strike, which **is** the body face — so a dialog's disk-space caption
-is `face="body"` (usually `dim`), the way `vf-button size="small"` sets its
-label and `vf-icon size="small"` swaps to the 16×16 art. A genuinely different
+is `face="body"` (usually `dim`), the way `vf-icon size="small"` swaps to the
+16×16 art. A genuinely different
 size is a different strike (`fonts/imported/` holds the classic collection),
 registered like the embedded ones and themed in through the font family/size
 tokens with its own whole-pixel metrics.
@@ -457,7 +456,7 @@ enabled well.
 - `vfBodyDecls` — the three declarations that put text on the Geneva
   body face (family, 16px, smoothing), for composing into one rule; the mirror
   of `vfDisplayDecls`, and the body face's single definition (`vfBase` applies
-  it to every host; `vf-button size="small"` and `face="body"` switch back to it).
+  it to every host; `face="body"` switches back to it).
 - `vfStaticText` — the `face` / `size` / `dim` host switches shared by
   `vf-label` and `vf-paragraph`. All `:host([attr])`, one specificity step above
   the plain `:host` rule each component sets its own default face in.
@@ -992,10 +991,7 @@ carries the live recipe.
 
 #### `vf-button` (`VfButton`, vf-button.ts)
 - **Attributes/props:** `variant?: 'default'` (the double-ring default button,
-  e.g. "Install"), `size?: 'small'` (the compact 16px button from the
-  reference's third row: height `var(--vf-control-height-small, 16px)`,
-  `min-width: 48px`, the same `padding: 0 14px` as the tall button, label in
-  the body face at `var(--vf-font-size, 16px)` — same traced corners),
+  e.g. "Install"),
   `disabled`, `type: 'button' | 'submit' | 'reset'` (reflected; default
   `'button'`), plus the submission overrides `formaction`, `formenctype`,
   `formmethod`, `formnovalidate` and `formtarget`, each honored on
@@ -1115,9 +1111,8 @@ carries the live recipe.
 - **Visual:** `display: inline-grid`, shrink-wrapped to its buttons. Uniform
   (default): one auto column per button, all `grid-auto-columns: 1fr`, so under
   the shrink-wrapped grid they equalize to the widest button's intrinsic width;
-  `align-items: center` puts every face on one baseline (a `size="small"` button
-  still shares the row). Gap is `--vf-button-group-gap` (default 12px; see the
-  §3 note on values under 8px).
+  `align-items: center` puts every face on one baseline. Gap is
+  `--vf-button-group-gap` (default 12px; see the §3 note on values under 8px).
   `vertical` switches to `grid-auto-flow: row` (a single column sized to the
   widest, each button stretched to it). `natural` falls back to `inline-flex`
   so the columns don't equalize.

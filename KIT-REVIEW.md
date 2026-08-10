@@ -360,11 +360,11 @@ that requires a render-time call to work.
 
 ## Deferred — not part of this pass
 
-**Token naming.** `--vf-button-height` (SPEC:278) and
-`--vf-control-height-small` (SPEC:289) are one component's two heights on two
-different schemes, and `--vf-control-height-small` is read only by `vf-button`
-(`vf-button.ts:231`). Renaming is a breaking token change — before 1.0 or not at
-all.
+**Token naming.** `--vf-button-height` and `--vf-control-height-small` were one
+component's two heights on two different schemes. Resolved 2026-08-10 by
+removing the `size="small"` variant (System 7 had no small push button):
+`--vf-control-height-small` went with it, leaving `--vf-button-height` as the
+button's one height token.
 
 **Disabled-styling consistency.** Three mechanisms in play for one idea, no
 known visible break:

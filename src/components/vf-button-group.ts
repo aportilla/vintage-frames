@@ -43,7 +43,7 @@ export class VfButtonGroup extends VfPositioned(LitElement) {
          under the shrink-wrapped inline-grid; the host of each stretches to
          that column (default justify-items) and its face fills via
          --vf-button-flex. align-items centers the cross axis so a shorter
-         button (e.g. size="small") shares the row's baseline. */
+         child shares the row's baseline. */
       :host {
         /* Neutralize each default button's ring-reservation margin and reserve
            the ring space here instead, so faces — not margin boxes — align and

@@ -284,22 +284,9 @@ function bands(s, ink, { inset = S, slack = 0 } = {}) {
   await page.close()
 }
 
-// ── the other two shapes: small, and the default button's ring ────────────
+// ── the other shape: the default button's ring ────────────────────────────
 {
-  const page = await build(
-    '<vf-button id="s" size="small">Button</vf-button>' +
-      '<vf-button id="d" variant="default">Button</vf-button>'
-  )
-  await page.keyboard.press('Tab')
-  const small = await shoot(page, 's')
-  const sg = bands(small, isBlack)
-  check('size=small draws the rule too', small.drawn && sg.length === 2)
-  check(
-    'small: still one blank system px row below the glyph ink',
-    sg.length === 2 && sg[1][0] - (sg[0][sg[0].length - 1] + 1) === S,
-    sg.length === 2 ? `gap=${(sg[1][0] - (sg[0][sg[0].length - 1] + 1)) / S}` : ''
-  )
-
+  const page = await build('<vf-button id="d" variant="default">Button</vf-button>')
   await page.keyboard.press('Tab')
   const def = await shoot(page, 'd')
   const dg = bands(def, isBlack)

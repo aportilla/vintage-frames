@@ -68,7 +68,6 @@ runtime without touching the component wants a `requestUpdate()`.
 | --- | --- | --- |
 | `--vf-control-height` | `22px` | Text fields, and the number field's well |
 | `--vf-button-height` | `20px` | `vf-button` face |
-| `--vf-control-height-small` | `16px` | `size="small"` buttons |
 | `--vf-button-ring-margin` | `4px` | Room reserved for the default ring (`vf-button-group` zeroes it) |
 | `--vf-button-flex` | `0 1 auto` | The inner button's flex (the group sets `1 1 auto`) |
 | `--vf-button-group-gap` | `12px` | Gap between grouped buttons |

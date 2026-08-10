@@ -83,7 +83,7 @@ page with snapping off, for comparison.
 | `vf-window` | Window shell: striped title bar, `closable`/`zoomable` boxes, `movable`, `resizable`, edge scroll rails (`scrollbars`), slim windoid chrome (`variant="utility"`). Declare `width`/`height` in system px |
 | `vf-dialog` | Modal shell over a native `<dialog>`. Striped movable bar by default; `frame="plain"` is the double-rule modal frame. Declare `width`/`height`; unset `top`/`left` means centered |
 | `vf-separator` | 1px rule, `vertical` or horizontal. Renders as the dimmed dotted rule inside a menu |
-| `vf-button` | Push button with pixel-stepped corners. `variant="default"` draws the double ring, `size="small"` the compact 16px button. Form-associated: `type="submit"`/`"reset"`, `name`/`value` |
+| `vf-button` | Push button with pixel-stepped corners. `variant="default"` draws the double ring. Form-associated: `type="submit"`/`"reset"`, `name`/`value` |
 | `vf-button-group` | Row (or `vertical` column) of buttons sized to the widest, faces aligned so a `variant="default"` button lines up with its neighbors. `natural` keeps each button's own width |
 | `vf-swatch` | Color-swatch button — a white-inset color well sized in system px, showing a transparency checker with no `color`. `shadow` opts into the hard drop shadow |
 | `vf-checkbox` | Checkbox with the classic ✕ mark |

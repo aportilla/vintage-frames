@@ -36,11 +36,10 @@ RING_FRAME = ([5, 3, 2, 1, 1], 0, 0)
 RING_HOLE = ([6, 4, 4], 3, 3)
 RING_INSET = 4
 
-# Rendered heights, in system px (pixel-test.html pins --vf-scale: 1).
+# Rendered height, in system px (pixel-test.html pins --vf-scale: 1).
 # --vf-button-height, measured off both 1x sheets as an 80×20 face — the
-# default ring's inner box is exactly that. --vf-control-height-small stays 16.
+# default ring's inner box is exactly that.
 BUTTON_H = 20
-SMALL_H = 16
 
 # Row of the 20px face carrying the keyboard-focus rule: the label's baseline
 # sits on row 14 (the 12/4 em centered in the face), and the rule is 1px below
@@ -201,9 +200,9 @@ def main():
         if not any(contains(a, b) for a in islands if a != b)
     ]
 
-    # island order: plain, default(ring), disabled, focused, small
-    if len(islands) < 5:
-        sys.exit(f"expected 5 button islands, found {len(islands)}: {islands}")
+    # island order: plain, default(ring), disabled, focused
+    if len(islands) < 4:
+        sys.exit(f"expected 4 button islands, found {len(islands)}: {islands}")
 
     (y0, x0, x1, y1) = islands[0]
     check(
@@ -282,11 +281,6 @@ def main():
         "plain: no focus rule when unfocused",
         not black_runs(pxx0 + 1, pxx1 - 1, py0 + FOCUS_ROW),
     )
-
-    # small variant: 16px tall, same traced corners
-    (y0, x0, x1, y1) = islands[4]
-    check(f"small: height {SMALL_H}", y1 - y0 + 1 == SMALL_H, f"got {y1 - y0 + 1}")
-    check_button(x0, y0, x1, y1, "small")
 
     # dragged window: after fractional-position + fractional-drag repro, the
     # snapped window must rasterize entirely in pure black/white (its border,

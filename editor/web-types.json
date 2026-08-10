@@ -65,18 +65,13 @@
         },
         {
           "name": "vf-button",
-          "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog. `size=\"small\"` renders the compact 16px button with a\nbody-face label.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` and any `form*` override to the\nsubmission), `type=\"reset\"` resets it. Enter and Space activate it via the\ninner native button, and the submission runs at the end of the click's\npropagation, so `preventDefault()` on the button cancels it the way it\ncancels a native one.\n\nOne thing the platform will not allow: `event.submitter` cannot BE a\nform-associated custom element. It is the transient native proxy this\nbutton submits through — so read the submitting button as\n`event.submitter.closest('vf-button')`, and its identity from\n`submitter.name`/`.value` rather than by comparing element references.\n\nA host-level `aria-label` / `aria-labelledby` names the inner button, and\n`description` (or a host-level `aria-describedby`) describes it — the same\nbridge the fields use, since the role lives on a shadow-internal node the\nplatform can't deliver those to. A `<label for>` deliberately does not\nname it: a `<button>` is not a labelable element.\n---\n\n\n### **Slots:**\n - _default_ - The button label.\n\n### **CSS Properties:**\n - **--vf-button-height** - `vf-button` face (the default ring's inner box is 80×20) _(default: 20px)_\n- **--vf-control-height-small** - `size=\"small\"` buttons _(default: 16px)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` element.",
+          "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` and any `form*` override to the\nsubmission), `type=\"reset\"` resets it. Enter and Space activate it via the\ninner native button, and the submission runs at the end of the click's\npropagation, so `preventDefault()` on the button cancels it the way it\ncancels a native one.\n\nOne thing the platform will not allow: `event.submitter` cannot BE a\nform-associated custom element. It is the transient native proxy this\nbutton submits through — so read the submitting button as\n`event.submitter.closest('vf-button')`, and its identity from\n`submitter.name`/`.value` rather than by comparing element references.\n\nA host-level `aria-label` / `aria-labelledby` names the inner button, and\n`description` (or a host-level `aria-describedby`) describes it — the same\nbridge the fields use, since the role lives on a shadow-internal node the\nplatform can't deliver those to. A `<label for>` deliberately does not\nname it: a `<button>` is not a labelable element.\n---\n\n\n### **Slots:**\n - _default_ - The button label.\n\n### **CSS Properties:**\n - **--vf-button-height** - `vf-button` face (the default ring's inner box is 80×20) _(default: 20px)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` element.",
           "doc-url": "",
           "attributes": [
             {
               "name": "variant",
               "description": "When set to `'default'`, draws the classic double ring that marks the\ndefault button (activated by Return in real System 7 dialogs).",
               "value": { "type": "'default' | undefined" }
-            },
-            {
-              "name": "size",
-              "description": "When set to `'small'`, renders the compact 16px button from the\nreference sheet's third row: same pixel-traced corners, body-face label.",
-              "value": { "type": "'small' | undefined" }
             },
             {
               "name": "type",
@@ -155,11 +150,6 @@
                 "name": "variant",
                 "description": "When set to `'default'`, draws the classic double ring that marks the\ndefault button (activated by Return in real System 7 dialogs).",
                 "type": "'default' | undefined"
-              },
-              {
-                "name": "size",
-                "description": "When set to `'small'`, renders the compact 16px button from the\nreference sheet's third row: same pixel-traced corners, body-face label.",
-                "type": "'small' | undefined"
               },
               {
                 "name": "type",

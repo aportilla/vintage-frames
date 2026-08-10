@@ -1,7 +1,7 @@
 # Vintage Frames
 
 Lit web components that rebuild the Mac OS System 7 interface — racing-stripe
-title bars, 1px black borders, hard offset shadows, bitmap type. 30 elements,
+title bars, 1px black borders, hard offset shadows, bitmap type. 31 elements,
 no stylesheet to load.
 
 ```sh
@@ -99,6 +99,7 @@ page with snapping off, for comparison.
 | `vf-fieldset` | Group box with the legend punching through the border |
 | `vf-grid` | Lattice of equal cells with 1px rules. `columns`/`rows`/`cell-width`/`cell-height`; `rules` picks the pen, `frameless` drops the perimeter, `collapse` lands a cell's border on the rule |
 | `vf-stack` | Flexbox whose `gap`, `pad`, `width` and `height` are declared in system px. Content-governed; `fill-width`/`fill-height` on a child asks for more |
+| `vf-container` | A box that is nothing but its declared `width`/`height` — no paint, no layout opinion. Slot anything into it; it is the positioned ancestor children placed with `top`/`left` need, takes `top`/`left` itself, and holds its box (and so everything placed in it) on the device-pixel grid |
 | `vf-label` | Static caption in the chrome face. `for` focuses and names a control; `width` gives a caption column one whole-pixel x |
 | `vf-paragraph` | Copy in the body face on a whole-pixel line box; `width`/`height` state the box a placed paragraph wraps to |
 | `vf-img` | Pixel art on the grid — sizes a slotted `<img>` to one system px per image px, magnified nearest-neighbor |
@@ -112,7 +113,7 @@ live specimens.
 
 ### Taking only what you use
 
-The root import registers all 30 elements. Import by name to ship less — same
+The root import registers all 31 elements. Import by name to ship less — same
 elements, same self-registration, one module each:
 
 ```ts
@@ -126,10 +127,10 @@ at resolve time rather than as a 404 in production. Bundled and minified with
 
 | Imported | min | gzip |
 | --- | --- | --- |
-| `vf-separator.js` — sets no chrome type, so it carries no display face | 16.5 KB | 8.6 KB |
-| `vf-button.js` | 35.9 KB | 17.2 KB |
-| …plus `vf-checkbox.js` | 41.5 KB | 18.9 KB |
-| the root import — all 30 elements | 293 KB | 90.4 KB |
+| `vf-separator.js` — sets no chrome type, so it carries no display face | 18.8 KB | 10.3 KB |
+| `vf-button.js` | 40.3 KB | 20.0 KB |
+| …plus `vf-checkbox.js` | 46.0 KB | 21.6 KB |
+| the root import — all 31 elements | 299 KB | 91.0 KB |
 
 The first component pays for the shared floor; each one after it costs a couple
 of KB. Cherry-picking is worth it up to roughly a third of the kit.
@@ -425,7 +426,9 @@ attributes returns the element to flow with every inline declaration unwound.
 container is one: the desktop's raster, a window's content region, a dialog's
 content area, a stack's box, a fieldset just inside its border, a scroll area's
 scrolled plane. In a parent of your own, add `position: relative` — the one
-line of CSS this feature can't write for you.
+line of CSS this feature can't write for you — or slot the children into a
+`vf-container`, a box that is nothing but its declared size, made for exactly
+this.
 
 - **Four elements don't take the pair:** `vf-option`, `vf-menu-item`,
   `vf-list-item` and `vf-menu` are owned rows of a managing container.
@@ -452,10 +455,10 @@ line of CSS this feature can't write for you.
   any other element.
 
 `width` and `height`, also in whole system px, are the other half of the
-rectangle: `vf-window`, `vf-stack`, `vf-label` and `vf-paragraph` take them as
-the `VfSized` mixin, and `vf-desktop`, `vf-dialog`, `vf-img`, `vf-swatch` and
-`vf-icon` declare their own size the same way. Everything else keeps the size
-it draws itself at.
+rectangle: `vf-window`, `vf-stack`, `vf-container`, `vf-label` and
+`vf-paragraph` take them as the `VfSized` mixin, and `vf-desktop`,
+`vf-dialog`, `vf-img`, `vf-swatch` and `vf-icon` declare their own size the
+same way. Everything else keeps the size it draws itself at.
 
 ```sh
 npm run verify:position

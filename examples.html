@@ -1334,7 +1334,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             within its parent, the coordinate you left out defaulting to 0; set
             neither and it renders in flow. (0,0) is CSS's nearest positioned
             ancestor, and every kit container is one — a container of your own needs
-            <code>position: relative</code>.
+            <code>position: relative</code>, or is a
+            <a href="#vf-container"><code>vf-container</code></a>, below.
           </p>
           <p>
             The four owned rows don't take the pair (<code>vf-option</code>,
@@ -1356,6 +1357,56 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               </vf-button-group>
             </vf-window>
           </template>
+        </section>
+
+        <section class="doc" id="vf-container" data-group="Menus, lists &amp; containers" data-toc="vf-container">
+          <h2><code>vf-container</code></h2>
+          <p>
+            A box that is nothing but its declared size — <code>width</code> and
+            <code>height</code> in whole system px around anything you slot into it.
+            It paints nothing and has no layout opinion: in-flow children get normal
+            flow, placed children get a coordinate system. It exists because placing
+            children with <code>top</code>/<code>left</code> needs a positioned
+            ancestor, and a region of your own otherwise needs
+            <code>position: relative</code> in a stylesheet — this is that region as
+            an element.
+          </p>
+          <p>
+            It is not a <code>vf-stack</code>: the stack is a flexbox with opinions —
+            an axis, a cross-axis default, fills compiled into flex. Reach for the
+            container when those opinions are the thing in the way — a field of
+            placed icons, a fixed stage for placed art, a composition that brings its
+            own layout with it.
+          </p>
+
+          <template data-example data-caption="A placed layout with no window and no stylesheet: the container is the positioned ancestor, every child states its own top/left in system px against its origin, and the declared box is on the device-pixel grid by construction.">
+            <vf-container width="300" height="120">
+              <vf-label left="0" top="16" for="ex-cont-name">New name:</vf-label>
+              <vf-text-field left="80" top="12" id="ex-cont-name" value="untitled folder"></vf-text-field>
+              <vf-button-group left="108" top="80">
+                <vf-button>Cancel</vf-button>
+                <vf-button variant="default">OK</vf-button>
+              </vf-button-group>
+            </vf-container>
+          </template>
+
+          <template data-example data-caption="In flow it is a plain box: content flows normally, fill-width fills a child to the declared width, and an axis you leave off shrink-wraps rather than claiming the parent's width.">
+            <vf-container width="260">
+              <vf-fieldset fill-width legend="Fills the box">
+                <vf-label>fill-width, no stylesheet</vf-label>
+              </vf-fieldset>
+            </vf-container>
+          </template>
+
+          <table class="api">
+            <caption>Properties</caption>
+            <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px — the declared box, which is the whole component. Content that outgrows it overflows the box rather than growing it; an axis you leave off shrink-wraps. On the grid by construction</td></tr>
+              <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes, read two ways as in <code>vf-stack</code>: on a <em>child</em>, fill to this box (<code>fill-height</code> needs a declared <code>height</code> to resolve against; a fill with nothing to take is inert); on the container itself, fill whatever parent can give it a size</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Takes <code>top</code>/<code>left</code> like nearly every component, so a container is itself placeable — inside a window, a desktop, another container. Always on the device-pixel grid: a declared size and whole-px placement land there by construction, and under <code>applyGridSnap()</code> the container corrects its own origin, carrying everything placed inside it — kit or not — along with the coordinate system. Typographically transparent like <code>vf-stack</code> — face, line box, color and selectability return to <code>inherit</code>. No parts, tokens, events or role.</td></tr>
+            </tbody>
+          </table>
         </section>
 
         <!-- ================================================================

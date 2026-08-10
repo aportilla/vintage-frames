@@ -132,7 +132,11 @@ for (const dpr of DENSITIES) {
   )
 
   const pads = await page.evaluate((d) => {
-    const s = getComputedStyle(document.getElementById('padded'))
+    // pad lands on the shadow flex box (the vf-snap anchor), not the host:
+    // the box's padding box coincides with the host box, which is what keeps
+    // the placed-child anchor ignoring pad (asserted in verify:position).
+    const box = document.getElementById('padded').shadowRoot.querySelector('.box')
+    const s = getComputedStyle(box)
     return [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].map(
       (v) => parseFloat(v) * d
     )
@@ -249,10 +253,18 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
     `${row.h}px inside a 300px block`
   )
 
-  const display = await page.evaluate(
-    () => getComputedStyle(document.getElementById('col')).display
+  const displays = await page.evaluate(() => {
+    const host = document.getElementById('col')
+    return {
+      host: getComputedStyle(host).display,
+      box: getComputedStyle(host.shadowRoot.querySelector('.box')).display,
+    }
+  })
+  check(
+    'geometry: a block-level host shell, the flex container in its shadow box',
+    displays.host === 'block' && displays.box === 'flex',
+    `host ${displays.host}, .box ${displays.box}`
   )
-  check('geometry: the host is block-level flex', display === 'flex', display)
 
   // The regression this rule exists for: inline-level, this box sat on a line
   // box it could not be shorter than, and a short stack silently gained the

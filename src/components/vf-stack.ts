@@ -1,11 +1,12 @@
 import { css, html, LitElement } from 'lit'
-import { property } from 'lit/decorators.js'
+import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { VfSized } from '../size.js'
 import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sysLength, sysLengths } from '../scale.js'
+import { GridSnapController } from '../grid-snap.js'
 
 /** Which axis the children run along. */
 export type VfStackDirection = 'column' | 'row'
@@ -63,9 +64,9 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  * boxes are the size they are: a push button is as wide as its label, a popup
  * menu hugs its widest option, and a window is a fixed box whose overflow is
  * clipped at the frame, not a layout that squeezes its controls to fit. The
- * stack distributes; it does not resize. That is why it is `inline-flex` rather
- * than block-level — a layout box that silently claimed its parent's whole
- * width would be inventing a size nobody declared.
+ * stack distributes; it does not resize. That is why the box shrink-wraps
+ * (`fit-content`) rather than claiming its parent's whole width — a layout box
+ * that did would be inventing a size nobody declared.
  *
  * **`fill-width` / `fill-height` are how a child asks for more**, as bare
  * attributes on consumer DOM the way `nosnap` opts an element out of snapping:
@@ -92,9 +93,21 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  *
  * **It paints nothing and means nothing.** No border, no background, no role,
  * no keyboard behavior — what it holds decides what it is, as with
- * {@link VfGrid}. It carries no `GridSnapController` either: with nothing of
- * its own on screen there is no ink to hold on the grid, and the slotted `vf-*`
- * children each correct their own origin.
+ * {@link VfGrid}.
+ *
+ * **It holds its box on the device-pixel grid** — the `vf-container`
+ * arrangement, adopted here after first shipping without it. The original
+ * reasoning ("no ink of its own, and slotted `vf-*` children correct their own
+ * origins") accounted only for kit children: a stack is a positioned ancestor
+ * and a layout box for *anything*, and consumer content inside it — a div, an
+ * `<img>`, a run of text — has no controller of its own. So the flex
+ * container, the placed-child anchor and the `vf-snap` class live on one
+ * shadow box, and under `applyGridSnap()` the correction moves the stack's
+ * whole coordinate system; children (kit or not) ride it, and the sweep's
+ * outermost-first order means the kit children then find nothing left to
+ * correct. What this deliberately does not fix: a text-governed child width
+ * mid-row still shifts later siblings fractionally (their own controllers
+ * cover that), and centering still can't land on a whole pixel by itself.
  *
  * It is also the kit's one **typographically transparent** component: `vfBase`'s
  * chrome face, ratio line box, color and non-selectability are all reset to
@@ -121,7 +134,7 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
            declared to the things inside it — and it takes no part in its
            parent's inline formatting while doing it.
 
-           fit-content, not inline-flex, and the difference is 2 system px. An
+           fit-content, not inline-level, and the difference is 2 system px. An
            inline-level box sits on a line box, and a line box can never be
            shorter than the parent's strut: a stack shorter than the line-height
            around it silently gains the difference as leading (the showcase's
@@ -130,16 +143,13 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
            inside a component can shrink its parent's strut. So the box stays
            block-level and shrink-wraps instead — same geometry, no line box, no
            whitespace between two adjacent stacks, and the typographic
-           transparency below stops having an exception. */
-        display: flex;
+           transparency below stops having an exception.
+
+           The flex machinery itself lives one element down, on .box — the host
+           is a plain block shell, so the grid-snap correction has an interior
+           element to land on while the host's own layout stays untouched. */
+        display: block;
         width: fit-content;
-        flex-direction: column;
-        align-items: flex-start;
-        /* The positioning anchor for children placed with top/left
-           (src/position.ts): "positioned within its parent" has to hold when
-           the parent is the kit's own layout box. Alone, position: relative
-           changes no geometry and creates no stacking context. */
-        position: relative;
         /* Typographic transparency — see the class doc. vfBase dresses a host
            as chrome (body face, 1.25 line box, black, unselectable); a stack
            holds no text of its own, so imposing any of that on what it wraps
@@ -170,6 +180,27 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
         text-align: inherit;
       }
 
+      /* The flex container, the positioning anchor for children placed with
+         top/left (src/position.ts), and the grid-snap target — one shadow box
+         coinciding with the host box, the vf-container arrangement. vf-snap
+         (vfBase) gives it position: relative plus the controller's
+         --vf-snap-dx/-dy offset, so one element owns the coordinate system
+         and its correction: corrected, it takes every child with it, kit or
+         not. It carries no padding of its own until pad writes some, so its
+         padding box IS the host box and the placed-child anchor ignores pad
+         exactly as before (pad, like any padding, is flow-only).
+
+         height: 100% hands a declared (or filled) host height to the flex
+         layout — against an undeclared height it computes to auto and the
+         content governs, as always. Width needs no saying: a block-level box
+         fills the host, and the host shrink-wraps from its content. */
+      .box {
+        display: flex;
+        height: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
       /* The same two words a child uses, read by the stack about itself — for
          the parents that aren't stacks and have no ::slotted rule to give: a
          window body, a fieldset, a scroll well, a grid cell, a plain div. A
@@ -195,17 +226,17 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
          place="stretch", say) lands on the sane one instead of on flexbox's
          own "normal", which stretches. The named values come after, and win at
          equal specificity on source order. */
-      :host([direction='row']) {
+      :host([direction='row']) .box {
         flex-direction: row;
         align-items: center;
       }
-      :host([place='start']) {
+      :host([place='start']) .box {
         align-items: flex-start;
       }
-      :host([place='center']) {
+      :host([place='center']) .box {
         align-items: center;
       }
-      :host([place='end']) {
+      :host([place='end']) .box {
         align-items: flex-end;
       }
 
@@ -291,23 +322,34 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
-  // No GridSnapController: the stack paints nothing, so it has no ink to hold
-  // on the grid; the slotted components correct themselves (see grid-snap.ts).
+  /**
+   * Hold the box on the device-pixel grid under `applyGridSnap()` — see the
+   * class doc for why the original no-controller decision was reversed. The
+   * host is what gets measured; `.box` (vf-snap) is where the correction
+   * lands, taking the whole coordinate system with it.
+   */
+  private readonly gridSnap = new GridSnapController(this)
+
+  /** The shadow flex box `gap`/`pad` write to; exists from the first render. */
+  @query('.box') private readonly box!: HTMLDivElement
 
   /**
-   * `gap` and `pad` go on the host's own inline style as
+   * `gap` and `pad` go on the shadow box's inline style as
    * `calc(var(--vf-scale, 1) * Npx)`, the way VfSized writes the declared
    * size. Emitting the calc rather than a resolved number keeps each one live
-   * against the display: the scale is read at paint time, so a stack follows a
+   * against the display: the scale is read at paint time (the var resolves
+   * against the host's own --vf-scale by inheritance), so a stack follows a
    * monitor change exactly as the metrics in a component's stylesheet do.
+   * A real property on a real element, not a custom property — a token would
+   * inherit, and a nested stack would silently pick up its parent's spacing.
    */
   protected override updated(changed: PropertyValues<this>): void {
-    if (changed.has('gap')) this.style.gap = sysLength(this.gap)
-    if (changed.has('pad')) this.style.padding = sysLengths(this.pad)
+    if (changed.has('gap')) this.box.style.gap = sysLength(this.gap)
+    if (changed.has('pad')) this.box.style.padding = sysLengths(this.pad)
   }
 
   protected override render() {
-    return html`<slot></slot>`
+    return html`<div class="vf-snap box"><slot></slot></div>`
   }
 }
 

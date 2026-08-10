@@ -1941,15 +1941,27 @@ the consumer's stylesheet.
   `fill-height`, bare attributes like `nosnap`.
 - **Visual:** none. The stack paints nothing — no border, background or shadow —
   and takes no role, no keyboard behavior and no selection; what it holds
-  decides what it is, as with `vf-grid`. `:host` is the flex container with a
-  bare `<slot>` (slots are `display: contents` by UA default, the same
-  arrangement `vf-button-group` uses), so it adds no box and composes inside a
-  `flex: 1` chain. The four measured props are written to the host's own inline
-  style as `calc(var(--vf-scale, 1) * Npx)` via `sysLength`/`sysLengths` — the
-  way `vf-window` writes its declared size — so each stays live against the
-  display rather than freezing at write time. **No `GridSnapController`:** with
-  no ink of its own there is nothing to hold on the grid, and the slotted
-  components correct their own origins.
+  decides what it is, as with `vf-grid`. `:host` is a plain block shell
+  (`width: fit-content`); the flex container is one shadow box coinciding with
+  the host box (`.vf-snap`, `height: 100%` so a declared or filled host height
+  reaches the flex layout) — the `vf-container` arrangement, with the
+  placed-child anchor and the grid-snap target on the same element. The box
+  carries no padding until `pad` writes some, so its padding box IS the host
+  box and the placed-child anchor ignores `pad` exactly as before
+  (`verify:position` pins this). `gap`/`pad` are written to that box's inline
+  style as `calc(var(--vf-scale, 1) * Npx)` via `sysLength`/`sysLengths` (the
+  var resolves against the host's own `--vf-scale` by inheritance);
+  `width`/`height` stay on the host via `VfSized` — each stays live against
+  the display rather than freezing at write time. **Carries a
+  `GridSnapController`** — a reversal of the original no-controller decision,
+  which accounted only for kit children: a stack is a positioned ancestor and
+  a layout box for *anything*, and consumer content inside it (a div, an
+  `<img>`, a run of text) has no controller of its own. Under
+  `applyGridSnap()` the correction moves the stack's whole coordinate system;
+  kit children then find nothing left to correct (the sweep runs
+  outermost-first). It does not fix what it never could: a text-governed child
+  width mid-row still shifts later siblings fractionally (their own
+  controllers cover that), and centering still can't land on a whole pixel.
 - **The content governs the box.** A column is as wide as its widest child and a
   row as tall as its tallest; children neither grow nor shrink
   (`::slotted(*) { flex: 0 0 auto }`). System 7 boxes are the size they are — a
@@ -2031,6 +2043,64 @@ the consumer's stylesheet.
   that escapes the host in block flow — is genuinely reserved inside a stack
   instead of being donated by whatever precedes it.
 - **Slots:** default (the children; `fill-width` / `fill-height` on any of them).
+  **Parts:** none.
+  **Events:** none.
+
+#### `vf-container` (`VfContainer`, vf-container.ts)
+A box that is nothing but its declared size: `width`/`height` in whole system
+px around a bare slot — no paint, no layout opinion. The explicit-placement
+story (src/position.ts) ends with the one line of CSS the kit can't write for
+a consumer: children placed with `top`/`left` need a positioned ancestor, and
+a region of the consumer's *own* needs `position: relative` in a stylesheet.
+This is that region as an element — a DITL's enclosing rectangle with nothing
+drawn in it.
+- **Attributes/props:** `width` / `height`: number (whole system px, via
+  `VfSized`); the `top` / `left` pair via `VfPositioned` like nearly every
+  component. On a **child**: `fill-width` and `fill-height`, bare attributes
+  as in `vf-stack`. That is the whole API.
+- **Not a `vf-stack`.** The stack is a flexbox with opinions — an axis, a
+  cross-axis default, fills compiled into flex. The container has none:
+  in-flow children get normal flow, placed children get a coordinate system.
+  Reach for it when the stack's opinions are the thing in the way — a field of
+  placed icons, a fixed stage for placed art, a composition that brings its
+  own layout with it.
+- **Visual:** none — no border, background, role, keyboard behavior or
+  selection; what it holds decides what it is. `:host` is a block with
+  `width: fit-content`, so an undeclared axis shrink-wraps rather than
+  claiming the parent's width (the stack's rule — a layout box must not hand
+  out a size nobody declared; a declared dimension lands on the host's inline
+  style and beats it). The slot sits in one shadow box coinciding with the
+  host box (`.vf-snap`, `display: flow-root`, `height: 100%`): flow-root so a
+  slotted margin cannot collapse through the top edge and push the coordinate
+  origin off the host's corner, 100% so percentage fills resolve against a
+  declared height. That box owns `position: relative` — the anchor for
+  `top`/`left` children — which is the point of the component. Content that
+  outgrows the declared box overflows it rather than growing it — the number
+  is the layout.
+- **Carries a `GridSnapController`.** A container's box is itself the
+  consumer's coordinate system, including for non-`vf` content that cannot
+  correct itself. The shadow box owns the positioning anchor and the `vf-snap`
+  class *together*, so under `applyGridSnap()` the correction moves the whole
+  coordinate system and everything placed against it rides along, kit or not.
+  A declared size and whole-px `top`/`left` are on the grid by construction;
+  the controller covers the origin the page contributes. (This is the
+  arrangement `vf-stack` has since adopted too — one shadow box owning
+  anchor and correction together.)
+- **Typographically transparent**, exactly as `vf-stack` and for the same
+  reason: `font`, `-webkit-font-smoothing`, `color`, `user-select` and
+  `text-align` return to `inherit`, so wrapping content in a sized box changes
+  nothing about how that content reads.
+- **`fill-width` / `fill-height`** are read about the host (`width`/`height:
+  100%`, for a parent that can give the box a size) and compiled for slotted
+  children as the percentage form — normal flow has no flex axes to translate
+  onto. `width: 100%` always binds against the box; `height: 100%` binds only
+  against a declared `height` (percentage-against-auto computes to auto), so a
+  fill with nothing to take is inert, not an error. A light-DOM declaration
+  beats the `::slotted` rule, as everywhere.
+- **Carries a `ScaleController`** for the stack's reason: a lone container on
+  a plain page must resolve its declared size against the true scale, not the
+  `var(--vf-scale, 1)` fallback its slotted children each escape on their own.
+- **Slots:** default (the content; `fill-width` / `fill-height` on any of it).
   **Parts:** none.
   **Events:** none.
 

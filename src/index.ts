@@ -56,6 +56,7 @@ export type {
   VfStackDirection,
   VfStackPlace,
 } from './components/vf-stack.js'
+export { VfContainer } from './components/vf-container.js'
 
 /* ── Utilities & style toolkit ──────────────────────────────────────────── */
 

@@ -1,8 +1,9 @@
 /**
- * Renders glyph-proof.html from the generated manifest: one card per
- * backfilled glyph — authored bitmap beside the embedded face's own
- * rasterization, context between strike neighbors, native-size line —
- * grouped by provenance kind, "drawn" (wants feedback most) first.
+ * Renders glyph-proof.html from the generated manifest: one compact card per
+ * backfilled glyph — the embedded face's own rasterization at 12x plus a
+ * realistic native-size specimen in the same face — grouped by face first
+ * (display, then body), then by provenance kind, "drawn" (wants feedback
+ * most) first within each face.
  */
 import '../src/styles/body-font.js'
 import '../src/styles/display-font.js'
@@ -16,27 +17,6 @@ const KIND_BLURB: Record<string, string> = {
     'The strike’s own capital under the strike’s own accent, at the placement its native É / Ñ / Å establish.',
   derived: 'Strike ink rearranged — the donor glyphs are named on each card.',
   traced: 'Another glyph’s ink, verbatim.',
-}
-
-/** Neighbor context per codepoint — strike glyphs on either side. */
-function contextFor(g: BackfillGlyph): string {
-  const c = g.char
-  if (/\p{Lu}/u.test(c)) return `H${c}n${(c.normalize('NFD')[0] ?? c).toLowerCase()}`
-  if ('¹²³'.includes(c)) return `x${c} m${c}`
-  if ('½¼¾'.includes(c)) return `2${c} (${c})`
-  if ('‚„'.includes(c)) return `${c}quote‘ n${c}n`
-  if ('′″'.includes(c)) return `5${c}10 n${c}`
-  if ('‹›'.includes(c)) return `‹n› «${c}»`
-  if (c === '€') return `45${c} C${c}O`
-  if (c === '−') return `5${c}3 +${c}=`
-  if (c === '·') return `a${c}b 3${c}5`
-  if (c === '⁄') return `5${c}8 /${c}/`
-  if (c === '‰') return `5${c} %${c}`
-  if (c === '‡') return `n†${c}n`
-  if ('ﬁﬂ'.includes(c)) return `${c}n fin ${c}`
-  if ('⌘⇧⌥⌃'.includes(c)) return `${c}Q ⌘${c}`
-  if ('←→↑↓'.includes(c)) return `a${c}b ←${c}→`
-  return `n${c}n o${c}o`
 }
 
 const NATIVE: Record<string, string> = {
@@ -74,6 +54,31 @@ const NATIVE: Record<string, string> = {
   control: '⌃C to interrupt',
   multiply: 'a 3×5 card, 640×480 at 72 dpi',
   command: '⌘N New, ⌘Q Quit',
+  escape: '⎋ cancels — ⌥⌘⎋ force-quits',
+  deleteleft: '⌘⌫ moves it to the Trash',
+  returnsymbol: '⏎ confirms, ⇧⏎ a soft break',
+  tabright: '⇥ next field, ⇧⇥ previous',
+  tableft: '⇤ back one field',
+  hookarrowleft: 'press Enter ↩ to submit',
+  diamond: '◆ modified · ◆ vs ◊',
+  apple: ' menu — About This Macintosh…',
+  blackcircle: '● Recording — ● On ○ Off',
+  whitecircle: '○ idle · ● busy',
+  blacksquare: '■ Stop — press ▶ to play',
+  whitesquare: '□ to do, ■ done',
+  whitebullet: '• item — ◦ sub-item',
+  ballotx: '✗ failed — ✓ passed',
+  smalltriangleright: 'File ▸ Export ▸ PDF…',
+  smalltriangleleft: '◂ prev · next ▸',
+  smalltriangleup: 'sort ▴ ascending, ▾ descending',
+  smalltriangledown: 'More ▾',
+  triangleright: '▶ Play · ◀◀ Rewind',
+  triangleleft: '◀ Back · ▶ Play',
+  nonbreakinghyphen: 'anti‑aliasing stays one word',
+  softhyphen: 'in­vis­ible till a line breaks',
+  figurespace: '1 234 567 stays columnar',
+  thinspace: 'a — thin-spaced dash',
+  hairspace: 'hair thin gaps',
 }
 const NATIVE_ACCENT =
   'À la carte — ÉCOLE, ÈVE, ÎLE FLOTTANTE, HÔTEL, OÙ, DÉJÀ VU, SEÑOR (native: É Ñ Ã Õ Ö Ü)'
@@ -89,19 +94,6 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node
 }
 
-function bitmapGrid(g: BackfillGlyph): HTMLElement {
-  const grid = el('div', 'bitmap')
-  const width = Math.max(...g.rows.map((r) => r.length))
-  grid.style.gridTemplateColumns = `repeat(${width}, 12px)`
-  for (const row of g.rows) {
-    for (let c = 0; c < width; c += 1) {
-      grid.appendChild(el('i', row[c] === '#' ? 'ink' : ''))
-    }
-  }
-  grid.title = `${g.rows.length} rows × ${width} cols`
-  return grid
-}
-
 function card(g: BackfillGlyph): HTMLElement {
   const faceClass = g.face === 'VF Body' ? 'body-face' : 'display-face'
   const node = el('div', 'card')
@@ -111,15 +103,11 @@ function card(g: BackfillGlyph): HTMLElement {
     el(
       'p',
       'meta',
-      `${cp} · ${g.face} · x0 ${g.x0} · y0 ${g.y0} · advance ${g.advance}px · ` +
+      `${cp} · x0 ${g.x0} · y0 ${g.y0} · advance ${g.advance}px · ` +
         `${g.rows.length}×${Math.max(...g.rows.map((r) => r.length))}`,
     ),
   )
-  const pair = el('div', 'pair')
-  pair.appendChild(bitmapGrid(g))
-  pair.appendChild(el('div', `big ${faceClass}`, g.char))
-  node.appendChild(pair)
-  node.appendChild(el('div', `context ${faceClass}`, contextFor(g)))
+  node.appendChild(el('div', `big ${faceClass}`, g.char))
   const native = NATIVE[g.name] ?? (/\p{Lu}/u.test(g.char) ? NATIVE_ACCENT : g.char)
   node.appendChild(el('div', `native ${faceClass}`, native))
   node.appendChild(el('p', 'source', g.source))
@@ -127,14 +115,18 @@ function card(g: BackfillGlyph): HTMLElement {
 }
 
 const root = document.getElementById('root')!
-for (const kind of KIND_ORDER) {
-  const group = BACKFILL_GLYPHS.filter((g) => g.source.startsWith(kind))
-  if (!group.length) continue
-  root.appendChild(el('h2', '', `${kind} — ${group.length}`))
-  root.appendChild(el('p', 'intro', KIND_BLURB[kind]))
-  const cards = el('div', 'cards')
-  for (const g of group) cards.appendChild(card(g))
-  root.appendChild(cards)
+for (const face of ['VF Display', 'VF Body']) {
+  const ofFace = BACKFILL_GLYPHS.filter((g) => g.face === face)
+  root.appendChild(el('h2', 'face-head', `${face} — ${ofFace.length} glyphs`))
+  for (const kind of KIND_ORDER) {
+    const group = ofFace.filter((g) => g.source.startsWith(kind))
+    if (!group.length) continue
+    root.appendChild(el('h3', 'kind-head', `${kind} — ${group.length}`))
+    root.appendChild(el('p', 'intro', KIND_BLURB[kind]))
+    const cards = el('div', 'cards')
+    for (const g of group) cards.appendChild(card(g))
+    root.appendChild(cards)
+  }
 }
 
 // Running copy: the whole backfill working at native size in real sentences.

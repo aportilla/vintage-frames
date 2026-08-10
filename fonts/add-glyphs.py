@@ -24,13 +24,15 @@ Every spec row states its source, best kind first:
     drawn    — nothing to trace anywhere; an original 1-bit drawing, awaiting
                review on the proof page
 
-Drawings shared by both faces (the modifier keys, superscripts, fractions,
-the saltire) live in module constants so the two can never drift apart.
+Drawings shared by both faces (the modifier and keyboard keys, superscripts,
+fractions, the saltire, the geometric symbol set) live in module constants so
+the two can never drift apart.
 
 Review the results on the proofing page: glyph-proof.html on the dev server
-renders every backfilled glyph oversized, in context, and beside its bitmap —
-it reads demo/glyph-proof-manifest.ts, which this script regenerates on every
-run (generated, like the charset manifest — never hand-edit).
+renders every backfilled glyph at 12x with a realistic native-size line in
+its own face, the display face's additions before the body face's — it reads
+demo/glyph-proof-manifest.ts, which this script regenerates on every run
+(generated, like the charset manifest — never hand-edit).
 
 Run it (needs fonttools + brotli — see fonts/README.md):
 
@@ -143,6 +145,155 @@ CONTROL_KEY = [
     "..#..",
     ".#.#.",
     "#...#",
+]
+
+# The rest of the keyboard: esc, delete-back, return, both tabs and the hook
+# arrow — the keys a modern shortcut string still fell back mid-string for.
+# All 1px strokes at the ⌘'s ring weight, centered against its 9x9 box.
+ESC_KEY = [  # Adam's ink, 2026-08-10: the arrow's shaft IS the ring's arc
+    "###.....",
+    "##..##..",
+    "#.#...#.",
+    "...#...#",
+    ".#.....#",
+    ".#.....#",
+    "..#...#.",
+    "...###..",
+]
+DELETE_KEY = [  # the left-pointing eraser pentagon around a 3x3 saltire
+    "...########",
+    "..#.......#",
+    ".#...#.#..#",
+    "#.....#...#",
+    ".#...#.#..#",
+    "..#.......#",
+    "...########",
+]
+RETURN_KEY = [  # ⏎ — down the right side, left along the baseline row
+    "........#",
+    "........#",
+    "..#.....#",
+    ".#......#",
+    "#########",
+    ".#.......",
+    "..#......",
+]
+TAB_RIGHT_KEY = [  # ⇥ — the arrows' chevron head, stopped by the bar
+    "........#",
+    "....#...#",
+    ".....#..#",
+    "#######.#",
+    ".....#..#",
+    "....#...#",
+    "........#",
+]
+TAB_LEFT_KEY = [r[::-1] for r in TAB_RIGHT_KEY]  # ⇤ — its mirror
+HOOK_ARROW = [  # ↩ — the ⏎ with its tail curled instead of squared
+    ".....###.",
+    "........#",
+    "..#.....#",
+    ".#......#",
+    "#########",
+    ".#.......",
+    "..#......",
+]
+
+# The strike symbol cell. Chicago's own ◆ (classic slot 0x13 ink — do not
+# edit: it must stay bit-identical to the strike) is a 7x7 diamond at y1 with
+# a 9px advance, and that cell is the box every new geometric symbol draws
+# in. The four small text triangles are the ◆ cut in half, so they can never
+# drift from the strike's own wedge.
+CHICAGO_DIAMOND = [
+    "...#...",
+    "..###..",
+    ".#####.",
+    "#######",
+    ".#####.",
+    "..###..",
+    "...#...",
+]
+TRI_SMALL_RIGHT = [r[3:] for r in CHICAGO_DIAMOND]  # ▸ — the ◆'s right half
+TRI_SMALL_LEFT = [r[:4] for r in CHICAGO_DIAMOND]   # ◂ — its left half
+TRI_SMALL_UP = CHICAGO_DIAMOND[:4]                  # ▴ — its top half
+TRI_SMALL_DOWN = CHICAGO_DIAMOND[3:]                # ▾ — its bottom half
+TRIANGLE_RIGHT = [  # ▶ — the wedge grown to the 9px cap band
+    "#....",
+    "##...",
+    "###..",
+    "####.",
+    "#####",
+    "####.",
+    "###..",
+    "##...",
+    "#....",
+]
+TRIANGLE_LEFT = [r[::-1] for r in TRIANGLE_RIGHT]  # ◀ — its mirror
+BLACK_CIRCLE = [  # ● — the • disc grown to the ◆'s 7x7 cell
+    "..###..",
+    ".#####.",
+    "#######",
+    "#######",
+    "#######",
+    ".#####.",
+    "..###..",
+]
+WHITE_CIRCLE = [  # ○ — the ● as a 1px ring
+    "..###..",
+    ".#...#.",
+    "#.....#",
+    "#.....#",
+    "#.....#",
+    ".#...#.",
+    "..###..",
+]
+BLACK_SQUARE = ["#######"] * 7  # ■ — the cell filled solid
+WHITE_SQUARE = (  # □ — the ■ as a 1px ring
+    ["#######"] + ["#.....#"] * 5 + ["#######"]
+)
+# ◦ — both strikes draw the identical 5x5 • disc, so one ring serves both.
+WHITE_BULLET = [
+    ".###.",
+    "#...#",
+    "#...#",
+    "#...#",
+    ".###.",
+]
+
+# The full-size ballot X in each face — one drawing serves ✕ (U+2715) and
+# ✗ (U+2717): at strike sizes the upright and the slanted X are the same ink.
+GENEVA_BALLOT_X = [
+    "#.....#",
+    ".#...#.",
+    "..#.#..",
+    "...#...",
+    "..#.#..",
+    ".#...#.",
+    "#.....#",
+]
+CHICAGO_BALLOT_X = [
+    "##....##",
+    ".##..##.",
+    "..####..",
+    "...##...",
+    "..####..",
+    ".##..##.",
+    "##....##",
+]
+
+# Chicago's  menu apple (classic slot 0x14 ink — do not edit), the trace
+# donor for the body face's , like its ⌘ and ✓ before it.
+CHICAGO_APPLE = [
+    ".....##..",
+    "....##...",
+    "....#....",
+    ".###.###.",
+    "#########",
+    "#######..",
+    "#######..",
+    "#########",
+    "#########",
+    ".#######.",
+    "..##.##..",
 ]
 
 # Superscript digits, 5 rows with the top at each face's cap height. The 3
@@ -381,15 +532,8 @@ GENEVA_SPECS = [
         ".#.#.",
         "..#..",
     ], 0, 0, 384, "drawn — chevron-headed arrow, cap height"),
-    ("multiplicationx", 0x2715, [
-        "#.....#",
-        ".#...#.",
-        "..#.#..",
-        "...#...",
-        "..#.#..",
-        ".#...#.",
-        "#.....#",
-    ], 0, 0, 512, "drawn — the ballot X: the × saltire at full cap size"),
+    ("multiplicationx", 0x2715, GENEVA_BALLOT_X, 0, 0, 512,
+     "drawn — the ballot X: the × saltire at full cap size"),
     ("blackstar", 0x2605, [
         "...#...",
         "..###..",
@@ -408,6 +552,76 @@ GENEVA_SPECS = [
     ("option", 0x2325, OPTION_KEY, 0, 64, 512, "drawn — the option key switch"),
     ("control", 0x2303, CONTROL_KEY, 0, 192, 384,
      "drawn — the control chevron, in the cap's upper band"),
+    ("escape", 0x238B, ESC_KEY, 0, 0, 576,
+     "drawn — the escape key: the arrow's shaft doubling as the ring's top-left arc (Adam's ink, 2026-08-10)"),
+    ("deleteleft", 0x232B, DELETE_KEY, 0, 64, 768,
+     "drawn — the delete-back eraser pentagon around a 3x3 saltire"),
+    ("returnsymbol", 0x23CE, RETURN_KEY, 0, 64, 640,
+     "drawn — the return symbol, its head the text arrows' own chevron"),
+    ("tabright", 0x21E5, TAB_RIGHT_KEY, 0, 64, 640,
+     "drawn — tab: the text arrow stopped by a bar"),
+    ("tableft", 0x21E4, TAB_LEFT_KEY, 0, 64, 640,
+     "drawn — back-tab, the ⇥'s mirror"),
+    ("hookarrowleft", 0x21A9, HOOK_ARROW, 0, 64, 640,
+     "drawn — the ⏎ with its tail curled instead of squared"),
+
+    # -- geometric symbols ----------------------------------------------------
+    # The classic symbol slots Geneva's strike never inked, traced from
+    # Chicago like the ⌘ and ✓ before them, then the modern set drawn on the
+    # face's own 7px cell (the ★'s box).
+    ("diamond", 0x25C6, CHICAGO_DIAMOND, 0, 64, 512,
+     "traced — Chicago's ◆ (the classic symbol slot's ink), on Geneva's flush-left spacing"),
+    ("apple", 0xF8FF, CHICAGO_APPLE, 0, 0, 640,
+     "traced — Chicago's  menu apple, verbatim, like the ⌘ and ✓ before it"),
+    ("blackcircle", 0x25CF, BLACK_CIRCLE, 0, 0, 512,
+     "drawn — the strike's • disc grown to the 7px symbol cell"),
+    ("whitecircle", 0x25CB, WHITE_CIRCLE, 0, 0, 512,
+     "drawn — the ● as a 1px ring, the face's stroke"),
+    ("blacksquare", 0x25A0, BLACK_SQUARE, 0, 0, 512,
+     "drawn — the 7px symbol cell filled solid"),
+    ("whitesquare", 0x25A1, WHITE_SQUARE, 0, 0, 512,
+     "drawn — the ■ as a 1px ring"),
+    ("whitebullet", 0x25E6, WHITE_BULLET, 0, 64, 384,
+     "derived — the strike's own • hollowed to a ring, in its exact box and advance"),
+    ("ballotx", 0x2717, GENEVA_BALLOT_X, 0, 0, 512,
+     "traced — the face's own ✕ (at strike sizes one X serves both codepoints)"),
+    ("smalltriangleright", 0x25B8, TRI_SMALL_RIGHT, 0, 64, 320,
+     "derived — the right half of the traced ◆ (the submenu wedge)"),
+    ("smalltriangleleft", 0x25C2, TRI_SMALL_LEFT, 0, 64, 320,
+     "derived — the left half of the traced ◆"),
+    ("smalltriangleup", 0x25B4, TRI_SMALL_UP, 0, 64, 512,
+     "derived — the top half of the traced ◆"),
+    ("smalltriangledown", 0x25BE, TRI_SMALL_DOWN, 0, 64, 512,
+     "derived — the bottom half of the traced ◆"),
+    ("triangleright", 0x25B6, TRIANGLE_RIGHT, 0, 0, 384,
+     "drawn — the ▸ wedge grown to the ⌘'s 9px band"),
+    ("triangleleft", 0x25C0, TRIANGLE_LEFT, 0, 0, 384,
+     "drawn — the ▶'s mirror"),
+    ("whitestar", 0x2606, [
+        "...#...",
+        "..#.#..",
+        "##...##",
+        ".#...#.",
+        "..#.#..",
+        ".##.##.",
+        ".#...#.",
+    ], 0, 0, 512,
+     "drawn — the ★'s outline by the display ☆'s construction — PROPOSAL: this is the 7x7 that awaited a sketch; veto freely"),
+
+    # -- invisibles & word-joiners --------------------------------------------
+    # No ink is still a glyph: without these a careful writer's non-breaking
+    # hyphen or thin space falls back per glyph and takes the neighbor font's
+    # metrics with it.
+    ("nonbreakinghyphen", 0x2011, ["####"], 0, 192, 320,
+     "traced — the strike's hyphen, verbatim (the hyphen that refuses the break)"),
+    ("softhyphen", 0x00AD, ["####"], 0, 192, 320,
+     "traced — the strike's hyphen, verbatim (visible only where a line breaks)"),
+    ("figurespace", 0x2007, ["......"], 0, 0, 384,
+     "derived — no ink: the strike's own 6px digit advance, so numerals stay columnar"),
+    ("thinspace", 0x2009, [".."], 0, 0, 128,
+     "derived — no ink: 2px, one step under the strike's 3px word space"),
+    ("hairspace", 0x200A, ["."], 0, 0, 64,
+     "derived — no ink: the 1px minimum the pixel grid can state"),
 ]
 
 # Chicago spacing convention throughout: 1px bearing each side of the ink
@@ -597,15 +811,8 @@ CHICAGO_SPECS = [
         "..####..",
         "...##...",
     ], 64, 0, 640, "drawn — 2px-stem arrow, cap height"),
-    ("multiplicationx", 0x2715, [
-        "##....##",
-        ".##..##.",
-        "..####..",
-        "...##...",
-        "..####..",
-        ".##..##.",
-        "##....##",
-    ], 64, 64, 640, "drawn — the ballot X at the strike's 2px stroke"),
+    ("multiplicationx", 0x2715, CHICAGO_BALLOT_X, 64, 64, 640,
+     "drawn — the ballot X at the strike's 2px stroke"),
     ("blackstar", 0x2605, [
         "....#....",
         "...###...",
@@ -639,6 +846,58 @@ CHICAGO_SPECS = [
     ("option", 0x2325, OPTION_KEY, 64, 128, 576, "drawn — the option key switch"),
     ("control", 0x2303, CONTROL_KEY, 64, 320, 448,
      "drawn — the control chevron, in the cap's upper band"),
+    ("escape", 0x238B, ESC_KEY, 64, 0, 640,
+     "drawn — the escape key: the arrow's shaft doubling as the ring's top-left arc (Adam's ink, 2026-08-10)"),
+    ("deleteleft", 0x232B, DELETE_KEY, 64, 64, 832,
+     "drawn — the delete-back eraser pentagon around a 3x3 saltire"),
+    ("returnsymbol", 0x23CE, RETURN_KEY, 64, 64, 704,
+     "drawn — the return symbol, its head the text arrows' own chevron"),
+    ("tabright", 0x21E5, TAB_RIGHT_KEY, 64, 64, 704,
+     "drawn — tab: the text arrow stopped by a bar"),
+    ("tableft", 0x21E4, TAB_LEFT_KEY, 64, 64, 704,
+     "drawn — back-tab, the ⇥'s mirror"),
+    ("hookarrowleft", 0x21A9, HOOK_ARROW, 64, 64, 704,
+     "drawn — the ⏎ with its tail curled instead of squared"),
+
+    # -- geometric symbols ----------------------------------------------------
+    # All on the strike ◆'s own cell: 7x7 at y1, 9px advance — the one symbol
+    # the strike drew is the box the rest of the set draws in.
+    ("blackcircle", 0x25CF, BLACK_CIRCLE, 64, 64, 576,
+     "drawn — the strike's • disc grown to its ◆'s 7x7 cell and advance"),
+    ("whitecircle", 0x25CB, WHITE_CIRCLE, 64, 64, 576,
+     "drawn — the ● as a 1px ring, the ⌘'s stroke"),
+    ("blacksquare", 0x25A0, BLACK_SQUARE, 64, 64, 576,
+     "drawn — the ◆'s 7x7 cell filled solid"),
+    ("whitesquare", 0x25A1, WHITE_SQUARE, 64, 64, 576,
+     "drawn — the ■ as a 1px ring"),
+    ("whitebullet", 0x25E6, WHITE_BULLET, 64, 128, 448,
+     "derived — the strike's own • hollowed to a ring, in its exact box and advance"),
+    ("ballotx", 0x2717, CHICAGO_BALLOT_X, 64, 64, 640,
+     "traced — the face's own ✕ (at strike sizes one X serves both codepoints)"),
+    ("smalltriangleright", 0x25B8, TRI_SMALL_RIGHT, 64, 64, 384,
+     "derived — the right half of the strike's own ◆ (the submenu wedge)"),
+    ("smalltriangleleft", 0x25C2, TRI_SMALL_LEFT, 64, 64, 384,
+     "derived — the left half of the strike's own ◆"),
+    ("smalltriangleup", 0x25B4, TRI_SMALL_UP, 64, 128, 576,
+     "derived — the top half of the strike's own ◆"),
+    ("smalltriangledown", 0x25BE, TRI_SMALL_DOWN, 64, 128, 576,
+     "derived — the bottom half of the strike's own ◆"),
+    ("triangleright", 0x25B6, TRIANGLE_RIGHT, 64, 0, 448,
+     "drawn — the ▸ wedge grown to the 9px cap band"),
+    ("triangleleft", 0x25C0, TRIANGLE_LEFT, 64, 0, 448,
+     "drawn — the ▶'s mirror"),
+
+    # -- invisibles & word-joiners --------------------------------------------
+    ("nonbreakinghyphen", 0x2011, ["#####"], 64, 256, 448,
+     "traced — the strike's hyphen, verbatim (the hyphen that refuses the break)"),
+    ("softhyphen", 0x00AD, ["#####"], 64, 256, 448,
+     "traced — the strike's hyphen, verbatim (visible only where a line breaks)"),
+    ("figurespace", 0x2007, ["........"], 0, 0, 512,
+     "derived — no ink: the strike's own 8px digit advance, so numerals stay columnar"),
+    ("thinspace", 0x2009, [".."], 0, 0, 128,
+     "derived — no ink: 2px, two under the strike's 4px word space"),
+    ("hairspace", 0x200A, ["."], 0, 0, 64,
+     "derived — no ink: the 1px minimum the pixel grid can state"),
 ]
 
 # "shipped" is the family name the built face carries and the kit registers.
@@ -721,8 +980,12 @@ def build(family, cfg):
         if name not in order:
             order.append(name)
         glyf[name] = glyph
-        glyph.recalcBounds(glyf)
-        hmtx[name] = (advance, glyph.xMin)
+        if glyph.numberOfContours:
+            glyph.recalcBounds(glyf)
+            lsb = glyph.xMin
+        else:
+            lsb = 0  # the spaces: an advance with no ink
+        hmtx[name] = (advance, lsb)
         for table in font["cmap"].tables:
             if table.isUnicode():
                 table.cmap[uni] = name

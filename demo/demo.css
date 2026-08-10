@@ -161,6 +161,12 @@
 .installer-well ul {
   margin: 0;
   padding-left: calc(var(--vf-scale, 1) * 20px);
+  /* A string marker, not `disc`: the UA paints disc/circle/square as its own
+     anti-aliased geometry and never consults the font, so the default marker
+     was the one smooth shape in the window. Marker *text* renders in the
+     inherited face — the strike's own 1-bit bullet. (Not `list-style: none`
+     + ::before, which costs the list its AT role in Safari.) */
+  list-style-type: '•\00a0\00a0';
 }
 .installer-actions {
   /* A vf-button-group vertical: it equalizes the button faces and centers

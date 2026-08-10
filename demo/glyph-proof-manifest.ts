@@ -948,6 +948,410 @@ export const BACKFILL_GLYPHS: BackfillGlyph[] = [
     "source": "drawn — the control chevron, in the cap's upper band"
   },
   {
+    "face": "VF Display",
+    "char": "⎋",
+    "name": "escape",
+    "codepoint": 9099,
+    "rows": [
+      "###.....",
+      "##..##..",
+      "#.#...#.",
+      "...#...#",
+      ".#.....#",
+      ".#.....#",
+      "..#...#.",
+      "...###.."
+    ],
+    "x0": 1,
+    "y0": 0,
+    "advance": 10,
+    "source": "drawn — the escape key: the arrow's shaft doubling as the ring's top-left arc (Adam's ink, 2026-08-10)"
+  },
+  {
+    "face": "VF Display",
+    "char": "⌫",
+    "name": "deleteleft",
+    "codepoint": 9003,
+    "rows": [
+      "...########",
+      "..#.......#",
+      ".#...#.#..#",
+      "#.....#...#",
+      ".#...#.#..#",
+      "..#.......#",
+      "...########"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 13,
+    "source": "drawn — the delete-back eraser pentagon around a 3x3 saltire"
+  },
+  {
+    "face": "VF Display",
+    "char": "⏎",
+    "name": "returnsymbol",
+    "codepoint": 9166,
+    "rows": [
+      "........#",
+      "........#",
+      "..#.....#",
+      ".#......#",
+      "#########",
+      ".#.......",
+      "..#......"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 11,
+    "source": "drawn — the return symbol, its head the text arrows' own chevron"
+  },
+  {
+    "face": "VF Display",
+    "char": "⇥",
+    "name": "tabright",
+    "codepoint": 8677,
+    "rows": [
+      "........#",
+      "....#...#",
+      ".....#..#",
+      "#######.#",
+      ".....#..#",
+      "....#...#",
+      "........#"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 11,
+    "source": "drawn — tab: the text arrow stopped by a bar"
+  },
+  {
+    "face": "VF Display",
+    "char": "⇤",
+    "name": "tableft",
+    "codepoint": 8676,
+    "rows": [
+      "#........",
+      "#...#....",
+      "#..#.....",
+      "#.#######",
+      "#..#.....",
+      "#...#....",
+      "#........"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 11,
+    "source": "drawn — back-tab, the ⇥'s mirror"
+  },
+  {
+    "face": "VF Display",
+    "char": "↩",
+    "name": "hookarrowleft",
+    "codepoint": 8617,
+    "rows": [
+      ".....###.",
+      "........#",
+      "..#.....#",
+      ".#......#",
+      "#########",
+      ".#.......",
+      "..#......"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 11,
+    "source": "drawn — the ⏎ with its tail curled instead of squared"
+  },
+  {
+    "face": "VF Display",
+    "char": "●",
+    "name": "blackcircle",
+    "codepoint": 9679,
+    "rows": [
+      "..###..",
+      ".#####.",
+      "#######",
+      "#######",
+      "#######",
+      ".#####.",
+      "..###.."
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 9,
+    "source": "drawn — the strike's • disc grown to its ◆'s 7x7 cell and advance"
+  },
+  {
+    "face": "VF Display",
+    "char": "○",
+    "name": "whitecircle",
+    "codepoint": 9675,
+    "rows": [
+      "..###..",
+      ".#...#.",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      ".#...#.",
+      "..###.."
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 9,
+    "source": "drawn — the ● as a 1px ring, the ⌘'s stroke"
+  },
+  {
+    "face": "VF Display",
+    "char": "■",
+    "name": "blacksquare",
+    "codepoint": 9632,
+    "rows": [
+      "#######",
+      "#######",
+      "#######",
+      "#######",
+      "#######",
+      "#######",
+      "#######"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 9,
+    "source": "drawn — the ◆'s 7x7 cell filled solid"
+  },
+  {
+    "face": "VF Display",
+    "char": "□",
+    "name": "whitesquare",
+    "codepoint": 9633,
+    "rows": [
+      "#######",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      "#######"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 9,
+    "source": "drawn — the ■ as a 1px ring"
+  },
+  {
+    "face": "VF Display",
+    "char": "◦",
+    "name": "whitebullet",
+    "codepoint": 9702,
+    "rows": [
+      ".###.",
+      "#...#",
+      "#...#",
+      "#...#",
+      ".###."
+    ],
+    "x0": 1,
+    "y0": 2,
+    "advance": 7,
+    "source": "derived — the strike's own • hollowed to a ring, in its exact box and advance"
+  },
+  {
+    "face": "VF Display",
+    "char": "✗",
+    "name": "ballotx",
+    "codepoint": 10007,
+    "rows": [
+      "##....##",
+      ".##..##.",
+      "..####..",
+      "...##...",
+      "..####..",
+      ".##..##.",
+      "##....##"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 10,
+    "source": "traced — the face's own ✕ (at strike sizes one X serves both codepoints)"
+  },
+  {
+    "face": "VF Display",
+    "char": "▸",
+    "name": "smalltriangleright",
+    "codepoint": 9656,
+    "rows": [
+      "#...",
+      "##..",
+      "###.",
+      "####",
+      "###.",
+      "##..",
+      "#..."
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 6,
+    "source": "derived — the right half of the strike's own ◆ (the submenu wedge)"
+  },
+  {
+    "face": "VF Display",
+    "char": "◂",
+    "name": "smalltriangleleft",
+    "codepoint": 9666,
+    "rows": [
+      "...#",
+      "..##",
+      ".###",
+      "####",
+      ".###",
+      "..##",
+      "...#"
+    ],
+    "x0": 1,
+    "y0": 1,
+    "advance": 6,
+    "source": "derived — the left half of the strike's own ◆"
+  },
+  {
+    "face": "VF Display",
+    "char": "▴",
+    "name": "smalltriangleup",
+    "codepoint": 9652,
+    "rows": [
+      "...#...",
+      "..###..",
+      ".#####.",
+      "#######"
+    ],
+    "x0": 1,
+    "y0": 2,
+    "advance": 9,
+    "source": "derived — the top half of the strike's own ◆"
+  },
+  {
+    "face": "VF Display",
+    "char": "▾",
+    "name": "smalltriangledown",
+    "codepoint": 9662,
+    "rows": [
+      "#######",
+      ".#####.",
+      "..###..",
+      "...#..."
+    ],
+    "x0": 1,
+    "y0": 2,
+    "advance": 9,
+    "source": "derived — the bottom half of the strike's own ◆"
+  },
+  {
+    "face": "VF Display",
+    "char": "▶",
+    "name": "triangleright",
+    "codepoint": 9654,
+    "rows": [
+      "#....",
+      "##...",
+      "###..",
+      "####.",
+      "#####",
+      "####.",
+      "###..",
+      "##...",
+      "#...."
+    ],
+    "x0": 1,
+    "y0": 0,
+    "advance": 7,
+    "source": "drawn — the ▸ wedge grown to the 9px cap band"
+  },
+  {
+    "face": "VF Display",
+    "char": "◀",
+    "name": "triangleleft",
+    "codepoint": 9664,
+    "rows": [
+      "....#",
+      "...##",
+      "..###",
+      ".####",
+      "#####",
+      ".####",
+      "..###",
+      "...##",
+      "....#"
+    ],
+    "x0": 1,
+    "y0": 0,
+    "advance": 7,
+    "source": "drawn — the ▶'s mirror"
+  },
+  {
+    "face": "VF Display",
+    "char": "‑",
+    "name": "nonbreakinghyphen",
+    "codepoint": 8209,
+    "rows": [
+      "#####"
+    ],
+    "x0": 1,
+    "y0": 4,
+    "advance": 7,
+    "source": "traced — the strike's hyphen, verbatim (the hyphen that refuses the break)"
+  },
+  {
+    "face": "VF Display",
+    "char": "­",
+    "name": "softhyphen",
+    "codepoint": 173,
+    "rows": [
+      "#####"
+    ],
+    "x0": 1,
+    "y0": 4,
+    "advance": 7,
+    "source": "traced — the strike's hyphen, verbatim (visible only where a line breaks)"
+  },
+  {
+    "face": "VF Display",
+    "char": " ",
+    "name": "figurespace",
+    "codepoint": 8199,
+    "rows": [
+      "........"
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 8,
+    "source": "derived — no ink: the strike's own 8px digit advance, so numerals stay columnar"
+  },
+  {
+    "face": "VF Display",
+    "char": " ",
+    "name": "thinspace",
+    "codepoint": 8201,
+    "rows": [
+      ".."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 2,
+    "source": "derived — no ink: 2px, two under the strike's 4px word space"
+  },
+  {
+    "face": "VF Display",
+    "char": " ",
+    "name": "hairspace",
+    "codepoint": 8202,
+    "rows": [
+      "."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 1,
+    "source": "derived — no ink: the 1px minimum the pixel grid can state"
+  },
+  {
     "face": "VF Body",
     "char": "×",
     "name": "multiply",
@@ -1840,5 +2244,470 @@ export const BACKFILL_GLYPHS: BackfillGlyph[] = [
     "y0": 3,
     "advance": 6,
     "source": "drawn — the control chevron, in the cap's upper band"
+  },
+  {
+    "face": "VF Body",
+    "char": "⎋",
+    "name": "escape",
+    "codepoint": 9099,
+    "rows": [
+      "###.....",
+      "##..##..",
+      "#.#...#.",
+      "...#...#",
+      ".#.....#",
+      ".#.....#",
+      "..#...#.",
+      "...###.."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 9,
+    "source": "drawn — the escape key: the arrow's shaft doubling as the ring's top-left arc (Adam's ink, 2026-08-10)"
+  },
+  {
+    "face": "VF Body",
+    "char": "⌫",
+    "name": "deleteleft",
+    "codepoint": 9003,
+    "rows": [
+      "...########",
+      "..#.......#",
+      ".#...#.#..#",
+      "#.....#...#",
+      ".#...#.#..#",
+      "..#.......#",
+      "...########"
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 12,
+    "source": "drawn — the delete-back eraser pentagon around a 3x3 saltire"
+  },
+  {
+    "face": "VF Body",
+    "char": "⏎",
+    "name": "returnsymbol",
+    "codepoint": 9166,
+    "rows": [
+      "........#",
+      "........#",
+      "..#.....#",
+      ".#......#",
+      "#########",
+      ".#.......",
+      "..#......"
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 10,
+    "source": "drawn — the return symbol, its head the text arrows' own chevron"
+  },
+  {
+    "face": "VF Body",
+    "char": "⇥",
+    "name": "tabright",
+    "codepoint": 8677,
+    "rows": [
+      "........#",
+      "....#...#",
+      ".....#..#",
+      "#######.#",
+      ".....#..#",
+      "....#...#",
+      "........#"
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 10,
+    "source": "drawn — tab: the text arrow stopped by a bar"
+  },
+  {
+    "face": "VF Body",
+    "char": "⇤",
+    "name": "tableft",
+    "codepoint": 8676,
+    "rows": [
+      "#........",
+      "#...#....",
+      "#..#.....",
+      "#.#######",
+      "#..#.....",
+      "#...#....",
+      "#........"
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 10,
+    "source": "drawn — back-tab, the ⇥'s mirror"
+  },
+  {
+    "face": "VF Body",
+    "char": "↩",
+    "name": "hookarrowleft",
+    "codepoint": 8617,
+    "rows": [
+      ".....###.",
+      "........#",
+      "..#.....#",
+      ".#......#",
+      "#########",
+      ".#.......",
+      "..#......"
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 10,
+    "source": "drawn — the ⏎ with its tail curled instead of squared"
+  },
+  {
+    "face": "VF Body",
+    "char": "◆",
+    "name": "diamond",
+    "codepoint": 9670,
+    "rows": [
+      "...#...",
+      "..###..",
+      ".#####.",
+      "#######",
+      ".#####.",
+      "..###..",
+      "...#..."
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 8,
+    "source": "traced — Chicago's ◆ (the classic symbol slot's ink), on Geneva's flush-left spacing"
+  },
+  {
+    "face": "VF Body",
+    "char": "",
+    "name": "apple",
+    "codepoint": 63743,
+    "rows": [
+      ".....##..",
+      "....##...",
+      "....#....",
+      ".###.###.",
+      "#########",
+      "#######..",
+      "#######..",
+      "#########",
+      "#########",
+      ".#######.",
+      "..##.##.."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 10,
+    "source": "traced — Chicago's  menu apple, verbatim, like the ⌘ and ✓ before it"
+  },
+  {
+    "face": "VF Body",
+    "char": "●",
+    "name": "blackcircle",
+    "codepoint": 9679,
+    "rows": [
+      "..###..",
+      ".#####.",
+      "#######",
+      "#######",
+      "#######",
+      ".#####.",
+      "..###.."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 8,
+    "source": "drawn — the strike's • disc grown to the 7px symbol cell"
+  },
+  {
+    "face": "VF Body",
+    "char": "○",
+    "name": "whitecircle",
+    "codepoint": 9675,
+    "rows": [
+      "..###..",
+      ".#...#.",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      ".#...#.",
+      "..###.."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 8,
+    "source": "drawn — the ● as a 1px ring, the face's stroke"
+  },
+  {
+    "face": "VF Body",
+    "char": "■",
+    "name": "blacksquare",
+    "codepoint": 9632,
+    "rows": [
+      "#######",
+      "#######",
+      "#######",
+      "#######",
+      "#######",
+      "#######",
+      "#######"
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 8,
+    "source": "drawn — the 7px symbol cell filled solid"
+  },
+  {
+    "face": "VF Body",
+    "char": "□",
+    "name": "whitesquare",
+    "codepoint": 9633,
+    "rows": [
+      "#######",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      "#.....#",
+      "#######"
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 8,
+    "source": "drawn — the ■ as a 1px ring"
+  },
+  {
+    "face": "VF Body",
+    "char": "◦",
+    "name": "whitebullet",
+    "codepoint": 9702,
+    "rows": [
+      ".###.",
+      "#...#",
+      "#...#",
+      "#...#",
+      ".###."
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 6,
+    "source": "derived — the strike's own • hollowed to a ring, in its exact box and advance"
+  },
+  {
+    "face": "VF Body",
+    "char": "✗",
+    "name": "ballotx",
+    "codepoint": 10007,
+    "rows": [
+      "#.....#",
+      ".#...#.",
+      "..#.#..",
+      "...#...",
+      "..#.#..",
+      ".#...#.",
+      "#.....#"
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 8,
+    "source": "traced — the face's own ✕ (at strike sizes one X serves both codepoints)"
+  },
+  {
+    "face": "VF Body",
+    "char": "▸",
+    "name": "smalltriangleright",
+    "codepoint": 9656,
+    "rows": [
+      "#...",
+      "##..",
+      "###.",
+      "####",
+      "###.",
+      "##..",
+      "#..."
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 5,
+    "source": "derived — the right half of the traced ◆ (the submenu wedge)"
+  },
+  {
+    "face": "VF Body",
+    "char": "◂",
+    "name": "smalltriangleleft",
+    "codepoint": 9666,
+    "rows": [
+      "...#",
+      "..##",
+      ".###",
+      "####",
+      ".###",
+      "..##",
+      "...#"
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 5,
+    "source": "derived — the left half of the traced ◆"
+  },
+  {
+    "face": "VF Body",
+    "char": "▴",
+    "name": "smalltriangleup",
+    "codepoint": 9652,
+    "rows": [
+      "...#...",
+      "..###..",
+      ".#####.",
+      "#######"
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 8,
+    "source": "derived — the top half of the traced ◆"
+  },
+  {
+    "face": "VF Body",
+    "char": "▾",
+    "name": "smalltriangledown",
+    "codepoint": 9662,
+    "rows": [
+      "#######",
+      ".#####.",
+      "..###..",
+      "...#..."
+    ],
+    "x0": 0,
+    "y0": 1,
+    "advance": 8,
+    "source": "derived — the bottom half of the traced ◆"
+  },
+  {
+    "face": "VF Body",
+    "char": "▶",
+    "name": "triangleright",
+    "codepoint": 9654,
+    "rows": [
+      "#....",
+      "##...",
+      "###..",
+      "####.",
+      "#####",
+      "####.",
+      "###..",
+      "##...",
+      "#...."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 6,
+    "source": "drawn — the ▸ wedge grown to the ⌘'s 9px band"
+  },
+  {
+    "face": "VF Body",
+    "char": "◀",
+    "name": "triangleleft",
+    "codepoint": 9664,
+    "rows": [
+      "....#",
+      "...##",
+      "..###",
+      ".####",
+      "#####",
+      ".####",
+      "..###",
+      "...##",
+      "....#"
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 6,
+    "source": "drawn — the ▶'s mirror"
+  },
+  {
+    "face": "VF Body",
+    "char": "☆",
+    "name": "whitestar",
+    "codepoint": 9734,
+    "rows": [
+      "...#...",
+      "..#.#..",
+      "##...##",
+      ".#...#.",
+      "..#.#..",
+      ".##.##.",
+      ".#...#."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 8,
+    "source": "drawn — the ★'s outline by the display ☆'s construction — PROPOSAL: this is the 7x7 that awaited a sketch; veto freely"
+  },
+  {
+    "face": "VF Body",
+    "char": "‑",
+    "name": "nonbreakinghyphen",
+    "codepoint": 8209,
+    "rows": [
+      "####"
+    ],
+    "x0": 0,
+    "y0": 3,
+    "advance": 5,
+    "source": "traced — the strike's hyphen, verbatim (the hyphen that refuses the break)"
+  },
+  {
+    "face": "VF Body",
+    "char": "­",
+    "name": "softhyphen",
+    "codepoint": 173,
+    "rows": [
+      "####"
+    ],
+    "x0": 0,
+    "y0": 3,
+    "advance": 5,
+    "source": "traced — the strike's hyphen, verbatim (visible only where a line breaks)"
+  },
+  {
+    "face": "VF Body",
+    "char": " ",
+    "name": "figurespace",
+    "codepoint": 8199,
+    "rows": [
+      "......"
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 6,
+    "source": "derived — no ink: the strike's own 6px digit advance, so numerals stay columnar"
+  },
+  {
+    "face": "VF Body",
+    "char": " ",
+    "name": "thinspace",
+    "codepoint": 8201,
+    "rows": [
+      ".."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 2,
+    "source": "derived — no ink: 2px, one step under the strike's 3px word space"
+  },
+  {
+    "face": "VF Body",
+    "char": " ",
+    "name": "hairspace",
+    "codepoint": 8202,
+    "rows": [
+      "."
+    ],
+    "x0": 0,
+    "y0": 0,
+    "advance": 1,
+    "source": "derived — no ink: the 1px minimum the pixel grid can state"
   }
 ]

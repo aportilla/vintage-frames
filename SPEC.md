@@ -467,15 +467,21 @@ enabled well.
   bottom edges aligned with the close box's and one system px of clear white
   between the stripes and the frame border — the same buffer the widgets'
   patch ring keeps. The paint is split by engine, each side the measured best
-  (the full three-engine matrix is in `scripts/verify-tile.mjs`): Blink and
-  WebKit draw the `repeating-linear-gradient(to bottom, var(--vf-black, #000)
-  0 1px, transparent 1px 2px)` — the one paint whose stops land at device
-  precision inside Blink's CSS-px-rounded box, where placed rows, the
-  whole-surface raster and inline SVG all drop, fuse or wobble a stripe —
-  while Gecko (gated by `@supports (-moz-appearance: none)`) renders six
-  placed solid rows (`chromeTitleBar` supplies the spans), because solid
-  quads device-snap and never ride the GPU gradient pipeline that softens a
-  hard stop at default zoom.
+  (the full three-engine matrix is in `scripts/verify-tile.mjs`): Blink — and
+  any engine failing both gate properties — draws a 12-unit SVG (the band's
+  11 rows plus an empty pad row, viewBox stretched onto a 12px-tall box,
+  crispEdges). Twelve, not eleven, because Blink pixel-snaps painted boxes to
+  whole CSS px and an 11-system-px box has no legal CSS height at scale 3/2;
+  12 divides by 2 and 3, so the box never rounds at any integer display's
+  scale, and the SVG measured whole-rhythm, close-box-registered and
+  zero-gray at dpr 1/1.5/2/3 — retiring the `repeating-linear-gradient`,
+  which it strictly dominates. Gecko and WebKit (gated by `@supports
+  (-moz-appearance: none) or (-webkit-backdrop-filter: blur(1px))`, each
+  property parsing in its one engine only) render six placed solid rows
+  (`chromeTitleBar` supplies the spans): both engines device-snap solid
+  quads exactly, and each misrendered the gradient — Gecko's GPU pipeline
+  softens a hard stop at default zoom, WebKit landed the sixth stripe a
+  device row thin at dpr 3 and the zoom-minted scales.
 - `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer
   inset `2px` top/bottom and **flush left/right** (the close-up reference runs
   the dots into the side borders; the `Windows/` sheet's 2px side inset is the

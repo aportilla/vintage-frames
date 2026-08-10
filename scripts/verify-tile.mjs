@@ -34,25 +34,33 @@
  * (vfStripes, src/styles/recipes/pattern.ts) after a three-engine ×
  * eight-density measurement of every candidate:
  *
- * - Blink pixel-snaps a painted BOX to whole CSS px, not device px. Inside
- *   the bar's floored frame border (layer origin on a half CSS px at scale
- *   3/2) that killed every box-shaped mechanism: placed solid rows painted
- *   a 1.5-CSS-px stripe as 2 or 4 device rows and FUSED neighbors at dpr 3;
- *   the whole-surface raster resampled into the CSS-rounded box and dropped
- *   a device row (one stripe thin at dpr 2/3); inline SVG rects wobbled a
- *   stripe's position under the stretched viewBox. The gradient's stops are
- *   the one paint that lands at device precision inside the rounded box —
- *   so Blink and WebKit KEEP the repeating-linear-gradient, asserted here
- *   at the integer densities; the fractional densities keep their shipped
- *   soft edge (printed, not failed — the same residual the gradient always
- *   had there).
+ * - Blink pixel-snaps a painted BOX to whole CSS px, not device px, which
+ *   killed every mechanism whose geometry rides an 11-system-px box (no
+ *   legal CSS height exists at scale 3/2: 16.5px): placed solid rows
+ *   painted a 1.5-CSS-px stripe as 2 or 4 device rows and FUSED neighbors
+ *   at dpr 3; rasters and an 11-tall SVG dropped or wobbled a row; a
+ *   clip-path comb (origin-anchored — no box for the trick below to
+ *   legalize) rasterized half a device px off at every fractional density.
+ *   So Blink renders the 12-UNIT SVG (the band's 11 rows plus an empty pad
+ *   row, viewBox stretched onto a 12px box, crispEdges): 12 divides by 2
+ *   and 3, so 12·scale is a whole CSS length at every scale an integer
+ *   display derives — the box never rounds. Measured 2026-08-10: Δ0
+ *   registration with the close box, whole rhythm and zero gray at dpr
+ *   1/1.5/2/3 across a four-geometry sweep; at the unholdable scales
+ *   (1.25/1.7/2.3/2.5) a hard one-row-thin first stripe and still zero
+ *   gray. The repeating-linear-gradient this surface shipped before is
+ *   retired — same thin stripe PLUS a smeared row in every one of those
+ *   cells, strictly dominated.
  *
- * - Gecko device-snaps solid boxes (headless parity with its gradient at
- *   every density), and its GPU WebRender gradient pipeline is what softens
- *   a hard stop at default zoom (the reported bug). So Gecko alone renders
- *   the six stripes as placed spans — display-gated by @supports
- *   (-moz-appearance: none); this Chromium harness can only guard their
- *   template, which it does.
+ * - Gecko and WebKit render the six stripes as placed spans — display-gated
+ *   by @supports (-moz-appearance: none) or (-webkit-backdrop-filter:
+ *   blur(1px)), each property parsing in its one engine only; this Chromium
+ *   harness can only guard their template, which it does. Both engines
+ *   device-snap solid boxes (the spans measured pixel-perfect at all eight
+ *   densities in each), and each misrendered the gradient: Gecko's GPU
+ *   WebRender pipeline softens a hard stop at default zoom (the reported
+ *   bug), and WebKit landed the sixth stripe one device row thin at dpr 3
+ *   and the zoom-minted 2.3/2.5 (measured 2026-08-10).
  *
  * No consumer pattern token (token: null — the active-window signal is not
  * a themeable texture).
@@ -151,9 +159,11 @@ const SURFACES = [
   },
 ]
 
-/** Densities where the stripes' gradient is asserted whole-and-pure (the
- * integer ladder; the fractional densities keep their shipped soft edge). */
-const STRIPE_PURE_DPRS = [1, 2, 3]
+/** Densities where the stripes SVG's box height (12·scale) is a whole CSS
+ * length, so Blink has nothing to round: six whole stripes asserted. At the
+ * unholdable scales (1.25/1.7/2.3/2.5) the residual is a hard one-row-thin
+ * first stripe — never gray, so 1-bit purity is asserted at EVERY density. */
+const STRIPE_RUN_DPRS = [1, 1.5, 2, 3]
 
 /**
  * Densities where a surface's consumer-path (placed tile grid) raster is
@@ -314,28 +324,42 @@ for (const dpr of DENSITIES) {
 
   for (const s of SURFACES) {
     if (s.stripes) {
-      // The Gecko spans: display-gated off in this Chromium harness, so
-      // only their template can be guarded here — six rows on the 2px
-      // rhythm, each top one multiplication against --vf-scale.
-      const spans = await page.evaluate(
-        ([host, layer]) =>
-          [
-            ...document.querySelector(host).shadowRoot.querySelector(layer).children,
-          ].map((el) => el.style.top),
+      // The Gecko/WebKit spans: display-gated off in this Chromium harness,
+      // so only their template can be guarded here — six rows on the 2px
+      // rhythm, each top one multiplication against --vf-scale. The SVG is
+      // what THIS engine renders, so its pixels are asserted below; the
+      // template check pins its 12-unit geometry.
+      const tpl = await page.evaluate(
+        ([host, layer]) => {
+          const el = document.querySelector(host).shadowRoot.querySelector(layer)
+          const svg = el.querySelector('svg')
+          return {
+            spans: [...el.querySelectorAll('span')].map((sp) => sp.style.top),
+            viewBox: svg?.getAttribute('viewBox') ?? null,
+            rects: svg ? svg.querySelectorAll('rect').length : 0,
+            svgShown: svg ? getComputedStyle(svg).display !== 'none' : false,
+          }
+        },
         [s.host, s.layer]
       )
       const wantTops = [0, 2, 4, 6, 8, 10].map((r) => `calc(var(--vf-scale, 1) * ${r}px)`)
       check(
-        `${s.name}: six Gecko stripe rows in the template, on the 2px rhythm`,
-        spans.length === 6 && spans.every((t, i) => t === wantTops[i]),
-        spans.join(' ')
+        `${s.name}: six Gecko/WebKit stripe rows in the template, on the 2px rhythm`,
+        tpl.spans.length === 6 && tpl.spans.every((t, i) => t === wantTops[i]),
+        tpl.spans.join(' ')
       )
-      // The gradient, at the densities Blink holds it whole: six black runs
-      // down the band, each exactly n device rows on a 2n rhythm. Deliberately
-      // NOT anchored to the layer's rect — Blink rounds the painted box to
-      // whole CSS px, so the band may sit a device row off its layout rect;
-      // uniformity is the art's claim, the box edge is every box's story.
-      if (STRIPE_PURE_DPRS.includes(dpr)) {
+      check(
+        `${s.name}: the 12-unit SVG is this engine's rendering (six rects)`,
+        tpl.viewBox === '0 0 2 12' && tpl.rects === 6 && tpl.svgShown,
+        `viewBox ${tpl.viewBox}, ${tpl.rects} rects, shown ${tpl.svgShown}`
+      )
+      // The SVG, at the densities its box is a legal CSS length: six black
+      // runs down the band, each exactly n device rows on a 2n rhythm.
+      // Deliberately NOT anchored to the layer's rect — Blink rounds the
+      // painted box to whole CSS px, so the band may sit a device row off
+      // its layout rect; uniformity is the art's claim, the box edge is
+      // every box's story.
+      if (STRIPE_RUN_DPRS.includes(dpr)) {
         const r = await page.evaluate(
           ([hostSel, layerSel]) => {
             const host = document.querySelector(hostSel)
@@ -375,15 +399,15 @@ for (const dpr of DENSITIES) {
           bad === '',
           bad || '3 columns even'
         )
-        const { impure, counted } = await impureIn(page, s, dpr, n)
-        check(`${s.name}: rasterizes 1-bit`, impure === 0, `${impure}/${counted} impure`)
       } else {
-        const { impure, counted } = await impureIn(page, s, dpr, n)
         console.log(
-          `  --   ${s.name}: ${impure}/${counted} impure (the gradient's shipped soft ` +
-            `edge inside the floored border; see STRIPE_PURE_DPRS)`
+          `  --   ${s.name}: unholdable scale — the SVG's hard one-row residual ` +
+            `(see STRIPE_RUN_DPRS); purity still asserted below`
         )
       }
+      // Zero gray at EVERY density — the property that retired the gradient.
+      const { impure, counted } = await impureIn(page, s, dpr, n)
+      check(`${s.name}: rasterizes 1-bit`, impure === 0, `${impure}/${counted} impure`)
       continue
     }
     const raster = await page.evaluate(

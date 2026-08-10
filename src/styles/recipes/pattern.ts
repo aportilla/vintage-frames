@@ -25,58 +25,74 @@ export const DOT_SPAN = tileSpan(DOT_MOTIF)
  * side inset leaves the stripes one system px clear of the frame border,
  * matching the widgets' 1px patch ring in the reference art.
  *
- * TWO renderings by engine, each the measured best (2026-08-09, all three
- * engines, eight densities; the numbers live in scripts/verify-tile.mjs):
+ * TWO renderings by engine, each the measured best (2026-08-09/10: all
+ * three engines at eight densities, then a four-geometry Blink
+ * registration sweep; the numbers live in scripts/verify-tile.mjs):
  *
- * - **Blink and WebKit keep the repeating-linear-gradient.** Blink
- *   pixel-snaps a painted BOX to whole CSS px — not device px — so inside
- *   the bar's floored frame border (origin on a half CSS px at scale 3/2)
- *   every box-shaped mechanism fails where the gradient cannot: placed
- *   solid rows paint 2-or-4 device rows for a 1.5-CSS-px stripe and fuse at
- *   dpr 3, a whole-surface raster resamples into the rounded box and drops
- *   one device row (one stripe a device px thin at dpr 2 and 3), and inline
- *   SVG rects wobble a stripe's position under the stretched viewBox. A
- *   gradient's stops are the one paint that lands at DEVICE precision
- *   inside the CSS-rounded box: six whole stripes on the exact 2-system-px
- *   rhythm at every integer density. What remains is the shipped residual —
- *   a soft edge at the fractional densities (1.25×/1.5×/2.5×) and
+ * - **Gecko and WebKit show the six placed solid rows** (`chromeTitleBar`
+ *   renders the spans). Both engines device-snap solid boxes — the rows
+ *   measured pixel-perfect at all eight densities in each — and each
+ *   misrendered the gradient this layer once used: Gecko's GPU WebRender
+ *   pipeline renders a gradient through a cached texture whose sampling
+ *   softens a hard stop at default zoom (the originally reported bug), and
+ *   WebKit landed the sixth stripe one device row thin at dpr 3 and the
  *   zoom-minted scales.
  *
- * - **Gecko gets the six stripes as placed solid rows** (`chromeTitleBar`
- *   renders the spans; they are display:none elsewhere). Gecko device-snaps
- *   solid boxes — headless parity with its gradient at every density — but
- *   its GPU WebRender pipeline renders a gradient through a cached texture,
- *   and sampling it softens one hard stop at default zoom (the reported
- *   bug this split fixes). A solid-color quad never passes through that
- *   pipeline, so the class of artifact cannot occur.
+ * - **Blink — and any engine failing both gate properties — shows the
+ *   12-unit SVG**: the band's 11 rows plus one empty pad row, viewBox
+ *   stretched onto a 12px-tall box, crispEdges. Blink pixel-snaps a
+ *   painted BOX to whole CSS px, which killed every mechanism whose
+ *   geometry rides an 11-system-px box — no legal CSS height exists at
+ *   scale 3/2 (16.5px), so placed rows fuse, rasters and an 11-tall SVG
+ *   drop or wobble a row, and a clip-path comb (origin-anchored, so the
+ *   even-height trick can't reach it) AAs at every fractional density.
+ *   Twelve divides by 2 and 3, so 12·scale is a whole CSS length at every
+ *   scale an integer display derives (18px at 3/2, 16px at 4/3): the box
+ *   never rounds. Measured: registered Δ0 with the close box, whole-rhythm
+ *   and zero-gray at dpr 1/1.5/2/3 across all four sweep geometries, and
+ *   never worse than the retired gradient at the unholdable scales
+ *   (1.25/1.7/2.3/2.5), where its residual is a hard one-row-thin first
+ *   stripe with no gray — the gradient produced the same thin stripe PLUS
+ *   a smeared row, so it is strictly dominated and gone.
  *
- * Forced colors: both paints are already in the remapped ink token. The
- * gradient needs its forced-color-adjust exemption (forced colors deletes
- * gradient backgrounds, and the stripes are the active window's whole
- * signal); the Gecko rows need nothing — background-color in a system color
- * (CanvasText via --vf-black) is honored as-is.
+ * The gate is two engine-exclusive properties: `-moz-appearance` parses
+ * only in Gecko, `-webkit-backdrop-filter` only in WebKit (Blink's
+ * backdrop-filter is unprefixed, never aliased).
+ *
+ * Forced colors: every paint is token-routed — the rows' background-color
+ * and the rects' fill both resolve var(--vf-black), remapped to CanvasText
+ * — and the layer keeps forced-color-adjust: none (inherited, so it covers
+ * the SVG) so no forced palette repaints the active window's whole signal
+ * out from under it.
  */
 export const vfStripes = css`
   .vf-stripes {
     position: absolute;
     inset: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 1px);
-    background: repeating-linear-gradient(
-      to bottom,
-      var(--vf-black, #000) 0 calc(var(--vf-scale, 1) * 1px),
-      transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
-    );
     pointer-events: none;
     @media (forced-colors: active) {
       forced-color-adjust: none;
     }
   }
+  .vf-stripes svg {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(var(--vf-scale, 1) * 12px);
+  }
+  .vf-stripes rect {
+    fill: var(--vf-black, #000000);
+  }
   .vf-stripes span {
     display: none;
   }
-  /* Gecko only: -moz-appearance parses nowhere else. */
-  @supports (-moz-appearance: none) {
-    .vf-stripes {
-      background: none;
+  /* Gecko (-moz-appearance) and WebKit (-webkit-backdrop-filter): each
+     parses nowhere else — Blink's backdrop-filter is unprefixed. */
+  @supports (-moz-appearance: none) or (-webkit-backdrop-filter: blur(1px)) {
+    .vf-stripes svg {
+      display: none;
     }
     .vf-stripes span {
       display: block;

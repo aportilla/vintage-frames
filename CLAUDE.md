@@ -40,6 +40,10 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
 Concise messages: a summary line plus at most a few sentences. No co-author
 or generated-by trailers.
 
+CI fails if `custom-elements.json` / `editor/*` don't match a fresh
+`npm run analyze` — after touching `src/`, rerun it and commit the
+regenerated files with the change.
+
 ## Where things are
 
 - `src/components/vf-*.ts` — the elements; `src/styles/recipes/` — the shared

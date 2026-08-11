@@ -17,10 +17,16 @@ column is the *source* strike throughout; `VF Display` / `VF Body` is what the
 binary, the CSS stack and `--vf-font-family*` all say.
 
 ```
-Chicago.woff2            Geneva.woff2  ← pristine sources (see provenance)
-Chicago.ext.woff2        Geneva.ext.woff2  ← generated: source, renamed, + our
-                            glyphs (Chicago's ×; Geneva's body-copy backfill)
-add-glyphs.py            ← rebuilds the .ext fonts and re-embeds them into TS
+VF-Display.glyphs.txt    VF-Body.glyphs.txt  ← THE SOURCE OF TRUTH: every glyph
+                            as a plaintext pixel field + metrics, plus the
+                            font-wide metadata table
+manifest-to-font.py      ← builds each face from its manifest, from scratch,
+                            and re-embeds the TS base64
+glyph-manifest.py        ← the reverse direction (woff2 → manifest), for
+                            bootstrap/resync only — it overwrites hand edits
+VF-Display.woff2         VF-Body.woff2  ← generated: the built faces the kit
+                            embeds, named for what they register — the
+                            source strikes' names appear nowhere in them
 dfont-to-bdf.py          ← extracts a suitcase's bitmap strike as a BDF
 import-bdf.py            ← converts a classic Mac BDF strike to a pixel-grid woff2
 charset-manifest.py      ← regenerates demo/charset-manifest.ts from imported/
@@ -37,8 +43,10 @@ as static files (`scripts/copy-strikes.mjs`, run by `npm run build:pages`); a
 strike the manifest names but `imported/` lacks makes the window explain itself
 instead of rendering.
 
-The **`.ext.woff2`** files (and the base64 in `src/styles/*-font.ts`) are
-generated — never hand-edit them. Edit `add-glyphs.py` and re-run.
+The built **`VF-Display.woff2`** / **`VF-Body.woff2`** (and the base64 in
+`src/styles/*-font.ts`) are generated — never hand-edit them. Edit the glyph
+manifests (`VF-Display.glyphs.txt` / `VF-Body.glyphs.txt`) and run
+`manifest-to-font.py`, then `npm run build`.
 
 ## Naming — what ships vs. what it came from
 
@@ -56,13 +64,12 @@ what keeps the honest description from turning into one.
 
 Two consequences worth knowing:
 
-- **`add-glyphs.py` stamps the name into the binary**, rewriting name IDs 1, 3,
-  4, 6 and 16 across every platform record, and asserts on re-read that no
-  record still says otherwise. Declaring it only in the TS module would leave
-  the woff2 self-identifying as `Chicago 15` — which is what it did before
-  2026-08-08, when the constant said `'Chicago'` and nothing checked the file.
-  That is also why **Geneva is built at all** despite adding no glyphs: the
-  rename is the whole of its build step.
+- **The builder stamps the name into the binary**: `manifest-to-font.py`
+  derives every name record (IDs 1–6, both platform sets) from the manifest's
+  `family` field and asserts on re-read that no record says otherwise.
+  Declaring it only in the TS module would leave the woff2 self-identifying
+  as `Chicago 15` — which is what it did before 2026-08-08, when the constant
+  said `'Chicago'` and nothing checked the file.
 - **The fallback entries still name Chicago, Charcoal and Geneva**, after the
   shipped family, and that is correct rather than an oversight. Those select
   faces the *reader* may have installed — a real Mac has them — so the stack
@@ -82,9 +89,10 @@ PUBLISHING.md is where it's tracked. The rename applies only to the two faces
 the components embed, which are the kit's own artifact.
 
 The two trees cannot collide: the kit registers `VF Display` / `VF Body`, the
-collection registers Apple names, and `../Chicago.woff2` / `../Geneva.woff2`
-are build *inputs* — never registered at runtime, never shipped, renamed on
-the way into the `.ext` build.
+collection registers Apple names, and the pristine `Chicago.woff2` /
+`Geneva.woff2` are build *inputs* that since 2026-08-11 live outside the
+repository altogether (`../vintage-frames-design-reference`, beside the
+working tree) — never registered at runtime, never shipped, never tracked.
 
 One thing does need cleaning up before the collection is broken out, and it
 predates the rename. **`Chicago-12-em16.woff2` and `Geneva-9-em16-a12.woff2`
@@ -94,9 +102,16 @@ only because `imported/` is where it writes everything. Each carries the
 *same* family name as the native strike beside it (`Chicago 12`, `Geneva 9`),
 so within the collection those two pairs are distinguishable by filename
 alone. A set presented as the original strikes wants them gone — they are
-kit build byproducts, and the kit already has its copies one directory up.
+kit build byproducts, and the kit's own copies live outside the repository
+now, in `../vintage-frames-design-reference` with the rest of the originals.
 
 ## Provenance
+
+*(The two pristine woff2s described here moved out of the repository on
+2026-08-11, to `../vintage-frames-design-reference` — the repo keeps no
+Apple binaries for the two embedded faces. What the repo tracks instead is
+the glyph manifests, which carry the same ink losslessly as text; the
+descriptions below are about the artwork's origin and remain true.)*
 
 **Chicago.woff2** is the original Apple bitmap, not a redrawing: it is
 produced by `import-bdf.py --em 16` from a FontForge BDF export of the real
@@ -120,11 +135,13 @@ a black diamond. Whether a System 7-era Chicago strike drew those six
 differently is unverified — the collection's OS 9 `Chicago` suitcase lost
 its resource fork and is empty.
 
-The **shipped** face corrects this (2026-08-09): `add-glyphs.py` reinks those
-three glyphs — `⁄` traced from the strike's own `/`, `‹ ›` derived from its
-`« »`, `€` drawn on its `C` — and adds the absent `› ﬁ ﬂ`. Nothing is lost:
-the ✓ ◆  drawings those slots duplicated remain at their own codepoints
-(U+2713 / U+25C6 / U+F8FF), and the build asserts it. The pristine
+The **shipped** face corrects this (2026-08-09, by the since-removed
+`add-glyphs.py`; the corrected drawings live in the manifest now): those
+three glyphs are reinked — `⁄` traced from the strike's own `/`, `‹ ›`
+derived from its `« »`, `€` drawn on its `C` — and the absent `› ﬁ ﬂ`
+added. Nothing is lost: the ✓ ◆  drawings those slots duplicated remain at
+their own codepoints (U+2713 / U+25C6 / U+F8FF), and the build asserts
+every manifest codepoint reached the cmap. The pristine
 `Chicago.woff2` and the `imported/` collection keep the quirk — they present
 the source strike as it is; the correction is the kit's artifact, like the
 rename.
@@ -165,8 +182,11 @@ because tracing keeps the donor's size),
 its native É/Ñ establish), *derived* (strike ink rearranged: the comma
 becomes `‚`, one `«` chevron becomes `‹`), or *drawn* (nothing to trace
 anywhere — the `€` postdates every strike, and no strike drew text arrows).
-Drawings shared by both faces live in module constants so they cannot drift.
-See `add-glyphs.py` and the proof page below.
+Drawings shared by both faces were authored once, in the retired
+`add-glyphs.py`'s module constants; since its removal (2026-08-11) each
+manifest carries its own copy of a shared drawing, so keeping the two ⌘s in
+step is now the editor's job. The per-glyph provenance labels survive in
+the proof page's data file and in git history. See the proof page below.
 
 ## Why we modify the fonts
 
@@ -203,9 +223,11 @@ gray edges mean drift from the authored bitmap) over a realistic
 used-in-context line at native size, both in the glyph's face — grouped by
 face first (display, then body), then by provenance, each face's *drawn*
 group first because it is the one that wants design feedback. Its data file
-(`demo/glyph-proof-manifest.ts`, tracked) is regenerated by every
-`add-glyphs.py` run, so the page can never show stale bitmaps. The page is
-dev-only — deliberately not in the published pages build.
+(`demo/glyph-proof-manifest.ts`, tracked) was generated by `add-glyphs.py`
+and froze at that script's removal (2026-08-11, the 2026-08-10 completist
+state) — it is the backfill's per-glyph provenance record now, not a mirror
+of the manifests: a glyph edited in `VF-*.glyphs.txt` will not update here.
+The page is dev-only — deliberately not in the published pages build.
 
 ## dfont-to-bdf.py — suitcase strike → BDF
 
@@ -380,9 +402,10 @@ That's why the components render chrome/body at 16px with
 `-webkit-font-smoothing: none`: on-grid and crisp. The em is the *rendering
 grid*, not the line pitch — the kit states pitch separately, in explicit
 whole-px line boxes fed by the tokens above ("Line pitch"), which is how
-Geneva 9 sets 12px lines out of a 16px em. Everything in
-`add-glyphs.py` is written in whole pixels × `PX` (=64). Reference metrics
-for drawing into Geneva, measured from the strike:
+Geneva 9 sets 12px lines out of a 16px em. The manifests state everything
+in whole design px; `manifest-to-font.py` multiplies by `PX` (=64) when it
+compiles. Reference metrics for drawing into Geneva, measured from the
+strike:
 
 | | cap height | x-height | period dot | quotes sit at |
 | --- | --- | --- | --- | --- |
@@ -400,57 +423,69 @@ glyphs on whole-pixel (64-unit) boundaries and within its bands.
 
 ## How a glyph is drawn
 
-Glyphs are **bitmaps** — a list of row strings, top row first, `#` = ink:
+Glyphs are **bitmaps** — in the manifests, a field of `#` (ink) and `.`
+(blank) rows, top row first, under a CSV row of the glyph's metrics. The
+display face's `×`, as it appears in `VF-Display.glyphs.txt`:
 
-```python
-X_MULT = [   # × on the math axis. Empty cells are simply not drawn, so a
-    "#...#", #   loop is ink around an unfilled centre — no reverse-winding
-    ".#.#.", #   contour needed.
-    "..#..",
-    ".#.#.",
-    "#...#",
-]
+```
+== U+00D7 × ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D7,×,multiply,7,1,2,5,5
+
+#...#
+.#.#.
+..#..
+.#.#.
+#...#
 ```
 
-`bmp(bitmap, x0, y0, advance)` rasterises it to TrueType contours — one
-clockwise rectangle per maximal horizontal run of ink. `x0`/`y0` are the
-font-unit coordinates of the bitmap's **left / bottom** edge; `advance` is the
-glyph's advance width.
+Empty cells are simply not drawn, so a loop is ink around an unfilled centre
+— no reverse-winding contour needed. `x0`/`y0` place the field's left/bottom
+edge in design px relative to the pen origin (baseline `y = 0`, `y` up);
+`advance` is the pen advance. `manifest-to-font.py`'s `bmp()` rasterises each
+field to TrueType contours — one clockwise rectangle per maximal horizontal
+run of ink.
 
 ## Add or change a glyph
 
-1. Add one row to the relevant font's `specs` in `add-glyphs.py`:
-   `(glyphName, codepoint, bitmap, x0, y0, advance)`. If the character exists
-   in a real strike under `import-bdf.py`'s sources, trace that shape rather
-   than inventing one.
-2. Rebuild + re-embed:
-   ```sh
-   /tmp/fontenv/bin/python3 fonts/add-glyphs.py
-   ```
-   It rebuilds each `.ext.woff2` from the pristine source (idempotent — always
-   from scratch, so re-running never compounds) and rewrites `FONT_WOFF2_BASE64`
-   + the byte-count comment in `src/styles/*-font.ts`.
+The faces are edited **as text**: each manifest holds every glyph in the
+format above plus the `== font ==` metadata table, and each file's header
+documents its own format in full.
 
-   **Byte-reproducible since 2026-08-08**: re-running on an unchanged source
-   produces an identical file, so a diff in the embedded base64 always means a
-   real change. It didn't before — fontTools stamps `head.modified` with the
-   current time on save, which shifted the compressed size a few bytes every
-   run (3436–3456 for the same input); `recalcTimestamp=False` keeps the
-   source strike's own date instead. **`import-bdf.py` still has this**, via
-   `FontBuilder.save()`. It matters less there (its output is untracked, and
-   the two tracked pristine sources are regenerated deliberately), but a
-   re-import will churn bytes for no reason until it takes the same flag.
+1. Edit `VF-Display.glyphs.txt` / `VF-Body.glyphs.txt` — reink a field, or
+   add a whole entry (heading, CSV row, pixel field; a new entry appends at
+   the end of the glyph order — bump `glyphs` and `characters` together).
+   If the character exists in a real strike under `import-bdf.py`'s sources,
+   trace that shape rather than inventing one.
+2. Build:
+   ```sh
+   /tmp/fontenv/bin/python3 fonts/manifest-to-font.py
+   ```
+   rebuilds `fonts/VF-*.woff2` from scratch and rewrites `FONT_WOFF2_BASE64`
+   + the byte-count comment in `src/styles/*-font.ts`, reporting per face
+   whether anything changed; a malformed manifest is refused before anything
+   is written. **Byte-reproducible**: the build is a pure function of the
+   manifest — the conversion-era timestamps ride in the `== font ==` table
+   rather than being re-stamped — so an unchanged manifest re-ships
+   identical bytes, and a diff in the embedded base64 always means a real
+   change. (**`import-bdf.py` still stamps `head.modified`** via
+   `FontBuilder.save()`; its output is untracked, but a re-import churns
+   bytes for no reason until it takes the same `recalcTimestamp=False`.)
 3. `npm run build` to bundle the updated base64.
 
 ## Verify
 
-The script asserts every new codepoint is in the `cmap` after saving. For the
-*shapes*, render them large against the embedded font and eyeball
+The builder asserts every manifest codepoint is in the `cmap` after saving,
+and refuses a malformed manifest outright — a field whose rows disagree with
+their CSV `width`/`height`, a duplicate codepoint or glyph name, metadata
+that contradicts itself. For the *shapes*, the manifests are their own
+preview — the pixel fields read directly — and to see a glyph through the
+rendering engine, set it large in the embedded font and eyeball
 (`-webkit-font-smoothing: none` to see true pixels):
 
 ```html
 <style>
-  @font-face { font-family: CH; src: url(Chicago.ext.woff2) format('woff2'); }
+  @font-face { font-family: CH; src: url(VF-Display.woff2) format('woff2'); }
   .t { font-family: CH; font-size: 160px; -webkit-font-smoothing: none; }
 </style>
 <div class="t">&#x2318; Open&#x2026; Don&#x2019;t &#x201C;ok&#x201D; 3&#xD7;5</div>

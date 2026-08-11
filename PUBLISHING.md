@@ -48,8 +48,9 @@ before shipping to the world (the retired ChiKareGo and FindersKeepers
 lookalikes survive in git history as the fallback plan).
 
 **Settled 2026-08-08 — the naming half only.** The faces now ship as
-`VF Display` and `VF Body`, stamped into the woff2 binaries by
-`fonts/add-glyphs.py` rather than merely declared in TS; before this they
+`VF Display` and `VF Body`, stamped into the woff2 binaries by the build
+(`fonts/manifest-to-font.py` since 2026-08-11, `fonts/add-glyphs.py` before
+it) rather than merely declared in TS; before this they
 registered as `'Chicago'`/`'Geneva'` and the binaries said `Chicago 15`/
 `Geneva 12`. So the package no longer puts Apple's face names in a consumer's
 `font-family` stack or in the shipped files. See fonts/README.md § Naming.

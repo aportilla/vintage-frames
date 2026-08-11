@@ -1,0 +1,3031 @@
+VF Body glyph manifest
+======================
+
+THE SOURCE OF TRUTH for 'VF Body'. fonts/manifest-to-font.py builds
+fonts/VF-Body.woff2 and the base64 embed in src/styles/body-font.ts
+from this file alone, from scratch. Edit here and build
+forward, then npm run build. The Apple originals the face was converted
+from live outside the repository in ../vintage-frames-design-reference;
+fonts/README.md keeps the provenance. (fonts/glyph-manifest.py generated
+this file FROM the shipped binary — that is the bootstrap/resync
+direction, and rerunning it overwrites hand edits.)
+
+Face: 'VF Body', the body face — the genuine Geneva 9pt strike plus the kit's backfill.
+
+The '== font ==' table is the font-wide metadata. family is stamped
+into the binary's name records; woff2 and module are the build targets.
+Fields are whole design px except: x_avg_char_width (font units) and
+unicode_ranges (the four OS/2 coverage bitfields) — both computed by
+the original strike conversion and restated here verbatim — and
+created/modified (seconds since 1904, the sfnt epoch: the conversion's
+own timestamps, carried so a rebuild is byte-reproducible). glyphs
+counts the full glyph table (characters + .notdef); bump it and
+characters together when adding an entry.
+
+Grid: 1024 units/em at 64 units per design pixel — a 16px em box
+split ascent 12 / descent 4. One design px is one system px.
+
+Each character is one entry: a heading, a CSV table of its metrics, and
+its ink as a pixel field ('#' = ink, '.' = blank, top row first). All
+metrics are whole design px. advance is the pen advance; x0/y0 place
+the field's left/bottom edge relative to the pen origin, with the
+baseline at y = 0 and y growing upward; width/height are the field's
+size. Fields are written tight to the ink — x0 doubles as the left
+side bearing — but the builder recomputes the bearing from the ink
+itself, so an edited field may carry blank edge rows or columns
+harmlessly. A glyph that is an advance with no ink (the spaces) says
+"(no ink)".
+
+Entries are in the font's glyph order — the native strike sorted by
+codepoint, then the kit's additions in the order they were added. A
+new glyph appends at the end. Glyph names and codepoints must both be
+unique; the name is the glyph's label in the font's own tables.
+
+== font ==
+key,value
+family,VF Body
+woff2,VF-Body.woff2
+module,body-font.ts
+units_per_em,1024
+units_per_px,64
+em,16
+ascent,12
+descent,4
+line_gap,0
+win_ascent,12
+win_descent,4
+x_avg_char_width,362
+unicode_ranges,2147483791 8264 0 0
+created,3868734393
+modified,3868734393
+glyphs,259
+characters,258
+
+== U+0020   ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0020, ,uni0020,3,,,0,0
+
+(no ink)
+
+== U+0021 ! ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0021,!,uni0021,3,1,0,1,7
+
+#
+#
+#
+#
+#
+.
+#
+
+== U+0022 " ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0022,"""",uni0022,5,1,5,3,2
+
+#.#
+#.#
+
+== U+0023 # ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0023,#,uni0023,7,1,3,5,5
+
+.#.#.
+#####
+.#.#.
+#####
+.#.#.
+
+== U+0024 $ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0024,$,uni0024,6,0,-1,5,9
+
+..#..
+.###.
+#.#.#
+#.#..
+.###.
+..#.#
+#.#.#
+.###.
+..#..
+
+== U+0025 % ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0025,%,uni0025,9,0,0,8,7
+
+.#######
+#..#..#.
+#..#.#..
+.##.###.
+...##..#
+..#.#..#
+.#...##.
+
+== U+0026 & ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0026,&,uni0026,8,0,0,7,8
+
+..##...
+.#..#..
+.#.#...
+..#....
+.#.#.#.
+#...#..
+#..#.#.
+.##...#
+
+== U+0027 ' ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0027,',uni0027,3,1,5,1,2
+
+#
+#
+
+== U+0028 ( ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0028,(,uni0028,4,0,-1,3,9
+
+..#
+.#.
+#..
+#..
+#..
+#..
+#..
+.#.
+..#
+
+== U+0029 ) ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0029,),uni0029,4,0,-1,3,9
+
+#..
+.#.
+..#
+..#
+..#
+..#
+..#
+.#.
+#..
+
+== U+002A * ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+002A,*,uni002A,7,1,2,5,5
+
+.#.#.
+..#..
+#####
+..#..
+.#.#.
+
+== U+002B + ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+002B,+,uni002B,6,0,1,5,5
+
+..#..
+..#..
+#####
+..#..
+..#..
+
+== U+002C , ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+002C,",",uni002C,4,1,-2,2,3
+
+.#
+.#
+#.
+
+== U+002D - ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+002D,-,uni002D,5,0,3,4,1
+
+####
+
+== U+002E . ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+002E,.,uni002E,3,1,0,1,1
+
+#
+
+== U+002F / ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+002F,/,uni002F,6,1,0,4,8
+
+...#
+...#
+..#.
+..#.
+.#..
+.#..
+#...
+#...
+
+== U+0030 0 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0030,0,uni0030,6,0,0,5,7
+
+.###.
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+0031 1 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0031,1,uni0031,6,1,0,2,7
+
+.#
+##
+.#
+.#
+.#
+.#
+.#
+
+== U+0032 2 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0032,2,uni0032,6,0,0,5,7
+
+.###.
+#...#
+....#
+...#.
+..#..
+.#...
+#####
+
+== U+0033 3 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0033,3,uni0033,6,0,0,5,7
+
+#####
+...#.
+..#..
+.###.
+....#
+#...#
+.###.
+
+== U+0034 4 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0034,4,uni0034,6,0,0,5,7
+
+...#.
+..##.
+.#.#.
+#..#.
+#####
+...#.
+...#.
+
+== U+0035 5 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0035,5,uni0035,6,0,0,5,7
+
+#####
+#....
+####.
+....#
+....#
+#...#
+.###.
+
+== U+0036 6 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0036,6,uni0036,6,0,0,5,7
+
+..##.
+.#...
+#....
+####.
+#...#
+#...#
+.###.
+
+== U+0037 7 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0037,7,uni0037,6,0,0,5,7
+
+#####
+....#
+...#.
+...#.
+..#..
+..#..
+..#..
+
+== U+0038 8 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0038,8,uni0038,6,0,0,5,7
+
+.###.
+#...#
+#...#
+.###.
+#...#
+#...#
+.###.
+
+== U+0039 9 ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0039,9,uni0039,6,0,0,5,7
+
+.###.
+#...#
+#...#
+.####
+....#
+...#.
+.##..
+
+== U+003A : ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+003A,:,uni003A,4,2,0,1,5
+
+#
+.
+.
+.
+#
+
+== U+003B ; ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+003B,;,uni003B,4,1,-2,2,7
+
+.#
+..
+..
+..
+.#
+.#
+#.
+
+== U+003C < ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+003C,<,uni003C,5,1,1,3,5
+
+..#
+.#.
+#..
+.#.
+..#
+
+== U+003D = ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+003D,=,uni003D,6,0,2,5,3
+
+#####
+.....
+#####
+
+== U+003E > ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+003E,>,uni003E,5,1,1,3,5
+
+#..
+.#.
+..#
+.#.
+#..
+
+== U+003F ? ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+003F,?,uni003F,6,1,0,4,7
+
+.##.
+#..#
+...#
+..#.
+.#..
+....
+.#..
+
+== U+0040 @ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0040,@,uni0040,8,0,-1,7,8
+
+..###..
+.#...#.
+#..##.#
+#.#.#.#
+#.#.#.#
+#..###.
+.#.....
+..###..
+
+== U+0041 A ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0041,A,uni0041,7,1,0,5,7
+
+..#..
+..#..
+.#.#.
+.#.#.
+#####
+#...#
+#...#
+
+== U+0042 B ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0042,B,uni0042,6,0,0,5,7
+
+####.
+#...#
+#...#
+####.
+#...#
+#...#
+####.
+
+== U+0043 C ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0043,C,uni0043,6,0,0,5,7
+
+.###.
+#...#
+#....
+#....
+#....
+#...#
+.###.
+
+== U+0044 D ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0044,D,uni0044,6,0,0,5,7
+
+###..
+#..#.
+#...#
+#...#
+#...#
+#..#.
+###..
+
+== U+0045 E ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0045,E,uni0045,5,0,0,4,7
+
+####
+#...
+#...
+###.
+#...
+#...
+####
+
+== U+0046 F ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0046,F,uni0046,5,0,0,4,7
+
+####
+#...
+#...
+###.
+#...
+#...
+#...
+
+== U+0047 G ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0047,G,uni0047,6,0,0,5,7
+
+.###.
+#...#
+#....
+#..##
+#...#
+#...#
+.###.
+
+== U+0048 H ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0048,H,uni0048,6,0,0,5,7
+
+#...#
+#...#
+#...#
+#####
+#...#
+#...#
+#...#
+
+== U+0049 I ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0049,I,uni0049,3,1,0,1,7
+
+#
+#
+#
+#
+#
+#
+#
+
+== U+004A J ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+004A,J,uni004A,6,0,0,5,7
+
+....#
+....#
+....#
+....#
+#...#
+#...#
+.###.
+
+== U+004B K ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+004B,K,uni004B,6,0,0,5,7
+
+#...#
+#..#.
+#.#..
+##...
+#.#..
+#..#.
+#...#
+
+== U+004C L ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+004C,L,uni004C,5,0,0,4,7
+
+#...
+#...
+#...
+#...
+#...
+#...
+####
+
+== U+004D M ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+004D,M,uni004D,8,0,0,7,7
+
+#.....#
+##...##
+#.#.#.#
+#..#..#
+#.....#
+#.....#
+#.....#
+
+== U+004E N ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+004E,N,uni004E,6,0,0,5,7
+
+##..#
+##..#
+#.#.#
+#.#.#
+#..##
+#..##
+#...#
+
+== U+004F O ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+004F,O,uni004F,6,0,0,5,7
+
+.###.
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+0050 P ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0050,P,uni0050,6,0,0,5,7
+
+####.
+#...#
+#...#
+####.
+#....
+#....
+#....
+
+== U+0051 Q ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0051,Q,uni0051,6,0,-1,5,8
+
+.###.
+#...#
+#...#
+#...#
+#...#
+#.#.#
+.###.
+...#.
+
+== U+0052 R ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0052,R,uni0052,6,0,0,5,7
+
+####.
+#...#
+#...#
+####.
+#.#..
+#..#.
+#...#
+
+== U+0053 S ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0053,S,uni0053,6,0,0,5,7
+
+.###.
+#...#
+#....
+.###.
+....#
+#...#
+.###.
+
+== U+0054 T ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0054,T,uni0054,6,0,0,5,7
+
+#####
+..#..
+..#..
+..#..
+..#..
+..#..
+..#..
+
+== U+0055 U ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0055,U,uni0055,6,0,0,5,7
+
+#...#
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+0056 V ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0056,V,uni0056,6,0,0,5,7
+
+#...#
+#...#
+#...#
+.#.#.
+.#.#.
+..#..
+..#..
+
+== U+0057 W ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0057,W,uni0057,8,0,0,7,7
+
+#.....#
+#.....#
+.#.#.#.
+.#.#.#.
+..#.#..
+..#.#..
+..#.#..
+
+== U+0058 X ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0058,X,uni0058,6,0,0,5,7
+
+#...#
+#...#
+.#.#.
+..#..
+.#.#.
+#...#
+#...#
+
+== U+0059 Y ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0059,Y,uni0059,6,0,0,5,7
+
+#...#
+#...#
+.#.#.
+..#..
+..#..
+..#..
+..#..
+
+== U+005A Z ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+005A,Z,uni005A,5,0,0,4,7
+
+####
+...#
+..#.
+.#..
+#...
+#...
+####
+
+== U+005B [ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+005B,[,uni005B,4,1,-1,2,9
+
+##
+#.
+#.
+#.
+#.
+#.
+#.
+#.
+##
+
+== U+005C \ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+005C,\,uni005C,6,1,0,4,8
+
+#...
+#...
+.#..
+.#..
+..#.
+..#.
+...#
+...#
+
+== U+005D ] ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+005D,],uni005D,4,1,-1,2,9
+
+##
+.#
+.#
+.#
+.#
+.#
+.#
+.#
+##
+
+== U+005E ^ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+005E,^,uni005E,4,0,5,3,2
+
+.#.
+#.#
+
+== U+005F _ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+005F,_,uni005F,6,0,0,6,1
+
+######
+
+== U+0060 ` ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0060,`,uni0060,3,0,5,2,2
+
+#.
+.#
+
+== U+0061 a ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0061,a,uni0061,5,0,0,4,5
+
+.##.
+...#
+.###
+#..#
+.###
+
+== U+0062 b ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0062,b,uni0062,5,0,0,4,7
+
+#...
+#...
+###.
+#..#
+#..#
+#..#
+###.
+
+== U+0063 c ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0063,c,uni0063,5,0,0,4,5
+
+.##.
+#..#
+#...
+#..#
+.##.
+
+== U+0064 d ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0064,d,uni0064,5,0,0,4,7
+
+...#
+...#
+.###
+#..#
+#..#
+#..#
+.###
+
+== U+0065 e ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0065,e,uni0065,5,0,0,4,5
+
+.##.
+#..#
+####
+#...
+.##.
+
+== U+0066 f ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0066,f,uni0066,4,0,0,4,7
+
+..##
+.#..
+###.
+.#..
+.#..
+.#..
+.#..
+
+== U+0067 g ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0067,g,uni0067,5,0,-2,4,7
+
+.###
+#..#
+#..#
+#..#
+.###
+...#
+.##.
+
+== U+0068 h ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0068,h,uni0068,5,0,0,4,7
+
+#...
+#...
+###.
+#..#
+#..#
+#..#
+#..#
+
+== U+0069 i ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0069,i,uni0069,3,0,0,2,7
+
+.#
+..
+##
+.#
+.#
+.#
+.#
+
+== U+006A j ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+006A,j,uni006A,4,0,-2,3,9
+
+..#
+...
+.##
+..#
+..#
+..#
+..#
+..#
+##.
+
+== U+006B k ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+006B,k,uni006B,5,0,0,4,7
+
+#...
+#...
+#..#
+#.#.
+##..
+#.#.
+#..#
+
+== U+006C l ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+006C,l,uni006C,3,0,0,2,7
+
+##
+.#
+.#
+.#
+.#
+.#
+.#
+
+== U+006D m ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+006D,m,uni006D,8,0,0,7,5
+
+###.##.
+#..#..#
+#..#..#
+#..#..#
+#..#..#
+
+== U+006E n ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+006E,n,uni006E,5,0,0,4,5
+
+###.
+#..#
+#..#
+#..#
+#..#
+
+== U+006F o ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+006F,o,uni006F,5,0,0,4,5
+
+.##.
+#..#
+#..#
+#..#
+.##.
+
+== U+0070 p ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0070,p,uni0070,5,0,-2,4,7
+
+###.
+#..#
+#..#
+#..#
+###.
+#...
+#...
+
+== U+0071 q ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0071,q,uni0071,5,0,-2,4,7
+
+.###
+#..#
+#..#
+#..#
+.###
+...#
+...#
+
+== U+0072 r ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0072,r,uni0072,5,0,0,4,5
+
+#.##
+##..
+#...
+#...
+#...
+
+== U+0073 s ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0073,s,uni0073,5,0,0,4,5
+
+.###
+#...
+.##.
+...#
+###.
+
+== U+0074 t ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0074,t,uni0074,4,0,0,3,7
+
+.#.
+.#.
+###
+.#.
+.#.
+.#.
+..#
+
+== U+0075 u ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0075,u,uni0075,5,0,0,4,5
+
+#..#
+#..#
+#..#
+#..#
+.###
+
+== U+0076 v ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0076,v,uni0076,6,0,0,5,5
+
+#...#
+.#.#.
+.#.#.
+..#..
+..#..
+
+== U+0077 w ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0077,w,uni0077,8,0,0,7,5
+
+#.....#
+.#.#.#.
+.#.#.#.
+..#.#..
+..#.#..
+
+== U+0078 x ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0078,x,uni0078,6,0,0,5,5
+
+#...#
+.#.#.
+..#..
+.#.#.
+#...#
+
+== U+0079 y ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0079,y,uni0079,6,0,-2,4,7
+
+#..#
+#..#
+#..#
+#..#
+.###
+...#
+.##.
+
+== U+007A z ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+007A,z,uni007A,5,0,0,4,5
+
+####
+..#.
+.#..
+#...
+####
+
+== U+007B { ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+007B,{,uni007B,4,0,-1,3,9
+
+..#
+.#.
+.#.
+.#.
+#..
+.#.
+.#.
+.#.
+..#
+
+== U+007C | ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+007C,|,uni007C,2,0,-1,1,9
+
+#
+#
+#
+#
+#
+#
+#
+#
+#
+
+== U+007D } ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+007D,},uni007D,4,0,-1,3,9
+
+#..
+.#.
+.#.
+.#.
+..#
+.#.
+.#.
+.#.
+#..
+
+== U+007E ~ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+007E,~,uni007E,6,0,5,5,2
+
+.##.#
+#.##.
+
+== U+00A0   ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A0, ,uni00A0,6,,,0,0
+
+(no ink)
+
+== U+00A1 ¡ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A1,¡,uni00A1,3,1,0,1,7
+
+#
+.
+#
+#
+#
+#
+#
+
+== U+00A2 ¢ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A2,¢,uni00A2,6,0,0,5,7
+
+..#..
+.###.
+#.#.#
+#.#..
+#.#.#
+.###.
+..#..
+
+== U+00A3 £ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A3,£,uni00A3,6,0,0,5,7
+
+..##.
+.#...
+.#...
+###..
+.#...
+.#..#
+####.
+
+== U+00A5 ¥ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A5,¥,uni00A5,6,0,0,5,7
+
+#...#
+.#.#.
+#####
+..#..
+#####
+..#..
+..#..
+
+== U+00A7 § ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A7,§,uni00A7,6,0,-1,5,9
+
+.###.
+#...#
+#....
+.###.
+#...#
+.###.
+....#
+#...#
+.###.
+
+== U+00A8 ¨ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A8,¨,uni00A8,4,0,6,3,1
+
+#.#
+
+== U+00A9 © ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00A9,©,uni00A9,9,0,0,8,8
+
+..####..
+.#....#.
+#..##..#
+#.#....#
+#.#....#
+#..##..#
+.#....#.
+..####..
+
+== U+00AA ª ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00AA,ª,uni00AA,5,0,1,4,6
+
+.###
+#..#
+#..#
+.###
+....
+####
+
+== U+00AB « ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00AB,«,uni00AB,8,0,0,6,5
+
+..#..#
+.#..#.
+#..#..
+.#..#.
+..#..#
+
+== U+00AC ¬ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00AC,¬,uni00AC,5,0,1,4,3
+
+####
+...#
+...#
+
+== U+00AE ® ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00AE,®,uni00AE,9,0,0,8,8
+
+..####..
+.#....#.
+#.###..#
+#.#..#.#
+#.###..#
+#.#..#.#
+.#....#.
+..####..
+
+== U+00B0 ° ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B0,°,uni00B0,5,0,4,4,4
+
+.##.
+#..#
+#..#
+.##.
+
+== U+00B1 ± ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B1,±,uni00B1,6,0,0,5,6
+
+..#..
+..#..
+#####
+..#..
+..#..
+#####
+
+== U+00B4 ´ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B4,´,uni00B4,4,1,5,2,2
+
+.#
+#.
+
+== U+00B5 µ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B5,µ,uni00B5,6,0,-2,5,8
+
+#..#.
+#..#.
+#..#.
+#..#.
+#..#.
+###.#
+#....
+#....
+
+== U+00B6 ¶ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B6,¶,uni00B6,6,0,0,5,7
+
+.####
+#.#.#
+#.#.#
+#.#.#
+.####
+..#.#
+..#.#
+
+== U+00BA º ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00BA,º,uni00BA,5,0,1,4,6
+
+.##.
+#..#
+#..#
+.##.
+....
+####
+
+== U+00BB » ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00BB,»,uni00BB,8,1,0,6,5
+
+#..#..
+.#..#.
+..#..#
+.#..#.
+#..#..
+
+== U+00BF ¿ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00BF,¿,uni00BF,6,1,0,4,7
+
+..#.
+....
+..#.
+.#..
+#...
+#..#
+.##.
+
+== U+00C0 À ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C0,À,uni00C0,7,1,0,5,9
+
+..#..
+...#.
+..#..
+..#..
+.#.#.
+.#.#.
+#####
+#...#
+#...#
+
+== U+00C3 Ã ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C3,Ã,uni00C3,7,1,0,5,10
+
+.##.#
+#.##.
+.....
+..#..
+..#..
+.#.#.
+.#.#.
+#####
+#...#
+#...#
+
+== U+00C4 Ä ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C4,Ä,uni00C4,7,1,0,5,9
+
+.#.#.
+.....
+..#..
+..#..
+.#.#.
+.#.#.
+#####
+#...#
+#...#
+
+== U+00C5 Å ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C5,Å,uni00C5,7,1,0,5,10
+
+.###.
+#...#
+.###.
+..#..
+..#..
+.#.#.
+.#.#.
+#####
+#...#
+#...#
+
+== U+00C6 Æ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C6,Æ,uni00C6,9,0,0,8,7
+
+...#####
+..#.#...
+..#.#...
+.######.
+.#..#...
+#...#...
+#...####
+
+== U+00C7 Ç ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C7,Ç,uni00C7,6,0,-2,5,9
+
+.###.
+#...#
+#....
+#....
+#....
+#...#
+.###.
+..#..
+.#...
+
+== U+00C9 É ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C9,É,uni00C9,5,0,0,4,10
+
+..#.
+.#..
+....
+####
+#...
+#...
+###.
+#...
+#...
+####
+
+== U+00D1 Ñ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D1,Ñ,uni00D1,6,0,0,5,10
+
+.##.#
+#.##.
+.....
+##..#
+##..#
+#.#.#
+#.#.#
+#..##
+#..##
+#...#
+
+== U+00D5 Õ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D5,Õ,uni00D5,6,0,0,5,10
+
+.##.#
+#.##.
+.....
+.###.
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00D6 Ö ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D6,Ö,uni00D6,6,0,0,5,9
+
+.#.#.
+.....
+.###.
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00D8 Ø ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D8,Ø,uni00D8,7,0,0,7,7
+
+..###.#
+.#...#.
+.#..##.
+.#.#.#.
+.##..#.
+.#...#.
+#.###..
+
+== U+00DC Ü ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00DC,Ü,uni00DC,6,0,0,5,9
+
+.#.#.
+.....
+#...#
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00DF ß ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00DF,ß,uni00DF,6,0,0,5,7
+
+.###.
+#...#
+#...#
+#.##.
+#...#
+#...#
+#.##.
+
+== U+00E0 à ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E0,à,uni00E0,5,0,0,4,8
+
+.#..
+..#.
+....
+.###
+#..#
+#..#
+#..#
+.###
+
+== U+00E1 á ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E1,á,uni00E1,5,0,0,4,8
+
+..#.
+.#..
+....
+.###
+#..#
+#..#
+#..#
+.###
+
+== U+00E2 â ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E2,â,uni00E2,5,0,0,4,8
+
+..#.
+.#.#
+....
+.###
+#..#
+#..#
+#..#
+.###
+
+== U+00E3 ã ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E3,ã,uni00E3,5,0,0,4,8
+
+.#.#
+#.#.
+....
+.###
+#..#
+#..#
+#..#
+.###
+
+== U+00E4 ä ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E4,ä,uni00E4,5,0,0,4,7
+
+.#.#
+....
+.###
+#..#
+#..#
+#..#
+.###
+
+== U+00E5 å ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E5,å,uni00E5,5,0,0,4,9
+
+.##.
+#..#
+.##.
+....
+.###
+#..#
+#..#
+#..#
+.###
+
+== U+00E6 æ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E6,æ,uni00E6,9,1,0,7,5
+
+.#####.
+#..#..#
+#..####
+#..#...
+.#####.
+
+== U+00E7 ç ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E7,ç,uni00E7,5,0,-2,4,7
+
+.##.
+#..#
+#...
+#..#
+.##.
+..#.
+.#..
+
+== U+00E8 è ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E8,è,uni00E8,5,0,0,4,8
+
+.#..
+..#.
+....
+.##.
+#..#
+####
+#...
+.##.
+
+== U+00E9 é ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00E9,é,uni00E9,5,0,0,4,8
+
+..#.
+.#..
+....
+.##.
+#..#
+####
+#...
+.###
+
+== U+00EA ê ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00EA,ê,uni00EA,5,0,0,4,8
+
+.#..
+#.#.
+....
+.##.
+#..#
+####
+#...
+.##.
+
+== U+00EB ë ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00EB,ë,uni00EB,5,0,0,4,7
+
+#..#
+....
+.##.
+#..#
+####
+#...
+.###
+
+== U+00EC ì ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00EC,ì,uni00EC,3,0,0,2,8
+
+#.
+.#
+..
+##
+.#
+.#
+.#
+.#
+
+== U+00ED í ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00ED,í,uni00ED,3,0,0,2,8
+
+.#
+#.
+..
+##
+.#
+.#
+.#
+.#
+
+== U+00EE î ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00EE,î,uni00EE,4,0,0,3,8
+
+.#.
+#.#
+...
+##.
+.#.
+.#.
+.#.
+.#.
+
+== U+00EF ï ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00EF,ï,uni00EF,4,0,0,3,7
+
+#.#
+...
+##.
+.#.
+.#.
+.#.
+.#.
+
+== U+00F1 ñ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F1,ñ,uni00F1,5,0,0,4,8
+
+.#.#
+#.#.
+....
+###.
+#..#
+#..#
+#..#
+#..#
+
+== U+00F2 ò ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F2,ò,uni00F2,5,0,0,4,8
+
+.#..
+..#.
+....
+.##.
+#..#
+#..#
+#..#
+.##.
+
+== U+00F3 ó ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F3,ó,uni00F3,5,0,0,4,8
+
+..#.
+.#..
+....
+.##.
+#..#
+#..#
+#..#
+.##.
+
+== U+00F4 ô ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F4,ô,uni00F4,5,0,0,4,8
+
+.#..
+#.#.
+....
+.##.
+#..#
+#..#
+#..#
+.##.
+
+== U+00F5 õ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F5,õ,uni00F5,5,0,0,4,8
+
+.#.#
+#.#.
+....
+.##.
+#..#
+#..#
+#..#
+.##.
+
+== U+00F6 ö ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F6,ö,uni00F6,5,0,0,4,7
+
+#..#
+....
+.##.
+#..#
+#..#
+#..#
+.##.
+
+== U+00F7 ÷ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F7,÷,uni00F7,6,0,1,5,5
+
+..#..
+.....
+#####
+.....
+..#..
+
+== U+00F8 ø ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F8,ø,uni00F8,6,0,0,6,6
+
+..##.#
+.#..#.
+.#.##.
+.##.#.
+.#..#.
+#.##..
+
+== U+00F9 ù ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00F9,ù,uni00F9,5,0,0,4,8
+
+.#..
+..#.
+....
+#..#
+#..#
+#..#
+#..#
+.###
+
+== U+00FA ú ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00FA,ú,uni00FA,5,0,0,4,8
+
+..#.
+.#..
+....
+#..#
+#..#
+#..#
+#..#
+.###
+
+== U+00FB û ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00FB,û,uni00FB,5,0,0,4,8
+
+.#..
+#.#.
+....
+#..#
+#..#
+#..#
+#..#
+.###
+
+== U+00FC ü ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00FC,ü,uni00FC,5,0,0,4,7
+
+#..#
+....
+#..#
+#..#
+#..#
+#..#
+.###
+
+== U+00FF ÿ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00FF,ÿ,uni00FF,6,0,-2,5,9
+
+#..#.
+.....
+#...#
+#...#
+#...#
+#...#
+.####
+....#
+.###.
+
+== U+0152 Œ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0152,Œ,uni0152,9,0,0,8,7
+
+.#######
+#...#...
+#...#...
+#...###.
+#...#...
+#...#...
+.#######
+
+== U+0153 œ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0153,œ,uni0153,8,0,0,7,5
+
+.##.##.
+#..#..#
+#..####
+#..#...
+.#####.
+
+== U+0178 Ÿ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0178,Ÿ,uni0178,9,0,0,8,6
+
+.#####..
+#.....#.
+#....###
+#.....##
+.#####..
+.#...#..
+
+== U+0192 ƒ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+0192,ƒ,uni0192,5,1,-2,3,11
+
+..#
+.#.
+.#.
+.#.
+###
+.#.
+.#.
+.#.
+.#.
+.#.
+#..
+
+== U+03C0 π ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+03C0,π,uni03C0,8,0,0,7,7
+
+......#
+.#####.
+#.#..#.
+..#..#.
+..#..#.
+..#..#.
+.#..#..
+
+== U+2013 – ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2013,–,uni2013,5,0,2,4,1
+
+####
+
+== U+2014 — ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2014,—,uni2014,7,0,2,6,1
+
+######
+
+== U+2018 ‘ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2018,‘,uni2018,4,1,5,2,3
+
+.#
+#.
+#.
+
+== U+2019 ’ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2019,’,uni2019,4,1,5,2,3
+
+.#
+.#
+#.
+
+== U+201C “ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+201C,“,uni201C,7,1,5,4,3
+
+.#.#
+#.#.
+#.#.
+
+== U+201D ” ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+201D,”,uni201D,7,2,5,4,3
+
+.#.#
+.#.#
+#.#.
+
+== U+2020 † ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2020,†,uni2020,4,0,3,3,5
+
+.#.
+###
+.#.
+.#.
+.#.
+
+== U+2022 • ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2022,•,uni2022,6,0,1,5,5
+
+.###.
+#####
+#####
+#####
+.###.
+
+== U+2026 … ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2026,…,uni2026,8,0,0,7,1
+
+#..#..#
+
+== U+2122 ™ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2122,™,uni2122,9,0,3,8,4
+
+####...#
+.#.##.##
+.#.#.#.#
+.#.#...#
+
+== U+2126 Ω ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2126,Ω,uni2126,8,0,0,7,8
+
+..###..
+.#...#.
+#.....#
+#.....#
+#.....#
+.#...#.
+..#.#..
+.##.##.
+
+== U+2202 ∂ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2202,∂,uni2202,5,0,0,4,7
+
+##..
+..#.
+.#.#
+#..#
+#..#
+#..#
+.##.
+
+== U+2206 ∆ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2206,∆,uni2206,7,1,0,5,6
+
+..#..
+..#..
+.#.#.
+.#.#.
+#...#
+#####
+
+== U+220F ∏ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+220F,∏,uni220F,7,0,0,6,7
+
+######
+.#..#.
+.#..#.
+.#..#.
+.#..#.
+.#..#.
+.#..#.
+
+== U+2211 ∑ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2211,∑,uni2211,6,0,0,5,7
+
+#####
+.#..#
+..#..
+...#.
+..#..
+.#..#
+#####
+
+== U+221A √ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+221A,√,uni221A,8,0,0,7,8
+
+.....##
+.....#.
+....#..
+....#..
+##.#...
+.#.#...
+..#....
+..#....
+
+== U+221E ∞ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+221E,∞,uni221E,10,0,1,9,5
+
+.##...##.
+#..#.#..#
+#...#...#
+#..#.#..#
+.##...##.
+
+== U+222B ∫ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+222B,∫,uni222B,5,1,-2,3,11
+
+..#
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+#..
+
+== U+2248 ≈ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2248,≈,uni2248,6,0,1,5,5
+
+....#
+.###.
+#...#
+.###.
+#....
+
+== U+2260 ≠ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2260,≠,uni2260,6,0,1,5,5
+
+...#.
+#####
+..#..
+#####
+.#...
+
+== U+2264 ≤ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2264,≤,uni2264,5,0,0,4,6
+
+..#.
+.#..
+#...
+.#..
+..#.
+####
+
+== U+2265 ≥ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2265,≥,uni2265,5,0,0,4,6
+
+.#..
+..#.
+...#
+..#.
+.#..
+####
+
+== U+25CA ◊ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25CA,◊,uni25CA,8,0,0,7,7
+
+...#...
+..#.#..
+.#...#.
+#.....#
+.#...#.
+..#.#..
+...#...
+
+== U+00D7 × ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D7,×,multiply,6,0,1,5,5
+
+#...#
+.#.#.
+..#..
+.#.#.
+#...#
+
+== U+2318 ⌘ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2318,⌘,command,10,0,0,9,9
+
+.##...##.
+#..#.#..#
+#..#.#..#
+.#######.
+...#.#...
+.#######.
+#..#.#..#
+#..#.#..#
+.##...##.
+
+== U+2713 ✓ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2713,✓,checkmark,10,0,0,9,8
+
+........#
+.......##
+......##.
+.....##..
+#...##...
+##.##....
+.###.....
+..#......
+
+== U+20AC € ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+20AC,€,euro,6,0,0,5,7
+
+.###.
+#....
+#####
+#....
+#####
+#....
+.###.
+
+== U+2212 − ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2212,−,minus,6,0,3,5,1
+
+#####
+
+== U+00B7 · ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B7,·,periodcentered,3,1,3,1,1
+
+#
+
+== U+00B9 ¹ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B9,¹,onesuperior,3,0,2,2,5
+
+.#
+##
+.#
+.#
+.#
+
+== U+00B2 ² ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B2,²,twosuperior,4,0,2,3,5
+
+##.
+..#
+.#.
+#..
+###
+
+== U+00B3 ³ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00B3,³,threesuperior,4,0,2,3,5
+
+##.
+..#
+.#.
+..#
+##.
+
+== U+00BD ½ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00BD,½,onehalf,10,0,0,9,8
+
+.#.......
+##...#...
+.#...#...
+.#..#....
+....#.##.
+...#....#
+...#...#.
+......###
+
+== U+00BC ¼ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00BC,¼,onequarter,10,0,0,9,8
+
+.#.......
+##...#...
+.#...#...
+.#..#....
+....#.#.#
+...#..#.#
+...#..###
+........#
+
+== U+00BE ¾ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00BE,¾,threequarters,10,0,0,9,8
+
+##.......
+..#..#...
+.#...#...
+..#.#....
+##..#.#.#
+...#..#.#
+...#..###
+........#
+
+== U+2032 ′ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2032,′,prime,4,1,4,2,3
+
+.#
+.#
+#.
+
+== U+2033 ″ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2033,″,doubleprime,7,1,4,5,3
+
+.#..#
+.#..#
+#..#.
+
+== U+201A ‚ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+201A,‚,quotesinglbase,4,1,-2,2,3
+
+.#
+.#
+#.
+
+== U+201E „ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+201E,„,quotedblbase,7,1,-2,5,3
+
+.#..#
+.#..#
+#..#.
+
+== U+2021 ‡ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2021,‡,daggerdbl,4,0,2,3,6
+
+.#.
+###
+.#.
+.#.
+###
+.#.
+
+== U+2039 ‹ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2039,‹,guilsinglleft,5,0,0,3,5
+
+..#
+.#.
+#..
+.#.
+..#
+
+== U+203A › ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+203A,›,guilsinglright,5,1,0,3,5
+
+#..
+.#.
+..#
+.#.
+#..
+
+== U+2044 ⁄ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2044,⁄,fraction,6,1,0,4,8
+
+...#
+...#
+..#.
+..#.
+.#..
+.#..
+#...
+#...
+
+== U+2030 ‰ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2030,‰,perthousand,12,0,0,11,7
+
+.#######...
+#..#..#....
+#..#.#.....
+.##..##.##.
+...##..#..#
+..#.#..#..#
+.#...##.##.
+
+== U+FB01 ﬁ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+FB01,ﬁ,fi,7,0,0,6,7
+
+..##.#
+.#....
+###.##
+.#...#
+.#...#
+.#...#
+.#...#
+
+== U+FB02 ﬂ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+FB02,ﬂ,fl,7,0,0,6,7
+
+..####
+.#...#
+###..#
+.#...#
+.#...#
+.#...#
+.#...#
+
+== U+00C1 Á ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C1,Á,Aacute,7,1,0,5,10
+
+...#.
+..#..
+.....
+..#..
+..#..
+.#.#.
+.#.#.
+#####
+#...#
+#...#
+
+== U+00C2 Â ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C2,Â,Acircumflex,7,1,0,5,10
+
+..#..
+.#.#.
+.....
+..#..
+..#..
+.#.#.
+.#.#.
+#####
+#...#
+#...#
+
+== U+00C8 È ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00C8,È,Egrave,5,0,0,4,10
+
+.#..
+..#.
+....
+####
+#...
+#...
+###.
+#...
+#...
+####
+
+== U+00CA Ê ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00CA,Ê,Ecircumflex,5,0,0,4,10
+
+.#..
+#.#.
+....
+####
+#...
+#...
+###.
+#...
+#...
+####
+
+== U+00CB Ë ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00CB,Ë,Edieresis,5,0,0,4,9
+
+#..#
+....
+####
+#...
+#...
+###.
+#...
+#...
+####
+
+== U+00CC Ì ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00CC,Ì,Igrave,3,0,0,2,10
+
+#.
+.#
+..
+.#
+.#
+.#
+.#
+.#
+.#
+.#
+
+== U+00CD Í ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00CD,Í,Iacute,3,0,0,2,10
+
+.#
+#.
+..
+.#
+.#
+.#
+.#
+.#
+.#
+.#
+
+== U+00CE Î ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00CE,Î,Icircumflex,4,0,0,3,10
+
+.#.
+#.#
+...
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+
+== U+00CF Ï ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00CF,Ï,Idieresis,4,0,0,3,9
+
+#.#
+...
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+.#.
+
+== U+00D2 Ò ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D2,Ò,Ograve,6,0,0,5,10
+
+.#...
+..#..
+.....
+.###.
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00D3 Ó ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D3,Ó,Oacute,6,0,0,5,10
+
+...#.
+..#..
+.....
+.###.
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00D4 Ô ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D4,Ô,Ocircumflex,6,0,0,5,10
+
+..#..
+.#.#.
+.....
+.###.
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00D9 Ù ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00D9,Ù,Ugrave,6,0,0,5,10
+
+.#...
+..#..
+.....
+#...#
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00DA Ú ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00DA,Ú,Uacute,6,0,0,5,10
+
+...#.
+..#..
+.....
+#...#
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+00DB Û ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00DB,Û,Ucircumflex,6,0,0,5,10
+
+..#..
+.#.#.
+.....
+#...#
+#...#
+#...#
+#...#
+#...#
+#...#
+.###.
+
+== U+2190 ← ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2190,←,arrowleft,8,0,1,7,5
+
+..#....
+.#.....
+#######
+.#.....
+..#....
+
+== U+2192 → ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2192,→,arrowright,8,0,1,7,5
+
+....#..
+.....#.
+#######
+.....#.
+....#..
+
+== U+2191 ↑ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2191,↑,arrowup,6,0,0,5,7
+
+..#..
+.#.#.
+#.#.#
+..#..
+..#..
+..#..
+..#..
+
+== U+2193 ↓ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2193,↓,arrowdown,6,0,0,5,7
+
+..#..
+..#..
+..#..
+..#..
+#.#.#
+.#.#.
+..#..
+
+== U+2715 ✕ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2715,✕,multiplicationx,8,0,0,7,7
+
+#.....#
+.#...#.
+..#.#..
+...#...
+..#.#..
+.#...#.
+#.....#
+
+== U+2605 ★ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2605,★,blackstar,8,0,0,7,7
+
+...#...
+..###..
+#######
+.#####.
+..###..
+.##.##.
+.#...#.
+
+== U+21E7 ⇧ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+21E7,⇧,shift,10,0,0,9,9
+
+....#....
+...#.#...
+..#...#..
+.#.....#.
+##.....##
+..#...#..
+..#...#..
+..#...#..
+..#####..
+
+== U+2325 ⌥ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2325,⌥,option,8,0,1,7,5
+
+##..###
+..#....
+...#...
+....#..
+.....##
+
+== U+2303 ⌃ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2303,⌃,control,6,0,3,5,3
+
+..#..
+.#.#.
+#...#
+
+== U+238B ⎋ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+238B,⎋,escape,9,0,0,8,8
+
+###.....
+##..##..
+#.#...#.
+...#...#
+.#.....#
+.#.....#
+..#...#.
+...###..
+
+== U+232B ⌫ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+232B,⌫,deleteleft,12,0,1,11,7
+
+...########
+..#.......#
+.#...#.#..#
+#.....#...#
+.#...#.#..#
+..#.......#
+...########
+
+== U+23CE ⏎ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+23CE,⏎,returnsymbol,10,0,1,9,7
+
+........#
+........#
+..#.....#
+.#......#
+#########
+.#.......
+..#......
+
+== U+21E5 ⇥ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+21E5,⇥,tabright,10,0,1,9,7
+
+........#
+....#...#
+.....#..#
+#######.#
+.....#..#
+....#...#
+........#
+
+== U+21E4 ⇤ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+21E4,⇤,tableft,10,0,1,9,7
+
+#........
+#...#....
+#..#.....
+#.#######
+#..#.....
+#...#....
+#........
+
+== U+21A9 ↩ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+21A9,↩,hookarrowleft,10,0,1,9,7
+
+.....###.
+........#
+..#.....#
+.#......#
+#########
+.#.......
+..#......
+
+== U+25C6 ◆ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25C6,◆,diamond,8,0,1,7,7
+
+...#...
+..###..
+.#####.
+#######
+.#####.
+..###..
+...#...
+
+== U+F8FF  ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+F8FF,,apple,10,0,0,9,11
+
+.....##..
+....##...
+....#....
+.###.###.
+#########
+#######..
+#######..
+#########
+#########
+.#######.
+..##.##..
+
+== U+25CF ● ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25CF,●,blackcircle,8,0,0,7,7
+
+..###..
+.#####.
+#######
+#######
+#######
+.#####.
+..###..
+
+== U+25CB ○ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25CB,○,whitecircle,8,0,0,7,7
+
+..###..
+.#...#.
+#.....#
+#.....#
+#.....#
+.#...#.
+..###..
+
+== U+25A0 ■ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25A0,■,blacksquare,8,0,0,7,7
+
+#######
+#######
+#######
+#######
+#######
+#######
+#######
+
+== U+25A1 □ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25A1,□,whitesquare,8,0,0,7,7
+
+#######
+#.....#
+#.....#
+#.....#
+#.....#
+#.....#
+#######
+
+== U+25E6 ◦ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25E6,◦,whitebullet,6,0,1,5,5
+
+.###.
+#...#
+#...#
+#...#
+.###.
+
+== U+2717 ✗ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2717,✗,ballotx,8,0,0,7,7
+
+#.....#
+.#...#.
+..#.#..
+...#...
+..#.#..
+.#...#.
+#.....#
+
+== U+25B8 ▸ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25B8,▸,smalltriangleright,5,0,1,4,7
+
+#...
+##..
+###.
+####
+###.
+##..
+#...
+
+== U+25C2 ◂ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25C2,◂,smalltriangleleft,5,0,1,4,7
+
+...#
+..##
+.###
+####
+.###
+..##
+...#
+
+== U+25B4 ▴ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25B4,▴,smalltriangleup,8,0,1,7,4
+
+...#...
+..###..
+.#####.
+#######
+
+== U+25BE ▾ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25BE,▾,smalltriangledown,8,0,1,7,4
+
+#######
+.#####.
+..###..
+...#...
+
+== U+25B6 ▶ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25B6,▶,triangleright,6,0,0,5,9
+
+#....
+##...
+###..
+####.
+#####
+####.
+###..
+##...
+#....
+
+== U+25C0 ◀ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+25C0,◀,triangleleft,6,0,0,5,9
+
+....#
+...##
+..###
+.####
+#####
+.####
+..###
+...##
+....#
+
+== U+2606 ☆ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2606,☆,whitestar,8,0,0,7,7
+
+...#...
+..#.#..
+##...##
+.#...#.
+..#.#..
+.##.##.
+.#...#.
+
+== U+2011 ‑ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2011,‑,nonbreakinghyphen,5,0,3,4,1
+
+####
+
+== U+00AD ­ ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+00AD,­,softhyphen,5,0,3,4,1
+
+####
+
+== U+2007   ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2007, ,figurespace,6,,,0,0
+
+(no ink)
+
+== U+2009   ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+2009, ,thinspace,2,,,0,0
+
+(no ink)
+
+== U+200A   ==
+codepoint,char,glyph,advance,x0,y0,width,height
+U+200A, ,hairspace,1,,,0,0
+
+(no ink)

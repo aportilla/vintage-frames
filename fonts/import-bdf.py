@@ -9,7 +9,7 @@ each strike is its own font family, because CSS has no way to select a bitmap
 strike by size, so the size lives in the name.
 
 --- The pixel grid -----------------------------------------------------------
-Same convention as the shipped faces (see add-glyphs.py): 64 font units per
+Same convention as the shipped faces (see manifest-to-font.py): 64 font units per
 design pixel. Here the em is the strike's own line height — PIXEL_SIZE, which
 for these exports equals FONT_ASCENT + FONT_DESCENT — so upm = 64 * PIXEL_SIZE
 and the face renders 1 design px = 1 CSS px at `font-size: PIXEL_SIZEpx`.
@@ -118,7 +118,7 @@ def ink_cells(bbx, rows):
 
 def draw(bbx, rows):
     """Rasterise to TrueType contours — one CW rect per horizontal run of ink
-    (add-glyphs.py's bmp(), with the offsets coming from the BBX)."""
+    (manifest-to-font.py's bmp(), with the offsets coming from the BBX)."""
     w, h, xo, yo = bbx
     pen = TTGlyphPen(None)
     for r, row in enumerate(rows):

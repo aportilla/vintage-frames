@@ -1,6 +1,9 @@
 node_modules/
 dist/
 
+# scripts/npm-readme.mjs parks the repo README here while npm pack runs
+.README.github.md
+
 # npm run build:pages — the demo site the Pages workflow builds and uploads
 dist-pages/
 *.local

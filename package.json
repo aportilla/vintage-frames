@@ -4,6 +4,13 @@
   "description": "Lit web components that emulate the look and feel of classic Mac OS System 7",
   "type": "module",
   "license": "MIT",
+  "author": "Adam Portilla",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aportilla/vintage-frames.git"
+  },
+  "homepage": "https://github.com/aportilla/vintage-frames#readme",
+  "bugs": "https://github.com/aportilla/vintage-frames/issues",
   "sideEffects": [
     "**/index.js",
     "**/index.ts",
@@ -51,7 +58,8 @@
     "build": "vite build && tsc -p tsconfig.build.json && npm run analyze",
     "build:pages": "vite build --config vite.pages.config.ts && node scripts/copy-strikes.mjs",
     "preview:pages": "vite preview --config vite.pages.config.ts",
-    "prepack": "npm run build && npm run verify:manifest",
+    "prepack": "npm run build && npm run verify:manifest && node scripts/npm-readme.mjs swap",
+    "postpack": "node scripts/npm-readme.mjs restore",
     "analyze": "cem analyze",
     "verify:manifest": "node scripts/verify-manifest.mjs",
     "typecheck": "tsc --noEmit",

@@ -5,14 +5,15 @@ and cutting versions properly. Steps that only ever happen once are marked;
 the [release routine](#the-release-routine) at the bottom is the part you'll
 come back to.
 
-## Where things stand (checked 2026-07-30)
+## Where things stand (checked 2026-08-11)
 
 - **`vintage-frames` is unclaimed on npm** — the name is yours to take.
-- **The GitHub repo exists and is public** (`github.com/aportilla/vintage-frames`),
-  but local `main` is ahead of it — pushing is part of the flow below.
-- **The publish gate is already in place**: `prepack` rebuilds `dist/` and runs
-  `verify:manifest` before any tarball is cut, so a publish can't ship a stale
-  or missing build. `npm publish --dry-run` exercises the identical path.
+- **The GitHub repo is public and `main` is in sync with it**; the Pages demo
+  site is live at [aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/).
+- **The publish gate is in place and passing**: `prepack` rebuilds `dist/`,
+  runs `verify:manifest`, and swaps the npm-facing README in (see below)
+  before any tarball is cut. `npm pack --dry-run` exercises the identical
+  path and passed end-to-end 2026-08-11 — 163 files, ~530 KB packed.
 - **This machine is logged into nothing** — neither `npm` nor the `gh` CLI.
   SSH push to GitHub works regardless (the remote is `git@github.com:…`).
 
@@ -20,23 +21,16 @@ come back to.
 
 Four things, none of them build system:
 
-**1. A `LICENSE` file.** `package.json` says `"license": "MIT"`, but the field
-is just metadata — the actual grant is the file, and GitHub/npm both look for
-it. Create `LICENSE` at the repo root with the standard MIT text and
-`Copyright (c) 2026 Adam Portilla`.
+**1. A `LICENSE` file.** ~~Create `LICENSE` at the repo root.~~ **Settled
+2026-08-11:** standard MIT text, `Copyright (c) 2026 Adam Portilla`. The
+`package.json` field was always just metadata — the file is the grant, and
+GitHub/npm both look for it.
 
-**2. The package.json pointer fields.** npm uses these to link the package
-page to the repo, and provenance (later) requires `repository` to match:
-
-```jsonc
-"author": "Adam Portilla",
-"repository": { "type": "git", "url": "git+https://github.com/aportilla/vintage-frames.git" },
-"homepage": "https://github.com/aportilla/vintage-frames#readme",
-"bugs": "https://github.com/aportilla/vintage-frames/issues"
-```
-
-(An email in `author` is optional and becomes public — leave it out unless you
-want it out.)
+**2. The package.json pointer fields.** ~~Add them.~~ **Settled 2026-08-11:**
+`author`, `repository`, `homepage` and `bugs` are in. npm uses these to link
+the package page to the repo, provenance (later) requires `repository` to
+match, and npm rewrites the README's relative links against it. No email in
+`author` — it would be public.
 
 **3. Font credit.** The package embeds two bitmap faces as base64 —
 `VF Display` and `VF Body`, the kit's own re-drawn strikes, authored glyph
@@ -71,6 +65,23 @@ committed. The set is `ACCESSIBILITY-REVIEW.md`, `MOVABLE-CONTRACT-PLAN.md` and
 this file (`VF-STACK-PLAN.md` is long gone — that work shipped). None of them
 ship to npm; `files` controls that.
 
+## The two READMEs
+
+npm renders whatever `README.md` is in the tarball, pack always includes it,
+and no package.json field can point the registry at a different file. The
+repo README is the full manual; the npm page wants the storefront. So there
+are two: **`docs/README.npm.md`** is the npm-facing one — consumer sections
+only, absolute links to the demo site and GitHub, none of the dev-server or
+verify-suite material — and `scripts/npm-readme.mjs` trades it into place
+around the pack. `prepack` ends with `swap`, `postpack` runs `restore`, and
+the repo copy waits out the pack as `.README.github.md` (gitignored). Both
+directions are no-ops when there's nothing to do, so if a publish dies
+between them, `node scripts/npm-readme.mjs restore` puts things back.
+
+Two-file upkeep: when a consumer-facing fact changes (a new element, a size
+table, an API), it changes in both. The npm copy links the GitHub README for
+everything it doesn't carry, so depth belongs there.
+
 ## One-time: the npm account
 
 1. **Sign up at [npmjs.com](https://www.npmjs.com/signup).** Username is
@@ -103,8 +114,10 @@ npm publish --dry-run
 ```
 
 Read the file list. It should be `dist/`, `editor/`, `custom-elements.json`,
-`SPEC.md`, `README.md`, `LICENSE`, `package.json` — about 140 files, ~320 KB
-packed, no `src/`, no demos. If that looks right:
+`SPEC.md`, `README.md`, `LICENSE`, `package.json` — 163 files, ~530 KB packed
+(2026-08-11 rehearsal), no `src/`, no demos. The `README.md` in the list is
+the swapped npm-facing one — 13 KB, not the ~40 KB repo manual. If that looks
+right:
 
 ```sh
 npm publish
@@ -119,9 +132,13 @@ and the name is claimed. An unscoped package like this is public by default
 repo link in the sidebar. Then prove a cold install actually works:
 
 ```sh
-mkdir /tmp/vf-smoke && cd /tmp/vf-smoke && npm init -y && npm i vintage-frames lit
-node -e "console.log(require.resolve('vintage-frames/vf-button.js'))"
+mkdir /tmp/vf-smoke && cd /tmp/vf-smoke && npm init -y && npm i vintage-frames
+node --input-type=module -e "console.log(import.meta.resolve('vintage-frames/vf-button.js'))"
 ```
+
+(`import.meta.resolve`, not `require.resolve` — the exports map declares only
+the `import` condition, so CJS resolution correctly refuses it. No separate
+`npm i lit` either; `lit` is a dependency and comes along.)
 
 **If 0.1.0 ships broken**: you have 72 hours to `npm unpublish
 vintage-frames@0.1.0` while the package is new — but the boring fix is almost
@@ -199,8 +216,9 @@ Skip all of this for 0.1.0. Worth knowing it exists:
 
 ## Pre-flight checklist
 
-- [ ] `LICENSE` file (MIT text, your name)
-- [ ] `author` / `repository` / `homepage` / `bugs` in package.json
+- [x] `LICENSE` file (MIT text, your name) — 2026-08-11
+- [x] `author` / `repository` / `homepage` / `bugs` in package.json — 2026-08-11
+- [x] npm-facing README (`docs/README.npm.md` + the prepack/postpack swap) — 2026-08-11
 - [ ] Apple-artwork **distribution** decision — closed for the two embedded faces: the kit ships its own re-drawn strikes as `VF Display`/`VF Body` (naming 2026-08-08, manifest-authored artwork 2026-08-11), crediting Susan Kare and Apple as the original designers. Still open: `fonts/imported/` is tracked and served from the demo site, so the repo distributes ~80 genuine Apple strikes under their original names — outside the npm tarball, but public; demo caution-icon provenance noted (repo/demo pages only — it doesn't ship)
 - [x] Working notes committed rather than left ambient (2026-08-06)
 - [ ] npm account, email verified, 2FA on, `npm login` done

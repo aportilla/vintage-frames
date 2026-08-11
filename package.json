@@ -42,7 +42,7 @@
     "dist",
     "editor",
     "custom-elements.json",
-    "SPEC.md"
+    "docs/SPEC.md"
   ],
   "keywords": [
     "lit",
@@ -58,8 +58,7 @@
     "build": "vite build && tsc -p tsconfig.build.json && npm run analyze",
     "build:pages": "vite build --config vite.pages.config.ts && node scripts/copy-strikes.mjs",
     "preview:pages": "vite preview --config vite.pages.config.ts",
-    "prepack": "npm run build && npm run verify:manifest && node scripts/npm-readme.mjs swap",
-    "postpack": "node scripts/npm-readme.mjs restore",
+    "prepack": "npm run build && npm run verify:manifest",
     "analyze": "cem analyze",
     "verify:manifest": "node scripts/verify-manifest.mjs",
     "typecheck": "tsc --noEmit",

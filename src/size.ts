@@ -25,7 +25,7 @@ export declare abstract class VfSizedInterface extends LitElement {
  * the measure the copy wraps to; `vf-label`, a caption column's shared
  * width), `vf-stack` (a panel's declared box) and `vf-window` (the WIND
  * rect). The rest of the kit is content-governed on purpose — a push button
- * is as wide as its label, a popup hugs its widest option (README, "the
+ * is as wide as its label, a popup hugs its widest option (docs/LAYOUT.md, "the
  * content governs the box") — and the components that *transform* a declared
  * size keep their own properties: `vf-desktop` adds the bezel around it,
  * `vf-dialog` sizes the top-layer box, `vf-img` negotiates with the art's

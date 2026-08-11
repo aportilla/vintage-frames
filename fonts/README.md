@@ -92,7 +92,7 @@ not private, though: as of 2026-08-08 `imported/` is tracked in the public repo
 and copied into the deployed demo site, so those strikes are served from a
 public URL under their own Apple names. That is a distribution decision about
 Apple's artwork, taken deliberately and separately from the two embedded faces;
-PUBLISHING.md is where it's tracked. The rename applies only to the two faces
+docs/PUBLISHING.md is where it's tracked. The rename applies only to the two faces
 the components embed, which are the kit's own artifact.
 
 The two trees cannot collide: the kit registers `VF Display` / `VF Body`, the

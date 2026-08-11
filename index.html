@@ -542,7 +542,7 @@
       </vf-window>
 
       <!-- ================= "Find File" modeless dialog box ============== -->
-      <!-- The modeless-dialog-box archetype recipe (README "Window
+      <!-- The modeless-dialog-box archetype recipe (docs/LAYOUT.md "Window
            archetypes"): close box + movable, no zoom box, grow box or scroll
            rails — a dialog that floats among the document windows and can be
            put away any time. Find is the HIG's own canonical example. -->
@@ -1170,7 +1170,7 @@ shrink it and watch the arrows come back.
            dialog you must answer before working on. -->
       <vf-dialog id="dlg-pagesetup" frame="plain" heading="Page Setup" width="320" height="266">
         <!-- A declared width keeps the panel — and everything stretched to it
-             — on the device-pixel grid by construction (README rule 3). -->
+             — on the device-pixel grid by construction (docs/SIZING.md rule 3). -->
         <vf-stack width="260" gap="12">
           <vf-fieldset fill-width legend="Paper">
             <vf-radio-group value="us-letter" name="paper" label="Paper">
@@ -1197,8 +1197,8 @@ shrink it and watch the arrows come back.
       </vf-dialog>
 
       <!-- ============== "Preferences" modal dialog box (plain) ========== -->
-      <!-- The OTHER stylesheet-free layout (README "Positioning inside a
-           window"): every item states its own rectangle in whole system px
+      <!-- The OTHER stylesheet-free layout (docs/LAYOUT.md "top and
+           left"): every item states its own rectangle in whole system px
            through the top/left properties, the DITL convention — coordinates
            measured from the dialog's content area. No `heading`: the title is
            itself a placed item, as a dBoxProc dialog's was, so `label` names

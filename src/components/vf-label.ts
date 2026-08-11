@@ -74,8 +74,8 @@ type Nameable = HTMLElement & { label?: unknown; isDisabled?: boolean }
  *   (`--vf-label-line-height`: 16px — Chicago 12's own line, which is also the
  *   em; `face="body"` drops to 12px, Geneva 9's), so a column of captions
  *   accumulates whole offsets instead of pushing what follows off the
- *   device-pixel grid the way a ratio `line-height` does (README, layout
- *   contract rule 2);
+ *   device-pixel grid the way a ratio `line-height` does (docs/SIZING.md
+ *   rule 2);
  * - its own {@link GridSnapController}, so the bitmap stems stay on the grid
  *   wherever the page puts it;
  * - a **declared `width`** ({@link VfSized}) — the shared width of a caption

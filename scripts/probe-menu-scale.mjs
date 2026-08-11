@@ -1,7 +1,7 @@
 /**
  * Diagnostic for the parse-time --vf-scale takeover.
  *
- * The documented contract (README "Display scaling", SPEC §2) is that a
+ * The documented contract (docs/SIZING.md, SPEC §2) is that a
  * consumer/ancestor `--vf-scale` always wins and leaves ScaleController
  * dormant. This builds a page the way a consumer would — markup first, module
  * afterwards, so every element upgrades at `customElements.define` time — with

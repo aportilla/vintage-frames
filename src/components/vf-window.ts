@@ -70,7 +70,7 @@ const DOTS_LAYER_HEIGHT = 8
  * resizing, optional edge scroll rails (`scrollbars`), and the slim windoid
  * chrome (`variant="utility"`). The HIG's window archetypes are parameter
  * recipes over this shell rather than fixed anatomies — the component enables
- * HIG compliance, it doesn't enforce it (see README "window archetypes"):
+ * HIG compliance, it doesn't enforce it (see docs/LAYOUT.md "Window archetypes"):
  * the full document window is `closable zoomable movable resizable
  * scrollbars="both"`, a modeless dialog box is `closable movable`, a utility
  * window is `variant="utility" movable`. Place inside `<vf-desktop>` to get

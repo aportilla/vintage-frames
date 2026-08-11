@@ -106,7 +106,7 @@ export function sysLength(size: number | null | undefined): string {
  *
  * Whole system px only: a fractional entry is truncated rather than passed
  * through, because an 8.5-system-px padding is precisely the off-grid metric
- * the layout contract exists to prevent (README rule 2). A value that can't be
+ * the layout contract exists to prevent (docs/SIZING.md rule 2). A value that can't be
  * read as one to four whole numbers gives back the empty string — the
  * declaration is removed rather than half-applied.
  */
@@ -325,7 +325,7 @@ function subscribeScale(callback: ScaleListener, tier: Set<ScaleListener>): () =
  * itself manages (component defaults via {@link ScaleController}, a root set
  * by {@link applyScale}) has already been updated — so reading
  * {@link effectiveScale} or a computed style inside the callback is sound.
- * The README's full-screen pattern (`onScaleChange(fit)` re-deriving a
+ * The full-screen pattern (`onScaleChange(fit)` re-deriving a
  * `vf-desktop` raster) depends on this.
  */
 export function onScaleChange(callback: ScaleListener): () => void {

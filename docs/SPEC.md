@@ -1948,7 +1948,7 @@ the consumer's stylesheet.
   `place: 'start' | 'center' | 'end'` (reflected; unset resolves per direction),
   `width` / `height`: number (whole system px, optional). Whole system px is the
   only expressible value — a fractional entry is truncated — so the gap half of
-  the layout contract (README rule 2) holds by construction, and a declared
+  the layout contract (docs/SIZING.md rule 2) holds by construction, and a declared
   `width` covers the size half of rule 3. On a **child**: `fill-width` and
   `fill-height`, bare attributes like `nosnap`.
 - **Visual:** none. The stack paints nothing — no border, background or shadow —

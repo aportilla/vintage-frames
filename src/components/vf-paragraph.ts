@@ -24,7 +24,7 @@ import { GridSnapController } from '../grid-snap.js'
  *   biggest source of off-grid layout, because a ratio resolves to whatever
  *   it resolves to (`1.65 × 17px = 28.05px`) and every line of prose nudges
  *   everything after it further off the device-pixel grid, smearing 1-bit
- *   borders and bitmap glyph stems (README, layout contract rule 2). A
+ *   borders and bitmap glyph stems (docs/SIZING.md rule 2). A
  *   whole-pixel line box accumulates whole offsets;
  * - its own {@link GridSnapController}, so it holds its own origin once the
  *   page opts in with `applyGridSnap()`;

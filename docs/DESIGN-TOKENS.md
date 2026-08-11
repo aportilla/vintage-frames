@@ -33,7 +33,7 @@ Every length below is a **system pixel** value — the kit multiplies it by
 | `--vf-paragraph-line-height` | follows the face | `vf-paragraph`'s own line box, overriding both face tokens for paragraphs alone |
 
 A swapped strike states its family, size and line together — the three tokens
-travel as a set (see the Fonts section of the [README](./README.md#fonts)).
+travel as a set (see [FONTS.md](./FONTS.md)).
 
 ## Palette
 
@@ -124,7 +124,7 @@ runtime without touching the component wants a `requestUpdate()`.
 ---
 
 Per-component tokens are also documented as `@cssprop` entries in the
-[custom elements manifest](./custom-elements.json) and the editor data derived
+[custom elements manifest](../custom-elements.json) and the editor data derived
 from it, so they show on hover in an editor pointed at the package.
 [SPEC.md §3](./SPEC.md) is the design spec these defaults come from;
 the [reference page](https://aportilla.github.io/vintage-frames/examples.html)

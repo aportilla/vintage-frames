@@ -1,6 +1,6 @@
 /**
  * Verifies the window-archetype parameter surface: the chrome added so the
- * five HIG archetypes compose from the two shells (README "Window
+ * five HIG archetypes compose from the two shells (docs/LAYOUT.md "Window
  * archetypes") — `vf-dialog closable` / `frame="plain"`, `vf-window
  * variant="utility"` / `scrollbars`, and vf-desktop's floating tier.
  *

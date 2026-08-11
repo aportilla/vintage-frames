@@ -11,7 +11,7 @@
  * what the bench shows is what a consumer's page actually gets.
  *
  * Which means this file cannot express "8 system px" — the coordinate system a
- * page has no access to (README, "Laying out inside a window"). It doesn't
+ * page has no access to (docs/LAYOUT.md). It doesn't
  * try. Page furniture — the panel frame, the code blocks, the prose — is sized
  * in ordinary px and page type, and every row of kit controls is laid out by a
  * `vf-stack` in the markup instead, which is the only thing that CAN say it.
@@ -19,7 +19,7 @@
  * test is marked and measured on the stage; these are just the bench.
  *
  * Every line-height, padding, margin and gap below is a whole number of pixels
- * (README rule 2), so the components sit on the device-pixel grid.
+ * (docs/SIZING.md rule 2), so the components sit on the device-pixel grid.
  */
 
 :root {
@@ -82,8 +82,8 @@ code {
  * Width comes from the content, not from a number in this file: the controls
  * are three times bigger on a 1× display than on a 3× one, and a fixed px
  * sidebar would be right for exactly one of them. Letting the column size
- * itself is the same hook blog.css uses for its sidebar (README: "letting an
- * `auto` grid column size a sidebar rather than fixing it in CSS px").
+ * itself is the same hook blog.css uses for its sidebar (an `auto` grid
+ * column sizing the sidebar rather than fixing it in CSS px).
  */
 .panel {
   flex: 0 0 auto;
@@ -161,8 +161,8 @@ code {
  *
  * And this is the one place page CSS *can* write system px: --vf-scale is set
  * on the vf-list host itself, so it is in scope for a rule whose element is
- * inside that host (README, "a page's own stylesheet often cannot say 8 system
- * px" — the exception that proves it).
+ * inside that host — the exception to docs/LAYOUT.md's rule that a page's
+ * own stylesheet cannot say "8 system px".
  */
 #children::part(list) {
   height: calc(var(--vf-scale, 1) * 150px);
@@ -171,8 +171,9 @@ code {
 /*
  * Documentation prose, not chrome — so it takes the page's voice back off the
  * component it sits inside (a vf-fieldset dresses its light DOM in the kit's
- * body face, and `vfBase` makes chrome text unselectable). The line the README
- * draws: text that captions a control is chrome and uses vf-label; a paragraph
+ * body face, and `vfBase` makes chrome text unselectable). The line
+ * docs/FONTS.md draws: text that captions a control is chrome and uses
+ * vf-label; a paragraph
  * explaining a parameter belongs to the page.
  */
 .hint {
@@ -208,7 +209,7 @@ code {
 /*
  * White, because vf-fieldset punches its legend through the border with
  * `var(--vf-surface, white)` — a tinted stage would want --vf-surface set to
- * match (README, "where a normal page must meet the kit halfway").
+ * match (docs/DESIGN-TOKENS.md — where a normal page meets the kit halfway).
  */
 .stage {
   background: var(--card);

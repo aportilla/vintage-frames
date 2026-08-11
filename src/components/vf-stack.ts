@@ -55,7 +55,7 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  * self-scaled around it.
  *
  * **Whole system px is the only expressible value**, so the gap half of the
- * layout contract (README rule 2) stops being a rule to remember. Declaring
+ * layout contract (docs/SIZING.md rule 2) stops being a rule to remember. Declaring
  * `width`/`height` covers the size half of rule 3 as well.
  *
  * **The geometry is governed by the content.** A column is as wide as its

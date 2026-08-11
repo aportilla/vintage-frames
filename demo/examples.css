@@ -14,8 +14,8 @@
  * the kit's 16-system-pixel face, so `15em` is 240 system px at every density),
  * or a percentage of the box it sits in. Plain px is for page furniture only.
  *
- * The one rule this file does follow for the components' sake (README, "Staying
- * on the device-pixel grid"): every line-height, padding, margin and gap below
+ * The one rule this file does follow for the components' sake (docs/SIZING.md,
+ * "The device-pixel grid"): every line-height, padding, margin and gap below
  * is a whole number of pixels. A ratio leading resolves to a fraction (16px ×
  * 1.5 = 24px is fine; 17px × 1.65 = 28.05px is not) and every line after it
  * pushes the components below further off the device-pixel grid.
@@ -190,7 +190,7 @@ code {
 /*
  * One column, centered in the pane. Its width is capped in whole px, so what
  * centering can land on a fractional device pixel is the origin — the half
- * applyGridSnap() corrects (README, layout contract rule 3).
+ * applyGridSnap() corrects (docs/SIZING.md rule 3).
  */
 .doc {
   max-width: 960px;

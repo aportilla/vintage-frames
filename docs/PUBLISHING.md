@@ -10,10 +10,10 @@ come back to.
 - **`vintage-frames` is unclaimed on npm** — the name is yours to take.
 - **The GitHub repo is public and `main` is in sync with it**; the Pages demo
   site is live at [aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/).
-- **The publish gate is in place and passing**: `prepack` rebuilds `dist/`,
-  runs `verify:manifest`, and swaps the npm-facing README in (see below)
-  before any tarball is cut. `npm pack --dry-run` exercises the identical
-  path and passed end-to-end 2026-08-11 — 163 files, ~530 KB packed.
+- **The publish gate is in place and passing**: `prepack` rebuilds `dist/` and
+  runs `verify:manifest` before any tarball is cut. `npm pack --dry-run`
+  exercises the identical path and passed end-to-end 2026-08-11 — 163 files,
+  ~530 KB packed.
 - **This machine is logged into nothing** — neither `npm` nor the `gh` CLI.
   SSH push to GitHub works regardless (the remote is `git@github.com:…`).
 
@@ -65,22 +65,16 @@ committed. The set is `ACCESSIBILITY-REVIEW.md`, `MOVABLE-CONTRACT-PLAN.md` and
 this file (`VF-STACK-PLAN.md` is long gone — that work shipped). None of them
 ship to npm; `files` controls that.
 
-## The two READMEs
+## One README, shared
 
-npm renders whatever `README.md` is in the tarball, pack always includes it,
-and no package.json field can point the registry at a different file. The
-repo README is the full manual; the npm page wants the storefront. So there
-are two: **`docs/README.npm.md`** is the npm-facing one — consumer sections
-only, absolute links to the demo site and GitHub, none of the dev-server or
-verify-suite material — and `scripts/npm-readme.mjs` trades it into place
-around the pack. `prepack` ends with `swap`, `postpack` runs `restore`, and
-the repo copy waits out the pack as `.README.github.md` (gitignored). Both
-directions are no-ops when there's nothing to do, so if a publish dies
-between them, `node scripts/npm-readme.mjs restore` puts things back.
-
-Two-file upkeep: when a consumer-facing fact changes (a new element, a size
-table, an API), it changes in both. The npm copy links the GitHub README for
-everything it doesn't carry, so depth belongs there.
+npm renders whatever `README.md` is in the tarball, so GitHub and npm show
+the same file — the consumer storefront: install, the components table,
+condensed sizing/layout, absolute links everywhere (they work on both
+sites). The depth lives in `docs/` — SPEC, DESIGN-TOKENS, SIZING, LAYOUT,
+FONTS, ICONS, CURSOR, ACCESSIBILITY, TOOLKIT, DEVELOPING, and this file — of
+which only `docs/SPEC.md` ships to npm. A pack-time README-swap scheme
+existed briefly (2026-08-11, same day) and was unwound in favor of this: one
+file, no machinery, `docs/` for the manual.
 
 ## One-time: the npm account
 
@@ -114,10 +108,9 @@ npm publish --dry-run
 ```
 
 Read the file list. It should be `dist/`, `editor/`, `custom-elements.json`,
-`SPEC.md`, `README.md`, `LICENSE`, `package.json` — 163 files, ~530 KB packed
-(2026-08-11 rehearsal), no `src/`, no demos. The `README.md` in the list is
-the swapped npm-facing one — 13 KB, not the ~40 KB repo manual. If that looks
-right:
+`docs/SPEC.md`, `README.md`, `LICENSE`, `package.json` — 163 files, ~530 KB
+packed (2026-08-11 rehearsal), no `src/`, no demos, and of `docs/` only the
+spec. If that looks right:
 
 ```sh
 npm publish
@@ -218,7 +211,7 @@ Skip all of this for 0.1.0. Worth knowing it exists:
 
 - [x] `LICENSE` file (MIT text, your name) — 2026-08-11
 - [x] `author` / `repository` / `homepage` / `bugs` in package.json — 2026-08-11
-- [x] npm-facing README (`docs/README.npm.md` + the prepack/postpack swap) — 2026-08-11
+- [x] consumer-facing README shared by GitHub and npm; the manual split into `docs/` — 2026-08-11
 - [ ] Apple-artwork **distribution** decision — closed for the two embedded faces: the kit ships its own re-drawn strikes as `VF Display`/`VF Body` (naming 2026-08-08, manifest-authored artwork 2026-08-11), crediting Susan Kare and Apple as the original designers. Still open: `fonts/imported/` is tracked and served from the demo site, so the repo distributes ~80 genuine Apple strikes under their original names — outside the npm tarball, but public; demo caution-icon provenance noted (repo/demo pages only — it doesn't ship)
 - [x] Working notes committed rather than left ambient (2026-08-06)
 - [ ] npm account, email verified, 2FA on, `npm login` done

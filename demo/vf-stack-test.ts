@@ -293,7 +293,7 @@ let selectedId = ''
 let nextId = 0
 
 /* ------------------------------------------------------------------ *
- * Presets — whole configurations, including the README's own example.
+ * Presets — whole configurations, including docs/LAYOUT.md's own example.
  * ------------------------------------------------------------------ */
 
 interface Preset {
@@ -316,7 +316,7 @@ const PRESETS: readonly Preset[] = [
   },
   {
     id: 'panel',
-    name: 'Window panel (README)',
+    name: 'Window panel (LAYOUT.md)',
     config: () => defaults(),
     children: [{ kind: 'stack-field-row' }, { kind: 'stack-action-row' }],
   },
@@ -545,7 +545,7 @@ function move(delta: -1 | 1): void {
   entries[j] = a
   sync()
   // A pure reorder resizes nothing, and nothing in the platform reports a
-  // position-only change — the one case the README says to ask for by hand.
+  // position-only change — the one case docs/SIZING.md says to ask for by hand.
   requestGridSnap()
 }
 

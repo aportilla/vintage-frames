@@ -212,7 +212,7 @@ const KIT_WIDE_AT = 5
 const tokensIn = (s) => new Set([...s.matchAll(/var\(\s*(--vf-[a-z0-9-]+)/g)].map((m) => m[1]))
 
 const specTokens = new Set()
-for (const line of read('SPEC.md').split('\n')) {
+for (const line of read('docs/SPEC.md').split('\n')) {
   const m = line.match(/^\| `(--vf-[a-z0-9-]+)` \|/)
   if (m) specTokens.add(m[1])
 }

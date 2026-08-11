@@ -38,29 +38,32 @@ page to the repo, and provenance (later) requires `repository` to match:
 (An email in `author` is optional and becomes public — leave it out unless you
 want it out.)
 
-**3. Font credit.** The package embeds two bitmap faces as base64, and both
-are **genuine Apple strikes** — Chicago and Geneva, converted from the
-original bitmaps via the `fonts/` pipeline (Apple's artwork, not lookalikes).
-`fonts/README.md` documents the pipeline and provenance but not a license,
-because there isn't one to point at: the rasters are Apple IP, and embedding
-them in a public npm package is a deliberate distribution decision to make
-before shipping to the world (the retired ChiKareGo and FindersKeepers
-lookalikes survive in git history as the fallback plan).
+**3. Font credit.** The package embeds two bitmap faces as base64 —
+`VF Display` and `VF Body`, the kit's own re-drawn strikes, authored glyph
+by glyph in `fonts/VF-*.glyphs.txt` and built from those manifests alone (no
+Apple binary goes into the build or is tracked in the repo). They reproduce
+the appearance of Chicago 12pt and Geneva 9pt, the classic Macintosh faces
+designed by **Susan Kare** for Apple — credit her and Apple as the original
+design authors wherever the faces are described. `fonts/README.md` keeps the
+pipeline and the design lineage.
 
-**Settled 2026-08-08 — the naming half only.** The faces now ship as
-`VF Display` and `VF Body`, stamped into the woff2 binaries by the build
-(`fonts/manifest-to-font.py` since 2026-08-11, `fonts/add-glyphs.py` before
-it) rather than merely declared in TS; before this they
-registered as `'Chicago'`/`'Geneva'` and the binaries said `Chicago 15`/
-`Geneva 12`. So the package no longer puts Apple's face names in a consumer's
-`font-family` stack or in the shipped files. See fonts/README.md § Naming.
-**This does not settle the distribution question** — the artwork is still
-Apple's, and whether to embed it in a public package is unchanged and still
-open. Renaming narrows the exposure; it is not a license. (The 32×32
-System 7 caution icon no longer ships in the package — the kit carries no
-raster art since `vf-alert` was cut; the artwork survives only as a demo
-asset, `demo/icons/alert.png`, and `demo/` is outside `files`. The provenance
-question now attaches to the repo and any hosted demo pages, not to npm.)
+**Settled for the embedded faces.** The naming half closed 2026-08-08: the
+faces ship as `VF Display`/`VF Body`, stamped into the woff2 binaries by the
+build (`fonts/manifest-to-font.py`) rather than merely declared in TS, so
+the package puts no Apple face name in a consumer's `font-family` stack or
+in the shipped files (see fonts/README.md § Naming). The artwork half closed
+2026-08-11, when the plaintext glyph manifests became the source of truth
+and the Apple reference binaries moved out of the repository
+(`../vintage-frames-design-reference`): what ships is the kit's own
+artifact, sharing the classic faces' appearance rather than their files.
+**What remains open is `fonts/imported/`** — the ~80-strike collection is
+genuine Apple artwork, tracked in the public repo and served from the demo
+site under its own Apple family names; outside the npm tarball, but
+distributed. (The 32×32 System 7 caution icon no longer ships in the package
+— the kit carries no raster art since `vf-alert` was cut; the artwork
+survives only as a demo asset, `demo/icons/alert.png`, and `demo/` is
+outside `files`. That question, too, attaches to the repo and any hosted
+demo pages, not to npm.)
 
 **4. The untracked docs.** ~~`ACCESSIBILITY-REVIEW.md` and `VF-STACK-PLAN.md`
 are working notes sitting untracked in the repo root.~~ **Settled 2026-08-06:**
@@ -181,12 +184,13 @@ Skip all of this for 0.1.0. Worth knowing it exists:
 - ~~**GitHub Pages for the demos.**~~ **Done 2026-08-08:**
   `vite.pages.config.ts` builds the three pages with the project-site base
   path, and `.github/workflows/pages.yml` deploys them on every push to `main`.
-  What it publishes is the thing to know: the embedded Apple strikes, the
-  System 7 icon crops, and — since `fonts/imported/` was un-gitignored the same
-  day, so the Character Set window works on the deployed site — the whole
-  80-strike collection under its own Apple family names, copied in by
-  `scripts/copy-strikes.mjs`. That is the distribution question below arriving
-  in hosted form, at collection scale.
+  What it publishes is the thing to know: the System 7 icon crops, and —
+  since `fonts/imported/` was un-gitignored the same day, so the Character
+  Set window works on the deployed site — the whole 80-strike collection
+  under its own Apple family names, copied in by `scripts/copy-strikes.mjs`.
+  That is the distribution question below arriving in hosted form, at
+  collection scale. (The embedded faces the pages also serve are the kit's
+  own re-drawn strikes — not part of that question.)
 - **Branch protection on `main`** — matters when a second contributor shows
   up, noise before then.
 - **`npm dist-tags`** — `npm publish --tag next` publishes without moving
@@ -197,7 +201,7 @@ Skip all of this for 0.1.0. Worth knowing it exists:
 
 - [ ] `LICENSE` file (MIT text, your name)
 - [ ] `author` / `repository` / `homepage` / `bugs` in package.json
-- [ ] Apple-strike **distribution** decision made (both embedded faces) — the naming half is done (2026-08-08: they ship as `VF Display`/`VF Body`), the embed-Apple-artwork-at-all question is not; demo caution-icon provenance noted (repo/demo pages only — it doesn't ship). Scope grew 2026-08-08: `fonts/imported/` is now tracked and served from the demo site, so the repo distributes ~80 strikes under their original names — still outside the npm tarball, but public
+- [ ] Apple-artwork **distribution** decision — closed for the two embedded faces: the kit ships its own re-drawn strikes as `VF Display`/`VF Body` (naming 2026-08-08, manifest-authored artwork 2026-08-11), crediting Susan Kare and Apple as the original designers. Still open: `fonts/imported/` is tracked and served from the demo site, so the repo distributes ~80 genuine Apple strikes under their original names — outside the npm tarball, but public; demo caution-icon provenance noted (repo/demo pages only — it doesn't ship)
 - [x] Working notes committed rather than left ambient (2026-08-06)
 - [ ] npm account, email verified, 2FA on, `npm login` done
 - [ ] `git push origin main`

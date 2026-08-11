@@ -7,7 +7,7 @@ With no arguments, processes both VF-Display.glyphs.txt and VF-Body.glyphs.txt.
 The manifests are the source of truth: each font is built FROM SCRATCH from
 its file alone — glyphs, metrics, cmap, glyph order, name records and the
 font-wide metadata all come from it, and no Apple binary is consulted (the
-pristine strikes live outside the repository, in
+classic reference strikes live outside the repository, in
 ../vintage-frames-design-reference). Each run writes the manifest's `woff2`
 target (fonts/VF-Display.woff2 / fonts/VF-Body.woff2), rewrites
 FONT_WOFF2_BASE64 (and the byte-count comment) in the src/styles module its
@@ -20,15 +20,15 @@ before anything is written.
 Byte-reproducible: the builder replays the exact construction that made the
 shipped binaries — import-bdf.py's FontBuilder recipe (same table set,
 constants and call order) and the same rect-run glyph rasterisation (bmp(),
-inherited from the retired add-glyphs.py). What that construction computed
-from the pristine glyph set at conversion time (x_avg_char_width,
+inherited from the retired add-glyphs.py). What earlier builds computed
+over the glyph set (x_avg_char_width,
 unicode_ranges, win metrics) and the head timestamps are restated from the
 manifest's '== font ==' table instead of recomputed — so the build is a
 pure function of the manifest: an unchanged manifest re-ships identical
 bytes, and a changed base64 always means a real edit.
 
 The build targets carry the kit's names (VF-Display.woff2 / VF-Body.woff2,
-matching the family the binary registers), never the source strikes' —
+matching the family the binary registers), never the classic faces' —
 Chicago's and Geneva's names appear nowhere in the kit's own artifacts.
 """
 
@@ -54,7 +54,7 @@ def bmp(bitmap, x0, y0, advance):
     reverse-winding contour needed. Inherited verbatim from add-glyphs.py
     (the retired authoring script, removed 2026-08-11); import-bdf.py's
     draw() emits the identical geometry, which is what keeps a rebuilt glyph
-    byte-identical to one the original conversion compiled."""
+    byte-identical to one an earlier build compiled."""
     pen = TTGlyphPen(None)
     nrows = len(bitmap)
     for r, row in enumerate(bitmap):
@@ -173,7 +173,7 @@ def build(path):
         metrics[name] = (advance, (x0 + min(ink_cols)) * PX if ink_cols else 0)
         cmap[u] = name
 
-    # import-bdf.py's build recipe, with the conversion-time computed values
+    # import-bdf.py's build recipe, with earlier builds' computed values
     # restated from the metadata rather than recomputed over today's glyph set.
     fb = FontBuilder(upm, isTTF=True)
     fb.setupGlyphOrder(order)
@@ -195,7 +195,7 @@ def build(path):
         ulUnicodeRange4=ranges[3],
         # usFirstCharIndex/usLastCharIndex are NOT restated: OS/2 compile
         # recomputes them from the cmap unconditionally. (The pre-manifest
-        # builds carried a stale pristine-era usLastCharIndex because
+        # builds carried a stale pre-backfill usLastCharIndex because
         # add-glyphs.py never recompiled OS/2; this builder's is correct.)
         fsSelection=0x40 | 0x80,  # REGULAR | USE_TYPO_METRICS
         achVendID="NONE",

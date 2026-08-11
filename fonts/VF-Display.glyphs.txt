@@ -4,23 +4,24 @@ VF Display glyph manifest
 THE SOURCE OF TRUTH for 'VF Display'. fonts/manifest-to-font.py builds
 fonts/VF-Display.woff2 and the base64 embed in src/styles/display-font.ts
 from this file alone, from scratch. Edit here and build
-forward, then npm run build. The Apple originals the face was converted
-from live outside the repository in ../vintage-frames-design-reference;
-fonts/README.md keeps the provenance. (fonts/glyph-manifest.py generated
-this file FROM the shipped binary — that is the bootstrap/resync
-direction, and rerunning it overwrites hand edits.)
+forward, then npm run build. The classic Apple strikes whose
+appearance this face re-draws live outside the repository in
+../vintage-frames-design-reference, as design reference only;
+fonts/README.md keeps the design lineage. (fonts/glyph-manifest.py
+generated this file FROM the shipped binary — that is the
+bootstrap/resync direction, and rerunning it overwrites hand edits.)
 
-Face: 'VF Display', the chrome face — the genuine Chicago 12pt strike plus the kit's backfill.
+Face: 'VF Display', the chrome face — a re-drawn strike in Chicago 12pt's style, plus the kit's backfill.
 
 The '== font ==' table is the font-wide metadata. family is stamped
 into the binary's name records; woff2 and module are the build targets.
 Fields are whole design px except: x_avg_char_width (font units) and
-unicode_ranges (the four OS/2 coverage bitfields) — both computed by
-the original strike conversion and restated here verbatim — and
-created/modified (seconds since 1904, the sfnt epoch: the conversion's
-own timestamps, carried so a rebuild is byte-reproducible). glyphs
-counts the full glyph table (characters + .notdef); bump it and
-characters together when adding an entry.
+unicode_ranges (the four OS/2 coverage bitfields) — both computed
+when the face was first built and restated here verbatim — and
+created/modified (seconds since 1904, the sfnt epoch: the first
+build's own timestamps, carried so a rebuild is byte-reproducible).
+glyphs counts the full glyph table (characters + .notdef); bump it
+and characters together when adding an entry.
 
 Grid: 1024 units/em at 64 units per design pixel — a 16px em box
 split ascent 12 / descent 4. One design px is one system px.
@@ -36,10 +37,11 @@ itself, so an edited field may carry blank edge rows or columns
 harmlessly. A glyph that is an advance with no ink (the spaces) says
 "(no ink)".
 
-Entries are in the font's glyph order — the native strike sorted by
-codepoint, then the kit's additions in the order they were added. A
-new glyph appends at the end. Glyph names and codepoints must both be
-unique; the name is the glyph's label in the font's own tables.
+Entries are in the font's glyph order — the classic character set
+sorted by codepoint, then the kit's additions in the order they were
+added. A new glyph appends at the end. Glyph names and codepoints
+must both be unique; the name is the glyph's label in the font's own
+tables.
 
 == font ==
 key,value

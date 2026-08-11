@@ -2,21 +2,23 @@
  * VF Display — a self-registering bitmap webfont: the kit's *chrome* face, for
  * menus, titles, buttons and controls.
  *
- * The artwork is the genuine Chicago 12pt strike (imported from its BDF via
- * `fonts/import-bdf.py --em 16`, which re-ems the 15px strike onto the kit's
- * 16px grid — see fonts/README.md). On top of the strike rides the kit's
- * chrome backfill (drawn in fonts/VF-Display.glyphs.txt, the plaintext
- * manifest the face is built from): `×`, the Mac modifier
- * keys `⇧ ⌥ ⌃` beside the strike's own `⌘`, the uppercase accents, arrows,
- * and the rest of what modern chrome types — plus corrected ink for
- * `⁄ € ‹ ›`, whose byte slots in the pre-MacRoman-extension source carried
- * the ✓ ◆  drawings over again (those stay reachable at their own
- * codepoints). Review it all on glyph-proof.html (dev server).
+ * The artwork is the kit's own re-drawn strike in the style of Chicago 12pt —
+ * the classic Macintosh system font designed by Susan Kare for Apple — with
+ * every glyph authored as a plaintext pixel field in
+ * fonts/VF-Display.glyphs.txt, the manifest the face is built from
+ * (fonts/manifest-to-font.py; no Apple binary is involved — see
+ * fonts/README.md). Beyond the classic character set rides the kit's chrome
+ * backfill: `×`, the Mac modifier keys `⇧ ⌥ ⌃` beside `⌘`, the uppercase
+ * accents, arrows, and the rest of what modern chrome types — plus the kit's
+ * own ink for `⁄ € ‹ ›`, which the design's pre-MacRoman-extension era never
+ * drew (the ✓ ◆  drawings stay reachable at their own codepoints). Review
+ * it all on glyph-proof.html (dev server).
  *
- * It ships under the kit's own name rather than the strike's. Apple's face
- * name belongs to Apple, and a family name is a *claim* — it goes in the font
- * binary and in every consumer's font-family stack — where the provenance
- * above is a *description*, which is what fonts/README.md is for. The name is
+ * It ships under the kit's own name because the artwork is the kit's own —
+ * and Apple's face name belongs to Apple in any case: a family name is a
+ * *claim* — it goes in the font binary and in every consumer's font-family
+ * stack — where the design credit above is a *description*, which is what
+ * fonts/README.md is for. The name is
  * stamped into the binary by `fonts/manifest-to-font.py` (from the manifest's
  * `family` field), not just declared here, so the two can't drift. (The fallback entries in {@link vfDisplayDecls} still
  * name Chicago and Charcoal: those select faces the reader may have installed,
@@ -45,9 +47,9 @@ const FONT_WOFF2_BASE64 =
 export function registerDisplayFace(): void {
   // PIXEL_GRID_METRICS pins the baseline to the face's 12/4 design-pixel em.
   // Unlike the retired converter-artifact faces, this face's own tables
-  // already carry those numbers (import-bdf.py writes them on the grid); the
-  // overrides restate them so every face the kit registers is pinned the same
-  // way regardless of provenance.
+  // already carry those numbers (manifest-to-font.py writes them on the
+  // grid); the overrides restate them so every face the kit registers is
+  // pinned the same way regardless of provenance.
   registerEmbeddedFont(VF_DISPLAY_FAMILY, FONT_WOFF2_BASE64, PIXEL_GRID_METRICS)
 }
 

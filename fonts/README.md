@@ -8,13 +8,18 @@ boundary).
 
 | Face | Ships as | Artwork | Role | Used by |
 | --- | --- | --- | --- | --- |
-| **Chicago** | `VF Display` | the genuine Chicago 12pt strike | *chrome* | menus, titles, buttons, controls (`vfDisplay`) |
-| **Geneva** | `VF Body` | the genuine Geneva 9pt strike | *body* copy | fields, list rows, prose (`vfBase` default) |
+| **Chicago** | `VF Display` | re-drawn strike in Chicago 12pt's style | *chrome* | menus, titles, buttons, controls (`vfDisplay`) |
+| **Geneva** | `VF Body` | re-drawn strike in Geneva 9pt's style | *body* copy | fields, list rows, prose (`vfBase` default) |
 
-**The shipped faces carry the kit's name, not the strike's** — see
-[Naming](#naming--what-ships-vs-what-it-came-from) below. This file's left-hand
-column is the *source* strike throughout; `VF Display` / `VF Body` is what the
-binary, the CSS stack and `--vf-font-family*` all say.
+Both faces are the kit's own artwork, authored glyph by glyph in the
+plaintext manifests below. They reproduce the *appearance* of the classic
+faces — designs created by Susan Kare for Apple's original Macintosh, and
+credited as such — but they are not Apple's font files, and no Apple binary
+goes into the build. **The shipped faces carry the kit's name, not the
+classic face's** — see [Naming](#naming--what-ships-vs-what-it-came-from)
+below. This file's left-hand column names the classic design each face
+re-draws; `VF Display` / `VF Body` is what the binary, the CSS stack and
+`--vf-font-family*` all say.
 
 ```
 VF-Display.glyphs.txt    VF-Body.glyphs.txt  ← THE SOURCE OF TRUTH: every glyph
@@ -26,7 +31,7 @@ glyph-manifest.py        ← the reverse direction (woff2 → manifest), for
                             bootstrap/resync only — it overwrites hand edits
 VF-Display.woff2         VF-Body.woff2  ← generated: the built faces the kit
                             embeds, named for what they register — the
-                            source strikes' names appear nowhere in them
+                            classic faces' names appear nowhere in them
 dfont-to-bdf.py          ← extracts a suitcase's bitmap strike as a BDF
 import-bdf.py            ← converts a classic Mac BDF strike to a pixel-grid woff2
 charset-manifest.py      ← regenerates demo/charset-manifest.ts from imported/
@@ -52,15 +57,17 @@ manifests (`VF-Display.glyphs.txt` / `VF-Body.glyphs.txt`) and run
 
 The two embedded faces register as **`VF Display`** and **`VF Body`**, matching
 the `--vf-font-family-display` / `--vf-font-family` tokens that select them.
-Neither ships under the name of the strike it was made from.
+Neither ships under the name of the classic face it re-draws.
 
-The line is between a *description* and a *claim*. Saying "the artwork is
-Apple's Chicago 12pt strike, re-emmed onto a 16px box" is a description, it is
-true, and this file is where it belongs. A family name is a claim: it is
-stamped into the font binary, it appears in every consumer's `font-family`
-stack, and a font-management tool will report it as the face's identity. The
-kit has no standing to make that claim about Apple's name, and the rename is
-what keeps the honest description from turning into one.
+The names are the kit's because the artwork is: the faces are built from the
+kit's own manifests, so `VF Display` / `VF Body` describes exactly what a
+consumer gets. The classic names would also be a *claim* where the kit only
+has a *credit* to give. A family name is stamped into the font binary, appears
+in every consumer's `font-family` stack, and a font-management tool reports it
+as the face's identity — and Chicago and Geneva are Apple's names for Susan
+Kare's designs. The kit's faces share those designs' appearance, not their
+files, so the credit stays a credit ("in the style of Chicago 12pt") rather
+than becoming an identity.
 
 Two consequences worth knowing:
 
@@ -89,10 +96,11 @@ PUBLISHING.md is where it's tracked. The rename applies only to the two faces
 the components embed, which are the kit's own artifact.
 
 The two trees cannot collide: the kit registers `VF Display` / `VF Body`, the
-collection registers Apple names, and the pristine `Chicago.woff2` /
-`Geneva.woff2` are build *inputs* that since 2026-08-11 live outside the
+collection registers Apple names, and the converted `Chicago.woff2` /
+`Geneva.woff2` are *design references* that since 2026-08-11 live outside the
 repository altogether (`../vintage-frames-design-reference`, beside the
-working tree) — never registered at runtime, never shipped, never tracked.
+working tree) — never consulted by the build, never registered at runtime,
+never shipped, never tracked.
 
 One thing does need cleaning up before the collection is broken out, and it
 predates the rename. **`Chicago-12-em16.woff2` and `Geneva-9-em16-a12.woff2`
@@ -102,65 +110,58 @@ only because `imported/` is where it writes everything. Each carries the
 *same* family name as the native strike beside it (`Chicago 12`, `Geneva 9`),
 so within the collection those two pairs are distinguishable by filename
 alone. A set presented as the original strikes wants them gone — they are
-kit build byproducts, and the kit's own copies live outside the repository
-now, in `../vintage-frames-design-reference` with the rest of the originals.
+byproducts of preparing the design references, whose home is outside the
+repository now, in `../vintage-frames-design-reference` with the rest of
+the reference set.
 
-## Provenance
+## Design lineage
 
-*(The two pristine woff2s described here moved out of the repository on
-2026-08-11, to `../vintage-frames-design-reference` — the repo keeps no
-Apple binaries for the two embedded faces. What the repo tracks instead is
-the glyph manifests, which carry the same ink losslessly as text; the
-descriptions below are about the artwork's origin and remain true.)*
+The two embedded faces re-draw classic Macintosh designs: **Chicago 12pt**,
+the system font, and **Geneva 9pt**, the small text face — both created by
+**Susan Kare** for Apple's original Macintosh. The way these faces look is
+her work and Apple's, and the credit for it belongs to them. The *files* are
+the kit's own: every glyph is authored as a plaintext pixel field in the
+manifests, and `manifest-to-font.py` builds each binary from its manifest
+alone — no Apple font file is consulted by the build or tracked in the
+repository.
 
-**Chicago.woff2** is the original Apple bitmap, not a redrawing: it is
-produced by `import-bdf.py --em 16` from a FontForge BDF export of the real
-NFNT strike (Chicago 12pt: ascent 12, descent 3, 15px line), re-emmed onto
-the kit's 16px box by padding the descent to 4 — the baseline stays at
-ascent 12, exactly the 12/4 box the registration overrides describe. Every
-glyph's ink and advance is bit-verified against the BDF at build time, so
-text set in it occupies the same pixels a real Mac would set. It replaced
-**ChiKareGo**, a Chicago lookalike with tighter advances and ~48 redrawn
-glyphs, on 2026-08-04; the retired face survives in git history. Being
-Apple's artwork, its distribution posture is a deliberate decision — see
-PUBLISHING.md.
+Appearance fidelity is deliberate, and it was established against the real
+thing. Conversions of the original strikes — Chicago 12pt from a FontForge
+BDF export of the NFNT strike (ascent 12, descent 3, 15px line), Geneva 9pt
+extracted by `dfont-to-bdf.py` from the macfonts collection's
+`Geneva_12.dfont` suitcase (ascent 10, descent 2; native pitch exactly its
+12px rect — leading 0, unlike Chicago's 1), each re-emmed onto the kit's
+16px 12/4 box by `import-bdf.py` — live outside the repository in
+`../vintage-frames-design-reference` and served as the reference the
+re-drawn faces are held to: same metrics, same advances, same ink placement,
+so text set in the kit's faces occupies the same pixels a real Mac would
+set. The references are never consulted by the build, never registered at
+runtime, never shipped, never tracked.
 
-One inherited quirk, surfaced by the showcase's Character Set window: at the
-byte slots MacRoman later assigned to `⁄ € ‹` (0xDA–0xDC) this strike's ink
-is the ✓, ◆ and apple menu symbols over again, and `› ﬁ ﬂ` are absent — the
-source (the macfonts collection's OS 1-6-era `Chicago_15.sfd`) predates that
-extension of the charset, and the conversion faithfully carries the old
-slots' ink under the new slots' names. So `€` typed in the raw strike renders
-a black diamond. Whether a System 7-era Chicago strike drew those six
-differently is unverified — the collection's OS 9 `Chicago` suitcase lost
-its resource fork and is empty.
+Two footnotes from establishing that reference:
 
-The **shipped** face corrects this (2026-08-09, by the since-removed
-`add-glyphs.py`; the corrected drawings live in the manifest now): those
-three glyphs are reinked — `⁄` traced from the strike's own `/`, `‹ ›`
-derived from its `« »`, `€` drawn on its `C` — and the absent `› ﬁ ﬂ`
-added. Nothing is lost: the ✓ ◆  drawings those slots duplicated remain at
-their own codepoints (U+2713 / U+25C6 / U+F8FF), and the build asserts
-every manifest codepoint reached the cmap. The pristine
-`Chicago.woff2` and the `imported/` collection keep the quirk — they present
-the source strike as it is; the correction is the kit's artifact, like the
-rename.
+- **The 0xDA–0xDC quirk.** At the byte slots MacRoman later assigned to
+  `⁄ € ‹`, the OS 1-6-era Chicago source (the macfonts collection's
+  `Chicago_15.sfd`) draws the ✓, ◆ and apple menu symbols over again, and
+  `› ﬁ ﬂ` are absent — it predates that extension of the charset. (Whether
+  a System 7-era Chicago strike drew those six differently is unverified —
+  the collection's OS 9 `Chicago` suitcase lost its resource fork and is
+  empty.) The kit's face draws all six itself (2026-08-09): `⁄` on the
+  face's own `/`, `‹ ›` from its `« »`, `€` on its `C`, plus the absent
+  `› ﬁ ﬂ` — with the ✓ ◆  drawings kept at their own codepoints
+  (U+2713 / U+25C6 / U+F8FF), and the build asserting every manifest
+  codepoint reached the cmap. The `imported/` collection keeps the quirk:
+  it presents the source strikes as they are.
+- **The raised Geneva.** The BDF collection's own `Geneva/12.bdf` turned
+  out to be exported from **`Geneva_12_raised.dfont`**, a variant drawn one
+  size larger (8px caps to the true strike's 7, `I` advance 4 to its 3) —
+  it briefly seeded the body face on 2026-08-04 and read visibly wrong
+  against a real Finder before the suitcases surfaced the un-raised strike.
 
-**Geneva.woff2** is likewise the original Apple bitmap: `dfont-to-bdf.py`
-extracts the strike from `Geneva_12.dfont` (the macfonts suitcase collection)
-and `import-bdf.py --em 16 --ascent 12` re-ems its 12px box (ascent 10,
-descent 2; native pitch measured at exactly that 12px rect — leading 0,
-unlike Chicago's 1) onto the kit's 16px 12/4 grid, ascent and descent both
-padded.
-The suitcase matters: the BDF collection's own `Geneva/12.bdf` was exported
-from **`Geneva_12_raised.dfont`**, a variant drawn one size larger (8px caps
-to the true strike's 7, `I` advance 4 to its 3) — it briefly shipped as the
-body face on 2026-08-04 and read visibly wrong against a real Finder before
-the suitcases surfaced the un-raised strike. Geneva replaced
-**FindersKeepers**, a lookalike that matched the 9pt metrics (7px caps, `I`
-on a 1px gap) with its own ink, the same day; that retired face survives in
-git history alongside ChiKareGo. Same Apple-IP distribution posture as
-Chicago.
+Before the faces took on the classic designs' exact metrics and appearance
+(2026-08-04), the kit shipped third-party lookalikes — **ChiKareGo**
+(tighter advances, ~48 redrawn glyphs) and **FindersKeepers** (matched the
+9pt metrics with its own ink). Both retired faces survive in git history.
 
 **Both shipped faces carry the kit's backfill** (2026-08-09, completist pass
 2026-08-10): the glyphs modern web copy and chrome reach for that old
@@ -190,13 +191,13 @@ the proof page's data file and in git history. See the proof page below.
 
 ## Why we modify the fonts
 
-The UI types punctuation the sources lack, and a missing glyph falls back
-*per glyph* to the system font — a smooth glyph beside the pixel labels (the
-em dash in "US$25 — see the Read Me" was the giveaway). Both strikes carry
-full MacRoman natively — `…`, curly quotes, the dashes, `•`, the accented
+The UI types punctuation the classic charset lacks, and a missing glyph falls
+back *per glyph* to the system font — a smooth glyph beside the pixel labels
+(the em dash in "US$25 — see the Read Me" was the giveaway). Both faces carry
+full MacRoman — `…`, curly quotes, the dashes, `•`, the accented
 lowercase — but old MacRoman is not the modern web, so both faces carry the
 backfill (the list above), and the display face's 0xDA–0xDC era quirk is
-corrected in the shipped build (see Provenance). The one deliberate fallback
+drawn correctly in the shipped build (see Design lineage). The one deliberate fallback
 left is the Icelandic set (`Ý ý Ð ð Þ þ`) — no strike source, no real
 presence in copy. (`⎋ ⌫ ⏎` were on that list until the 2026-08-10 completist
 pass; the body face's `☆` now ships a proposal drawing, flagged on the proof

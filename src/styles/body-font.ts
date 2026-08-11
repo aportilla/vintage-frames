@@ -2,19 +2,20 @@
  * VF Body — a self-registering bitmap webfont: the kit's *body* face, for list
  * rows and page copy.
  *
- * The artwork is the genuine Geneva 9pt strike (extracted from its suitcase
- * via `fonts/dfont-to-bdf.py`, then `fonts/import-bdf.py --em 16 --ascent 12`,
- * which re-ems the 12px strike onto the kit's 16px grid with the baseline on
- * its 12/4 split — see fonts/README.md). On top of the strike rides the kit's
- * body-copy backfill (drawn in fonts/VF-Body.glyphs.txt, the plaintext
- * manifest the face is built from): 47 glyphs modern
+ * The artwork is the kit's own re-drawn strike in the style of Geneva 9pt —
+ * the classic Macintosh text face designed by Susan Kare for Apple — with
+ * every glyph authored as a plaintext pixel field in
+ * fonts/VF-Body.glyphs.txt, the manifest the face is built from
+ * (fonts/manifest-to-font.py; no Apple binary is involved — see
+ * fonts/README.md). Beyond the classic character set rides the kit's
+ * body-copy backfill: 47 glyphs modern
  * web copy reaches for that old MacRoman never held — € and the uppercase
  * accents through ⌘ ✓ and the arrows — each traced, composed, or derived
- * from strike ink where any exists, drawn in its idiom where none does.
- * Review them on glyph-proof.html (dev server).
+ * from the face's own ink where any exists, drawn in its idiom where none
+ * does. Review them on glyph-proof.html (dev server).
  *
- * It ships under the kit's own name rather than the strike's, for the reason
- * given in ./display-font.ts.
+ * It ships under the kit's own name, for the reason given in
+ * ./display-font.ts.
  *
  * Registers the face on `document.fonts` via {@link registerEmbeddedFont} so
  * it applies inside every `vf-*` shadow root (an `@font-face` rule can't cross
@@ -39,9 +40,9 @@ const FONT_WOFF2_BASE64 =
 export function registerBodyFace(): void {
   // PIXEL_GRID_METRICS pins the baseline to the face's 12/4 design-pixel em.
   // Unlike the retired converter-artifact faces, this face's own tables
-  // already carry those numbers (import-bdf.py writes them on the grid); the
-  // overrides restate them so every face the kit registers is pinned the same
-  // way regardless of provenance.
+  // already carry those numbers (manifest-to-font.py writes them on the
+  // grid); the overrides restate them so every face the kit registers is
+  // pinned the same way regardless of provenance.
   registerEmbeddedFont(VF_BODY_FAMILY, FONT_WOFF2_BASE64, PIXEL_GRID_METRICS)
 }
 

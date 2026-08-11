@@ -36,7 +36,7 @@ export interface EmbeddedFontMetrics {
  *
  * WHY OVERRIDE AT ALL: browsers place a line box's baseline from the face's
  * hhea metrics, and the retired converter-artifact faces (ChiKareGo and
- * FindersKeepers, both since replaced by the genuine strikes) carried hhea
+ * FindersKeepers, both since replaced by the kit's re-drawn strikes) carried hhea
  * values — ascender 682, descender 192, line gap 92 of the 1024 upm, i.e.
  * 10.66 px / 3 px / 1.44 px at 16px — that are NOT on the 64-unit
  * design-pixel grid the glyphs are drawn on. Half-leading computed from them
@@ -44,9 +44,9 @@ export interface EmbeddedFontMetrics {
  * rasterization snaps that to a whole device pixel: all chrome/body text sat
  * one device px above its System 7 position (first seen as fractional gaps in
  * the vf-select pill). Today both shipped strikes' own tables carry the
- * grid-clean em (768/256/0 = 12/4/0 px — fonts/import-bdf.py writes them);
- * the overrides restate it so every face the kit registers is pinned the same
- * way regardless of provenance or which table a platform prefers.
+ * grid-clean em (768/256/0 = 12/4/0 px — fonts/manifest-to-font.py writes
+ * them); the overrides restate it so every face the kit registers is pinned
+ * the same way regardless of provenance or which table a platform prefers.
  *
  * KNOWN LIMIT (dpr 2, scale 1.5): Chrome snaps aliased text baselines to whole
  * ABSOLUTE CSS px. A pill's ideal baseline sits 13 system px (19.5 CSS px at

@@ -514,20 +514,25 @@ Two bitmap faces ship inside the components and register themselves on
 
 - **`VF Display`** — the chrome face: menu bar, menus, window and dialog
   titles, buttons, checkboxes, radios, popup menus, fieldset legends, and
-  editable text/number fields. Converted from the genuine Chicago 12pt strike,
-  extended with the same backfill in its own heavier idiom — so a shortcut
-  string like `⇧⌘S` renders every key in chrome pixels.
-- **`VF Body`** — the body face: list rows and page copy. The genuine Geneva
-  9pt strike, extended with a body-copy backfill drawn in its idiom (`€`,
-  `−`, `·`, the uppercase accents, arrows, `⌘ ⇧ ⌥ ⌃`, fractions — see
-  [fonts/README.md](./fonts/README.md)) so modern copy doesn't fall back
+  editable text/number fields. A re-drawn strike in the style of Chicago
+  12pt, extended with the kit's backfill in the same heavier idiom — so a
+  shortcut string like `⇧⌘S` renders every key in chrome pixels.
+- **`VF Body`** — the body face: list rows and page copy. A re-drawn strike
+  in the style of Geneva 9pt, extended with a body-copy backfill drawn in its
+  idiom (`€`, `−`, `·`, the uppercase accents, arrows, `⌘ ⇧ ⌥ ⌃`, fractions —
+  see [fonts/README.md](./fonts/README.md)) so modern copy doesn't fall back
   mid-sentence.
 
-They ship under the kit's names rather than the strikes', since a family name
-goes into the font binary and every consumer's `font-family` stack.
-[fonts/README.md](./fonts/README.md) has the pipeline and provenance. The
-*fallbacks* after each family still name `Chicago`, `Charcoal` and `Geneva`,
-which select faces the reader may already have installed.
+Both faces are the kit's own artwork: every glyph is authored as a plaintext
+pixel field in `fonts/VF-*.glyphs.txt`, and the binaries are built from those
+manifests alone. The designs they re-draw — Chicago and Geneva, created by
+Susan Kare for Apple's original Macintosh — are hers and Apple's; the kit's
+strikes share their appearance, not their files. They ship under the kit's
+names, since a family name goes into the font binary and every consumer's
+`font-family` stack. [fonts/README.md](./fonts/README.md) has the pipeline
+and design lineage. The *fallbacks* after each family still name `Chicago`,
+`Charcoal` and `Geneva`, which select faces the reader may already have
+installed.
 
 Both render on their native 1024-upm pixel grid (one design pixel = one system
 pixel), scale with `--vf-scale`, and are registered with `ascent-override: 75%`

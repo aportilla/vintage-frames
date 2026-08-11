@@ -13,12 +13,12 @@ edits with whatever the shipped VF-*.woff2 says. Editing happens in the
 manifests; fonts/manifest-to-font.py builds the VF-*.woff2 binaries and the
 TS base64 embeds from them alone, from scratch, no Apple binary involved. The metadata table
 therefore carries everything below glyph level that isn't derivable: the
-head timestamps and the OS/2 fields the original conversion computed from
-the pristine glyph set (x_avg_char_width, unicode_ranges, the win metrics).
+head timestamps and the OS/2 fields computed when the faces were first
+built (x_avg_char_width, unicode_ranges, the win metrics).
 
 The manifest carries the font's glyph order too — entries are ordered by
-glyph ID rather than codepoint (the two agree for the native strike; the
-kit's additions trail in the order they were appended).
+glyph ID rather than codepoint (the two agree for the classic character
+set; the kit's additions trail in the order they were appended).
 
 Every glyph in these fonts is axis-aligned pixel-run rectangles on the
 64-unit grid (bmp() in manifest-to-font.py and draw() in import-bdf.py both
@@ -42,14 +42,14 @@ FACES = [
         "VF-Display.woff2",
         "VF-Display.glyphs.txt",
         "VF Display",
-        "the chrome face — the genuine Chicago 12pt strike plus the kit's backfill",
+        "the chrome face — a re-drawn strike in Chicago 12pt's style, plus the kit's backfill",
         "display-font.ts",
     ),
     (
         "VF-Body.woff2",
         "VF-Body.glyphs.txt",
         "VF Body",
-        "the body face — the genuine Geneva 9pt strike plus the kit's backfill",
+        "the body face — a re-drawn strike in Geneva 9pt's style, plus the kit's backfill",
         "body-font.ts",
     ),
 ]
@@ -168,23 +168,24 @@ def emit(src, out, family, blurb, module):
         f"THE SOURCE OF TRUTH for '{family}'. fonts/manifest-to-font.py builds\n"
         f"fonts/{src} and the base64 embed in src/styles/{module}\n"
         "from this file alone, from scratch. Edit here and build\n"
-        "forward, then npm run build. The Apple originals the face was converted\n"
-        "from live outside the repository in ../vintage-frames-design-reference;\n"
-        "fonts/README.md keeps the provenance. (fonts/glyph-manifest.py generated\n"
-        "this file FROM the shipped binary — that is the bootstrap/resync\n"
-        "direction, and rerunning it overwrites hand edits.)\n"
+        "forward, then npm run build. The classic Apple strikes whose\n"
+        "appearance this face re-draws live outside the repository in\n"
+        "../vintage-frames-design-reference, as design reference only;\n"
+        "fonts/README.md keeps the design lineage. (fonts/glyph-manifest.py\n"
+        "generated this file FROM the shipped binary — that is the\n"
+        "bootstrap/resync direction, and rerunning it overwrites hand edits.)\n"
         "\n"
         f"Face: '{family}', {blurb}.\n"
         "\n"
         "The '== font ==' table is the font-wide metadata. family is stamped\n"
         "into the binary's name records; woff2 and module are the build targets.\n"
         "Fields are whole design px except: x_avg_char_width (font units) and\n"
-        "unicode_ranges (the four OS/2 coverage bitfields) — both computed by\n"
-        "the original strike conversion and restated here verbatim — and\n"
-        "created/modified (seconds since 1904, the sfnt epoch: the conversion's\n"
-        "own timestamps, carried so a rebuild is byte-reproducible). glyphs\n"
-        "counts the full glyph table (characters + .notdef); bump it and\n"
-        "characters together when adding an entry.\n"
+        "unicode_ranges (the four OS/2 coverage bitfields) — both computed\n"
+        "when the face was first built and restated here verbatim — and\n"
+        "created/modified (seconds since 1904, the sfnt epoch: the first\n"
+        "build's own timestamps, carried so a rebuild is byte-reproducible).\n"
+        "glyphs counts the full glyph table (characters + .notdef); bump it\n"
+        "and characters together when adding an entry.\n"
         "\n"
         f"Grid: {upm} units/em at {PX} units per design pixel — a {upm // PX}px em box\n"
         f"split ascent {asc} / descent {desc}. One design px is one system px.\n"
@@ -200,10 +201,11 @@ def emit(src, out, family, blurb, module):
         "harmlessly. A glyph that is an advance with no ink (the spaces) says\n"
         "\"(no ink)\".\n"
         "\n"
-        "Entries are in the font's glyph order — the native strike sorted by\n"
-        "codepoint, then the kit's additions in the order they were added. A\n"
-        "new glyph appends at the end. Glyph names and codepoints must both be\n"
-        "unique; the name is the glyph's label in the font's own tables.\n"
+        "Entries are in the font's glyph order — the classic character set\n"
+        "sorted by codepoint, then the kit's additions in the order they were\n"
+        "added. A new glyph appends at the end. Glyph names and codepoints\n"
+        "must both be unique; the name is the glyph's label in the font's own\n"
+        "tables.\n"
     )
     path = os.path.join(HERE, out)
     with open(path, "w") as f:

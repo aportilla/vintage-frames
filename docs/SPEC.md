@@ -9,8 +9,8 @@ design and public APIs. Every component MUST follow it.
 > pixel-for-pixel as an inline-SVG fill path in `src/glyphs.ts` (shared,
 > `currentColor`-themeable, zero raster assets) and consumed by the components
 > below — the authoritative source for these marks. A glyph is *geometry*,
-> which is why redrawing it loses nothing. A **picture** is different — redrawn
-> it is lost — and the kit ships no raster art at all: an icon is the
+> so redrawing it loses nothing. A **picture** cannot be redrawn without
+> loss, and the kit ships no raster art at all: an icon is the
 > consumer's asset, slotted through `vf-img` (the demo's 32×32 alert icon is
 > `demo/icons/alert.png`).
 
@@ -54,14 +54,14 @@ Modern requirements that we deliberately keep (accessibility over purity):
   clear of the hard shadow for the first two, the rail's full width for the
   slider. That leaves the ring to the window widgets, `vf-list-item` and
   `vf-scroll-area`. System 7 had no keyboard-focus indicator to copy — these
-  are modern affordances the kit **adds**, drawn on the 1-bit grid so they read
-  as native rather than bolted on.
+  are modern affordances the kit **adds**, drawn on the 1-bit grid so they
+  read as native.
 - Full ARIA roles + keyboard support per component.
 - Form-associated custom elements where noted (`static formAssociated = true`
   + `ElementInternals`).
-- **Forced-colors mode (Windows High Contrast) is honored, not fought.** A
-  two-color design meets the user's own two colors by re-declaring its palette
-  in them: `vfBase` remaps the tokens to system colors under
+- **Forced-colors mode (Windows High Contrast) is honored.** The kit
+  re-declares its two-color palette in the user's own system colors:
+  `vfBase` remaps the tokens to system colors under
   `@media (forced-colors: active)` (`--vf-black: CanvasText`,
   `--vf-white: Canvas`, the `Highlight` pair, `GrayText`), which survive the
   forced override and carry every token-routed paint site — borders, faces,
@@ -74,8 +74,9 @@ Modern requirements that we deliberately keep (accessibility over purity):
   two press-feedback *box-shadows* are replaced (checkbox border thickening)
   or exempted (the widget patch ring). Inverted rows are also exempted so the
   mode's text backplate can't land a Canvas slab on the highlight bar. The
-  swatch fill is exempted as *content* — the color is the thing it exists to
-  show. The scroll rails are ordinary DOM (§4 `vfScrollRail`): their arrows
+  swatch fill is exempted as *content* — the color is what the control
+  exists to show. The scroll rails are ordinary DOM (§4 `vfScrollRail`):
+  their arrows
   are `currentColor` inline SVG and follow the palette by themselves, and the
   trough repaints as the ink token masked by its own dither art (the windoid
   idiom). `npm run verify:forced-colors` asserts the rendered pixels on dark
@@ -128,7 +129,7 @@ Modern requirements that we deliberately keep (accessibility over purity):
   `ariaChecked`, `ariaDisabled`, `ariaValueNow`, `ariaKeyShortcuts`, …). This
   is also why no component needs a first-connect "do I own the role?" latch:
   an internals default is never on the host to be misread as consumer-supplied
-  on a later connect. **Consequence worth knowing:** these values do not
+  on a later connect. **Consequence:** these values do not
   reflect to attributes, so `getAttribute('role')` reads `null` on a
   `vf-list-item` whose role computes to `option` — read the accessibility tree
   (or `el.internals`-free equivalents like `matches(':state(…)')` for state).
@@ -148,11 +149,11 @@ Modern requirements that we deliberately keep (accessibility over purity):
   `aria-label` whenever the `label` property is empty (`hostLabel`).
   Those six extend `VfShadowRoleControl`; the host-role controls
   (`vf-checkbox`, `vf-radio-group`, `vf-slider`) extend the plain
-  `VfFormControl` and so never *carry* the bridge's API at all — being handed
-  an inherited `description` that renders nothing is precisely the
-  advertised-but-inert shape this split removes, and `verify:manifest` holds
-  the line (a tag whose manifest lists `description` must call
-  `renderDescription()`). `vf-button` takes the ARIA half alone
+  `VfFormControl` and so never *carry* the bridge's API at all — an inherited
+  `description` that renders nothing is the advertised-but-inert shape this
+  split removes, and `verify:manifest` enforces it (a tag whose manifest
+  lists `description` must call `renderDescription()`). `vf-button` takes
+  the ARIA half alone
   (`hostAriaLabel`): a `<button>` is not a labelable element, so no caption
   names a native one and none names this one either — its slotted content is
   the name a bridge doesn't override. A `description` property (or, when it's empty, a
@@ -175,8 +176,8 @@ Modern requirements that we deliberately keep (accessibility over purity):
   per HTML's own rules. One divergence the platform imposes: `willValidate`
   is `true` on a `vf-button type="button"`, where a native button is barred
   from constraint validation. A form-associated custom element cannot opt
-  out of the candidate set, so this is a limit to know rather than a bug to
-  file. AT wiring is `aria-required`/`aria-invalid` on the
+  out of the candidate set, so this is a platform limit. AT wiring is
+  `aria-required`/`aria-invalid` on the
   inner control (plus internals mirrors for host-role controls) — never a
   forwarded native `required`, which would put UA `:user-invalid` styling on
   the artwork. Enter's implicit submission routes through the browser's
@@ -248,8 +249,8 @@ Modern requirements that we deliberately keep (accessibility over purity):
     - A parent with no box at all falls back to the viewport, the same as no
       parent — clamping into nothing would leave the host unable to move, and
       with no positioned ancestor the initial containing block and the viewport
-      agree anyway. The warning does the teaching; the fallback keeps the
-      gesture usable meanwhile.
+      agree anyway. The warning explains the requirement; the fallback keeps
+      the gesture usable meanwhile.
 - Do NOT run repo-wide `tsc` while building an individual component group —
   sibling files may not exist yet. A later phase compiles everything.
 
@@ -344,7 +345,7 @@ after it further off the device-pixel grid, which is the single most common way
 a page fringes an otherwise-correct component (see the layout contract in
 README). Re-theme these tokens with whole numbers.
 
-**One size, honestly.** Both embedded faces are single 16-design-px masters and
+**One size.** Both embedded faces are single 16-design-px masters and
 render at exactly that size — one design px = one system px, always. "Smaller"
 is a *family* switch: System 7's fine print was Geneva 9 — the collection's
 smallest strike, which **is** the body face — so a dialog's disk-space caption
@@ -413,7 +414,7 @@ the four convertible surfaces no longer repeat in CSS at all
   independently — never laid out with CSS grid/flex/flow, whose summed track
   sizes would re-import the accumulation. The token still overrides the whole
   **tile**, not the motif; a token swapped at runtime without touching the
-  component wants a `requestUpdate()`.
+  component needs a `requestUpdate()`.
 
 The span construction stays load-bearing for the CSS-repeated underlays
 beneath the opaque kit fills and for the forced-colors mask branches (no mask
@@ -424,7 +425,7 @@ is ordinary DOM now (§4 `vfScrollRail`) and renders through `tileRaster` like
 the desktop dither: 1-bit at every scale, zoom-minted ones included. `npm run
 verify:tile` asserts zero gray on the four converted surfaces at eight
 densities — the ladder plus 1.7 and 2.3, the emulated stand-ins for Safari's
-broken rungs; `npm run verify:scrollbars` holds the trough to the same bar.
+broken rungs; `npm run verify:scrollbars` asserts the same on the trough.
 
 **`--vf-cursor` (hiding the pointer for a page-drawn cursor).** A page that
 draws its own cursor — a JS-positioned image on the system-pixel grid, which
@@ -596,8 +597,8 @@ enabled well.
       label, `vf-checkbox` its box, `vf-radio` its circle (narrowed to 9 of its
       13px, since that shape is round — §5), the three editable fields their
       well (via `vfField`'s `.vf-field-well`) and `vf-menu` its bar title.
-    - **Below the control**, under its whole box, where there is no interior to
-      give: a `vf-select`'s single line is already the label and the ▼, every
+    - **Below the control**, under its whole box, where there is no room
+      inside: a `vf-select`'s single line is already the label and the ▼, every
       pixel inside a `vf-swatch` is the color it exists to show, and a
       `vf-slider`'s only interior is the handle — which moves, so marking it
       marked the *value* rather than the control. `vf-select` always casts the
@@ -620,15 +621,15 @@ enabled well.
       play — `0px` flat, a rethemeable `--vf-shadow-offset` under `shadow` —
       rather than hard-coding one. `npm run verify:focus`.
     - `vf-menu` is the one that anchors to a **box** rather than to the
-      baseline the button uses, and it is worth the contrast: its title box is
+      baseline the button uses: its title box is
       shrunk to the face's own em (`line-height: 1`), whose bottom edge is the
       descent line, so one offset serves both a descender and the Apple menu's
       slotted 16px `vf-img`. The button's rule, one row under the baseline, is
       crossed by both.
     - The two controls that **drop open** — `vf-menu` and `vf-select` — draw the
-      rule only while closed. An open menu or list is itself where focus is, in
-      a louder language (a whole inverted cell, a dropped panel), so the rule is
-      left to the state that language can't express. Both keep the underlying
+      rule only while closed. An open menu or list already shows where focus
+      is (a whole inverted cell, a dropped panel), so the rule is reserved for
+      the closed state. Both keep the underlying
       keyboard-focus state through the open state, so the rule returns by itself
       on close.
     - The mark is **keyboard-only** everywhere, but four controls can't say so
@@ -688,9 +689,8 @@ treating Figure 5-1's labels as the erratum — both readings stay composable.
 | Utility (floating) window | `<vf-window variant="utility" movable>` |
 
 Every recipe also declares its size — `width`, and `height` where the window
-isn't content-shaped — in whole system px. Left out of the table to keep the
-parameter that *makes* each archetype legible, not because a window may go
-without one.
+isn't content-shaped — in whole system px. The sizes are omitted from the
+table only to keep the distinguishing parameters legible.
 
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
@@ -701,8 +701,8 @@ Full-bleed classic desktop container.
   size on every update), always a whole number of system px. **Pure CSS
   sizing is not supported**: the inline size wins over any stylesheet, so
   the page sets the numbers — directly or via `fitWithin` — and positions
-  the explicitly sized desktop with its own CSS, keeping its layout's
-  sub-system-pixel slack on its own side of the fence.
+  the explicitly sized desktop with its own CSS, keeping any
+  sub-system-pixel slack in the page's own layout.
   `bezel: number` (system px, default 0) — the black screen surround, the
   CRT's unlit margin between raster and case, added onto the declared screen
   on every side. The screen owns flow, an absolute window's containing block
@@ -768,7 +768,7 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
   `height: number` (**declare them both** — whole system px, so the window keeps
   its proportion to the chrome inside it at every density. A window is a fixed
   box in both axes, the way a WIND resource was: one that grows with its body is
-  one the user can neither predict nor own via the grow box. Each missing
+  one the user can neither predict nor control via the grow box. Each missing
   dimension falls back to something different — width to block layout, height to
   the content — and the window names whichever are missing, once, in the
   console), `active: boolean`
@@ -835,7 +835,7 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
     `Windows/utility-window.png` — `--vf-titlebar-height-utility` (12px = 11px
     interior + 1px rule), the `vfDots` dither instead of stripes (flush to the
     side borders — see §4 vfDots), 7×7 widgets (`top: 2px`; close `left: 7px`,
-    zoom `right: 8px` — the art really is asymmetric by that pixel) with a
+    zoom `right: 8px` — the art is asymmetric by that pixel) with a
     2px patch ring where the striped bar's is 1px (`--vf-widget-ring`,
     internal geometry: the windoid sheet clears two px of dither beside its
     widgets), and the nested zoom square shrunk so its edges land
@@ -956,8 +956,8 @@ striped title bar over a white body), the dBoxProc modal dialog box with
     16-system-px em, so the inline box spills 2 inkless system px past the
     block box and `scrollHeight` counts it), and `auto` has no way to know
     that. With `auto` the two disagreed, and a fixed info dialog whose copy
-    ends in a `vf-paragraph` rubber-banded under the wheel with no rail to
-    explain it — 6 CSS px at scale 3. `hidden` still scrolls
+    ends in a `vf-paragraph` rubber-banded under the wheel with no rail
+    shown — 6 CSS px at scale 3. `hidden` still scrolls
     programmatically, so `scrollIntoView` on a focused control is unaffected.
     `npm run verify:contract`, OVERFLOW group.
 - **Visual (`frame="plain"`):** `vfModalFrame` (§4 — 1px outer, 2px gap, 2px
@@ -986,7 +986,7 @@ icon — and pictures are the consumer's assets, never the library's (see the
 glyph-sprites note at the top of this spec). An alert box is composed from
 the shells above: `vf-dialog frame="plain"` with `label` stated (there is no
 title bar to name it), a row `vf-stack` slotting the consumer's own 32×32
-art through `vf-img`, display-face copy (an alert speaks in chrome type),
+art through `vf-img`, display-face copy (System 7 alerts used chrome type),
 and the `buttons` slot. The showcase and blog demos compose theirs from
 `demo/icons/alert.png`, and the reference page
 carries the live recipe.
@@ -1014,12 +1014,11 @@ carries the live recipe.
   returns it resolved against the base URL; the submission resolves normally.)
   `type` is read the way HTML reads an enumerated attribute — ASCII
   case-insensitively, unrecognized values falling to the default — so
-  `type="SUBMIT"` is a submit button. Two deliberate departures, both pointing
-  the same way: HTML's missing-value default is `submit` and this one is
-  `button`, because an element that silently submitted the form it sits in is
-  the wrong surprise; and the invalid-value default follows the missing one
-  rather than HTML's `submit`, so a misspelling does nothing instead of
-  submitting.
+  `type="SUBMIT"` is a submit button. Two deliberate departures: HTML's
+  missing-value default is `submit` and this one is `button`, because an
+  element that silently submits the form it sits in is surprising; and the
+  invalid-value default follows the missing one rather than HTML's `submit`,
+  so a misspelling does nothing instead of submitting.
 - **Visual:** inner `<button>`: height `var(--vf-button-height, 20px)`,
   `min-width: 64px`, `padding: 0 14px`, bold black text, font per tokens.
   The button is 20px, not the fields' 22px: both 1x sheets measure the face at
@@ -1129,7 +1128,7 @@ carries the live recipe.
   `vertical` switches to `grid-auto-flow: row` (a single column sized to the
   widest, each button stretched to it). `natural` falls back to `inline-flex`
   so the columns don't equalize.
-- **Face alignment (the point):** a `variant="default"` button reserves its ring
+- **Face alignment:** a `variant="default"` button reserves its ring
   with a 4px `--vf-button-ring-margin` margin, so an ad-hoc flex row lines up the
   *ring*, not the button. The group sets that margin to `0` and reserves the
   ring space itself as 4px (`RING_INSET`) padding, then centers the cross axis —
@@ -1290,7 +1289,7 @@ The color-swatch button: a well of solid color — a palette cell.
   moves, so the wrapper is the only box that is both the well's exact shape and
   on the corrected grid. Same wrapper in all three fields, assembled by
   `VfTextControlBase.wellClass` so the focus gate can't drift between them.
-  Two consequences worth knowing when embedding: the rule paints 2 system px
+  Two consequences when embedding: the rule paints 2 system px
   **below the host's own box** (`pointer-events: none`, so it never takes a
   click meant for what sits under it, but a tight `overflow: hidden` ancestor
   clips it), and a `width` set on `::part(input)` sizes the control without
@@ -1400,9 +1399,9 @@ The classic popup menu control ("Macintosh HD ▼").
   (border + hard shadow + blank row), not inside the face the way vf-button
   underlines its label: the pill's one line already holds the label and the ▼.
   Spans the border box (±1px off the padding box the pseudo-element sizes to).
-  **Closed only**, as `vf-menu`'s is: the open list is itself where focus is,
-  and a panel short enough not to cover the rule — a one-option menu overlays
-  the pill exactly — would leave a dashed line hanging in the open below it.
+  **Closed only**, as `vf-menu`'s is: the open list already shows where focus
+  is, and a panel short enough not to cover the rule — a one-option menu
+  overlays the pill exactly — would leave a stray dashed line below it.
   Gated on a `.vf-focus-rule` class from the page's input modality, not
   `:focus-visible` — see §4 for why this control can't use the selector either.
   `npm run verify:focus`.
@@ -1438,13 +1437,13 @@ The classic popup menu control ("Macintosh HD ▼").
     un-quantized pixel clamp loses. One deliberate exception: when the selected
     row would land *under* an arrow (the pill within one row of a screen edge
     with items beyond it), the scroll shifts by one and the overlay gives way by
-    exactly one row. Rare, geometric, and the honest resolution.
+    exactly one row. Rare, and purely geometric.
   - **The panel is as tall as the *list* asked for, not as tall as the rows it
     can currently show** — capped only by the screen band. A list that fits the
     band but not where the pill would put it keeps every slot and slides whole
     rows, while the item strip stays welded to the pill; the slots the strip no
-    longer reaches are drawn as **empty white**. That blank is not filler, it is
-    the exact travel the list rolls through: scrolling to that end lands the
+    longer reaches are drawn as **empty white**. The blank is the exact travel
+    the list rolls through: scrolling to that end lands the
     strip flush with the panel, precisely full, both arrows retired. This is
     what System 7 drew — 5 empty rows above `name` in Find File's criteria
     popup, 2 above `Athens` in Character Set's font menu. **The two directions
@@ -1508,7 +1507,7 @@ The classic popup menu control ("Macintosh HD ▼").
   pixel-exact). The art rides an exact-fill strip inside the fill (see *Tiled
   fills*), animated by `left` keyframes that advance exactly one whole 12px
   cell per cycle so the loop wraps seamlessly (no phase-jump seam), ~0.4s
-  `steps(4, end)` infinite — chunky and steppy, not smooth; each stepped value
+  `steps(4, end)` infinite — stepped, not smooth; each stepped value
   is one quantized length, so no CSS length ever carries an accumulating
   phase. Override the tile via `--vf-progress-stripes`.
 - **Behavior:** `role="progressbar"` + `aria-valuenow/min/max` (omit valuenow
@@ -1626,10 +1625,10 @@ The classic popup menu control ("Macintosh HD ▼").
     button's baseline-anchored rule is crossed by both. In `currentColor`, so
     it inverts with the title on an open menu's black cell.
   - **Closed only** (`:host(:not([open]))`). A dropped menu inverts its whole
-    cell, which says where focus is in the louder of the two languages; the
-    rule is for the state the inversion can't express — focused, not yet open —
-    and drawing both would put a second, quieter mark (in white, since it is
-    `currentColor`) under the first. The class stays on through the open state,
+    cell, which already shows where focus is; the rule marks the state the
+    inversion can't — focused but not yet open — and drawing both would put a
+    second mark (in white, since it is `currentColor`) under the first. The
+    class stays on through the open state,
     so the rule returns by itself when the menu closes and hands focus back.
   - Gated on a `.vf-focus-rule` class from the page's input modality, not
     `:focus-visible` (§4): `MenuPressController` `preventDefault`s the opening
@@ -1976,8 +1975,9 @@ the consumer's stylesheet.
   controllers cover that), and centering still can't land on a whole pixel.
 - **The content governs the box.** A column is as wide as its widest child and a
   row as tall as its tallest; children neither grow nor shrink
-  (`::slotted(*) { flex: 0 0 auto }`). System 7 boxes are the size they are — a
-  push button is as wide as its label, a popup menu hugs its widest option, a
+  (`::slotted(*) { flex: 0 0 auto }`). System 7 controls keep their natural
+  sizes — a push button is as wide as its label, a popup menu hugs its widest
+  option, a
   swatch is a fixed well — and a window is a fixed box whose overflow is clipped
   at the frame, not a layout that squeezes its controls. The stack distributes;
   it never resizes. `width: fit-content` is the same rule stated in the box
@@ -1991,7 +1991,7 @@ the consumer's stylesheet.
   px, and beat `fit-content` from the host's inline style.
 - **`place` defaults per direction** — `start` down a column (a field starts at
   the panel edge), `center` across a row (a caption sits beside its control).
-  The two directions want opposite things and always did. Both defaults are
+  The two directions call for opposite defaults. Both are
   stated as the direction's own rather than as an `auto` value, so an
   unrecognized `place` — a stale `stretch` from before this API — lands on the
   sane one instead of on flexbox's `normal`, which stretches. It is the only
@@ -2014,11 +2014,11 @@ the consumer's stylesheet.
   about **itself** too (`width`/`height: 100%`), for the parents that aren't
   stacks — a window body, a fieldset, a scroll well, a grid cell — which is where
   a panel's width enters the tree. Three components have no width of their own
-  and read wrong until filled: `vf-separator`, `vf-progress-bar` and `vf-slider`
+  and need a fill to take one: `vf-separator`, `vf-progress-bar` and `vf-slider`
   are drawn as a rule or a track that *is* the width. A light-DOM declaration
   beats a `::slotted` one, so `align-self: stretch` in page CSS remains the
   escape hatch for a cross-axis fill a direction doesn't offer.
-- **Typographically transparent** — the kit's one component that is. `vfBase`
+- **Typographically transparent.** `vfBase`
   dresses a host as chrome (body face, a 1.25 ratio line box, black,
   unselectable); the stack returns `font`, `-webkit-font-smoothing`, `color`,
   `user-select` and `text-align` to `inherit`, because wrapping content in a
@@ -2027,8 +2027,8 @@ the consumer's stylesheet.
   the `align` content attribute on any HTML element to `text-align` — "left" /
   "right" / "center" by name, anything else verbatim — so `align="end"` on an
   action row right-aligned every run of copy inside it. Renaming the attribute
-  to `place` is the fix; the reset stays as the belt, because it costs nothing
-  and keeps markup written against the old spelling harmless. The hint loses to
+  to `place` is the fix; the reset stays because it costs nothing and keeps
+  markup written against the old spelling harmless. The hint loses to
   a `:host` rule, and the page's own `text-align` still inherits through
   (`verify:stack` asserts all three). Of every attribute name the kit uses,
   `align` was the only one that carried a hint — `width`, `height`, `color`,
@@ -2059,13 +2059,12 @@ the consumer's stylesheet.
   **Events:** none.
 
 #### `vf-container` (`VfContainer`, vf-container.ts)
-A box that is nothing but its declared size: `width`/`height` in whole system
-px around a bare slot — no paint, no layout opinion. The explicit-placement
-story (src/position.ts) ends with the one line of CSS the kit can't write for
-a consumer: children placed with `top`/`left` need a positioned ancestor, and
-a region of the consumer's *own* needs `position: relative` in a stylesheet.
-This is that region as an element — a DITL's enclosing rectangle with nothing
-drawn in it.
+A plain sized box: `width`/`height` in whole system px around a bare slot —
+no paint, no layout opinion. Explicit placement (src/position.ts) leaves one
+line of CSS the kit can't write for a consumer: children placed with
+`top`/`left` need a positioned ancestor, so a region of the consumer's *own*
+needs `position: relative` in a stylesheet. This component is that region as
+an element — a DITL's enclosing rectangle with nothing drawn in it.
 - **Attributes/props:** `width` / `height`: number (whole system px, via
   `VfSized`); the `top` / `left` pair via `VfPositioned` like nearly every
   component. On a **child**: `fill-width` and `fill-height`, bare attributes
@@ -2086,9 +2085,8 @@ drawn in it.
   slotted margin cannot collapse through the top edge and push the coordinate
   origin off the host's corner, 100% so percentage fills resolve against a
   declared height. That box owns `position: relative` — the anchor for
-  `top`/`left` children — which is the point of the component. Content that
-  outgrows the declared box overflows it rather than growing it — the number
-  is the layout.
+  `top`/`left` children — the component's purpose. Content that
+  outgrows the declared box overflows it rather than growing it.
 - **Carries a `GridSnapController`.** A container's box is itself the
   consumer's coordinate system, including for non-`vf` content that cannot
   correct itself. The shadow box owns the positioning anchor and the `vf-snap`
@@ -2139,7 +2137,7 @@ The static caption: "Name:" beside a field, "Mode" over a radio group, a readout
   `min-width: calc(var(--vf-scale, 1) * 80px)` a page used to need, which only
   landed whole while it happened to bind. Written to the host's inline style via
   `sysLength`, so it stays live against the display. A caption wider than its
-  width overflows rather than reflowing the row — the number is the column.
+  width overflows rather than reflowing the row.
 - **Visual:** `display: inline-block` (so a page can give a caption column a
   shared width — contract rule 3), the **display face** by default (dialog
   captions are chrome), `line-height: var(--vf-label-line-height,
@@ -2168,8 +2166,8 @@ The static caption: "Name:" beside a field, "Mode" over a radio group, a readout
 A paragraph of copy on the kit's body face and grid.
 - **Attributes/props:** `face: 'display' | 'body'`, `dim: boolean`,
   `width`/`height: number` (whole system px, via `VfSized` — the measure the
-  copy wraps to, and a box the copy overflows rather than grows; what a
-  placed paragraph states, since it otherwise shrink-wraps its longest line).
+  copy wraps to, and a box the copy overflows rather than grows; set them on
+  a placed paragraph, which otherwise shrink-wraps to its longest line).
 - **Visual:** `display: block`, the **body face** by default,
   `line-height: var(--vf-paragraph-line-height, var(--vf-line-height, 12px))`
   — Geneva 9's native
@@ -2233,8 +2231,8 @@ grid; this makes it the thing the Finder manipulates.
   the "Macintosh HD" icon). Selected: the plate takes the `--vf-highlight` pair
   and the art takes `filter: invert(1)` — a System 7 icon is ink and opaque
   white on a transparent surround, i.e. precisely an image plus its mask, so
-  inverting flips the two and leaves the surround alone. That is the whole of
-  the classic selected appearance for 1-bit art; color art inverts into a
+  inverting flips the two and leaves the surround alone. That is the complete
+  classic selected appearance for 1-bit art; color art inverts into a
   photographic negative rather than the darkening System 7 gave it.
 - **The open ghost is derived, not shipped** (`open`; `open-art.ts`). The art
   redraws as the Finder's open-window ghost — outline held in solid black,
@@ -2288,8 +2286,8 @@ grid; this makes it the thing the Finder manipulates.
   outside, and any key call it off too — so a name drags like the art does, and
   Return opens the field at once, having no second half to wait for.
   `movable` — **not `draggable`**, which is a global HTML
-  attribute and an `HTMLElement` accessor (the `align` trap of §5 Group G in a
-  second costume) — drags via `DragController` on the `vf-window` delegate
+  attribute and an `HTMLElement` accessor (the same trap as `align`, §5
+  Group G) — drags via `DragController` on the `vf-window` delegate
   shape, plus arrow-key nudging (1 system px, 8 with Shift) because a
   pointer-only gesture is the kind of gap the kit closes (§1). Focus is the
   dashed rule below the plate, gated on `FocusRuleController` rather than
@@ -2311,7 +2309,7 @@ grid; this makes it the thing the Finder manipulates.
   same way. Divergence from APG, recorded: its listbox options share one
   roving tab stop, the kit's stay one stop each.
 - **`selectable` is what makes an icon focusable** — `movable` and `editable`
-  presuppose it, as the Finder did (you cannot move or rename what you have not
+  require it, as the Finder did (you cannot move or rename what you have not
   selected; the rename already opens only on an ALREADY-selected icon). A
   `movable`-only icon is draggable but not a tab stop, rather than a tab stop
   that announces nothing.
@@ -2326,8 +2324,8 @@ grid; this makes it the thing the Finder manipulates.
   exactly when box and child share a parity. Half a system pixel is what
   fringes 1-bit art: glyph stems smear across two device columns and go gray
   while the plate behind them stays sharp, since backgrounds are pixel-snapped
-  by the compositor and glyphs are not (a crisp plate under a grey name is the
-  signature). So the component makes the parities agree rather than correcting
+  by the compositor and glyphs are not (hence a crisp plate under a gray
+  name). So the component makes the parities agree rather than correcting
   afterwards. The cell is 32 or 16; `#measurePlate()` measures the text with a
   `Range` over the plate's own contents — the plate already carries the width
   this last computed, so reading the element back would only return it — and

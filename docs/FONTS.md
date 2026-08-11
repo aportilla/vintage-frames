@@ -30,16 +30,15 @@ pixel), scale with `--vf-scale`, and are registered with `ascent-override: 75%`
 / `descent-override: 25%` / `line-gap-override: 0%` so baselines land on whole
 pixels. Re-theme with `--vf-font-family-display` / `--vf-font-family`, plus the
 matching `--vf-font-size-display` / `--vf-font-smoothing-display` and
-`--vf-line-height-display` / `--vf-line-height` — a swapped strike states its
-family, size and line together.
+`--vf-line-height-display` / `--vf-line-height` — a swapped strike sets its
+family, size and line height together.
 
-Every strike renders at its native size, so there is no size knob: a different
-size is a different strike. Fine print is the body face at its own size
-(`face="body" dim`).
+Every strike renders at its native size; a different size is a different
+strike. Fine print is the body face at its own size (`face="body" dim`).
 
 **Your own text goes on the same faces with `vf-label` and `vf-paragraph`**,
-which state their line box in whole system pixels — 16px for the chrome face,
-12px for the body face — so a column of copy accumulates whole offsets:
+which set their line boxes in whole system pixels — 16px for the chrome face,
+12px for the body face — so a column of copy stays on whole-pixel offsets:
 
 ```html
 <vf-label for="disk">Install Location:</vf-label>

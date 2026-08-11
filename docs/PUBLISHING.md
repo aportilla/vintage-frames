@@ -1,13 +1,12 @@
-# Publishing — soup to nuts
+# Publishing
 
-First-time guide for getting this library onto npm, keeping GitHub in sync,
-and cutting versions properly. Steps that only ever happen once are marked;
-the [release routine](#the-release-routine) at the bottom is the part you'll
-come back to.
+Guide to publishing this library on npm, keeping GitHub in sync, and
+versioning. One-time steps are marked; the
+[release routine](#the-release-routine) at the bottom is the recurring part.
 
 ## Where things stand (checked 2026-08-11)
 
-- **`vintage-frames` is unclaimed on npm** — the name is yours to take.
+- **`vintage-frames` is unclaimed on npm** — the name is available.
 - **The GitHub repo is public and `main` is in sync with it**; the Pages demo
   site is live at [aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/).
 - **The publish gate is in place and passing**: `prepack` rebuilds `dist/` and
@@ -19,7 +18,7 @@ come back to.
 
 ## Gaps to close before the first publish
 
-Four things, none of them build system:
+Four items, none of them build-system work:
 
 **1. A `LICENSE` file.** ~~Create `LICENSE` at the repo root.~~ **Settled
 2026-08-11:** standard MIT text, `Copyright (c) 2026 Adam Portilla`. The
@@ -83,8 +82,8 @@ file, no machinery, `docs/` for the manual.
    npm won't let an unverified account publish.
 2. **Turn on 2FA immediately** (Account Settings → Two-Factor Authentication,
    "Authorization and writes"). Use an authenticator app or passkey. npm
-   requires 2FA for publishing in most flows now, and a hijacked package is
-   the attack this prevents — it's not optional in spirit.
+   requires 2FA for publishing in most flows, and it protects against package
+   hijacking.
 3. **Log in from this machine:**
 
    ```sh
@@ -92,7 +91,7 @@ file, no machinery, `docs/` for the manual.
    ```
 
    It opens a browser to authenticate (2FA included) and drops a token in
-   `~/.npmrc`. `npm whoami` confirms it took.
+   `~/.npmrc`. `npm whoami` confirms the login.
 
 ## The first publish
 
@@ -100,7 +99,7 @@ file, no machinery, `docs/` for the manual.
 git push origin main
 ```
 
-Then rehearse — this runs the full `prepack` gate (build + manifest
+Then do a dry run — it runs the full `prepack` gate (build + manifest
 verification) and prints exactly what would ship, without shipping:
 
 ```sh
@@ -116,13 +115,13 @@ spec. If that looks right:
 npm publish
 ```
 
-You'll be prompted for a 2FA code. That's it — `vintage-frames@0.1.0` is live
+You'll be prompted for a 2FA code. After that, `vintage-frames@0.1.0` is live
 and the name is claimed. An unscoped package like this is public by default
 (no `--access` flag needed).
 
-**Verify like a stranger would.** The npm page
+**Verify the published package.** The npm page
 (`npmjs.com/package/vintage-frames`) should render the README with the
-repo link in the sidebar. Then prove a cold install actually works:
+repo link in the sidebar. Then check a cold install works:
 
 ```sh
 mkdir /tmp/vf-smoke && cd /tmp/vf-smoke && npm init -y && npm i vintage-frames
@@ -134,15 +133,15 @@ the `import` condition, so CJS resolution correctly refuses it. No separate
 `npm i lit` either; `lit` is a dependency and comes along.)
 
 **If 0.1.0 ships broken**: you have 72 hours to `npm unpublish
-vintage-frames@0.1.0` while the package is new — but the boring fix is almost
-always better: fix it, bump to 0.1.1, publish again. Versions are cheap;
-treat every published one as immutable.
+vintage-frames@0.1.0` while the package is new, but the simpler fix is usually
+better: fix it, bump to 0.1.1, publish again. Treat every published version as
+immutable.
 
-## Versioning — the rules of the road
+## Versioning
 
 npm versions are [semver](https://semver.org): `MAJOR.MINOR.PATCH`. A
 published version can never be reused, and consumers' `^` ranges auto-accept
-anything that doesn't signal breakage — that's the whole contract.
+anything that doesn't signal breakage — that is the contract.
 
 **You're pre-1.0, which has its own convention.** `^0.x.y` ranges only accept
 *patch* updates, so while the version starts with 0:
@@ -150,13 +149,11 @@ anything that doesn't signal breakage — that's the whole contract.
 | Change | Bump | Example |
 | --- | --- | --- |
 | Bug fix, docs, internal refactor | patch | 0.1.0 → 0.1.1 |
-| New component, new attribute — additive | patch (or minor if it feels big) | 0.1.1 → 0.1.2 |
+| New component, new attribute — additive | patch (or minor for a large addition) | 0.1.1 → 0.1.2 |
 | Breaking: renamed attribute, removed export, changed default | **minor** | 0.1.2 → 0.2.0 |
 
-Ship `1.0.0` when the API is a promise you intend to keep — from then on,
-breaking changes cost a major. Given how deliberately the surface here has
-been cut down (three export entries, `place` not `align`), 1.0 is a decision
-about confidence, not readiness.
+Ship `1.0.0` when you intend to keep the API stable — from then on, breaking
+changes cost a major version.
 
 ## The release routine
 
@@ -177,30 +174,30 @@ commit you can check out. `--follow-tags` pushes the tag with the branch.
 ([github.com/aportilla/vintage-frames/releases](https://github.com/aportilla/vintage-frames/releases)
 → "Draft a new release" → pick the tag, write what changed). Do this from the
 web UI, or `gh release create vX.Y.Z --notes "…"` once you've run
-`gh auth login`. For a solo project this beats maintaining a CHANGELOG.md —
-the notes live where the tags live, and you can always generate a CHANGELOG
+`gh auth login`. For a solo project this is simpler than maintaining a
+CHANGELOG.md — the notes live with the tags, and a CHANGELOG can be generated
 from them later.
 
-## Later, when it earns its keep
+## Later
 
-Skip all of this for 0.1.0. Worth knowing it exists:
+Skip all of this for 0.1.0:
 
 - **Trusted publishing (CI publishes, no tokens).** npm supports OIDC
   "trusted publisher" config: you register the GitHub Actions workflow on the
   package's npm settings page, and that workflow can then publish with no
   long-lived token anywhere — plus a provenance badge on the npm page proving
-  the tarball came from a public build of your repo. The right move once
-  releases are frequent enough that laptop publishing chafes.
+  the tarball came from a public build of your repo. Worth setting up once
+  releases are frequent.
 - ~~**GitHub Pages for the demos.**~~ **Done 2026-08-08:**
   `vite.pages.config.ts` builds the three pages with the project-site base
   path, and `.github/workflows/pages.yml` deploys them on every push to `main`.
-  What it publishes is the thing to know: the System 7 icon crops, and —
-  since `fonts/imported/` was un-gitignored the same day, so the Character
-  Set window works on the deployed site — the whole 80-strike collection
-  under its own Apple family names, copied in by `scripts/copy-strikes.mjs`.
-  That is the distribution question below arriving in hosted form, at
-  collection scale. (The embedded faces the pages also serve are the kit's
-  own re-drawn strikes — not part of that question.)
+  Note what it publishes: the System 7 icon crops, and — since
+  `fonts/imported/` was un-gitignored the same day, so the Character Set
+  window works on the deployed site — the whole 80-strike collection under
+  its own Apple family names, copied in by `scripts/copy-strikes.mjs`. That
+  is the Apple-artwork distribution question from the checklist, in hosted
+  form and at collection scale. (The embedded faces the pages also serve are
+  the kit's own re-drawn strikes — not part of that question.)
 - **Branch protection on `main`** — matters when a second contributor shows
   up, noise before then.
 - **`npm dist-tags`** — `npm publish --tag next` publishes without moving

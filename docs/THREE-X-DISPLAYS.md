@@ -6,8 +6,8 @@ engine cannot store exactly. Solid art is unaffected, because paint snaps every
 box to the device grid on its own. Repeating fills were affected, badly —
 first fixed by spanning a size the grid can express, then converted off CSS
 repetition entirely (TILE-GRID-PLAN.md), which also closed the zoom rungs the
-span could never cover. Two residuals remain, and this document is the whole
-account of what the limit reaches and what it doesn't.
+span could never cover. Two residuals remain. This document covers what the
+limit affects and what it doesn't.
 
 ## What the limit is
 
@@ -22,8 +22,9 @@ CSS px: `4 / 3 = 1.3333…`. Every metric in the kit is
 `42.6666… CSS px`.
 
 **3. Which the engine cannot store.** Chromium lays out in `LayoutUnit`, a
-fixed-point type of **1/64 CSS px** (Gecko uses 1/60 app units — same story,
-different denominator). `42.6666… × 64 = 2730.67`, not an integer, so the used
+fixed-point type of **1/64 CSS px** (Gecko uses 1/60 app units — the same
+limit with a different denominator). `42.6666… × 64 = 2730.67`, not an
+integer, so the used
 value becomes `2730/64 = 42.65625` — one-thirty-second of a CSS pixel short of
 where the art wants to be.
 
@@ -31,9 +32,9 @@ where the art wants to be.
 device px, where the art wants 128.
 
 No CSS can avoid step 3. The exact value is a repeating fraction in binary and
-in sixty-fourths alike; there is no length literal, `calc()`, or rounding
-function that names it. The `zoom` property is not a way out either: measured,
-it quantizes identically, to the same 42.65625.
+in sixty-fourths alike; no length literal, `calc()`, or rounding function
+produces it. The `zoom` property doesn't avoid it either: measured, it
+quantizes identically, to the same 42.65625.
 
 It is not only 3×. A scale `p/q` is holdable exactly when `q` divides
 `64 × length`, and the 64 absorbs every power of two — so the densities that
@@ -81,7 +82,7 @@ convertible surfaces (desktop dither, windoid dots, swatch checker, barber
 stripes) now render their art as one whole-surface raster, or a consumer
 pattern token as a flat grid of placed tiles (`src/tile-grid.ts`,
 TILE-GRID-PLAN.md). The span stays load-bearing for the scroll trough (a
-pseudo-element can host no children), the belt-and-braces underlays, and the
+pseudo-element can host no children), the backup underlays, and the
 forced-colors masks.
 
 Desktop dither, measured over the fill's interior (`npm run verify:tile`) —
@@ -118,7 +119,7 @@ So the kit's hairlines are thin at every density above 1×, including plain
 retina. The floored border used to smear the tiled layers inset by one — a
 correctly sized CSS-repeated tile starting on a half device pixel — but the
 converted fills retired that: the kit's whole-surface raster overdraws from
-the layer's origin and is held to **zero** gray on all four surfaces at every
+the layer's origin and measures **zero** gray on all four surfaces at every
 density, fractional origin or not. What remains of it is confined to the
 consumer-token path: a *placed tile grid* inside a floored border has every
 seam on a fractional device pixel at 1.25×/1.5×/2.5×, and the engine
@@ -153,7 +154,7 @@ holdable target is **11** — four times the art's size — so at some densities
 there is no holdable answer to prefer.
 
 Rounding to the nearest whole count is monotonic by construction, which is the
-property a zoom response must have. It is what ships.
+property a zoom response needs, so that is what ships.
 
 ## How the test suite treats it
 
@@ -169,7 +170,7 @@ holdableScale(scale)        // whether the engine can store it at all
 wherever the scale is holdable — which is every scale a 1× or 2× display
 derives, at every zoom — and elsewhere fall back to asserting nothing is off by
 half a device pixel, the error that actually smears 1-bit art. `verify:tile`
-holds all four converted surfaces to a zero-gray raster at eight densities —
+asserts a zero-gray raster on all four converted surfaces at eight densities —
 the ladder plus the 1.7/2.3 broken-rung proxies — asserts the consumer tile
 grid's box geometry everywhere and its raster on the whole-origin densities,
 and keeps the trough's span arithmetic (headless Chromium paints no

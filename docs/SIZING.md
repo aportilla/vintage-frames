@@ -1,12 +1,12 @@
 # Sizing and the device-pixel grid
 
 Every component is authored in *system pixels* — the 1-bit art grid, where a
-border is 1 and a push button 20 tall. On a Macintosh that pixel was 1/72 inch,
-and reproducing it is the whole job: each component asks the display how dense
-it is and renders one system pixel as the **whole** number of device pixels
-nearest that size, `round(96/72 × devicePixelRatio)`, 96 being CSS's reference
-dpi — the only density anchor a browser exposes. On by default, no setup, and
-nested components never double-scale.
+border is 1 and a push button 20 tall. On a Macintosh that pixel was 1/72
+inch. Each component reads the display density and renders one system pixel as
+the **whole** number of device pixels nearest that size,
+`round(96/72 × devicePixelRatio)`, 96 being CSS's reference dpi — the only
+density anchor a browser exposes. On by default, no setup, and nested
+components never double-scale.
 
 | Display | true 1/72″ wants | device px per system px | `--vf-scale` |
 | --- | --- | --- | --- |
@@ -28,9 +28,9 @@ than a setting.
 
 So the CSS size follows the display: the same push button is 20px tall on a 1×
 monitor and 30px on a 2× one, while the page's own 17px copy is 17px on both.
-That is right for a full-screen faux desktop and can be wrong beside prose. Pin
-it with the inherited `--vf-scale` custom property, declared in a stylesheet
-the page loads *before* the components upgrade:
+That suits a full-screen faux desktop; next to ordinary page text you may want
+a fixed size. Pin it with the inherited `--vf-scale` custom property, declared
+in a stylesheet the page loads *before* the components upgrade:
 
 ```css
 :root { --vf-scale: 1; }  /* fixed authored size: a 20px button, 16px label */
@@ -49,9 +49,9 @@ applyScale() // → returns a cleanup function
 
 ## Zoom
 
-Zoom needs no rule of its own. Zooming multiplies device pixels per CSS pixel —
-that is what zoom *is* — so it arrives as a denser display and walks the same
-table. Chrome and Firefox report it through `devicePixelRatio`; Safari pins its
+Zoom needs no separate rule: zooming multiplies device pixels per CSS pixel,
+so it arrives as a denser display and follows the same table. Chrome and
+Firefox report it through `devicePixelRatio`; Safari pins its
 dpr to the hardware and moves `innerWidth` instead; the kit tracks both and
 `truePixelRatio()` is the number that folds them together (`src/zoom.ts`).
 
@@ -70,9 +70,9 @@ A 2× display, through the ladder:
 
 The target is a step function, so **zoom sometimes changes nothing** — 100%,
 110% and 125% all round to 3, and the art holds still while the copy around it
-grows. That is the nearest whole count being the same count; bending it to feel
-more responsive would put the art off the grid. It is monotonic by
-construction: a deeper zoom never renders the art smaller.
+grows. Making it respond at every step would put the art off the grid. The
+rounding is monotonic by construction: a deeper zoom never renders the art
+smaller.
 
 Resizing the window is never read as zoom; a viewport change counts only when
 both axes rescale together to a real zoom level. Page load is the baseline: a
@@ -177,15 +177,15 @@ interior seams to drift. A consumer pattern token (`--vf-desktop-pattern` and
 friends) renders instead as a **flat grid of placed tiles** at the token's
 documented 30- or 60-px tile geometry, each tile positioned by a single
 `calc()` quantized once, so nothing accumulates; raster token art magnifies
-nearest-neighbor too. The token contract is unchanged, with one nudge: a
-token swapped at runtime without touching the component wants a
+nearest-neighbor too. The token contract is unchanged, with one caveat: a
+token swapped at runtime without touching the component needs a
 `requestUpdate()`.
 
-The scroll trough converted with the rest when the kit took over drawing its
-scroll rails: once the one holdout (a `::-webkit-scrollbar` pseudo-element can
-host no children), it is ordinary DOM now and renders through the same
-whole-surface raster as the desktop dither — 1-bit at every scale, Safari's
-zoom-minted ones included. `npm run verify:tile` holds the four converted
-surfaces to zero gray pixels at eight densities — the ladder plus 1.7 and 2.3,
-the emulated stand-ins for Safari's broken zoom rungs — and
-`npm run verify:scrollbars` holds the trough to the same bar.
+The scroll trough — formerly the one holdout, since a `::-webkit-scrollbar`
+pseudo-element can host no children — is ordinary DOM now that the kit draws
+its own scroll rails, and renders through the same whole-surface raster as the
+desktop dither: 1-bit at every scale, Safari's zoom-minted ones included.
+`npm run verify:tile` asserts zero gray pixels on the four converted surfaces
+at eight densities — the ladder plus 1.7 and 2.3, the emulated stand-ins for
+Safari's broken zoom rungs — and `npm run verify:scrollbars` asserts the same
+on the trough.

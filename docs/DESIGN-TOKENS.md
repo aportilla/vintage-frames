@@ -32,8 +32,8 @@ Every length below is a **system pixel** value — the kit multiplies it by
 | `--vf-label-line-height` | follows the face | `vf-label`'s own line box, overriding both face tokens for captions alone |
 | `--vf-paragraph-line-height` | follows the face | `vf-paragraph`'s own line box, overriding both face tokens for paragraphs alone |
 
-A swapped strike states its family, size and line together — the three tokens
-travel as a set (see [FONTS.md](./FONTS.md)).
+A swapped strike sets its family, size and line height together — the three
+tokens travel as a set (see [FONTS.md](./FONTS.md)).
 
 ## Palette
 
@@ -60,7 +60,7 @@ pair (`CanvasText`/`Canvas`, `Highlight`/`HighlightText`) itself.
 
 A pattern token renders as a placed tile grid rather than a CSS
 `background-repeat`, so it stays 1-bit at every scale; a token swapped at
-runtime without touching the component wants a `requestUpdate()`.
+runtime without touching the component needs a `requestUpdate()`.
 
 ## Control metrics
 

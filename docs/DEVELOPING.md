@@ -52,7 +52,7 @@ parallel, prints one table and exits nonzero if any fail. A server already
 listening is reused and left running. Shared code (the page builder, `check()`,
 the tally, a PNG decoder, the accessibility-tree walker) lives in
 [`scripts/harness.mjs`](../scripts/harness.mjs); each script keeps its own
-header explaining what it defends.
+header explaining what it covers.
 
 ## Editor data & the manifest
 
@@ -62,12 +62,12 @@ formats derived from it (`editor/vscode.html-custom-data.json`,
 `editor/web-types.json`). All three are build outputs — regenerate them,
 don't hand-edit.
 
-`npm run verify:manifest` holds the manifest to the source: that every
+`npm run verify:manifest` checks the manifest against the source: that every
 registered element reached it, that every documented `@csspart`, `@slot` and
 `@fires` is real, and that a member a component *inherits* is actually wired up
 (inheritance alone puts a property in your editor's autocomplete, so a control
-that inherits `description` without rendering it looks normal from outside
-while dropping every description you hand it).
+that inherits `description` without rendering it would silently drop any
+description you set).
 
 Theming tokens are split by reach. A token only a few components read is
 documented on each of them as an `@cssprop`, generated from the SPEC §3 table —

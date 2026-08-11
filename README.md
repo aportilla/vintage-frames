@@ -80,9 +80,9 @@ no global CSS at all.
 | `vf-fieldset` | Group box with the legend punching through the border |
 | `vf-grid` | Lattice of equal cells with 1px rules. `columns`/`rows`/`cell-width`/`cell-height`; `rules` picks the pen, `frameless` drops the perimeter, `collapse` lands a cell's border on the rule |
 | `vf-stack` | Flexbox whose `gap`, `pad`, `width` and `height` are declared in system px. Content-governed; `fill-width`/`fill-height` on a child asks for more |
-| `vf-container` | A box that is nothing but its declared `width`/`height` — no paint, no layout opinion. Slot anything into it; it is the positioned ancestor children placed with `top`/`left` need, takes `top`/`left` itself, and holds its box (and so everything placed in it) on the device-pixel grid |
-| `vf-label` | Static caption in the chrome face. `for` focuses and names a control; `width` gives a caption column one whole-pixel x |
-| `vf-paragraph` | Copy in the body face on a whole-pixel line box; `width`/`height` state the box a placed paragraph wraps to |
+| `vf-container` | A plain box with a declared `width`/`height` and no paint of its own. The positioned ancestor for children placed with `top`/`left`; takes `top`/`left` itself and keeps its box (and everything placed in it) on the device-pixel grid |
+| `vf-label` | Static caption in the chrome face. `for` focuses and names a control; `width` sets a whole-pixel caption column |
+| `vf-paragraph` | Copy in the body face on a whole-pixel line box; `width`/`height` set the box the text wraps to |
 | `vf-img` | Pixel art on the grid — sizes a slotted `<img>` to one system px per image px, magnified nearest-neighbor |
 | `vf-icon` | Finder icon: art in a 32×32 or 16×16 cell with a name plate below. `selectable`, `open`, `movable`, `editable` |
 
@@ -110,28 +110,27 @@ at resolve time rather than as a 404 in production. Bundled and minified with
 | …plus `vf-checkbox.js` | 46.0 KB | 21.6 KB |
 | the root import — all 31 elements | 299 KB | 91.0 KB |
 
-The first component pays for the shared floor; each one after it costs a couple
-of KB. Cherry-picking is worth it up to roughly a third of the kit. Keep it one
-copy of one package — the scaling, grid snapping, focus modality and font
-registration are module-scoped singletons. If a second copy does get in,
-elements register through `defineElement()`, which keeps the incumbent and
-warns rather than throwing.
+The first component carries the shared code; each one after it adds a couple
+of KB, so importing by name pays off up to roughly a third of the kit. Keep it
+one copy of one package — the scaling, grid snapping, focus modality and font
+registration are module-scoped singletons. If a second copy loads anyway,
+elements register through `defineElement()`, which keeps the first
+registration and warns rather than throwing.
 
 ## Sizing
 
 Every component is authored in *system pixels* — the 1-bit art grid, where a
-border is 1 and a push button 20 tall. On a Macintosh that pixel was 1/72 inch,
-and reproducing it is the whole job: each component asks the display how dense
-it is and renders one system pixel as the whole number of device pixels nearest
-that size, so the art always lands on the device-pixel grid. On by default, no
-setup, nested components never double-scale, and page zoom is tracked and
-handled the same way.
+border is 1 and a push button 20 tall. On a Macintosh that pixel was 1/72 inch.
+Each component reads the display density and renders one system pixel as the
+whole number of device pixels nearest that size, so the art always lands on
+the device-pixel grid. On by default, no setup, nested components never
+double-scale, and page zoom is tracked and handled the same way.
 
 So the CSS size follows the display: the same push button is 20px tall on a 1×
 monitor and 30px on a 2× one, while the page's own 17px copy is 17px on both.
-That is right for a full-screen faux desktop and can be wrong beside prose. Pin
-it with the inherited `--vf-scale` custom property, declared in a stylesheet
-the page loads *before* the components upgrade:
+That suits a full-screen faux desktop; next to ordinary page text you may want
+a fixed size. Pin it with the inherited `--vf-scale` custom property, declared
+in a stylesheet the page loads *before* the components upgrade:
 
 ```css
 :root { --vf-scale: 1; }  /* fixed authored size: a 20px button, 16px label */
@@ -150,8 +149,8 @@ applyGridSnap() // every component cancels a fractional offset your layout hands
 ```
 
 [docs/SIZING.md](https://github.com/aportilla/vintage-frames/blob/main/docs/SIZING.md)
-has the whole story: the density ladder, zoom, and the three rules that keep a
-page on the device-pixel grid.
+covers the density ladder, zoom, and the three rules that keep a page on the
+device-pixel grid.
 
 ## Layout
 
@@ -191,12 +190,12 @@ kit's own artwork — re-drawn strikes in the style of Chicago 12pt and Geneva
 in the same idiom (`€`, arrows, `⌘ ⇧ ⌥ ⌃`, fractions, accents) so modern copy
 doesn't fall back mid-sentence. Set your own text in them with `vf-label` and
 `vf-paragraph`, whose line boxes sit on whole system pixels; every strike
-renders at its native size, so there is no size knob.
+renders at its native size.
 
 ## The cursor
 
-The chrome states the classic cursors as ordinary CSS. A faux desktop can go
-further and draw the pointer itself:
+The chrome sets the classic cursors with ordinary CSS. A faux desktop can also
+draw the pointer itself:
 
 ```ts
 import { applyCursor } from 'vintage-frames'
@@ -206,8 +205,8 @@ applyCursor() // → returns a cleanup function that restores the native pointer
 
 That replaces the native pointer with the embedded System 7 set — arrow,
 I-beam, crosshair and wristwatch as pixel art locked to the system-pixel
-lattice, the I-beam and crosshair drawn with the classic XOR pen. Every kind
-takes your own art.
+lattice, the I-beam and crosshair drawn with the classic XOR pen. Each kind
+accepts custom art.
 
 ## Accessibility
 
@@ -222,8 +221,8 @@ matches on the host, and `vf-button` submits like a native button.
 ## Editor support
 
 The package ships a [custom elements manifest](https://github.com/webcomponents/custom-elements-manifest)
-and the two editor formats derived from it. Point your editor at the one it
-speaks and `<vf-` completes, with each attribute's doc comment on hover:
+and the two editor formats derived from it. Point your editor at the matching
+format and `<vf-` completes, with each attribute's doc comment on hover:
 
 ```jsonc
 // VS Code — .vscode/settings.json

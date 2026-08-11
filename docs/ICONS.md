@@ -5,9 +5,9 @@ arrows, a radio's ring — drawn as inline SVG on integer coordinates
 (`glyphs.ts`). The kit ships no raster content; the one raster it carries is
 the embedded cursor set, base64 inside the module like the fonts.
 
-Pictures are yours. Slot them through `vf-img` (or `vf-icon`'s and
-`vf-list-item`'s icon slots) and the graphic stays a real `<img>` in your own
-DOM — `alt`, `srcset`, loading behavior and asset URLs intact — magnified
+Pictures come from your own markup. Slot them through `vf-img` (or `vf-icon`'s
+and `vf-list-item`'s icon slots) and the graphic stays a real `<img>` in your
+own DOM — `alt`, `srcset`, loading behavior and asset URLs intact — magnified
 nearest-neighbor at one image pixel per system pixel.
 
 ## `vf-icon`
@@ -25,11 +25,11 @@ and a caption that select, move and rename together.
 
 - **Two slots.** `large` is the 32×32 `ICN#`, `small` the 16×16 `ics#`; `size`
   picks which one paints and the cell it paints in. The cell is held whether or
-  not there is art for it, so a row of icons keeps one baseline. Both files
-  fetch even though one paints — pay it with data URIs, or slot only the size
-  that view uses.
+  not there is art for it, so a row of icons keeps one baseline. Both files are
+  fetched even though only one paints — use data URIs, or slot only the size
+  the view uses.
 - **`selectable`** makes the icon focusable, so `movable` and `editable`
-  presuppose it. Clicking selects, Shift adds, a press anywhere else clears —
+  require it. Clicking selects, Shift adds, a press anywhere else clears —
   single selection with no container. Selection inverts the art, since 1-bit
   icon art is ink and opaque white on a transparent surround.
 - **Role follows the container.** Unowned, a `selectable` icon is `role="img"`

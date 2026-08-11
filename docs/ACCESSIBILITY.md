@@ -1,15 +1,16 @@
 # Accessibility
 
-**Keyboard focus** is drawn in the 1-bit vocabulary rather than left to the
+**Keyboard focus** is drawn in the 1-bit idiom rather than left to the
 browser's ring. Where a control can carry the mark itself it does, as a 1px
 dashed rule on the system-pixel grid (`vfFocusUnderline`) — inside the control
 under the ink it marks (`vf-button` its label, `vf-checkbox` its box, `vf-radio`
 its circle, the three fields their well, `vf-menu` its bar title), or below the
-whole box where there is no interior to give (`vf-select` clear of its shadow,
-`vf-swatch` clear of whatever it casts, `vf-slider` under the full rail so the
-mark stays put as the handle travels). Only the controls with no face to draw
-on — a window's close and zoom boxes, a list row, a scroll viewport — keep the
-dotted ring. `vf-menu` and `vf-select` mark only while closed.
+whole box where there is no room inside (`vf-select` clear of its shadow,
+`vf-swatch` clear of its shadow when it casts one, `vf-slider` under the full
+rail so the mark stays put as the handle travels). Only the controls with no
+face to draw on — a window's close and zoom boxes, a list row, a scroll
+viewport — keep the dotted ring. `vf-menu` and `vf-select` mark only while
+closed.
 
 Either way it is **keyboard-only**: a mouse click never draws it. The four
 controls where `:focus-visible` is true after a pointer — the three fields, and
@@ -36,7 +37,8 @@ carries the validation error while there is one. The controls whose role sits
 on the host (`vf-checkbox`, `vf-radio-group`, `vf-slider`) have neither: your
 own `aria-describedby` reaches them natively.
 
-`vf-button` is a full form citizen: `type="submit"`/`"reset"` (with
+`vf-button` participates in forms like a native button:
+`type="submit"`/`"reset"` (with
 `formaction`, `formmethod`, `formtarget`, `formenctype`, `formnovalidate`),
 `name`/`value` in the submission, and a submission that runs at the *end* of
 the click's propagation so `preventDefault()` cancels it. One platform limit: a

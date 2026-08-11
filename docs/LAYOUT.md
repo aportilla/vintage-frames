@@ -51,7 +51,7 @@ and `fill-height` is the other way round. A fill with nothing to take is inert,
 not an error, and two children filling the main axis come out equal. A stack
 reads both attributes about *itself* too, for parents that aren't stacks.
 Three components have no width of their own (`vf-separator`,
-`vf-progress-bar`, `vf-slider`), so those read wrong until filled; for a
+`vf-progress-bar`, `vf-slider`), so they need a fill to take a width; for a
 cross-axis fill a direction doesn't offer, `align-self: stretch` in your own
 stylesheet wins.
 
@@ -86,13 +86,11 @@ placed layout scales with the display and sits on the device-pixel grid.
 `right`/`bottom` are released and `margin` zeroed while placed; removing both
 attributes returns the element to flow with every inline declaration unwound.
 
-**Where (0,0) is** is CSS's nearest positioned ancestor, and every kit
-container is one: the desktop's raster, a window's content region, a dialog's
-content area, a stack's box, a fieldset just inside its border, a scroll area's
-scrolled plane. In a parent of your own, add `position: relative` — the one
-line of CSS this feature can't write for you — or slot the children into a
-`vf-container`, a box that is nothing but its declared size, made for exactly
-this.
+**(0,0)** is CSS's nearest positioned ancestor, and every kit container is
+one: the desktop's raster, a window's content region, a dialog's content area,
+a stack's box, a fieldset just inside its border, a scroll area's scrolled
+plane. In a parent of your own, add `position: relative`, or slot the children
+into a `vf-container` — a plain sized box made for this.
 
 - **Four elements don't take the pair:** `vf-option`, `vf-menu-item`,
   `vf-list-item` and `vf-menu` are owned rows of a managing container.
@@ -168,5 +166,5 @@ There is no alert component. An alert is the plain frame plus your own icon art:
 </vf-dialog>
 ```
 
-`label` is stated because the plain frame has no title bar to take a name from,
-and the copy takes the chrome face because an alert speaks in chrome type.
+`label` is set because the plain frame has no title bar to take a name from;
+the copy uses the chrome face, as System 7 alerts did.

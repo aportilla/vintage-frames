@@ -25,9 +25,9 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
  * element whose grid-snap offset the field, the frame and the rule ride as
  * one.
  *
- * The vertical scroll rail is a permanent System 7 placeholder: an empty white
- * channel sits in the field even when the text fits, filling in with the
- * dither/thumb/arrows only once the content overflows (driven by
+ * The vertical scroll rail is a permanent System 7 placeholder: arrows on an
+ * empty white channel sit in the field even when the text fits, the dither
+ * and thumb filling in only once the content overflows (driven by
  * {@link ScrollStateController}). The rail is the shared `vfScrollRail`
  * subtree — the kit-drawn rail every scroll surface wears — synced to the
  * textarea's own native scrolling by {@link ScrollRailController}; the native

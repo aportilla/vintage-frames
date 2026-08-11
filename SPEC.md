@@ -567,9 +567,10 @@ enabled well.
   proportional; whole-system-px travel); the 25% dot-dither trough rendered as
   a whole-surface `tileRaster` (1-bit at every scale, zoom included) on
   `var(--vf-scrollbar-track)`. States key off the attributes
-  `ScrollStateController` writes — idle axis and inactive window blank to the
-  bare white channel, a degenerate track drops the thumb, then everything (the
-  Control Manager's decision table). The rail subtree is `aria-hidden` and
+  `ScrollStateController` writes — an idle axis keeps its arrows (drawn but
+  inert) and drops the dither and thumb, an inactive window blanks both axes
+  to the bare white channel, arrows included, a degenerate track drops the
+  thumb, then everything (the Control Manager's decision table). The rail subtree is `aria-hidden` and
   pointer-only; scrolling's keyboard/AT contract stays on the viewport. Every
   engine renders the same rail — no Firefox fallback — and it is
   pixel-asserted headless (`npm run verify:scrollbars`), which the
@@ -1316,8 +1317,8 @@ Wrapped entry text sits on the display face's native line
 the single-line well's 20px box is control geometry, the 22px field trace, and
 stays; a multi-line well is typesetting.
 Reserves a permanent System 7 vertical scroll rail (the shared "always-a-rail"
-behavior — see vf-scroll-area): an empty white channel until the text overflows,
-then the dither/thumb/arrows fill in. The rail is the drawn `vfScrollRail`
+behavior — see vf-scroll-area): arrows on an empty white channel until the text
+overflows, then the dither and thumb fill in. The rail is the drawn `vfScrollRail`
 subtree (§4), a shadow sibling of the `<textarea>` synced to its native
 scrolling by `ScrollRailController`; the textarea carries the `vf-scroll`
 class (native bar hidden), and both controllers re-measure on each keystroke
@@ -1746,8 +1747,8 @@ Classic list box.
   components, so their origins are the page's grid contract); default
   `max-height: 200px` overridable via `--vf-list-max-height` (the frame adds
   its 2px on top). Reserves a permanent vertical scroll rail (the
-  "always-a-rail" behavior — see vf-scroll-area): an empty white channel until
-  the rows overflow.
+  "always-a-rail" behavior — see vf-scroll-area): arrows on an empty white
+  channel until the rows overflow.
 - **Behavior:** `role="listbox"` (+`aria-multiselectable`, + `aria-label` from
   `label`), items `role="option"`. A disabled list pushes `aria-disabled` down
   onto every row (as `vf-radio-group` does), so AT is never shown enabled-looking
@@ -1806,12 +1807,15 @@ A container whose scrollbars look like System 7.
   overlay contortion (WebKit quantized native scrollbar rects to whole CSS
   px) and the Firefox `scrollbar-color` fallback are all retired.
 - **Always-a-rail behavior:** each *reserved* axis (per `axis`) renders its
-  rail element as a permanent placeholder — an empty white channel (dither
-  off, no thumb/arrows) — until the content overflows that axis, when the
-  dither/thumb/arrows fill in. `ScrollStateController` (`src/scroll-state.ts`)
-  measures both axes and writes `data-overflow-x` / `data-overflow-y`
-  (`"true"` / `"false"`) on the scroll element; the recipe keys the
-  dither/thumb/arrows off those attributes. The unreserved axis still scrolls
+  rail element as a permanent placeholder — arrow buttons on an empty white
+  channel (dither off, no thumb; System 7 drew the arrows on any bar in an
+  active window, and a scroller outside a window always counts as active) —
+  until the content overflows that axis, when the dither and thumb fill in
+  and the arrows go live (an idle axis's arrows are drawn but inert — the
+  press guard in `ScrollRailController` skips them). `ScrollStateController`
+  (`src/scroll-state.ts`) measures both axes and writes `data-overflow-x` /
+  `data-overflow-y` (`"true"` / `"false"`) on the scroll element; the recipe
+  keys the dither and thumb off those attributes. The unreserved axis still scrolls
   natively (wheel, keyboard) but draws no rail. Shared by vf-list and
   vf-text-area; a future `@container scroll-state(scrollable)` query could
   replace the JS for slotted-content components.
@@ -1822,7 +1826,8 @@ A container whose scrollbars look like System 7.
     watches its reflected `active` attribute, and toggles a presence-only
     `data-window-inactive` on the scroll element. While present, the recipe
     empties dither/thumb/arrows on BOTH axes regardless of overflow — the
-    idle-rail placeholder, exactly as System 7 blanked a deactivated window's
+    bare channel, arrows included (unlike the idle rail, which keeps them),
+    exactly as System 7 blanked a deactivated window's
     bars (its List Manager/TextEdit deactivated in-window scrollbars too).
     No `vf-window` ancestor → the attribute never appears: dialogs have no
     inactive state and a bare scroll component always draws live. Like the

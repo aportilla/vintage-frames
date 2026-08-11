@@ -26,8 +26,8 @@ const sameValues = (a: readonly string[], b: readonly string[]): boolean =>
  * kit-drawn System 7 scroll rail (dither trough, boxed arrow buttons, fixed
  * thumb — the shared `vfScrollRail` subtree, synced to the native scrolling
  * by {@link ScrollRailController}). The vertical rail is a permanent
- * placeholder — an empty white channel when the rows fit, filling in with
- * dither/thumb/arrows only on overflow (driven by
+ * placeholder — arrows on an empty white channel when the rows fit, the
+ * dither and thumb filling in only on overflow (driven by
  * {@link ScrollStateController}). Selection inverts rows. Supports single and
  * multiple selection, roving tabindex, arrow-key navigation, and classic Finder
  * first-letter type-ahead.

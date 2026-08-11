@@ -253,9 +253,12 @@ export class ScrollRailController implements ReactiveController {
     const scroller = this.opts.getScroll()
     if (!scroller) return
     const axis = railAxis(rail)
-    // A blanked rail is not interactive: idle axis, inactive window, or the
-    // bare degenerate rail (the thumbless degenerate keeps its arrows and
-    // trough working, as the classic control did).
+    // A rail with nothing to drive is not interactive: an idle axis draws
+    // its arrows (an active window's no-overflow bar keeps them) but a press
+    // neither hilites nor scrolls — there is no overflow to move; an
+    // inactive window's blanked rail and the bare degenerate rail are dead
+    // too (the thumbless degenerate keeps its arrows and trough working, as
+    // the classic control did).
     const overflowAttr =
       axis === 'vertical' ? 'data-overflow-y' : 'data-overflow-x'
     if (scroller.getAttribute(overflowAttr) === 'false') return

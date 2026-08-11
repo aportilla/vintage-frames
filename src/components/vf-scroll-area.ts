@@ -21,9 +21,10 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
  * paging, arrow stepping with auto-repeat). Every engine renders the same
  * rail — there is no Firefox fallback skin anymore.
  *
- * Each reserved scroll rail is a permanent placeholder: an empty white channel
- * sits in the gutter even when the content fits, filling in with the
- * dither/thumb/arrows only once that axis overflows (System 7 behavior, driven
+ * Each reserved scroll rail is a permanent placeholder: arrow buttons on an
+ * empty white channel sit in the gutter even when the content fits, the
+ * dither and thumb filling in only once that axis overflows (System 7 drew
+ * an active window's no-overflow bar as arrows on a bare channel; driven
  * by {@link ScrollStateController}). Which rails are reserved is set by
  * {@link axis}; when both are reserved the bottom-right corner joins them.
  *

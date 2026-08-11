@@ -55,10 +55,12 @@ const TROUGH_TILE = tileImage(
  * States, keyed off the attributes `ScrollStateController` writes on the
  * scroller (now styling real elements, so there is no scrollbar-pseudo
  * re-resolution caveat in any engine):
- * - `data-overflow-{x,y}="false"` — idle rail: white channel, divider stays,
- *   no dither, no thumb, no arrows;
- * - `data-window-inactive` — both axes blanked to the idle rail regardless
- *   of overflow (the HIG's inactive-window treatment);
+ * - `data-overflow-{x,y}="false"` — idle rail: arrows stay drawn on a white
+ *   channel, divider stays, no dither, no thumb — System 7 drew an active
+ *   window's no-overflow bar as arrows on an empty channel, and a scroller
+ *   outside a window always counts as active;
+ * - `data-window-inactive` — both axes blanked to the bare rail, arrows
+ *   included, regardless of overflow (the HIG's inactive-window treatment);
  * - `data-degenerate` (written by `ScrollRailController` when the track is
  *   too short) — `"thumb"` drops the thumb, `"rail"` drops the trough and
  *   arrows too, as the classic Control Manager did.
@@ -112,9 +114,9 @@ export const vfScrollRail = css`
       calc(var(--vf-scale, 1) * 15px);
     border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
   }
-  /* Explicit placement, so hiding the arrows (idle/degenerate states) never
-     reflows the track into an arrow cell — its box holds still through every
-     state flip. */
+  /* Explicit placement, so hiding the arrows (inactive-window/degenerate
+     states) never reflows the track into an arrow cell — its box holds still
+     through every state flip. */
   .vf-rail--vertical .vf-rail-button--decrement {
     grid-row: 1;
   }
@@ -234,21 +236,21 @@ export const vfScrollRail = css`
   }
 
   /* ── Always-a-rail (driven by ScrollStateController) ─────────────────────
-     Idle axis: the reserved rail stays as a permanent placeholder — white
-     channel, divider intact — and only fills in (dither, thumb, arrows) once
-     that axis overflows. */
+     Idle axis: the reserved rail keeps its arrow buttons — System 7 drew
+     them on any bar in an active window — while the dither and thumb appear
+     only once that axis actually overflows, leaving arrows on a bare white
+     channel. The drawn arrows are inert (ScrollRailController's press guard):
+     there is nothing to scroll. */
   .vf-scroll[data-overflow-y='false'] ~ .vf-rail--vertical .vf-rail-trough,
   .vf-scroll[data-overflow-y='false'] ~ .vf-rail--vertical .vf-rail-thumb,
-  .vf-scroll[data-overflow-y='false'] ~ .vf-rail--vertical .vf-rail-button,
   .vf-scroll[data-overflow-x='false'] ~ .vf-rail--horizontal .vf-rail-trough,
-  .vf-scroll[data-overflow-x='false'] ~ .vf-rail--horizontal .vf-rail-thumb,
-  .vf-scroll[data-overflow-x='false'] ~ .vf-rail--horizontal .vf-rail-button {
+  .vf-scroll[data-overflow-x='false'] ~ .vf-rail--horizontal .vf-rail-thumb {
     display: none;
   }
-  /* Inactive window: both axes blanked to the idle rail regardless of
-     overflow — a window that isn't frontmost must not display interactive
-     scroll UX (HIG; System 7 blanked deactivated scrollbars to the empty
-     rail). */
+  /* Inactive window: both axes blanked to the bare rail — arrows included,
+     unlike the idle state — regardless of overflow: a window that isn't
+     frontmost must not display interactive scroll UX (HIG; System 7 blanked
+     deactivated scrollbars to the empty rail). */
   .vf-scroll[data-window-inactive] ~ .vf-rail .vf-rail-trough,
   .vf-scroll[data-window-inactive] ~ .vf-rail .vf-rail-thumb,
   .vf-scroll[data-window-inactive] ~ .vf-rail .vf-rail-button {

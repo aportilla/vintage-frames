@@ -20,8 +20,9 @@
  *    DOM rail the defect class is unrepresentable, and this holds it so.
  *
  * 3. ALWAYS-A-RAIL states, previously unverifiable headless: the idle rail
- *    (white channel + divider, no dither/thumb/arrows) and the
- *    inactive-window blanking of both axes.
+ *    (arrows drawn on a bare white channel + divider, no dither/thumb, and
+ *    the drawn arrows inert — an active window's no-overflow bar keeps its
+ *    arrows) and the inactive-window blanking of both axes, arrows included.
  *
  * 4. THE FIXED THUMB: 16 system px regardless of content length (System 7's
  *    thumb is a box, not a proportion), whole-system-px travel, and the
@@ -303,17 +304,25 @@ for (const dpr of [1, 2, 3]) {
     `${travelDev.toFixed(3)} device px (n = ${n})`
   )
 
-  // Idle rail: white channel, divider stays, no arrows, no dither, no thumb.
+  // Idle rail: arrows stay drawn (active context), divider stays, and the
+  // channel between them is bare — no dither, no thumb.
   const idle = decodePng(await page.locator('#idle').screenshot())
   const idleDividerX = findInk(idle, 100 * n, railLeft - 2)
   const idleRow = (sysY) =>
     sig(rowRuns(idle, sysY * n, idleDividerX, W * n))
   const bare = `b${bd} w${14 * n} b${bd}`
   check(
-    'idle rail: bare white channel on its traced rows',
-    runsAgree(idleRow(8), bare, tol) &&
-      runsAgree(idleRow(24), bare, tol) &&
-      runsAgree(idleRow(100), bare, tol),
+    'idle rail keeps its arrows (decrement ink on its traced row)',
+    runsAgree(
+      idleRow(8),
+      `b${bd} w${n} b${4 * n} w${4 * n} b${4 * n} w${n} b${bd}`,
+      tol
+    ),
+    idleRow(8)
+  )
+  check(
+    'idle rail: bare white channel on its track rows',
+    runsAgree(idleRow(24), bare, tol) && runsAgree(idleRow(100), bare, tol),
     idleRow(100)
   )
   let idleDivider = true
@@ -615,7 +624,8 @@ for (const dpr of [1, 2, 3]) {
 {
   console.log('\ninteractions (dpr 1)')
   const page = await build(
-    `<vf-scroll-area id="sa" label="Notes" style="position:absolute;top:0;left:0;${sysSize}">${TALL}</vf-scroll-area>`,
+    `<vf-scroll-area id="sa" label="Notes" style="position:absolute;top:0;left:0;${sysSize}">${TALL}</vf-scroll-area>
+     <vf-scroll-area id="idle" style="position:absolute;top:0;left:600px;${sysSize}">${SHORT}</vf-scroll-area>`,
     1
   )
   const scrollTop = () =>
@@ -745,6 +755,30 @@ for (const dpr of [1, 2, 3]) {
       ) ?? false
   )
   check('rail press leaves focus where it was', focusHeld)
+
+  // The idle rail's arrows are drawn (active context) but inert: a press
+  // neither hilites the glyph nor scrolls — there is nothing to drive.
+  const idleR = await railRects(page, '#idle')
+  await page.mouse.move(
+    idleR.rail.left + idleR.rail.width / 2,
+    idleR.host.top + 8
+  )
+  await page.mouse.down()
+  const idleState = await page.evaluate(() => {
+    const btn = document
+      .querySelector('#idle')
+      .shadowRoot.querySelector('.vf-rail-button--decrement')
+    return {
+      drawn: getComputedStyle(btn).display !== 'none',
+      pressed: btn.hasAttribute('data-pressed'),
+    }
+  })
+  await page.mouse.up()
+  check(
+    'idle arrows are drawn but inert (no pressed state)',
+    idleState.drawn && !idleState.pressed,
+    JSON.stringify(idleState)
+  )
 
   /* ── 5. a11y: rail invisible to AT, viewport contract intact ──────────── */
   const cdp = await ax(page)

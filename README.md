@@ -95,7 +95,7 @@ page with snapping off, for comparison.
 | `vf-slider` | Horizontal 1-bit slider: solid fill up to a shield-shaped handle |
 | `vf-menu-bar`, `vf-menu`, `vf-menu-item` | Pull-down menus with ⌘ shortcuts, selection blink, press-drag-release. `rounded` masks the bar's top corners |
 | `vf-list`, `vf-list-item` | List box: inverted selection, permanent scroll rail, first-letter type-ahead, `multiple`. Each row takes a leading graphic in its `icon` slot |
-| `vf-scroll-area` | Container with System 7 scrollbars. Reserves the rail per `axis`, filling it in only on overflow |
+| `vf-scroll-area` | Container with System 7 scrollbars. Reserves the rail per `axis` — arrows always drawn, trough and thumb filling in on overflow |
 | `vf-fieldset` | Group box with the legend punching through the border |
 | `vf-grid` | Lattice of equal cells with 1px rules. `columns`/`rows`/`cell-width`/`cell-height`; `rules` picks the pen, `frameless` drops the perimeter, `collapse` lands a cell's border on the rule |
 | `vf-stack` | Flexbox whose `gap`, `pad`, `width` and `height` are declared in system px. Content-governed; `fill-width`/`fill-height` on a child asks for more |

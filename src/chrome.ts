@@ -116,14 +116,19 @@ const LAYOUT_UNIT_CSS_PX = 1 / 64
  * `left` on the patch (through layout, not transform — a fractional
  * transform leaves a composite-time fringe; see grid-snap.ts).
  *
- * The offset snaps to the placement lattice ({@link systemPxQuantum} system
+ * The offset lands on the placement lattice ({@link systemPxQuantum} system
  * px — whole CSS px at dpr 2, where engines re-quantize sub-CSS-px paint per
  * box), the same lattice drags and dialog centering land on, so bar origin
- * plus offset stays on it absolutely. The exact-half remainder — the parity
- * case itself — is settled by a floor biased just under half a step: the
- * title gives QuickDraw's `div 2` its leftward half pixel, and measurement
- * noise (rects arrive quantized to 1/64 CSS px) can't flip the choice
- * between sweeps and jiggle the title.
+ * plus offset stays on it absolutely. The ideal position is derived in whole
+ * system px rather than snapped from the measured one: both widths are whole
+ * system px by construction (bitmap advances plus whole-px padding, in a
+ * whole-px bar), so rounding the measured widths recovers exact integers —
+ * the 1/64-CSS-px rect noise sits near an integer, never near a tie — and
+ * the centered lattice point follows by integer arithmetic, the exact-half
+ * parity case going left as QuickDraw's `div 2` did. A consumer-swapped
+ * vector face breaks the whole-px premise, but the rounded widths still put
+ * the patch on the lattice within half a step of true center, which is all
+ * ungridded ink needs.
  *
  * Re-measures after every host render (heading, size and scale changes all
  * re-render) and on any resize of the bar or patch — which is also how a
@@ -199,13 +204,22 @@ export class TitleCenterController implements ReactiveController {
     }
 
     // The flex-computed offset, with our own correction folded back out.
-    const natural = patch.left - bar.getBoundingClientRect().left - this.applied
-    const step = systemPxQuantum(this.host) * effectiveScale(this.host)
-    // Floor at 0.45, not round at 0.5: the parity fault measures EXACTLY half
-    // a step, where any unbiased rounding would flip on sub-1/64-px noise.
-    const snapped = Math.floor(natural / step + 0.45) * step
+    const barRect = bar.getBoundingClientRect()
+    const natural = patch.left - barRect.left - this.applied
+    // Both widths are whole system px by construction, so rounding recovers
+    // the exact integers — the rect noise sits near an integer, never near a
+    // tie — and the center is settled in integer arithmetic, not by rounding
+    // a measured position that sits exactly on a half.
+    const cssPerSys = effectiveScale(this.host)
+    const patchSys = Math.round(patch.width / cssPerSys)
+    const barSys = Math.round(barRect.width / cssPerSys)
+    const q = systemPxQuantum(this.host)
+    // The lattice point nearest the true center (barSys − patchSys) / 2, an
+    // exact-half tie — the parity fault itself — going left, QuickDraw's
+    // `div 2`: round-half-down of d/2q is ceil((d − q)/2q).
+    const ideal = Math.ceil((barSys - patchSys - q) / (2 * q)) * q * cssPerSys
     const next =
-      Math.round((snapped - natural) / LAYOUT_UNIT_CSS_PX) * LAYOUT_UNIT_CSS_PX
+      Math.round((ideal - natural) / LAYOUT_UNIT_CSS_PX) * LAYOUT_UNIT_CSS_PX
 
     const dpr = truePixelRatio() || 1
     if (Math.abs(next - this.applied) * dpr < DEADBAND_DEVICE_PX) return

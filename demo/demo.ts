@@ -220,7 +220,6 @@ function spawnWindow(): void {
   centerWindow(win, ((untitledCount - 1) % 7) * 24)
 
   const note = new VfParagraph()
-  note.className = 'untitled-note'
   note.textContent =
     'A fresh window. Drag it by its title bar; click any window to bring it to the front.'
   win.append(note)

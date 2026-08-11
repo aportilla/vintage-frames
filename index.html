@@ -69,27 +69,45 @@
           <vf-stack direction="row" gap="32" place="start">
             <vf-stack gap="8">
               <vf-label id="format-mode-label">Mode</vf-label>
+              <!-- Each option is a row stack: the radio fills, so its ⌘ key
+                   caption lands on the column's right edge — the group's
+                   right-aligned shortcut column, said in stacks. The group
+                   doesn't stack wrapped radios (only directly slotted ones),
+                   so the column restates its 6px rhythm. The key rides
+                   outside the radio's label: a shortcut is a hint, not part
+                   of the option's name. -->
               <vf-radio-group
                 value="hierarchical"
                 name="mode"
                 aria-labelledby="format-mode-label"
               >
-                <vf-radio value="hierarchical"
-                  >Hierarchical<span class="key">⌘H</span></vf-radio
-                >
-                <vf-radio value="by-level"
-                  >By Level<span class="key">⌘L</span></vf-radio
-                >
-                <vf-radio value="source-profile" disabled
-                  >Source Format Profile</vf-radio
-                >
-                <vf-radio value="dont-reorganize"
-                  >Don’t Reorganize<span class="key">⌘R</span></vf-radio
-                >
+                <vf-stack gap="6">
+                  <vf-stack fill-width direction="row" gap="16">
+                    <vf-radio fill-width value="hierarchical"
+                      >Hierarchical</vf-radio
+                    >
+                    <vf-label>⌘H</vf-label>
+                  </vf-stack>
+                  <vf-stack fill-width direction="row" gap="16">
+                    <vf-radio fill-width value="by-level">By Level</vf-radio>
+                    <vf-label>⌘L</vf-label>
+                  </vf-stack>
+                  <vf-radio fill-width value="source-profile" disabled
+                    >Source Format Profile</vf-radio
+                  >
+                  <vf-stack fill-width direction="row" gap="16">
+                    <vf-radio fill-width value="dont-reorganize"
+                      >Don’t Reorganize</vf-radio
+                    >
+                    <vf-label>⌘R</vf-label>
+                  </vf-stack>
+                </vf-stack>
               </vf-radio-group>
-              <vf-checkbox disabled class="format-selection"
-                >Selection Only</vf-checkbox
-              >
+              <!-- pad is the 12px this box used to carry as a margin-top, on
+                   top of the column's own 8px gap. -->
+              <vf-stack pad="12 0 0">
+                <vf-checkbox disabled>Selection Only</vf-checkbox>
+              </vf-stack>
             </vf-stack>
             <vf-stack gap="8">
               <vf-label>Options</vf-label>
@@ -112,13 +130,12 @@
       </vf-window>
 
       <!-- ================= "Controls" kitchen-sink window =============== -->
-      <vf-window id="win-controls" heading="Controls" movable resizable hidden width="590" height="560">
+      <vf-window id="win-controls" heading="Controls" movable hidden width="590" height="513">
         <!-- Two columns as a row of stacks with a stated split (294 + fill),
              not a 1fr grid: a 1fr track resolves wherever the viewport puts
              it — a fractional-CSS box, off the device-pixel grid the layout
              contract (rule 3) asks every container to stay on. The stated
-             split keeps both columns whole at any window position or grow
-             step. -->
+             split keeps both columns whole at any window position. -->
         <vf-stack fill-width direction="row" gap="16" place="start">
           <vf-stack width="294" gap="10">
             <vf-fieldset fill-width legend="Text">
@@ -160,10 +177,19 @@
                     value="The city in the middle of the water."
                   ></vf-text-area>
                 </vf-stack>
-                <vf-stack fill-width direction="row" gap="8">
-                  <vf-label width="80" class="stepper-caption" for="ctl-copies"
-                    >Copies:</vf-label
-                  >
+                <!-- vf-number-field is the kit's one odd-height control —
+                     25 system px, its little-arrows sprite's native size — so
+                     a row centering the 16px caption against it lands on a
+                     half pixel, and no container can round that. Sit the
+                     caption beside the field's own 22px well instead: 1px
+                     (the well's optical-centering bias, see vf-number-field)
+                     + 3px, stated as a padded stack rather than nudged in
+                     page CSS. hit-list.md files the 25px height as the
+                     underlying fault. -->
+                <vf-stack fill-width direction="row" gap="8" place="start">
+                  <vf-stack pad="4 0 0">
+                    <vf-label width="80" for="ctl-copies">Copies:</vf-label>
+                  </vf-stack>
                   <vf-number-field
                     id="ctl-copies"
                     name="copies"
@@ -236,7 +262,10 @@
             <!-- A rule has no width of its own to be as wide as; fill-width is
                  what makes it the panel's. -->
             <vf-separator fill-width></vf-separator>
-            <vf-button-group natural class="button-row">
+            <!-- The button showcase: natural widths, and the three fit the
+                 294 column with room to spare — with the window a fixed box
+                 there is no narrow panel to reflow for. -->
+            <vf-button-group natural>
               <vf-button>Button</vf-button>
               <vf-button variant="default">Default</vf-button>
               <vf-button disabled>Disabled</vf-button>
@@ -311,31 +340,40 @@
               </vf-list>
             </vf-fieldset>
             <vf-fieldset fill-width legend="Scroll Area">
-              <vf-scroll-area fill-width class="scroll-demo">
-                <!-- pad keeps the trailing 10px the old per-paragraph
-                     margin-bottom put below the last one, so the scrolled
-                     document is the same height it always was. -->
-                <vf-stack fill-width gap="10" pad="0 0 10">
-                <vf-paragraph>
-                  There is a special kind of quiet in a freshly formatted hard
-                  disk: 58,616K of nothing at all, waiting for a System Folder.
-                </vf-paragraph>
-                <vf-paragraph>
-                  Drag the thumb, press the arrows, or click in the dithered
-                  track — the scrollbar is the whole show here. In 1991 this
-                  was the state of the art, and honestly it still holds up.
-                </vf-paragraph>
-                <vf-paragraph>
-                  Remember to rebuild your desktop file once in a while, keep a
-                  spare startup floppy in the drawer, and never, ever unplug a
-                  SCSI chain while the machine is on.
-                </vf-paragraph>
-                <vf-paragraph>
-                  If you can read this line without scrolling, your window has
-                  been zoomed generously. Well done.
-                </vf-paragraph>
-                </vf-stack>
-              </vf-scroll-area>
+              <!-- The well's height is the demo's choice, not the
+                   component's, so a height-declared stack states it in
+                   system px and fill-height hands it down — a filled child
+                   may shrink below its content, which is what makes the
+                   overflow this demo is for. -->
+              <vf-stack fill-width height="130">
+                <vf-scroll-area fill-width fill-height>
+                  <!-- pad keeps the trailing 10px the old per-paragraph
+                       margin-bottom put below the last one, so the scrolled
+                       document is the same height it always was. -->
+                  <vf-stack fill-width gap="10" pad="0 0 10">
+                    <vf-paragraph>
+                      There is a special kind of quiet in a freshly formatted
+                      hard disk: 58,616K of nothing at all, waiting for a
+                      System Folder.
+                    </vf-paragraph>
+                    <vf-paragraph>
+                      Drag the thumb, press the arrows, or click in the
+                      dithered track — the scrollbar is the whole show here. In
+                      1991 this was the state of the art, and honestly it still
+                      holds up.
+                    </vf-paragraph>
+                    <vf-paragraph>
+                      Remember to rebuild your desktop file once in a while,
+                      keep a spare startup floppy in the drawer, and never,
+                      ever unplug a SCSI chain while the machine is on.
+                    </vf-paragraph>
+                    <vf-paragraph>
+                      If you can read this line without scrolling, your window
+                      has been zoomed generously. Well done.
+                    </vf-paragraph>
+                  </vf-stack>
+                </vf-scroll-area>
+              </vf-stack>
             </vf-fieldset>
             <vf-fieldset fill-width legend="Disabled">
               <vf-stack fill-width gap="10">
@@ -358,24 +396,29 @@
       <!-- ================ "DragThing 2.9 Installer" window ============== -->
       <vf-window id="win-installer" heading="DragThing 2.9 Installer" movable zoomable hidden width="560" height="370">
         <vf-stack fill-width gap="10">
-          <vf-scroll-area fill-width class="installer-well">
-            <vf-stack fill-width gap="10">
-              <vf-paragraph>Welcome to the installer for DragThing 2.9!</vf-paragraph>
-              <vf-paragraph>
-                DragThing is the original dock: it tidies the icons on your
-                desktop into tabbed, floating palettes.
-              </vf-paragraph>
-              <ul>
-                <li>Requires System 7.0 or later.</li>
-                <li>Native on both 68K and Power Macintosh.</li>
-                <li>Registration is US$25 — see the enclosed Read Me.</li>
-              </ul>
-              <vf-paragraph>
-                Click Install to place DragThing, its documentation, and some
-                sample docks on your hard disk.
-              </vf-paragraph>
-            </vf-stack>
-          </vf-scroll-area>
+          <!-- The well's height is the demo's choice, not the component's: a
+               height-declared stack states it in system px and fill-height
+               hands it down. -->
+          <vf-stack fill-width height="190">
+            <vf-scroll-area fill-width fill-height class="installer-well">
+              <vf-stack fill-width gap="10">
+                <vf-paragraph>Welcome to the installer for DragThing 2.9!</vf-paragraph>
+                <vf-paragraph>
+                  DragThing is the original dock: it tidies the icons on your
+                  desktop into tabbed, floating palettes.
+                </vf-paragraph>
+                <ul>
+                  <li>Requires System 7.0 or later.</li>
+                  <li>Native on both 68K and Power Macintosh.</li>
+                  <li>Registration is US$25 — see the enclosed Read Me.</li>
+                </ul>
+                <vf-paragraph>
+                  Click Install to place DragThing, its documentation, and some
+                  sample docks on your hard disk.
+                </vf-paragraph>
+              </vf-stack>
+            </vf-scroll-area>
+          </vf-stack>
           <!-- The spec's fine print (SPEC §7.2): the body face — System 7's
                fine print is Geneva 9 at its own strike size. -->
           <vf-stack fill-width gap="2" pad="0 2">
@@ -450,7 +493,11 @@
                 id="newdoc-title"
                 value="Untitled"
               ></vf-text-field>
-              <vf-checkbox class="newdoc-isindex">Is Index</vf-checkbox>
+              <!-- pad is the 12px this box stands off beyond the row's own
+                   8px gap. -->
+              <vf-stack pad="0 0 0 12">
+                <vf-checkbox>Is Index</vf-checkbox>
+              </vf-stack>
             </vf-stack>
             <vf-stack fill-width direction="row" gap="8">
               <vf-label width="48" for="newdoc-base">Base:</vf-label>
@@ -476,9 +523,11 @@
               <vf-option>Default</vf-option>
               <vf-option>(None)</vf-option>
             </vf-select>
-            <vf-checkbox checked class="newdoc-createwin"
-              >Create New Window</vf-checkbox
-            >
+            <!-- pad is the 24px this box stands off beyond the row's own
+                 10px gap. -->
+            <vf-stack pad="0 0 0 24">
+              <vf-checkbox checked>Create New Window</vf-checkbox>
+            </vf-stack>
           </vf-stack>
 
           <!-- pad is the 4px this row used to carry as a margin-top, on top of
@@ -625,11 +674,7 @@
             </vf-fieldset>
 
             <vf-fieldset fill-width legend="Contents">
-              <vf-radio-group
-                class="newimage-contents"
-                value="white"
-                name="contents"
-              >
+              <vf-radio-group value="white" name="contents">
                 <vf-radio value="white">White</vf-radio>
                 <vf-radio value="background">Background Color</vf-radio>
                 <vf-radio value="transparent">Transparent</vf-radio>
@@ -673,16 +718,33 @@
             </vf-stack>
           </vf-stack>
           <vf-fieldset fill-width legend="Specimen" id="charset-panel">
-            <vf-scroll-area axis="vertical" class="charset-well" label="Specimen">
-              <div class="charset" id="charset-specimen"></div>
-            </vf-scroll-area>
-            <p class="charset-count" id="charset-count"></p>
+            <vf-stack fill-width gap="6">
+              <!-- The well's height is the demo's choice, not the
+                   component's: a height-declared stack states it in system
+                   px and fill-height hands it down. -->
+              <vf-stack fill-width height="230">
+                <vf-scroll-area
+                  fill-width
+                  fill-height
+                  axis="vertical"
+                  label="Specimen"
+                >
+                  <div class="charset" id="charset-specimen"></div>
+                </vf-scroll-area>
+              </vf-stack>
+              <!-- The count is fine print (face="body" dim), parked at the
+                   panel's end. The body face's advances are whole system px,
+                   so the end-aligned box still lands on the grid. -->
+              <vf-stack fill-width place="end">
+                <vf-label face="body" dim id="charset-count"></vf-label>
+              </vf-stack>
+            </vf-stack>
           </vf-fieldset>
-          <p class="charset-note">
+          <vf-paragraph fill-width>
             Faces are named by their size-menu point size; the Espy, eWorld,
             System, SwanSong, Mobile and Taliesin strikes go by pixel line
             height instead, their point size undetermined (fonts/README.md).
-          </p>
+          </vf-paragraph>
         </vf-stack>
       </vf-window>
 

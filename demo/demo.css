@@ -55,11 +55,6 @@
  * viewport is only ~480×300 system px at scale 3.
  */
 
-/* Windows spawned by File → New Window. */
-.untitled-note {
-  margin: 0;
-}
-
 /* ------------------------- Character Set specimen ---------------------- */
 /* One strike at a time from the imported collection, as vf-paragraph rows.
    The face, its size and its native pitch are the pick, so demo.ts writes
@@ -68,25 +63,13 @@
    keep the line boxes whole per grid rule 2); this file keeps what doesn't
    change with the pick — smoothing off via the token (the paragraph's text
    lives in its shadow root, where only the token reaches) so every glyph
-   shows true pixels, break-all so a run of the whole cmap wraps, and the
-   scroll well's height. Rows carry no extra margins: consecutive paragraphs
-   stack at the strike's own pitch. */
+   shows true pixels, and break-all so a run of the whole cmap wraps. The
+   well's height, the count line and the note are stacks and kit text in
+   index.html. Rows carry no extra margins: consecutive paragraphs stack at
+   the strike's own pitch. */
 .charset {
   --vf-font-smoothing: none;
   word-break: break-all;
-}
-.charset-well {
-  height: calc(var(--vf-scale, 1) * 230px);
-}
-.charset-count {
-  margin: calc(var(--vf-scale, 1) * 6px) 0 0;
-  text-align: right;
-  opacity: 0.55;
-}
-/* Spacing above it is the enclosing vf-stack's gap; this only cancels the
-   UA's own paragraph margins. */
-.charset-note {
-  margin: 0;
 }
 
 /* --------------------------- DragThing Read Me ------------------------- */
@@ -155,9 +138,8 @@
 
 /* ------------------------- DragThing installer ------------------------- */
 
-.installer-well {
-  height: calc(var(--vf-scale, 1) * 190px);
-}
+/* The read-me well's height is a height-declared stack in index.html; this
+   class only marks the well so the list below can be reached. */
 .installer-well ul {
   margin: 0;
   padding-left: calc(var(--vf-scale, 1) * 20px);
@@ -179,45 +161,10 @@
   --vf-button-group-gap: 14px;
 }
 
-/* ----------------------------- Format window --------------------------- */
-
-/* Stretch each radio row so the ⌘ shortcut can right-align. Scoped to this
-   window — the other radio groups on the desktop carry no shortcut. */
-#win-format vf-radio {
-  display: flex;
-}
-#win-format vf-radio::part(label) {
-  flex: 1;
-  display: flex;
-}
-.key {
-  margin-left: auto;
-  padding-left: calc(var(--vf-scale, 1) * 16px);
-}
-/* 12px clear of the radio group, on top of the column's own 8px gap. */
-.format-selection {
-  margin-top: calc(var(--vf-scale, 1) * 12px);
-}
-
 /* --------------------------- Controls window --------------------------- */
 
-/* vf-number-field is the kit's one odd-height control — 25 system px, its
-   little-arrows sprite's native size — so a row centering the 16px caption
-   against it lands on a half pixel, and no container can round that (it would
-   have to read each child's height). Sit the caption beside the field's own
-   22px well instead: 1px (the well's optical-centering bias, see
-   vf-number-field) + 3px. The component solves the same parity problem the
-   same way, and hit-list.md files the 25px height as the underlying fault. */
-.stepper-caption {
-  align-self: flex-start;
-  margin-top: calc(var(--vf-scale, 1) * 4px);
-}
-
-/* The button showcase is a natural-width vf-button-group; only add wrapping so
-   it reflows on a narrow panel (the group supplies display, gap and alignment). */
-.button-row {
-  flex-wrap: wrap;
-}
+/* The window's insides are stacks all the way down (index.html) — the one
+   thing stated here is a component token, not layout. */
 
 /* Kit geometry tokens are stated in system px UNSCALED — the component does the
    multiplying (`calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px))`).
@@ -227,10 +174,6 @@
   --vf-list-max-height: 132px;
 }
 
-.scroll-demo {
-  height: calc(var(--vf-scale, 1) * 130px);
-}
-
 /* ----------------------- New HTML Document dialog ---------------------- */
 
 /* The faint dotted rules that split the dialog into sections — the same
@@ -238,14 +181,6 @@
 .newdoc-rule {
   --vf-separator-style: dotted;
   --vf-separator-color: var(--vf-disabled, #c0c0c0);
-}
-
-/* The two boxes that stand further off than their row's own gap. */
-.newdoc-isindex {
-  margin-left: calc(var(--vf-scale, 1) * 12px);
-}
-.newdoc-createwin {
-  margin-left: calc(var(--vf-scale, 1) * 24px);
 }
 
 /* ---------------------------- Find File window ------------------------- */

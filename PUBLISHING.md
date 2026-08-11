@@ -186,7 +186,7 @@ Skip all of this for 0.1.0. Worth knowing it exists:
   day, so the Character Set window works on the deployed site — the whole
   80-strike collection under its own Apple family names, copied in by
   `scripts/copy-strikes.mjs`. That is the distribution question below arriving
-  in hosted form, at collection scale. Natural home for MAKING-OF.md too.
+  in hosted form, at collection scale.
 - **Branch protection on `main`** — matters when a second contributor shows
   up, noise before then.
 - **`npm dist-tags`** — `npm publish --tag next` publishes without moving

@@ -154,7 +154,7 @@ export function toSysExact(value: number, el: Element): number {
  * kit now draws its own scroll rails, so the whole-CSS-px lift survives on
  * its remaining merits: drag granularity of one CSS px instead of one device
  * px is imperceptible, engines still quantize sub-CSS-px paint per box (the
- * border-floor wobble), and the dpr-2 baseline nudge (MAKING-OF §5) always
+ * border-floor wobble), and the dpr-2 baseline nudge always
  * takes its known whole-CSS-px rendering rather than sometimes its exact
  * half-px one. Fractional densities keep the finest crisp grid: whole device
  * px.

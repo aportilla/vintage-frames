@@ -23,7 +23,13 @@ import {
 import { ScaleController, snapSys, sysLength, toSysExact } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
-import { chromeTitleBar, widgetLabel, closeBox, zoomBox } from '../chrome.js'
+import {
+  chromeTitleBar,
+  TitleCenterController,
+  widgetLabel,
+  closeBox,
+  zoomBox,
+} from '../chrome.js'
 import { emit } from '../events.js'
 import './vf-scroll-area.js'
 
@@ -378,6 +384,9 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
 
   /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
+
+  /** Holds the centered title patch on the placement lattice (src/chrome.ts). */
+  private readonly titleCenter = new TitleCenterController(this)
 
   /**
    * The consumer's `--vf-dots-pattern` override, or `''` for the kit dots —

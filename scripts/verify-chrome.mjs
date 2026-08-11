@@ -11,6 +11,10 @@
  *    equal *between the two components* — not just individually correct. That's
  *    the check a future one-sided edit trips, which is the whole point of
  *    hoisting the recipe.
+ *  - LATTICE: the traced title geometry (the stated row, the 6px padding) and
+ *    the TitleCenterController hold — at both width parities the centered
+ *    patch lands on whole system px, the odd one only because the controller
+ *    canceled its half pixel through `--vf-title-dx`.
  *  - DIFFERENT: the two deliberate divergences survive — the title's widget
  *    clearance (`--vf-title-inset`, 60px on vf-window for its close/zoom boxes
  *    vs the 16px default) and `touch-action`, which vf-window gates on
@@ -57,13 +61,15 @@ const partMetrics = (page, hostId, part, props) =>
    1. SHARED — window and dialog render the same frame and title bar
    ──────────────────────────────────────────────────────────────────────── */
 {
+  // settle: the title's lattice hold (TitleCenterController) applies its
+  // correction a frame after render.
   const page = await build(`
     <div id="host" style="position:relative">
       <vf-window id="win" heading="My Window" movable resizable zoomable
         style="width:300px;height:200px"><p>Body</p></vf-window>
       <vf-dialog id="dlg" heading="My Dialog" width="200" height="120" open><p>Body</p></vf-dialog>
     </div>
-  `)
+  `, { settle: true })
 
   const FRAME = ['background-color', 'border-top-width', 'border-right-width',
     'border-bottom-width', 'border-left-width', 'border-top-style',
@@ -96,8 +102,11 @@ const partMetrics = (page, hostId, part, props) =>
   }
   check(`title-bar is --vf-titlebar-height (18px) x${S}`, winBar.height === `${18 * S}px`,
     winBar.height)
-  check('title-bar centers its content', winBar['align-items'] === 'center' &&
-    winBar['justify-content'] === 'center')
+  // Horizontal centering only: vertically the title states its own row
+  // (flex-centering 16 into the 17px interior would land on a half pixel).
+  check('title-bar centers horizontally, title states its row',
+    winBar['align-items'] === 'flex-start' && winBar['justify-content'] === 'center',
+    `${winBar['align-items']}/${winBar['justify-content']}`)
   check('title-bar clips an over-long title', winBar['overflow-x'] === 'hidden')
   check('title-bar sits at the frame origin, inside the border',
     near(winBar._rect.x, 1 * S) && near(winBar._rect.y, 1 * S) &&
@@ -106,7 +115,8 @@ const partMetrics = (page, hostId, part, props) =>
 
   const TITLE = ['font-family', 'font-size', '-webkit-font-smoothing', 'font-weight',
     'background-color', 'white-space', 'text-overflow', 'overflow-x',
-    'padding-left', 'padding-right', 'position', 'z-index']
+    'padding-left', 'padding-right', 'position', 'z-index',
+    'line-height', 'margin-top']
   const winTitle = await partMetrics(page, 'win', 'title', TITLE)
   const dlgTitle = await partMetrics(page, 'dlg', 'title', TITLE)
   for (const p of TITLE) {
@@ -120,13 +130,24 @@ const partMetrics = (page, hostId, part, props) =>
     winTitle['font-family'])
   check('title smoothing is off (1-bit edges)',
     winTitle['-webkit-font-smoothing'] === 'none')
-  check(`title patch pads 8px x${S} either side`,
-    winTitle['padding-left'] === `${8 * S}px` && winTitle['padding-right'] === `${8 * S}px`,
+  check(`title patch pads 6px x${S} either side (the letters' 1px bearing makes the traced 7)`,
+    winTitle['padding-left'] === `${6 * S}px` && winTitle['padding-right'] === `${6 * S}px`,
     winTitle['padding-left'])
   check('title patch is opaque white over the stripes',
     winTitle['background-color'] === 'rgb(255, 255, 255)' && winTitle['z-index'] === '1')
   check('title ellipsizes rather than wrapping',
     winTitle['white-space'] === 'nowrap' && winTitle['text-overflow'] === 'ellipsis')
+
+  // The traced vertical geometry (InfiniteMac): the face's 16px line box on
+  // interior rows 1..16, which lands the 9px cap band on rows 4..12 with 4px
+  // of white above and below the ink.
+  check(`title line box is the face's own 16px x${S}`,
+    winTitle['line-height'] === `${16 * S}px` && winTitle['margin-top'] === `${1 * S}px`,
+    `${winTitle['line-height']} / ${winTitle['margin-top']}`)
+  check(`title rides 1px x${S} below the bar top`,
+    near(winTitle._rect.y - winBar._rect.y, 1 * S) &&
+    near(dlgTitle._rect.y - dlgBar._rect.y, 1 * S),
+    `win +${winTitle._rect.y - winBar._rect.y} dlg +${dlgTitle._rect.y - dlgBar._rect.y}`)
 
   // The stripe layer is inside both bars and inset by the shared 3px/1px.
   const stripes = (id) =>
@@ -156,6 +177,72 @@ const partMetrics = (page, hostId, part, props) =>
     winStripes.pointerEvents === 'none' && dlgStripes.pointerEvents === 'none')
 
   await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   1b. LATTICE — the centered title lands on whole system px at BOTH parities
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  // (bar − patch)/2 is fractional whenever the two widths' parities differ, so
+  // a one-px width change flips the case: exactly one of each pair below hits
+  // the half-pixel remainder, and TitleCenterController must cancel it through
+  // the controller-owned --vf-title-dx. settle: the correction lands a frame
+  // after render.
+  const PARITY_PAIRS = `
+    <div id="host" style="position:relative">
+      <vf-window id="winA" heading="Grid" style="width:300px;height:100px"><p>B</p></vf-window>
+      <vf-window id="winB" heading="Grid" style="width:301px;height:100px"><p>B</p></vf-window>
+      <vf-dialog id="dlgA" heading="Grid" width="200" height="100" open><p>B</p></vf-dialog>
+      <vf-dialog id="dlgB" heading="Grid" width="201" height="100" open><p>B</p></vf-dialog>
+    </div>
+  `
+  const probe = (page, id) =>
+    page.evaluate((hostId) => {
+      const host = document.getElementById(hostId)
+      const root = host.shadowRoot
+      const bar = root.querySelector('[part=title-bar]').getBoundingClientRect()
+      const title = root.querySelector('[part=title]').getBoundingClientRect()
+      return {
+        offset: title.left - bar.left,
+        dx: parseFloat(host.style.getPropertyValue('--vf-title-dx')) || 0,
+        scale: parseFloat(getComputedStyle(host).getPropertyValue('--vf-scale')) || 1,
+      }
+    }, id)
+
+  const page = await build(PARITY_PAIRS, { settle: true })
+  // Layout quantizes to 1/64 CSS px, so "whole" means within ~1/64.
+  const wholeSys = (v) => near(v / S, Math.round(v / S), 0.03)
+  for (const [a, b, what] of [['winA', 'winB', 'window'], ['dlgA', 'dlgB', 'dialog']]) {
+    const evenish = await probe(page, a)
+    const oddish = await probe(page, b)
+    check(`${what} title sits on a whole system px at both width parities`,
+      wholeSys(evenish.offset) && wholeSys(oddish.offset),
+      `${evenish.offset} / ${oddish.offset}`)
+    const dxs = [Math.abs(evenish.dx), Math.abs(oddish.dx)].sort((x, y) => x - y)
+    check(`…one parity because the ${what}'s controller canceled its half pixel`,
+      near(dxs[0], 0, 0.03) && near(dxs[1], 0.5 * S, 0.03),
+      `dx ${evenish.dx} / ${oddish.dx}`)
+  }
+  await page.close()
+
+  // The reported fault's density and one more: dpr 2 derives 3 device px per
+  // system px (scale 1.5), where the placement lattice is TWO system px —
+  // whole CSS px, see systemPxQuantum — and dpr 3 derives 4 (scale 4/3,
+  // lattice 3). The hold must land the patch on that lattice, not merely on
+  // whole system px.
+  for (const dpr of [2, 3]) {
+    const dense = await build(PARITY_PAIRS, { dpr, settle: true })
+    for (const id of ['winA', 'winB', 'dlgA', 'dlgB']) {
+      const { offset, scale } = await probe(dense, id)
+      let k = 1
+      while (k <= 4 && Math.abs(k * scale - Math.round(k * scale)) > 1e-9) k++
+      const step = (k > 4 ? 1 : k) * scale
+      check(`dpr ${dpr}: ${id} title offset is on the placement lattice`,
+        near(offset / step, Math.round(offset / step), 0.03),
+        `${offset} (step ${step})`)
+    }
+    await dense.close()
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

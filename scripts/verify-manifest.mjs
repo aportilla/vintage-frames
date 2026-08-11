@@ -191,6 +191,9 @@ check(
 const INTERNAL = new Set([
   '--vf-snap-dx',
   '--vf-snap-dy',
+  // Controller-owned like the snap offsets: TitleCenterController
+  // (src/chrome.ts) writes the title patch's lattice correction through it.
+  '--vf-title-dx',
   '--vf-button-flex',
   '--vf-button-ring-margin',
   '--vf-title-inset',

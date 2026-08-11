@@ -18,7 +18,12 @@ import { snapSys, toSysExact } from '../scale.js'
 import { DragController } from '../drag.js'
 import { ScrollStateController } from '../scroll-state.js'
 import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
-import { chromeTitleBar, widgetLabel, closeBox } from '../chrome.js'
+import {
+  chromeTitleBar,
+  TitleCenterController,
+  widgetLabel,
+  closeBox,
+} from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 import './vf-button-group.js'
 
@@ -274,6 +279,9 @@ export class VfDialog extends VfModalDialog {
     },
     onDrag: (x: number, y: number): void => this.placeAt(x, y),
   })
+
+  /** Holds the centered title patch on the placement lattice (src/chrome.ts). */
+  private readonly _titleCenter = new TitleCenterController(this)
 
   /** Title text: the bar's centered patch, or the plain frame's heading. */
   @property() heading = ''

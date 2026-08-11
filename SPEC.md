@@ -526,9 +526,19 @@ enabled well.
   `vf-window`'s utility variant overrides sizes under its own selector.
 - `vfTitleBar` — the striped title bar shared by `vf-window` and `vf-dialog`:
   a `.vf-title-bar` row (`height: var(--vf-titlebar-height, 18px)`, 1px bottom
-  rule, flex-centered, `overflow: hidden`) and the `.vf-title` patch inside it
-  (display face, white bg, `padding: 0 8px`, `z-index: 1` over the stripes,
-  `nowrap` + ellipsis). Put a `.vf-stripes` layer in as the bar's first child.
+  rule, `overflow: hidden`) and the `.vf-title` patch inside it (display face,
+  white bg, `padding: 0 6px`, `z-index: 1` over the stripes, `nowrap` +
+  ellipsis). Put a `.vf-stripes` layer in as the bar's first child.
+  - Title geometry is whole system px, traced from the InfiniteMac reference:
+    the face's 16px line box on interior rows 1..16 (`align-items: flex-start`
+    + 1px top margin, `line-height: var(--vf-line-height-display, 16px)`)
+    lands the 9px cap band on rows 4..12 — 4px of white above and below — and
+    6px padding plus the letters' 1px side bearing leaves 7px of white between
+    ink and stripes. Neither axis is flex-centered onto a fraction: vertically
+    the row is stated, horizontally the flex-centered patch is held on the
+    placement lattice by `TitleCenterController` (src/chrome.ts), which
+    cancels the parity half-pixel through the controller-owned
+    `--vf-title-dx`.
   - The title's clearance for anything else in the bar is `--vf-title-inset`
     (default 16px); `vf-window` sets 60px so an ellipsized title can't run under
     its close/zoom widgets.
@@ -772,7 +782,9 @@ screenshot), parameterized down to the windoid (see the Group A recipe table).
   - Title bar: from `vfTitleBar` — height `var(--vf-titlebar-height, 18px)`,
     white bg, bottom `1px solid black`, contains `.vf-stripes` layer (only when
     `active`). `touch-action: none` only when `[movable]`.
-  - Title: centered, bold, on a white patch (`padding: 0 8px`) above the
+  - Title: centered, bold, on a white patch (`padding: 0 6px`; cap band on
+    interior rows 4..12, 7px of white between ink and stripes — see §4
+    `vfTitleBar` for the traced geometry and the lattice hold) above the
     stripes, with `--vf-title-inset: 60px` of clearance so it ellipsizes before
     reaching the widgets. Inactive: no stripes, widgets undrawn (transparent
     ink — they keep their tab stops; see A11y below), the grow box's

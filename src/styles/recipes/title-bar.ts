@@ -9,6 +9,23 @@ import { vfDisplayDecls } from './display-face.js'
  * Apply `.vf-title-bar` to the bar and `.vf-title` to the title element, and
  * place a `.vf-stripes` layer (see {@link vfStripes}) as the bar's first child.
  *
+ * Title geometry is stated in whole system px, traced from the InfiniteMac
+ * reference: in the 17px interior (18px bar minus the rule) the cap band sits
+ * on rows 4..12 — 4px of white above and below the 9px caps — with 7px of
+ * white between the ink and the stripes on either side. The face puts the cap
+ * band at rows 3..11 of its 16px line box (ascent 12, caps 9 on the
+ * baseline), so the line box rides 1px below the interior top and lands the
+ * caps exactly; letters carry a 1px side bearing, so 6px of padding makes the
+ * traced 7. Flex-CENTERING either axis is what this recipe deliberately does
+ * not do: 16 into 17 halves to a fraction, and (bar − patch)/2 is fractional
+ * whenever the two widths' parities differ — half a system px off, which a
+ * 3:1 display renders as ink one device px off the grid.
+ *
+ * The horizontal remainder can't be quantized statically (the patch width
+ * follows the heading's text run), so the patch stays flex-centered and
+ * `TitleCenterController` (src/chrome.ts) cancels the fraction through
+ * `--vf-title-dx` — controller-owned, like the grid-snap offsets.
+ *
  * The title's clearance for whatever else shares the bar is set per component
  * with `--vf-title-inset`: vf-dialog takes the 16px default (nothing but the
  * title is in there), vf-window sets 60px so an ellipsized title can't run
@@ -28,7 +45,9 @@ export const vfTitleBar = css`
     height: calc(var(--vf-scale, 1) * var(--vf-titlebar-height, 18px));
     border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
     display: flex;
-    align-items: center;
+    /* flex-start, not center: the title states its own whole-pixel row (see
+       the margin below); centering 16 into 17 would land it on a half. */
+    align-items: flex-start;
     justify-content: center;
     overflow: hidden;
   }
@@ -37,7 +56,15 @@ export const vfTitleBar = css`
     ${vfDisplayDecls}
     position: relative;
     z-index: 1;
-    padding: 0 calc(var(--vf-scale, 1) * 8px);
+    left: var(--vf-title-dx, 0px);
+    /* The face's own 16px line box on interior rows 1..16: cap band lands on
+       rows 4..12 (4px white above and below the 9px caps — the trace). The
+       inherited ratio line-height would give 20px and center fractionally. */
+    line-height: calc(var(--vf-scale, 1) * var(--vf-line-height-display, 16px));
+    margin-top: calc(var(--vf-scale, 1) * 1px);
+    /* 6px + the letters' own 1px side bearing = the traced 7px of white
+       between ink and stripes. */
+    padding: 0 calc(var(--vf-scale, 1) * 6px);
     max-width: calc(100% - var(--vf-scale, 1) * var(--vf-title-inset, 16px));
     background: var(--vf-white, #fff);
     white-space: nowrap;

@@ -36,7 +36,9 @@ The content governs the box: a column is as wide as its widest child, a row as t
 
 `fill-width`/`fill-height` name the outcome, not an axis, so the stack compiles each to the main or cross axis depending on which way it runs. **The cross axis always has a size; the main axis only has slack if you declared one** — so `fill-width` always works in a column and needs a declared `width` in a row, and `fill-height` is the other way round. A fill with nothing to take is inert, not an error, and two children filling the main axis come out equal. A stack reads both attributes about *itself* too, for parents that aren't stacks. Three components have no width of their own (`vf-separator`, `vf-progress-bar`, `vf-slider`), so they need a fill to take a width; for a cross-axis fill a direction doesn't offer, `align-self: stretch` in your own stylesheet wins.
 
-Two things it can't fix: centering can't land on a whole pixel by itself (a 16px caption centered against the 25-system-px `vf-number-field` sits at 4.5 — use `place="start"`), and a flex container doesn't collapse margins, so `vf-fieldset`'s 8px of legend room is genuinely reserved inside a stack.
+Centering halves the free space, so an odd count of system px would land a child on a half pixel (a 16px caption centered against the 25-system-px `vf-number-field` sits at 4.5). The stack measures that and steps the child back onto whole system px, the exact half going toward the start — its whole footprint on your DOM is `data-vf-tie` and `--vf-stack-dx` / `--vf-stack-dy` on a corrected child, and anything you declare yourself beats it. `place="start"` still means no centering at all.
+
+The one thing it can't fix: a flex container doesn't collapse margins, so `vf-fieldset`'s 8px of legend room is genuinely reserved inside a stack.
 
 ```sh
 npm run verify:stack

@@ -40,7 +40,12 @@ export class VfFieldset extends VfPositioned(LitElement) {
         /* Chicago-style legend (chrome); grouped content keeps the body face. */
         ${vfDisplayDecls}
         position: absolute;
-        top: -0.7em;
+        /* Whole system px like every other length here. Authored as -0.7em
+           this was 11.2px against the 16px display face — off the device grid
+           at every scale, and it took a slotted legend with it (verify:grid).
+           11 keeps the legend straddling the border, a fifth of a system px
+           lower. */
+        top: calc(var(--vf-scale, 1) * -11px);
         left: calc(var(--vf-scale, 1) * 8px);
         padding: 0 calc(var(--vf-scale, 1) * 5px);
         /* Punches through the border, matching the surface behind it. */

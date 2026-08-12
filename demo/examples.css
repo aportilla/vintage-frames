@@ -382,16 +382,24 @@ pre {
  * The caption is the PAGE's type, not the kit's — it is documentation about a
  * control, not a caption belonging to one (that would be a vf-label).
  *
- * No width: the cell is as wide as whichever is bigger, the component or its
- * caption, and that flips as the display density changes. A text-sized cell
- * lands the next one's component on a fractional pixel, which is precisely what
- * applyGridSnap() is for.
+ * A whole-pixel basis, which is docs/SIZING.md rule 3 on this page's own boxes.
+ * Sized by its content the cell is as wide as whichever is bigger, the
+ * component or its caption — and the caption is proportional text, so the cell
+ * came out fractional and handed the NEXT cell's component a fractional start
+ * (verify:grid caught the vf-checkbox and the vf-select here). applyGridSnap()
+ * keeps that component's ink crisp, but the layout box stays where the page put
+ * it, so the page has to put it on a whole pixel.
+ *
+ * 208px because a cell has to clear the widest specimen at every density, and
+ * these components self-scale: vf-select is 133 system px, which is 199.5 CSS
+ * px on a 2× display. Whole CSS px is whole device px at every density.
  */
 .specimen {
   display: flex;
   flex-direction: column;
   gap: 8px;
   align-items: flex-start;
+  flex: 0 0 208px;
 }
 
 .specimen__name {

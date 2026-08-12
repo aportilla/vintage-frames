@@ -194,6 +194,12 @@ const INTERNAL = new Set([
   // Controller-owned like the snap offsets: TitleCenterController
   // (src/chrome.ts) writes the title patch's lattice correction through it.
   '--vf-title-dx',
+  // The same again, one level out: CrossCenterController (src/cross-center.ts)
+  // writes a centered child's step back onto whole system px through these,
+  // and vf-stack's ::slotted([data-vf-tie]) rule is what reads them. Setting
+  // one by hand just gets measured over on the next pass.
+  '--vf-stack-dx',
+  '--vf-stack-dy',
   '--vf-button-flex',
   '--vf-button-ring-margin',
   '--vf-title-inset',

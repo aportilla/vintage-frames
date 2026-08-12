@@ -4,55 +4,30 @@ Open defects with the evidence already gathered, so picking one up doesn't mean 
 
 ---
 
-## 1. Four fractional origins on the component reference page
+## 1. `vf-checkbox`'s box paints half a system px low
 
-**Status:** open — makes `npm test` 32/34 **Blocks:** `verify:grid`, `verify:snap` **Where:** `demo/examples.css` — `.example__stage` / `.specimen`
+**Status:** open — paint only; no test measures it **Where:** `src/components/vf-checkbox.ts:51`
 
-Four components land on half-pixels on `index.html`:
+The checkbox's `.box` is 13 system px tall and `align-items: center` centers it in the 20-system-px control row: `(20 − 13) / 2` is 3.5, an exact tie, so the paint root sits half a system px below the grid. Measured on a deliberately perturbed page (`padding: .4px 0 0 .4px`) with `applyGridSnap()` on, as the error of each component's own `.vf-snap` paint root in device px:
 
-| component | section | off | dpr 1 | dpr 2 |
-| --- | --- | --- | --- | --- |
-| `vf-label` | `#vf-fieldset` | y | `y=25701.813` | `y=26847.203` |
-| `vf-button` | `#vf-stack` | x | `x=377.500` | `x=409.750` |
-| `vf-checkbox` | `#focus` | x | `x=437.375` | `x=437.375` |
-| `vf-select` | `#focus` | x | `x=547.297` | `x=547.297` |
+| component | dpr 1 | dpr 2 | dpr 3 |
+| --- | --- | --- | --- |
+| `vf-button` | 0, 0 | 0, 0 | 0.016, 0.016 |
+| **`vf-checkbox`** | **0, 0.5** | **0, 0.5** | 0.016, 0.047 |
+| `vf-select` | 0, 0 | 0, 0 | 0.016, 0 |
+| `vf-label` | 0, 0 | 0, 0 | 0, 0.016 |
 
-Clean at dpr 3 (289/289), because `--vf-scale` is 1 there and nothing can be fractional. So this is ORIGIN, not SIZE — page layout, not a scale fault.
+**Not a fault in the snapper**, which the earlier version of this entry suspected (a sign or magnitude error, from the one dpr-2 correction that came out positive). The corrections written to the checkbox are the same ones written to its neighbours on the same page — `-0.390625px` at dpr 1, `+0.109375px` at dpr 2 — and they land: the *host* origin is on the grid in both axes, and so is the paint root's x. Only y is off, by the same half pixel at every perturbation, which is the authored 3.5 and not a residue. dpr 3 is clean because 3.5 system px is 14 whole device px at a 4/3 scale.
 
-**Cause.** `.example__stage` is `display: flex; flex-wrap: wrap; gap: 16px` and `.specimen` is a column whose width is `max(caption, component)`. The caption is 12px mono text, so the cell takes a fractional width and hands the *next* flex item a fractional start. `examples.css:386` already describes this and says it is "precisely what `applyGridSnap()` is for" — which is true for the paint, but the host boxes stay off, and that is what both verify scripts measure.
+**Same class as the `vf-stack` centering tie** that `CrossCenterController` now settles (src/cross-center.ts) — but this one needs no measuring: both numbers are the component's own constants, so it is a static rule. 3 system px above the box or 4, one of which is what a real System 7 checkbox did.
 
-**How it surfaced.** It is not new. It was `examples.html` before the 2026-08-11 repo split, and no script ever pointed at that page — `verify:grid` and `verify:snap` walked `/`, which was the faux desktop and was clean. Promoting the reference page to `/` pointed them at it for the first time. Confirmed by running the pre-split tree's own `verify-grid.mjs` against its own `examples.html`: same four, with `vf-checkbox x=453.375` and `vf-select x=563.297` identical.
-
-**Why `verify:snap` fails too.** Its first assertion is `page starts on the grid` — it needs a clean page to knock off-grid before it can test recovery. It cannot use a page that is already off.
-
-**Fix.** Whole-pixel widths for the specimen cells (or whole-pixel `flex-basis`), so a cell never hands its neighbour a fractional start. Both scripts should go green together. Independent of bug 2.
+**Repro.** Build `<vf-checkbox checked>` on a body with `padding: .4px 0 0 .4px`, call `applyGridSnap()`, and compare `shadowRoot.querySelector('.vf-snap').getBoundingClientRect()` against a whole device pixel. Nothing on the reference page reproduces it any more — its four fractional origins are fixed — so the perturbation is now the only way in.
 
 ---
 
-## 2. `vf-checkbox`'s snap correction doesn't land
+## 2. Grid snapping is still opt-in
 
-**Status:** open — paint only; does not affect any test **Where:** `src/components/vf-checkbox.ts` + `src/grid-snap.ts`
-
-With `applyGridSnap()` on, the snapper correctly detects all four hosts from bug 1 and writes a correction to each. Three of the four then paint on the grid. `vf-checkbox` does not:
-
-| component | correction written | paint on grid |
-| --- | --- | --- |
-| `vf-label` | `dy: 0.1875px` | yes |
-| `vf-button` | `dx: -0.5px` | yes |
-| `vf-select` | `dx: -0.296875px` | yes |
-| **`vf-checkbox`** | `dx: -0.375px` (dpr 1), `dx: +0.125px` (dpr 2) | **no** |
-
-Measured on the `.vf-snap` element inside each shadow root — the host box is the wrong thing to measure here, since the snapper deliberately never moves it.
-
-The dpr-2 value is the tell: `+0.125px` where every other correction that session came out negative. Suspect a sign or magnitude error in how the checkbox's painted root picks up `--vf-snap-dx`, likely tangled with the authored −0.5px toggle centering that `grid-snap.ts` already has a note about.
-
-Fixing bug 1 removes the fractional input and hides this — so measure it first, or perturb a checkbox deliberately to keep a repro.
-
----
-
-## 3. Grid snapping is still opt-in
-
-**Status:** open decision, not a defect **Where:** `docs/SIZING.md:149` — "It stays opt-in for now."
+**Status:** open decision, not a defect **Where:** `docs/SIZING.md:96` — "It stays opt-in for now."
 
 The components snap themselves: each measures its own position and corrects inside its own shadow root, never touching the host's `position` / `left` / `top` / `margin`. `applyGridSnap()` does not do the snapping — it is one shared switch that turns the components' own self-snapping on, refcounted, so it costs one scheduler rather than an observer per component.
 
@@ -60,7 +35,7 @@ The original intent was for this to be default-on, and it never got flipped. A c
 
 ---
 
-## 4. The desktop's grid coverage left with the desktop
+## 3. The desktop's grid coverage left with the desktop
 
 **Status:** open — coverage gap, in the other repo **Where:** `system7web`
 

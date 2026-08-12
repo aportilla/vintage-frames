@@ -7,6 +7,7 @@ import type { PropertyValues } from 'lit'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, sysLength, sysLengths } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { CrossCenterController } from '../cross-center.js'
 
 /** Which axis the children run along. */
 export type VfStackDirection = 'column' | 'row'
@@ -107,7 +108,11 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  * outermost-first order means the kit children then find nothing left to
  * correct. What this deliberately does not fix: a text-governed child width
  * mid-row still shifts later siblings fractionally (their own controllers
- * cover that), and centering still can't land on a whole pixel by itself.
+ * cover that).
+ *
+ * **Centering lands on whole system px as well** — halving an odd count of free
+ * system px gives a half, which no container can round in CSS. See
+ * {@link CrossCenterController}.
  *
  * It is also the kit's one **typographically transparent** component: `vfBase`'s
  * chrome face, ratio line box, color and non-selectability are all reset to
@@ -240,6 +245,20 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
         align-items: flex-end;
       }
 
+      /* The centering tie: CrossCenterController steps a centered child onto
+         whole system px through these variables (src/cross-center.ts has the
+         why). Keyed off the marker because a ::slotted rule outranks a slotted
+         element's own :host — a blanket position would restyle vf-window and
+         vf-menu. */
+      :host(:not([direction='row'])) ::slotted([data-vf-tie]) {
+        position: relative;
+        left: var(--vf-stack-dx, 0px);
+      }
+      :host([direction='row']) ::slotted([data-vf-tie]) {
+        position: relative;
+        top: var(--vf-stack-dy, 0px);
+      }
+
       /* --- Children ----------------------------------------------------- */
       /* Neither grow nor shrink: the content governs the box, not the other way
          round (see the class doc). A light-DOM declaration beats a ::slotted
@@ -306,12 +325,12 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
    * `text-align` on any element, so the cross-axis switch used to re-align every
    * run of copy inside the stack (see the `text-align` reset above).
    *
-   * Note the one thing centering cannot do: land on a whole pixel by itself. A
-   * 16px caption centered in a row set by the 25-system-px `vf-number-field`
-   * sits at 4.5 system px, and no container can round that — it would have to
-   * read each child's height. `applyGridSnap()` keeps the caption's own ink
-   * crisp regardless (it corrects the origin inside the child's shadow root);
-   * `place="start"` is the deterministic escape.
+   * Centering divides the free space in two, so an odd count of system px would
+   * land a child on a half — a 16px caption centered in a row set by the
+   * 25-system-px `vf-number-field` sits at 4.5. {@link CrossCenterController}
+   * steps that back onto whole system px, the exact half going toward the start
+   * the way QuickDraw's `div 2` did; `place="start"` is still the way to ask
+   * for no centering at all.
    */
   @property({ reflect: true }) place?: VfStackPlace
 
@@ -332,6 +351,35 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
 
   /** The shadow flex box `gap`/`pad` write to; exists from the first render. */
   @query('.box') private readonly box!: HTMLDivElement
+
+  /** The slot the children arrive through. (`slot` itself is HTMLElement's.) */
+  @query('slot') private readonly childSlot!: HTMLSlotElement
+
+  /**
+   * Keeps cross-axis centering on whole system px (src/cross-center.ts).
+   * A null axis is the inert state — no observers, nothing held — which is
+   * every column that starts its children, i.e. the default.
+   */
+  private readonly crossCenter = new CrossCenterController(this, () => ({
+    box: this.box,
+    slot: this.childSlot,
+    axis: this.centersChildren
+      ? this.direction === 'row'
+        ? 'y'
+        : 'x'
+      : null,
+  }))
+
+  /**
+   * Mirrors the stylesheet's alignment selectors: a row centers unless `place`
+   * names something else, a column only when it says `center`, and an
+   * unrecognized value lands on the direction's default in both places.
+   */
+  private get centersChildren(): boolean {
+    if (this.place === 'center') return true
+    if (this.place === 'start' || this.place === 'end') return false
+    return this.direction === 'row'
+  }
 
   /**
    * `gap` and `pad` go on the shadow box's inline style as

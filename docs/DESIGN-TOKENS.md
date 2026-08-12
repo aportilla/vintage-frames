@@ -111,6 +111,7 @@ A pattern token renders as a placed tile grid rather than a CSS `background-repe
 | Token | Default | Used for |
 | --- | --- | --- |
 | `--vf-snap-dx` / `-dy` | written by the kit | The grid-snap correction. Do not set these |
+| `--vf-stack-dx` / `-dy` | written by the kit | What holds a centered `vf-stack` child on whole system px, alongside the `data-vf-tie` attribute that marks it. Measured over on the next pass, so setting one by hand does nothing |
 
 ---
 

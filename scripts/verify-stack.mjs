@@ -27,6 +27,9 @@
  *  - AXES: `place` defaults per direction (start down a column, center across a
  *    row) and each named value lands — including the safety net that an
  *    unrecognized value falls back to the default instead of stretching.
+ *  - TIE: centering an odd count of free system px lands on a whole one anyway,
+ *    the exact half going toward the start, and a child that needs no
+ *    correction is left untouched (src/cross-center.ts).
  *  - NESTING: a nested stack keeps its own gap rather than inheriting one.
  *  - TRANSPARENCY: the stack imposes no face, line box or color on what it
  *    wraps — a layout box must not change how content reads.
@@ -37,6 +40,7 @@
 import {
   check,
   devicePxPerSystemPxAt,
+  holdableScale,
   launch,
   makeBuild,
   results,
@@ -467,6 +471,125 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
     near(staleChild.w, 40),
     `place="stretch" left the 40px child at ${staleChild.w}px`
   )
+  await page.close()
+}
+
+/* ── TIE ──────────────────────────────────────────────────────────────────
+   Centering halves the free space, so an odd count of system px would leave a
+   child on a half system px — off the device grid at every density, which is
+   the whole 1-bit interior missing the grid rather than only the paint.
+   CrossCenterController measures that and steps the child back onto whole
+   system px, the exact half going toward the start (QuickDraw's div 2). Swept
+   across densities because the fault is in system px and the correction is
+   written in CSS px: at dpr 2 the free space is a whole count of CSS px whose
+   half is not, and at dpr 3 the scale itself is unholdable. */
+
+for (const dpr of DENSITIES) {
+  const scale = scaleAt(dpr)
+  const sysPx = (n) => `calc(var(--vf-scale, 1) * ${n}px)`
+  const page = await build(
+    `
+    <vf-stack id="tieCol" place="center" style="width:${sysPx(200)}">
+      <div id="tieOdd" style="width:${sysPx(71)};height:${sysPx(20)}"></div>
+      <div id="tieEven" style="width:${sysPx(88)};height:${sysPx(20)}"></div>
+    </vf-stack>
+    <vf-stack id="tieRow" direction="row"
+      style="width:${sysPx(200)};height:${sysPx(60)}">
+      <div id="tieRowOdd" style="width:${sysPx(20)};height:${sysPx(13)}"></div>
+    </vf-stack>
+    <vf-stack id="tieStart" place="start" style="width:${sysPx(200)}">
+      <div id="tieStartChild" style="width:${sysPx(71)};height:${sysPx(20)}"></div>
+    </vf-stack>
+    <vf-stack id="tieFlip" place="center" style="width:${sysPx(200)}">
+      <div id="tieFlipChild" style="width:${sysPx(71)};height:${sysPx(20)}"></div>
+    </vf-stack>
+  `,
+    dpr
+  )
+
+  /** Offset of a child from its stack's edge, in system px and in device px. */
+  const offsetOf = async (stackId, childId, axis = 'x') => {
+    const [stack, child] = await Promise.all([rect(page, stackId), rect(page, childId)])
+    const css = axis === 'x' ? child.x - stack.x : child.y - stack.y
+    return { sys: css / scale, device: css * dpr }
+  }
+  // A scale the engine can't hold exactly (a true 3× device's 4/3) leaves every
+  // length a fraction short — verify:grid discounts the same way.
+  const onGrid = ({ device }) =>
+    Math.abs(device - Math.round(device)) < (holdableScale(scale) ? 1e-6 : 0.5)
+  const marked = (id) =>
+    page.evaluate((i) => document.getElementById(i).hasAttribute('data-vf-tie'), id)
+
+  const odd = await offsetOf('tieCol', 'tieOdd')
+  check(
+    `dpr ${dpr}: tie: a 71-in-200 centering lands on whole system px, toward the start`,
+    near(Math.round(odd.sys), 64) && Math.abs(odd.sys - 64) < 0.02 && onGrid(odd),
+    `${odd.sys.toFixed(3)} system px (ideal 64.5), ${odd.device.toFixed(3)} device px`
+  )
+  check(`dpr ${dpr}: tie: …and the child is marked`, await marked('tieOdd'))
+
+  const even = await offsetOf('tieCol', 'tieEven')
+  const evenMarked = await marked('tieEven')
+  check(
+    `dpr ${dpr}: tie: an 88-in-200 centering is already whole and is left alone`,
+    Math.abs(even.sys - 56) < 0.02 && !evenMarked,
+    `${even.sys.toFixed(3)} system px, ${evenMarked ? 'MARKED' : 'unmarked'}`
+  )
+
+  const rowOdd = await offsetOf('tieRow', 'tieRowOdd', 'y')
+  check(
+    `dpr ${dpr}: tie: a row holds the other axis the same way`,
+    Math.abs(rowOdd.sys - 23) < 0.02 && onGrid(rowOdd),
+    `${rowOdd.sys.toFixed(3)} system px (ideal 23.5), ${rowOdd.device.toFixed(3)} device px`
+  )
+
+  const started = await offsetOf('tieStart', 'tieStartChild')
+  check(
+    `dpr ${dpr}: tie: place="start" centers nothing, so there is nothing to hold`,
+    near(started.sys, 0) && !(await marked('tieStartChild')),
+    `${started.sys} system px from the edge, unmarked`
+  )
+
+  // Stop centering and the child gets its own box back — the marker and the
+  // offset both go, rather than freezing whatever was applied when they landed.
+  const restored = await page.evaluate(async () => {
+    const stack = document.getElementById('tieCol')
+    stack.setAttribute('place', 'start')
+    await stack.updateComplete
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const child = document.getElementById('tieOdd')
+    return {
+      marked: child.hasAttribute('data-vf-tie'),
+      dx: child.style.getPropertyValue('--vf-stack-dx'),
+      style: child.getAttribute('style'),
+    }
+  })
+  check(
+    `dpr ${dpr}: tie: it is released when the stack stops centering`,
+    !restored.marked && !restored.dx,
+    `marker ${restored.marked}, --vf-stack-dx "${restored.dx || '(cleared)'}"`
+  )
+
+  // A direction flip retargets the axis. The old x hold must not be replayed
+  // into the y measurement — this single child leaves no y slack and changes
+  // no box size, so a stale hold would stick with no resize to heal it.
+  const flipped = await page.evaluate(async () => {
+    const stack = document.getElementById('tieFlip')
+    stack.setAttribute('direction', 'row')
+    await stack.updateComplete
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const child = document.getElementById('tieFlipChild')
+    return {
+      marked: child.hasAttribute('data-vf-tie'),
+      dy: child.style.getPropertyValue('--vf-stack-dy'),
+    }
+  })
+  check(
+    `dpr ${dpr}: tie: a direction flip drops the old axis's hold`,
+    !flipped.marked && !flipped.dy,
+    `marker ${flipped.marked}, --vf-stack-dy "${flipped.dy || '(cleared)'}"`
+  )
+
   await page.close()
 }
 

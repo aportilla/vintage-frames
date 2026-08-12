@@ -5134,7 +5134,7 @@
           "name": "VfListItem",
           "cssParts": [
             {
-              "description": "The text span beside the icon gutter (ellipsizes).",
+              "description": "The text span beside the icon gutter (ellipsizes). Takes `top`/`left` like every other element ({@link VfPositioned}), for the consumer who wants a row somewhere other than a list. Inside its parent `<vf-list>` the rows stack in flow, so stating an origin lifts that row out of the stack and the ones below it close the gap — the placement doing what it says, but not how a list box is laid out.",
               "name": "text"
             }
           ],
@@ -5211,6 +5211,32 @@
                 "text": "string"
               },
               "default": "'option'"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -5240,6 +5266,36 @@
               "default": "false",
               "description": "Disables the row: dimmed text, not selectable or focusable.",
               "fieldName": "disabled"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -6198,7 +6254,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu-item>` — a single command inside a `<vf-menu>` panel.\n\nRenders the classic System 7 menu row: optional ✓ check in the\n`--vf-select-gutter` left column (16px, shared with vf-select/vf-option),\nlabel, and the keyboard shortcut left-aligned in a right-anchored column,\nso every ⌘ lands at the same x. On activation the item performs the classic\n3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its\nancestors to close the menu.",
+          "description": "`<vf-menu-item>` — a single command inside a `<vf-menu>` panel.\n\nRenders the classic System 7 menu row: optional ✓ check in the\n`--vf-select-gutter` left column (16px, shared with vf-select/vf-option),\nlabel, and the keyboard shortcut left-aligned in a right-anchored column,\nso every ⌘ lands at the same x. On activation the item performs the classic\n3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its\nancestors to close the menu.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants a row somewhere other than a pulldown. Inside its parent\n`<vf-menu>` the panel is as wide as its widest row and stacks them in flow,\nso stating an origin takes that row out of both: it no longer contributes to\nthe panel's width and the rows below close the gap. The placement doing what\nit says — but not how a pulldown is laid out.",
           "name": "VfMenuItem",
           "cssProperties": [
             {
@@ -6475,6 +6531,32 @@
                   "text": "void"
                 }
               }
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -6536,6 +6618,36 @@
               },
               "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\ntrimmed text content when unset.",
               "fieldName": "value"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -6571,7 +6683,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.",
+          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n\nTakes `top`/`left` like every other element (VfPositioned) — the\nnatural fit being a standalone menu, which is a free-standing menu button and\nplaces like any other control. The panel is anchored to the host's own box\n(`top: 100%`), so it follows a placed menu down without any further work.\nInside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one\nlifts it off the bar and the titles beside it close the gap.",
           "name": "VfMenu",
           "cssProperties": [
             {
@@ -6918,6 +7030,32 @@
                 }
               },
               "description": "Focuses the first enabled item once the panel is visible. The reflected\n`open` attribute (which un-hides the panel) only lands on the host in the\nnext Lit update, so focusing synchronously would silently no-op."
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -6938,6 +7076,36 @@
               "default": "false",
               "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
               "fieldName": "open"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -8283,7 +8451,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-option>` — a single choice inside a `<vf-select>` popup menu.\n\nA light-DOM child of `<vf-select>` (slotted into the popup panel). Renders\nits slotted label at menu-item metrics (16px row — the pill's content height,\nso a selected option overlays the closed pill exactly; the left checkmark gutter is\n`--vf-select-gutter`, shared with the closed control's left inset so the value\ndoesn't shift on open). The parent select manages `selected` and the transient\n`active` highlight, and slots this element into its popup panel.\n\nThe host carries `role=\"option\"` with `aria-selected`/`aria-disabled`.",
+          "description": "`<vf-option>` — a single choice inside a `<vf-select>` popup menu.\n\nA light-DOM child of `<vf-select>` (slotted into the popup panel). Renders\nits slotted label at menu-item metrics (16px row — the pill's content height,\nso a selected option overlays the closed pill exactly; the left checkmark gutter is\n`--vf-select-gutter`, shared with the closed control's left inset so the value\ndoesn't shift on open). The parent select manages `selected` and the transient\n`active` highlight, and slots this element into its popup panel.\n\nThe host carries `role=\"option\"` with `aria-selected`/`aria-disabled`.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants one somewhere other than a popup row. Inside its parent\n`<vf-select>` it is a row the panel measures and scrolls in flow, so stating\nan origin there takes it out of that measurement: the panel stops counting it\ntoward its own width and its scroll clamp, and the rows below close the gap.\nThat is the placement doing exactly what it says — not a bug — but it is not\nhow a popup is laid out.",
           "name": "VfOption",
           "cssProperties": [
             {
@@ -8368,6 +8536,32 @@
                 "text": "string"
               },
               "default": "'option'"
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -8406,6 +8600,36 @@
               "default": "false",
               "description": "Transient highlight (hover / keyboard cursor) — full-row inversion.\nManaged by the parent `<vf-select>`; not part of the authoring API.",
               "fieldName": "active"
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
             }
           ],
           "superclass": {
@@ -19515,7 +19739,7 @@
         },
         {
           "kind": "mixin",
-          "description": "Explicit placement — `top`/`left` in whole system px, on (nearly) every\ncomponent.\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.",
+          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.",
           "name": "VfPositioned",
           "members": [
             {

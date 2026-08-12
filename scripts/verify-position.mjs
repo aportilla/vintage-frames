@@ -32,6 +32,8 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:position
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   ORIGIN,
   check,
@@ -43,6 +45,9 @@ import {
   gridTolerance,
   holdableScale,
 } from './harness.mjs'
+
+/** Repo root, for reading the manifest the UNIVERSAL group enumerates. */
+const ROOT = new URL('..', import.meta.url).pathname
 
 const DENSITIES = (process.env.VF_POSITION_DPR ?? '1,2,3').split(',').map(Number)
 
@@ -691,6 +696,93 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
     'contract: …silently',
     page.vfWarnings.length === 0,
     page.vfWarnings.join(' | ') || 'silent'
+  )
+  await page.close()
+}
+
+{
+  // UNIVERSAL: the rule itself, enumerated rather than trusted. Every element
+  // the kit defines takes the pair — including the rows a container normally
+  // owns (vf-option, vf-menu-item, vf-list-item) and a bar's vf-menu, which
+  // were excluded until the rule was made exceptionless. Read off the manifest
+  // so a new component joins this check by existing, not by being remembered
+  // here.
+  const tags = JSON.parse(readFileSync(join(ROOT, 'custom-elements.json'), 'utf8'))
+    .modules.flatMap((m) => m.declarations ?? [])
+    .filter((d) => d.customElement && d.tagName)
+    .map((d) => d.tagName)
+    .sort()
+
+  // vf-dialog is the one documented difference and is asserted on its own
+  // terms below: its host is `display: contents` and the box that moves is the
+  // top-layer <dialog>, whose containing block the platform fixes to the
+  // viewport.
+  const placeable = tags.filter((t) => t !== 'vf-dialog')
+  const page = await build(
+    `<div id="anchor" style="position:relative;width:800px;height:600px">
+       ${placeable.map((t) => `<${t} data-tag="${t}" top="12" left="20"></${t}>`).join('\n')}
+     </div>`
+  )
+  check(
+    'universal: the manifest lists every component this check covers',
+    tags.length === 31,
+    `${tags.length} elements (${placeable.length} placeable + vf-dialog)`
+  )
+  const placed = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-tag]')].map((el) => {
+      const anchor = document.getElementById('anchor').getBoundingClientRect()
+      const box = el.getBoundingClientRect()
+      return {
+        tag: el.dataset.tag,
+        position: getComputedStyle(el).position,
+        dx: box.left - anchor.left,
+        dy: box.top - anchor.top,
+      }
+    })
+  )
+  const notAbsolute = placed.filter((p) => p.position !== 'absolute')
+  check(
+    'universal: every component takes top/left — no exceptions',
+    notAbsolute.length === 0,
+    notAbsolute.length === 0
+      ? `${placed.length}/${placed.length} absolutely positioned`
+      : notAbsolute.map((p) => `${p.tag}:${p.position}`).join(' ')
+  )
+  // The offsets land where they were stated, in the art's own unit — the rows
+  // included, which is the half that would have silently done nothing before.
+  const scale = scaleAt(1)
+  const misplaced = placed.filter(
+    (p) => !near(p.dx, 20 * scale) || !near(p.dy, 12 * scale)
+  )
+  check(
+    'universal: …and each lands at the stated system-px origin',
+    misplaced.length === 0,
+    misplaced.length === 0
+      ? `all at (20,12) system px = (${20 * scale},${12 * scale}) CSS px`
+      : misplaced.map((p) => `${p.tag}:${p.dx},${p.dy}`).join(' ')
+  )
+  await page.close()
+}
+
+{
+  // vf-dialog's own terms: it takes the same pair, in the same unit, against
+  // the viewport — showModal() puts the box in the top layer, whose containing
+  // block is not the parent. Asserted here so "every component takes the pair"
+  // covers all 31 without pretending the coordinate space is the same.
+  const page = await build(`
+    <div style="position:relative;left:120px;top:80px">
+      <vf-dialog id="d" heading="Placed" width="200" height="120" top="40" left="60"></vf-dialog>
+    </div>
+  `)
+  await page.evaluate(() => document.getElementById('d').show())
+  const box = await page.evaluate(() =>
+    document.getElementById('d').shadowRoot.querySelector('dialog').getBoundingClientRect()
+  )
+  const scale = scaleAt(1)
+  check(
+    'universal: vf-dialog takes the pair too — against the viewport',
+    near(box.left, 60 * scale) && near(box.top, 40 * scale),
+    `(${box.left},${box.top}) CSS px, viewport-anchored despite the offset parent`
   )
   await page.close()
 }

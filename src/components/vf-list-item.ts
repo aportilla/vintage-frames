@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase, vfFocusRing } from '../styles/base.js'
+import { VfPositioned } from '../position.js'
 import { ScaleController } from '../scale.js'
 import { emit } from '../events.js'
 
@@ -22,9 +23,15 @@ import { emit } from '../events.js'
  *   the row's words. On a selected row the graphic rides the inverted bar
  *   as-is — System 7 left color icons unfiltered on the highlight.
  * @csspart text - The text span beside the icon gutter (ellipsizes).
+ *
+ * Takes `top`/`left` like every other element ({@link VfPositioned}), for the
+ * consumer who wants a row somewhere other than a list. Inside its parent
+ * `<vf-list>` the rows stack in flow, so stating an origin lifts that row out
+ * of the stack and the ones below it close the gap — the placement doing what
+ * it says, but not how a list box is laid out.
  */
 @vfElement('vf-list-item')
-export class VfListItem extends LitElement {
+export class VfListItem extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     css`

@@ -16,8 +16,17 @@ export declare abstract class VfPositionedInterface extends LitElement {
 }
 
 /**
- * Explicit placement — `top`/`left` in whole system px, on (nearly) every
- * component.
+ * Explicit placement — `top`/`left` in whole system px, on **every** component.
+ *
+ * No exceptions, deliberately. These are web components, and a consumer may put
+ * one wherever they like; the kit does not get to decide that a `vf-option` is
+ * only ever a popup row. The rows a container normally owns (`vf-option`,
+ * `vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the
+ * same terms as anything else — and stating an origin on one *inside* its
+ * managing parent does take it out of that parent's flow layout, which is the
+ * placement working, not failing. Each of those components documents what its
+ * container stops doing for it. `vf-dialog` takes the pair in viewport
+ * coordinates, the one difference the platform forces (see modal-dialog.ts).
  *
  * A DITL resource laid a dialog out as a list of items, each with a rectangle
  * in the window's own coordinates; arranging controls by stating where they go

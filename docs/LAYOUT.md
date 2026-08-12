@@ -46,7 +46,7 @@ npm run verify:stack
 
 ## `top` and `left`
 
-Nearly every component takes `top` and `left` in whole system px. Set either and the element is absolutely positioned within its parent, the coordinate you left out defaulting to 0. Set neither and it renders in flow:
+Every component takes `top` and `left` in whole system px. Set either and the element is absolutely positioned within its parent, the coordinate you left out defaulting to 0. Set neither and it renders in flow:
 
 ```html
 <vf-window heading="Rename" width="300" height="140">
@@ -63,8 +63,8 @@ The coordinates are written as a live `calc(var(--vf-scale, 1) * Npx)`, so a pla
 
 **(0,0)** is CSS's nearest positioned ancestor, and every kit container is one: the desktop's raster, a window's content region, a dialog's content area, a stack's box, a fieldset just inside its border, a scroll area's scrolled plane. In a parent of your own, add `position: relative`, or slot the children into a `vf-container` — a plain sized box made for this.
 
-- **Four elements don't take the pair:** `vf-option`, `vf-menu-item`, `vf-list-item` and `vf-menu` are owned rows of a managing container.
-- **`vf-dialog` takes it in viewport coordinates** — `showModal()` puts a modal in the top layer, whose containing block is the viewport. Leave the pair off and the modal is centered, recomputed whenever its box or the viewport changes. Setting either coordinate back to `null` returns it to centering.
+- **No exceptions, including the rows.** `vf-option`, `vf-menu-item`, `vf-list-item` and `vf-menu` take the pair too. These are web components; where you put one is your call, not the kit's. What *does* change is what the managing parent stops doing for a placed child, since the child has left its flow: a `vf-select` panel and a `vf-menu` panel are each as wide as their widest row and no longer count a placed one, the popup's scroll clamp stops counting it, a `vf-list`'s rows below it close the gap, and a placed `vf-menu` lifts off its bar. That is the placement working, not failing — but it isn't how a popup, a pulldown or a list box is laid out, so reach for it when the row is genuinely standing on its own.
+- **`vf-dialog` takes it in viewport coordinates** — `showModal()` puts a modal in the top layer, whose containing block is the viewport, so this one origin is the screen's rather than the parent's. Everything else about the pair is identical: same unit, same live `calc()`, same drag-writes-through. Leave the pair off and the modal is centered, recomputed whenever its box or the viewport changes. Setting either coordinate back to `null` returns it to centering.
 - **Gestures write through the same properties.** A title-bar drag on a `vf-window` or `vf-dialog`, a drag or arrow-key nudge on a `vf-icon`, and `vf-window`'s grow box all state whole system px, so activating a window never snaps it back and a zoom leaves it where it was dropped. Setting a property yourself re-places it.
 - **A movable element needs a coordinate system**, and its parent needs a declared size for the clamp to work in. Without one, the first move pulls the element out of flow and reflows the page under it; the kit warns once per element and keeps the gesture working. `position: absolute` in your own stylesheet satisfies the requirement too.
 - **Read a moved element's position off the properties** (`win.left`), not `style.left` — the inline value is a live `calc()`, so `parseFloat` gives `NaN`. Coordinates land on the lattice a drag step uses: 1 system px on a 1× display, 2 on a 2× one. Nothing re-snaps a dropped coordinate afterwards.

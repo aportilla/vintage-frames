@@ -470,7 +470,7 @@
     },
     {
       "name": "vf-list-item",
-      "description": "`<vf-list-item>` — a row inside a `<vf-list>` list box.\n\nA 20px-tall single-line row; when selected the entire row inverts\n(white-on-black), the classic System 7 selection style. Selection and\nkeyboard focus are managed by the parent `<vf-list>`.\n---\n\n\n### **Slots:**\n - _default_ - The row's text/content.\n- **icon** - A leading graphic — usually a `vf-img` holding a 16×16 System 7 small icon, but any element rides here. The row lays it out as the icon gutter: flex-centered vertically (keep the difference between the row height and the icon height even, so the centering offset stays a whole pixel — 16 in a 20px row is a whole 2px), with the reference art's 4px gap to the text. Contributes no text, so first-letter type-ahead still reads the row's words. On a selected row the graphic rides the inverted bar as-is — System 7 left color icons unfiltered on the highlight.\n\n### **CSS Parts:**\n - **text** - The text span beside the icon gutter (ellipsizes).",
+      "description": "`<vf-list-item>` — a row inside a `<vf-list>` list box.\n\nA 20px-tall single-line row; when selected the entire row inverts\n(white-on-black), the classic System 7 selection style. Selection and\nkeyboard focus are managed by the parent `<vf-list>`.\n---\n\n\n### **Slots:**\n - _default_ - The row's text/content.\n- **icon** - A leading graphic — usually a `vf-img` holding a 16×16 System 7 small icon, but any element rides here. The row lays it out as the icon gutter: flex-centered vertically (keep the difference between the row height and the icon height even, so the centering offset stays a whole pixel — 16 in a 20px row is a whole 2px), with the reference art's 4px gap to the text. Contributes no text, so first-letter type-ahead still reads the row's words. On a selected row the graphic rides the inverted bar as-is — System 7 left color icons unfiltered on the highlight.\n\n### **CSS Parts:**\n - **text** - The text span beside the icon gutter (ellipsizes). Takes `top`/`left` like every other element ({@link VfPositioned}), for the consumer who wants a row somewhere other than a list. Inside its parent `<vf-list>` the rows stack in flow, so stating an origin lifts that row out of the stack and the ones below it close the gap — the placement doing what it says, but not how a list box is laid out.",
       "attributes": [
         {
           "name": "value",
@@ -485,6 +485,16 @@
         {
           "name": "disabled",
           "description": "Disables the row: dimmed text, not selectable or focusable.",
+          "values": []
+        },
+        {
+          "name": "top",
+          "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+          "values": []
+        },
+        {
+          "name": "left",
+          "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
           "values": []
         }
       ],
@@ -556,7 +566,7 @@
     },
     {
       "name": "vf-menu-item",
-      "description": "`<vf-menu-item>` — a single command inside a `<vf-menu>` panel.\n\nRenders the classic System 7 menu row: optional ✓ check in the\n`--vf-select-gutter` left column (16px, shared with vf-select/vf-option),\nlabel, and the keyboard shortcut left-aligned in a right-anchored column,\nso every ⌘ lands at the same x. On activation the item performs the classic\n3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its\nancestors to close the menu.\n---\n\n\n### **Events:**\n - **vf-menu-select** - After the blink completes. `detail: { value, item }`. Named for the menu rather than plain `vf-select`, which would collide with the `<vf-select>` popup on any delegated ancestor listener (that component commits with `vf-change`).\n\n### **Slots:**\n - _default_ - The item label.\n\n### **CSS Properties:**\n - **--vf-menu-row-height** - `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) _(default: 16px)_\n- **--vf-menu-shortcut-column** - `vf-menu-item` shortcut slot, right-anchored with the text left-aligned in it so every ⌘ lands at the same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's widest letter (M/W, 12px); widen it to line up longer shortcuts (\"⌘⇧S\") _(default: 23px)_\n- **--vf-select-gutter** - checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) _(default: 16px)_\n\n### **CSS Parts:**\n - **item** - The row container.\n- **check** - The ✓ checkmark glyph (rendered when `checked`).\n- **label** - The label wrapper around the default slot.\n- **shortcut** - The shortcut text, left-aligned in the shared column.",
+      "description": "`<vf-menu-item>` — a single command inside a `<vf-menu>` panel.\n\nRenders the classic System 7 menu row: optional ✓ check in the\n`--vf-select-gutter` left column (16px, shared with vf-select/vf-option),\nlabel, and the keyboard shortcut left-aligned in a right-anchored column,\nso every ⌘ lands at the same x. On activation the item performs the classic\n3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its\nancestors to close the menu.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants a row somewhere other than a pulldown. Inside its parent\n`<vf-menu>` the panel is as wide as its widest row and stacks them in flow,\nso stating an origin takes that row out of both: it no longer contributes to\nthe panel's width and the rows below close the gap. The placement doing what\nit says — but not how a pulldown is laid out.\n---\n\n\n### **Events:**\n - **vf-menu-select** - After the blink completes. `detail: { value, item }`. Named for the menu rather than plain `vf-select`, which would collide with the `<vf-select>` popup on any delegated ancestor listener (that component commits with `vf-change`).\n\n### **Slots:**\n - _default_ - The item label.\n\n### **CSS Properties:**\n - **--vf-menu-row-height** - `vf-menu-item` row pitch (`Menus.png`; kept separate from `--vf-popup-height` so re-theming the popup pill doesn't move pulldown rows) _(default: 16px)_\n- **--vf-menu-shortcut-column** - `vf-menu-item` shortcut slot, right-anchored with the text left-aligned in it so every ⌘ lands at the same x (`Menus.png`) — the MDEF reserve, ⌘'s 11px advance + the face's widest letter (M/W, 12px); widen it to line up longer shortcuts (\"⌘⇧S\") _(default: 23px)_\n- **--vf-select-gutter** - checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) _(default: 16px)_\n\n### **CSS Parts:**\n - **item** - The row container.\n- **check** - The ✓ checkmark glyph (rendered when `checked`).\n- **label** - The label wrapper around the default slot.\n- **shortcut** - The shortcut text, left-aligned in the shared column.",
       "attributes": [
         {
           "name": "disabled",
@@ -587,13 +597,23 @@
           "name": "value",
           "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\ntrimmed text content when unset.",
           "values": []
+        },
+        {
+          "name": "top",
+          "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+          "values": []
+        },
+        {
+          "name": "left",
+          "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+          "values": []
         }
       ],
       "references": []
     },
     {
       "name": "vf-menu",
-      "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n---\n\n\n### **Slots:**\n - _default_ - Menu contents: `vf-menu-item` and `vf-separator` elements.\n- **label** - Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 20px)_\n- **--vf-menu-row-height** - `vf-menu-item` row pitch; the panel also spends one of these on every slotted `vf-separator`, the full row the MDEF gave a divider (rule 8px into it — see the panel CSS) _(default: 16px)_\n\n### **CSS Parts:**\n - **label** - The menu title in the bar (inverts while open).\n- **panel** - The dropped `.vf-panel` containing the items.",
+      "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n\nTakes `top`/`left` like every other element (VfPositioned) — the\nnatural fit being a standalone menu, which is a free-standing menu button and\nplaces like any other control. The panel is anchored to the host's own box\n(`top: 100%`), so it follows a placed menu down without any further work.\nInside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one\nlifts it off the bar and the titles beside it close the gap.\n---\n\n\n### **Slots:**\n - _default_ - Menu contents: `vf-menu-item` and `vf-separator` elements.\n- **label** - Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 20px)_\n- **--vf-menu-row-height** - `vf-menu-item` row pitch; the panel also spends one of these on every slotted `vf-separator`, the full row the MDEF gave a divider (rule 8px into it — see the panel CSS) _(default: 16px)_\n\n### **CSS Parts:**\n - **label** - The menu title in the bar (inverts while open).\n- **panel** - The dropped `.vf-panel` containing the items.",
       "attributes": [
         {
           "name": "label",
@@ -603,6 +623,16 @@
         {
           "name": "open",
           "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
+          "values": []
+        },
+        {
+          "name": "top",
+          "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+          "values": []
+        },
+        {
+          "name": "left",
+          "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
           "values": []
         }
       ],
@@ -682,7 +712,7 @@
     },
     {
       "name": "vf-option",
-      "description": "`<vf-option>` — a single choice inside a `<vf-select>` popup menu.\n\nA light-DOM child of `<vf-select>` (slotted into the popup panel). Renders\nits slotted label at menu-item metrics (16px row — the pill's content height,\nso a selected option overlays the closed pill exactly; the left checkmark gutter is\n`--vf-select-gutter`, shared with the closed control's left inset so the value\ndoesn't shift on open). The parent select manages `selected` and the transient\n`active` highlight, and slots this element into its popup panel.\n\nThe host carries `role=\"option\"` with `aria-selected`/`aria-disabled`.\n---\n\n\n### **CSS Properties:**\n - **--vf-popup-height** - `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) _(default: 18px)_\n- **--vf-select-gutter** - checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) _(default: 16px)_\n\n### **CSS Parts:**\n - **check** - The ✓ checkmark shown in the left gutter when selected.",
+      "description": "`<vf-option>` — a single choice inside a `<vf-select>` popup menu.\n\nA light-DOM child of `<vf-select>` (slotted into the popup panel). Renders\nits slotted label at menu-item metrics (16px row — the pill's content height,\nso a selected option overlays the closed pill exactly; the left checkmark gutter is\n`--vf-select-gutter`, shared with the closed control's left inset so the value\ndoesn't shift on open). The parent select manages `selected` and the transient\n`active` highlight, and slots this element into its popup panel.\n\nThe host carries `role=\"option\"` with `aria-selected`/`aria-disabled`.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants one somewhere other than a popup row. Inside its parent\n`<vf-select>` it is a row the panel measures and scrolls in flow, so stating\nan origin there takes it out of that measurement: the panel stops counting it\ntoward its own width and its scroll clamp, and the rows below close the gap.\nThat is the placement doing exactly what it says — not a bug — but it is not\nhow a popup is laid out.\n---\n\n\n### **CSS Properties:**\n - **--vf-popup-height** - `vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box) _(default: 18px)_\n- **--vf-select-gutter** - checkmark column: `vf-select` left inset / `vf-option` + `vf-menu-item` ✓ column (shared so the value doesn't shift on open) _(default: 16px)_\n\n### **CSS Parts:**\n - **check** - The ✓ checkmark shown in the left gutter when selected.",
       "attributes": [
         {
           "name": "value",
@@ -702,6 +732,16 @@
         {
           "name": "active",
           "description": "Transient highlight (hover / keyboard cursor) — full-row inversion.\nManaged by the parent `<vf-select>`; not part of the authoring API.",
+          "values": []
+        },
+        {
+          "name": "top",
+          "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+          "values": []
+        },
+        {
+          "name": "left",
+          "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
           "values": []
         }
       ],

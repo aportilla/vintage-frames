@@ -1327,22 +1327,33 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
 
           <h3>The other way: <code>top</code> and <code>left</code></h3>
           <p>
-            Nearly every component takes <code>top</code> and <code>left</code> in
-            whole system px. Set either and the element is absolutely positioned
-            within its parent, the coordinate you left out defaulting to 0; set
-            neither and it renders in flow. (0,0) is CSS's nearest positioned
+            Every component takes <code>top</code> and <code>left</code> in whole
+            system px — no exceptions. Set either and the element is absolutely
+            positioned within its parent, the coordinate you left out defaulting to
+            0; set neither and it renders in flow. (0,0) is CSS's nearest positioned
             ancestor, and every kit container is one — a container of your own needs
             <code>position: relative</code>, or is a
             <a href="#vf-container"><code>vf-container</code></a>, below.
           </p>
           <p>
-            The four owned rows don't take the pair (<code>vf-option</code>,
-            <code>vf-menu-item</code>, <code>vf-list-item</code>,
-            <code>vf-menu</code>), and <code>vf-dialog</code> takes it in viewport
-            coordinates, unset meaning centered. A drag writes through the same two
-            properties, so read a moved element's position off <code>el.left</code>
-            rather than <code>style.left</code>, which holds a live
-            <code>calc()</code>.
+            That includes the rows a container usually owns —
+            <code>vf-option</code>, <code>vf-menu-item</code>,
+            <code>vf-list-item</code> and a bar's <code>vf-menu</code>. Where you
+            put one is your call. Just know what the parent stops doing once a
+            child leaves its flow: a select or menu panel is as wide as its widest
+            <em>flowed</em> row and no longer counts a placed one, the popup's
+            scroll clamp skips it too, and the rows after it close the gap. That's
+            the placement working — but it isn't how a popup, pulldown or list box
+            is laid out, so reach for it when the row really is standing alone.
+          </p>
+          <p>
+            <code>vf-dialog</code> takes the pair in viewport coordinates:
+            <code>showModal()</code> puts a modal in the top layer, whose containing
+            block is the viewport, so that one origin is the screen's rather than
+            the parent's — same unit and same behavior otherwise, with unset meaning
+            centered. A drag writes through the same two properties, so read a moved
+            element's position off <code>el.left</code> rather than
+            <code>style.left</code>, which holds a live <code>calc()</code>.
           </p>
 
           <template data-example data-caption="A placed layout: every child states its own top/left in system px against the window's content region, so the panel needs no stylesheet at all.">

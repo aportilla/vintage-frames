@@ -4,6 +4,7 @@ import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
+import { VfPositioned } from '../position.js'
 import { ScaleController } from '../scale.js'
 
 /**
@@ -18,6 +19,14 @@ import { ScaleController } from '../scale.js'
  *
  * The host carries `role="option"` with `aria-selected`/`aria-disabled`.
  *
+ * Takes `top`/`left` like every other element ({@link VfPositioned}), for the
+ * consumer who wants one somewhere other than a popup row. Inside its parent
+ * `<vf-select>` it is a row the panel measures and scrolls in flow, so stating
+ * an origin there takes it out of that measurement: the panel stops counting it
+ * toward its own width and its scroll clamp, and the rows below close the gap.
+ * That is the placement doing exactly what it says — not a bug — but it is not
+ * how a popup is laid out.
+ *
  * @csspart check - The ✓ checkmark shown in the left gutter when selected.
  * @cssprop [--vf-popup-height=18px] - `vf-select` pill (border box; its 1px
  *   hard shadow makes the sheet's 157×19 ink box)
@@ -26,7 +35,7 @@ import { ScaleController } from '../scale.js'
  *   on open)
  */
 @vfElement('vf-option')
-export class VfOption extends LitElement {
+export class VfOption extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfDisplay,

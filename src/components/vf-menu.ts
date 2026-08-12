@@ -8,6 +8,7 @@ import { vfElement } from '../define.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { VfPositioned } from '../position.js'
 import {
   DocumentListenersController,
   releaseAfterGesture,
@@ -34,6 +35,13 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * onto a command, release over it) and a modern quick tap that leaves the menu
  * dropped for a second click.
  *
+ * Takes `top`/`left` like every other element ({@link VfPositioned}) — the
+ * natural fit being a standalone menu, which is a free-standing menu button and
+ * places like any other control. The panel is anchored to the host's own box
+ * (`top: 100%`), so it follows a placed menu down without any further work.
+ * Inside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one
+ * lifts it off the bar and the titles beside it close the gap.
+ *
  * @slot - Menu contents: `vf-menu-item` and `vf-separator` elements.
  * @slot label - Replaces the `label` text in the bar — e.g. a `vf-img` apple
  *   icon for the Apple menu. Keep the `label` attribute set too: it stays the
@@ -47,7 +55,7 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *   MDEF gave a divider (rule 8px into it — see the panel CSS)
  */
 @vfElement('vf-menu')
-export class VfMenu extends LitElement {
+export class VfMenu extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfDisplay,

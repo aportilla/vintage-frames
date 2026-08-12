@@ -4,6 +4,7 @@ import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
+import { VfPositioned } from '../position.js'
 import { ScaleController } from '../scale.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { releaseAfterGesture } from '../document-listeners.js'
@@ -49,6 +50,13 @@ function toAriaKeyshortcuts(shortcut: string): string {
  * 3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its
  * ancestors to close the menu.
  *
+ * Takes `top`/`left` like every other element ({@link VfPositioned}), for the
+ * consumer who wants a row somewhere other than a pulldown. Inside its parent
+ * `<vf-menu>` the panel is as wide as its widest row and stacks them in flow,
+ * so stating an origin takes that row out of both: it no longer contributes to
+ * the panel's width and the rows below close the gap. The placement doing what
+ * it says — but not how a pulldown is laid out.
+ *
  * @slot - The item label.
  * @csspart item - The row container.
  * @csspart check - The ✓ checkmark glyph (rendered when `checked`).
@@ -70,7 +78,7 @@ function toAriaKeyshortcuts(shortcut: string): string {
  *   on open)
  */
 @vfElement('vf-menu-item')
-export class VfMenuItem extends LitElement {
+export class VfMenuItem extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfDisplay,

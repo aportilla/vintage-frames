@@ -56,7 +56,7 @@
     "test": "node scripts/test.mjs",
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.build.json && npm run analyze",
-    "build:pages": "vite build --config vite.pages.config.ts && node scripts/copy-strikes.mjs",
+    "build:pages": "vite build --config vite.pages.config.ts",
     "preview:pages": "vite preview --config vite.pages.config.ts",
     "prepack": "npm run build && npm run verify:manifest",
     "analyze": "cem analyze",

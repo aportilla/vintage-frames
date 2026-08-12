@@ -21,14 +21,16 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
   must stay whole — a fractional origin or size smears the art gray. Details:
   `docs/SIZING.md`.
 - **No global CSS ships.** The kit exports no stylesheet; page-level CSS is the
-  host page's job (`demo/desktop-page.css` belongs to the showcase, not the kit).
+  host page's job (`demo/examples.css` belongs to the reference page, not the
+  kit).
 - **One true size.** The bitmap strikes render only at native size — no size
   knobs. Document what components do, never what they lack.
 - The embedded faces (`VF Display`/`VF Body`) are the kit's **own re-drawn
   strikes**, built from the plaintext manifests `fonts/VF-*.glyphs.txt` by
   `fonts/manifest-to-font.py`. Credit Susan Kare and Apple as the original
-  designers; never describe them as Apple's files. Only `fonts/imported/` is
-  genuine Apple artwork.
+  designers; never describe them as Apple's files. **No Apple artwork lives in
+  this repo** — the imported strike collection moved to the system7web repo
+  on 2026-08-11, so `fonts/` is now the kit's own work end to end.
 - Keyboard focus is a 1px dashed underline in the 1-bit idiom; the browser
   ring is a last resort. Accessibility features are *added* in that idiom —
   never write comments or docs implying the classic Mac drew them.
@@ -54,7 +56,13 @@ regenerated files with the change.
   TOOLKIT (root exports), DEVELOPING (demo pages, verify suite), PUBLISHING
   (the npm release guide), THREE-X-DISPLAYS
 - `README.md` — the consumer storefront, shared by GitHub and npm; deep
-  material belongs in `docs/`, not there. Only `README.md` and this file live
-  at the root — new docs go in `docs/`
+  material belongs in `docs/`, not there. Only `README.md`, `KNOWN-BUGS.md`
+  and this file live at the root — new docs go in `docs/`
+- `KNOWN-BUGS.md` — open defects with their evidence; close one by deleting
+  its entry
 - `fonts/README.md` — the font pipeline and design lineage
 - `scripts/*.mjs` — the verify suite; shared harness in `scripts/harness.mjs`
+- `index.html` is the **component reference** (`demo/examples.ts`), and the
+  root of the published Pages site; `blog.html` is the integration example the
+  verify suite covers. The faux System 7 desktop is not here — it lives in the
+  sibling **system7web** repo and consumes this package from npm.

@@ -4,14 +4,15 @@ Lit web components that rebuild the Mac OS System 7 interface — racing-stripe
 title bars, 1px black borders, hard offset shadows, bitmap type. 31 elements,
 no stylesheet to load.
 
-- **[Showcase](https://aportilla.github.io/vintage-frames/)** — a full faux
-  desktop: menu bar, movable windows, dialogs, icons, every control, drawn
-  cursor
-- **[Component reference](https://aportilla.github.io/vintage-frames/examples.html)**
-  — every element, its API, and a live specimen of each state
+- **[Component reference](https://aportilla.github.io/vintage-frames/)** — every
+  element, its API, and a live specimen of each state
 - **[Integration example](https://aportilla.github.io/vintage-frames/blog.html)**
   — an ordinary blog page (system-font copy, normal flow, no global CSS) using
   the controls in its header, sidebar and forms
+- **[System 7 desktop](https://aportilla.github.io/system7web/)** — a full faux
+  desktop (menu bar, movable windows, dialogs, icons, drawn cursor) built on
+  this package, in its own repo:
+  [aportilla/system7web](https://github.com/aportilla/system7web)
 
 ```sh
 npm install vintage-frames
@@ -86,7 +87,7 @@ no global CSS at all.
 | `vf-img` | Pixel art on the grid — sizes a slotted `<img>` to one system px per image px, magnified nearest-neighbor |
 | `vf-icon` | Finder icon: art in a 32×32 or 16×16 cell with a name plate below. `selectable`, `open`, `movable`, `editable` |
 
-The [component reference](https://aportilla.github.io/vintage-frames/examples.html)
+The [component reference](https://aportilla.github.io/vintage-frames/)
 shows each of these live, with its full API.
 
 ## Taking only what you use

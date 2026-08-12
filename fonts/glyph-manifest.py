@@ -21,9 +21,8 @@ glyph ID rather than codepoint (the two agree for the classic character
 set; the kit's additions trail in the order they were appended).
 
 Every glyph in these fonts is axis-aligned pixel-run rectangles on the
-64-unit grid (bmp() in manifest-to-font.py and draw() in import-bdf.py both
-rasterise that way), so the contours decompile losslessly back into pixel
-cells — the same decomposition import-bdf.py's verify() bit-compares with.
+64-unit grid (bmp() in manifest-to-font.py rasterises that way), so the
+contours decompile losslessly back into pixel cells.
 Anything else (a composite, an off-grid point) is a hard error, not a best
 effort.
 """

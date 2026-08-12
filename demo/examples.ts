@@ -1,8 +1,8 @@
 /**
- * Behavior for examples.html — the Vintage Frames component reference.
+ * Behavior for index.html — the Vintage Frames component reference.
  *
- * The third demo page. index.html is the faux desktop, blog.html the ordinary
- * page a consumer actually has; this one is the manual: every component, its
+ * The kit's own root page. blog.html is the ordinary page a consumer actually
+ * has; this one is the manual: every component, its
  * custom API, and a live specimen of each state that can be shown standing
  * still.
  *
@@ -15,7 +15,7 @@
  *   3. wires the few generic hooks a demo can ask for by attribute
  *      (`data-show`, `data-close`, `data-value-of`, `data-log`, …).
  *
- * Page CSS is NOT imported here — examples.html loads it with a `<link>`, so
+ * Page CSS is NOT imported here — index.html loads it with a `<link>`, so
  * anything it declared in `:root` would be in scope before the components
  * upgrade, which is what a page pinning --vf-scale would need. This page pins
  * nothing (see the note at the top of examples.css): the specimens are shown

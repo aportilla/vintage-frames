@@ -25,11 +25,12 @@ export default defineConfig({
     outDir: 'dist-pages',
     emptyOutDir: true,
     rollupOptions: {
-      // The three pages README documents. The other HTML in the repo root is
-      // local test harness, and stays local.
+      // The two pages README documents: the component reference at the site
+      // root, and the integration example. The other HTML in the repo root is
+      // local test harness, and stays local. (The faux desktop that used to
+      // be the root lives in its own repo now — see README.)
       input: {
         index: 'index.html',
-        examples: 'examples.html',
         blog: 'blog.html',
       },
     },

@@ -127,5 +127,5 @@ Per-component tokens are also documented as `@cssprop` entries in the
 [custom elements manifest](../custom-elements.json) and the editor data derived
 from it, so they show on hover in an editor pointed at the package.
 [SPEC.md §3](./SPEC.md) is the design spec these defaults come from;
-the [reference page](https://aportilla.github.io/vintage-frames/examples.html)
+the [reference page](https://aportilla.github.io/vintage-frames/)
 shows each component's tokens beside a live specimen.

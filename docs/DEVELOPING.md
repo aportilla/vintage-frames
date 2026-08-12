@@ -12,7 +12,7 @@ npm run typecheck
 npm test           # the whole verify suite (starts its own dev server)
 ```
 
-The same three pages are published at
+Both pages are published at
 **[aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/)**,
 deployed by `.github/workflows/pages.yml` on every push to `main`.
 `npm run build:pages` builds that site locally (`vite.pages.config.ts`, a
@@ -21,9 +21,15 @@ serves the built copy under the same base path the deploy uses.
 
 | Page | What it is |
 | --- | --- |
-| [`/examples.html`](http://localhost:5173/examples.html) | **Component reference** — every element, its API, and a live specimen of each state. Each code sample is the demo's own source, so it can't drift |
-| [`/`](http://localhost:5173/) | Showcase — a full `vf-desktop`: menu bar, movable windows, dialogs, icons, every control, drawn cursor |
+| [`/`](http://localhost:5173/) | **Component reference** — every element, its API, and a live specimen of each state. Each code sample is the demo's own source, so it can't drift |
 | [`/blog.html`](http://localhost:5173/blog.html) | Integration example — an ordinary blog page (system-font copy, normal flow, no global CSS) using the controls in its header, sidebar and forms |
+
+The faux System 7 desktop that used to be this site's root moved to its own
+repo, [aportilla/system7web](https://github.com/aportilla/system7web), where it
+consumes `vintage-frames` from npm like any other app. Changing a component and
+wanting to see the desktop react means publishing (or `npm link`ing) the
+package — which is the point: the desktop is now a consumer, and it exercises
+the same public API everyone else gets.
 
 `blog.html` sets no `--vf-scale`, so its components self-scale to true ~72dpi
 size. `npm run shot:blog` captures it at 1× / 2× / 3×. Two query flags show

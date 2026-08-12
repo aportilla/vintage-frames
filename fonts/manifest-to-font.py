@@ -18,8 +18,9 @@ codepoint or glyph name, metadata that contradicts itself — is refused
 before anything is written.
 
 Byte-reproducible: the builder replays the exact construction that made the
-shipped binaries — import-bdf.py's FontBuilder recipe (same table set,
-constants and call order) and the same rect-run glyph rasterisation (bmp(),
+shipped binaries — the strike importer's FontBuilder recipe (same table set,
+constants and call order; import-bdf.py moved to the system7web repo with
+the imported collection) and the same rect-run glyph rasterisation (bmp(),
 inherited from the retired add-glyphs.py). What earlier builds computed
 over the glyph set (x_avg_char_width,
 unicode_ranges, win metrics) and the head timestamps are restated from the
@@ -52,7 +53,7 @@ def bmp(bitmap, x0, y0, advance):
     """Rasterise a bitmap to (Glyph, advance) — one CW rect per maximal
     horizontal run of ink, so a loop is ink around an unfilled centre with no
     reverse-winding contour needed. Inherited verbatim from add-glyphs.py
-    (the retired authoring script, removed 2026-08-11); import-bdf.py's
+    (the retired authoring script, removed 2026-08-11); the strike importer's
     draw() emits the identical geometry, which is what keeps a rebuilt glyph
     byte-identical to one an earlier build compiled."""
     pen = TTGlyphPen(None)
@@ -173,7 +174,7 @@ def build(path):
         metrics[name] = (advance, (x0 + min(ink_cols)) * PX if ink_cols else 0)
         cmap[u] = name
 
-    # import-bdf.py's build recipe, with earlier builds' computed values
+    # The strike importer's build recipe, with earlier builds' computed values
     # restated from the metadata rather than recomputed over today's glyph set.
     fb = FontBuilder(upm, isTTF=True)
     fb.setupGlyphOrder(order)

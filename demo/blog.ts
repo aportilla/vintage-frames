@@ -2,8 +2,8 @@
 /**
  * Behavior for blog.html — the Vintage Frames integration example.
  *
- * The companion to demo.ts. Where that file wires a faux System 7 desktop, this
- * one wires an ordinary blog page whose controls happen to come from the kit:
+ * Where the component reference lays each element out on its own, this page
+ * wires an ordinary blog page whose controls happen to come from the kit:
  * a `vf-menu-bar` used as site nav, `vf-checkbox`/`vf-radio-group`/`vf-list`
  * driving a real filter-sort-search over the article list, a `vf-slider` and
  * `vf-progress-bar` in the sidebar, and a `<form>` whose fields are the kit's

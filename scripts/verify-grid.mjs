@@ -28,9 +28,11 @@
  */
 import { ORIGIN, heartbeat, launch } from './harness.mjs'
 
-// ?nosnap: blog.html turns applyGridSnap() on itself, which would quietly
-// paper over exactly the ORIGIN faults this script exists to catch.
-const PAGES = (process.env.VF_GRID_PAGES ?? '/,/blog.html?nosnap').split(',')
+// ?nosnap on BOTH: each page turns applyGridSnap() on itself, which would
+// quietly paper over exactly the ORIGIN faults this script exists to catch.
+// (`/` is the component reference since the faux desktop moved to the
+// system7web repo; it calls applyGridSnap() the same way blog.html does.)
+const PAGES = (process.env.VF_GRID_PAGES ?? '/?nosnap,/blog.html?nosnap').split(',')
 const DENSITIES = (process.env.VF_GRID_DPR ?? '1,2,3').split(',').map(Number)
 
 const audit = async (page) =>

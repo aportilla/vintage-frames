@@ -234,8 +234,8 @@ Modern requirements that we deliberately keep (accessibility over purity):
     - What the first half actually requires is being **out of flow** when the
       gesture starts; `top`/`left` are the kit's way and the only one that
       scales, but a stylesheet's own `position: absolute` satisfies it and
-      `seed()` reads that case from the computed offsets (the showcase places
-      its desktop icons this way — `demo.css`). A host still in flow has to be
+      `seed()` reads that case from the computed offsets (a faux desktop places
+      its icons this way). A host still in flow has to be
       taken out of it by its first move, which reflows everything after it and
       collapses an auto-height parent to whatever is left. **The clamp therefore
       runs against the box measured once by `seed()`, not a fresh one per
@@ -351,9 +351,8 @@ is a *family* switch: System 7's fine print was Geneva 9 — the collection's
 smallest strike, which **is** the body face — so a dialog's disk-space caption
 is `face="body"` (usually `dim`), the way `vf-icon size="small"` swaps to the
 16×16 art. A genuinely different
-size is a different strike (`fonts/imported/` holds the classic collection),
-registered like the embedded ones and themed in through the font family/size
-tokens with its own whole-pixel metrics.
+size is a different strike, registered like the embedded ones and themed in
+through the font family/size tokens with its own whole-pixel metrics.
 
 **Grid snapping.** Whole system pixels only put an edge on the device grid
 *relative to the component's own origin*; a page that lands that origin on a
@@ -719,7 +718,7 @@ Full-bleed classic desktop container.
   included — fits the bound, per the current effective scale, and returns
   `{ width, height }`. The page's half of the sizing contract: call it on
   `resize` and `onScaleChange` (zoom and density moves change what a system
-  px costs in CSS px), as the showcase does in `demo/demo.ts`.
+  px costs in CSS px), as a full-screen faux desktop does.
 - **Visual:** `display: block; position: relative;` — the paint lives on an
   inner screen surface (part `desktop`, `overflow: hidden` — the
   whole-system-px raster, inset by `bezel` when one is set).
@@ -987,9 +986,8 @@ glyph-sprites note at the top of this spec). An alert box is composed from
 the shells above: `vf-dialog frame="plain"` with `label` stated (there is no
 title bar to name it), a row `vf-stack` slotting the consumer's own 32×32
 art through `vf-img`, display-face copy (System 7 alerts used chrome type),
-and the `buttons` slot. The showcase and blog demos compose theirs from
-`demo/icons/alert.png`, and the reference page
-carries the live recipe.
+and the `buttons` slot. The reference page carries the live recipe, composed
+from `demo/icons/alert.png`.
 
 #### `vf-separator` (`VfSeparator`, vf-separator.ts)
 - 1px black rule. `vertical: boolean` attr → 1px wide, auto height.
@@ -2385,11 +2383,23 @@ grid; this makes it the thing the Finder manipulates.
 `src/index.ts` (already written — do not change without reason) exports every
 component class. Importing the package registers all elements.
 
-## 7. Demo page (built last)
+## 7. The faux desktop (moved out)
 
-`index.html` + `demo/demo.ts` + `demo/demo.css`, served by `vite` from repo
-root. It is both showcase and fidelity test — it recreates the reference
-screenshots:
+The full-viewport System 7 desktop that used to close this spec — menu bar,
+nine windows, the composed alert, the utility palette, the Finder icons — is
+no longer part of this repo. It lives in
+**[aportilla/system7web](https://github.com/aportilla/system7web)** and
+consumes `vintage-frames` from npm, so it exercises the same published API a
+consumer gets rather than reaching into `src/`. Its clause-by-clause spec
+moved with it, to that repo's `docs/SPEC.md`.
+
+What the kit keeps as its own demo surface is `index.html`, the component
+reference (every element, its API, a live specimen of each state), and
+`blog.html`, the integration example the verify suite covers. See
+[DEVELOPING.md](DEVELOPING.md).
+
+<details>
+<summary>The original §7 clauses, for the record</summary>
 
 1. Full-viewport `vf-desktop` with a `vf-menu-bar` on top: Apple menu (its bar
    title a slotted 16-px `vf-img` apple icon; about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, Page Setup…,
@@ -2456,16 +2466,19 @@ screenshots:
     different at each density since the desktop is the viewport. View →
     "by Small Icon" drives them (launchers included).
 
-Demo may use small amounts of layout CSS (positioning windows on the desktop)
-but NO aesthetic CSS — looks must come from the components. That includes the
-static text: every caption is a `vf-label` and every run of copy a
-`vf-paragraph`, so `demo.css` sets no face or size at all (it used to hand-roll
-the display face for the field labels, which is what Group E replaced).
+The page may use small amounts of layout CSS (positioning windows on the
+desktop) but NO aesthetic CSS — looks must come from the components. That
+includes the static text: every caption is a `vf-label` and every run of copy a
+`vf-paragraph`, so its layout stylesheet sets no face or size at all (it used
+to hand-roll the display face for the field labels, which is what Group E
+replaced).
+
+</details>
 
 ## 8. Definition of done
 
 - `npm run typecheck` and `npm run build` pass.
 - Every component in §5 implemented per spec, exported, registered.
-- Demo showcases every component.
+- The component reference shows every component.
 - Side-by-side with the reference screenshots, an unfamiliar reviewer should
   say "yes, that's System 7."

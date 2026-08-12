@@ -9,7 +9,7 @@
  *
  *   1. Each palette entry's `markup` is the SINGLE source for both the live
  *      child and the printed sample — the child is parsed from that string, so
- *      the sample cannot drift from the stage. examples.html plays the same
+ *      the sample cannot drift from the stage. index.html plays the same
  *      trick with its inert `<template>`s.
  *
  *   2. The config is written to the stack as PROPERTIES, and the printed

@@ -26,10 +26,12 @@
  */
 import { ORIGIN, heartbeat, launch } from './harness.mjs'
 
-// ?nosnap: blog.html turns snapping on itself, which would correct the
-// perturbation before the broken baseline is measured — the page has to stay
+// ?nosnap on BOTH: each page turns snapping on itself, which would correct the
+// perturbation before the broken baseline is measured — a page has to stay
 // inert so enableSnap() below is the only thing that flips the switch.
-const PAGES = (process.env.VF_SNAP_PAGES ?? '/,/blog.html?nosnap').split(',')
+// (`/` is the component reference since the faux desktop moved to the
+// system7web repo; it calls applyGridSnap() the same way blog.html does.)
+const PAGES = (process.env.VF_SNAP_PAGES ?? '/?nosnap,/blog.html?nosnap').split(',')
 const DENSITIES = (process.env.VF_SNAP_DPR ?? '1,2,3').split(',').map(Number)
 
 /** Must match DEADBAND_DEVICE_PX in src/grid-snap.ts, plus float slack. */

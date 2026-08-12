@@ -548,10 +548,9 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
 
 {
   // Out of flow is what the contract actually asks for, and a stylesheet's own
-  // `position: absolute` satisfies it — the showcase places its desktop icons
-  // exactly this way (demo.css), and seed() reads the computed offsets. This
-  // must not warn: it is the older hand-written form of the same thing, not a
-  // fault.
+  // `position: absolute` satisfies it — a faux desktop places its icons exactly
+  // this way, and seed() reads the computed offsets. This must not warn: it is
+  // the older hand-written form of the same thing, not a fault.
   const page = await build(`
     <style>
       #ico { position: absolute; left: calc(var(--vf-scale, 1) * 20px);

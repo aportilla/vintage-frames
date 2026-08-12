@@ -4,19 +4,23 @@ Guide to publishing this library on npm, keeping GitHub in sync, and
 versioning. One-time steps are marked; the
 [release routine](#the-release-routine) at the bottom is the recurring part.
 
-## Where things stand (checked 2026-08-11)
+## Where things stand (published 2026-08-11)
 
-- **`vintage-frames` is unclaimed on npm** — the name is available.
+- **`vintage-frames@0.1.0` is live** —
+  [npmjs.com/package/vintage-frames](https://www.npmjs.com/package/vintage-frames),
+  published 2026-08-11 by `aportilla`, dist-tag `latest`. The shipped tarball
+  matched the dry-run rehearsal exactly (163 files, ~530 KB packed), and a
+  cold `npm i vintage-frames` in a scratch project resolves the root export,
+  `vintage-frames/vf-button.js`, and `lit`.
 - **The GitHub repo is public and `main` is in sync with it**; the Pages demo
   site is live at [aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/).
 - **The publish gate is in place and passing**: `prepack` rebuilds `dist/` and
-  runs `verify:manifest` before any tarball is cut. `npm pack --dry-run`
-  exercises the identical path and passed end-to-end 2026-08-11 — 163 files,
-  ~530 KB packed.
-- **This machine is logged into nothing** — neither `npm` nor the `gh` CLI.
+  runs `verify:manifest` before any tarball is cut; it ran as part of the
+  0.1.0 publish.
+- **This machine is logged into npm** (`aportilla`) but not the `gh` CLI.
   SSH push to GitHub works regardless (the remote is `git@github.com:…`).
 
-## Gaps to close before the first publish
+## Gaps closed before the first publish
 
 Four items, none of them build-system work:
 
@@ -77,6 +81,8 @@ file, no machinery, `docs/` for the manual.
 
 ## One-time: the npm account
 
+**Done 2026-08-11** — account `aportilla`, 2FA on, this machine logged in.
+
 1. **Sign up at [npmjs.com](https://www.npmjs.com/signup).** Username is
    public and permanent-ish; the email gets a verification link — click it,
    npm won't let an unverified account publish.
@@ -94,6 +100,9 @@ file, no machinery, `docs/` for the manual.
    `~/.npmrc`. `npm whoami` confirms the login.
 
 ## The first publish
+
+**Done 2026-08-11** — 0.1.0 went out exactly as described below; the dry run
+and the shipped tarball agreed (163 files, same shasum). Kept for the record.
 
 ```sh
 git push origin main
@@ -211,8 +220,8 @@ Skip all of this for 0.1.0:
 - [x] consumer-facing README shared by GitHub and npm; the manual split into `docs/` — 2026-08-11
 - [ ] Apple-artwork **distribution** decision — closed for the two embedded faces: the kit ships its own re-drawn strikes as `VF Display`/`VF Body` (naming 2026-08-08, manifest-authored artwork 2026-08-11), crediting Susan Kare and Apple as the original designers. Still open: `fonts/imported/` is tracked and served from the demo site, so the repo distributes ~80 genuine Apple strikes under their original names — outside the npm tarball, but public; demo caution-icon provenance noted (repo/demo pages only — it doesn't ship)
 - [x] Working notes committed rather than left ambient (2026-08-06)
-- [ ] npm account, email verified, 2FA on, `npm login` done
-- [ ] `git push origin main`
-- [ ] `npm publish --dry-run` — read the file list
-- [ ] `npm publish`
-- [ ] npm page renders; cold `npm i vintage-frames` resolves in `/tmp`
+- [x] npm account, email verified, 2FA on, `npm login` done — 2026-08-11
+- [x] `git push origin main` — already in sync 2026-08-11
+- [x] `npm publish --dry-run` — 163 files, 530.3 kB, file list as expected — 2026-08-11
+- [x] `npm publish` — 0.1.0 live 2026-08-11
+- [x] cold `npm i vintage-frames` resolves from a scratch project (root, `vf-button.js`, `lit`) — 2026-08-11; registry metadata confirmed via `npm view`. The npm page's README render is a browser eyeball (automated fetches get a 403)

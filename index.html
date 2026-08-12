@@ -58,9 +58,7 @@
           <pre class="snippet"><code>npm install vintage-frames</code></pre>
           <pre class="snippet"><code>import 'vintage-frames' // registers every &lt;vf-*&gt; element</code></pre>
 
-          <p>
-            The root import registers all the Vintage Frames elements. You can also import just the individual elements you need.
-          </p>
+          <p>Or import individual elements:</p>
           <pre class="snippet"><code>import 'vintage-frames/vf-button.js'
 import 'vintage-frames/vf-checkbox.js'</code></pre>
 
@@ -73,20 +71,17 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-desktop" data-group="Chrome &amp; shells" data-toc="vf-desktop">
           <h2><code>vf-desktop</code></h2>
           <p>
-            The gray desktop container: a 50% dither, plus window management. A
-            pointerdown <em>or keyboard focus entering</em> a slotted
-            <code>vf-window</code> brings it to front and marks it
-            <code>active</code>, clearing <code>active</code> on the others. DOM order
-            is kept in step with the stacking, so tabbing walks the stack — worth
-            knowing if you style windows by <code>:nth-child</code>. Utility windows
-            float on their own tier above the document windows, outside the
-            single-active rule both ways.
+            The gray desktop: a 50% dither, plus window management. Pointerdown or
+            keyboard focus in a slotted <code>vf-window</code> brings it to front
+            and marks it <code>active</code>, clearing <code>active</code> on the
+            others. DOM order follows the stacking order. Utility windows float on
+            their own tier above document windows, outside the single-active rule.
           </p>
 
           <template
             data-example
             data-stage="desktop"
-            data-caption="Click a window to restack it, and watch the other one's stripes, widgets and grow box go. Tab into a background window: its undrawn close box is still a stop, and focus landing there brings it forward. Clicking the palette deactivates nothing."
+            data-caption="Click a window to restack it. Tab into a background window: its close box keeps its tab stop, and focus landing there brings it forward. Clicking the palette deactivates nothing."
           >
             <vf-desktop width="512" height="272">
               <vf-window
@@ -135,7 +130,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="bezel — the black screen surround, added onto the declared screen: width 502 plus a 5-px bezel each side is a 512-system-px host box. The screen's top corners wear the corner mask, landing over the menu bar's, and a dragged window crops at the raster's edge."
+            data-caption="bezel — the black screen surround, added around the declared screen: width 502 plus 5px each side is a 512-system-px host box. The screen's top corners take the corner mask, and a dragged window clips at the raster's edge."
           >
             <vf-desktop width="502" height="214" bezel="5">
               <vf-menu-bar>
@@ -160,11 +155,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p class="conforms">
-            Always explicitly sized in system px, never from your stylesheet —
-            the component's own inline size wins. Set the numbers directly or
-            let <code>fitWithin</code> derive them, then position the sized
-            desktop with your own CSS. The windows and icons inside place
-            themselves with their own <code>top</code>/<code>left</code>.
+            Sized in system px, never from your stylesheet — the component's own
+            inline size wins. Set the numbers directly or let
+            <code>fitWithin</code> derive them, then position the desktop with
+            your own CSS. Windows and icons inside place themselves with their
+            own <code>top</code>/<code>left</code>.
           </p>
 
           <table class="api">
@@ -185,9 +180,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-window" data-group="Chrome &amp; shells" data-toc="vf-window">
           <h2><code>vf-window</code></h2>
           <p>
-            The window shell, from the full document window down to the slim windoid.
-            The 1992 <em>Macintosh Human Interface Guidelines</em> names five standard
-            windows; two shells cover them, each archetype a one-line recipe.
+            The window shell. The 1992 <em>Macintosh Human Interface
+            Guidelines</em> names five standard windows; each is a one-line
+            recipe.
           </p>
 
           <table class="api api--wide">
@@ -206,7 +201,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="Document window (rails on the frame, grow box in the corner cell), modeless dialog, and the windoid. One document window is frontmost at a time — click a title bar to switch. Then close it: vf-close does not remove the window, so this page hides it and the button puts it back."
+            data-caption="Document window, modeless dialog, and the windoid. Click a title bar to switch which is frontmost. vf-close does not remove the window — this page hides it, and the button puts it back."
           >
             <vf-desktop width="512" height="336">
               <vf-window
@@ -224,9 +219,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               >
                 <vf-paragraph>DragThing 2.9 — read me before installing.</vf-paragraph>
                 <vf-paragraph>
-                  The document archetype at full anatomy: the rails sit on the
-                  window's own frame rather than inset in its body, and the grow box
-                  lands in the corner cell between them.
+                  The rails sit on the window's own frame rather than inset in
+                  its body, and the grow box sits in the corner cell between
+                  them.
                 </vf-paragraph>
               </vf-window>
               <vf-window
@@ -260,8 +255,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <caption>Properties</caption>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it,</strong> with <code>height</code>. Whole system px, so the window holds its proportion to the chrome inside it at every density. Undeclared, it falls back to plain block layout and says so once in the console</td></tr>
-              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it too.</strong> A window is a fixed box in both axes. Content taller than the box is clipped at the frame; <code>scrollbars</code> is how the user reaches the rest. Unset, the body sizes to its content and it says so once in the console</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Declare it, with <code>height</code>; undeclared, the window falls back to plain block layout and warns once in the console</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Content taller than the box clips at the frame; <code>scrollbars</code> reaches the rest. Unset, the body sizes to its content and warns once in the console</td></tr>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title text, centered on the stripes. Also qualifies the widgets' accessible names (<code>Close Read Me</code>)</td></tr>
               <tr><td><code>active</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">Frontmost. Inactive drops the stripes, stops drawing the widgets (they keep their tab stops), hollows the grow box and blanks every scroll rail inside; the title stays black. Managed by <code>vf-desktop</code>; outside one, nothing changes it</td></tr>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">The left close box</td></tr>
@@ -291,12 +286,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-dialog" data-group="Chrome &amp; shells" data-toc="vf-dialog">
           <h2><code>vf-dialog</code></h2>
           <p>
-            The modal-dialog shell, over a native <code>&lt;dialog&gt;</code> — so it
-            opens in the top layer, traps focus and closes on Escape. Movable modal
-            by default (striped bar, draggable, no close box); the dBoxProc modal
-            dialog box with <code>frame="plain"</code>. No backdrop dimming.
-            <code>top</code>/<code>left</code> are viewport coordinates here, and
-            unset means centered.
+            The modal-dialog shell, over a native <code>&lt;dialog&gt;</code>: it
+            opens in the top layer, traps focus and closes on Escape. Movable
+            modal by default (striped bar, no close box);
+            <code>frame="plain"</code> is the modal dialog box. No backdrop
+            dimming. <code>top</code>/<code>left</code> are viewport coordinates,
+            and unset means centered.
           </p>
 
           <template
@@ -330,8 +325,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected, and kept in sync with the native dialog both directions</td></tr>
-              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it,</strong> with <code>height</code>. Whole system px. The platform's default is <code>fit-content</code> measured against the space beside the margins — and the margins are how a movable modal is positioned, so an undeclared dialog reflows as you drag it toward an edge. Unset, it falls back to 260 system px and says so once in the console</td></tr>
-              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap"><strong>Declare it too.</strong> Whole system px; content taller than the box is clipped at the frame. Unset, the body sizes to its content and it says so once in the console</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Declare it, with <code>height</code> — an undeclared dialog reflows as it is dragged toward a viewport edge. Unset, it falls back to 260 and warns once in the console</td></tr>
+              <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px; content taller than the box clips at the frame. Unset, the body sizes to its content and warns once in the console</td></tr>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title-bar text — or, on <code>frame="plain"</code>, a centered heading at the top of the body. Also the accessible name</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for a dialog with no <code>heading</code>; wins over one when both are set. Falls back to <code>'Dialog'</code></td></tr>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Opt into the close box. Ignored under <code>frame="plain"</code>, which has no bar</td></tr>
@@ -352,11 +347,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </table>
 
           <p>
-            <strong>An alert box is a recipe, not a component.</strong> Compose the
-            plain frame, a row <a href="#vf-stack"><code>vf-stack</code></a> with your
-            own 32×32 art on the left, copy in the chrome face, and the
-            <code>buttons</code> slot. State <code>label</code> — the plain frame has
-            no title bar to take a name from.
+            An alert box is a recipe, not a component: the plain frame, a row
+            <a href="#vf-stack"><code>vf-stack</code></a> with 32×32 art, copy in
+            the chrome face, and the <code>buttons</code> slot. Set
+            <code>label</code> — the plain frame has no title bar to take a name
+            from.
           </p>
 
           <template data-example data-caption="The alert-box recipe: the plain modal frame plus the page's own 32×32 icon art.">
@@ -376,9 +371,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-separator" data-group="Chrome &amp; shells" data-toc="vf-separator">
           <h2><code>vf-separator</code></h2>
           <p>
-            A 1px black rule. Inside a menu panel the same element renders as the
-            dimmed dotted rule instead, with nothing to set on your side. It has no
-            width of its own: fill it.
+            A 1px black rule. Inside a menu panel it renders as the dimmed dotted
+            rule. It has no width of its own: give it one.
           </p>
 
           <template data-example data-stage="column" data-caption="Horizontal, spanning its container; then vertical, stretched to the row it divides.">
@@ -424,7 +418,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <caption>Properties</caption>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td><code>variant</code></td><td class="wrap"><code>'default'</code></td><td>—</td><td class="wrap">The double-ring default button. The 3px ring sits 1px clear of the face and reserves 4px of margin, which is why buttons sharing a row belong in a <a href="#vf-button-group"><code>vf-button-group</code></a></td></tr>
+              <tr><td><code>variant</code></td><td class="wrap"><code>'default'</code></td><td>—</td><td class="wrap">The default button. The 3px ring sits 1px clear of the face and reserves 4px of margin; buttons sharing a row belong in a <a href="#vf-button-group"><code>vf-button-group</code></a></td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the <em>label</em> only; the 1px border stays black (the default ring dims, its inner border does not)</td></tr>
               <tr><td><code>type</code></td><td class="wrap"><code>'button' | 'submit' | 'reset'</code></td><td><code>'button'</code></td><td class="wrap">Form-associated: <code>submit</code> calls <code>requestSubmit()</code>, <code>reset</code> calls <code>reset()</code></td></tr>
               <tr><td><code>name</code>, <code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Standard — the submitting button's pair in the form data. A form-associated custom element can never be a form's <code>event.submitter</code>, so read the control as <code>event.submitter.closest('vf-button')</code></td></tr>
@@ -447,10 +441,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-button-group" data-group="Buttons &amp; toggles" data-toc="vf-button-group">
           <h2><code>vf-button-group</code></h2>
           <p>
-            Arranges buttons in a row, sizing them all to the widest and aligning
-            their <em>faces</em>. A <code>variant="default"</code> button reserves
-            4px of margin for its ring, so an ad-hoc flex row lines up the ring
-            instead of the button — compare the two stages below.
+            A row of buttons sized to the widest, faces aligned. A plain flex row
+            aligns a default button's ring instead of its face — compare the two
+            stages below.
           </p>
 
           <template data-example data-caption="A group: equal widths, faces on one line.">
@@ -485,7 +478,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>vertical</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Stack in a column instead of a row</td></tr>
               <tr><td><code>natural</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Let each button keep its own content width</td></tr>
               <tr><td><code>--vf-button-group-gap</code></td><td>Token</td><td><code>12px</code></td><td class="wrap">Gap between buttons</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default (<code>vf-button</code> elements). No parts, no events. Layout-neutral — it shrink-wraps to its buttons, so the parent positions it (<code>justify-self: end</code> for an action row). <code>vf-dialog</code> wraps its <code>buttons</code> slot in one.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (<code>vf-button</code> elements). No parts, no events. It shrink-wraps to its buttons; the parent positions it (<code>justify-self: end</code> for an action row). <code>vf-dialog</code> wraps its <code>buttons</code> slot in one.</td></tr>
             </tbody>
           </table>
         </section>
@@ -512,7 +505,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <vf-swatch color="#0066cc" label="Blue" disabled></vf-swatch>
           </template>
 
-          <template data-example data-caption="The same wells with shadow. Tab to either specimen: the focus rule drops below whatever ink is really there, so it clears the shadow only when there is one.">
+          <template data-example data-caption="The same wells with shadow. The focus rule drops below the shadow when there is one.">
             <vf-swatch color="#663399" shadow label="Purple"></vf-swatch>
             <vf-swatch color="#0066cc" width="40" height="40" shadow label="Blue"></vf-swatch>
             <vf-swatch shadow label="No color"></vf-swatch>
@@ -526,7 +519,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>width</code>, <code>height</code></td><td>number</td><td><code>24</code>, <code>18</code></td><td class="wrap">The border box, in whole system px</td></tr>
               <tr><td><code>shadow</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Cast the kit's hard drop shadow</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name; defaults to the <code>color</code>, or "transparent"</td></tr>
-              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Stops interaction; <em>nothing dims</em>. The kit dims labels, and a swatch's only label is its fill</td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Stops interaction; nothing dims — a swatch has no label to dim</td></tr>
             </tbody>
           </table>
 
@@ -545,11 +538,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-checkbox" data-group="Buttons &amp; toggles" data-toc="vf-checkbox">
           <h2><code>vf-checkbox</code></h2>
           <p>
-            A 13×13 white box with the classic corner-to-corner ✕. Pressing
-            thickens the border to 2px.
+            A 13×13 white box with the corner-to-corner ✕. Pressing thickens the
+            border to 2px.
           </p>
 
-          <template data-example data-stage="column" data-caption="Note what dims when disabled: the label, never the box or the mark.">
+          <template data-example data-stage="column" data-caption="Disabled dims the label, never the box or the mark.">
             <vf-checkbox name="quit" value="on">Quit when finished</vf-checkbox>
             <vf-checkbox checked>Create alias</vf-checkbox>
             <vf-checkbox disabled>Selection only</vf-checkbox>
@@ -572,11 +565,10 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-radio" data-group="Buttons &amp; toggles" data-toc="vf-radio + vf-radio-group">
           <h2><code>vf-radio</code> &amp; <code>vf-radio-group</code></h2>
           <p>
-            A 13×13 pixel circle: a 1-bit outline over a white disc. The
-            <em>group</em> is the
-            form surface: it owns <code>value</code>, the roving tabindex and the
-            submitted name. A bare <code>vf-radio</code> outside one self-manages so
-            it is never keyboard-dead.
+            A 13×13 circle: a 1-bit outline over a white disc. The group is the
+            form control: it owns <code>value</code>, the roving tabindex and the
+            submitted name. A bare <code>vf-radio</code> outside a group manages
+            itself.
           </p>
 
           <template data-example data-stage="column" data-caption="Arrow keys move and select. The caption is a vf-label whose `for` both focuses and names the group.">
@@ -626,7 +618,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             inverts to the 1-bit selection all three editable fields share.
           </p>
 
-          <template data-example data-stage="column" data-caption="Click one and type; the selection inverts. Tab in for the dashed rule under the well — a click leaves it unmarked, since the insertion point already says where focus went.">
+          <template data-example data-stage="column" data-caption="Click one and type; the selection inverts. Tab draws the dashed rule under the well; a click leaves it unmarked.">
             <vf-label for="ex-name">Name:</vf-label>
             <vf-text-field id="ex-name" name="name" placeholder="Untitled"></vf-text-field>
             <vf-text-field value="Macintosh HD" name="disk"></vf-text-field>
@@ -646,7 +638,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>description</code></td><td>string</td><td><code>''</code></td><td class="wrap">Hint text for assistive tech (<code>aria-describedby</code> can't cross the shadow boundary on its own); a failing constraint's message joins it</td></tr>
               <tr><td><code>vf-input</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on every keystroke</td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on commit</td></tr>
-              <tr><td><code>--vf-field-width</code></td><td>Token</td><td><code>180px</code></td><td class="wrap">Default width. Set a width on the <em>host</em> or this token, not on <code>::part(input)</code>, which sizes the control without moving the well the focus rule spans</td></tr>
+              <tr><td><code>--vf-field-width</code></td><td>Token</td><td><code>180px</code></td><td class="wrap">Default width. Set a width on the host or this token, not on <code>::part(input)</code></td></tr>
               <tr><td colspan="4" class="wrap">Part: <code>input</code>. Also <code>--vf-control-height</code> (22px). The focus rule paints 2 system px below the host's own box, so a tight <code>overflow: hidden</code> ancestor clips it.</td></tr>
             </tbody>
           </table>
@@ -655,10 +647,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-text-area" data-group="Text &amp; value inputs" data-toc="vf-text-area">
           <h2><code>vf-text-area</code></h2>
           <p>
-            The multi-line field — everything <code>vf-text-field</code> takes, plus
-            <code>rows</code>, and no resize grip. It reserves a permanent scroll
-            rail: an empty white channel until the text overflows, when the dither,
-            thumb and arrows fill in.
+            The multi-line field: everything <code>vf-text-field</code> takes,
+            plus <code>rows</code>. It reserves a permanent scroll rail — an empty
+            white channel until the text overflows.
           </p>
 
           <template data-example data-stage="column" data-caption="Everything vf-text-field takes, plus rows.">
@@ -680,10 +671,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-number-field" data-group="Text &amp; value inputs" data-toc="vf-number-field">
           <h2><code>vf-number-field</code></h2>
           <p>
-            A numeric field paired with the classic "little arrows" stepper. The
-            well is 22 system px, the same as the other fields, so it lines up with
-            them in a column; the taller 25-px stepper beside it sets the host's
-            height.
+            A numeric field with the "little arrows" stepper. The well is 22
+            system px, the same as the other fields; the 25-px stepper beside it
+            sets the host's height.
           </p>
 
           <template data-example data-caption="Hold an arrow: it fills solid and autorepeats. Typing is free-form; the value clamps and rounds on commit.">
@@ -711,17 +701,16 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-select" data-group="Text &amp; value inputs" data-toc="vf-select + vf-option">
           <h2><code>vf-select</code> &amp; <code>vf-option</code></h2>
           <p>
-            The popup menu control. Two pointer styles coexist, resolved at the first
-            release: <strong>press-drag-release</strong> (press the pill, drag onto an
+            The popup menu control. Two pointer styles:
+            <strong>press-drag-release</strong> (press the pill, drag onto an
             item, release to pick) and <strong>click-to-open</strong> (a quick tap
-            leaves the list open for a second click). Selecting blinks the row ~3
-            times in ~250ms, then closes.
+            leaves the list open for a second click). Selecting blinks the row,
+            then closes.
           </p>
           <p>
-            The panel opens with the selected row over the closed pill, so the label
-            does not move, and the control hugs its <em>widest</em> option, so the
-            value never shifts as the selection changes. Give it a floor with
-            <code>min-width</code> on the host.
+            The panel opens with the selected row over the closed pill, and the
+            control sizes to its widest option. Set <code>min-width</code> on the
+            host for a floor.
           </p>
 
           <template data-example data-stage="column" data-caption="Press and drag onto an item, or click to open and click again.">
@@ -739,15 +728,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
-            A list taller than the screen is clipped, not scrolled — System 7 put no
-            scrollbar on a menu. The edge row with items beyond it shows a solid arrow
-            instead; rest the pointer on it and the list rolls a row at a time until
-            the arrow runs out. The clamp gives ground a whole row at a time, so a
-            clipped panel still opens with its selected row over the closed pill, and
-            the end it no longer reaches opens as blank rows — the travel it will roll
-            through. Set <code>--vf-popup-inset-top</code> once on <code>:root</code>
-            to keep clamped panels clear of a menu bar (<code>24px</code> for a
-            <code>vf-menu-bar</code>).
+            A list taller than the screen is clipped, not scrolled. An edge row
+            with items beyond it shows a solid arrow; rest the pointer on it and
+            the list rolls a row at a time. A clipped panel still opens with its
+            selected row over the pill. Set <code>--vf-popup-inset-top</code> once
+            on <code>:root</code> to keep clamped panels clear of a menu bar
+            (<code>24px</code> for a <code>vf-menu-bar</code>).
           </p>
 
           <template data-example data-stage="column" data-caption="26 options — open it near the bottom of the window and drag onto the ▼.">
@@ -840,13 +826,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-slider" data-group="Text &amp; value inputs" data-toc="vf-slider">
           <h2><code>vf-slider</code></h2>
           <p>
-            A horizontal 1-bit slider: a 4px capsule rail filled solid black up to
-            the shield-shaped handle and hollow after it. Not a historical System 7
-            control — a 1-bit adaptation of the later Mac OS one. Give the host a
-            width; the rail stays crisp at any size.
+            A horizontal slider: a 4px capsule rail, solid black up to the
+            shield-shaped handle and hollow after it. A 1-bit adaptation of the
+            later Mac OS control, not a System 7 original. Give the host a width.
           </p>
 
-          <template data-example data-stage="column" data-caption="Drag it, or Tab to it and use the arrows — the dashed focus rule sits under the whole rail, so it stays put as the handle travels.">
+          <template data-example data-stage="column" data-caption="Drag it, or Tab to it and use the arrows. The focus rule sits under the whole rail.">
             <vf-label for="ex-slider">Volume</vf-label>
             <vf-slider id="ex-slider" value="40" name="volume" style="width: 15em"></vf-slider>
             <vf-slider value="3" min="1" max="7" step="1" label="Zoom" style="width: 15em"></vf-slider>
@@ -876,19 +861,18 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <h2><code>vf-menu-bar</code>, <code>vf-menu</code> &amp; <code>vf-menu-item</code></h2>
           <p>
             Pull-down menus with press-drag-release: press a title, slide onto a
-            command, release to run it. Sliding sideways onto another title switches
-            menus mid-press; releasing over a disabled row, a separator or off the
-            menu closes with nothing chosen. A quick in-place tap instead leaves the
-            menu dropped for a second, independent click. Selecting a command blinks
-            the row ~3 times in ~250ms (skipped under
-            <code>prefers-reduced-motion</code>) and then fires
+            command, release to run it. Sliding onto another title switches menus
+            mid-press; releasing over a disabled row, a separator or off the menu
+            chooses nothing. A quick tap leaves the menu open for a second click.
+            Selecting blinks the row (skipped under
+            <code>prefers-reduced-motion</code>), then fires
             <code>vf-menu-select</code>.
           </p>
 
           <template
             data-example
             data-stage="column gapless"
-            data-caption="A bar owns the gesture across its menus. Pick a command and watch the log."
+            data-caption="Pick a command and watch the log."
           >
             <vf-menu-bar>
               <vf-menu label="File">
@@ -929,8 +913,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
-            A <code>vf-menu</code> works standing alone too — it hosts the press
-            gesture itself when there is no bar to own it:
+            A <code>vf-menu</code> also works standalone:
           </p>
 
           <template data-example data-caption="No bar. The label slot takes markup — here 16×16 pixel art.">
@@ -972,8 +955,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>value</code></td><td>string</td><td class="wrap">text content</td><td class="wrap">Carried in the event detail</td></tr>
               <tr><td><code>shortcut</code></td><td>string</td><td><code>''</code></td><td class="wrap">Key equivalent (<code>⌘N</code>), left-aligned in a shared right-anchored column so every ⌘ lines up. Display only — binding the key is yours</td></tr>
               <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows the ✓ in the left gutter</td></tr>
-              <tr><td><code>checkable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">A toggle that starts <em>off</em>, so it announces as <code>menuitemcheckbox</code> before its first flip — which a boolean <code>checked</code> cannot express</td></tr>
-              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the whole row, ✓ included — a deviation from the kit's dim-the-label rule, matching System 7</td></tr>
+              <tr><td><code>checkable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">A toggle that starts unchecked; announces as <code>menuitemcheckbox</code></td></tr>
+              <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the whole row, ✓ included, as System 7 did</td></tr>
               <tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The transient press-drag highlight, managed by the menu</td></tr>
               <tr><td><code>activate()</code></td><td>Method</td><td>—</td><td class="wrap">Blink, then select — what the press gesture calls for the row a drag was released over</td></tr>
               <tr><td><code>vf-menu-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, item }</code></td></tr>
@@ -985,10 +968,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-list" data-group="Menus, lists &amp; containers" data-toc="vf-list + vf-list-item">
           <h2><code>vf-list</code> &amp; <code>vf-list-item</code></h2>
           <p>
-            The list box: inverted selection, a permanent scroll rail, and first-letter
-            type-ahead — click a row and type "n" repeatedly to cycle the rows starting
-            with it. Each row takes a leading graphic in its <code>icon</code> slot,
-            usually a 16×16 <code>vf-img</code>.
+            The list box: inverted selection, a permanent scroll rail, and
+            first-letter type-ahead. Each row takes a leading graphic in its
+            <code>icon</code> slot, usually a 16×16 <code>vf-img</code>.
           </p>
 
           <template data-example data-stage="column" data-caption="Single selection. Arrow keys move; printable keys jump.">
@@ -1054,7 +1036,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Reported by the list</td></tr>
               <tr><td><code>selected</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; the row inverts full width</td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Skipped by selection and by type-ahead</td></tr>
-              <tr><td colspan="4" class="wrap">Slots: default (the row text), <code>icon</code> (a leading graphic — it contributes no text, so type-ahead still reads the words). Part: <code>text</code> (it ellipsizes). Keep row height − icon height even, so the centering offset stays a whole pixel.</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: default (the row text), <code>icon</code> (a leading graphic; contributes no text to type-ahead). Part: <code>text</code> (it ellipsizes). Keep row height − icon height even, so the centering offset stays a whole pixel.</td></tr>
             </tbody>
           </table>
         </section>
@@ -1093,11 +1075,10 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-fieldset" data-group="Menus, lists &amp; containers" data-toc="vf-fieldset">
           <h2><code>vf-fieldset</code></h2>
           <p>
-            The group box, with the legend punching through the top border. It paints
-            the legend's backdrop from <code>--vf-surface</code> (white by default;
-            <code>vf-window</code>/<code>vf-dialog</code> set it), so on a tinted
-            background set that property on the container or the legend sits in a
-            white notch.
+            The group box, with the legend punching through the top border. The
+            legend's backdrop comes from <code>--vf-surface</code> (white by
+            default; <code>vf-window</code>/<code>vf-dialog</code> set it) — on a
+            tinted background, set it on the container.
           </p>
 
           <template data-example data-caption="The legend as an attribute, and as a slot when it needs markup.">
@@ -1126,22 +1107,19 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-grid" data-group="Menus, lists &amp; containers" data-toc="vf-grid">
           <h2><code>vf-grid</code></h2>
           <p>
-            A lattice of equal cells with 1px rules between them: a tool palette, a
-            color picker's swatch table, a pattern chooser. Switching the pen from
-            solid to dashed changes no layout, and the rules run <em>behind</em> the
-            cells, so an item spanning two cells covers the boundary it swallowed.
+            A lattice of equal cells with 1px rules between them: a tool palette,
+            a swatch table, a pattern chooser. Solid and dashed pens share one
+            layout, and the rules run behind the cells.
           </p>
           <p>
-            A cell is centered in its well on both axes — a palette usually holds
-            something smaller than the well, a 16px icon in a 26px cell. A cell that
-            means to fill its well asks with <code>place-self: stretch</code>; under
-            <code>collapse</code> that is already the default. Semantics are yours:
-            the grid takes no role, no keyboard behavior and no selection. Put
-            <code>role="group"</code> on the host for a tool palette,
-            <code>role="radiogroup"</code> for a picker, nothing for a plain tiling.
+            A cell is centered in its well on both axes; <code>place-self:
+            stretch</code> fills the well instead, and is the default under
+            <code>collapse</code>. The grid takes no role, keyboard behavior or
+            selection — put <code>role="group"</code> or
+            <code>role="radiogroup"</code> on the host as the content warrants.
           </p>
 
-          <template data-example data-caption="Solid rules with a frame, filled; then the dashed pen, and frameless — which pulls the lattice back a pixel, for a container that already draws that line.">
+          <template data-example data-caption="Solid rules with a frame, filled; then the dashed pen, and frameless.">
             <vf-grid columns="3" cell-width="26" cell-height="26" role="group" aria-label="Desk accessories">
               <vf-img width="16" height="16"><img src="/demo/icons/alarm-clock.png" alt="Alarm Clock" /></vf-img>
               <vf-img width="16" height="16"><img src="/demo/icons/battery.png" alt="Battery" /></vf-img>
@@ -1155,7 +1133,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <vf-grid columns="4" rows="3" cell-width="20" cell-height="20" frameless></vf-grid>
           </template>
 
-          <template data-example data-caption="A swatch table: 5 × 8 flat wells that draw their own 1px border. collapse lands that border ON the rule instead of beside it, so no boundary reads 2px — size the cells at item − 2px. rules='none' closes the gap entirely and the wells butt together.">
+          <template data-example data-caption="A swatch table: 5 × 8 wells that draw their own 1px border. collapse lands that border on the rule — size the cells at item − 2px. rules='none' closes the gap and the wells butt together.">
             <vf-grid columns="5" rows="8" cell-width="10" cell-height="10" collapse role="group" aria-label="Color palette">
               <vf-swatch color="#000000" width="12" height="12" label="Black"></vf-swatch>
               <vf-swatch color="#404040" width="12" height="12" label="Dark gray"></vf-swatch>
@@ -1233,27 +1211,25 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-stack" data-group="Menus, lists &amp; containers" data-toc="vf-stack">
           <h2><code>vf-stack</code></h2>
           <p>
-            A flexbox whose <code>gap</code>, <code>pad</code>, <code>width</code> and
-            <code>height</code> are declared in whole system pixels — one of the two
-            ways to lay a window's insides out without a stylesheet. The other is
-            placing each child by coordinate, below.
+            A flexbox whose <code>gap</code>, <code>pad</code>, <code>width</code>
+            and <code>height</code> are declared in whole system pixels — one of
+            the two stylesheet-free layouts; the other is coordinate placement,
+            below.
           </p>
           <p>
-            A page's own stylesheet cannot state system pixels: scaling is per
-            component — each element sets <code>--vf-scale</code> on itself, never on
-            the document — so <code>var(--vf-scale, 1)</code> outside a
-            <code>vf-*</code> ancestor falls back to <code>1</code> and comes out 3×
-            too tight, silently.
+            A page stylesheet cannot state system pixels: each element sets
+            <code>--vf-scale</code> on itself, never on the document, so
+            <code>var(--vf-scale, 1)</code> outside a <code>vf-*</code> ancestor
+            silently resolves to <code>1</code>.
           </p>
           <p>
-            The content governs the box. A column is as wide as its widest child and a
-            row as tall as its tallest; children keep the size they were drawn at. The
-            stack distributes, never resizes, and shrink-wraps. It paints nothing,
-            takes no role, and returns face, line box, color and selectability to
-            <code>inherit</code>.
+            Content governs the box: a column is as wide as its widest child, a
+            row as tall as its tallest, and children keep the size they were drawn
+            at. The stack paints nothing, takes no role, and returns face, line
+            box, color and selectability to <code>inherit</code>.
           </p>
 
-          <template data-example data-caption="A column of labelled rows, then an action row. Each row is filled to the panel and the field takes what the caption leaves; the popup and the buttons keep their drawn widths. A right-aligned OK/Cancel is a filled column whose one child sits at the end.">
+          <template data-example data-caption="A column of labelled rows, then an action row. The field takes what the caption leaves; the popup and the buttons keep their drawn widths.">
             <vf-stack gap="12" width="300">
               <vf-stack fill-width direction="row" gap="8">
                 <vf-label width="72" for="ex-stack-name">Name:</vf-label>
@@ -1277,7 +1253,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             </vf-stack>
           </template>
 
-          <template data-example data-caption="fill-width names the outcome, not an axis: the group box and the rule take the panel's width, and in the row below the field takes what the caption leaves. The buttons ask for nothing and stay as wide as their labels. A rule has no width of its own — without fill-width it would be there and invisible.">
+          <template data-example data-caption="fill-width: the group box, the rule and the field take the panel's width; the buttons stay as wide as their labels.">
             <vf-stack gap="6" width="260">
               <vf-fieldset fill-width legend="Fills the panel">
                 <vf-label>a group box takes the width</vf-label>
@@ -1318,49 +1294,44 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>direction</code></td><td class="wrap"><code>'column' | 'row'</code></td><td><code>'column'</code></td><td class="wrap">A stack is vertical unless it says otherwise</td></tr>
               <tr><td><code>gap</code></td><td>number</td><td><code>0</code></td><td class="wrap">Whole system px between children</td></tr>
               <tr><td><code>pad</code></td><td class="wrap">string | number</td><td>—</td><td class="wrap">Whole system px, one to four values in CSS shorthand order (<code>pad="12"</code>, <code>pad="10 12"</code>, <code>pad="14 12 10"</code>). Leave it off inside a <code>vf-window</code> body, which carries its own 12px inset</td></tr>
-              <tr><td><code>place</code></td><td class="wrap"><code>'start' | 'center' | 'end'</code></td><td class="wrap">per direction</td><td class="wrap">Where the children sit across the stack. Unset resolves to <code>start</code> down a column and <code>center</code> across a row. There is no <code>justify</code>. Centering halves the free space, so an odd count of system px would leave a child on a half pixel — a 16px caption centered against the 25-system-px <code>vf-number-field</code> sits at 4.5 — and the stack steps that back onto whole system px, the exact half going toward the start. (It is <code>place</code> and not <code>align</code> because <code>align</code> is a legacy HTML presentation attribute browsers map to <code>text-align</code> on any element.)</td></tr>
-              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Optional — a column is otherwise as wide as its widest child. Worth declaring on a panel's outermost stack: the box is then on the device-pixel grid by construction, and so is everything filled to it. In a row, a declared width is also what creates the slack a child's <code>fill-width</code> divides</td></tr>
-              <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes on a <em>child</em>: be as wide (tall) as this stack allows. Each names the outcome, not an axis, so the stack compiles it to the main or cross axis depending on which way it runs. <strong>The cross axis always has a size; the main axis only has slack if you declared one</strong> — so <code>fill-width</code> always works in a column and needs a declared <code>width</code> in a row, and <code>fill-height</code> is the other way round. A fill with nothing to take is inert, not an error; two children filling along the main axis come out equal. A stack reads both about <em>itself</em> too, for parents that aren't stacks (a window body, a fieldset, a scroll well)</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default. Children are <code>flex: 0 0 auto</code>, and a light-DOM declaration beats anything here, so <code>align-self: stretch</code> in your own stylesheet is the escape hatch for a cross-axis fill a direction doesn't offer. No parts, tokens, events or role. Not a <code>vf-button-group</code> (which equalizes widths and aligns faces) and not a grid.</td></tr>
+              <tr><td><code>place</code></td><td class="wrap"><code>'start' | 'center' | 'end'</code></td><td class="wrap">per direction</td><td class="wrap">Where the children sit across the stack. Unset resolves to <code>start</code> down a column and <code>center</code> across a row. There is no <code>justify</code>. Centering that would land on a half system px is stepped back onto a whole one, the half toward the start</td></tr>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px; optional — the content otherwise decides. In a row, a declared width is what creates the slack a child's <code>fill-width</code> divides</td></tr>
+              <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes on a <em>child</em>: be as wide (tall) as this stack allows. <code>fill-width</code> always works in a column and needs a declared <code>width</code> in a row; <code>fill-height</code> is the reverse. A fill with nothing to take is inert; two children filling along the main axis come out equal. A stack also reads both about itself, for parents that aren't stacks</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Children are <code>flex: 0 0 auto</code>; your own <code>align-self: stretch</code> overrides it. No parts, tokens, events or role.</td></tr>
             </tbody>
           </table>
 
           <h3>The other way: <code>top</code> and <code>left</code></h3>
           <p>
             Every component takes <code>top</code> and <code>left</code> in whole
-            system px — no exceptions. Set either and the element is absolutely
-            positioned within its parent, the coordinate you left out defaulting to
-            0; set neither and it renders in flow. (0,0) is CSS's nearest positioned
-            ancestor, and every kit container is one — a container of your own needs
-            <code>position: relative</code>, or is a
+            system px. Set either and the element is absolutely positioned within
+            its parent, the missing coordinate defaulting to 0; set neither and it
+            renders in flow. (0,0) is the nearest positioned ancestor — every kit
+            container is one; a container of your own needs
+            <code>position: relative</code>, or use a
             <a href="#vf-container"><code>vf-container</code></a>, below.
           </p>
           <p>
             That includes the rows a container usually owns —
             <code>vf-option</code>, <code>vf-menu-item</code>,
-            <code>vf-list-item</code> and a bar's <code>vf-menu</code>. Where you
-            put one is your call. Just know what the parent stops doing once a
-            child leaves its flow: a select or menu panel is as wide as its widest
-            <em>flowed</em> row and no longer counts a placed one, the popup's
-            scroll clamp skips it too, and the rows after it close the gap. That's
-            the placement working — but it isn't how a popup, pulldown or list box
-            is laid out, so reach for it when the row really is standing alone.
+            <code>vf-list-item</code> and a bar's <code>vf-menu</code>. A placed
+            child leaves the parent's flow: a select or menu panel no longer
+            counts it toward its width, the popup's scroll clamp skips it, and the
+            rows after it close the gap.
           </p>
           <p>
-            <code>vf-dialog</code> takes the pair in viewport coordinates:
-            <code>showModal()</code> puts a modal in the top layer, whose containing
-            block is the viewport, so that one origin is the screen's rather than
-            the parent's — same unit and same behavior otherwise, with unset meaning
-            centered. A drag writes through the same two properties, so read a moved
-            element's position off <code>el.left</code> rather than
+            <code>vf-dialog</code> takes the pair in viewport coordinates — the
+            top layer's containing block is the viewport — and unset means
+            centered. A drag writes through the same two properties, so read a
+            moved element's position off <code>el.left</code>, not
             <code>style.left</code>, which holds a live <code>calc()</code>.
           </p>
 
-          <template data-example data-caption="A placed layout: every child states its own top/left in system px against the window's content region, so the panel needs no stylesheet at all.">
+          <template data-example data-caption="A placed layout: every child states its own top/left in system px against the window's content region.">
             <vf-window heading="Rename" width="300" height="140">
               <vf-label left="12" top="30" for="ex-place-name">New name:</vf-label>
               <vf-text-field left="92" top="26" id="ex-place-name" value="untitled folder"></vf-text-field>
-              <vf-button-group left="120" top="96">
+              <vf-button-group left="120" top="76">
                 <vf-button>Cancel</vf-button>
                 <vf-button variant="default">OK</vf-button>
               </vf-button-group>
@@ -1371,24 +1342,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-container" data-group="Menus, lists &amp; containers" data-toc="vf-container">
           <h2><code>vf-container</code></h2>
           <p>
-            A box that is nothing but its declared size — <code>width</code> and
-            <code>height</code> in whole system px around anything you slot into it.
-            It paints nothing and has no layout opinion: in-flow children get normal
-            flow, placed children get a coordinate system. It exists because placing
-            children with <code>top</code>/<code>left</code> needs a positioned
-            ancestor, and a region of your own otherwise needs
-            <code>position: relative</code> in a stylesheet — this is that region as
-            an element.
-          </p>
-          <p>
-            It is not a <code>vf-stack</code>: the stack is a flexbox with opinions —
-            an axis, a cross-axis default, fills compiled into flex. Reach for the
-            container when those opinions are the thing in the way — a field of
-            placed icons, a fixed stage for placed art, a composition that brings its
-            own layout with it.
+            A box that is nothing but its declared size: <code>width</code> and
+            <code>height</code> in whole system px around anything you slot into
+            it. It paints nothing and has no layout opinion — in-flow children get
+            normal flow, placed children get a coordinate system.
           </p>
 
-          <template data-example data-caption="A placed layout with no window and no stylesheet: the container is the positioned ancestor, every child states its own top/left in system px against its origin, and the declared box is on the device-pixel grid by construction.">
+          <template data-example data-caption="A placed layout: the container is the positioned ancestor, and every child states its own top/left in system px against its origin.">
             <vf-container width="300" height="120">
               <vf-label left="0" top="16" for="ex-cont-name">New name:</vf-label>
               <vf-text-field left="80" top="12" id="ex-cont-name" value="untitled folder"></vf-text-field>
@@ -1399,7 +1359,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             </vf-container>
           </template>
 
-          <template data-example data-caption="In flow it is a plain box: content flows normally, fill-width fills a child to the declared width, and an axis you leave off shrink-wraps rather than claiming the parent's width.">
+          <template data-example data-caption="In flow it is a plain box: content flows normally, fill-width fills a child to the declared width, and an omitted axis shrink-wraps.">
             <vf-container width="260">
               <vf-fieldset fill-width legend="Fills the box">
                 <vf-label>fill-width, no stylesheet</vf-label>
@@ -1411,9 +1371,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px — the declared box, which is the whole component. Content that outgrows it overflows the box rather than growing it; an axis you leave off shrink-wraps. On the grid by construction</td></tr>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Content that outgrows the box overflows it rather than growing it; an omitted axis shrink-wraps</td></tr>
               <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes, read two ways as in <code>vf-stack</code>: on a <em>child</em>, fill to this box (<code>fill-height</code> needs a declared <code>height</code> to resolve against; a fill with nothing to take is inert); on the container itself, fill whatever parent can give it a size</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default. Takes <code>top</code>/<code>left</code> like nearly every component, so a container is itself placeable — inside a window, a desktop, another container. Always on the device-pixel grid: a declared size and whole-px placement land there by construction, and under <code>applyGridSnap()</code> the container corrects its own origin, carrying everything placed inside it — kit or not — along with the coordinate system. Typographically transparent like <code>vf-stack</code> — face, line box, color and selectability return to <code>inherit</code>. No parts, tokens, events or role.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Takes <code>top</code>/<code>left</code>, so a container is itself placeable. Under <code>applyGridSnap()</code> it corrects its own origin, carrying everything placed inside it — kit or not — with the coordinate system. Typographically transparent like <code>vf-stack</code>. No parts, tokens, events or role.</td></tr>
             </tbody>
           </table>
         </section>
@@ -1425,15 +1385,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-label" data-group="Text, images &amp; icons" data-toc="vf-label">
           <h2><code>vf-label</code></h2>
           <p>
-            The static caption: "Name:" beside a field, "Mode" over a radio group, a
-            readout. Chrome type on a 16px line box, stated in whole system pixels, so
-            a column of captions accumulates whole offsets.
+            The static caption: "Name:" beside a field, "Mode" over a radio group.
+            Chrome type on a 16px line box, stated in whole system pixels.
           </p>
           <p>
-            <code>for</code> does what a native <code>&lt;label for&gt;</code> does:
-            clicking focuses the target (a focus shortcut, not an activation), and the
-            caption text becomes its accessible name. It never overwrites a name you
-            set, and restores what it found when the label is removed.
+            <code>for</code> works like a native <code>&lt;label for&gt;</code>:
+            clicking focuses the target, and the caption text becomes its
+            accessible name. It never overwrites a name you set.
           </p>
 
           <template data-example data-stage="column" data-caption="Click 'Volume:' — focus lands in the field, and the caption is now its accessible name.">
@@ -1453,7 +1411,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>for</code></td><td>string</td><td>—</td><td class="wrap">Id of the labelled control, resolved in the label's own tree scope. A disabled target is not focused; a target that has not upgraded yet is waited for</td></tr>
               <tr><td><code>face</code></td><td class="wrap"><code>'display' | 'body'</code></td><td><code>'display'</code></td><td class="wrap">Chrome type by default</td></tr>
               <tr><td><code>dim</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Greys the text to <code>--vf-disabled</code></td></tr>
-              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap">Whole system px — a caption column's shared width, so a run of label-and-field rows lands every field on one x. Left to its text, a caption measures whatever its glyphs measure and anything sized from it inherits the fraction (contract rule 3). A caption wider than its width overflows rather than reflowing the row</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td>—</td><td class="wrap">Whole system px — a caption column's shared width, so a run of label-and-field rows lands every field on one x. A caption wider than its width overflows rather than reflowing the row</td></tr>
               <tr><td colspan="4" class="wrap">Slot: default. Part: <code>label</code>. Line box: the face's native line — <code>--vf-line-height-display</code> (16px, Chicago 12's) or <code>--vf-line-height</code> (12px, Geneva 9's) per <code>face</code>, with <code>--vf-label-line-height</code> overriding both for captions alone. <code>display: inline-block</code>, so a page can give a caption column a shared width.</td></tr>
             </tbody>
           </table>
@@ -1462,10 +1420,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-paragraph" data-group="Text, images &amp; icons" data-toc="vf-paragraph">
           <h2><code>vf-paragraph</code></h2>
           <p>
-            A run of copy on the kit's body face and its native 12px line, with the
-            display face wrapping at 16px. The copy keeps paragraph semantics, and
-            the element has <strong>no margin</strong>: paragraph spacing is the
-            page's, in whole pixels like everything else.
+            A run of copy on the kit's body face and its native 12px line; the
+            display face wraps at 16px. No margin — paragraph spacing is the
+            page's.
           </p>
 
           <template data-example data-stage="column" data-caption="Body face by default — which is also the fine print; the display face on demand.">
@@ -1488,11 +1445,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-img" data-group="Text, images &amp; icons" data-toc="vf-img">
           <h2><code>vf-img</code></h2>
           <p>
-            Pixel art on the kit's grid: it sizes a slotted <code>&lt;img&gt;</code> to
-            one system pixel per image pixel and keeps the nearest-neighbor
-            magnification on whole device pixels. The graphic stays a native
-            <code>&lt;img&gt;</code> in your light DOM, so <code>alt</code>,
-            <code>srcset</code>, loading behavior and asset URLs are untouched.
+            Pixel art on the kit's grid: a slotted <code>&lt;img&gt;</code> sized
+            to one system pixel per image pixel, magnified nearest-neighbor on
+            whole device pixels. The graphic stays a native
+            <code>&lt;img&gt;</code> in your light DOM — <code>alt</code>,
+            <code>srcset</code> and loading behavior are untouched.
           </p>
 
           <template data-example data-caption="A 16×16 icon at 1:1, then the same file at 2× and 3× — whole multiples, so it magnifies on the same grid instead of resampling.">
@@ -1505,7 +1462,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td class="wrap">the image's natural size</td><td class="wrap">Whole system px. Stated up front they reserve the box before the file loads; the box is 0×0 until a size is known, so there is never a flash at some other scale</td></tr>
+              <tr><td><code>width</code>, <code>height</code></td><td>number</td><td class="wrap">the image's natural size</td><td class="wrap">Whole system px. Stated up front, they reserve the box before the file loads; until a size is known the box is 0×0</td></tr>
               <tr><td colspan="4" class="wrap">Slot: default (a single <code>&lt;img&gt;</code> — use <code>alt=""</code> when it is decorative, as in a list row or a menu title that already carries a name). Part: <code>frame</code>.</td></tr>
             </tbody>
           </table>
@@ -1514,20 +1471,18 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
         <section class="doc" id="vf-icon" data-group="Text, images &amp; icons" data-toc="vf-icon">
           <h2><code>vf-icon</code></h2>
           <p>
-            The Finder icon. <code>vf-img</code> puts a picture on the grid; this makes
-            it a control — a picture and a caption that select, move and rename
+            The Finder icon: a picture and a caption that select, move and rename
             together.
           </p>
           <p>
-            The art arrives by slot, one per icon-resource size: <code>large</code> is
-            the 32×32 <code>ICN#</code> and <code>small</code> the 16×16
-            <code>ics#</code>. <code>size</code> picks which one paints <em>and</em>
-            the cell it paints in. The cell is reserved whether or not there is art
-            filling it — a folder is 32×20 of ink and a document 25×32 — so a row of
+            The art arrives by slot: <code>large</code> is the 32×32
+            <code>ICN#</code>, <code>small</code> the 16×16 <code>ics#</code>.
+            <code>size</code> picks which one paints and the cell it paints in.
+            The cell is reserved whether or not the art fills it, so a row of
             icons keeps one baseline.
           </p>
 
-          <template data-example data-caption="Click to select: the art inverts and the transparent surround around it stays clear. Shift adds, and a press anywhere else clears — single selection with no container managing the set.">
+          <template data-example data-caption="Click to select: the art inverts and the transparent surround stays clear. Shift adds; a press anywhere else clears.">
             <vf-icon label="SimpleText" width="64" selectable>
               <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
               <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
@@ -1546,10 +1501,10 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
-            <code>open</code> — the window this icon stands for is on screen — redraws
-            the art as a ghost: outline held, interior re-filled with the same loose
-            dither the scroll rails use. It is derived from the art already slotted,
-            so it costs no second file and works on cross-origin art.
+            <code>open</code> — the icon's window is on screen — redraws the art
+            as a ghost: outline held, interior re-filled with the kit's dither. It
+            is derived from the slotted art — no second file, and cross-origin art
+            works.
           </p>
 
           <template data-example data-caption="open — the same PNGs as the icons above. A selected open icon inverts as a closed one does. Set it when handling vf-open, clear it when the window goes away.">
@@ -1568,14 +1523,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
-            A name is never abbreviated and never folded — no ellipsis, no clipping,
-            no wrapping. Wider than its cell, it overflows, centered:
-            <code>width</code> is the cell pitch, not a bound on the name. One rule is
-            yours: a declared <code>width</code> must be even, since the component
-            cannot round a number you chose.
+            A name is never abbreviated or folded. Wider than its cell, it
+            overflows, centered: <code>width</code> is the cell pitch, not a bound
+            on the name. A declared <code>width</code> must be even.
           </p>
 
-          <template data-example data-caption="A 31-character name at the limit: it overflows the 64px cell on one line rather than folding into it. Type past the limit in a rename and vf-name-too-long carries what was tried.">
+          <template data-example data-caption="A 31-character name overflows the 64px cell on one line. Renaming past the limit fires vf-name-too-long.">
             <vf-icon label="Quarterly Results Final v2 (2)!" width="64" selectable editable>
               <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
               <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
@@ -1587,7 +1540,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <pre class="log" data-log></pre>
           </template>
 
-          <template data-example data-caption='size="small" swaps to the 16×16 member of the family. An empty label draws no plate. It stays selectable and renameable: focus the last one and press Return to name it. Committing an empty name over a real one is refused.'>
+          <template data-example data-caption='size="small" swaps to the 16×16 art. An empty label draws no plate but stays selectable and renameable: focus the last one and press Return to name it. Committing an empty name over a real one is refused.'>
             <vf-icon size="small" label="SimpleText" width="64" selectable>
               <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
               <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
@@ -1607,7 +1560,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="movable — drag one by its art or its name, or Tab to it and use the arrow keys (Shift for eight). editable — click the name of an already-selected icon and the rename box opens a moment later, once a double-click could no longer be coming; Return commits, Escape reverts, and the plate widens as you type. Double-click the name instead and the icon opens, the same as double-clicking its art."
+            data-caption="movable — drag one by its art or name, or Tab to it and use the arrow keys (Shift for eight). editable — click the name of an already-selected icon to rename; Return commits, Escape reverts. Double-clicking the name opens the icon instead."
           >
             <vf-desktop width="512" height="192">
               <vf-icon
@@ -1654,23 +1607,23 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <caption>Properties</caption>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">The name. A property rather than slotted content because it is editable — renaming means the component owns the string. Empty draws no plate</td></tr>
+              <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">The name. Empty draws no plate</td></tr>
               <tr><td><code>size</code></td><td><code>large</code> | <code>small</code></td><td><code>large</code></td><td class="wrap">Picks the slot that paints and the cell it paints in: 32×32 or 16×16</td></tr>
-              <tr><td><code>selectable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Clicking selects, and the icon becomes focusable — so <code>movable</code> and <code>editable</code> presuppose it. Set <code>selected</code> yourself to drive selection some other way</td></tr>
+              <tr><td><code>selectable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Clicking selects and the icon becomes focusable; <code>movable</code> and <code>editable</code> presuppose it. Set <code>selected</code> yourself to drive selection some other way</td></tr>
               <tr><td><code>selected</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; the art inverts and the plate takes the <code>--vf-highlight</code> pair</td></tr>
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The open ghost: outline held, interior re-filled with the kit's dither. Derived from the art you already slotted — no second file. Selection inverts the ghost the same way</td></tr>
-              <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag to move, plus arrow keys (Shift for eight). <strong>Not</strong> <code>draggable</code>, which is a global HTML attribute <em>and</em> an <code>HTMLElement</code> accessor</td></tr>
-              <tr><td><code>editable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Click the plate of an already-selected icon to rename; the press that does the selecting never does, and the field opens only once the double-click window has passed, so a double-click on the name opens the icon instead</td></tr>
-              <tr><td><code>width</code></td><td>number</td><td class="wrap">the wider of cell and name</td><td class="wrap">System px, and <strong>even</strong>. The cell/grid pitch, which a longer name overflows rather than being bound by</td></tr>
+              <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag to move, plus arrow keys (Shift for eight)</td></tr>
+              <tr><td><code>editable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Click the plate of an already-selected icon to rename; the field opens once the double-click window has passed, so a double-click opens the icon instead</td></tr>
+              <tr><td><code>width</code></td><td>number</td><td class="wrap">the wider of cell and name</td><td class="wrap">System px, and even. The cell pitch; a longer name overflows it</td></tr>
               <tr><td><code>maxlength</code></td><td>number</td><td><code>31</code></td><td class="wrap">The HFS filename limit, applied to the rename field. A <code>label</code> set from your own data is never truncated</td></tr>
               <tr><td><code>vf-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ selected }</code></td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ label, previous }</code> — the name was committed</td></tr>
               <tr><td><code>vf-open</code></td><td>Event</td><td>—</td><td class="wrap"><code>{}</code> — double-clicked anywhere on the icon, name included, or ⌘O / ⌘↓ (Ctrl off the Mac). Return renames instead</td></tr>
-              <tr><td><code>vf-name-too-long</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, accepted, limit }</code> — a rename went past <code>maxlength</code>, so a host can raise an alert rather than let the characters vanish</td></tr>
-              <tr><td><code>vf-name-rejected</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, kept, reason }</code> — a rename was committed empty, so the edit was dropped and the old name put back. No <code>vf-change</code> fires alongside it</td></tr>
+              <tr><td><code>vf-name-too-long</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, accepted, limit }</code> — a rename went past <code>maxlength</code></td></tr>
+              <tr><td><code>vf-name-rejected</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, kept, reason }</code> — a rename committed empty; the old name is kept and no <code>vf-change</code> fires</td></tr>
               <tr><td><code>--vf-icon-gap</code></td><td>Token</td><td><code>2px</code></td><td class="wrap">Cell to plate</td></tr>
               <tr><td><code>--vf-icon-label-height</code></td><td>Token</td><td><code>12px</code></td><td class="wrap">The plate's line box</td></tr>
-              <tr><td colspan="4" class="wrap">Slots: <code>large</code> (32×32 art, normally a <code>vf-img</code>), <code>small</code> (16×16). Parts: <code>frame</code>, <code>icon</code>, <code>label</code>, <code>plate</code>, <code>input</code>. Both files fetch even though one paints — pay it with two data URIs, or slot only the size that view uses. For an announceable selection, wrap a field of icons in an element with <code>role="listbox"</code>; unowned, a <code>selectable</code> icon is <code>role="img"</code> named from its <code>label</code>.</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: <code>large</code> (32×32 art, normally a <code>vf-img</code>), <code>small</code> (16×16). Parts: <code>frame</code>, <code>icon</code>, <code>label</code>, <code>plate</code>, <code>input</code>. Both files fetch even though one paints — use data URIs, or slot only the size in use. For an announceable selection, wrap a field of icons in an element with <code>role="listbox"</code>; unowned, a <code>selectable</code> icon is <code>role="img"</code> named from its <code>label</code>.</td></tr>
             </tbody>
           </table>
         </section>
@@ -1679,162 +1632,15 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
              REFERENCE
              ============================================================= -->
 
-        <section class="doc" id="sizing" data-group="Reference" data-toc="Sizing &amp; the grid">
-          <h2>Sizing and the device-pixel grid</h2>
-          <p>
-            Components are authored in <em>system pixels</em> — the 1-bit art grid,
-            where a border is 1 and a push button 20 tall. On a Macintosh that pixel
-            was 1/72 inch, and reproducing it is the whole job: each component asks
-            the display how dense it is and renders one system pixel as the
-            <em>whole</em> number of device pixels nearest that size,
-            <code>round(96/72 × devicePixelRatio)</code> — 96 being CSS's reference
-            dpi, the only density anchor a browser exposes.
-          </p>
-
-          <table class="api">
-            <thead>
-              <tr>
-                <th>Display</th><th>true 1/72″ wants</th><th>device px per system px</th><th><code>--vf-scale</code></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>1×</td><td>1.33</td><td>1</td><td>1</td></tr>
-              <tr><td>1.5× (Windows 150%)</td><td>2.0</td><td>3</td><td>2</td></tr>
-              <tr><td>2× Retina</td><td>2.67</td><td>3</td><td>1.5</td></tr>
-              <tr><td>3×</td><td>4.0</td><td>3</td><td>1</td></tr>
-            </tbody>
-          </table>
-
-          <p>
-            The count is always whole because the art has to land on the device-pixel
-            grid — that is the one thing that never bends. Where rounding to a whole
-            count is not enough, the count steps again: a 3× display would like 4
-            device pixels, but 4/3 is not a length a browser's layout grid can hold,
-            so its dithers would drift off-grid a fraction further with every repeat.
-            It takes 3 instead. Size yields to the grid, never the other way round.
-          </p>
-          <p>
-            So the same button is 20 CSS px tall on a 1× monitor and 30 on a 2× one,
-            landing within a quarter of its 1984 physical size on both. Pin it instead
-            by declaring <code>--vf-scale</code> in a stylesheet the page loads
-            <em>before</em> the components upgrade —
-            <code>:root { --vf-scale: 1 }</code> is a fixed 20-px button everywhere —
-            and keep <code>--vf-scale × devicePixelRatio</code> whole when you do.
-            This page pins nothing, so every specimen above is self-scaled.
-          </p>
-          <p>
-            A component's box is therefore never stated in fixed CSS pixels. Windows,
-            dialogs and the other declared boxes take their size in system px
-            (<code>&lt;vf-window width="240" height="176"&gt;</code>); the demos above
-            size everything else in <code>em</code> against the component's own type
-            (on a <code>vf-*</code> host <code>1em</code> is the kit's 16-pixel face)
-            or as a percentage of its container.
-          </p>
-
-          <h3>Zoom</h3>
-          <p>
-            Zoom needs no rule of its own. Zooming multiplies device pixels per CSS
-            pixel — that is what zoom <em>is</em> — so it arrives as a denser display
-            and walks the same table: a 2× display at 200% zoom is density 4, which
-            wants 5 device pixels per system pixel. The art grows with the page
-            instead of dividing the zoom back out.
-          </p>
-
-          <ul>
-            <li>
-              The target is a step function, so <strong>zoom sometimes changes
-              nothing</strong> — 100% and 125% on a 2× display both round to 3 device
-              pixels, and the art holds still while the copy around it grows. That is
-              the nearest whole count being the same count, not a bug; bending it to
-              feel responsive would put the art off the grid.
-            </li>
-            <li>
-              Chrome and Firefox report zoom through <code>devicePixelRatio</code>;
-              Safari holds it at the hardware and moves the viewport instead. The kit
-              tracks both.
-            </li>
-            <li>
-              Pinch-to-zoom is not followed — it magnifies already-rasterized pixels
-              at compositing time. A pinned <code>--vf-scale</code> opts out of
-              density-following as well.
-            </li>
-          </ul>
-
-          <p>Zoom this page:</p>
-          <pre class="snippet"><code id="zoom-readout">measuring…</code></pre>
-
-          <h3>Staying on the grid</h3>
-          <p>
-            A component is built from whole system pixels, so every edge inside it
-            sits on the grid — but only <em>relative to its own origin</em>. Land that
-            origin, or its size, on a fractional device pixel and the 1-bit interior
-            rasterizes wrong: stepped corners staircase asymmetrically, hairline
-            borders and glyph stems smear across two device rows and go gray. Two
-            rules are the page's, and one call covers the first:
-          </p>
-
-          <ol>
-            <li>
-              <strong>State every <code>line-height</code> in whole pixels, and keep
-              <code>padding</code>, <code>margin</code> and <code>gap</code> on
-              integers</strong> — or call <code>applyGridSnap()</code> and forget it.
-              Line boxes are the biggest offender:
-              <code>1.65 × 17px = 28.05px</code>, and every line of prose nudges
-              everything after it further off.
-            </li>
-            <li>
-              <strong>Position a box that contains components from its start edge — or
-              give it a whole-pixel size.</strong> Anything right-aligned, centered or
-              sharing <code>space-between</code> computes its origin as
-              <code>edge − width</code>, so a width derived from a text run lands it
-              off the grid.
-            </li>
-          </ol>
-
-          <pre class="snippet"><code>import { applyGridSnap, requestGridSnap } from 'vintage-frames'
-
-applyGridSnap()    // every component measures its own paint and cancels the
-                   // fractional remainder — returns a cleanup function
-requestGridSnap()  // re-run after moving components in a way that resizes nothing</code></pre>
-
-          <p>
-            The correction never touches the host's own <code>position</code>,
-            <code>left</code>/<code>top</code> or <code>margin</code>; its whole
-            footprint on your DOM is <code>--vf-snap-dx</code> /
-            <code>--vf-snap-dy</code> on each corrected host. Opt one element out with
-            <code>nosnap</code>. This page calls it — load
-            <a href="./?nosnap"><code>?nosnap</code></a> to compare with
-            it off at 100% zoom. <a href="#vf-paragraph"><code>vf-paragraph</code></a>
-            and <a href="#vf-label"><code>vf-label</code></a> state their line box in
-            whole system pixels, so text set on them satisfies rule 1 without the
-            call.
-          </p>
-
-          <p>
-            <code>npm run verify:grid</code> checks every <code>vf-*</code> host at dpr
-            1/2/3, and <code>npm run verify:snap</code> checks that a page knocked off
-            the grid gets back on it. Point them at your own pages with
-            <code>VF_GRID_PAGES</code> / <code>VF_SNAP_PAGES</code>.
-          </p>
-        </section>
-
         <section class="doc" id="focus" data-group="Reference" data-toc="Focus">
           <h2>Focus</h2>
           <p>
-            Keyboard focus is added rather than reproduced — keyboard access postdates
-            System 7 — so the kit draws its own mark instead of leaving the browser's
-            ring: a 1px dashed rule on the system-pixel grid, inside the control under
-            the ink it marks (a button's label, a checkbox's box, a field's well), or
-            below the whole box where there is no interior to give (a popup menu, clear
-            of its shadow; a slider, under the full rail, so the mark stays put as the
-            handle travels). The few with no face to draw on — a window's close box, a
-            list row, a scroll viewport — keep a dotted ring, and
-            <code>vf-menu</code> and <code>vf-select</code> mark only while closed.
-          </p>
-          <p>
-            Either way it is <strong>keyboard-only</strong>: a mouse click never draws
-            it, including on the controls where <code>:focus-visible</code> is true
-            after a pointer. What the mark follows is the page's last input modality.
+            The components are good citizens of the modern web: focusable,
+            keyboard-operable, and named for assistive tech, like the native
+            elements they stand in for. Keyboard access postdates System 7, so
+            the focus mark is the kit's own, added in the 1-bit idiom — a 1px
+            dashed rule under the focused control. It is keyboard-only: a mouse
+            click never draws it.
           </p>
 
           <template

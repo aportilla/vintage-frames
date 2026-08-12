@@ -1,6 +1,6 @@
 {
   "name": "vintage-frames",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lit web components that emulate the look and feel of classic Mac OS System 7",
   "type": "module",
   "license": "MIT",

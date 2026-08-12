@@ -1,7 +1,6 @@
 # Utilities & style toolkit
 
-The toolkit the components are built from is exported from the package root, so
-a custom control can match the kit pixel-for-pixel:
+The toolkit the components are built from is exported from the package root, so a custom control can match the kit pixel-for-pixel:
 
 ```ts
 import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
@@ -28,12 +27,7 @@ import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 | `VfFormControl`, `VfTextControlBase`, `VfToggleControl`, `VfModalDialog`, `modalDialogStyles` | Base classes: form association, the text-field recipe, the toggle interaction skeleton (a mixin), the native-`<dialog>` lifecycle |
 | `registerEmbeddedFont`, `registerDisplayFace`, `registerBodyFace`, `VF_DISPLAY_FAMILY`, `VF_BODY_FAMILY` | Register the bitmap faces on `document.fonts` yourself; the constants are the family names (`'VF Display'`, `'VF Body'`) |
 
-`VfToggleControl` is a mixin rather than a base class, because the kit's two
-toggles sit on different bases: `vf-checkbox` extends `VfFormControl` (it
-submits a value under a name), while `vf-radio` is not form-associated — its
-`vf-radio-group` is the form surface. Apply it over whichever base your control
-needs, and supply `checked`, the control's `ElementInternals`, its effective
-disabled rule, and what a click or Space should do:
+`VfToggleControl` is a mixin rather than a base class, because the kit's two toggles sit on different bases: `vf-checkbox` extends `VfFormControl` (it submits a value under a name), while `vf-radio` is not form-associated — its `vf-radio-group` is the form surface. Apply it over whichever base your control needs, and supply `checked`, the control's `ElementInternals`, its effective disabled rule, and what a click or Space should do:
 
 ```ts
 class MyToggle extends VfToggleControl(VfFormControl) {
@@ -48,7 +42,4 @@ class MyToggle extends VfToggleControl(VfFormControl) {
 }
 ```
 
-You get the click/Space wiring (including the held-Space auto-repeat guard),
-one disabled gate every activation passes through,
-`aria-checked`/`aria-disabled` mirroring, and a self-managed host tabindex that
-never clobbers a consumer's own.
+You get the click/Space wiring (including the held-Space auto-repeat guard), one disabled gate every activation passes through, `aria-checked`/`aria-disabled` mirroring, and a self-managed host tabindex that never clobbers a consumer's own.

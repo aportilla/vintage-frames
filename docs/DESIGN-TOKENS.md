@@ -1,9 +1,6 @@
 # Design tokens
 
-Every visual constant in Vintage Frames is a `--vf-*` custom property with an
-inlined fallback, so a component on a blank page renders correctly with no
-global CSS — and every one of them can be overridden at `:root`, on a subtree,
-or on one element:
+Every visual constant in Vintage Frames is a `--vf-*` custom property with an inlined fallback, so a component on a blank page renders correctly with no global CSS — and every one of them can be overridden at `:root`, on a subtree, or on one element:
 
 ```css
 :root { --vf-shadow-offset: 1px; }
@@ -11,11 +8,9 @@ vf-menu-bar::part(bar) { padding-inline: 24px; }
 vf-button::part(button) { min-width: 96px; }
 ```
 
-Every length below is a **system pixel** value — the kit multiplies it by
-`--vf-scale` in `calc()` — so a re-themed metric stays crisp on any display.
+Every length below is a **system pixel** value — the kit multiplies it by `--vf-scale` in `calc()` — so a re-themed metric stays crisp on any display.
 
-> **Line boxes are lengths too.** Re-theme them with whole numbers, or you put
-> the components below them off the device-pixel grid.
+> **Line boxes are lengths too.** Re-theme them with whole numbers, or you put the components below them off the device-pixel grid.
 
 ## Type
 
@@ -32,8 +27,7 @@ Every length below is a **system pixel** value — the kit multiplies it by
 | `--vf-label-line-height` | follows the face | `vf-label`'s own line box, overriding both face tokens for captions alone |
 | `--vf-paragraph-line-height` | follows the face | `vf-paragraph`'s own line box, overriding both face tokens for paragraphs alone |
 
-A swapped strike sets its family, size and line height together — the three
-tokens travel as a set (see [FONTS.md](./FONTS.md)).
+A swapped strike sets its family, size and line height together — the three tokens travel as a set (see [FONTS.md](./FONTS.md)).
 
 ## Palette
 
@@ -45,8 +39,7 @@ tokens travel as a set (see [FONTS.md](./FONTS.md)).
 | `--vf-disabled` | `#c0c0c0` | Dimmed text and glyphs |
 | `--vf-highlight` / `-text` | `#000000` / `#ffffff` | Selection colors |
 
-Under forced colors (Windows High Contrast) the kit remaps these to the system
-pair (`CanvasText`/`Canvas`, `Highlight`/`HighlightText`) itself.
+Under forced colors (Windows High Contrast) the kit remaps these to the system pair (`CanvasText`/`Canvas`, `Highlight`/`HighlightText`) itself.
 
 ## Patterns
 
@@ -58,9 +51,7 @@ pair (`CanvasText`/`Canvas`, `Highlight`/`HighlightText`) itself.
 | `--vf-swatch-checker` | SVG tile | `vf-swatch`'s transparency checker |
 | `--vf-progress-stripes` | SVG tile | Indeterminate barber stripes |
 
-A pattern token renders as a placed tile grid rather than a CSS
-`background-repeat`, so it stays 1-bit at every scale; a token swapped at
-runtime without touching the component needs a `requestUpdate()`.
+A pattern token renders as a placed tile grid rather than a CSS `background-repeat`, so it stays 1-bit at every scale; a token swapped at runtime without touching the component needs a `requestUpdate()`.
 
 ## Control metrics
 
@@ -123,9 +114,4 @@ runtime without touching the component needs a `requestUpdate()`.
 
 ---
 
-Per-component tokens are also documented as `@cssprop` entries in the
-[custom elements manifest](../custom-elements.json) and the editor data derived
-from it, so they show on hover in an editor pointed at the package.
-[SPEC.md §3](./SPEC.md) is the design spec these defaults come from;
-the [reference page](https://aportilla.github.io/vintage-frames/)
-shows each component's tokens beside a live specimen.
+Per-component tokens are also documented as `@cssprop` entries in the [custom elements manifest](../custom-elements.json) and the editor data derived from it, so they show on hover in an editor pointed at the package. [SPEC.md §3](./SPEC.md) is the design spec these defaults come from; the [reference page](https://aportilla.github.io/vintage-frames/) shows each component's tokens beside a live specimen.

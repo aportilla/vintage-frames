@@ -1,7 +1,6 @@
 # Developing
 
-Working on the kit itself: the demo pages, the verify suite, and the generated
-editor data.
+Working on the kit itself: the demo pages, the verify suite, and the generated editor data.
 
 ## Demo pages
 
@@ -12,30 +11,16 @@ npm run typecheck
 npm test           # the whole verify suite (starts its own dev server)
 ```
 
-Both pages are published at
-**[aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/)**,
-deployed by `.github/workflows/pages.yml` on every push to `main`.
-`npm run build:pages` builds that site locally (`vite.pages.config.ts`, a
-separate config because `vite.config.ts` is lib mode) and `npm run preview:pages`
-serves the built copy under the same base path the deploy uses.
+Both pages are published at **[aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/)**, deployed by `.github/workflows/pages.yml` on every push to `main`. `npm run build:pages` builds that site locally (`vite.pages.config.ts`, a separate config because `vite.config.ts` is lib mode) and `npm run preview:pages` serves the built copy under the same base path the deploy uses.
 
 | Page | What it is |
 | --- | --- |
 | [`/`](http://localhost:5173/) | **Component reference** — every element, its API, and a live specimen of each state. Each code sample is the demo's own source, so it can't drift |
 | [`/blog.html`](http://localhost:5173/blog.html) | Integration example — an ordinary blog page (system-font copy, normal flow, no global CSS) using the controls in its header, sidebar and forms |
 
-The faux System 7 desktop that used to be this site's root moved to its own
-repo, [aportilla/system7web](https://github.com/aportilla/system7web), where it
-consumes `vintage-frames` from npm like any other app. Changing a component and
-wanting to see the desktop react means publishing (or `npm link`ing) the
-package — which is the point: the desktop is now a consumer, and it exercises
-the same public API everyone else gets.
+The faux System 7 desktop that used to be this site's root moved to its own repo, [aportilla/system7web](https://github.com/aportilla/system7web), where it consumes `vintage-frames` from npm like any other app. Changing a component and wanting to see the desktop react means publishing (or `npm link`ing) the package — which is the point: the desktop is now a consumer, and it exercises the same public API everyone else gets.
 
-`blog.html` sets no `--vf-scale`, so its components self-scale to true ~72dpi
-size. `npm run shot:blog` captures it at 1× / 2× / 3×. Two query flags show
-grid snapping working: `?offgrid` knocks all 45 measured components off the
-device-pixel grid and snapping recovers them; `?offgrid&nosnap` is the same
-page with snapping off, for comparison.
+`blog.html` sets no `--vf-scale`, so its components self-scale to true ~72dpi size. `npm run shot:blog` captures it at 1× / 2× / 3×. Two query flags show grid snapping working: `?offgrid` knocks all 45 measured components off the device-pixel grid and snapping recovers them; `?offgrid&nosnap` is the same page with snapping off, for comparison.
 
 ## Tests
 
@@ -46,41 +31,14 @@ npm test -- --bail         # stop at the first failing script
 npm run verify:focus       # one script, against a dev server you started
 ```
 
-The `verify:*` scripts are the test suite: Playwright drivers where Node
-reaches into a real page and asserts what the browser computed — rendered
-pixels, resolved `calc()`, the accessibility tree, the device-pixel grid at
-three densities. jsdom can resolve none of that, and an in-page runner can't
-produce the **trusted** input `:focus-visible` and the focus-modality rule
-require.
+The `verify:*` scripts are the test suite: Playwright drivers where Node reaches into a real page and asserts what the browser computed — rendered pixels, resolved `calc()`, the accessibility tree, the device-pixel grid at three densities. jsdom can resolve none of that, and an in-page runner can't produce the **trusted** input `:focus-visible` and the focus-modality rule require.
 
-`npm test` starts a dev server on the port it will poll, runs every script in
-parallel, prints one table and exits nonzero if any fail. A server already
-listening is reused and left running. Shared code (the page builder, `check()`,
-the tally, a PNG decoder, the accessibility-tree walker) lives in
-[`scripts/harness.mjs`](../scripts/harness.mjs); each script keeps its own
-header explaining what it covers.
+`npm test` starts a dev server on the port it will poll, runs every script in parallel, prints one table and exits nonzero if any fail. A server already listening is reused and left running. Shared code (the page builder, `check()`, the tally, a PNG decoder, the accessibility-tree walker) lives in [`scripts/harness.mjs`](../scripts/harness.mjs); each script keeps its own header explaining what it covers.
 
 ## Editor data & the manifest
 
-The package ships a [custom elements manifest](https://github.com/webcomponents/custom-elements-manifest)
-(`custom-elements.json`, generated by `npm run analyze`) and the two editor
-formats derived from it (`editor/vscode.html-custom-data.json`,
-`editor/web-types.json`). All three are build outputs — regenerate them,
-don't hand-edit.
+The package ships a [custom elements manifest](https://github.com/webcomponents/custom-elements-manifest) (`custom-elements.json`, generated by `npm run analyze`) and the two editor formats derived from it (`editor/vscode.html-custom-data.json`, `editor/web-types.json`). All three are build outputs — regenerate them, don't hand-edit.
 
-`npm run verify:manifest` checks the manifest against the source: that every
-registered element reached it, that every documented `@csspart`, `@slot` and
-`@fires` is real, and that a member a component *inherits* is actually wired up
-(inheritance alone puts a property in your editor's autocomplete, so a control
-that inherits `description` without rendering it would silently drop any
-description you set).
+`npm run verify:manifest` checks the manifest against the source: that every registered element reached it, that every documented `@csspart`, `@slot` and `@fires` is real, and that a member a component *inherits* is actually wired up (inheritance alone puts a property in your editor's autocomplete, so a control that inherits `description` without rendering it would silently drop any description you set).
 
-Theming tokens are split by reach. A token only a few components read is
-documented on each of them as an `@cssprop`, generated from the SPEC §3 table —
-45 tags across 22 components. The 18 kit-wide knobs (`--vf-scale`, the palette,
-both type stacks, the focus rule, the cursor) are described once in
-[SPEC.md](./SPEC.md), and the whole set is listed with defaults in
-[DESIGN-TOKENS.md](./DESIGN-TOKENS.md). Three kinds of token are deliberately
-undocumented: the controller-owned grid-snap offsets, the private channels
-`vf-button-group` uses to drive `vf-button`, and geometry a component sets on
-itself.
+Theming tokens are split by reach. A token only a few components read is documented on each of them as an `@cssprop`, generated from the SPEC §3 table — 45 tags across 22 components. The 18 kit-wide knobs (`--vf-scale`, the palette, both type stacks, the focus rule, the cursor) are described once in [SPEC.md](./SPEC.md), and the whole set is listed with defaults in [DESIGN-TOKENS.md](./DESIGN-TOKENS.md). Three kinds of token are deliberately undocumented: the controller-owned grid-snap offsets, the private channels `vf-button-group` uses to drive `vf-button`, and geometry a component sets on itself.

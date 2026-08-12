@@ -1,18 +1,10 @@
 # Vintage Frames
 
-Lit web components that rebuild the Mac OS System 7 interface — racing-stripe
-title bars, 1px black borders, hard offset shadows, bitmap type. 31 elements,
-no stylesheet to load.
+Lit web components that rebuild the Mac OS System 7 interface — racing-stripe title bars, 1px black borders, hard offset shadows, bitmap type. 31 elements, no stylesheet to load.
 
-- **[Component reference](https://aportilla.github.io/vintage-frames/)** — every
-  element, its API, and a live specimen of each state
-- **[Integration example](https://aportilla.github.io/vintage-frames/blog.html)**
-  — an ordinary blog page (system-font copy, normal flow, no global CSS) using
-  the controls in its header, sidebar and forms
-- **[System 7 desktop](https://aportilla.github.io/system7web/)** — a full faux
-  desktop (menu bar, movable windows, dialogs, icons, drawn cursor) built on
-  this package, in its own repo:
-  [aportilla/system7web](https://github.com/aportilla/system7web)
+- **[Component reference](https://aportilla.github.io/vintage-frames/)** — every element, its API, and a live specimen of each state
+- **[Integration example](https://aportilla.github.io/vintage-frames/blog.html)** — an ordinary blog page (system-font copy, normal flow, no global CSS) using the controls in its header, sidebar and forms
+- **[System 7 desktop](https://aportilla.github.io/system7web/)** — a full faux desktop (menu bar, movable windows, dialogs, icons, drawn cursor) built on this package, in its own repo: [aportilla/system7web](https://github.com/aportilla/system7web)
 
 ```sh
 npm install vintage-frames
@@ -22,10 +14,7 @@ npm install vintage-frames
 import 'vintage-frames'   // registers every <vf-*> element
 ```
 
-Every visual constant is a `--vf-*` custom property with an inlined fallback,
-the two bitmap faces register themselves on `document.fonts`, and each
-component scales itself — so a component on a blank page renders correctly with
-no global CSS at all.
+Every visual constant is a `--vf-*` custom property with an inlined fallback, the two bitmap faces register themselves on `document.fonts`, and each component scales itself — so a component on a blank page renders correctly with no global CSS at all.
 
 ```html
 <vf-desktop width="512" height="342">
@@ -87,22 +76,18 @@ no global CSS at all.
 | `vf-img` | Pixel art on the grid — sizes a slotted `<img>` to one system px per image px, magnified nearest-neighbor |
 | `vf-icon` | Finder icon: art in a 32×32 or 16×16 cell with a name plate below. `selectable`, `open`, `movable`, `editable` |
 
-The [component reference](https://aportilla.github.io/vintage-frames/)
-shows each of these live, with its full API.
+The [component reference](https://aportilla.github.io/vintage-frames/) shows each of these live, with its full API.
 
 ## Taking only what you use
 
-The root import registers all 31 elements. Import by name to ship less — same
-elements, same self-registration, one module each:
+The root import registers all 31 elements. Import by name to ship less — same elements, same self-registration, one module each:
 
 ```ts
 import 'vintage-frames/vf-button.js'
 import 'vintage-frames/vf-checkbox.js'
 ```
 
-Those subpaths and the root are the whole export surface; a deeper path fails
-at resolve time rather than as a 404 in production. Bundled and minified with
-`lit` external:
+Those subpaths and the root are the whole export surface; a deeper path fails at resolve time rather than as a 404 in production. Bundled and minified with `lit` external:
 
 | Imported | min | gzip |
 | --- | --- | --- |
@@ -111,36 +96,19 @@ at resolve time rather than as a 404 in production. Bundled and minified with
 | …plus `vf-checkbox.js` | 46.0 KB | 21.6 KB |
 | the root import — all 31 elements | 299 KB | 91.0 KB |
 
-The first component carries the shared code; each one after it adds a couple
-of KB, so importing by name pays off up to roughly a third of the kit. Keep it
-one copy of one package — the scaling, grid snapping, focus modality and font
-registration are module-scoped singletons. If a second copy loads anyway,
-elements register through `defineElement()`, which keeps the first
-registration and warns rather than throwing.
+The first component carries the shared code; each one after it adds a couple of KB, so importing by name pays off up to roughly a third of the kit. Keep it one copy of one package — the scaling, grid snapping, focus modality and font registration are module-scoped singletons. If a second copy loads anyway, elements register through `defineElement()`, which keeps the first registration and warns rather than throwing.
 
 ## Sizing
 
-Every component is authored in *system pixels* — the 1-bit art grid, where a
-border is 1 and a push button 20 tall. On a Macintosh that pixel was 1/72 inch.
-Each component reads the display density and renders one system pixel as the
-whole number of device pixels nearest that size, so the art always lands on
-the device-pixel grid. On by default, no setup, nested components never
-double-scale, and page zoom is tracked and handled the same way.
+Every component is authored in *system pixels* — the 1-bit art grid, where a border is 1 and a push button 20 tall. On a Macintosh that pixel was 1/72 inch. Each component reads the display density and renders one system pixel as the whole number of device pixels nearest that size, so the art always lands on the device-pixel grid. On by default, no setup, nested components never double-scale, and page zoom is tracked and handled the same way.
 
-So the CSS size follows the display: the same push button is 20px tall on a 1×
-monitor and 30px on a 2× one, while the page's own 17px copy is 17px on both.
-That suits a full-screen faux desktop; next to ordinary page text you may want
-a fixed size. Pin it with the inherited `--vf-scale` custom property, declared
-in a stylesheet the page loads *before* the components upgrade:
+So the CSS size follows the display: the same push button is 20px tall on a 1× monitor and 30px on a 2× one, while the page's own 17px copy is 17px on both. That suits a full-screen faux desktop; next to ordinary page text you may want a fixed size. Pin it with the inherited `--vf-scale` custom property, declared in a stylesheet the page loads *before* the components upgrade:
 
 ```css
 :root { --vf-scale: 1; }  /* fixed authored size: a 20px button, 16px label */
 ```
 
-A hand-picked factor must keep `--vf-scale × devicePixelRatio` a whole number
-— `1`, `2`, `3` everywhere; `1.5` only on displays it multiplies out on — or
-the 1-bit art rasterizes gray. Two helpers put the rest of the page on the
-same grid:
+A hand-picked factor must keep `--vf-scale × devicePixelRatio` a whole number — `1`, `2`, `3` everywhere; `1.5` only on displays it multiplies out on — or the 1-bit art rasterizes gray. Two helpers put the rest of the page on the same grid:
 
 ```ts
 import { applyScale, applyGridSnap } from 'vintage-frames'
@@ -149,26 +117,15 @@ applyScale()    // your own markup adopts the kit's scale via --vf-scale
 applyGridSnap() // every component cancels a fractional offset your layout hands it
 ```
 
-[docs/SIZING.md](https://github.com/aportilla/vintage-frames/blob/main/docs/SIZING.md)
-covers the density ladder, zoom, and the three rules that keep a page on the
-device-pixel grid.
+[docs/SIZING.md](https://github.com/aportilla/vintage-frames/blob/main/docs/SIZING.md) covers the density ladder, zoom, and the three rules that keep a page on the device-pixel grid.
 
 ## Layout
 
-Two stylesheet-free ways to lay out a window's insides. `vf-stack` is a
-flexbox whose `gap`, `pad`, `width` and `height` are declared in whole system
-px — content-governed, with `fill-width`/`fill-height` on a child asking for
-more. Or place each child by coordinate: nearly every component takes `top`
-and `left` in whole system px, absolutely positioned within the nearest kit
-container (a window's content region, a dialog, a stack, a `vf-container`).
-Gestures write through the same properties — a title-bar drag, an icon nudge
-and the grow box all state whole system px, so read positions off `win.left`,
-not `style.left`.
+Two stylesheet-free ways to lay out a window's insides. `vf-stack` is a flexbox whose `gap`, `pad`, `width` and `height` are declared in whole system px — content-governed, with `fill-width`/`fill-height` on a child asking for more. Or place each child by coordinate: nearly every component takes `top` and `left` in whole system px, absolutely positioned within the nearest kit container (a window's content region, a dialog, a stack, a `vf-container`). Gestures write through the same properties — a title-bar drag, an icon nudge and the grow box all state whole system px, so read positions off `win.left`, not `style.left`.
 
 ## Window archetypes
 
-The 1992 *Macintosh Human Interface Guidelines* names five standard windows.
-The kit ships two parameterized shells; each archetype is a one-line recipe:
+The 1992 *Macintosh Human Interface Guidelines* names five standard windows. The kit ships two parameterized shells; each archetype is a one-line recipe:
 
 | Archetype | Recipe |
 | --- | --- |
@@ -178,25 +135,15 @@ The kit ships two parameterized shells; each archetype is a one-line recipe:
 | Modeless dialog box | `<vf-window closable movable>` |
 | Utility (floating) window | `<vf-window variant="utility" movable>` |
 
-There is no alert component — an alert is the plain modal frame plus your own
-icon art in a `vf-img`.
+There is no alert component — an alert is the plain modal frame plus your own icon art in a `vf-img`.
 
 ## Fonts
 
-Two bitmap faces ship inside the components and register themselves on
-`document.fonts`, so they render inside every shadow root with no global CSS:
-**VF Display**, the chrome face, and **VF Body**, the body face. Both are the
-kit's own artwork — re-drawn strikes in the style of Chicago 12pt and Geneva
-9pt, the classic Macintosh faces designed by Susan Kare for Apple — extended
-in the same idiom (`€`, arrows, `⌘ ⇧ ⌥ ⌃`, fractions, accents) so modern copy
-doesn't fall back mid-sentence. Set your own text in them with `vf-label` and
-`vf-paragraph`, whose line boxes sit on whole system pixels; every strike
-renders at its native size.
+Two bitmap faces ship inside the components and register themselves on `document.fonts`, so they render inside every shadow root with no global CSS: **VF Display**, the chrome face, and **VF Body**, the body face. Both are the kit's own artwork — re-drawn strikes in the style of Chicago 12pt and Geneva 9pt, the classic Macintosh faces designed by Susan Kare for Apple — extended in the same idiom (`€`, arrows, `⌘ ⇧ ⌥ ⌃`, fractions, accents) so modern copy doesn't fall back mid-sentence. Set your own text in them with `vf-label` and `vf-paragraph`, whose line boxes sit on whole system pixels; every strike renders at its native size.
 
 ## The cursor
 
-The chrome sets the classic cursors with ordinary CSS. A faux desktop can also
-draw the pointer itself:
+The chrome sets the classic cursors with ordinary CSS. A faux desktop can also draw the pointer itself:
 
 ```ts
 import { applyCursor } from 'vintage-frames'
@@ -204,26 +151,15 @@ import { applyCursor } from 'vintage-frames'
 applyCursor() // → returns a cleanup function that restores the native pointer
 ```
 
-That replaces the native pointer with the embedded System 7 set — arrow,
-I-beam, crosshair and wristwatch as pixel art locked to the system-pixel
-lattice, the I-beam and crosshair drawn with the classic XOR pen. Each kind
-accepts custom art.
+That replaces the native pointer with the embedded System 7 set — arrow, I-beam, crosshair and wristwatch as pixel art locked to the system-pixel lattice, the I-beam and crosshair drawn with the classic XOR pen. Each kind accepts custom art.
 
 ## Accessibility
 
-Keyboard focus is drawn in the 1-bit vocabulary — a dashed underline on the
-pixel grid, keyboard-only. Forced-colors mode (Windows High Contrast)
-re-declares the palette in system colors and keeps drawing the kit's artwork.
-The platform's form vocabulary works, including into shadow roots: `<label
-for>`, `aria-label`/`aria-labelledby`/`aria-describedby`, and `required` with
-real constraint validation — `form.reportValidity()` blocks, `:invalid`
-matches on the host, and `vf-button` submits like a native button.
+Keyboard focus is drawn in the 1-bit vocabulary — a dashed underline on the pixel grid, keyboard-only. Forced-colors mode (Windows High Contrast) re-declares the palette in system colors and keeps drawing the kit's artwork. The platform's form vocabulary works, including into shadow roots: `<label for>`, `aria-label`/`aria-labelledby`/`aria-describedby`, and `required` with real constraint validation — `form.reportValidity()` blocks, `:invalid` matches on the host, and `vf-button` submits like a native button.
 
 ## Editor support
 
-The package ships a [custom elements manifest](https://github.com/webcomponents/custom-elements-manifest)
-and the two editor formats derived from it. Point your editor at the matching
-format and `<vf-` completes, with each attribute's doc comment on hover:
+The package ships a [custom elements manifest](https://github.com/webcomponents/custom-elements-manifest) and the two editor formats derived from it. Point your editor at the matching format and `<vf-` completes, with each attribute's doc comment on hover:
 
 ```jsonc
 // VS Code — .vscode/settings.json
@@ -234,12 +170,7 @@ JetBrains IDEs read the `web-types` field in `package.json` on their own.
 
 ## Matching the kit
 
-The toolkit the components are built from is exported from the package root —
-the 1-bit CSS recipes (`vfPanel`, `vfTitleBar`, `vfFocusUnderline`, …), the
-glyph sprites, the stepped-corner clip traces, the scale/zoom/snap machinery
-and the form-control base classes — so a custom control can match the kit
-pixel-for-pixel. [docs/TOOLKIT.md](https://github.com/aportilla/vintage-frames/blob/main/docs/TOOLKIT.md)
-documents every export.
+The toolkit the components are built from is exported from the package root — the 1-bit CSS recipes (`vfPanel`, `vfTitleBar`, `vfFocusUnderline`, …), the glyph sprites, the stepped-corner clip traces, the scale/zoom/snap machinery and the form-control base classes — so a custom control can match the kit pixel-for-pixel. [docs/TOOLKIT.md](https://github.com/aportilla/vintage-frames/blob/main/docs/TOOLKIT.md) documents every export.
 
 ## Documentation
 
@@ -258,6 +189,4 @@ documents every export.
 
 ## License
 
-[MIT](https://github.com/aportilla/vintage-frames/blob/main/LICENSE) © Adam
-Portilla. The embedded faces are the kit's own re-drawn strikes; the designs
-they re-draw — Chicago and Geneva — were created by Susan Kare for Apple.
+[MIT](https://github.com/aportilla/vintage-frames/blob/main/LICENSE) © Adam Portilla. The embedded faces are the kit's own re-drawn strikes; the designs they re-draw — Chicago and Geneva — were created by Susan Kare for Apple.

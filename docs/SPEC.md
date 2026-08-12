@@ -1,270 +1,66 @@
 # Vintage Frames — System 7 Component Specification
 
-Lit 3 web components that faithfully emulate the look and feel of classic Mac OS
-System 7 (1991–1997). This document is the single source of truth for visual
-design and public APIs. Every component MUST follow it.
+Lit 3 web components that faithfully emulate the look and feel of classic Mac OS System 7 (1991–1997). This document is the single source of truth for visual design and public APIs. Every component MUST follow it.
 
-> **Glyph sprites:** the individual 1-bit control glyphs (checkbox ✕, radio
-> ring/dot, menu ✓, popup ▼, scroll arrows) are each reconstructed
-> pixel-for-pixel as an inline-SVG fill path in `src/glyphs.ts` (shared,
-> `currentColor`-themeable, zero raster assets) and consumed by the components
-> below — the authoritative source for these marks. A glyph is *geometry*,
-> so redrawing it loses nothing. A **picture** cannot be redrawn without
-> loss, and the kit ships no raster art at all: an icon is the
-> consumer's asset, slotted through `vf-img` (the demo's 32×32 alert icon is
-> `demo/icons/alert.png`).
+> **Glyph sprites:** the individual 1-bit control glyphs (checkbox ✕, radio ring/dot, menu ✓, popup ▼, scroll arrows) are each reconstructed pixel-for-pixel as an inline-SVG fill path in `src/glyphs.ts` (shared, `currentColor`-themeable, zero raster assets) and consumed by the components below — the authoritative source for these marks. A glyph is *geometry*, so redrawing it loses nothing. A **picture** cannot be redrawn without loss, and the kit ships no raster art at all: an icon is the consumer's asset, slotted through `vf-img` (the demo's 32×32 alert icon is `demo/icons/alert.png`).
 
 ## 1. Design principles
 
 The System 7 look, distilled:
 
-- **1px solid black borders** on everything — even when disabled. Dimming a
-  control greys its label/text only; the border, box and glyph stay solid black
-  (System 7 dims the label, not the control).
-- **Hard offset shadows** — `2px 2px 0 0 #000` for windows/menus/panels,
-  `1px 1px 0 0 #000` for small popup controls. Never blurred, never rgba.
-- **Racing-stripe title bars** — 6 horizontal 1px black pinstripes on the white
-  title bar; the title text and window widgets sit on solid white patches that
-  interrupt the stripes.
+- **1px solid black borders** on everything — even when disabled. Dimming a control greys its label/text only; the border, box and glyph stay solid black (System 7 dims the label, not the control).
+- **Hard offset shadows** — `2px 2px 0 0 #000` for windows/menus/panels, `1px 1px 0 0 #000` for small popup controls. Never blurred, never rgba.
+- **Racing-stripe title bars** — 6 horizontal 1px black pinstripes on the white title bar; the title text and window widgets sit on solid white patches that interrupt the stripes.
 - **Chicago-style type** — bold, dark, tight. One size for almost everything.
-- **1-bit monochrome palette** — black and white only, plus two grays: light
-  gray (`#C0C0C0`, the kit's dim tone) for dimmed/disabled chrome, and mid gray
-  (`#808080`) as the base tone under the desktop's 50% dither.
-  Scroll troughs use a looser 25% black-on-white dot dither. Surfaces are flat
-  solid white — no bevels.
-- **No gradients, no border-radius, no CSS transitions** — interactions are
-  instant. The single sanctioned animation is the classic menu-item "blink" on
-  selection and the indeterminate progress stripes — both suppressed under
-  `prefers-reduced-motion: reduce` (the blink selects immediately). Even the
-  button's rounded
-  corners are not `border-radius` arcs: they are stepped `clip-path`
-  silhouettes traced pixel-for-pixel from the reference sheet
-  (`src/pixel-frame.ts`), so the 1-bit staircase renders with no antialiasing.
-- **Selection inverts** — selected/active states are white-on-black inversion,
-  not tinted highlights.
+- **1-bit monochrome palette** — black and white only, plus two grays: light gray (`#C0C0C0`, the kit's dim tone) for dimmed/disabled chrome, and mid gray (`#808080`) as the base tone under the desktop's 50% dither. Scroll troughs use a looser 25% black-on-white dot dither. Surfaces are flat solid white — no bevels.
+- **No gradients, no border-radius, no CSS transitions** — interactions are instant. The single sanctioned animation is the classic menu-item "blink" on selection and the indeterminate progress stripes — both suppressed under `prefers-reduced-motion: reduce` (the blink selects immediately). Even the button's rounded corners are not `border-radius` arcs: they are stepped `clip-path` silhouettes traced pixel-for-pixel from the reference sheet (`src/pixel-frame.ts`), so the 1-bit staircase renders with no antialiasing.
+- **Selection inverts** — selected/active states are white-on-black inversion, not tinted highlights.
 
 Modern requirements that we deliberately keep (accessibility over purity):
 
-- `:focus-visible` gets `outline: var(--vf-focus-outline, 1px dotted currentColor); outline-offset: 2px;`
-  — but only where the control has no face to carry the mark instead. The kit
-  prefers a **1px dashed rule** (`vfFocusUnderline`, §4) and reaches for the
-  ring last: `vf-button`, `vf-checkbox`, `vf-radio`, the three editable fields
-  and `vf-menu` draw it under the label, the box, the circle, the well and the
-  bar title; `vf-select`, `vf-swatch` and `vf-slider` under the whole box —
-  clear of the hard shadow for the first two, the rail's full width for the
-  slider. That leaves the ring to the window widgets, `vf-list-item` and
-  `vf-scroll-area`. System 7 had no keyboard-focus indicator to copy — these
-  are modern affordances the kit **adds**, drawn on the 1-bit grid so they
-  read as native.
+- `:focus-visible` gets `outline: var(--vf-focus-outline, 1px dotted currentColor); outline-offset: 2px;` — but only where the control has no face to carry the mark instead. The kit prefers a **1px dashed rule** (`vfFocusUnderline`, §4) and reaches for the ring last: `vf-button`, `vf-checkbox`, `vf-radio`, the three editable fields and `vf-menu` draw it under the label, the box, the circle, the well and the bar title; `vf-select`, `vf-swatch` and `vf-slider` under the whole box — clear of the hard shadow for the first two, the rail's full width for the slider. That leaves the ring to the window widgets, `vf-list-item` and `vf-scroll-area`. System 7 had no keyboard-focus indicator to copy — these are modern affordances the kit **adds**, drawn on the 1-bit grid so they read as native.
 - Full ARIA roles + keyboard support per component.
-- Form-associated custom elements where noted (`static formAssociated = true`
-  + `ElementInternals`).
-- **Forced-colors mode (Windows High Contrast) is honored.** The kit
-  re-declares its two-color palette in the user's own system colors:
-  `vfBase` remaps the tokens to system colors under
-  `@media (forced-colors: active)` (`--vf-black: CanvasText`,
-  `--vf-white: Canvas`, the `Highlight` pair, `GrayText`), which survive the
-  forced override and carry every token-routed paint site — borders, faces,
-  glyphs, silhouettes, inversions — at once. The three channels forcing
-  deletes get per-site care: the focus-underline and stripe *gradients* are
-  exempted with `forced-color-adjust: none` (still `currentColor`, so still
-  the user's ink); the literal-black url() *tiles* that carry meaning
-  (windoid dots, barber stripes, the pressed sunburst) repaint as masks over
-  the ink token, while the decorative desktop dither goes flat Canvas; and the
-  two press-feedback *box-shadows* are replaced (checkbox border thickening)
-  or exempted (the widget patch ring). Inverted rows are also exempted so the
-  mode's text backplate can't land a Canvas slab on the highlight bar. The
-  swatch fill is exempted as *content* — the color is what the control
-  exists to show. The scroll rails are ordinary DOM (§4 `vfScrollRail`):
-  their arrows
-  are `currentColor` inline SVG and follow the palette by themselves, and the
-  trough repaints as the ink token masked by its own dither art (the windoid
-  idiom). `npm run verify:forced-colors` asserts the rendered pixels on dark
-  and light forced themes.
+- Form-associated custom elements where noted (`static formAssociated = true` + `ElementInternals`).
+- **Forced-colors mode (Windows High Contrast) is honored.** The kit re-declares its two-color palette in the user's own system colors: `vfBase` remaps the tokens to system colors under `@media (forced-colors: active)` (`--vf-black: CanvasText`, `--vf-white: Canvas`, the `Highlight` pair, `GrayText`), which survive the forced override and carry every token-routed paint site — borders, faces, glyphs, silhouettes, inversions — at once. The three channels forcing deletes get per-site care: the focus-underline and stripe *gradients* are exempted with `forced-color-adjust: none` (still `currentColor`, so still the user's ink); the literal-black url() *tiles* that carry meaning (windoid dots, barber stripes, the pressed sunburst) repaint as masks over the ink token, while the decorative desktop dither goes flat Canvas; and the two press-feedback *box-shadows* are replaced (checkbox border thickening) or exempted (the widget patch ring). Inverted rows are also exempted so the mode's text backplate can't land a Canvas slab on the highlight bar. The swatch fill is exempted as *content* — the color is what the control exists to show. The scroll rails are ordinary DOM (§4 `vfScrollRail`): their arrows are `currentColor` inline SVG and follow the palette by themselves, and the trough repaints as the ink token masked by its own dither art (the windoid idiom). `npm run verify:forced-colors` asserts the rendered pixels on dark and light forced themes.
 
 ## 2. Code conventions (mandatory)
 
 - Tag names: `vf-*`. Class names: PascalCase (`vf-radio-group` → `VfRadioGroup`).
 - One component per file: `src/components/vf-<name>.ts`.
-- Lit 3 + TypeScript strict, experimental decorators: `@customElement`,
-  `@property`, `@state`, `@query`, `@queryAssignedElements`.
+- Lit 3 + TypeScript strict, experimental decorators: `@customElement`, `@property`, `@state`, `@query`, `@queryAssignedElements`.
 - Relative imports use the `.js` extension (e.g. `../styles/base.js`).
-- Shared styles: `import { vfBase, vfStripes, vfPanel } from '../styles/base.js'`
-  and compose: `static override styles = [vfBase, css\`...\`]`.
+- Shared styles: `import { vfBase, vfStripes, vfPanel } from '../styles/base.js'` and compose: `static override styles = [vfBase, css\`...\`]`.
 - Every component file ends with:
   ```ts
   declare global {
     interface HTMLElementTagNameMap { 'vf-button': VfButton }
   }
   ```
-- All colors/metrics via `var(--vf-*, <default>)` **with the default inlined**
-  so components work with zero global CSS. Never hardcode a color without a var.
+- All colors/metrics via `var(--vf-*, <default>)` **with the default inlined** so components work with zero global CSS. Never hardcode a color without a var.
 - Boolean public props reflect: `@property({ type: Boolean, reflect: true })`.
-- Events: `CustomEvent` with `{ bubbles: true, composed: true }` and an object
-  `detail`. Names are listed per component (`vf-change`, `vf-close`, …).
-  **Internal coordination events are the exception**: the menu handshakes
-  (`vf-menu-toggle-request`, `vf-menu-hover`, `vf-menu-close-request`) and the
-  list's `vf-list-item-disabled-change` pass `composed: false` — parent and
-  child share one light tree, and a private, cancelable protocol must not leak
-  out of a consumer's shadow boundary into their delegated listeners.
-- **Form controls also fire the native `input`/`change` pair** (`emitNative`,
-  src/events.ts), alongside `vf-input`/`vf-change` — a form-associated element
-  that contributes to `FormData` but never fires `change` is half a native
-  control: form-level delegation hears nothing and framework bindings (React
-  `onChange`, Vue `v-model`) have nothing to bind to. Native semantics hold:
-  fired from **user interaction only** (a programmatic value write fires
-  nothing), with native flags (`input` composed, `change` not). The fields
-  re-dispatch only `change` from the host — their inner control's own `input`
-  is composed and retargets across the shadow boundary by itself, so a host
-  re-dispatch would double-fire every keystroke.
-- Disabled pattern: reflected `disabled` attr; the **label/text** dims to
-  `--vf-disabled` gray while borders, boxes and glyphs stay black; interaction
-  handlers early-return; set `aria-disabled`/`disabled` on internals.
-- **Host ARIA is written through `ElementInternals`, never `setAttribute`.**
-  An internals value is a *default*: a consumer's own `role`/`aria-*` on the
-  tag outranks it, which is the platform's own precedence. A host
-  `setAttribute` has the opposite precedence — the component wins and the
-  consumer is silently overwritten — so the two are not interchangeable, and
-  the kit uses internals everywhere (`role`, `ariaLabel`, `ariaSelected`,
-  `ariaChecked`, `ariaDisabled`, `ariaValueNow`, `ariaKeyShortcuts`, …). This
-  is also why no component needs a first-connect "do I own the role?" latch:
-  an internals default is never on the host to be misread as consumer-supplied
-  on a later connect. **Consequence:** these values do not
-  reflect to attributes, so `getAttribute('role')` reads `null` on a
-  `vf-list-item` whose role computes to `option` — read the accessibility tree
-  (or `el.internals`-free equivalents like `matches(':state(…)')` for state).
-  Shadow-internal nodes still take ordinary template attributes.
-- Form-associated controls (`VfFormControl`) also implement
-  `formStateRestoreCallback` — the stored state is the last submitted string,
-  mapped back onto each control's own value semantics (`applyFormState`;
-  checkbox restores the flag, slider parses the number) — and expose
-  `:state(form-disabled)` while an ancestor `<fieldset disabled>` disables
-  them, the one disabled state consumer CSS can't otherwise see.
-- **The name/description bridge** (`VfShadowRoleControl`, src/form-control.ts).
-  On the controls whose role lives on a
-  shadow-internal node (the three fields, `vf-select`, `vf-swatch`,
-  `vf-button`), a
-  host-level `aria-labelledby`, `aria-label` or associated `<label for>`
-  resolves — in html-aam precedence — to the inner focusable element's
-  `aria-label` whenever the `label` property is empty (`hostLabel`).
-  Those six extend `VfShadowRoleControl`; the host-role controls
-  (`vf-checkbox`, `vf-radio-group`, `vf-slider`) extend the plain
-  `VfFormControl` and so never *carry* the bridge's API at all — an inherited
-  `description` that renders nothing is the advertised-but-inert shape this
-  split removes, and `verify:manifest` enforces it (a tag whose manifest
-  lists `description` must call `renderDescription()`). `vf-button` takes
-  the ARIA half alone
-  (`hostAriaLabel`): a `<button>` is not a labelable element, so no caption
-  names a native one and none names this one either — its slotted content is
-  the name a bridge doesn't override. A `description` property (or, when it's empty, a
-  host-level `aria-describedby`) renders as a hidden span in the control's own
-  shadow root with the inner control's `aria-describedby` pointing at it — the
-  shadow-internal IDREF idiom `vf-dialog`'s title patch uses — and a failing constraint's
-  `validationMessage` joins the same node. Referenced text is flattened at
-  render time, so an edit to a referenced element's *text* lands on the next
-  render rather than instantly — the one divergence from native. Controls
-  whose role sits on the host (the toggles, slider, radio group, bars) need
-  none of this: the platform reads their host attributes directly.
-- **Constraint validation** (`VfFormControl`): a reflected `required` fails
-  validation with `valueMissing` while the control is empty by its own
-  definition (fields/select `value === ''`, checkbox unchecked, radio group
-  unselected — each with its native counterpart's message), through one
-  `syncValidity()` funnel run before each render. The native surface is
-  complete — `checkValidity`/`reportValidity`/`validity`/`validationMessage`/
-  `willValidate`/`setCustomValidity` — `:invalid` matches on the host,
-  `form.reportValidity()` blocks, and `disabled`/`readonly` bar validation
-  per HTML's own rules. One divergence the platform imposes: `willValidate`
-  is `true` on a `vf-button type="button"`, where a native button is barred
-  from constraint validation. A form-associated custom element cannot opt
-  out of the candidate set, so this is a platform limit. AT wiring is
-  `aria-required`/`aria-invalid` on the
-  inner control (plus internals mirrors for host-role controls) — never a
-  forwarded native `required`, which would put UA `:user-invalid` styling on
-  the artwork. Enter's implicit submission routes through the browser's
-  validation, so it cannot submit past a failing constraint.
-- Components must render nothing surprising outside their box: no margins on
-  `:host` by default.
-- **Explicit placement** (`VfPositioned`, src/position.ts): every free-standing
-  component takes `top`/`left` in whole system px — set either and the host is
-  absolutely positioned within its parent (`position: absolute` plus both
-  offsets as live `calc(var(--vf-scale, 1) * Npx)` inline styles; the unset
-  coordinate is 0; `right`/`bottom` released to `auto` and `margin` zeroed).
-  Set neither and the element renders in flow; removing both unwinds every
-  inline declaration. The DITL model: a dialog can be laid out by positioning
-  its items just as validly as by stacking them. Excluded: the owned
-  rows/options of a managing container (`vf-option`, `vf-menu-item`,
-  `vf-list-item`, `vf-menu`). Containers are deliberate anchors — the desktop
-  raster, a window's *content region* (the frame's inner edge below the title
-  bar; the 12px body inset governs flow content only), a dialog's content area,
-  a stack's box, a fieldset's border interior, a scroll area's scrolled plane.
-  The style writing rides a ReactiveController (`hostUpdated`), not an
-  `updated()` override — component subclasses routinely skip `super.updated()`
-  — and re-applies only when the property values changed, so an unrelated
-  update never re-asserts a coordinate. `npm run verify:position`.
-  - `vf-dialog` takes the pair in **viewport** coordinates: `showModal()` puts
-    the box in the top layer, whose containing block is the viewport rather
-    than the nearest positioned ancestor. Unset means centered — recomputed on
-    open and on every box/viewport/scale change, so a modal whose content
-    upgrades after opening is never stranded; `position` is left to the UA and
-    only the four inset/margin declarations are written.
-  - **Gestures write through the same properties** (`PlacementController`):
-    a `vf-window`/`vf-dialog` title-bar drag and a `vf-icon` drag or arrow
-    nudge state `top`/`left`, and `vf-window`'s grow box states
-    `width`/`height` (`VfSized`) — all in whole system px, so a moved element
-    is placed the way an authored one is and holds its spot through a zoom.
-    Writing resolved CSS px instead was the bug: `--vf-scale` moved under the
-    constant and every zoom step re-read it as a different number of system px
-    (by the ratio the scale itself moved — visible even at zoom levels where
-    the target does not change, and nothing else on the page does). Values are
-    snapped to `snapSys` at gesture time and never re-snapped afterwards:
-    re-rounding onto each new lattice compounds (62 → 63 → 64), and whole
-    system px is whole device px at every rung regardless.
-    `npm run verify:zoom` group (e).
-  - **The movable contract.** A host that moves under a gesture states its own
-    rectangle, and its positioning parent is a box with a size. Both halves are
-    the consumer's — a component can supply neither for itself — and both used
-    to fail quietly, so each is a one-time `console.warn`
-    (`warnMovableContract`, latched per element like `vf-window`'s size
-    warning). `npm run verify:position` group CONTRACT.
-    - `vf-window[movable]` states `top`/`left` **and** `width`/`height`; a WIND
-      resource carried the whole rect. `vf-icon[movable]` states `top`/`left`
-      only — it is not `VfSized`, its height is its content's, and `width` is
-      the cell pitch. `vf-dialog` is exempt: `showModal()` anchors it to the
-      viewport, and unset means centered.
-    - What the first half actually requires is being **out of flow** when the
-      gesture starts; `top`/`left` are the kit's way and the only one that
-      scales, but a stylesheet's own `position: absolute` satisfies it and
-      `seed()` reads that case from the computed offsets (a faux desktop places
-      its icons this way). A host still in flow has to be
-      taken out of it by its first move, which reflows everything after it and
-      collapses an auto-height parent to whatever is left. **The clamp therefore
-      runs against the box measured once by `seed()`, not a fresh one per
-      move**: re-reading it would hold the rest of the gesture inside a box the
-      host never sat in, walking it to the parent's origin while the user drags
-      the other way.
-    - Both faults are checked when a **gesture starts**, not on update: that is
-      when the contract becomes observable and when layout is settled, and an
-      `updated()` check would race a stylesheet that positions the host and
-      latch a warning that was never true.
-    - A parent with no box at all falls back to the viewport, the same as no
-      parent — clamping into nothing would leave the host unable to move, and
-      with no positioned ancestor the initial containing block and the viewport
-      agree anyway. The warning explains the requirement; the fallback keeps
-      the gesture usable meanwhile.
-- Do NOT run repo-wide `tsc` while building an individual component group —
-  sibling files may not exist yet. A later phase compiles everything.
+- Events: `CustomEvent` with `{ bubbles: true, composed: true }` and an object `detail`. Names are listed per component (`vf-change`, `vf-close`, …). **Internal coordination events are the exception**: the menu handshakes (`vf-menu-toggle-request`, `vf-menu-hover`, `vf-menu-close-request`) and the list's `vf-list-item-disabled-change` pass `composed: false` — parent and child share one light tree, and a private, cancelable protocol must not leak out of a consumer's shadow boundary into their delegated listeners.
+- **Form controls also fire the native `input`/`change` pair** (`emitNative`, src/events.ts), alongside `vf-input`/`vf-change` — a form-associated element that contributes to `FormData` but never fires `change` is half a native control: form-level delegation hears nothing and framework bindings (React `onChange`, Vue `v-model`) have nothing to bind to. Native semantics hold: fired from **user interaction only** (a programmatic value write fires nothing), with native flags (`input` composed, `change` not). The fields re-dispatch only `change` from the host — their inner control's own `input` is composed and retargets across the shadow boundary by itself, so a host re-dispatch would double-fire every keystroke.
+- Disabled pattern: reflected `disabled` attr; the **label/text** dims to `--vf-disabled` gray while borders, boxes and glyphs stay black; interaction handlers early-return; set `aria-disabled`/`disabled` on internals.
+- **Host ARIA is written through `ElementInternals`, never `setAttribute`.** An internals value is a *default*: a consumer's own `role`/`aria-*` on the tag outranks it, which is the platform's own precedence. A host `setAttribute` has the opposite precedence — the component wins and the consumer is silently overwritten — so the two are not interchangeable, and the kit uses internals everywhere (`role`, `ariaLabel`, `ariaSelected`, `ariaChecked`, `ariaDisabled`, `ariaValueNow`, `ariaKeyShortcuts`, …). This is also why no component needs a first-connect "do I own the role?" latch: an internals default is never on the host to be misread as consumer-supplied on a later connect. **Consequence:** these values do not reflect to attributes, so `getAttribute('role')` reads `null` on a `vf-list-item` whose role computes to `option` — read the accessibility tree (or `el.internals`-free equivalents like `matches(':state(…)')` for state). Shadow-internal nodes still take ordinary template attributes.
+- Form-associated controls (`VfFormControl`) also implement `formStateRestoreCallback` — the stored state is the last submitted string, mapped back onto each control's own value semantics (`applyFormState`; checkbox restores the flag, slider parses the number) — and expose `:state(form-disabled)` while an ancestor `<fieldset disabled>` disables them, the one disabled state consumer CSS can't otherwise see.
+- **The name/description bridge** (`VfShadowRoleControl`, src/form-control.ts). On the controls whose role lives on a shadow-internal node (the three fields, `vf-select`, `vf-swatch`, `vf-button`), a host-level `aria-labelledby`, `aria-label` or associated `<label for>` resolves — in html-aam precedence — to the inner focusable element's `aria-label` whenever the `label` property is empty (`hostLabel`). Those six extend `VfShadowRoleControl`; the host-role controls (`vf-checkbox`, `vf-radio-group`, `vf-slider`) extend the plain `VfFormControl` and so never *carry* the bridge's API at all — an inherited `description` that renders nothing is the advertised-but-inert shape this split removes, and `verify:manifest` enforces it (a tag whose manifest lists `description` must call `renderDescription()`). `vf-button` takes the ARIA half alone (`hostAriaLabel`): a `<button>` is not a labelable element, so no caption names a native one and none names this one either — its slotted content is the name a bridge doesn't override. A `description` property (or, when it's empty, a host-level `aria-describedby`) renders as a hidden span in the control's own shadow root with the inner control's `aria-describedby` pointing at it — the shadow-internal IDREF idiom `vf-dialog`'s title patch uses — and a failing constraint's `validationMessage` joins the same node. Referenced text is flattened at render time, so an edit to a referenced element's *text* lands on the next render rather than instantly — the one divergence from native. Controls whose role sits on the host (the toggles, slider, radio group, bars) need none of this: the platform reads their host attributes directly.
+- **Constraint validation** (`VfFormControl`): a reflected `required` fails validation with `valueMissing` while the control is empty by its own definition (fields/select `value === ''`, checkbox unchecked, radio group unselected — each with its native counterpart's message), through one `syncValidity()` funnel run before each render. The native surface is complete — `checkValidity`/`reportValidity`/`validity`/`validationMessage`/ `willValidate`/`setCustomValidity` — `:invalid` matches on the host, `form.reportValidity()` blocks, and `disabled`/`readonly` bar validation per HTML's own rules. One divergence the platform imposes: `willValidate` is `true` on a `vf-button type="button"`, where a native button is barred from constraint validation. A form-associated custom element cannot opt out of the candidate set, so this is a platform limit. AT wiring is `aria-required`/`aria-invalid` on the inner control (plus internals mirrors for host-role controls) — never a forwarded native `required`, which would put UA `:user-invalid` styling on the artwork. Enter's implicit submission routes through the browser's validation, so it cannot submit past a failing constraint.
+- Components must render nothing surprising outside their box: no margins on `:host` by default.
+- **Explicit placement** (`VfPositioned`, src/position.ts): every free-standing component takes `top`/`left` in whole system px — set either and the host is absolutely positioned within its parent (`position: absolute` plus both offsets as live `calc(var(--vf-scale, 1) * Npx)` inline styles; the unset coordinate is 0; `right`/`bottom` released to `auto` and `margin` zeroed). Set neither and the element renders in flow; removing both unwinds every inline declaration. The DITL model: a dialog can be laid out by positioning its items just as validly as by stacking them. Excluded: the owned rows/options of a managing container (`vf-option`, `vf-menu-item`, `vf-list-item`, `vf-menu`). Containers are deliberate anchors — the desktop raster, a window's *content region* (the frame's inner edge below the title bar; the 12px body inset governs flow content only), a dialog's content area, a stack's box, a fieldset's border interior, a scroll area's scrolled plane. The style writing rides a ReactiveController (`hostUpdated`), not an `updated()` override — component subclasses routinely skip `super.updated()` — and re-applies only when the property values changed, so an unrelated update never re-asserts a coordinate. `npm run verify:position`.
+  - `vf-dialog` takes the pair in **viewport** coordinates: `showModal()` puts the box in the top layer, whose containing block is the viewport rather than the nearest positioned ancestor. Unset means centered — recomputed on open and on every box/viewport/scale change, so a modal whose content upgrades after opening is never stranded; `position` is left to the UA and only the four inset/margin declarations are written.
+  - **Gestures write through the same properties** (`PlacementController`): a `vf-window`/`vf-dialog` title-bar drag and a `vf-icon` drag or arrow nudge state `top`/`left`, and `vf-window`'s grow box states `width`/`height` (`VfSized`) — all in whole system px, so a moved element is placed the way an authored one is and holds its spot through a zoom. Writing resolved CSS px instead was the bug: `--vf-scale` moved under the constant and every zoom step re-read it as a different number of system px (by the ratio the scale itself moved — visible even at zoom levels where the target does not change, and nothing else on the page does). Values are snapped to `snapSys` at gesture time and never re-snapped afterwards: re-rounding onto each new lattice compounds (62 → 63 → 64), and whole system px is whole device px at every rung regardless. `npm run verify:zoom` group (e).
+  - **The movable contract.** A host that moves under a gesture states its own rectangle, and its positioning parent is a box with a size. Both halves are the consumer's — a component can supply neither for itself — and both used to fail quietly, so each is a one-time `console.warn` (`warnMovableContract`, latched per element like `vf-window`'s size warning). `npm run verify:position` group CONTRACT.
+    - `vf-window[movable]` states `top`/`left` **and** `width`/`height`; a WIND resource carried the whole rect. `vf-icon[movable]` states `top`/`left` only — it is not `VfSized`, its height is its content's, and `width` is the cell pitch. `vf-dialog` is exempt: `showModal()` anchors it to the viewport, and unset means centered.
+    - What the first half actually requires is being **out of flow** when the gesture starts; `top`/`left` are the kit's way and the only one that scales, but a stylesheet's own `position: absolute` satisfies it and `seed()` reads that case from the computed offsets (a faux desktop places its icons this way). A host still in flow has to be taken out of it by its first move, which reflows everything after it and collapses an auto-height parent to whatever is left. **The clamp therefore runs against the box measured once by `seed()`, not a fresh one per move**: re-reading it would hold the rest of the gesture inside a box the host never sat in, walking it to the parent's origin while the user drags the other way.
+    - Both faults are checked when a **gesture starts**, not on update: that is when the contract becomes observable and when layout is settled, and an `updated()` check would race a stylesheet that positions the host and latch a warning that was never true.
+    - A parent with no box at all falls back to the viewport, the same as no parent — clamping into nothing would leave the host unable to move, and with no positioned ancestor the initial containing block and the viewport agree anyway. The warning explains the requirement; the fallback keeps the gesture usable meanwhile.
+- Do NOT run repo-wide `tsc` while building an individual component group — sibling files may not exist yet. A later phase compiles everything.
 
 ## 3. Design tokens
 
-Use with inline fallback: `var(--vf-white, #ffffff)`. Consumers override at
-`:root` (or any narrower scope) in their own CSS — the kit ships no stylesheet.
-A page whose *own* rules read these tokens should also re-declare the palette
-as system colors under `@media (forced-colors: active)` (see §1): the
-components carry that remap themselves in `vfBase`, but a component cannot do
-it for the page.
+Use with inline fallback: `var(--vf-white, #ffffff)`. Consumers override at `:root` (or any narrower scope) in their own CSS — the kit ships no stylesheet. A page whose *own* rules read these tokens should also re-declare the palette as system colors under `@media (forced-colors: active)` (see §1): the components carry that remap themselves in `vfBase`, but a component cannot do it for the page.
 
-Every length in this doc is a **system pixel** value; components multiply it by
-`--vf-scale` in `calc()` (see the note after the table).
+Every length in this doc is a **system pixel** value; components multiply it by `--vf-scale` in `calc()` (see the note after the table).
 
 | Token | Default | Used for |
 | --- | --- | --- |
@@ -319,348 +115,60 @@ Every length in this doc is a **system pixel** value; components multiply it by
 | `--vf-highlight-text` | `#ffffff` | selection foreground |
 | `--vf-cursor` | *(unset — every spot keeps its classic pointer)* | read by every place the kit states a cursor of its own (control hosts, title-bar widgets, the stepper, scrollbar rails, the grow box, the editable wells' I-beam, a modal's backdrop) — set `none` on `:root` to blank them all for a page-drawn cursor (see note) |
 
-**`--vf-scale` (display scaling).** Every length above is authored in *system
-pixels* and multiplied by `--vf-scale`. It defaults to the true-size factor for
-the current display **and zoom** — `devicePxPerSystemPx(trueDpr) / trueDpr`,
-where the target is `round(96/72 × trueDpr)`: the whole number of device pixels
-nearest the classic 1/72 inch, 96 being CSS's reference dpi. One system pixel
-therefore maps to a whole count of device pixels (1 on a 1× display, 3 on a 2×
-one, 4 on a 3× one) and the 1-bit art stays crisp at any density and any zoom
-level — applied per component
-by a `ScaleController` (`src/scale.ts`), which re-adapts on dpr and zoom
-changes. `trueDpr` is device px per CSS px *including* browser zoom
-(`truePixelRatio()`, `src/zoom.ts`): `window.devicePixelRatio` reports that
-number in Chrome/Firefox but not Safari, which pins its dpr to the hardware and
-goes stale about the rasterization density at any non-100% zoom. A consumer or
-ancestor `--vf-scale` always wins (set it to `1` to pin the fixed authored
-sizes), and because it is a plain inherited multiplier, nesting never
-compounds. JS-driven geometry (slider rail/thumb, select panel, window resize)
-converts between system and CSS px with the `sys()` / `toSys()` helpers.
+**`--vf-scale` (display scaling).** Every length above is authored in *system pixels* and multiplied by `--vf-scale`. It defaults to the true-size factor for the current display **and zoom** — `devicePxPerSystemPx(trueDpr) / trueDpr`, where the target is `round(96/72 × trueDpr)`: the whole number of device pixels nearest the classic 1/72 inch, 96 being CSS's reference dpi. One system pixel therefore maps to a whole count of device pixels (1 on a 1× display, 3 on a 2× one, 4 on a 3× one) and the 1-bit art stays crisp at any density and any zoom level — applied per component by a `ScaleController` (`src/scale.ts`), which re-adapts on dpr and zoom changes. `trueDpr` is device px per CSS px *including* browser zoom (`truePixelRatio()`, `src/zoom.ts`): `window.devicePixelRatio` reports that number in Chrome/Firefox but not Safari, which pins its dpr to the hardware and goes stale about the rasterization density at any non-100% zoom. A consumer or ancestor `--vf-scale` always wins (set it to `1` to pin the fixed authored sizes), and because it is a plain inherited multiplier, nesting never compounds. JS-driven geometry (slider rail/thumb, select panel, window resize) converts between system and CSS px with the `sys()` / `toSys()` helpers.
 
-**Line boxes are lengths too.** Every line-height in the kit is stated in whole
-system px (`--vf-menu-row-height`, `--vf-label-line-height`,
-`--vf-paragraph-line-height`, …), never as a ratio. A ratio resolves to whatever
-it resolves to — `1.65 × 17px` is `28.05px` — and each line pushes everything
-after it further off the device-pixel grid, which is the single most common way
-a page fringes an otherwise-correct component (see the layout contract in
-README). Re-theme these tokens with whole numbers.
+**Line boxes are lengths too.** Every line-height in the kit is stated in whole system px (`--vf-menu-row-height`, `--vf-label-line-height`, `--vf-paragraph-line-height`, …), never as a ratio. A ratio resolves to whatever it resolves to — `1.65 × 17px` is `28.05px` — and each line pushes everything after it further off the device-pixel grid, which is the single most common way a page fringes an otherwise-correct component (see the layout contract in README). Re-theme these tokens with whole numbers.
 
-**One size.** Both embedded faces are single 16-design-px masters and
-render at exactly that size — one design px = one system px, always. "Smaller"
-is a *family* switch: System 7's fine print was Geneva 9 — the collection's
-smallest strike, which **is** the body face — so a dialog's disk-space caption
-is `face="body"` (usually `dim`), the way `vf-icon size="small"` swaps to the
-16×16 art. A genuinely different
-size is a different strike, registered like the embedded ones and themed in
-through the font family/size tokens with its own whole-pixel metrics.
+**One size.** Both embedded faces are single 16-design-px masters and render at exactly that size — one design px = one system px, always. "Smaller" is a *family* switch: System 7's fine print was Geneva 9 — the collection's smallest strike, which **is** the body face — so a dialog's disk-space caption is `face="body"` (usually `dim`), the way `vf-icon size="small"` swaps to the 16×16 art. A genuinely different size is a different strike, registered like the embedded ones and themed in through the font family/size tokens with its own whole-pixel metrics.
 
-**Grid snapping.** Whole system pixels only put an edge on the device grid
-*relative to the component's own origin*; a page that lands that origin on a
-fractional device pixel smears the whole 1-bit interior. `applyGridSnap()`
-(`src/grid-snap.ts`) opts a page into having every component measure its own
-paint and cancel the fractional remainder, so the origin is the component's
-responsibility rather than the page's. The correction is a `left`/`top` offset
-on the component's own paint root — the shadow element carrying the `.vf-snap`
-class (`vfBase`), relatively positioned, driven by two reserved custom
-properties (`--vf-snap-dx`/`-dy`) the controller writes on the host. A
-*layout*-stage shift, because a compositing-stage `transform` leaves the
-subtree rastered at its old position and only removes ~80% of the fringe.
-Nothing outside the shadow root is written but those two properties, so the
-correction cannot collide with a consumer's positioning or with `vf-window`'s
-drag coordinates. Absolutely positioned satellites that anchor to the host
-(`vf-menu`'s panel, the default button's ring) compose the same properties
-into their insets; rows and options inside a corrected container
-(`vf-list-item`, `vf-menu-item`, `vf-option`) and layout-only hosts
-(`vf-button-group`, `vf-radio-group`) carry no target and ride their
-surroundings. It corrects the origin only: a fractional *size*, and a
-`--vf-scale × trueDpr` that isn't whole, are still the page's to get
-right.
+**Grid snapping.** Whole system pixels only put an edge on the device grid *relative to the component's own origin*; a page that lands that origin on a fractional device pixel smears the whole 1-bit interior. `applyGridSnap()` (`src/grid-snap.ts`) opts a page into having every component measure its own paint and cancel the fractional remainder, so the origin is the component's responsibility rather than the page's. The correction is a `left`/`top` offset on the component's own paint root — the shadow element carrying the `.vf-snap` class (`vfBase`), relatively positioned, driven by two reserved custom properties (`--vf-snap-dx`/`-dy`) the controller writes on the host. A *layout*-stage shift, because a compositing-stage `transform` leaves the subtree rastered at its old position and only removes ~80% of the fringe. Nothing outside the shadow root is written but those two properties, so the correction cannot collide with a consumer's positioning or with `vf-window`'s drag coordinates. Absolutely positioned satellites that anchor to the host (`vf-menu`'s panel, the default button's ring) compose the same properties into their insets; rows and options inside a corrected container (`vf-list-item`, `vf-menu-item`, `vf-option`) and layout-only hosts (`vf-button-group`, `vf-radio-group`) carry no target and ride their surroundings. It corrects the origin only: a fractional *size*, and a `--vf-scale × trueDpr` that isn't whole, are still the page's to get right.
 
-**Tiled fills.** A repeating `background-image` is the one place where "one
-system pixel is a whole number of device pixels" is not enough on its own. That
-contract holds — but the CSS *length* expressing it need not be one the engine
-can store: Chromium lays out in 1/64 CSS px (Gecko in 1/60), and at
-`--vf-scale` 4/3 a 2-system-px tile is 2.6667 CSS px, held as 2.65625. A single
-edge survives that, because paint snaps each box to the device grid on its own —
-which is why every border, stepped corner and magnified icon rasterizes exactly
-at 4/3. A tiled fill does not: it is ONE snapped box holding N *unsnapped*
-repeats, each placed at `k × tileSize`, so the error compounds until the tile
-boundary has walked a whole device pixel. Unfixed, 75% of the desktop dither
-rasterizes to mid-gray at dpr 1.5.
+**Tiled fills.** A repeating `background-image` is the one place where "one system pixel is a whole number of device pixels" is not enough on its own. That contract holds — but the CSS *length* expressing it need not be one the engine can store: Chromium lays out in 1/64 CSS px (Gecko in 1/60), and at `--vf-scale` 4/3 a 2-system-px tile is 2.6667 CSS px, held as 2.65625. A single edge survives that, because paint snaps each box to the device grid on its own — which is why every border, stepped corner and magnified icon rasterizes exactly at 4/3. A tiled fill does not: it is ONE snapped box holding N *unsnapped* repeats, each placed at `k × tileSize`, so the error compounds until the tile boundary has walked a whole device pixel. Unfixed, 75% of the desktop dither rasterizes to mid-gray at dpr 1.5.
 
-The span construction (`vfTileSize`, `tileImage`, `tileSpan`) makes the
-stored length exact for every scale the *density* ladder derives: a fill
-authored as a **motif** tiles at `lcm(motif, 15)` system px — a whole number
-of motifs, so the art is unchanged, and holdable because a scale `p/q` needs
-`q` to divide `64 × span`, the 64 absorbs every power of two, and every
-derived scale (1, 3/2, 4/3, 8/5, 6/5, 5/4) has an odd part of 1, 3 or 5. But
-**zoom mints scales the lattice cannot hold** — 20/17 at Safari's 85%, 30/23
-at its 115%, arbitrary primes with no finite cover (ZOOM-TILE-DRIFT.md) — so
-the four convertible surfaces no longer repeat in CSS at all
-(`src/tile-grid.ts`, TILE-GRID-PLAN.md):
+The span construction (`vfTileSize`, `tileImage`, `tileSpan`) makes the stored length exact for every scale the *density* ladder derives: a fill authored as a **motif** tiles at `lcm(motif, 15)` system px — a whole number of motifs, so the art is unchanged, and holdable because a scale `p/q` needs `q` to divide `64 × span`, the 64 absorbs every power of two, and every derived scale (1, 3/2, 4/3, 8/5, 6/5, 5/4) has an odd part of 1, 3 or 5. But **zoom mints scales the lattice cannot hold** — 20/17 at Safari's 85%, 30/23 at its 115%, arbitrary primes with no finite cover (ZOOM-TILE-DRIFT.md) — so the four convertible surfaces no longer repeat in CSS at all (`src/tile-grid.ts`, TILE-GRID-PLAN.md):
 
-- **Kit art renders as one whole-surface raster** — the motif, stated once as
-  rect data (`TileRect[]`), encoded at one image px per system px
-  (`tileRaster`) and magnified nearest-neighbor
-  (`image-rendering: pixelated`, the `vf-img` mechanism). Nearest-neighbor
-  can only produce source colors and one box has no interior seams, so the
-  fill is 1-bit at every scale, holdable or not. (Raster, not SVG, because
-  Chromium rasterizes an SVG image at the box's *stored* fractional size and
-  ignores `image-rendering` for SVG — measured; the crisp path does not exist.)
-- **A consumer pattern token renders as a flat grid of placed tiles** at the
-  token's documented 30/60-system-px tile geometry: each tile positioned by
-  one single-multiplication `calc()` quantized once, every box paint-snapped
-  independently — never laid out with CSS grid/flex/flow, whose summed track
-  sizes would re-import the accumulation. The token still overrides the whole
-  **tile**, not the motif; a token swapped at runtime without touching the
-  component needs a `requestUpdate()`.
+- **Kit art renders as one whole-surface raster** — the motif, stated once as rect data (`TileRect[]`), encoded at one image px per system px (`tileRaster`) and magnified nearest-neighbor (`image-rendering: pixelated`, the `vf-img` mechanism). Nearest-neighbor can only produce source colors and one box has no interior seams, so the fill is 1-bit at every scale, holdable or not. (Raster, not SVG, because Chromium rasterizes an SVG image at the box's *stored* fractional size and ignores `image-rendering` for SVG — measured; the crisp path does not exist.)
+- **A consumer pattern token renders as a flat grid of placed tiles** at the token's documented 30/60-system-px tile geometry: each tile positioned by one single-multiplication `calc()` quantized once, every box paint-snapped independently — never laid out with CSS grid/flex/flow, whose summed track sizes would re-import the accumulation. The token still overrides the whole **tile**, not the motif; a token swapped at runtime without touching the component needs a `requestUpdate()`.
 
-The span construction stays load-bearing for the CSS-repeated underlays
-beneath the opaque kit fills and for the forced-colors mask branches (no mask
-pipeline rasterizes exactly at a zoom-minted scale, so forced-colors-plus-zoom
-remains the one accepted residual). The scroll trough — once the one surface
-that could not convert, a `::-webkit-scrollbar` pseudo hosting no children —
-is ordinary DOM now (§4 `vfScrollRail`) and renders through `tileRaster` like
-the desktop dither: 1-bit at every scale, zoom-minted ones included. `npm run
-verify:tile` asserts zero gray on the four converted surfaces at eight
-densities — the ladder plus 1.7 and 2.3, the emulated stand-ins for Safari's
-broken rungs; `npm run verify:scrollbars` asserts the same on the trough.
+The span construction stays load-bearing for the CSS-repeated underlays beneath the opaque kit fills and for the forced-colors mask branches (no mask pipeline rasterizes exactly at a zoom-minted scale, so forced-colors-plus-zoom remains the one accepted residual). The scroll trough — once the one surface that could not convert, a `::-webkit-scrollbar` pseudo hosting no children — is ordinary DOM now (§4 `vfScrollRail`) and renders through `tileRaster` like the desktop dither: 1-bit at every scale, zoom-minted ones included. `npm run verify:tile` asserts zero gray on the four converted surfaces at eight densities — the ladder plus 1.7 and 2.3, the emulated stand-ins for Safari's broken rungs; `npm run verify:scrollbars` asserts the same on the trough.
 
-**`--vf-cursor` (hiding the pointer for a page-drawn cursor).** A page that
-draws its own cursor — a JS-positioned image on the system-pixel grid, which
-is what `applyCursor()` (`src/cursor.ts`) sets up with the kit's embedded
-System 7 pointer set — needs the native pointer gone from every surface, and
-`html { cursor: none }` alone cannot get it there: inheritance stops wherever a
-shadow stylesheet states a cursor of its own, and the kit states one
-deliberately on its chrome — control hosts, the title-bar widgets, the number
-stepper, the scrollbar rails, the grow box, the editable wells (whose I-beam
-Firefox's UA sheet would otherwise pin), and a modal's top-layer backdrop,
-which no page rule reaches at all. Every one of those declarations reads this
-token first, so `--vf-cursor: none` on `:root` (custom properties inherit
-through every shadow root) covers all of them. The page's own side must be a
-blanket, not a root rule: the UA sheets put `cursor: default` on `<button>`
-and `cursor: text` on `<input>`, and an element's own declaration beats
-anything it would inherit — so a bare `html { cursor: none }` leaves the OS
-arrow alive over every native control in the light DOM. The pair that empties
-everything is `* { cursor: none !important }` plus the token — `applyCursor()`
-applies both itself, once its art has decoded; state the pair by hand only
-under a hand-rolled overlay. Unset, each
-spot keeps its classic pointer — the arrow on chrome, the I-beam in an
-enabled well.
+**`--vf-cursor` (hiding the pointer for a page-drawn cursor).** A page that draws its own cursor — a JS-positioned image on the system-pixel grid, which is what `applyCursor()` (`src/cursor.ts`) sets up with the kit's embedded System 7 pointer set — needs the native pointer gone from every surface, and `html { cursor: none }` alone cannot get it there: inheritance stops wherever a shadow stylesheet states a cursor of its own, and the kit states one deliberately on its chrome — control hosts, the title-bar widgets, the number stepper, the scrollbar rails, the grow box, the editable wells (whose I-beam Firefox's UA sheet would otherwise pin), and a modal's top-layer backdrop, which no page rule reaches at all. Every one of those declarations reads this token first, so `--vf-cursor: none` on `:root` (custom properties inherit through every shadow root) covers all of them. The page's own side must be a blanket, not a root rule: the UA sheets put `cursor: default` on `<button>` and `cursor: text` on `<input>`, and an element's own declaration beats anything it would inherit — so a bare `html { cursor: none }` leaves the OS arrow alive over every native control in the light DOM. The pair that empties everything is `* { cursor: none !important }` plus the token — `applyCursor()` applies both itself, once its art has decoded; state the pair by hand only under a hand-rolled overlay. Unset, each spot keeps its classic pointer — the arrow on chrome, the I-beam in an enabled well.
 
 ## 4. Shared recipes (in `src/styles/base.ts`)
 
-- `vfBase` — host font, `box-sizing: border-box` everywhere, the `.vf-snap`
-  grid-correction hook (see Grid snapping above), `user-select: none`
-  (text inputs re-enable), `:host([hidden]) { display: none !important }`.
-- `vfBodyDecls` — the three declarations that put text on the Geneva
-  body face (family, 16px, smoothing), for composing into one rule; the mirror
-  of `vfDisplayDecls`, and the body face's single definition (`vfBase` applies
-  it to every host; `face="body"` switches back to it).
-- `vfStaticText` — the `face` / `size` / `dim` host switches shared by
-  `vf-label` and `vf-paragraph`. All `:host([attr])`, one specificity step above
-  the plain `:host` rule each component sets its own default face in.
-- `vfStripes` — a `.vf-stripes` class for the racing-stripe layer. Position it
-  absolutely inside the title bar, inset `3px 1px` (top/bottom 3px, left/right
-  1px) so exactly six 1px stripes show at the 18px bar height, their top and
-  bottom edges aligned with the close box's and one system px of clear white
-  between the stripes and the frame border — the same buffer the widgets'
-  patch ring keeps. The paint is split by engine, each side the measured best
-  (the full three-engine matrix is in `scripts/verify-tile.mjs`): Blink — and
-  any engine failing both gate properties — draws a 12-unit SVG (the band's
-  11 rows plus an empty pad row, viewBox stretched onto a 12px-tall box,
-  crispEdges). Twelve, not eleven, because Blink pixel-snaps painted boxes to
-  whole CSS px and an 11-system-px box has no legal CSS height at scale 3/2;
-  12 divides by 2 and 3, so the box never rounds at any integer display's
-  scale, and the SVG measured whole-rhythm, close-box-registered and
-  zero-gray at dpr 1/1.5/2/3 — retiring the `repeating-linear-gradient`,
-  which it strictly dominates. Gecko and WebKit (gated by `@supports
-  (-moz-appearance: none) or (-webkit-backdrop-filter: blur(1px))`, each
-  property parsing in its one engine only) render six placed solid rows
-  (`chromeTitleBar` supplies the spans): both engines device-snap solid
-  quads exactly, and each misrendered the gradient — Gecko's GPU pipeline
-  softens a hard stop at default zoom, WebKit landed the sixth stripe a
-  device row thin at dpr 3 and the zoom-minted scales.
-- `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer
-  inset `2px` top/bottom and **flush left/right** (the close-up reference runs
-  the dots into the side borders; the `Windows/` sheet's 2px side inset is the
-  artist's, not the bar's), a 2×2 motif carrying one black pixel at its origin
-  (`--vf-dots-pattern` to retheme). A width-declaring window renders the exact
-  fill into the layer (see *Tiled fills*); the layer's own CSS-repeated SVG
-  tile is the fallback for a window with no declared width.
-- `vfTileSize` / `tileImage` — the span a CSS-REPEATING fill takes, and its
-  art. Every metric in the kit is `calc(var(--vf-scale, 1) * Npx)`, and paint
-  snaps each box to the device grid on its own — but a tiled fill is one
-  snapped box holding N *unsnapped* repeats, each placed at `k × tileSize`, so
-  a tile size the layout grid cannot hold drifts a fraction of a device pixel
-  further with every repeat. Load-bearing for the underlays
-  and the forced-colors masks; the converted surfaces (the scroll trough now
-  among them) render through
-  `vfTileGrid` / `tileGrid` / `tileRaster` instead. See *Tiled fills* below.
-- `vfHardShadowDecls` — the hard 1-bit drop shadow on its own, for composing
-  into a surface that supplies its own border:
-  `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`.
-  No blur, no spread — System 7's only depth cue. Every raised surface in the kit
-  composes this one declaration (`vfPanel`, `vfChromeFrame`; `vf-swatch`
-  composes it without either surface class).
-- `vfPanel` — a `.vf-panel` class for menus/popups:
-  white bg, `border: 1px solid var(--vf-black, #000)`, `vfHardShadowDecls`.
-- `vfChromeFrame` — a `.vf-frame` class for the framed containers (`vf-window`,
-  `vf-dialog`): the same white face, 1px black border and hard offset shadow as
-  `vfPanel`, no bevels. Skin only — each component supplies its own layout,
-  since a window frame is a full-size flex column while a dialog's is a block the
-  native `<dialog>` shrink-wraps.
-- `vfModalFrame` — the dBoxProc modal-dialog frame (`vf-dialog frame="plain"`):
-  `.vf-modal-frame` (white face, 1px black border, **no shadow**) around
-  `.vf-modal-frame-inner` (`margin: 2px; border: 2px solid`). System 7's alert
-  box drew the mirror trace — 2px outer, 2px gap, 1px inner rule, *with* the
-  hard shadow (`Windows/modal dialog.png` vs the alert reference) — a
-  different chrome the kit does not ship: an alert box is a consumer
-  composition over this frame, not a component.
-- `vfWindowWidgets` — the title-bar window widgets (`.box` base, `.close`
-  left / `.zoom` right at 11×11 with the 1px white patch ring, the pressed
-  go-away sunburst, the nested zoom square), shared by `vf-window` and a
-  `closable` `vf-dialog` so the two components' widgets match by construction.
-  The templates that pair with it (`closeBox`/`zoomBox`/`widgetLabel`) live in
-  `src/chrome.ts` with `chromeTitleBar`. Geometry is the standard bar's;
-  `vf-window`'s utility variant overrides sizes under its own selector.
-- `vfTitleBar` — the striped title bar shared by `vf-window` and `vf-dialog`:
-  a `.vf-title-bar` row (`height: var(--vf-titlebar-height, 18px)`, 1px bottom
-  rule, `overflow: hidden`) and the `.vf-title` patch inside it (display face,
-  white bg, `padding: 0 6px`, `z-index: 1` over the stripes, `nowrap` +
-  ellipsis). Put a `.vf-stripes` layer in as the bar's first child.
-  - Title geometry is whole system px, traced from the InfiniteMac reference:
-    the face's 16px line box on interior rows 1..16 (`align-items: flex-start`
-    + 1px top margin, `line-height: var(--vf-line-height-display, 16px)`)
-    lands the 9px cap band on rows 4..12 — 4px of white above and below — and
-    6px padding plus the letters' 1px side bearing leaves 7px of white between
-    ink and stripes. Neither axis is flex-centered onto a fraction: vertically
-    the row is stated, horizontally the flex-centered patch is held on the
-    placement lattice by `TitleCenterController` (src/chrome.ts), which
-    cancels the parity half-pixel through the controller-owned
-    `--vf-title-dx`.
-  - The title's clearance for anything else in the bar is `--vf-title-inset`
-    (default 16px); `vf-window` sets 60px so an ellipsized title can't run under
-    its close/zoom widgets.
-  - `touch-action` is deliberately NOT in the recipe: `vf-dialog`'s bar is always
-    a drag handle, `vf-window`'s only when `[movable]`, and suppressing touch
-    scrolling on a bar that can't be dragged would be a behavior change.
-  - The markup and the four DragController pointer bindings that go with it are
-    `chromeTitleBar()` in `src/chrome.ts` (internal — it bakes in the kit's own
-    `part` names, so it is not part of the public toolkit). Its third argument
-    picks the texture layer class: `'vf-stripes'` (default) or `'vf-dots'`
-    (`vf-window variant="utility"`).
-- `vfScrollRail` — the System 7 scroll rail, drawn by the kit as ordinary
-  shadow DOM (`src/scroll-rail.ts` renders the subtree and drives it; this is
-  its skin). The native scrollbar is hidden — `scrollbar-width: none` plus a
-  `::-webkit-scrollbar { display: none }` for older WebKit, the last scrollbar
-  pseudo in the kit — never the native scrolling: wheel, trackpad momentum,
-  keyboard, touch and AT scrolling stay the platform's, and
-  `ScrollRailController` syncs the rail to `scrollTop`/`scrollLeft` while
-  driving the classic interactions (thumb drag; trough paging by a viewport
-  minus one line, repeating until the thumb reaches the pointer; arrow lines
-  with auto-repeat and the hollow→solid pressed glyph). Geometry: the classic
-  16px cell whose outermost line is the component's own 1px frame border — the
-  rail element is the 15 inside it, a 1px divider on the content side plus the
-  14px channel; 15px arrow cells whose glyphs are the 16-unit sprites windowed
-  to their 14×14 interior; the **fixed** 16px thumb (System 7's box, never
-  proportional; whole-system-px travel); the 25% dot-dither trough rendered as
-  a whole-surface `tileRaster` (1-bit at every scale, zoom included) on
-  `var(--vf-scrollbar-track)`. States key off the attributes
-  `ScrollStateController` writes — an idle axis keeps its arrows (drawn but
-  inert) and drops the dither and thumb, an inactive window blanks both axes
-  to the bare white channel, arrows included, a degenerate track drops the
-  thumb, then everything (the Control Manager's decision table). The rail subtree is `aria-hidden` and
-  pointer-only; scrolling's keyboard/AT contract stays on the viewport. Every
-  engine renders the same rail — no Firefox fallback — and it is
-  pixel-asserted headless (`npm run verify:scrollbars`), which the
-  `::-webkit-scrollbar` skin it replaced never could be.
-- `vfFocusRing` / `vfFocus` / `vfFocusUnderline` — the two focus indicators.
-  Neither is a System 7 reproduction: the machine drew no keyboard focus at all
-  (see §1), so both are additions rendered in its vocabulary.
-  - `vfFocusRing` is the dotted-outline declaration pair — `outline:
-    var(--vf-focus-outline, 1px dotted currentColor)` plus a scaled
-    `--vf-focus-offset` (default +2px) — interpolated into whatever selector a
-    component focuses on; `vfFocus` wraps it as a `.vf-focus:focus-visible`
-    class for the controls where focus and ring share one element.
-    `currentColor`, not black, for the same reason the underline uses it: the
-    ring must invert with the ink it sits on, or the multi-select keyboard
-    cursor disappears riding a selected list row's black bar.
-  - `vfFocusUnderline` is the alternative for a control that can carry the mark
-    on its own face: an `::after` on that element, 1 system px tall, spanning
-    its box, dashed 1px on / 1px off via a `repeating-linear-gradient` in
-    `currentColor` — so it inverts to white with the label on a pressed face.
-    The component suppresses the UA outline in the same rule set, and the
-    underlined element needs `position: relative`. Two placements:
-    - **Inside the control**, under the ink it marks: `vf-button` underlines its
-      label, `vf-checkbox` its box, `vf-radio` its circle (narrowed to 9 of its
-      13px, since that shape is round — §5), the three editable fields their
-      well (via `vfField`'s `.vf-field-well`) and `vf-menu` its bar title.
-    - **Below the control**, under its whole box, where there is no room
-      inside: a `vf-select`'s single line is already the label and the ▼, every
-      pixel inside a `vf-swatch` is the color it exists to show, and a
-      `vf-slider`'s only interior is the handle — which moves, so marking it
-      marked the *value* rather than the control. `vf-select` always casts the
-      hard shadow and `vf-swatch` does under `shadow`, which the rule has to
-      clear — ink lying outside every box the pseudo-element could size itself
-      to; the slider's runs the rail's full width and the handle occludes it in
-      passing (z-index 1), exactly as it occludes the rail behind it.
-    - `--vf-focus-underline-offset` places it, measured (like any `bottom`)
-      from the element's **padding** box up to the rule's bottom edge, so
-      positive insets it and negative drops it below. The contract is one blank
-      system px row between the rule and the ink above it, so a negative offset
-      counts every row of ink in between: `4px` (the default) for a text box,
-      whose ink stops at the baseline 6px above its bottom (2px half-leading
-      over the 16px em + the 4px descent); `-2px` for a well whose ink ends at
-      its own bottom edge (the radio's circle, a field's wrapper) and for
-      `vf-menu`'s title box; `-3px` for the checkbox, adding its 1px border;
-      `-4px` for `vf-select`, adding its 1px hard shadow as well; `3px` for
-      `vf-slider`, counting back up from the track's bottom to a row under the
-      rail; and for `vf-swatch` a `calc()` that composes the depth actually in
-      play — `0px` flat, a rethemeable `--vf-shadow-offset` under `shadow` —
-      rather than hard-coding one. `npm run verify:focus`.
-    - `vf-menu` is the one that anchors to a **box** rather than to the
-      baseline the button uses: its title box is
-      shrunk to the face's own em (`line-height: 1`), whose bottom edge is the
-      descent line, so one offset serves both a descender and the Apple menu's
-      slotted 16px `vf-img`. The button's rule, one row under the baseline, is
-      crossed by both.
-    - The two controls that **drop open** — `vf-menu` and `vf-select` — draw the
-      rule only while closed. An open menu or list already shows where focus
-      is (a whole inverted cell, a dropped panel), so the rule is reserved for
-      the closed state. Both keep the underlying
-      keyboard-focus state through the open state, so the rule returns by itself
-      on close.
-    - The mark is **keyboard-only** everywhere, but four controls can't say so
-      with `:focus-visible`, for two opposite reasons:
-      - The **fields**, because that selector is specified to match *any* focus
-        of an element which takes keyboard input, so it is already true for a
-        text field clicked with the mouse — where on a button it is false.
-      - **`vf-select`, `vf-menu` and `vf-slider`**, because each suppresses the
-        browser's own mouse focus (a press-drag gesture owns the pointer) and
-        calls `focus()` itself, and Blink reads a scripted focus as a *visible*
-        one. So a plain mouse press on any of the three ends `:focus-visible`.
+- `vfBase` — host font, `box-sizing: border-box` everywhere, the `.vf-snap` grid-correction hook (see Grid snapping above), `user-select: none` (text inputs re-enable), `:host([hidden]) { display: none !important }`.
+- `vfBodyDecls` — the three declarations that put text on the Geneva body face (family, 16px, smoothing), for composing into one rule; the mirror of `vfDisplayDecls`, and the body face's single definition (`vfBase` applies it to every host; `face="body"` switches back to it).
+- `vfStaticText` — the `face` / `size` / `dim` host switches shared by `vf-label` and `vf-paragraph`. All `:host([attr])`, one specificity step above the plain `:host` rule each component sets its own default face in.
+- `vfStripes` — a `.vf-stripes` class for the racing-stripe layer. Position it absolutely inside the title bar, inset `3px 1px` (top/bottom 3px, left/right 1px) so exactly six 1px stripes show at the 18px bar height, their top and bottom edges aligned with the close box's and one system px of clear white between the stripes and the frame border — the same buffer the widgets' patch ring keeps. The paint is split by engine, each side the measured best (the full three-engine matrix is in `scripts/verify-tile.mjs`): Blink — and any engine failing both gate properties — draws a 12-unit SVG (the band's 11 rows plus an empty pad row, viewBox stretched onto a 12px-tall box, crispEdges). Twelve, not eleven, because Blink pixel-snaps painted boxes to whole CSS px and an 11-system-px box has no legal CSS height at scale 3/2; 12 divides by 2 and 3, so the box never rounds at any integer display's scale, and the SVG measured whole-rhythm, close-box-registered and zero-gray at dpr 1/1.5/2/3 — retiring the `repeating-linear-gradient`, which it strictly dominates. Gecko and WebKit (gated by `@supports (-moz-appearance: none) or (-webkit-backdrop-filter: blur(1px))`, each property parsing in its one engine only) render six placed solid rows (`chromeTitleBar` supplies the spans): both engines device-snap solid quads exactly, and each misrendered the gradient — Gecko's GPU pipeline softens a hard stop at default zoom, WebKit landed the sixth stripe a device row thin at dpr 3 and the zoom-minted scales.
+- `vfDots` — the windoid bar's counterpart to `vfStripes`: a `.vf-dots` layer inset `2px` top/bottom and **flush left/right** (the close-up reference runs the dots into the side borders; the `Windows/` sheet's 2px side inset is the artist's, not the bar's), a 2×2 motif carrying one black pixel at its origin (`--vf-dots-pattern` to retheme). A width-declaring window renders the exact fill into the layer (see *Tiled fills*); the layer's own CSS-repeated SVG tile is the fallback for a window with no declared width.
+- `vfTileSize` / `tileImage` — the span a CSS-REPEATING fill takes, and its art. Every metric in the kit is `calc(var(--vf-scale, 1) * Npx)`, and paint snaps each box to the device grid on its own — but a tiled fill is one snapped box holding N *unsnapped* repeats, each placed at `k × tileSize`, so a tile size the layout grid cannot hold drifts a fraction of a device pixel further with every repeat. Load-bearing for the underlays and the forced-colors masks; the converted surfaces (the scroll trough now among them) render through `vfTileGrid` / `tileGrid` / `tileRaster` instead. See *Tiled fills* below.
+- `vfHardShadowDecls` — the hard 1-bit drop shadow on its own, for composing into a surface that supplies its own border: `box-shadow: var(--vf-shadow-offset, 2px) var(--vf-shadow-offset, 2px) 0 0 var(--vf-black, #000)`. No blur, no spread — System 7's only depth cue. Every raised surface in the kit composes this one declaration (`vfPanel`, `vfChromeFrame`; `vf-swatch` composes it without either surface class).
+- `vfPanel` — a `.vf-panel` class for menus/popups: white bg, `border: 1px solid var(--vf-black, #000)`, `vfHardShadowDecls`.
+- `vfChromeFrame` — a `.vf-frame` class for the framed containers (`vf-window`, `vf-dialog`): the same white face, 1px black border and hard offset shadow as `vfPanel`, no bevels. Skin only — each component supplies its own layout, since a window frame is a full-size flex column while a dialog's is a block the native `<dialog>` shrink-wraps.
+- `vfModalFrame` — the dBoxProc modal-dialog frame (`vf-dialog frame="plain"`): `.vf-modal-frame` (white face, 1px black border, **no shadow**) around `.vf-modal-frame-inner` (`margin: 2px; border: 2px solid`). System 7's alert box drew the mirror trace — 2px outer, 2px gap, 1px inner rule, *with* the hard shadow (`Windows/modal dialog.png` vs the alert reference) — a different chrome the kit does not ship: an alert box is a consumer composition over this frame, not a component.
+- `vfWindowWidgets` — the title-bar window widgets (`.box` base, `.close` left / `.zoom` right at 11×11 with the 1px white patch ring, the pressed go-away sunburst, the nested zoom square), shared by `vf-window` and a `closable` `vf-dialog` so the two components' widgets match by construction. The templates that pair with it (`closeBox`/`zoomBox`/`widgetLabel`) live in `src/chrome.ts` with `chromeTitleBar`. Geometry is the standard bar's; `vf-window`'s utility variant overrides sizes under its own selector.
+- `vfTitleBar` — the striped title bar shared by `vf-window` and `vf-dialog`: a `.vf-title-bar` row (`height: var(--vf-titlebar-height, 18px)`, 1px bottom rule, `overflow: hidden`) and the `.vf-title` patch inside it (display face, white bg, `padding: 0 6px`, `z-index: 1` over the stripes, `nowrap` + ellipsis). Put a `.vf-stripes` layer in as the bar's first child.
+  - Title geometry is whole system px, traced from the InfiniteMac reference: the face's 16px line box on interior rows 1..16 (`align-items: flex-start` + 1px top margin, `line-height: var(--vf-line-height-display, 16px)`) lands the 9px cap band on rows 4..12 — 4px of white above and below — and 6px padding plus the letters' 1px side bearing leaves 7px of white between ink and stripes. Neither axis is flex-centered onto a fraction: vertically the row is stated, horizontally the flex-centered patch is held on the placement lattice by `TitleCenterController` (src/chrome.ts), which cancels the parity half-pixel through the controller-owned `--vf-title-dx`.
+  - The title's clearance for anything else in the bar is `--vf-title-inset` (default 16px); `vf-window` sets 60px so an ellipsized title can't run under its close/zoom widgets.
+  - `touch-action` is deliberately NOT in the recipe: `vf-dialog`'s bar is always a drag handle, `vf-window`'s only when `[movable]`, and suppressing touch scrolling on a bar that can't be dragged would be a behavior change.
+  - The markup and the four DragController pointer bindings that go with it are `chromeTitleBar()` in `src/chrome.ts` (internal — it bakes in the kit's own `part` names, so it is not part of the public toolkit). Its third argument picks the texture layer class: `'vf-stripes'` (default) or `'vf-dots'` (`vf-window variant="utility"`).
+- `vfScrollRail` — the System 7 scroll rail, drawn by the kit as ordinary shadow DOM (`src/scroll-rail.ts` renders the subtree and drives it; this is its skin). The native scrollbar is hidden — `scrollbar-width: none` plus a `::-webkit-scrollbar { display: none }` for older WebKit, the last scrollbar pseudo in the kit — never the native scrolling: wheel, trackpad momentum, keyboard, touch and AT scrolling stay the platform's, and `ScrollRailController` syncs the rail to `scrollTop`/`scrollLeft` while driving the classic interactions (thumb drag; trough paging by a viewport minus one line, repeating until the thumb reaches the pointer; arrow lines with auto-repeat and the hollow→solid pressed glyph). Geometry: the classic 16px cell whose outermost line is the component's own 1px frame border — the rail element is the 15 inside it, a 1px divider on the content side plus the 14px channel; 15px arrow cells whose glyphs are the 16-unit sprites windowed to their 14×14 interior; the **fixed** 16px thumb (System 7's box, never proportional; whole-system-px travel); the 25% dot-dither trough rendered as a whole-surface `tileRaster` (1-bit at every scale, zoom included) on `var(--vf-scrollbar-track)`. States key off the attributes `ScrollStateController` writes — an idle axis keeps its arrows (drawn but inert) and drops the dither and thumb, an inactive window blanks both axes to the bare white channel, arrows included, a degenerate track drops the thumb, then everything (the Control Manager's decision table). The rail subtree is `aria-hidden` and pointer-only; scrolling's keyboard/AT contract stays on the viewport. Every engine renders the same rail — no Firefox fallback — and it is pixel-asserted headless (`npm run verify:scrollbars`), which the `::-webkit-scrollbar` skin it replaced never could be.
+- `vfFocusRing` / `vfFocus` / `vfFocusUnderline` — the two focus indicators. Neither is a System 7 reproduction: the machine drew no keyboard focus at all (see §1), so both are additions rendered in its vocabulary.
+  - `vfFocusRing` is the dotted-outline declaration pair — `outline: var(--vf-focus-outline, 1px dotted currentColor)` plus a scaled `--vf-focus-offset` (default +2px) — interpolated into whatever selector a component focuses on; `vfFocus` wraps it as a `.vf-focus:focus-visible` class for the controls where focus and ring share one element. `currentColor`, not black, for the same reason the underline uses it: the ring must invert with the ink it sits on, or the multi-select keyboard cursor disappears riding a selected list row's black bar.
+  - `vfFocusUnderline` is the alternative for a control that can carry the mark on its own face: an `::after` on that element, 1 system px tall, spanning its box, dashed 1px on / 1px off via a `repeating-linear-gradient` in `currentColor` — so it inverts to white with the label on a pressed face. The component suppresses the UA outline in the same rule set, and the underlined element needs `position: relative`. Two placements:
+    - **Inside the control**, under the ink it marks: `vf-button` underlines its label, `vf-checkbox` its box, `vf-radio` its circle (narrowed to 9 of its 13px, since that shape is round — §5), the three editable fields their well (via `vfField`'s `.vf-field-well`) and `vf-menu` its bar title.
+    - **Below the control**, under its whole box, where there is no room inside: a `vf-select`'s single line is already the label and the ▼, every pixel inside a `vf-swatch` is the color it exists to show, and a `vf-slider`'s only interior is the handle — which moves, so marking it marked the *value* rather than the control. `vf-select` always casts the hard shadow and `vf-swatch` does under `shadow`, which the rule has to clear — ink lying outside every box the pseudo-element could size itself to; the slider's runs the rail's full width and the handle occludes it in passing (z-index 1), exactly as it occludes the rail behind it.
+    - `--vf-focus-underline-offset` places it, measured (like any `bottom`) from the element's **padding** box up to the rule's bottom edge, so positive insets it and negative drops it below. The contract is one blank system px row between the rule and the ink above it, so a negative offset counts every row of ink in between: `4px` (the default) for a text box, whose ink stops at the baseline 6px above its bottom (2px half-leading over the 16px em + the 4px descent); `-2px` for a well whose ink ends at its own bottom edge (the radio's circle, a field's wrapper) and for `vf-menu`'s title box; `-3px` for the checkbox, adding its 1px border; `-4px` for `vf-select`, adding its 1px hard shadow as well; `3px` for `vf-slider`, counting back up from the track's bottom to a row under the rail; and for `vf-swatch` a `calc()` that composes the depth actually in play — `0px` flat, a rethemeable `--vf-shadow-offset` under `shadow` — rather than hard-coding one. `npm run verify:focus`.
+    - `vf-menu` is the one that anchors to a **box** rather than to the baseline the button uses: its title box is shrunk to the face's own em (`line-height: 1`), whose bottom edge is the descent line, so one offset serves both a descender and the Apple menu's slotted 16px `vf-img`. The button's rule, one row under the baseline, is crossed by both.
+    - The two controls that **drop open** — `vf-menu` and `vf-select` — draw the rule only while closed. An open menu or list already shows where focus is (a whole inverted cell, a dropped panel), so the rule is reserved for the closed state. Both keep the underlying keyboard-focus state through the open state, so the rule returns by itself on close.
+    - The mark is **keyboard-only** everywhere, but four controls can't say so with `:focus-visible`, for two opposite reasons:
+      - The **fields**, because that selector is specified to match *any* focus of an element which takes keyboard input, so it is already true for a text field clicked with the mouse — where on a button it is false.
+      - **`vf-select`, `vf-menu` and `vf-slider`**, because each suppresses the browser's own mouse focus (a press-drag gesture owns the pointer) and calls `focus()` itself, and Blink reads a scripted focus as a *visible* one. So a plain mouse press on any of the three ends `:focus-visible`.
 
-      All four gate on a `.vf-focus-rule` class driven by
-      {@link FocusRuleController} (`src/focus-modality.ts`), which resolves the
-      page's last input modality against the host's own focus: one refcounted
-      capture-phase `pointerdown` + `keydown` pair on the document, read at
-      `focusin`, defaulting to `'keyboard'` so assistive tech and `autofocus`
-      are still marked, and dropped at a `focusout` that leaves the component
-      (focus moving *within* it — a pill to its option rows, a title to its
-      dropped panel — keeps the mark). Typing after a click does not reveal it,
-      and neither does a click on the control's `vf-label` caption — a pointer
-      landing focus from outside the control is why the tracker is page-wide
-      rather than a local `pointerdown` latch.
-      - Two escape hatches, for the routes a focus event can't report.
-        `suppress()`: a press on an **already-focused** control moves no focus
-        and fires no `focusin`, so `vf-menu` and `vf-slider` call it from their
-        own `pointerdown`. `reveal()`: `vf-slider` calls it from a handled
-        arrow key, so a slider grabbed with the mouse and then nudged with the
-        keys starts showing its rule.
+      All four gate on a `.vf-focus-rule` class driven by {@link FocusRuleController} (`src/focus-modality.ts`), which resolves the page's last input modality against the host's own focus: one refcounted capture-phase `pointerdown` + `keydown` pair on the document, read at `focusin`, defaulting to `'keyboard'` so assistive tech and `autofocus` are still marked, and dropped at a `focusout` that leaves the component (focus moving *within* it — a pill to its option rows, a title to its dropped panel — keeps the mark). Typing after a click does not reveal it, and neither does a click on the control's `vf-label` caption — a pointer landing focus from outside the control is why the tracker is page-wide rather than a local `pointerdown` latch.
+      - Two escape hatches, for the routes a focus event can't report. `suppress()`: a press on an **already-focused** control moves no focus and fires no `focusin`, so `vf-menu` and `vf-slider` call it from their own `pointerdown`. `reveal()`: `vf-slider` calls it from a handled arrow key, so a slider grabbed with the mouse and then nudged with the keys starts showing its rule.
 
-      `npm run verify:focus` pins all of it, including the two browser
-      behaviors that make it necessary.
+      `npm run verify:focus` pins all of it, including the two browser behaviors that make it necessary.
 
 ## 5. Component specifications
 
@@ -668,16 +176,7 @@ Files live in `src/components/`. "Parts" = CSS shadow parts via `part=`.
 
 ### Group A — chrome & shells
 
-**The window archetypes are parameter recipes, not components.** The 1992 HIG
-names five standard windows, but its own figures disagree about their anatomy
-(Figure 5-1 and Figure 6-1 label the same two artworks opposite ways — the
-close box migrates between the movable modal and the modeless dialog). So the
-kit's two shells stay neutral parameter surfaces — `vf-window` (desktop-
-resident) and `vf-dialog` (top-layer modal) — and the archetypes are the
-documented one-liners below. The components *enable* HIG compliance via
-specific author choice; they don't enforce one reading. The canonical recipes
-follow the Chapter 6 body text (movable modal: bare bar; modeless: close box),
-treating Figure 5-1's labels as the erratum — both readings stay composable.
+**The window archetypes are parameter recipes, not components.** The 1992 HIG names five standard windows, but its own figures disagree about their anatomy (Figure 5-1 and Figure 6-1 label the same two artworks opposite ways — the close box migrates between the movable modal and the modeless dialog). So the kit's two shells stay neutral parameter surfaces — `vf-window` (desktop- resident) and `vf-dialog` (top-layer modal) — and the archetypes are the documented one-liners below. The components *enable* HIG compliance via specific author choice; they don't enforce one reading. The canonical recipes follow the Chapter 6 body text (movable modal: bare bar; modeless: close box), treating Figure 5-1's labels as the erratum — both readings stay composable.
 
 | Archetype (1992 HIG) | Recipe |
 | --- | --- |
@@ -687,1791 +186,317 @@ treating Figure 5-1's labels as the erratum — both readings stay composable.
 | Modeless dialog box | `<vf-window closable movable>` (no zoom, grow or rails) |
 | Utility (floating) window | `<vf-window variant="utility" movable>` |
 
-Every recipe also declares its size — `width`, and `height` where the window
-isn't content-shaped — in whole system px. The sizes are omitted from the
-table only to keep the distinguishing parameters legible.
+Every recipe also declares its size — `width`, and `height` where the window isn't content-shaped — in whole system px. The sizes are omitted from the table only to keep the distinguishing parameters legible.
 
 #### `vf-desktop` (`VfDesktop`, vf-desktop.ts)
 Full-bleed classic desktop container.
-- **Attributes/props:** `width`, `height: number` (system px, defaults
-  512×342 — the compact Mac's raster) — the screen's own size, the way a
-  WIND resource declared a window's. The host box renders at exactly
-  `width + 2·bezel` per axis (a live `sysLength` written as host inline
-  size on every update), always a whole number of system px. **Pure CSS
-  sizing is not supported**: the inline size wins over any stylesheet, so
-  the page sets the numbers — directly or via `fitWithin` — and positions
-  the explicitly sized desktop with its own CSS, keeping any
-  sub-system-pixel slack in the page's own layout.
-  `bezel: number` (system px, default 0) — the black screen surround, the
-  CRT's unlit margin between raster and case, added onto the declared screen
-  on every side. The screen owns flow, an absolute window's containing block
-  and the drag clip, so a dragged window crops at the raster's edge. Its two
-  *top* corners wear the `SCREEN_CORNER` mask (the classic framebuffer
-  rounded only the top pair; the raster's bottom corners ran square), painted
-  above everything like the hardware mask — the masks land over a slotted
-  menu bar's corners, so the bar needs no `rounded` of its own inside a
-  bezeled desktop. The bezel width is written onto the host as
-  `--vf-desktop-bezel` (self-set geometry, like `--vf-scale` —
-  component-owned, not a theming token).
-- **Methods:** `fitWithin(maxWidth, maxHeight)` (CSS px) → sets `width`/
-  `height` to the largest whole-system-px raster whose host box — bezel
-  included — fits the bound, per the current effective scale, and returns
-  `{ width, height }`. The page's half of the sizing contract: call it on
-  `resize` and `onScaleChange` (zoom and density moves change what a system
-  px costs in CSS px), as a full-screen faux desktop does.
-- **Visual:** `display: block; position: relative;` — the paint lives on an
-  inner screen surface (part `desktop`, `overflow: hidden` — the
-  whole-system-px raster, inset by `bezel` when one is set).
-  Screen surface = classic 50% dither: a 2×2 motif with an opaque white base
-  and two black pixels on the diagonal, rendered as the exact fill (one
-  whole-surface raster; a consumer `--vf-desktop-pattern` renders as a placed
-  tile grid on the token's 30-system-px tile — see *Tiled fills*) over a
-  CSS-repeated underlay of the same art. The art is opaque black-on-white —
-  the authentic System 7 dither — so it covers `var(--vf-desktop, #808080)`
-  beneath it; that base color shows only under a custom pattern with
-  transparent cells (or `none`).
+- **Attributes/props:** `width`, `height: number` (system px, defaults 512×342 — the compact Mac's raster) — the screen's own size, the way a WIND resource declared a window's. The host box renders at exactly `width + 2·bezel` per axis (a live `sysLength` written as host inline size on every update), always a whole number of system px. **Pure CSS sizing is not supported**: the inline size wins over any stylesheet, so the page sets the numbers — directly or via `fitWithin` — and positions the explicitly sized desktop with its own CSS, keeping any sub-system-pixel slack in the page's own layout. `bezel: number` (system px, default 0) — the black screen surround, the CRT's unlit margin between raster and case, added onto the declared screen on every side. The screen owns flow, an absolute window's containing block and the drag clip, so a dragged window crops at the raster's edge. Its two *top* corners wear the `SCREEN_CORNER` mask (the classic framebuffer rounded only the top pair; the raster's bottom corners ran square), painted above everything like the hardware mask — the masks land over a slotted menu bar's corners, so the bar needs no `rounded` of its own inside a bezeled desktop. The bezel width is written onto the host as `--vf-desktop-bezel` (self-set geometry, like `--vf-scale` — component-owned, not a theming token).
+- **Methods:** `fitWithin(maxWidth, maxHeight)` (CSS px) → sets `width`/ `height` to the largest whole-system-px raster whose host box — bezel included — fits the bound, per the current effective scale, and returns `{ width, height }`. The page's half of the sizing contract: call it on `resize` and `onScaleChange` (zoom and density moves change what a system px costs in CSS px), as a full-screen faux desktop does.
+- **Visual:** `display: block; position: relative;` — the paint lives on an inner screen surface (part `desktop`, `overflow: hidden` — the whole-system-px raster, inset by `bezel` when one is set). Screen surface = classic 50% dither: a 2×2 motif with an opaque white base and two black pixels on the diagonal, rendered as the exact fill (one whole-surface raster; a consumer `--vf-desktop-pattern` renders as a placed tile grid on the token's 30-system-px tile — see *Tiled fills*) over a CSS-repeated underlay of the same art. The art is opaque black-on-white — the authentic System 7 dither — so it covers `var(--vf-desktop, #808080)` beneath it; that base color shows only under a custom pattern with transparent cells (or `none`).
 - **Slots:** default (menu bar, windows, anything).
-- **Behavior:** manages stacking of slotted `vf-window` children: `pointerdown`
-  *or `focusin`* on a window brings it to front (incrementing z-index counter)
-  and sets its `active` attribute, clearing `active` on the others — the
-  `focusin` half is the keyboard route to activation: Tab landing anywhere in a
-  background window (its undrawn-but-focusable widgets included) raises it.
-  Listens via delegated pointerdown/focusin listeners + `slotchange`. Windows
-  slotted before `vf-window` is
-  defined are re-normalized once `customElements.whenDefined('vf-window')`
-  settles, since the upgrade reflects each window's `active = true` default back
-  out and upgrading a slotted node doesn't re-fire `slotchange`.
-  - **DOM order follows z-order** (bottom-most first), so sequential focus
-    order matches the visual stack and Shift+Tab mirrors Tab exactly. The sync
-    runs at pointer-gesture end (a mid-gesture node move would clear the
-    pointer capture a title-bar drag or grow-box resize holds) and on
-    programmatic `bringToFront`, never from a focus-driven raise (moving the
-    window focus just entered would re-order the tab sequence mid-traversal);
-    focus surviving its own window's move is restored without re-raising that
-    window. Non-window children (a menu bar, page content) keep their
-    positions. `npm run verify:window-a11y`.
-  - **Floating tier:** `vf-window[variant="utility"]` children stack in a z
-    band `1_000_000` above the document tier (one shared monotonic counter, so
-    a palette stays above every document window), restack only among
-    themselves, and stand outside the single-active invariant both ways:
-    clicking a palette doesn't deactivate the active document window, and
-    activating a document window never clears a palette's `active` — System 7
-    windoid behavior while the app is frontmost. The tier test reads the
-    `variant` *attribute*, so a not-yet-upgraded element still lands right.
+- **Behavior:** manages stacking of slotted `vf-window` children: `pointerdown` *or `focusin`* on a window brings it to front (incrementing z-index counter) and sets its `active` attribute, clearing `active` on the others — the `focusin` half is the keyboard route to activation: Tab landing anywhere in a background window (its undrawn-but-focusable widgets included) raises it. Listens via delegated pointerdown/focusin listeners + `slotchange`. Windows slotted before `vf-window` is defined are re-normalized once `customElements.whenDefined('vf-window')` settles, since the upgrade reflects each window's `active = true` default back out and upgrading a slotted node doesn't re-fire `slotchange`.
+  - **DOM order follows z-order** (bottom-most first), so sequential focus order matches the visual stack and Shift+Tab mirrors Tab exactly. The sync runs at pointer-gesture end (a mid-gesture node move would clear the pointer capture a title-bar drag or grow-box resize holds) and on programmatic `bringToFront`, never from a focus-driven raise (moving the window focus just entered would re-order the tab sequence mid-traversal); focus surviving its own window's move is restored without re-raising that window. Non-window children (a menu bar, page content) keep their positions. `npm run verify:window-a11y`.
+  - **Floating tier:** `vf-window[variant="utility"]` children stack in a z band `1_000_000` above the document tier (one shared monotonic counter, so a palette stays above every document window), restack only among themselves, and stand outside the single-active invariant both ways: clicking a palette doesn't deactivate the active document window, and activating a document window never clears a palette's `active` — System 7 windoid behavior while the app is frontmost. The tier test reads the `variant` *attribute*, so a not-yet-upgraded element still lands right.
 - **Parts:** `desktop`.
 
 #### `vf-window` (`VfWindow`, vf-window.ts)
-The desktop-window shell: the classic document window (see DragThing
-screenshot), parameterized down to the windoid (see the Group A recipe table).
-- **Attributes/props:** `heading: string` (title text), `width: number` /
-  `height: number` (**declare them both** — whole system px, so the window keeps
-  its proportion to the chrome inside it at every density. A window is a fixed
-  box in both axes, the way a WIND resource was: one that grows with its body is
-  one the user can neither predict nor control via the grow box. Each missing
-  dimension falls back to something different — width to block layout, height to
-  the content — and the window names whichever are missing, once, in the
-  console), `active: boolean`
-  (default **true**; reflect), `closable: boolean` (default true),
-  `zoomable: boolean` (default false), `movable: boolean` (default false),
-  `resizable: boolean` (default false), `flush: boolean` (default false —
-  removes body padding), `variant?: 'utility'` (the slim windoid chrome),
-  `scrollbars?: 'vertical' | 'horizontal' | 'both'` (edge scroll rails).
-- **Visual:** `vfChromeFrame` + `vfTitleBar` (§4), plus a full-size flex-column
-  layout on the frame. `display: block`. Sets
-  `--vf-surface: var(--vf-white, #fff)` on itself.
-  - Title bar: from `vfTitleBar` — height `var(--vf-titlebar-height, 18px)`,
-    white bg, bottom `1px solid black`, contains `.vf-stripes` layer (only when
-    `active`). `touch-action: none` only when `[movable]`.
-  - Title: centered, bold, on a white patch (`padding: 0 6px`; cap band on
-    interior rows 4..12, 7px of white between ink and stripes — see §4
-    `vfTitleBar` for the traced geometry and the lattice hold) above the
-    stripes, with `--vf-title-inset: 60px` of clearance so it ellipsizes before
-    reaching the widgets. Inactive: no stripes, widgets undrawn (transparent
-    ink — they keep their tab stops; see A11y below), the grow box's
-    nested squares hidden, and every managed scroll rail inside the window
-    blanked (see "always-a-rail" §5 vf-scroll-area) — but the title text stays
-    black (System 7 never grayed the window title).
-  - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of
-    clear white above and below it, `1px solid black`, white bg, no bevel,
-    surrounded by a 1px white patch interrupting the stripes. `:active`
-    (pressed) → the interior fills with the classic radiating "go-away"
-    sunburst: black 1-bit spokes on the white face (four orthogonal 3px spokes
-    plus four diagonal 2px ones around an empty center), traced pixel-for-pixel
-    from the UI kit's close-button-active-state sprite.
-  - Zoom box: RIGHT side, same box, plus a small box nested in its top-left
-    corner (sharing the widget's own top/left border; only the right and bottom
-    edges are drawn). `:active` (pressed) → shows the identical sunburst as the
-    close box; the nested box gives way to it.
-  - Body: `padding: 12px` (0 if `flush` or `scrollbars`), and `overflow: hidden`
-    — the window being a fixed box, content taller than it is clipped at the
-    frame the way the classic content region was, rather than painting out over
-    the desktop; `scrollbars` is how the user reaches the rest. Two deliberate
-    exemptions: `[scrollbars]` restores `overflow: visible`, because the
-    edge-rail composition below pulls the scroll area one system px *outside*
-    the body on every side and clipping would shave exactly that overhang off
-    (the scroll area does its own clipping); and a control's drop-open panel is
-    not clipped — `vf-select`'s list is `position: fixed` off the control's rect
-    precisely to escape clipping ancestors (§5 vf-select), and it still escapes,
-    because nothing between it and the viewport establishes a containing block
-    for fixed descendants (the grid-snap correction is a `position: relative`
-    left/top offset, never a transform — see §7). A `vf-menu` panel is anchored
-    `position: absolute` and *would* clip, but a menu bar belongs to the desktop,
-    not inside a window body.
-  - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black
-    top/left borders, containing two overlapping small square outlines. Inactive:
-    the cell and its borders stay, the nested squares go — System 7 drew a
-    deactivated window's size box hollow, with its blanked scroll rails.
-  - Edge scroll rails (if `scrollbars`): the body slot renders inside a shadow
-    `vf-scroll-area` (its `axis` = the attribute's value, `label` = the
-    heading, `viewport` part re-exported) carrying the TeachText composition
-    internally — `calc(100% + 2px·scale)` with `margin: -1px·scale`, one
-    system px under the frame on every side, so the area's own frame border
-    repaints the window's border lines and a `resizable` window's grow box
-    (z-index 1) lands exactly over the rail-corner cell. Same caveats as the
-    slotted composition (see vf-scroll-area §5), which remains supported for
-    inset wells.
-  - Utility variant (`variant="utility"`): the slim windoid bar traced from
-    `Windows/utility-window.png` — `--vf-titlebar-height-utility` (12px = 11px
-    interior + 1px rule), the `vfDots` dither instead of stripes (flush to the
-    side borders — see §4 vfDots), 7×7 widgets (`top: 2px`; close `left: 7px`,
-    zoom `right: 8px` — the art is asymmetric by that pixel) with a
-    2px patch ring where the striped bar's is 1px (`--vf-widget-ring`,
-    internal geometry: the windoid sheet clears two px of dither beside its
-    widgets), and the nested zoom square shrunk so its edges land
-    at sprite col/row 3. No title patch: the display face's 16px line box
-    can't sit in an 11px interior, so `.vf-title` is `display: none` under the
-    variant (a retheming consumer can re-show it via `::part(title)`) and the
-    heading names the widgets. A pressed windoid widget inverts whole —
-    black interior under a white (invisible) borderline — rather than
-    flashing the big bar's 9×9 sunburst, which can't land on a 5×5 interior.
-- **A11y:** the close/zoom `aria-label`s are qualified by the title when there is
-  one (`Close ${heading}` / `Zoom ${heading}`, falling back to bare `Close` /
-  `Zoom`) — several windows are open at once by design, so a bare repeated
-  "Close" gives an AT user no way to tell which window a widget belongs to. The
-  frame is `role="group"`, named by the title patch via `aria-labelledby` when
-  there is a heading (the utility variant's hidden patch still names it —
-  AccName resolves hidden labelledby targets) — `group` rather than `region`
-  deliberately, so a desktop of windows doesn't pollute landmark navigation;
-  the title bar is a `<div>`, never a `<header>`, which would map to an
-  unnamed `banner` landmark even inside the shadow root. An inactive window's
-  widgets stay in the tree and the tab order but paint no ink (transparent
-  border/background/patch ring — the bare System 7 bar): a background window
-  whose body holds nothing focusable is still reachable, activated by
-  `vf-desktop`'s `focusin` raise the moment Tab lands on a widget, and never
-  drops focus to `<body>` when it deactivates. `npm run verify:window-a11y`.
-- **Behavior:** close box click → `vf-close` (does NOT remove itself; consumer
-  decides). Zoom box click → `vf-zoom`. If `movable`: dragging the title bar
-  moves the window — the drag seeds its origin from the current offset position
-  (once, converting to system px) and then states `left`/`top` via pointer
-  capture, in whole system px like any authored placement. If `resizable`:
-  dragging the grow box states `width`/`height` the same way.
+The desktop-window shell: the classic document window (see DragThing screenshot), parameterized down to the windoid (see the Group A recipe table).
+- **Attributes/props:** `heading: string` (title text), `width: number` / `height: number` (**declare them both** — whole system px, so the window keeps its proportion to the chrome inside it at every density. A window is a fixed box in both axes, the way a WIND resource was: one that grows with its body is one the user can neither predict nor control via the grow box. Each missing dimension falls back to something different — width to block layout, height to the content — and the window names whichever are missing, once, in the console), `active: boolean` (default **true**; reflect), `closable: boolean` (default true), `zoomable: boolean` (default false), `movable: boolean` (default false), `resizable: boolean` (default false), `flush: boolean` (default false — removes body padding), `variant?: 'utility'` (the slim windoid chrome), `scrollbars?: 'vertical' | 'horizontal' | 'both'` (edge scroll rails).
+- **Visual:** `vfChromeFrame` + `vfTitleBar` (§4), plus a full-size flex-column layout on the frame. `display: block`. Sets `--vf-surface: var(--vf-white, #fff)` on itself.
+  - Title bar: from `vfTitleBar` — height `var(--vf-titlebar-height, 18px)`, white bg, bottom `1px solid black`, contains `.vf-stripes` layer (only when `active`). `touch-action: none` only when `[movable]`.
+  - Title: centered, bold, on a white patch (`padding: 0 6px`; cap band on interior rows 4..12, 7px of white between ink and stripes — see §4 `vfTitleBar` for the traced geometry and the lattice hold) above the stripes, with `--vf-title-inset: 60px` of clearance so it ellipsizes before reaching the widgets. Inactive: no stripes, widgets undrawn (transparent ink — they keep their tab stops; see A11y below), the grow box's nested squares hidden, and every managed scroll rail inside the window blanked (see "always-a-rail" §5 vf-scroll-area) — but the title text stays black (System 7 never grayed the window title).
+  - Close box: LEFT side, 11×11px, 8px from the inner-left edge, with 3px of clear white above and below it, `1px solid black`, white bg, no bevel, surrounded by a 1px white patch interrupting the stripes. `:active` (pressed) → the interior fills with the classic radiating "go-away" sunburst: black 1-bit spokes on the white face (four orthogonal 3px spokes plus four diagonal 2px ones around an empty center), traced pixel-for-pixel from the UI kit's close-button-active-state sprite.
+  - Zoom box: RIGHT side, same box, plus a small box nested in its top-left corner (sharing the widget's own top/left border; only the right and bottom edges are drawn). `:active` (pressed) → shows the identical sunburst as the close box; the nested box gives way to it.
+  - Body: `padding: 12px` (0 if `flush` or `scrollbars`), and `overflow: hidden` — the window being a fixed box, content taller than it is clipped at the frame the way the classic content region was, rather than painting out over the desktop; `scrollbars` is how the user reaches the rest. Two deliberate exemptions: `[scrollbars]` restores `overflow: visible`, because the edge-rail composition below pulls the scroll area one system px *outside* the body on every side and clipping would shave exactly that overhang off (the scroll area does its own clipping); and a control's drop-open panel is not clipped — `vf-select`'s list is `position: fixed` off the control's rect precisely to escape clipping ancestors (§5 vf-select), and it still escapes, because nothing between it and the viewport establishes a containing block for fixed descendants (the grid-snap correction is a `position: relative` left/top offset, never a transform — see §7). A `vf-menu` panel is anchored `position: absolute` and *would* clip, but a menu bar belongs to the desktop, not inside a window body.
+  - Grow box (if `resizable`): 15×15 at bottom-right corner, white bg, 1px black top/left borders, containing two overlapping small square outlines. Inactive: the cell and its borders stay, the nested squares go — System 7 drew a deactivated window's size box hollow, with its blanked scroll rails.
+  - Edge scroll rails (if `scrollbars`): the body slot renders inside a shadow `vf-scroll-area` (its `axis` = the attribute's value, `label` = the heading, `viewport` part re-exported) carrying the TeachText composition internally — `calc(100% + 2px·scale)` with `margin: -1px·scale`, one system px under the frame on every side, so the area's own frame border repaints the window's border lines and a `resizable` window's grow box (z-index 1) lands exactly over the rail-corner cell. Same caveats as the slotted composition (see vf-scroll-area §5), which remains supported for inset wells.
+  - Utility variant (`variant="utility"`): the slim windoid bar traced from `Windows/utility-window.png` — `--vf-titlebar-height-utility` (12px = 11px interior + 1px rule), the `vfDots` dither instead of stripes (flush to the side borders — see §4 vfDots), 7×7 widgets (`top: 2px`; close `left: 7px`, zoom `right: 8px` — the art is asymmetric by that pixel) with a 2px patch ring where the striped bar's is 1px (`--vf-widget-ring`, internal geometry: the windoid sheet clears two px of dither beside its widgets), and the nested zoom square shrunk so its edges land at sprite col/row 3. No title patch: the display face's 16px line box can't sit in an 11px interior, so `.vf-title` is `display: none` under the variant (a retheming consumer can re-show it via `::part(title)`) and the heading names the widgets. A pressed windoid widget inverts whole — black interior under a white (invisible) borderline — rather than flashing the big bar's 9×9 sunburst, which can't land on a 5×5 interior.
+- **A11y:** the close/zoom `aria-label`s are qualified by the title when there is one (`Close ${heading}` / `Zoom ${heading}`, falling back to bare `Close` / `Zoom`) — several windows are open at once by design, so a bare repeated "Close" gives an AT user no way to tell which window a widget belongs to. The frame is `role="group"`, named by the title patch via `aria-labelledby` when there is a heading (the utility variant's hidden patch still names it — AccName resolves hidden labelledby targets) — `group` rather than `region` deliberately, so a desktop of windows doesn't pollute landmark navigation; the title bar is a `<div>`, never a `<header>`, which would map to an unnamed `banner` landmark even inside the shadow root. An inactive window's widgets stay in the tree and the tab order but paint no ink (transparent border/background/patch ring — the bare System 7 bar): a background window whose body holds nothing focusable is still reachable, activated by `vf-desktop`'s `focusin` raise the moment Tab lands on a widget, and never drops focus to `<body>` when it deactivates. `npm run verify:window-a11y`.
+- **Behavior:** close box click → `vf-close` (does NOT remove itself; consumer decides). Zoom box click → `vf-zoom`. If `movable`: dragging the title bar moves the window — the drag seeds its origin from the current offset position (once, converting to system px) and then states `left`/`top` via pointer capture, in whole system px like any authored placement. If `resizable`: dragging the grow box states `width`/`height` the same way.
 - **Slots:** default (body content).
-- **Parts:** `frame`, `title-bar`, `title`, `close-box`, `zoom-box`, `body`,
-  `grow-box`, plus `viewport` re-exported from the built-in scroll area when
-  `scrollbars` is set.
+- **Parts:** `frame`, `title-bar`, `title`, `close-box`, `zoom-box`, `body`, `grow-box`, plus `viewport` re-exported from the built-in scroll area when `scrollbars` is set.
 - **Events:** `vf-close`, `vf-zoom` (detail `{}`).
 
 #### `vf-dialog` (`VfDialog`, vf-dialog.ts)
-The modal-dialog shell: movable modal by default (see "Format" screenshot,
-striped title bar over a white body), the dBoxProc modal dialog box with
-`frame="plain"` (see the Group A recipe table).
-- **Attributes/props:** `open: boolean` (reflect), `heading: string`,
-  `top: number` / `left: number` (whole system px, in **viewport** coordinates
-  — see §1 Explicit placement; unset means centered),
-  `width: number` / `height: number` (**declare them both** — whole system px,
-  the same fixed box `vf-window` is. A native `<dialog>` is `width: fit-content`
-  measured against the space left beside its own offsets, and stating an offset
-  is how the movable modal is positioned, so an undeclared dialog squeezes
-  itself and reflows as it is dragged toward an edge. The two fall back
-  differently — width
-  to 260 system px, height to the content — and it names whichever are missing,
-  once, on the open that first shows it), `label: string` (accessible name for a
-  dialog with no `heading`),
-  `closable: boolean` (default **false** — the bare movable-modal bar; the
-  close box is opt-in because the HIG's Chapter 6 text denies a movable modal
-  one while its Figure 5-1 grants it — the parameter enables either reading),
-  `frame?: 'plain'`.
-- **Implementation:** wraps a native `<dialog>` (for top-layer + focus trap).
-  `show()` → `showModal()`; `close()` closes. Keep `open` attr in sync both
-  directions. Drag the title bar to move it (shared `DragController` with
-  `vf-window`), stating `top`/`left` in system px; drags starting on
-  the close widget are ignored (same composedPath guard as `vf-window`).
-  Escape → close + `vf-close` detail `{ reason: 'escape' }`;
-  close box/programmatic/close() → `{ reason: 'close' }`. No backdrop dimming:
-  `::backdrop { background: transparent; }`.
-  **Removal while open is a close path** (`VfModalDialog.disconnectedCallback`):
-  HTML's dialog removing steps skip the close algorithm entirely, which is
-  exactly what a framework unmount does — the teardown routes through the same
-  native-`close` funnel (`vf-close` fires on the removed element; nothing
-  bubbles, it left the tree), `open` and the written origin reconcile so a
-  re-append mounts closed, and focus returns to the element focused at open
-  time. **The placement re-settles while open** whenever the dialog's own box
-  resizes — slotted content upgrading after `showModal()`, `--vf-scale` moving
-  under zoom — the viewport resizes, or the scale changes. What survives
-  depends on how the modal got where it is: an unplaced one re-centers (it
-  never claimed a spot, and the stranded case is exactly this one), while a
-  dragged or authored origin is kept and only re-clamped on screen.
-- **Visual (default chrome):** `vfChromeFrame` + `vfTitleBar` (§4) — literally
-  the same two recipes `vf-window` uses, so the bar is identical by
-  construction (stripes + centered title) rather than by matching copies. It
-  takes the default `--vf-title-inset` (16px) — 60px when `closable`, the same
-  clearance as `vf-window`, since the centered title needs symmetric room for
-  the widget — and sets `touch-action: none` unconditionally, having no
-  immovable state. `closable` renders the shared close box (`vfWindowWidgets`
-  + `closeBox()` — byte-identical to `vf-window`'s, per the
-  `moveable modal dialog.png` reference). Body is WHITE
-  (`--vf-surface: #fff`), separated from title bar by 1px black line,
-  `padding: 16px`. An optional `buttons` slot renders a bottom-right
-  `vf-button-group` footer that only takes space when populated (equal-width,
-  faces aligned).
-  Both chromes are full-height flex columns and the body takes the slack, for
-  the same reason `vf-window`'s frame is: the declared `height` lands on the
-  `<dialog>` (see `dialogSize`), and the recipes are skin only. The frame is
-  the flex child of the `<dialog>` itself (`dialog[open]` is a flex column in
-  `modalDialogStyles` — `[open]`-scoped, or it would out-cascade the UA's
-  `dialog:not([open]) { display: none }`), not a `height: 100%` block: a
-  percentage can't resolve against the undeclared-height dialog that only the
-  UA's `dialog:modal` max-height caps, and that spill was how a viewport-tall
-  modal stranded its buttons off-screen. **The box never grows, but
-  over-stuffed content scrolls instead of clipping**: the body is a flex
-  column of a `.content` scroll region (heading + default slot; part
-  `content`) over the pinned footer. While the content fits, nothing matches —
-  rendering is pixel-identical to the old block flow. Once it overflows
-  (`ScrollStateController`, the always-a-rail machinery), the region reserves
-  the 16px channel as its own right padding, wears the drawn `vfScrollRail`
-  rail (§4) boxed by a 1px `.scroll-frame` overlay, and becomes a keyboard
-  stop (`tabindex="0"`, `role="group"`, the kit's dotted ring) so the copy is
-  scrollable without a pointer. The rail rides the wrapper as an overlay
-  pinned to its right edge, deliberately out of the layout flow: a rail
-  *column*'s two fixed 15px arrow cells would hand the region a 32px minimum
-  height, and a short dialog would then measure as fitting with the rail
-  shown and overflowing without it — flip-flopping forever. The drop-open
-  exemption is unchanged.
-  - **The CSS and the controller state the same thing.** `.content` is
-    `overflow-y: hidden` until the controller flags overflow, then
-    `overflow-y: scroll`. It is deliberately never `auto`: the controller
-    ignores the body face's negative half-leading (`LEADING_SPILL_SYS`,
-    src/scroll-state.ts — `vf-paragraph` sets a 12-system-px line box under a
-    16-system-px em, so the inline box spills 2 inkless system px past the
-    block box and `scrollHeight` counts it), and `auto` has no way to know
-    that. With `auto` the two disagreed, and a fixed info dialog whose copy
-    ends in a `vf-paragraph` rubber-banded under the wheel with no rail
-    shown — 6 CSS px at scale 3. `hidden` still scrolls
-    programmatically, so `scrollIntoView` on a focused control is unaffected.
-    `npm run verify:contract`, OVERFLOW group.
-- **Visual (`frame="plain"`):** `vfModalFrame` (§4 — 1px outer, 2px gap, 2px
-  inner band, no shadow, per `Windows/modal dialog.png`), no title bar, and
-  immovable like the original dBoxProc dialog (nothing renders a drag handle).
-  A `heading` renders as a centered display-face heading at the top of the
-  body (`margin-bottom: 16px`) — the way those dialogs drew their title in
-  content — and `closable` is ignored, there being no bar to carry the widget.
-- **A11y:** named by its own title patch — or, on the plain frame, its
-  body-top heading; both carry `id="title"` — via `aria-labelledby` when
-  `heading` is set. With no heading there is nothing to point at —
-  `aria-labelledby` would resolve to an empty node and leave the dialog
-  unnamed — so it falls back to `aria-label`, taking `label` if given and
-  otherwise `'Dialog'`. An explicit `label` wins over `heading`. The close box
-  is labeled `Close ${heading}` like `vf-window`'s.
+The modal-dialog shell: movable modal by default (see "Format" screenshot, striped title bar over a white body), the dBoxProc modal dialog box with `frame="plain"` (see the Group A recipe table).
+- **Attributes/props:** `open: boolean` (reflect), `heading: string`, `top: number` / `left: number` (whole system px, in **viewport** coordinates — see §1 Explicit placement; unset means centered), `width: number` / `height: number` (**declare them both** — whole system px, the same fixed box `vf-window` is. A native `<dialog>` is `width: fit-content` measured against the space left beside its own offsets, and stating an offset is how the movable modal is positioned, so an undeclared dialog squeezes itself and reflows as it is dragged toward an edge. The two fall back differently — width to 260 system px, height to the content — and it names whichever are missing, once, on the open that first shows it), `label: string` (accessible name for a dialog with no `heading`), `closable: boolean` (default **false** — the bare movable-modal bar; the close box is opt-in because the HIG's Chapter 6 text denies a movable modal one while its Figure 5-1 grants it — the parameter enables either reading), `frame?: 'plain'`.
+- **Implementation:** wraps a native `<dialog>` (for top-layer + focus trap). `show()` → `showModal()`; `close()` closes. Keep `open` attr in sync both directions. Drag the title bar to move it (shared `DragController` with `vf-window`), stating `top`/`left` in system px; drags starting on the close widget are ignored (same composedPath guard as `vf-window`). Escape → close + `vf-close` detail `{ reason: 'escape' }`; close box/programmatic/close() → `{ reason: 'close' }`. No backdrop dimming: `::backdrop { background: transparent; }`. **Removal while open is a close path** (`VfModalDialog.disconnectedCallback`): HTML's dialog removing steps skip the close algorithm entirely, which is exactly what a framework unmount does — the teardown routes through the same native-`close` funnel (`vf-close` fires on the removed element; nothing bubbles, it left the tree), `open` and the written origin reconcile so a re-append mounts closed, and focus returns to the element focused at open time. **The placement re-settles while open** whenever the dialog's own box resizes — slotted content upgrading after `showModal()`, `--vf-scale` moving under zoom — the viewport resizes, or the scale changes. What survives depends on how the modal got where it is: an unplaced one re-centers (it never claimed a spot, and the stranded case is exactly this one), while a dragged or authored origin is kept and only re-clamped on screen.
+- **Visual (default chrome):** `vfChromeFrame` + `vfTitleBar` (§4) — literally the same two recipes `vf-window` uses, so the bar is identical by construction (stripes + centered title) rather than by matching copies. It takes the default `--vf-title-inset` (16px) — 60px when `closable`, the same clearance as `vf-window`, since the centered title needs symmetric room for the widget — and sets `touch-action: none` unconditionally, having no immovable state. `closable` renders the shared close box (`vfWindowWidgets` + `closeBox()` — byte-identical to `vf-window`'s, per the `moveable modal dialog.png` reference). Body is WHITE (`--vf-surface: #fff`), separated from title bar by 1px black line, `padding: 16px`. An optional `buttons` slot renders a bottom-right `vf-button-group` footer that only takes space when populated (equal-width, faces aligned). Both chromes are full-height flex columns and the body takes the slack, for the same reason `vf-window`'s frame is: the declared `height` lands on the `<dialog>` (see `dialogSize`), and the recipes are skin only. The frame is the flex child of the `<dialog>` itself (`dialog[open]` is a flex column in `modalDialogStyles` — `[open]`-scoped, or it would out-cascade the UA's `dialog:not([open]) { display: none }`), not a `height: 100%` block: a percentage can't resolve against the undeclared-height dialog that only the UA's `dialog:modal` max-height caps, and that spill was how a viewport-tall modal stranded its buttons off-screen. **The box never grows, but over-stuffed content scrolls instead of clipping**: the body is a flex column of a `.content` scroll region (heading + default slot; part `content`) over the pinned footer. While the content fits, nothing matches — rendering is pixel-identical to the old block flow. Once it overflows (`ScrollStateController`, the always-a-rail machinery), the region reserves the 16px channel as its own right padding, wears the drawn `vfScrollRail` rail (§4) boxed by a 1px `.scroll-frame` overlay, and becomes a keyboard stop (`tabindex="0"`, `role="group"`, the kit's dotted ring) so the copy is scrollable without a pointer. The rail rides the wrapper as an overlay pinned to its right edge, deliberately out of the layout flow: a rail *column*'s two fixed 15px arrow cells would hand the region a 32px minimum height, and a short dialog would then measure as fitting with the rail shown and overflowing without it — flip-flopping forever. The drop-open exemption is unchanged.
+  - **The CSS and the controller state the same thing.** `.content` is `overflow-y: hidden` until the controller flags overflow, then `overflow-y: scroll`. It is deliberately never `auto`: the controller ignores the body face's negative half-leading (`LEADING_SPILL_SYS`, src/scroll-state.ts — `vf-paragraph` sets a 12-system-px line box under a 16-system-px em, so the inline box spills 2 inkless system px past the block box and `scrollHeight` counts it), and `auto` has no way to know that. With `auto` the two disagreed, and a fixed info dialog whose copy ends in a `vf-paragraph` rubber-banded under the wheel with no rail shown — 6 CSS px at scale 3. `hidden` still scrolls programmatically, so `scrollIntoView` on a focused control is unaffected. `npm run verify:contract`, OVERFLOW group.
+- **Visual (`frame="plain"`):** `vfModalFrame` (§4 — 1px outer, 2px gap, 2px inner band, no shadow, per `Windows/modal dialog.png`), no title bar, and immovable like the original dBoxProc dialog (nothing renders a drag handle). A `heading` renders as a centered display-face heading at the top of the body (`margin-bottom: 16px`) — the way those dialogs drew their title in content — and `closable` is ignored, there being no bar to carry the widget.
+- **A11y:** named by its own title patch — or, on the plain frame, its body-top heading; both carry `id="title"` — via `aria-labelledby` when `heading` is set. With no heading there is nothing to point at — `aria-labelledby` would resolve to an empty node and leave the dialog unnamed — so it falls back to `aria-label`, taking `label` if given and otherwise `'Dialog'`. An explicit `label` wins over `heading`. The close box is labeled `Close ${heading}` like `vf-window`'s.
 - **Slots:** default, `buttons`.
-- **Parts:** `frame`, `title-bar` (default chrome), `title`, `close-box`
-  (when `closable`), `body`, `content`, `footer`, `buttons`.
+- **Parts:** `frame`, `title-bar` (default chrome), `title`, `close-box` (when `closable`), `body`, `content`, `footer`, `buttons`.
 - **Events:** `vf-close`.
 
 #### The alert box (composed — no component)
-System 7's fixed modal alert (double frame: 2px outer, 2px gap, 1px inner
-rule, *with* the hard shadow) is deliberately not shipped as a component.
-What separates an alert from a modal dialog is a *picture* — the 32×32
-icon — and pictures are the consumer's assets, never the library's (see the
-glyph-sprites note at the top of this spec). An alert box is composed from
-the shells above: `vf-dialog frame="plain"` with `label` stated (there is no
-title bar to name it), a row `vf-stack` slotting the consumer's own 32×32
-art through `vf-img`, display-face copy (System 7 alerts used chrome type),
-and the `buttons` slot. The reference page carries the live recipe, composed
-from `demo/icons/alert.png`.
+System 7's fixed modal alert (double frame: 2px outer, 2px gap, 1px inner rule, *with* the hard shadow) is deliberately not shipped as a component. What separates an alert from a modal dialog is a *picture* — the 32×32 icon — and pictures are the consumer's assets, never the library's (see the glyph-sprites note at the top of this spec). An alert box is composed from the shells above: `vf-dialog frame="plain"` with `label` stated (there is no title bar to name it), a row `vf-stack` slotting the consumer's own 32×32 art through `vf-img`, display-face copy (System 7 alerts used chrome type), and the `buttons` slot. The reference page carries the live recipe, composed from `demo/icons/alert.png`.
 
 #### `vf-separator` (`VfSeparator`, vf-separator.ts)
-- 1px black rule. `vertical: boolean` attr → 1px wide, auto height.
-  Horizontal default: `display: block; height: 1px; background: var(--vf-black, #000);`
-  When used inside menus it should render as the classic dimmed **dotted**
-  rule spanning the full panel width (see Menus.png) — implement via
-  `--vf-separator-color` + `--vf-separator-style` custom props (menu panel sets
-  them to `#C0C0C0` / `dotted`, and spends a full `--vf-menu-row-height` on
-  the divider: 8px margin above the rule, 7 below). `role="separator"`.
+- 1px black rule. `vertical: boolean` attr → 1px wide, auto height. Horizontal default: `display: block; height: 1px; background: var(--vf-black, #000);` When used inside menus it should render as the classic dimmed **dotted** rule spanning the full panel width (see Menus.png) — implement via `--vf-separator-color` + `--vf-separator-style` custom props (menu panel sets them to `#C0C0C0` / `dotted`, and spends a full `--vf-menu-row-height` on the divider: 8px margin above the rule, 7 below). `role="separator"`.
 
 ### Group B — buttons & toggles
 
 #### `vf-button` (`VfButton`, vf-button.ts)
-- **Attributes/props:** `variant?: 'default'` (the double-ring default button,
-  e.g. "Install"),
-  `disabled`, `type: 'button' | 'submit' | 'reset'` (reflected; default
-  `'button'`), plus the submission overrides `formaction`, `formenctype`,
-  `formmethod`, `formnovalidate` and `formtarget`, each honored on
-  `type="submit"` only, as HTML honors them — they are handed to the native
-  proxy below, so the behavior is the platform's rather than an emulation.
-  (`formAction`'s *getter* returns the string as set, where the native IDL
-  returns it resolved against the base URL; the submission resolves normally.)
-  `type` is read the way HTML reads an enumerated attribute — ASCII
-  case-insensitively, unrecognized values falling to the default — so
-  `type="SUBMIT"` is a submit button. Two deliberate departures: HTML's
-  missing-value default is `submit` and this one is `button`, because an
-  element that silently submits the form it sits in is surprising; and the
-  invalid-value default follows the missing one rather than HTML's `submit`,
-  so a misspelling does nothing instead of submitting.
-- **Visual:** inner `<button>`: height `var(--vf-button-height, 20px)`,
-  `min-width: 64px`, `padding: 0 14px`, bold black text, font per tokens.
-  The button is 20px, not the fields' 22px: both 1x sheets measure the face at
-  80×20, and the default ring's *inner* box is exactly that, so the ring traces
-  assume a 20px face.
-  The label rides in its own `.label` span (the flex item, shrink-wrapped to
-  the text) so the focus rule below can span the text rather than the padded
-  face.
-  The rounded rect is NOT `border-radius` (which antialiases): the button
-  paints no box of its own; two pseudo-element layers carry stepped
-  `clip-path` silhouettes traced from the reference sheet (`src/pixel-frame.ts`,
-  traced from the 1x button reference sheet; `npm run verify:buttons` checks
-  the compiled polygons render those profiles faithfully): `::before` fills `var(--vf-black)` clipped to the
-  outer silhouette (corner insets `[3,1,1]`, then straight), `::after` fills
-  `var(--vf-white)` clipped to the face (row 1 corner insets `[3,2]`, then 1px
-  inside) — the 1px frame, corner steps included, is the QuickDraw-style
-  difference of the two. Clip-paths stay off the `<button>` so the hit area
-  stays a plain rectangle and anything painted outside the silhouette isn't
-  swallowed. All coordinates are `calc(var(--vf-scale,1) * Npx)`
-  system pixels, so edges land on whole device pixels and never antialias.
-  - `:active` (pressed, not disabled): invert — the `::after` face flips to
-    black, white text.
-  - `:focus-visible`: **no ring** — the UA outline is off on both the inner
-    button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline`
-    (§4) on the label: a 1px dashed rule 1px below the baseline, i.e. row 15
-    of the 20px face, one blank row under the glyph ink. It inverts with the
-    label when pressed; the controls that cannot carry the mark on their own
-    face keep the dotted ring. `npm run verify:focus` and the focused button in
-    `npm run shot:verify` assert the rendered pixels.
-  - `disabled`: only the label dims to `var(--vf-disabled, #c0c0c0)`; the 1px
-    black border stays black. (For `variant="default"`, the fat outer ring
-    dims to `var(--vf-disabled)` while the inner black border stays — the ring
-    and the title dim together, the button's own frame does not. System 7
-    dimmed both with a 50% stipple; flat gray standing in for it is the kit's
-    liberty, per §1.) The ring rule is keyed on **both** disabled routes —
-    `[disabled]` and `:state(form-disabled)` — as separate rules: an ancestor
-    `<fieldset disabled>` arrives through `formDisabledCallback` and sets no
-    attribute, and keyed on the attribute alone it left a solid black ring
-    around a greyed label.
-  - `variant="default"`: the ring is a host `::before` at
-    `inset: -4px` — `background: var(--vf-black)` clipped by an `evenodd`
-    donut polygon (outer corner insets `[5,3,2,1,1]`; hole opens at row 3 with
-    insets `[6,4,4]`, then 3px inside). The band is 3px thick with a 1px
-    fully transparent gap to the button, per the reference's alpha-0 gap
-    pixels (host needs `position: relative` and 4px breathing room via margin,
-    tokenized `--vf-button-ring-margin` so `vf-button-group` can zero it).
-- **Group hooks:** the ring margin reads `--vf-button-ring-margin` (default
-  `4px`) and the inner button's flex reads `--vf-button-flex` (default
-  `0 1 auto`); `vf-button-group` sets these to `0` and `1 1 auto` so grouped
-  faces align and stretch to a shared width. Standalone, both defaults are inert.
-- **Behavior:** form-associated. `type="submit"` submits by inserting a
-  transient native proxy button carrying this button's `name`/`value` and any
-  `form*` override, then clicking it — a form-associated custom element can't
-  be a native submitter itself (`requestSubmit(vfButton)` throws a `TypeError`,
-  "not a submit button"), and a bare `requestSubmit()` would submit with
-  `event.submitter === null` and no name/value; `reset` → the same proxy path.
-  Enter/Space work
-  natively via the inner button, and the host overrides `click()` to forward
-  to it (a click dispatched at the host propagates up, never down into the
-  shadow tree; before the first render there is no inner button, so it falls
-  back to dispatching at the host, since a native `click()` always fires) —
-  which is also how the fields' Enter reaches this button as
-  the form's default button (see `requestImplicitSubmit`, text-control.ts;
-  its `vf-button` leg lowercases `type` for the enumerated rule above).
-  - **When the action runs.** At the *end* of the click's propagation, not
-    where the listener sits. HTML runs a button's activation behavior once the
-    click has finished propagating, which is what lets `preventDefault()` on
-    the button cancel the submission; this component's listener is on the
-    inner `<button>`, first on that path rather than last, so acting there beat
-    every listener a consumer could write and only a capture-phase cancel ever
-    landed. It now defers by adding a listener to the window *during* dispatch
-    (each node's listener list is read as that node is reached), so both
-    phases cancel. `stopPropagation()` cancels nothing, per HTML — the event
-    then never reaches the window and a task picks the action up instead; a
-    task and never a microtask, which would interleave between the listeners
-    of a trusted dispatch.
-  - **Submitter identity.** `event.submitter` can never *be* the `vf-button` —
-    the platform forbids it. It is the proxy, which is parented to the host
-    and carries a `slot` name no shadow root offers: unslotted, so it is never
-    rendered, measured or in the a11y tree, and off the flattened tree so its
-    own click can't travel back up through the shadow `<button>` the click
-    handler is bound to. Being a light-DOM descendant is what makes
-    `event.submitter.closest('vf-button')` resolve to the component — the
-    closest to identity the platform allows. Its own click is stopped at the
-    proxy, so one press is one click at the form (`stopPropagation` leaves the
-    activation behavior alone).
-- **Name:** the slotted label, with a host-level `aria-label`/`aria-labelledby`
-  bridged to the inner button when present (see §4's name bridge); a
-  `<label for>` deliberately doesn't name it. `description` and a host-level
-  `aria-describedby` reach it through the same shadow-internal span the fields
-  use.
+- **Attributes/props:** `variant?: 'default'` (the double-ring default button, e.g. "Install"), `disabled`, `type: 'button' | 'submit' | 'reset'` (reflected; default `'button'`), plus the submission overrides `formaction`, `formenctype`, `formmethod`, `formnovalidate` and `formtarget`, each honored on `type="submit"` only, as HTML honors them — they are handed to the native proxy below, so the behavior is the platform's rather than an emulation. (`formAction`'s *getter* returns the string as set, where the native IDL returns it resolved against the base URL; the submission resolves normally.) `type` is read the way HTML reads an enumerated attribute — ASCII case-insensitively, unrecognized values falling to the default — so `type="SUBMIT"` is a submit button. Two deliberate departures: HTML's missing-value default is `submit` and this one is `button`, because an element that silently submits the form it sits in is surprising; and the invalid-value default follows the missing one rather than HTML's `submit`, so a misspelling does nothing instead of submitting.
+- **Visual:** inner `<button>`: height `var(--vf-button-height, 20px)`, `min-width: 64px`, `padding: 0 14px`, bold black text, font per tokens. The button is 20px, not the fields' 22px: both 1x sheets measure the face at 80×20, and the default ring's *inner* box is exactly that, so the ring traces assume a 20px face. The label rides in its own `.label` span (the flex item, shrink-wrapped to the text) so the focus rule below can span the text rather than the padded face. The rounded rect is NOT `border-radius` (which antialiases): the button paints no box of its own; two pseudo-element layers carry stepped `clip-path` silhouettes traced from the reference sheet (`src/pixel-frame.ts`, traced from the 1x button reference sheet; `npm run verify:buttons` checks the compiled polygons render those profiles faithfully): `::before` fills `var(--vf-black)` clipped to the outer silhouette (corner insets `[3,1,1]`, then straight), `::after` fills `var(--vf-white)` clipped to the face (row 1 corner insets `[3,2]`, then 1px inside) — the 1px frame, corner steps included, is the QuickDraw-style difference of the two. Clip-paths stay off the `<button>` so the hit area stays a plain rectangle and anything painted outside the silhouette isn't swallowed. All coordinates are `calc(var(--vf-scale,1) * Npx)` system pixels, so edges land on whole device pixels and never antialias.
+  - `:active` (pressed, not disabled): invert — the `::after` face flips to black, white text.
+  - `:focus-visible`: **no ring** — the UA outline is off on both the inner button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline` (§4) on the label: a 1px dashed rule 1px below the baseline, i.e. row 15 of the 20px face, one blank row under the glyph ink. It inverts with the label when pressed; the controls that cannot carry the mark on their own face keep the dotted ring. `npm run verify:focus` and the focused button in `npm run shot:verify` assert the rendered pixels.
+  - `disabled`: only the label dims to `var(--vf-disabled, #c0c0c0)`; the 1px black border stays black. (For `variant="default"`, the fat outer ring dims to `var(--vf-disabled)` while the inner black border stays — the ring and the title dim together, the button's own frame does not. System 7 dimmed both with a 50% stipple; flat gray standing in for it is the kit's liberty, per §1.) The ring rule is keyed on **both** disabled routes — `[disabled]` and `:state(form-disabled)` — as separate rules: an ancestor `<fieldset disabled>` arrives through `formDisabledCallback` and sets no attribute, and keyed on the attribute alone it left a solid black ring around a greyed label.
+  - `variant="default"`: the ring is a host `::before` at `inset: -4px` — `background: var(--vf-black)` clipped by an `evenodd` donut polygon (outer corner insets `[5,3,2,1,1]`; hole opens at row 3 with insets `[6,4,4]`, then 3px inside). The band is 3px thick with a 1px fully transparent gap to the button, per the reference's alpha-0 gap pixels (host needs `position: relative` and 4px breathing room via margin, tokenized `--vf-button-ring-margin` so `vf-button-group` can zero it).
+- **Group hooks:** the ring margin reads `--vf-button-ring-margin` (default `4px`) and the inner button's flex reads `--vf-button-flex` (default `0 1 auto`); `vf-button-group` sets these to `0` and `1 1 auto` so grouped faces align and stretch to a shared width. Standalone, both defaults are inert.
+- **Behavior:** form-associated. `type="submit"` submits by inserting a transient native proxy button carrying this button's `name`/`value` and any `form*` override, then clicking it — a form-associated custom element can't be a native submitter itself (`requestSubmit(vfButton)` throws a `TypeError`, "not a submit button"), and a bare `requestSubmit()` would submit with `event.submitter === null` and no name/value; `reset` → the same proxy path. Enter/Space work natively via the inner button, and the host overrides `click()` to forward to it (a click dispatched at the host propagates up, never down into the shadow tree; before the first render there is no inner button, so it falls back to dispatching at the host, since a native `click()` always fires) — which is also how the fields' Enter reaches this button as the form's default button (see `requestImplicitSubmit`, text-control.ts; its `vf-button` leg lowercases `type` for the enumerated rule above).
+  - **When the action runs.** At the *end* of the click's propagation, not where the listener sits. HTML runs a button's activation behavior once the click has finished propagating, which is what lets `preventDefault()` on the button cancel the submission; this component's listener is on the inner `<button>`, first on that path rather than last, so acting there beat every listener a consumer could write and only a capture-phase cancel ever landed. It now defers by adding a listener to the window *during* dispatch (each node's listener list is read as that node is reached), so both phases cancel. `stopPropagation()` cancels nothing, per HTML — the event then never reaches the window and a task picks the action up instead; a task and never a microtask, which would interleave between the listeners of a trusted dispatch.
+  - **Submitter identity.** `event.submitter` can never *be* the `vf-button` — the platform forbids it. It is the proxy, which is parented to the host and carries a `slot` name no shadow root offers: unslotted, so it is never rendered, measured or in the a11y tree, and off the flattened tree so its own click can't travel back up through the shadow `<button>` the click handler is bound to. Being a light-DOM descendant is what makes `event.submitter.closest('vf-button')` resolve to the component — the closest to identity the platform allows. Its own click is stopped at the proxy, so one press is one click at the form (`stopPropagation` leaves the activation behavior alone).
+- **Name:** the slotted label, with a host-level `aria-label`/`aria-labelledby` bridged to the inner button when present (see §4's name bridge); a `<label for>` deliberately doesn't name it. `description` and a host-level `aria-describedby` reach it through the same shadow-internal span the fields use.
 - **Slots:** default (label). **Parts:** `button`.
 - **Events:** none custom (native `click` suffices).
-- **Verified by:** `npm run verify:button` (the form contract, the name
-  bridge, the enumerated `type`, both disabled routes and the pinned metrics);
-  `verify:buttons` (the clip-path traces), `verify:focus` (the dashed rule).
+- **Verified by:** `npm run verify:button` (the form contract, the name bridge, the enumerated `type`, both disabled routes and the pinned metrics); `verify:buttons` (the clip-path traces), `verify:focus` (the dashed rule).
 
 #### `vf-button-group` (`VfButtonGroup`, vf-button-group.ts)
-- **Attributes/props:** `vertical` (stack in a column instead of a row),
-  `natural` (let each button keep its own content width; off by default, so
-  grouped buttons are uniform width — the classic System 7 dialog behavior).
-- **Visual:** `display: inline-grid`, shrink-wrapped to its buttons. Uniform
-  (default): one auto column per button, all `grid-auto-columns: 1fr`, so under
-  the shrink-wrapped grid they equalize to the widest button's intrinsic width;
-  `align-items: center` puts every face on one baseline. Gap is
-  `--vf-button-group-gap` (default 12px; see the §3 note on values under 8px).
-  `vertical` switches to `grid-auto-flow: row` (a single column sized to the
-  widest, each button stretched to it). `natural` falls back to `inline-flex`
-  so the columns don't equalize.
-- **Face alignment:** a `variant="default"` button reserves its ring
-  with a 4px `--vf-button-ring-margin` margin, so an ad-hoc flex row lines up the
-  *ring*, not the button. The group sets that margin to `0` and reserves the
-  ring space itself as 4px (`RING_INSET`) padding, then centers the cross axis —
-  so button *faces* align and equalize, not margin boxes. Buttons fill their
-  column via the inherited `--vf-button-flex`. Pure CSS; no measurement.
-- **Layout-neutral:** shrink-wraps to its buttons; the parent positions it — a
-  `<vf-stack fill-width place="end">` around it is the kit's own bottom-right
-  action row, and `justify-self: end` does it in page CSS. `vf-dialog` wraps
-  its `buttons` slot in one.
+- **Attributes/props:** `vertical` (stack in a column instead of a row), `natural` (let each button keep its own content width; off by default, so grouped buttons are uniform width — the classic System 7 dialog behavior).
+- **Visual:** `display: inline-grid`, shrink-wrapped to its buttons. Uniform (default): one auto column per button, all `grid-auto-columns: 1fr`, so under the shrink-wrapped grid they equalize to the widest button's intrinsic width; `align-items: center` puts every face on one baseline. Gap is `--vf-button-group-gap` (default 12px; see the §3 note on values under 8px). `vertical` switches to `grid-auto-flow: row` (a single column sized to the widest, each button stretched to it). `natural` falls back to `inline-flex` so the columns don't equalize.
+- **Face alignment:** a `variant="default"` button reserves its ring with a 4px `--vf-button-ring-margin` margin, so an ad-hoc flex row lines up the *ring*, not the button. The group sets that margin to `0` and reserves the ring space itself as 4px (`RING_INSET`) padding, then centers the cross axis — so button *faces* align and equalize, not margin boxes. Buttons fill their column via the inherited `--vf-button-flex`. Pure CSS; no measurement.
+- **Layout-neutral:** shrink-wraps to its buttons; the parent positions it — a `<vf-stack fill-width place="end">` around it is the kit's own bottom-right action row, and `justify-self: end` does it in page CSS. `vf-dialog` wraps its `buttons` slot in one.
 - **Slots:** default (vf-button elements). **Parts:** none. **Events:** none.
 
 #### `vf-swatch` (`VfSwatch`, vf-swatch.ts)
 The color-swatch button: a well of solid color — a palette cell.
-- **Attributes/props:** `color?: string` (the fill — a CSS color, typically
-  hex; unset shows the transparency checker, and a translucent value layers
-  over that checker so partial opacity reads as partial), `width` / `height`:
-  number (the border box, whole system px; default 24×18), `shadow`: boolean
-  (default **false** — cast the kit's hard drop shadow), `label: string`
-  (accessible name; defaults to `color`, or "transparent"), `disabled`.
-- **Visual:** inner `<button>` sized `width × height`: 1px black border, 1px
-  white inset (the button's own padding + background) and a `fill` span
-  carrying the checker as an exact fill with the color painted over it in a
-  `tint` child (see *Tiled fills*); `--vf-swatch-checker` overrides the
-  pattern.
-  - `shadow`: adds the shared hard shadow (`vfHardShadowDecls` — the same
-    `--vf-shadow-offset` token as windows and menus, painting outside the box
-    like theirs). **Opt-in, because the swatch's usual home is a table of
-    them** (a `vf-grid`, a picker row), where every cell shadowing its
-    neighbour reads as noise rather than depth; the lone well standing in for
-    a current color is the case that wants the raised reading. The depth in
-    play is resolved once into a private `--_shadow-depth` (`0px` unset), so
-    the focus rule below composes what is actually there.
-  - `:active` (pressed, not disabled): the white inset inverts to black — the
-    inset counterpart of vf-button's face inversion.
-  - `:focus-visible`: **no ring** — the UA outline is off on both the inner
-    button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline`
-    (§4) below the whole box: a `calc()` offset that clears the 1px border and
-    `--_shadow-depth`, then leaves the blank row — so the rule lands one row
-    under a flat swatch's border and one under a shadowed one's shadow. Not
-    inside the box the way vf-button underlines its label — every pixel in
-    there is the color the swatch exists to show, and a rule over the fill
-    would read as part of it. Spans the border box (±1px off the padding box
-    the pseudo-element sizes to). `npm run verify:focus` checks both depths.
-  - `disabled`: interaction stops; nothing dims. The kit dims *labels* when
-    disabled, and a swatch's only label is its fill, which must keep reading
-    as its color.
-- **Behavior:** "basically a button": native `click` retargets to the host,
-  Enter/Space activate via the inner button, `delegatesFocus`. `label` feeds
-  the inner button's `aria-label`, so `vf-label for` reaches it like every
-  control. Form-associated (`VfFormControl`) **for the disabled contract
-  alone**: an ancestor `<fieldset disabled>` reaches the palette through
-  `formDisabledCallback` (and `:state(form-disabled)`) like every other
-  control — but it submits nothing (a palette cell picks, it doesn't submit;
-  no value is ever set, so no `FormData` entry and no `formResetCallback`).
-  Carries a `ScaleController` and a `GridSnapController`.
+- **Attributes/props:** `color?: string` (the fill — a CSS color, typically hex; unset shows the transparency checker, and a translucent value layers over that checker so partial opacity reads as partial), `width` / `height`: number (the border box, whole system px; default 24×18), `shadow`: boolean (default **false** — cast the kit's hard drop shadow), `label: string` (accessible name; defaults to `color`, or "transparent"), `disabled`.
+- **Visual:** inner `<button>` sized `width × height`: 1px black border, 1px white inset (the button's own padding + background) and a `fill` span carrying the checker as an exact fill with the color painted over it in a `tint` child (see *Tiled fills*); `--vf-swatch-checker` overrides the pattern.
+  - `shadow`: adds the shared hard shadow (`vfHardShadowDecls` — the same `--vf-shadow-offset` token as windows and menus, painting outside the box like theirs). **Opt-in, because the swatch's usual home is a table of them** (a `vf-grid`, a picker row), where every cell shadowing its neighbour reads as noise rather than depth; the lone well standing in for a current color is the case that wants the raised reading. The depth in play is resolved once into a private `--_shadow-depth` (`0px` unset), so the focus rule below composes what is actually there.
+  - `:active` (pressed, not disabled): the white inset inverts to black — the inset counterpart of vf-button's face inversion.
+  - `:focus-visible`: **no ring** — the UA outline is off on both the inner button and the (`delegatesFocus`) host, replaced by `vfFocusUnderline` (§4) below the whole box: a `calc()` offset that clears the 1px border and `--_shadow-depth`, then leaves the blank row — so the rule lands one row under a flat swatch's border and one under a shadowed one's shadow. Not inside the box the way vf-button underlines its label — every pixel in there is the color the swatch exists to show, and a rule over the fill would read as part of it. Spans the border box (±1px off the padding box the pseudo-element sizes to). `npm run verify:focus` checks both depths.
+  - `disabled`: interaction stops; nothing dims. The kit dims *labels* when disabled, and a swatch's only label is its fill, which must keep reading as its color.
+- **Behavior:** "basically a button": native `click` retargets to the host, Enter/Space activate via the inner button, `delegatesFocus`. `label` feeds the inner button's `aria-label`, so `vf-label for` reaches it like every control. Form-associated (`VfFormControl`) **for the disabled contract alone**: an ancestor `<fieldset disabled>` reaches the palette through `formDisabledCallback` (and `:state(form-disabled)`) like every other control — but it submits nothing (a palette cell picks, it doesn't submit; no value is ever set, so no `FormData` entry and no `formResetCallback`). Carries a `ScaleController` and a `GridSnapController`.
 - **Slots:** none. **Parts:** `button`, `fill`. **Events:** none custom.
 
 #### `vf-checkbox` (`VfCheckbox`, vf-checkbox.ts)
 - **Attributes/props:** `checked`, `disabled`, `name`, `value` (default `'on'`).
-- **Visual:** 13×13 white box, `1px solid black`, no radius; checked = classic
-  ✕: the pixel-exact corner-to-corner cross from the sprite sheet, rendered as
-  the `CHECKBOX_X` inline-SVG fill path (`shape-rendering: crispEdges`,
-  `fill: currentColor`) — no anti-aliased strokes. Label (slot) sits right with
-  6px gap, bold. Disabled: only the label dims to `var(--vf-disabled, #c0c0c0)`;
-  the box border and ✕ glyph stay black. Pressed (`:active` on box): border
-  thickens to 2px (classic press feedback).
-- **Behavior:** form-associated; toggles on click and Space; `role="checkbox"`,
-  `aria-checked`; focusable (tabindex 0 on the host).
-  - **When the toggle runs.** At the *end* of the click's propagation, like a
-    native checkbox's activation behavior — so `preventDefault()` on the
-    control or anything above it stops the state change, in either phase.
-    `stopPropagation()` cancels nothing (HTML doesn't), and the disabled gate
-    sits at the far end of the deferral, so a control disabled *during*
-    propagation never acts. Space synthesises a cancelable click and inherits
-    all of it. Shared with `vf-radio` through `VfToggleControl`, and with
-    `vf-button` and the menus through `deferActivation` (src/events.ts).
-    `npm run verify:toggle`, CANCELLATION group.
-  `:focus-visible` marks
-  the **box**, not the label and not either with a ring: `vfFocusUnderline`
-  (§4) at `--vf-focus-underline-offset: -3px`, a dashed rule spanning the
-  well's full 13px, one blank row under its border. The −3 and the ±1px width
-  growth both count that 1px border, which an absolutely positioned pseudo
-  sizes inside of. `npm run verify:focus`.
+- **Visual:** 13×13 white box, `1px solid black`, no radius; checked = classic ✕: the pixel-exact corner-to-corner cross from the sprite sheet, rendered as the `CHECKBOX_X` inline-SVG fill path (`shape-rendering: crispEdges`, `fill: currentColor`) — no anti-aliased strokes. Label (slot) sits right with 6px gap, bold. Disabled: only the label dims to `var(--vf-disabled, #c0c0c0)`; the box border and ✕ glyph stay black. Pressed (`:active` on box): border thickens to 2px (classic press feedback).
+- **Behavior:** form-associated; toggles on click and Space; `role="checkbox"`, `aria-checked`; focusable (tabindex 0 on the host).
+  - **When the toggle runs.** At the *end* of the click's propagation, like a native checkbox's activation behavior — so `preventDefault()` on the control or anything above it stops the state change, in either phase. `stopPropagation()` cancels nothing (HTML doesn't), and the disabled gate sits at the far end of the deferral, so a control disabled *during* propagation never acts. Space synthesises a cancelable click and inherits all of it. Shared with `vf-radio` through `VfToggleControl`, and with `vf-button` and the menus through `deferActivation` (src/events.ts). `npm run verify:toggle`, CANCELLATION group. `:focus-visible` marks the **box**, not the label and not either with a ring: `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: -3px`, a dashed rule spanning the well's full 13px, one blank row under its border. The −3 and the ±1px width growth both count that 1px border, which an absolutely positioned pseudo sizes inside of. `npm run verify:focus`.
 - **Slots:** default (label). **Parts:** `box`, `label`.
-- **Events:** `vf-change` detail `{ checked: boolean }`, plus the native
-  `input`/`change` pair per user toggle (§2).
+- **Events:** `vf-change` detail `{ checked: boolean }`, plus the native `input`/`change` pair per user toggle (§2).
 
 #### `vf-radio` (`VfRadio`, vf-radio.ts)
 - **Attributes/props:** `checked`, `disabled`, `value: string`.
-- **Visual:** 13×13 pixel circle drawn as inline SVG — the hand-tuned 1-bit
-  `RADIO_RING` outline over a white `RADIO_FACE` disc (not `border-radius`, which
-  anti-aliases); checked = the centered `RADIO_DOT` pixel disc. Pressed
-  (`:active`): the ring swaps to `RADIO_RING_PRESSED` (2px-thick). Label right,
-  6px gap. Disabled dims like checkbox (label only; ring + dot stay black).
-- **Behavior:** `role="radio"`, `aria-checked`. Click → asks parent group to
-  select it (dispatch internal event or parent listens). NOT itself
-  form-associated — the group is. Selection defers to the end of the click's
-  propagation and is cancellable exactly as `vf-checkbox`'s is (same
-  `VfToggleControl` skeleton). `:focus-visible` marks the **circle** with
-  `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: -2px` — one blank
-  row below the same 13px well the checkbox uses, so the two rules share a row
-  in a mixed list (the −1 difference is only that this well has no border).
-  The 12px sprite sits half a system px proud of the well, so the gap to the
-  circle itself reads as one row or two depending on how that rounds; the well
-  is the anchor. The rule is also narrowed to **9** of the well's 13px (2px
-  inset each side, 5 dashes): full width reads wider than the round shape above
-  it, and 9 is the closest to two thirds that keeps whole-px insets and ink at
-  both ends. Focus: inside a `vf-radio-group` the group
-  owns the roving tabindex and is the single source of truth for `checked`;
-  standalone, the radio self-manages its own tabindex (otherwise it would be
-  keyboard-dead) and self-checks on activation. A consumer-authored `tabindex`
-  always wins, and that ownership is latched on first connect so a reconnect
-  can't mistake our own write for the consumer's.
+- **Visual:** 13×13 pixel circle drawn as inline SVG — the hand-tuned 1-bit `RADIO_RING` outline over a white `RADIO_FACE` disc (not `border-radius`, which anti-aliases); checked = the centered `RADIO_DOT` pixel disc. Pressed (`:active`): the ring swaps to `RADIO_RING_PRESSED` (2px-thick). Label right, 6px gap. Disabled dims like checkbox (label only; ring + dot stay black).
+- **Behavior:** `role="radio"`, `aria-checked`. Click → asks parent group to select it (dispatch internal event or parent listens). NOT itself form-associated — the group is. Selection defers to the end of the click's propagation and is cancellable exactly as `vf-checkbox`'s is (same `VfToggleControl` skeleton). `:focus-visible` marks the **circle** with `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: -2px` — one blank row below the same 13px well the checkbox uses, so the two rules share a row in a mixed list (the −1 difference is only that this well has no border). The 12px sprite sits half a system px proud of the well, so the gap to the circle itself reads as one row or two depending on how that rounds; the well is the anchor. The rule is also narrowed to **9** of the well's 13px (2px inset each side, 5 dashes): full width reads wider than the round shape above it, and 9 is the closest to two thirds that keeps whole-px insets and ink at both ends. Focus: inside a `vf-radio-group` the group owns the roving tabindex and is the single source of truth for `checked`; standalone, the radio self-manages its own tabindex (otherwise it would be keyboard-dead) and self-checks on activation. A consumer-authored `tabindex` always wins, and that ownership is latched on first connect so a reconnect can't mistake our own write for the consumer's.
 - **Slots:** default (label). **Parts:** `circle`, `label`.
 - **Events:** `vf-change` detail `{ value }` (fired by user interaction only).
 
 #### `vf-radio-group` (`VfRadioGroup`, vf-radio-group.ts)
-- **Attributes/props:** `value: string`, `name`, `disabled`, `label: string`
-  (accessible name → `internals.ariaLabel`).
-- **Visual:** `display: block`; slotted radios stack with 6px vertical gap
-  (consumer can override with own layout). No chrome of its own.
-- **Behavior:** form-associated (form value = `value`). `role="radiogroup"`.
-  Keeps children in sync: sets `checked` on the child whose `value` matches.
-  Roving tabindex; ArrowUp/ArrowLeft & ArrowDown/ArrowRight move selection AND
-  select (classic Mac behavior). Child click updates group `value`.
+- **Attributes/props:** `value: string`, `name`, `disabled`, `label: string` (accessible name → `internals.ariaLabel`).
+- **Visual:** `display: block`; slotted radios stack with 6px vertical gap (consumer can override with own layout). No chrome of its own.
+- **Behavior:** form-associated (form value = `value`). `role="radiogroup"`. Keeps children in sync: sets `checked` on the child whose `value` matches. Roving tabindex; ArrowUp/ArrowLeft & ArrowDown/ArrowRight move selection AND select (classic Mac behavior). Child click updates group `value`.
 - **Slots:** default (vf-radio elements, or arbitrary markup containing them).
-- **Events:** `vf-change` detail `{ value }`, plus the native `input`/`change`
-  pair per user pick (§2) — fired from the group, the form-associated surface,
-  not the radio.
+- **Events:** `vf-change` detail `{ value }`, plus the native `input`/`change` pair per user pick (§2) — fired from the group, the form-associated surface, not the radio.
 
 ### Group C — text & value inputs
 
 #### `vf-text-field` (`VfTextField`, vf-text-field.ts)
-- **Attributes/props:** `value`, `placeholder`, `disabled`, `readonly`,
-  `type: string` (default `'text'`; pass through to input), `name`. The
-  input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`,
-  `maxlength`, `pattern`, `spellcheck`, `autocapitalize` — are **forwarded
-  verbatim** from the host onto the inner input (observed attributes, not
-  reactive properties: four of them are globals with IDL accessors already on
-  `HTMLElement`, and a Lit `@property` would shadow the platform member — the
-  `align`/`draggable` trap). The platform only honors them on the element that
-  actually takes the input, which is in the shadow root.
-- **Visual:** inner `<input>`: white bg, `1px solid black`, NO radius,
-  height `var(--vf-control-height, 22px)`, `padding: 0 6px`, font tokens but
-  `font-weight: var(--vf-font-weight, 700)`. `user-select: text`. Focus: for a
-  **keyboard** focus, the kit's 1px dashed rule (`vfFocusUnderline`, §4) one
-  blank system px row under the well — no dotted outline and no thickened
-  border. A click leaves it unmarked: the insertion point is already the
-  answer to where focus went (see §4 on why this can't be `:focus-visible`).
-  Disabled: the text dims
-  to gray; the black border stays. Selected text inverts to solid
-  black-on-white (`.vf-field::selection`, using
-  `--vf-highlight`/`--vf-highlight-text`) — the 1-bit System 7 selection, shared
-  by all three editable fields via the `vfField` skin.
-- **Structure:** the `<input>` sits in a `.vf-field-well` wrapper, which is what
-  the focus rule hangs from and what carries `vf-snap`. A replaced element draws
-  no pseudo-element of its own, and the host is never the thing grid snapping
-  moves, so the wrapper is the only box that is both the well's exact shape and
-  on the corrected grid. Same wrapper in all three fields, assembled by
-  `VfTextControlBase.wellClass` so the focus gate can't drift between them.
-  Two consequences when embedding: the rule paints 2 system px
-  **below the host's own box** (`pointer-events: none`, so it never takes a
-  click meant for what sits under it, but a tight `overflow: hidden` ancestor
-  clips it), and a `width` set on `::part(input)` sizes the control without
-  moving the wrapper the rule spans — a field's width belongs on the host or
-  on `--vf-field-width`.
-- **Behavior:** form-associated; syncs `value` on input; `formResetCallback`
-  restores default. A plain Enter runs the form's **implicit submission** the
-  way HTML defines it — activating the form's default button (first submit
-  button in tree order, `vf-button` included), so the submission carries a
-  real `submitter` and that button's `name`/`value`, a disabled default
-  button submits nothing, and only a form with no submit button falls back to
-  a bare `requestSubmit()` (`requestImplicitSubmit`, text-control.ts).
+- **Attributes/props:** `value`, `placeholder`, `disabled`, `readonly`, `type: string` (default `'text'`; pass through to input), `name`. The input-behavior attributes — `autocomplete`, `inputmode`, `enterkeyhint`, `maxlength`, `pattern`, `spellcheck`, `autocapitalize` — are **forwarded verbatim** from the host onto the inner input (observed attributes, not reactive properties: four of them are globals with IDL accessors already on `HTMLElement`, and a Lit `@property` would shadow the platform member — the `align`/`draggable` trap). The platform only honors them on the element that actually takes the input, which is in the shadow root.
+- **Visual:** inner `<input>`: white bg, `1px solid black`, NO radius, height `var(--vf-control-height, 22px)`, `padding: 0 6px`, font tokens but `font-weight: var(--vf-font-weight, 700)`. `user-select: text`. Focus: for a **keyboard** focus, the kit's 1px dashed rule (`vfFocusUnderline`, §4) one blank system px row under the well — no dotted outline and no thickened border. A click leaves it unmarked: the insertion point is already the answer to where focus went (see §4 on why this can't be `:focus-visible`). Disabled: the text dims to gray; the black border stays. Selected text inverts to solid black-on-white (`.vf-field::selection`, using `--vf-highlight`/`--vf-highlight-text`) — the 1-bit System 7 selection, shared by all three editable fields via the `vfField` skin.
+- **Structure:** the `<input>` sits in a `.vf-field-well` wrapper, which is what the focus rule hangs from and what carries `vf-snap`. A replaced element draws no pseudo-element of its own, and the host is never the thing grid snapping moves, so the wrapper is the only box that is both the well's exact shape and on the corrected grid. Same wrapper in all three fields, assembled by `VfTextControlBase.wellClass` so the focus gate can't drift between them. Two consequences when embedding: the rule paints 2 system px **below the host's own box** (`pointer-events: none`, so it never takes a click meant for what sits under it, but a tight `overflow: hidden` ancestor clips it), and a `width` set on `::part(input)` sizes the control without moving the wrapper the rule spans — a field's width belongs on the host or on `--vf-field-width`.
+- **Behavior:** form-associated; syncs `value` on input; `formResetCallback` restores default. A plain Enter runs the form's **implicit submission** the way HTML defines it — activating the form's default button (first submit button in tree order, `vf-button` included), so the submission carries a real `submitter` and that button's `name`/`value`, a disabled default button submits nothing, and only a form with no submit button falls back to a bare `requestSubmit()` (`requestImplicitSubmit`, text-control.ts).
 - **Parts:** `input`.
-- **Events:** `vf-input` detail `{ value }` on every keystroke; `vf-change`
-  detail `{ value }` on commit (native change). Plus the native pair per §2:
-  the inner input's own composed `input` crosses the boundary itself; `change`
-  is re-dispatched from the host.
+- **Events:** `vf-input` detail `{ value }` on every keystroke; `vf-change` detail `{ value }` on commit (native change). Plus the native pair per §2: the inner input's own composed `input` crosses the boundary itself; `change` is re-dispatched from the host.
 
 #### `vf-text-area` (`VfTextArea`, vf-text-area.ts)
-Same as vf-text-field but wrapping `<textarea>`; extra prop `rows: number`
-(default 4). No resize grip (`resize: none`) — System 7 fields don't resize.
-Wrapped entry text sits on the display face's native line
-(`--vf-line-height-display`, 16px — Chicago 12's; `rows` buys one line each) —
-the single-line well's 20px box is control geometry, the 22px field trace, and
-stays; a multi-line well is typesetting.
-Reserves a permanent System 7 vertical scroll rail (the shared "always-a-rail"
-behavior — see vf-scroll-area): arrows on an empty white channel until the text
-overflows, then the dither and thumb fill in. The rail is the drawn `vfScrollRail`
-subtree (§4), a shadow sibling of the `<textarea>` synced to its native
-scrolling by `ScrollRailController`; the textarea carries the `vf-scroll`
-class (native bar hidden), and both controllers re-measure on each keystroke
-(a textarea's scrollHeight grows without a box resize). Unlike vf-text-field,
-the 1px frame sits on the `.vf-field-well` wrapper rather than the field
-itself — the rail has to live inside the frame beside the text — with the
-borderless `<textarea>` keeping vf-text-field's own `3px/6px` padding (plus
-the border-floor compensation, a `mod()` term restoring what engines floor
-off a fractional border-width), so the text and the outer box sit exactly
-where the bordered field puts them. The well is the same wrapper
-vf-text-field uses; the focus rule spans the full frame, scroll rail
-included (the `-3px` bordered-carrier offset, §4 vfFocusUnderline). Forwards
-the same input-behavior attributes as vf-text-field, minus `pattern` (only an
-`<input>` takes it).
-Parts: `textarea`. Events: `vf-input`, `vf-change`, plus the native pair (§2).
+Same as vf-text-field but wrapping `<textarea>`; extra prop `rows: number` (default 4). No resize grip (`resize: none`) — System 7 fields don't resize. Wrapped entry text sits on the display face's native line (`--vf-line-height-display`, 16px — Chicago 12's; `rows` buys one line each) — the single-line well's 20px box is control geometry, the 22px field trace, and stays; a multi-line well is typesetting. Reserves a permanent System 7 vertical scroll rail (the shared "always-a-rail" behavior — see vf-scroll-area): arrows on an empty white channel until the text overflows, then the dither and thumb fill in. The rail is the drawn `vfScrollRail` subtree (§4), a shadow sibling of the `<textarea>` synced to its native scrolling by `ScrollRailController`; the textarea carries the `vf-scroll` class (native bar hidden), and both controllers re-measure on each keystroke (a textarea's scrollHeight grows without a box resize). Unlike vf-text-field, the 1px frame sits on the `.vf-field-well` wrapper rather than the field itself — the rail has to live inside the frame beside the text — with the borderless `<textarea>` keeping vf-text-field's own `3px/6px` padding (plus the border-floor compensation, a `mod()` term restoring what engines floor off a fractional border-width), so the text and the outer box sit exactly where the bordered field puts them. The well is the same wrapper vf-text-field uses; the focus rule spans the full frame, scroll rail included (the `-3px` bordered-carrier offset, §4 vfFocusUnderline). Forwards the same input-behavior attributes as vf-text-field, minus `pattern` (only an `<input>` takes it). Parts: `textarea`. Events: `vf-input`, `vf-change`, plus the native pair (§2).
 
 #### `vf-number-field` (`VfNumberField`, vf-number-field.ts)
 A numeric text field paired with the classic "little arrows" stepper.
-- **Attributes/props:** `value: string`, `min?: number`, `max?: number`,
-  `step: number` (default 1; also sets the value's decimal precision),
-  `placeholder`, `disabled`, `readonly`, `name`, `label`.
-- **Visual:** a form-associated `<input>` (white well, 1px black border, value
-  right-aligned) with a 3px gap to the little-arrows stepper. Focus draws the
-  dashed rule under the well like `vf-text-field` — the `.vf-field-well`
-  wrapper is the flex item, so the rule stops at the well and never runs under
-  the stepper, which is not where the insertion point is. The stepper is the `STEPPER` glyph (rounded
-  1-bit frame + hollow up/down arrows from `Little arrows.png`), rendered inline
-  at its **native 15×25** so it stays pixel-crisp. The well and the sprite are
-  authentically different heights (the reference sheets measure fields at 22 and
-  the arrows at 25), so the well keeps `var(--vf-control-height, 22px)` — lining
-  up with every sibling control — and the taller sprite sets the host's height.
-  The odd 3px remainder is biased a whole pixel (1 above the well, 2 below)
-  rather than centered, which would place it on a half pixel and fringe at every
-  scale. Holding an arrow overlays its solid fill (`STEPPER_UP_FILL`
-  / `STEPPER_DOWN_FILL`, synthesized to match the kit's hollow→filled press
-  convention). Disabled: the value dims to gray; the box and stepper stay black.
-- **Behavior:** `role="spinbutton"` on the input with `aria-valuenow/min/max`.
-  Clicking an arrow steps by `step`, clamped to `min`/`max`, rounded to `step`'s
-  precision; press-and-hold autorepeats (300ms delay, then ~60ms). Keyboard:
-  ArrowUp/ArrowDown step, Home/End jump to min/max. Typing is free-form; the
-  value normalizes (clamp + round) on commit (native `change`). Form-associated
-  (submits `value`; `formResetCallback` restores the default). `readonly` blocks
-  stepping and editing.
+- **Attributes/props:** `value: string`, `min?: number`, `max?: number`, `step: number` (default 1; also sets the value's decimal precision), `placeholder`, `disabled`, `readonly`, `name`, `label`.
+- **Visual:** a form-associated `<input>` (white well, 1px black border, value right-aligned) with a 3px gap to the little-arrows stepper. Focus draws the dashed rule under the well like `vf-text-field` — the `.vf-field-well` wrapper is the flex item, so the rule stops at the well and never runs under the stepper, which is not where the insertion point is. The stepper is the `STEPPER` glyph (rounded 1-bit frame + hollow up/down arrows from `Little arrows.png`), rendered inline at its **native 15×25** so it stays pixel-crisp. The well and the sprite are authentically different heights (the reference sheets measure fields at 22 and the arrows at 25), so the well keeps `var(--vf-control-height, 22px)` — lining up with every sibling control — and the taller sprite sets the host's height. The odd 3px remainder is biased a whole pixel (1 above the well, 2 below) rather than centered, which would place it on a half pixel and fringe at every scale. Holding an arrow overlays its solid fill (`STEPPER_UP_FILL` / `STEPPER_DOWN_FILL`, synthesized to match the kit's hollow→filled press convention). Disabled: the value dims to gray; the box and stepper stay black.
+- **Behavior:** `role="spinbutton"` on the input with `aria-valuenow/min/max`. Clicking an arrow steps by `step`, clamped to `min`/`max`, rounded to `step`'s precision; press-and-hold autorepeats (300ms delay, then ~60ms). Keyboard: ArrowUp/ArrowDown step, Home/End jump to min/max. Typing is free-form; the value normalizes (clamp + round) on commit (native `change`). Form-associated (submits `value`; `formResetCallback` restores the default). `readonly` blocks stepping and editing.
 - **Parts:** `input`, `stepper`.
-- **Events:** `vf-input` detail `{ value, valueAsNumber }` on every keystroke;
-  `vf-change` detail `{ value, valueAsNumber }` on commit or step. Plus the
-  native pair (§2): a step dispatches both from the host (a native spinner's
-  pair — a step has no inner native event at all), a typed commit re-dispatches
-  `change`. Forwards the input-behavior attributes like vf-text-field (no
-  `pattern`); `inputmode`/`autocomplete` default to `decimal`/`off` when the
-  host doesn't say otherwise.
+- **Events:** `vf-input` detail `{ value, valueAsNumber }` on every keystroke; `vf-change` detail `{ value, valueAsNumber }` on commit or step. Plus the native pair (§2): a step dispatches both from the host (a native spinner's pair — a step has no inner native event at all), a typed commit re-dispatches `change`. Forwards the input-behavior attributes like vf-text-field (no `pattern`); `inputmode`/`autocomplete` default to `decimal`/`off` when the host doesn't say otherwise.
 
 #### `vf-select` (`VfSelect`, vf-option.ts children) (vf-select.ts)
 The classic popup menu control ("Macintosh HD ▼").
 - **Attributes/props:** `value: string`, `disabled`, `name`.
-- **Children:** `<vf-option value="...">Label</vf-option>` elements (default
-  slot). `vf-option` (`VfOption`, vf-option.ts): props `value`, `disabled`,
-  `selected` (managed by parent); renders its slot; `role="option"`.
-- **Visual (closed control):** height `var(--vf-popup-height, 18px)`, white
-  bg, `1px solid black`, NO radius, `box-shadow: 1px 1px 0 0 var(--vf-black, #000)`
-  (the small hard shadow visible in the screenshot), `padding: 0 8px 0
-  var(--vf-select-gutter, 16px)` — the left inset equals the option checkmark
-  gutter so the selected label sits at the same x closed or open. *One
-  documented 1px deviation:* the reference sheets put a closed pill's label ink
-  16px from its border box but an open menu's at 17 (three pill instances and
-  four menu panels, all consistent, in the reference art). System 7
-  reconciled that by drawing the open panel 1px left of the pill; the kit
-  instead uses one shared gutter with no panel offset, which keeps the
-  closed↔open alignment exact and puts the closed pill's ink at 17. Bold label
-  left, the black `CARET_DOWN` ▼ pixel glyph (inline SVG) right with 8px gap. The
-  ▼ stays black even when the control is disabled (only the label dims).
-  **Width:** the control hugs the *widest* option — no intrinsic min-width — via
-  an invisible, height-collapsed stack of every option's text sharing the label's
-  grid cell; so the closed pill and the open panel are always exactly the same
-  width and the value never shifts as the selection changes. Authors wanting a
-  floor set `min-width` on the host (or grow it in their layout, e.g. `flex: 1`).
-  **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
-  `--vf-focus-underline-offset: -4px`, a dashed rule under the *whole* pill
-  (border + hard shadow + blank row), not inside the face the way vf-button
-  underlines its label: the pill's one line already holds the label and the ▼.
-  Spans the border box (±1px off the padding box the pseudo-element sizes to).
-  **Closed only**, as `vf-menu`'s is: the open list already shows where focus
-  is, and a panel short enough not to cover the rule — a one-option menu
-  overlays the pill exactly — would leave a stray dashed line below it.
-  Gated on a `.vf-focus-rule` class from the page's input modality, not
-  `:focus-visible` — see §4 for why this control can't use the selector either.
-  `npm run verify:focus`.
-- **Visual (open):** panel uses the `.vf-panel` recipe but overrides
-  `--vf-shadow-offset: 1px` so its hard shadow matches the pill's (not the 2px
-  menu shadow). Positioned `position: fixed` to the control's exact width and
-  left (unsnapped, so the panel's left/right edges and shadow coincide with the
-  pill's). Item rows are height 16px — the pill's *content* height, derived as
-  `calc(var(--vf-popup-height, 18px) - 2px)` so a re-themed pill moves its rows
-  with it — `padding: 0 20px 0 var(--vf-select-gutter, 16px)`;
-  the panel opens with the selected row's cell laid directly over the closed
-  pill (its top border on the pill's top border, extending downward), so the
-  selected label's position and surrounding whitespace are identical closed and
-  open. The currently-selected item shows a ✓ checkmark in the left
-  `--vf-select-gutter` column; hovered/active item inverts (black bg, white
-  text); disabled options gray.
-- **Visual (open, clipped):** a list taller than the screen is **clipped, never
-  scrolled** — System 7 put no scrollbar on a menu. The panel is `overflow:
-  hidden` and drawn once at a whole number of row slots; the rows ride a
-  `.rows` strip rolled by `transform`, and the edge slot with items beyond it
-  is covered by an opaque white **arrow slot** (`part="scroll-arrow"`,
-  `aria-hidden`) carrying `CARET_UP` / `CARET_DOWN`. Traced from a real System 7
-  popup clipped at the screen edge (Find File's criteria menu under Infinite
-  Mac, 2×): the 11×6 triangle sits 13px in from the panel's content edge and 5px
-  down its 16px row, and the arrow occupies a **full** row slot. The pointer
-  resting on an arrow rolls the list one row per `MENU_SCROLL_INTERVAL_MS`
-  (66ms, motion.ts — the interaction itself, so *not* reduced-motion gated);
-  the arrow retires when its direction runs out. Both can show at once. Four
-  invariants, all in `src/popup-overflow.ts`:
-  - **The clamp is quantized to the pill lattice.** Rows are clipped a whole row
-    at a time off `pillTop − selectedIndex × rowHeight`, so a clipped popup
-    still opens with its selected row exactly over the closed pill — what an
-    un-quantized pixel clamp loses. One deliberate exception: when the selected
-    row would land *under* an arrow (the pill within one row of a screen edge
-    with items beyond it), the scroll shifts by one and the overlay gives way by
-    exactly one row. Rare, and purely geometric.
-  - **The panel is as tall as the *list* asked for, not as tall as the rows it
-    can currently show** — capped only by the screen band. A list that fits the
-    band but not where the pill would put it keeps every slot and slides whole
-    rows, while the item strip stays welded to the pill; the slots the strip no
-    longer reaches are drawn as **empty white**. The blank is the exact travel
-    the list rolls through: scrolling to that end lands the
-    strip flush with the panel, precisely full, both arrows retired. This is
-    what System 7 drew — 5 empty rows above `name` in Find File's criteria
-    popup, 2 above `Athens` in Character Set's font menu. **The two directions
-    are one rule:** a panel pushed up (the pill is low) reserves its blank at the
-    top and rolls down into it; a panel pushed down (the pill is high with a late
-    item selected) reserves it at the bottom and rolls up into it. Only the sign
-    of the scroll integer distinguishes them — it is free to leave the
-    `[0, rowCount − visibleSlots]` range that would fill every slot, and that
-    departure *is* the blank. It follows that the blank is a one-way starting
-    position: an arrow means "rows are really hidden this way", so whichever end
-    the blank is on, the arrow pointing back at it is off.
-  - **The panel box never moves or resizes while open:** scrolling rolls the
-    items inside it.
-  - **Three slots minimum** when overflowing, even if that intrudes on the
-    insets below — with both arrows shown, fewer leaves nothing to pick.
-  The screen-edge band comes from `--vf-popup-inset-top` /
-  `--vf-popup-inset-bottom` (§3), whose 4px defaults reproduce the old viewport
-  margins exactly, so a list that fits is untouched by any of this.
-  `npm run verify:select-overflow`.
-- **Behavior:** form-associated. Opens on pointerdown (mouse/touch),
-  Space/Enter/ArrowDown, or a synthesised click (assistive tech). Two pointer
-  styles coexist, disambiguated by the gesture and resolved at the first
-  release: **System 7 press-drag-release** (press the pill, drag onto an item,
-  release to pick — releasing on the current item or off the list cancels) and
-  **modern click-to-open** (a quick in-place click leaves the list open for a
-  second click). The only timed distinction is an in-place release — a tap
-  (<200ms) keeps the list open, a held press closes it; any press that travels
-  to another item is a drag-pick regardless of duration. Highlight tracking
-  during a press hit-tests by coordinates (so it works under touch's implicit
-  pointer capture) and never moves DOM focus off the control. Panel is
-  positioned `position: fixed` from `getBoundingClientRect()` so it escapes
-  clipping containers; closes on outside pointerdown, Escape, blur, scroll.
-  Keyboard while open: arrows move active item, Enter/Space select, Escape
-  cancels, Home/End jump, and printable keys run the shared Finder
-  first-letter type-ahead (`src/type-ahead.ts` — the same buffer `vf-list`
-  and the menus use), moving the highlight to the match. On select: classic
-  blink (invert toggles ~3 times in ~250ms) then close + `vf-change`.
-  A press that *begins* on an arrow is neither a pick nor a dismissal (so a
-  click on one leaves the list up); a press-drag *released* on one closes with
-  no change, like any release on a non-item — and while a drag is in an arrow's
-  zone the highlight is dropped, because the arrow row is not an item. That
-  zone reaches past the panel edge in its own direction, the classic ergonomics
-  of slamming the pointer to the screen edge.
+- **Children:** `<vf-option value="...">Label</vf-option>` elements (default slot). `vf-option` (`VfOption`, vf-option.ts): props `value`, `disabled`, `selected` (managed by parent); renders its slot; `role="option"`.
+- **Visual (closed control):** height `var(--vf-popup-height, 18px)`, white bg, `1px solid black`, NO radius, `box-shadow: 1px 1px 0 0 var(--vf-black, #000)` (the small hard shadow visible in the screenshot), `padding: 0 8px 0 var(--vf-select-gutter, 16px)` — the left inset equals the option checkmark gutter so the selected label sits at the same x closed or open. *One documented 1px deviation:* the reference sheets put a closed pill's label ink 16px from its border box but an open menu's at 17 (three pill instances and four menu panels, all consistent, in the reference art). System 7 reconciled that by drawing the open panel 1px left of the pill; the kit instead uses one shared gutter with no panel offset, which keeps the closed↔open alignment exact and puts the closed pill's ink at 17. Bold label left, the black `CARET_DOWN` ▼ pixel glyph (inline SVG) right with 8px gap. The ▼ stays black even when the control is disabled (only the label dims). **Width:** the control hugs the *widest* option — no intrinsic min-width — via an invisible, height-collapsed stack of every option's text sharing the label's grid cell; so the closed pill and the open panel are always exactly the same width and the value never shifts as the selection changes. Authors wanting a floor set `min-width` on the host (or grow it in their layout, e.g. `flex: 1`). **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: -4px`, a dashed rule under the *whole* pill (border + hard shadow + blank row), not inside the face the way vf-button underlines its label: the pill's one line already holds the label and the ▼. Spans the border box (±1px off the padding box the pseudo-element sizes to). **Closed only**, as `vf-menu`'s is: the open list already shows where focus is, and a panel short enough not to cover the rule — a one-option menu overlays the pill exactly — would leave a stray dashed line below it. Gated on a `.vf-focus-rule` class from the page's input modality, not `:focus-visible` — see §4 for why this control can't use the selector either. `npm run verify:focus`.
+- **Visual (open):** panel uses the `.vf-panel` recipe but overrides `--vf-shadow-offset: 1px` so its hard shadow matches the pill's (not the 2px menu shadow). Positioned `position: fixed` to the control's exact width and left (unsnapped, so the panel's left/right edges and shadow coincide with the pill's). Item rows are height 16px — the pill's *content* height, derived as `calc(var(--vf-popup-height, 18px) - 2px)` so a re-themed pill moves its rows with it — `padding: 0 20px 0 var(--vf-select-gutter, 16px)`; the panel opens with the selected row's cell laid directly over the closed pill (its top border on the pill's top border, extending downward), so the selected label's position and surrounding whitespace are identical closed and open. The currently-selected item shows a ✓ checkmark in the left `--vf-select-gutter` column; hovered/active item inverts (black bg, white text); disabled options gray.
+- **Visual (open, clipped):** a list taller than the screen is **clipped, never scrolled** — System 7 put no scrollbar on a menu. The panel is `overflow: hidden` and drawn once at a whole number of row slots; the rows ride a `.rows` strip rolled by `transform`, and the edge slot with items beyond it is covered by an opaque white **arrow slot** (`part="scroll-arrow"`, `aria-hidden`) carrying `CARET_UP` / `CARET_DOWN`. Traced from a real System 7 popup clipped at the screen edge (Find File's criteria menu under Infinite Mac, 2×): the 11×6 triangle sits 13px in from the panel's content edge and 5px down its 16px row, and the arrow occupies a **full** row slot. The pointer resting on an arrow rolls the list one row per `MENU_SCROLL_INTERVAL_MS` (66ms, motion.ts — the interaction itself, so *not* reduced-motion gated); the arrow retires when its direction runs out. Both can show at once. Four invariants, all in `src/popup-overflow.ts`:
+  - **The clamp is quantized to the pill lattice.** Rows are clipped a whole row at a time off `pillTop − selectedIndex × rowHeight`, so a clipped popup still opens with its selected row exactly over the closed pill — what an un-quantized pixel clamp loses. One deliberate exception: when the selected row would land *under* an arrow (the pill within one row of a screen edge with items beyond it), the scroll shifts by one and the overlay gives way by exactly one row. Rare, and purely geometric.
+  - **The panel is as tall as the *list* asked for, not as tall as the rows it can currently show** — capped only by the screen band. A list that fits the band but not where the pill would put it keeps every slot and slides whole rows, while the item strip stays welded to the pill; the slots the strip no longer reaches are drawn as **empty white**. The blank is the exact travel the list rolls through: scrolling to that end lands the strip flush with the panel, precisely full, both arrows retired. This is what System 7 drew — 5 empty rows above `name` in Find File's criteria popup, 2 above `Athens` in Character Set's font menu. **The two directions are one rule:** a panel pushed up (the pill is low) reserves its blank at the top and rolls down into it; a panel pushed down (the pill is high with a late item selected) reserves it at the bottom and rolls up into it. Only the sign of the scroll integer distinguishes them — it is free to leave the `[0, rowCount − visibleSlots]` range that would fill every slot, and that departure *is* the blank. It follows that the blank is a one-way starting position: an arrow means "rows are really hidden this way", so whichever end the blank is on, the arrow pointing back at it is off.
+  - **The panel box never moves or resizes while open:** scrolling rolls the items inside it.
+  - **Three slots minimum** when overflowing, even if that intrudes on the insets below — with both arrows shown, fewer leaves nothing to pick. The screen-edge band comes from `--vf-popup-inset-top` / `--vf-popup-inset-bottom` (§3), whose 4px defaults reproduce the old viewport margins exactly, so a list that fits is untouched by any of this. `npm run verify:select-overflow`.
+- **Behavior:** form-associated. Opens on pointerdown (mouse/touch), Space/Enter/ArrowDown, or a synthesised click (assistive tech). Two pointer styles coexist, disambiguated by the gesture and resolved at the first release: **System 7 press-drag-release** (press the pill, drag onto an item, release to pick — releasing on the current item or off the list cancels) and **modern click-to-open** (a quick in-place click leaves the list open for a second click). The only timed distinction is an in-place release — a tap (<200ms) keeps the list open, a held press closes it; any press that travels to another item is a drag-pick regardless of duration. Highlight tracking during a press hit-tests by coordinates (so it works under touch's implicit pointer capture) and never moves DOM focus off the control. Panel is positioned `position: fixed` from `getBoundingClientRect()` so it escapes clipping containers; closes on outside pointerdown, Escape, blur, scroll. Keyboard while open: arrows move active item, Enter/Space select, Escape cancels, Home/End jump, and printable keys run the shared Finder first-letter type-ahead (`src/type-ahead.ts` — the same buffer `vf-list` and the menus use), moving the highlight to the match. On select: classic blink (invert toggles ~3 times in ~250ms) then close + `vf-change`. A press that *begins* on an arrow is neither a pick nor a dismissal (so a click on one leaves the list up); a press-drag *released* on one closes with no change, like any release on a non-item — and while a drag is in an arrow's zone the highlight is dropped, because the arrow row is not an item. That zone reaches past the panel edge in its own direction, the classic ergonomics of slamming the pointer to the screen edge.
 - **Parts:** `control`, `label`, `arrow`, `panel`, `scroll-arrow`.
-- **Events:** `vf-change` detail `{ value }`, plus the native `input`/`change`
-  pair per committed pick (§2).
+- **Events:** `vf-change` detail `{ value }`, plus the native `input`/`change` pair per committed pick (§2).
 
 #### `vf-progress-bar` (`VfProgressBar`, vf-progress-bar.ts)
-- **Attributes/props:** `value: number` (0–100), `max: number` (default 100),
-  `indeterminate: boolean`, `label: string` (accessible name → host
-  `aria-label`; the only way to name an indeterminate bar, which has no
-  `aria-valuenow`).
-- **Visual:** `display: block; height: 14px;` track
-  `var(--vf-progress-track, #ffffff)` (white), `1px solid black`, no radius.
-  Determinate fill: `var(--vf-progress-fill, #000000)` (solid black) from left,
-  with a 1px black leading edge
-  line. Indeterminate: full-width animated diagonal black/white barber stripes
-  (45°, a 12px `\` cell whose bands are a *staircase of axis-aligned 1px
-  rects*, not diagonal polygons and not a `repeating-linear-gradient` — a
-  diagonal edge blurs to a gray fringe when scaled, axis-aligned rects stay
-  pixel-exact). The art rides an exact-fill strip inside the fill (see *Tiled
-  fills*), animated by `left` keyframes that advance exactly one whole 12px
-  cell per cycle so the loop wraps seamlessly (no phase-jump seam), ~0.4s
-  `steps(4, end)` infinite — stepped, not smooth; each stepped value
-  is one quantized length, so no CSS length ever carries an accumulating
-  phase. Override the tile via `--vf-progress-stripes`.
-- **Behavior:** `role="progressbar"` + `aria-valuenow/min/max` (omit valuenow
-  when indeterminate); `label` → host `aria-label`.
+- **Attributes/props:** `value: number` (0–100), `max: number` (default 100), `indeterminate: boolean`, `label: string` (accessible name → host `aria-label`; the only way to name an indeterminate bar, which has no `aria-valuenow`).
+- **Visual:** `display: block; height: 14px;` track `var(--vf-progress-track, #ffffff)` (white), `1px solid black`, no radius. Determinate fill: `var(--vf-progress-fill, #000000)` (solid black) from left, with a 1px black leading edge line. Indeterminate: full-width animated diagonal black/white barber stripes (45°, a 12px `\` cell whose bands are a *staircase of axis-aligned 1px rects*, not diagonal polygons and not a `repeating-linear-gradient` — a diagonal edge blurs to a gray fringe when scaled, axis-aligned rects stay pixel-exact). The art rides an exact-fill strip inside the fill (see *Tiled fills*), animated by `left` keyframes that advance exactly one whole 12px cell per cycle so the loop wraps seamlessly (no phase-jump seam), ~0.4s `steps(4, end)` infinite — stepped, not smooth; each stepped value is one quantized length, so no CSS length ever carries an accumulating phase. Override the tile via `--vf-progress-stripes`.
+- **Behavior:** `role="progressbar"` + `aria-valuenow/min/max` (omit valuenow when indeterminate); `label` → host `aria-label`.
 - **Parts:** `track`, `fill`.
 
 #### `vf-slider` (`VfSlider`, vf-slider.ts)
-- **Attributes/props:** `value: number`, `min: number` (default 0), `max: number`
-  (default 100), `step: number` (default 1), `disabled: boolean`, `name: string`,
-  `label: string`.
-- **Visual:** not a historical System 7 control — a 1-bit reverse-adaptation of
-  the later Mac OS slider. A 4px-tall rounded capsule rail (2px tapered caps)
-  fills **solid black** from the left up to the shield-shaped drag handle (the
-  11×12 `SLIDER_THUMB` sprite, three grip strokes, pointed bottom) and runs
-  **hollow** (1px top/bottom edge) after it — the classic filled/unfilled track.
-  The rail is a whole-pixel `<svg>` regenerated on resize (so it stays crisp at
-  any width); the thumb snaps to integer pixels. Disabled dims the whole control
-  to `var(--vf-disabled, #c0c0c0)` (the fill *is* the value — there is no label
-  to dim instead). No hover/active state on the handle (static sprite).
-- **Behavior:** form-associated; `role="slider"` with
-  `aria-valuemin/max/now/valuetext` + `aria-orientation="horizontal"`. Click or
-  drag the track to set the value (the thumb's travel is inset by half its width
-  so its edges stay flush within the rail, never overhanging). Focusable
-  (self-managed `tabindex`): Arrow keys step by `step`, PageUp/PageDown by
-  `max(step, range/10)`, Home/End jump to min/max. `formResetCallback` restores
-  the initial value.
-  - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
-    `--vf-focus-underline-offset: 3px`, a dashed rule under the **rail**, its
-    full width, one blank system px row below it. Not around the handle: that
-    marked the value rather than the control, and moved as the value did. The
-    handle is `z-index: 1` and the rule is not, so it occludes the dashes it
-    passes over exactly as it occludes the rail behind it.
-  - Gated on a `.vf-focus-rule` class from the page's input modality, not
-    `:focus-visible` (§4): a press on the track `preventDefault`s to suppress
-    text selection, which cancels the native focus, so the control calls
-    `focus()` itself. It calls the controller's `suppress()` from that same
-    `pointerdown` (a press on an already-focused slider fires no `focusin`) and
-    `reveal()` from a handled arrow key, so a slider grabbed with the mouse and
-    then nudged with the keys starts showing its rule. `npm run verify:focus`.
-- **Events:** `vf-input` detail `{ value: number }` on every drag move / key
-  change; `vf-change` detail `{ value: number }` on commit (pointer release or
-  key change). Plus the native pair (§2), mapped 1:1 — `input` per user value
-  move, `change` per commit, a native range input's cadence.
+- **Attributes/props:** `value: number`, `min: number` (default 0), `max: number` (default 100), `step: number` (default 1), `disabled: boolean`, `name: string`, `label: string`.
+- **Visual:** not a historical System 7 control — a 1-bit reverse-adaptation of the later Mac OS slider. A 4px-tall rounded capsule rail (2px tapered caps) fills **solid black** from the left up to the shield-shaped drag handle (the 11×12 `SLIDER_THUMB` sprite, three grip strokes, pointed bottom) and runs **hollow** (1px top/bottom edge) after it — the classic filled/unfilled track. The rail is a whole-pixel `<svg>` regenerated on resize (so it stays crisp at any width); the thumb snaps to integer pixels. Disabled dims the whole control to `var(--vf-disabled, #c0c0c0)` (the fill *is* the value — there is no label to dim instead). No hover/active state on the handle (static sprite).
+- **Behavior:** form-associated; `role="slider"` with `aria-valuemin/max/now/valuetext` + `aria-orientation="horizontal"`. Click or drag the track to set the value (the thumb's travel is inset by half its width so its edges stay flush within the rail, never overhanging). Focusable (self-managed `tabindex`): Arrow keys step by `step`, PageUp/PageDown by `max(step, range/10)`, Home/End jump to min/max. `formResetCallback` restores the initial value.
+  - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: 3px`, a dashed rule under the **rail**, its full width, one blank system px row below it. Not around the handle: that marked the value rather than the control, and moved as the value did. The handle is `z-index: 1` and the rule is not, so it occludes the dashes it passes over exactly as it occludes the rail behind it.
+  - Gated on a `.vf-focus-rule` class from the page's input modality, not `:focus-visible` (§4): a press on the track `preventDefault`s to suppress text selection, which cancels the native focus, so the control calls `focus()` itself. It calls the controller's `suppress()` from that same `pointerdown` (a press on an already-focused slider fires no `focusin`) and `reveal()` from a handled arrow key, so a slider grabbed with the mouse and then nudged with the keys starts showing its rule. `npm run verify:focus`.
+- **Events:** `vf-input` detail `{ value: number }` on every drag move / key change; `vf-change` detail `{ value: number }` on commit (pointer release or key change). Plus the native pair (§2), mapped 1:1 — `input` per user value move, `change` per commit, a native range input's cadence.
 - **Parts:** `track`, `rail`, `thumb`.
 
 ### Group D — menus, lists, containers
 
 #### `vf-menu-bar` (`VfMenuBar`, vf-menu-bar.ts)
-- **Attributes/props:** `label: string` — accessible name for the menubar,
-  mirrored as host `aria-label` (guarded: a consumer's own
-  `aria-label`/`aria-labelledby` is left alone). `rounded: boolean` (reflected)
-  — draws the System 7 screen-corner mask over the bar's top-left/top-right
-  corners.
-- **Visual:** `display: block/flex`, height `var(--vf-menubar-height, 20px)` —
-  19 white system px over the 1px black rule, the Menus.png bar strip exactly —
-  white bg, `border-bottom: 1px solid var(--vf-black, #000)`, children laid out
-  horizontally from left. Adjacent titles are pulled 5px into each other
-  (`margin-inline-start: -5px` on every slotted menu, absorbed by 14px of bar
-  start padding — 9px of bar before the first plate, as System 7 placed the
-  Apple title, plus the first title's 5px share): Menus.png spaces title ink
-  14px apart while each title's plate runs 10px left / 9px right of its own
-  ink, so neighboring plates *overlap* by 5px, as the originals did. With
-  `rounded`, two
-  5×5 system-px corner overlays paint the traced stair-step mask (per-row runs
-  5/3/2/1/1 — `SCREEN_CORNER` + `steppedCornerClip` in `pixel-frame.ts`) in
-  `--vf-black` *over* the bar: on the classic screen the rounding was the
-  ROM's black corner mask sitting on top of the menu bar, not a shape of the
-  bar's own, so it is ink over any backdrop rather than a cutout.
-- **Behavior:** container/controller for slotted `vf-menu` children. Pressing a
-  menu label → opens it (label inverts while open). While any menu is open,
-  hovering another label switches to it (classic behavior). Escape / outside
-  click / item selection closes. `role="menubar"`, behind a first-connect
-  ownership latch so a consumer's own role survives upgrade; the shadow `.bar`
-  is `role="presentation"` and each slotted `vf-menu` host `role="none"`, so
-  the `menubar → menuitem` ownership chain has no generics in it. While a menu
-  is open: ArrowLeft/Right move between menus, ArrowDown/Up walk the open
-  menu's items, Home/End jump to its first/last enabled item, and printable
-  keys run the shared Finder first-letter type-ahead over the items
-  (`src/type-ahead.ts`; Space stays the focused item's activation key, and the
-  prefix resets on menu switch or close). The bar also **owns the
-  press-drag-release gesture** across its menus (`MenuPressController`,
-  `src/menu-press.ts` — see `vf-menu`), since one press may travel over
-  several of them: it binds the opening `pointerdown` and hands the controller
-  its own open/close rules, so the gesture changes *when* a menu opens, never
-  *how*.
+- **Attributes/props:** `label: string` — accessible name for the menubar, mirrored as host `aria-label` (guarded: a consumer's own `aria-label`/`aria-labelledby` is left alone). `rounded: boolean` (reflected) — draws the System 7 screen-corner mask over the bar's top-left/top-right corners.
+- **Visual:** `display: block/flex`, height `var(--vf-menubar-height, 20px)` — 19 white system px over the 1px black rule, the Menus.png bar strip exactly — white bg, `border-bottom: 1px solid var(--vf-black, #000)`, children laid out horizontally from left. Adjacent titles are pulled 5px into each other (`margin-inline-start: -5px` on every slotted menu, absorbed by 14px of bar start padding — 9px of bar before the first plate, as System 7 placed the Apple title, plus the first title's 5px share): Menus.png spaces title ink 14px apart while each title's plate runs 10px left / 9px right of its own ink, so neighboring plates *overlap* by 5px, as the originals did. With `rounded`, two 5×5 system-px corner overlays paint the traced stair-step mask (per-row runs 5/3/2/1/1 — `SCREEN_CORNER` + `steppedCornerClip` in `pixel-frame.ts`) in `--vf-black` *over* the bar: on the classic screen the rounding was the ROM's black corner mask sitting on top of the menu bar, not a shape of the bar's own, so it is ink over any backdrop rather than a cutout.
+- **Behavior:** container/controller for slotted `vf-menu` children. Pressing a menu label → opens it (label inverts while open). While any menu is open, hovering another label switches to it (classic behavior). Escape / outside click / item selection closes. `role="menubar"`, behind a first-connect ownership latch so a consumer's own role survives upgrade; the shadow `.bar` is `role="presentation"` and each slotted `vf-menu` host `role="none"`, so the `menubar → menuitem` ownership chain has no generics in it. While a menu is open: ArrowLeft/Right move between menus, ArrowDown/Up walk the open menu's items, Home/End jump to its first/last enabled item, and printable keys run the shared Finder first-letter type-ahead over the items (`src/type-ahead.ts`; Space stays the focused item's activation key, and the prefix resets on menu switch or close). The bar also **owns the press-drag-release gesture** across its menus (`MenuPressController`, `src/menu-press.ts` — see `vf-menu`), since one press may travel over several of them: it binds the opening `pointerdown` and hands the controller its own open/close rules, so the gesture changes *when* a menu opens, never *how*.
 - **Slots:** default (vf-menu elements). **Parts:** `bar`.
 
 #### `vf-menu` (`VfMenu`, vf-menu.ts)
-- **Attributes/props:** `label: string` (the menu title in the bar; may contain
-  e.g. an apple glyph), `open: boolean` (reflect, managed by menu-bar or self).
-- **Visual:** label: bold, height of menubar, `padding-inline: 9px 8px` — the
-  label box is the title's black plate and hit rect, and Menus.png puts the
-  plate 10px left / 9px right of the title ink (Chicago carries a 1px bearing
-  on each side inside the text box, so 9/8 in layout lands −10/+9 around
-  ink); open → inverted (black bg / white text), inset one system px
-  top and bottom via transparent `border-block` + `background-clip:
-  padding-box` — the hilite is rows 1..18 of the 20px bar, leaving the bar's
-  top row white and its bottom rule showing through, while the hit rect stays
-  the full bar height. The title itself sits in a `.title` box inside that
-  cell, so the focus rule can span the title and not the padding. In a bar the
-  label is `role="menuitem"`; standalone it is `role="button"` — a collapsed
-  standalone dropdown *is* the APG menu-button pattern, and `aria-haspopup` +
-  `aria-expanded` are already right for it (the host itself is `role="none"`
-  in a bar and role-less standalone, behind vf-menu-item's first-connect
-  ownership latch). Panel: `.vf-panel`, `position: absolute` below the label
-  (`top: 100%; left: 0;`), `padding: 0`, `min-width: 100%` — a menu is as wide
-  as its widest row, the way the MDEF sized it (`Menus.png`'s File pulldown is
-  141px, its cm/inches popup 94), never narrower than its own bar title;
-  `role="menu"`.
-  - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at
-    `--vf-focus-underline-offset: -2px`, a dashed rule one blank system px row
-    under the `.title` box. That box is `line-height: 1`, i.e. the face's own
-    em, whose bottom edge is the descent line — so the one offset clears a
-    descender *and* a slotted 16px `vf-img` (the Apple menu), where the
-    button's baseline-anchored rule is crossed by both. In `currentColor`, so
-    it inverts with the title on an open menu's black cell.
-  - **Closed only** (`:host(:not([open]))`). A dropped menu inverts its whole
-    cell, which already shows where focus is; the rule marks the state the
-    inversion can't — focused but not yet open — and drawing both would put a
-    second mark (in white, since it is `currentColor`) under the first. The
-    class stays on through the open state,
-    so the rule returns by itself when the menu closes and hands focus back.
-  - Gated on a `.vf-focus-rule` class from the page's input modality, not
-    `:focus-visible` (§4): `MenuPressController` `preventDefault`s the opening
-    `pointerdown` and calls `focusLabel()` itself. The menu also calls the
-    controller's `suppress()` from its own host `pointerdown`, so a press on an
-    already-focused title — which moves no focus, and so fires no `focusin` —
-    still drops the mark, as does mousing into the dropped panel.
-    `npm run verify:focus`.
-- **Behavior:** delegates open-state coordination to parent `vf-menu-bar` when
-  present (only one open at a time; standalone, `#requestToggle` doesn't emit
-  the coordination event at all — see the events convention in §2). Keyboard
-  on the label: Enter, Space and ArrowDown all open **and move focus to the
-  first enabled item** (APG, menubar and menu-button patterns alike — opening
-  without entering would park the keyboard on the title with the panel
-  dropped). While open standalone the menu runs its own item keyboard:
-  ArrowDown/Up wrap, Home/End jump, printable keys run the shared first-letter
-  type-ahead (`src/type-ahead.ts`), Escape closes and refocuses the label.
-  Sets `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so
-  slotted `vf-separator`s render dimmed, each spending one full
-  `--vf-menu-row-height` — the MDEF's divider-as-item — with the rule 8px in
-  (12px under the ink band above, 10 over the one below, per InfiniteMac's
-  System 7.5 Edit menu and the 32px cross-divider ink pitch in `Menus.png`).
-  **Pointer:** the two styles `vf-select` supports, on the same terms and the
-  same `PRESS_HOLD_MS` threshold (`src/motion.ts`) — the menus get theirs from
-  `MenuPressController` (`src/menu-press.ts`), which a standalone menu hosts
-  itself and a `vf-menu-bar` hosts for all of its menus. Opening is on
-  **pointerdown**, and the press is then tracked to its release anywhere:
-  - *System 7 press-drag-release* — press the title, slide onto a command,
-    release over it to run it. Sliding sideways onto another title switches
-    menus mid-press. Releasing over a disabled row, a separator, the title, or
-    off the menu closes with nothing chosen (the classic "release outside").
-  - *Modern click-to-open* — a quick in-place tap (under `PRESS_HOLD_MS`, 200ms)
-    on a title leaves the menu dropped for a second, independent click; a *held*
-    in-place press closes it, and a press on an already-dropped title closes it.
-    Time is consulted only for an in-place release: any press that travels is a
-    drag-pick however long it took.
-  Hit-testing is by **coordinates**, not event target, so tracking survives
-  touch's implicit pointer capture (every move is delivered to the pressed
-  title); the row under the pointer carries `vf-menu-item[active]` rather than
-  relying on `:hover`, which capture defeats. The trailing `click` the browser
-  synthesises after a press is swallowed by the label and by the row (the same
-  guard `vf-select` uses), so a keyboard/assistive-tech click — which arrives
-  with no preceding pointerdown — is the only click that still toggles or
-  activates.
-- **Slots:** default (vf-menu-item / vf-separator), `label` (replaces the
-  `label` text in the bar — e.g. the Apple menu's `vf-img` apple; the `label`
-  attribute stays set as the accessible name, mirrored to the bar item's
-  `aria-label`). **Parts:** `label`, `panel`.
+- **Attributes/props:** `label: string` (the menu title in the bar; may contain e.g. an apple glyph), `open: boolean` (reflect, managed by menu-bar or self).
+- **Visual:** label: bold, height of menubar, `padding-inline: 9px 8px` — the label box is the title's black plate and hit rect, and Menus.png puts the plate 10px left / 9px right of the title ink (Chicago carries a 1px bearing on each side inside the text box, so 9/8 in layout lands −10/+9 around ink); open → inverted (black bg / white text), inset one system px top and bottom via transparent `border-block` + `background-clip: padding-box` — the hilite is rows 1..18 of the 20px bar, leaving the bar's top row white and its bottom rule showing through, while the hit rect stays the full bar height. The title itself sits in a `.title` box inside that cell, so the focus rule can span the title and not the padding. In a bar the label is `role="menuitem"`; standalone it is `role="button"` — a collapsed standalone dropdown *is* the APG menu-button pattern, and `aria-haspopup` + `aria-expanded` are already right for it (the host itself is `role="none"` in a bar and role-less standalone, behind vf-menu-item's first-connect ownership latch). Panel: `.vf-panel`, `position: absolute` below the label (`top: 100%; left: 0;`), `padding: 0`, `min-width: 100%` — a menu is as wide as its widest row, the way the MDEF sized it (`Menus.png`'s File pulldown is 141px, its cm/inches popup 94), never narrower than its own bar title; `role="menu"`.
+  - **Keyboard focus: no ring** — `vfFocusUnderline` (§4) at `--vf-focus-underline-offset: -2px`, a dashed rule one blank system px row under the `.title` box. That box is `line-height: 1`, i.e. the face's own em, whose bottom edge is the descent line — so the one offset clears a descender *and* a slotted 16px `vf-img` (the Apple menu), where the button's baseline-anchored rule is crossed by both. In `currentColor`, so it inverts with the title on an open menu's black cell.
+  - **Closed only** (`:host(:not([open]))`). A dropped menu inverts its whole cell, which already shows where focus is; the rule marks the state the inversion can't — focused but not yet open — and drawing both would put a second mark (in white, since it is `currentColor`) under the first. The class stays on through the open state, so the rule returns by itself when the menu closes and hands focus back.
+  - Gated on a `.vf-focus-rule` class from the page's input modality, not `:focus-visible` (§4): `MenuPressController` `preventDefault`s the opening `pointerdown` and calls `focusLabel()` itself. The menu also calls the controller's `suppress()` from its own host `pointerdown`, so a press on an already-focused title — which moves no focus, and so fires no `focusin` — still drops the mark, as does mousing into the dropped panel. `npm run verify:focus`.
+- **Behavior:** delegates open-state coordination to parent `vf-menu-bar` when present (only one open at a time; standalone, `#requestToggle` doesn't emit the coordination event at all — see the events convention in §2). Keyboard on the label: Enter, Space and ArrowDown all open **and move focus to the first enabled item** (APG, menubar and menu-button patterns alike — opening without entering would park the keyboard on the title with the panel dropped). While open standalone the menu runs its own item keyboard: ArrowDown/Up wrap, Home/End jump, printable keys run the shared first-letter type-ahead (`src/type-ahead.ts`), Escape closes and refocuses the label. Sets `--vf-separator-color: var(--vf-disabled, #c0c0c0)` on its panel so slotted `vf-separator`s render dimmed, each spending one full `--vf-menu-row-height` — the MDEF's divider-as-item — with the rule 8px in (12px under the ink band above, 10 over the one below, per InfiniteMac's System 7.5 Edit menu and the 32px cross-divider ink pitch in `Menus.png`). **Pointer:** the two styles `vf-select` supports, on the same terms and the same `PRESS_HOLD_MS` threshold (`src/motion.ts`) — the menus get theirs from `MenuPressController` (`src/menu-press.ts`), which a standalone menu hosts itself and a `vf-menu-bar` hosts for all of its menus. Opening is on **pointerdown**, and the press is then tracked to its release anywhere:
+  - *System 7 press-drag-release* — press the title, slide onto a command, release over it to run it. Sliding sideways onto another title switches menus mid-press. Releasing over a disabled row, a separator, the title, or off the menu closes with nothing chosen (the classic "release outside").
+  - *Modern click-to-open* — a quick in-place tap (under `PRESS_HOLD_MS`, 200ms) on a title leaves the menu dropped for a second, independent click; a *held* in-place press closes it, and a press on an already-dropped title closes it. Time is consulted only for an in-place release: any press that travels is a drag-pick however long it took. Hit-testing is by **coordinates**, not event target, so tracking survives touch's implicit pointer capture (every move is delivered to the pressed title); the row under the pointer carries `vf-menu-item[active]` rather than relying on `:hover`, which capture defeats. The trailing `click` the browser synthesises after a press is swallowed by the label and by the row (the same guard `vf-select` uses), so a keyboard/assistive-tech click — which arrives with no preceding pointerdown — is the only click that still toggles or activates.
+- **Slots:** default (vf-menu-item / vf-separator), `label` (replaces the `label` text in the bar — e.g. the Apple menu's `vf-img` apple; the `label` attribute stays set as the accessible name, mirrored to the bar item's `aria-label`). **Parts:** `label`, `panel`.
 
 #### `vf-menu-item` (`VfMenuItem`, vf-menu-item.ts)
-- **Attributes/props:** `disabled`, `checked` (shows ✓ in left gutter),
-  `checkable` (declares a toggle up front — see Behavior),
-  `shortcut: string` (e.g. `"⌘H"`, drawn in the left-aligned shortcut
-  column), `value?: string` (defaults
-  to text content), `active` (reflect; the transient press-drag highlight,
-  managed by the menu — mirrors `vf-option[active]`, not an authoring API).
-- **Visual:** height `var(--vf-menu-row-height, 16px)` — `Menus.png` puts every
-  menu row on a 16px pitch (3px above + the 9px glyph + 4px below), so a
-  pulldown row matches a popup row exactly; the line box is locked to the same
-  expression so an inherited line-height can never overflow the panel.
-  `padding: 0 12px 0 var(--vf-select-gutter, 16px)`
-  (left gutter for ✓, shared with `vf-select`/`vf-option` — `Menus.png` puts a
-  pulldown's label ink at the same inset as a popup's; a shortcut row trades
-  the 12 for 1px, the slot being the clearance there). The shortcut is
-  left-aligned in a right-anchored `--vf-menu-shortcut-column` (23px) slot —
-  every ⌘ at the same x, 23px from the right border, the widest letters
-  running to within ~3px of it (`Menus.png`'s File pulldown) — with an 8px
-  label↔shortcut min gap. `color: var(--vf-disabled)` when
-  disabled. Hover, `[active]`, keyboard focus (not disabled): full-width
-  inversion — each with its own `.blink-off` override at matching specificity,
-  so a drag-picked row keeps its flag through the blink and the release reads as
-  the highlight flashing off. A disabled row dims its
-  ✓ along with the label — a **documented deviation** from the §1 "dim the label,
-  chrome glyphs stay black" rule, because authentic System 7 greyed the whole
-  disabled row.
-- **Behavior:** `role="menuitem"` — or `role="menuitemcheckbox"` with
-  `aria-checked` when the item is *checkable*: either `checkable` is set, or the
-  item has ever been `checked`. Set `checkable` on a toggle that starts **off**,
-  which would otherwise announce as a plain command until its first flip (a
-  boolean `checked` attribute can't express "checkable but off"). The role is
-  re-derived on every connect, so re-parenting a checkable item keeps it; an
-  author-supplied `role` is left alone. On activation — a click, Enter/Space, or
-  the public `activate()` the menu's press gesture calls for the row a drag was
-  released over (which the row's own `click` never sees, since a press that
-  started on the title dispatches its click above both): classic **blink**
-  (invert toggles 3 times over ~250ms via timer; skipped under
-  `prefers-reduced-motion`, selecting at once), then dispatch `vf-menu-select`
-  detail `{ value, item }` and signal ancestors to close the menu. Disabling an
-  item mid-blink cancels it and drops the pending `vf-menu-select`.
+- **Attributes/props:** `disabled`, `checked` (shows ✓ in left gutter), `checkable` (declares a toggle up front — see Behavior), `shortcut: string` (e.g. `"⌘H"`, drawn in the left-aligned shortcut column), `value?: string` (defaults to text content), `active` (reflect; the transient press-drag highlight, managed by the menu — mirrors `vf-option[active]`, not an authoring API).
+- **Visual:** height `var(--vf-menu-row-height, 16px)` — `Menus.png` puts every menu row on a 16px pitch (3px above + the 9px glyph + 4px below), so a pulldown row matches a popup row exactly; the line box is locked to the same expression so an inherited line-height can never overflow the panel. `padding: 0 12px 0 var(--vf-select-gutter, 16px)` (left gutter for ✓, shared with `vf-select`/`vf-option` — `Menus.png` puts a pulldown's label ink at the same inset as a popup's; a shortcut row trades the 12 for 1px, the slot being the clearance there). The shortcut is left-aligned in a right-anchored `--vf-menu-shortcut-column` (23px) slot — every ⌘ at the same x, 23px from the right border, the widest letters running to within ~3px of it (`Menus.png`'s File pulldown) — with an 8px label↔shortcut min gap. `color: var(--vf-disabled)` when disabled. Hover, `[active]`, keyboard focus (not disabled): full-width inversion — each with its own `.blink-off` override at matching specificity, so a drag-picked row keeps its flag through the blink and the release reads as the highlight flashing off. A disabled row dims its ✓ along with the label — a **documented deviation** from the §1 "dim the label, chrome glyphs stay black" rule, because authentic System 7 greyed the whole disabled row.
+- **Behavior:** `role="menuitem"` — or `role="menuitemcheckbox"` with `aria-checked` when the item is *checkable*: either `checkable` is set, or the item has ever been `checked`. Set `checkable` on a toggle that starts **off**, which would otherwise announce as a plain command until its first flip (a boolean `checked` attribute can't express "checkable but off"). The role is re-derived on every connect, so re-parenting a checkable item keeps it; an author-supplied `role` is left alone. On activation — a click, Enter/Space, or the public `activate()` the menu's press gesture calls for the row a drag was released over (which the row's own `click` never sees, since a press that started on the title dispatches its click above both): classic **blink** (invert toggles 3 times over ~250ms via timer; skipped under `prefers-reduced-motion`, selecting at once), then dispatch `vf-menu-select` detail `{ value, item }` and signal ancestors to close the menu. Disabling an item mid-blink cancels it and drops the pending `vf-menu-select`.
 - **Slots:** default (label). **Parts:** `item`, `check`, `label`, `shortcut`.
-- **Events:** `vf-menu-select` — menu-specific by design. A plain `vf-select`
-  would collide with the `<vf-select>` popup on any delegated ancestor listener,
-  since both bubble and compose while `<vf-select>` itself commits with
-  `vf-change`. Parallels the existing `vf-menu-*` coordination names.
+- **Events:** `vf-menu-select` — menu-specific by design. A plain `vf-select` would collide with the `<vf-select>` popup on any delegated ancestor listener, since both bubble and compose while `<vf-select>` itself commits with `vf-change`. Parallels the existing `vf-menu-*` coordination names.
 
 #### `vf-list` (`VfList`, vf-list-item children) (vf-list.ts)
 Classic list box.
-- **Attributes/props:** `multiple: boolean`, `value: string` /
-  `values: string[]` (multiple), `disabled`, `label: string` (accessible name →
-  host `aria-label`).
-- **Children:** `<vf-list-item value="...">` (`VfListItem`, vf-list-item.ts):
-  props `value`, `selected` (reflect), `disabled`; height 20px,
-  `padding: 0 6px`; selected = inverted row (full width). Slots: default (the
-  row text, in a `text` part that ellipsizes), `icon` (a leading graphic —
-  usually a 16×16 `vf-img` small icon; flex-centered in the row with the
-  reference art's 4px gap to the text, no text contributed so type-ahead
-  still reads the words; keep row-height − icon-height even so the centering
-  offset is a whole pixel).
-- **Visual (list):** white bg inside a real 1px black frame on the snapped
-  wrapper, a `[rows | rail]` grid: the scrolling row viewport (class
-  `vf-scroll`, native bar hidden) beside the drawn `vfScrollRail` subtree
-  (§4), synced by `ScrollRailController`. The rows sit exactly 1 system px
-  inside the frame lines (a `mod()` border-floor compensation pads back what
-  engines floor off the fractional border-width — the rows are light-DOM
-  components, so their origins are the page's grid contract); default
-  `max-height: 200px` overridable via `--vf-list-max-height` (the frame adds
-  its 2px on top). Reserves a permanent vertical scroll rail (the
-  "always-a-rail" behavior — see vf-scroll-area): arrows on an empty white
-  channel until the rows overflow.
-- **Behavior:** `role="listbox"` (+`aria-multiselectable`, + `aria-label` from
-  `label`), items `role="option"`. A disabled list pushes `aria-disabled` down
-  onto every row (as `vf-radio-group` does), so AT is never shown enabled-looking
-  options inside a disabled listbox; the flag is tracked separately from each
-  row's own `disabled`, so re-enabling the list leaves individually disabled rows
-  disabled. Click selects (Shift/Cmd extend when `multiple`). Roving tabindex;
-  Arrow keys move the selection, Space toggles in multiple mode. The full
-  multiple-mode model: Shift+Arrow extends from the anchor, Ctrl+Arrow moves
-  the cursor without touching the selection, plain Home/End and type-ahead
-  jumps are cursor-only moves too (a jump that rewrote a hand-built selection
-  would destroy it — Space is how the reached row joins it; in single mode
-  they select, since there the selection *is* the cursor), Shift(+Ctrl)+
-  Home/End extend through to the ends, Shift+Space selects the contiguous run
-  from the anchor to the cursor, and Ctrl/Cmd+A selects every enabled row.
-  Printable keys drive classic Finder **first-letter type-ahead**
-  (`src/type-ahead.ts`, the shared buffer `vf-select` and the menus also run):
-  keystrokes accumulate into a prefix matched against each row's text, jumping
-  to the next match, wrapping and skipping disabled rows. The prefix resets
-  after 1s of silence; repeating a single character cycles the rows starting
-  with it. Modified keys are left to the consumer, and Space stays the
-  multiple-mode toggle, so neither joins the prefix. A **disabled** list keeps
-  its rows rendered and readable (System 7 dims a list, it doesn't hide it) —
-  when they overflow the box, the viewport itself becomes the Tab stop so the
-  dimmed rows stay reachable by keyboard scroll.
+- **Attributes/props:** `multiple: boolean`, `value: string` / `values: string[]` (multiple), `disabled`, `label: string` (accessible name → host `aria-label`).
+- **Children:** `<vf-list-item value="...">` (`VfListItem`, vf-list-item.ts): props `value`, `selected` (reflect), `disabled`; height 20px, `padding: 0 6px`; selected = inverted row (full width). Slots: default (the row text, in a `text` part that ellipsizes), `icon` (a leading graphic — usually a 16×16 `vf-img` small icon; flex-centered in the row with the reference art's 4px gap to the text, no text contributed so type-ahead still reads the words; keep row-height − icon-height even so the centering offset is a whole pixel).
+- **Visual (list):** white bg inside a real 1px black frame on the snapped wrapper, a `[rows | rail]` grid: the scrolling row viewport (class `vf-scroll`, native bar hidden) beside the drawn `vfScrollRail` subtree (§4), synced by `ScrollRailController`. The rows sit exactly 1 system px inside the frame lines (a `mod()` border-floor compensation pads back what engines floor off the fractional border-width — the rows are light-DOM components, so their origins are the page's grid contract); default `max-height: 200px` overridable via `--vf-list-max-height` (the frame adds its 2px on top). Reserves a permanent vertical scroll rail (the "always-a-rail" behavior — see vf-scroll-area): arrows on an empty white channel until the rows overflow.
+- **Behavior:** `role="listbox"` (+`aria-multiselectable`, + `aria-label` from `label`), items `role="option"`. A disabled list pushes `aria-disabled` down onto every row (as `vf-radio-group` does), so AT is never shown enabled-looking options inside a disabled listbox; the flag is tracked separately from each row's own `disabled`, so re-enabling the list leaves individually disabled rows disabled. Click selects (Shift/Cmd extend when `multiple`). Roving tabindex; Arrow keys move the selection, Space toggles in multiple mode. The full multiple-mode model: Shift+Arrow extends from the anchor, Ctrl+Arrow moves the cursor without touching the selection, plain Home/End and type-ahead jumps are cursor-only moves too (a jump that rewrote a hand-built selection would destroy it — Space is how the reached row joins it; in single mode they select, since there the selection *is* the cursor), Shift(+Ctrl)+ Home/End extend through to the ends, Shift+Space selects the contiguous run from the anchor to the cursor, and Ctrl/Cmd+A selects every enabled row. Printable keys drive classic Finder **first-letter type-ahead** (`src/type-ahead.ts`, the shared buffer `vf-select` and the menus also run): keystrokes accumulate into a prefix matched against each row's text, jumping to the next match, wrapping and skipping disabled rows. The prefix resets after 1s of silence; repeating a single character cycles the rows starting with it. Modified keys are left to the consumer, and Space stays the multiple-mode toggle, so neither joins the prefix. A **disabled** list keeps its rows rendered and readable (System 7 dims a list, it doesn't hide it) — when they overflow the box, the viewport itself becomes the Tab stop so the dimmed rows stay reachable by keyboard scroll.
 - **Parts:** `list`. **Events:** `vf-change` detail `{ value, values }`.
 
 #### `vf-scroll-area` (`VfScrollArea`, vf-scroll-area.ts)
 A container whose scrollbars look like System 7.
-- **Attributes/props:** `axis: 'vertical' | 'horizontal' | 'both'` (default
-  `'vertical'`, reflected) — which scroll rails to reserve as permanent
-  placeholders (see "always-a-rail" below); `label: string` — accessible name
-  for the viewport (`aria-label` on the viewport, since an `aria-label` on the
-  host cannot reach into the shadow DOM). The viewport is a **Tab stop only
-  while its content actually overflows** — the same state
-  `ScrollStateController` measures for the rails; a fitting scroll area used
-  to be a focusable stop with `role: generic` and no name, a dead Tab press.
-  Whenever it is a stop it carries a role: `role="region"` when `label` names
-  it (a named landmark), `role="group"` when not (an unnamed region is inert,
-  so that role is reserved for the labelled case).
-- **Visual:** `display: block`; the snapped wrapper carries a real 1px black
-  frame and a grid reserving each rail as its own edge column/row —
-  `[viewport | vertical rail]` over `[horizontal rail | corner]` — with the
-  white inner viewport padded `8px` plus the border-floor compensation (a
-  `mod()` term restoring what engines floor off the fractional border-width,
-  so slotted content and the (0,0) of placed children sit exactly 9 system px
-  from the frame box at every scale). Consumer sets width/height on host.
-  The rails are the drawn `vfScrollRail` subtree (§4 — the classic 16px cell
-  counting the frame line: divider, 14px channel, 15px arrow cells, the fixed
-  16px thumb, the `tileRaster` dot-dither trough), rendered as later siblings
-  of the viewport and synced to its native scrolling by
-  `ScrollRailController`; the viewport carries the `vf-scroll` class, which
-  hides the native bar without touching the native scrolling. When both
-  rails are reserved, the corner cell joins them, supplying the interior
-  dividers the adjacent arrow cells leave to it. Every engine renders the
-  same rail; the old `::-webkit-scrollbar` skin, its `.vf-scroll-frame`
-  overlay contortion (WebKit quantized native scrollbar rects to whole CSS
-  px) and the Firefox `scrollbar-color` fallback are all retired.
-- **Always-a-rail behavior:** each *reserved* axis (per `axis`) renders its
-  rail element as a permanent placeholder — arrow buttons on an empty white
-  channel (dither off, no thumb; System 7 drew the arrows on any bar in an
-  active window, and a scroller outside a window always counts as active) —
-  until the content overflows that axis, when the dither and thumb fill in
-  and the arrows go live (an idle axis's arrows are drawn but inert — the
-  press guard in `ScrollRailController` skips them). `ScrollStateController`
-  (`src/scroll-state.ts`) measures both axes and writes `data-overflow-x` /
-  `data-overflow-y` (`"true"` / `"false"`) on the scroll element; the recipe
-  keys the dither and thumb off those attributes. The unreserved axis still scrolls
-  natively (wheel, keyboard) but draws no rail. Shared by vf-list and
-  vf-text-area; a future `@container scroll-state(scrollable)` query could
-  replace the JS for slotted-content components.
-  - **Inactive-window blanking:** the HIG's non-frontmost window must not
-    display interactive scroll UX, so the controller also finds the nearest
-    `vf-window` up the composed tree (light-DOM ancestor for a slotted
-    scroller, shadow ancestor for `vf-window[scrollbars]`'s own edge rails),
-    watches its reflected `active` attribute, and toggles a presence-only
-    `data-window-inactive` on the scroll element. While present, the recipe
-    empties dither/thumb/arrows on BOTH axes regardless of overflow — the
-    bare channel, arrows included (unlike the idle rail, which keeps them),
-    exactly as System 7 blanked a deactivated window's
-    bars (its List Manager/TextEdit deactivated in-window scrollbars too).
-    No `vf-window` ancestor → the attribute never appears: dialogs have no
-    inactive state and a bare scroll component always draws live. Like the
-    overflow half, this signal could one day go declarative — a custom
-    property cascaded under `vf-window:not([active])` gating the recipe via an
-    `@container style()` query; the rails being ordinary DOM, that migration
-    is a plain selector swap (see the FUTURE note in scroll-state.ts).
-- **Document-window (TeachText) composition:** to put the rails on a window's
-  edge rather than inset in its body, slot the scroll area into a
-  `vf-window[flush]` sized `calc(100% + 2px·scale)` with `margin: -1px·scale`
-  — one system pixel under the window frame on every side. Its own frame
-  border then repaints the window's border lines exactly (no doubled frame),
-  and a resizable window's grow box lands exactly over the rail's corner
-  cell, giving the classic System 7 document window. `vf-window[scrollbars]`
-  renders exactly this composition from its own shadow tree, so the
-  one-liner and the slotted form are geometrically identical; slot it
-  yourself when the well should sit *inset* in the body instead (the
-  installer's read-me well).
+- **Attributes/props:** `axis: 'vertical' | 'horizontal' | 'both'` (default `'vertical'`, reflected) — which scroll rails to reserve as permanent placeholders (see "always-a-rail" below); `label: string` — accessible name for the viewport (`aria-label` on the viewport, since an `aria-label` on the host cannot reach into the shadow DOM). The viewport is a **Tab stop only while its content actually overflows** — the same state `ScrollStateController` measures for the rails; a fitting scroll area used to be a focusable stop with `role: generic` and no name, a dead Tab press. Whenever it is a stop it carries a role: `role="region"` when `label` names it (a named landmark), `role="group"` when not (an unnamed region is inert, so that role is reserved for the labelled case).
+- **Visual:** `display: block`; the snapped wrapper carries a real 1px black frame and a grid reserving each rail as its own edge column/row — `[viewport | vertical rail]` over `[horizontal rail | corner]` — with the white inner viewport padded `8px` plus the border-floor compensation (a `mod()` term restoring what engines floor off the fractional border-width, so slotted content and the (0,0) of placed children sit exactly 9 system px from the frame box at every scale). Consumer sets width/height on host. The rails are the drawn `vfScrollRail` subtree (§4 — the classic 16px cell counting the frame line: divider, 14px channel, 15px arrow cells, the fixed 16px thumb, the `tileRaster` dot-dither trough), rendered as later siblings of the viewport and synced to its native scrolling by `ScrollRailController`; the viewport carries the `vf-scroll` class, which hides the native bar without touching the native scrolling. When both rails are reserved, the corner cell joins them, supplying the interior dividers the adjacent arrow cells leave to it. Every engine renders the same rail; the old `::-webkit-scrollbar` skin, its `.vf-scroll-frame` overlay contortion (WebKit quantized native scrollbar rects to whole CSS px) and the Firefox `scrollbar-color` fallback are all retired.
+- **Always-a-rail behavior:** each *reserved* axis (per `axis`) renders its rail element as a permanent placeholder — arrow buttons on an empty white channel (dither off, no thumb; System 7 drew the arrows on any bar in an active window, and a scroller outside a window always counts as active) — until the content overflows that axis, when the dither and thumb fill in and the arrows go live (an idle axis's arrows are drawn but inert — the press guard in `ScrollRailController` skips them). `ScrollStateController` (`src/scroll-state.ts`) measures both axes and writes `data-overflow-x` / `data-overflow-y` (`"true"` / `"false"`) on the scroll element; the recipe keys the dither and thumb off those attributes. The unreserved axis still scrolls natively (wheel, keyboard) but draws no rail. Shared by vf-list and vf-text-area; a future `@container scroll-state(scrollable)` query could replace the JS for slotted-content components.
+  - **Inactive-window blanking:** the HIG's non-frontmost window must not display interactive scroll UX, so the controller also finds the nearest `vf-window` up the composed tree (light-DOM ancestor for a slotted scroller, shadow ancestor for `vf-window[scrollbars]`'s own edge rails), watches its reflected `active` attribute, and toggles a presence-only `data-window-inactive` on the scroll element. While present, the recipe empties dither/thumb/arrows on BOTH axes regardless of overflow — the bare channel, arrows included (unlike the idle rail, which keeps them), exactly as System 7 blanked a deactivated window's bars (its List Manager/TextEdit deactivated in-window scrollbars too). No `vf-window` ancestor → the attribute never appears: dialogs have no inactive state and a bare scroll component always draws live. Like the overflow half, this signal could one day go declarative — a custom property cascaded under `vf-window:not([active])` gating the recipe via an `@container style()` query; the rails being ordinary DOM, that migration is a plain selector swap (see the FUTURE note in scroll-state.ts).
+- **Document-window (TeachText) composition:** to put the rails on a window's edge rather than inset in its body, slot the scroll area into a `vf-window[flush]` sized `calc(100% + 2px·scale)` with `margin: -1px·scale` — one system pixel under the window frame on every side. Its own frame border then repaints the window's border lines exactly (no doubled frame), and a resizable window's grow box lands exactly over the rail's corner cell, giving the classic System 7 document window. `vf-window[scrollbars]` renders exactly this composition from its own shadow tree, so the one-liner and the slotted form are geometrically identical; slot it yourself when the well should sit *inset* in the body instead (the installer's read-me well).
 - **Slots:** default. **Parts:** `viewport`.
 
 #### `vf-fieldset` (`VfFieldset`, vf-fieldset.ts)
 The "Install Location" group box.
 - **Attributes/props:** `legend: string`.
-- **Visual:** `border: 1px solid var(--vf-black, #000)`, no radius,
-  `padding: 14px 12px 10px`, `margin-top: 8px` (room for legend). Legend: bold,
-  positioned overlapping the top border (absolute, `top: -0.7em; left: 8px;`),
-  `padding: 0 5px`, `background: var(--vf-surface, var(--vf-white, #fff))` so
-  it punches out the border to match its surface.
+- **Visual:** `border: 1px solid var(--vf-black, #000)`, no radius, `padding: 14px 12px 10px`, `margin-top: 8px` (room for legend). Legend: bold, positioned overlapping the top border (absolute, `top: -0.7em; left: 8px;`), `padding: 0 5px`, `background: var(--vf-surface, var(--vf-white, #fff))` so it punches out the border to match its surface.
 - **Slots:** default, plus named slot `legend` (overrides attr).
 - **Parts:** `fieldset`, `legend`.
 
 #### `vf-grid` (`VfGrid`, vf-grid.ts)
-A lattice of equal cells with 1px rules between them: the Figure 5-6 tool
-palette's 3×3 of desk accessories, a color picker's swatch table, a pattern or
-icon chooser. All the same drawing, and all of it used to be hand-rolled page
-CSS — a `display: grid` with a 1px gap over a black background, showing through
-as the rules (which only draws them solid, and puts the kit's artwork in the
-consumer's stylesheet).
-- **Attributes/props:** `columns: number` (cells across, default 1),
-  `rows: number` (cells down; unset, the slotted cells decide — set, that many
-  are reserved, so an unfilled cell still gets its rules),
-  `cell-width` / `cell-height`: number (whole system px, default 16),
-  `rules: 'solid' | 'dashed' | 'none'` (default `'solid'`, reflected) — the pen
-  every rule is drawn with, `frameless: boolean` (reflected) — drop the
-  perimeter, which is otherwise drawn, `collapse: boolean` (reflected) — land a
-  cell's own border on the rule rather than beside it.
-- **Visual:** host `display: block`; the shadow `grid` box is `width: max-content`
-  (a block-level grid stretched by a wider parent would tile its rules on across
-  the empty space) over `var(--vf-surface, var(--vf-white, #fff))`, with fixed
-  `cell-width × cell-height` tracks and a 1px gap for the rules to paint into
-  (`rules="none"` closes the gap and the cells butt together). The box carries
-  1px of padding for the outer lines to land on, which `frameless` drops with
-  them. Cells are the *slotted* elements
-  (`slot { display: contents }`), so they keep their own semantics and styling.
-  The grid is `place-items: center`: what a palette holds is smaller than its
-  well (a 16px icon in a 26px cell), and grid's own `stretch` default behaves as
-  *start* for anything with a size, which parks every icon in a corner. A cell
-  that means to fill its well — a tool button that inverts when selected — asks
-  with `place-self: stretch`; under `collapse` that is already the default.
-- **The rules are a masked lattice, not gaps:** one overlay paints
-  `var(--vf-black, #000)` through two tiled 1-bit SVG masks — a pixel column at
-  the horizontal pitch, a pixel row at the vertical — so the pen switches from
-  solid to dashed with no change in layout, and the color stays a token (the
-  SVG only says *where*; rects rather than gradient stops, like the windoid
-  dither). The lattice starts at the box's own edge, so the perimeter is simply
-  its first and last lines; `frameless` pulls it back one pixel, putting the
-  first line on the first gap and the last one outside the box.
-- **The dashed pen inks where `x + y` is even** — the diagonal phase of a 50%
-  dither, and the only phasing under which the two layers agree at a crossing:
-  either both draw that pixel or neither does. Phase the lines independently and
-  the crossings where one layer inks and the other doesn't put a stray pixel
-  beside a dash, rendering the 1px rule as 2 and 3 px clumps at half its
-  intersections. Carrying it takes a mask tile two pitches long (its second line
-  starting `pitch % dash` steps out of phase).
-- **Painted under the cells** (`z-index: -1` in the grid's own stacking context,
-  above its surface), so an item spanning two cells covers the boundary it
-  swallowed and a cell's own ink — a pressed face, a focus rule, a hard shadow —
-  is never crossed by a line. It is also what makes `collapse` read right: a
-  filled cell's solid border hides the rule beneath it while the empty cells
-  around it keep showing the pen.
-- **`collapse`** is `border-collapse: collapse` in system px, for cells that
-  draw their own 1px border (a bordered tile, a `vf-swatch`): without it that
-  border sets *beside* the lattice line and every boundary reads 2px. It pulls
-  each cell back 1px on all four sides (`::slotted(*) { margin: -1px }`), so the
-  two become one line and neighbors share it. Size the cells at *item − 2px*
-  (`cell-width="14"` for a 16px item); these cells also keep grid's `stretch`
-  rather than the centering above — they exist to meet the lines — so an
-  auto-width one is resized to match, and a consumer's own margin still wins (a
-  light-DOM declaration beats a `::slotted` one). The frame gives the outermost borders a line to land
-  on and ends the box exactly at the last item's outer edge — `n × (cell + 1) + 1`
-  is exactly `n` items of `cell + 2` overlapping by one. On a `frameless` grid
-  those outer borders paint a pixel outside its box; with `rules="none"` there is
-  nothing to collapse onto and it goes inert.
-- **Semantics are the consumer's:** the grid takes no role, no keyboard behavior
-  and no selection — `role="group"`/`aria-label` on the host for a tool palette,
-  `role="radiogroup"` for a picker, nothing at all for a plain tiling.
-- **Slots:** default (the cells, in order). **Parts:** `grid`, `rules`.
-  **Events:** none.
+A lattice of equal cells with 1px rules between them: the Figure 5-6 tool palette's 3×3 of desk accessories, a color picker's swatch table, a pattern or icon chooser. All the same drawing, and all of it used to be hand-rolled page CSS — a `display: grid` with a 1px gap over a black background, showing through as the rules (which only draws them solid, and puts the kit's artwork in the consumer's stylesheet).
+- **Attributes/props:** `columns: number` (cells across, default 1), `rows: number` (cells down; unset, the slotted cells decide — set, that many are reserved, so an unfilled cell still gets its rules), `cell-width` / `cell-height`: number (whole system px, default 16), `rules: 'solid' | 'dashed' | 'none'` (default `'solid'`, reflected) — the pen every rule is drawn with, `frameless: boolean` (reflected) — drop the perimeter, which is otherwise drawn, `collapse: boolean` (reflected) — land a cell's own border on the rule rather than beside it.
+- **Visual:** host `display: block`; the shadow `grid` box is `width: max-content` (a block-level grid stretched by a wider parent would tile its rules on across the empty space) over `var(--vf-surface, var(--vf-white, #fff))`, with fixed `cell-width × cell-height` tracks and a 1px gap for the rules to paint into (`rules="none"` closes the gap and the cells butt together). The box carries 1px of padding for the outer lines to land on, which `frameless` drops with them. Cells are the *slotted* elements (`slot { display: contents }`), so they keep their own semantics and styling. The grid is `place-items: center`: what a palette holds is smaller than its well (a 16px icon in a 26px cell), and grid's own `stretch` default behaves as *start* for anything with a size, which parks every icon in a corner. A cell that means to fill its well — a tool button that inverts when selected — asks with `place-self: stretch`; under `collapse` that is already the default.
+- **The rules are a masked lattice, not gaps:** one overlay paints `var(--vf-black, #000)` through two tiled 1-bit SVG masks — a pixel column at the horizontal pitch, a pixel row at the vertical — so the pen switches from solid to dashed with no change in layout, and the color stays a token (the SVG only says *where*; rects rather than gradient stops, like the windoid dither). The lattice starts at the box's own edge, so the perimeter is simply its first and last lines; `frameless` pulls it back one pixel, putting the first line on the first gap and the last one outside the box.
+- **The dashed pen inks where `x + y` is even** — the diagonal phase of a 50% dither, and the only phasing under which the two layers agree at a crossing: either both draw that pixel or neither does. Phase the lines independently and the crossings where one layer inks and the other doesn't put a stray pixel beside a dash, rendering the 1px rule as 2 and 3 px clumps at half its intersections. Carrying it takes a mask tile two pitches long (its second line starting `pitch % dash` steps out of phase).
+- **Painted under the cells** (`z-index: -1` in the grid's own stacking context, above its surface), so an item spanning two cells covers the boundary it swallowed and a cell's own ink — a pressed face, a focus rule, a hard shadow — is never crossed by a line. It is also what makes `collapse` read right: a filled cell's solid border hides the rule beneath it while the empty cells around it keep showing the pen.
+- **`collapse`** is `border-collapse: collapse` in system px, for cells that draw their own 1px border (a bordered tile, a `vf-swatch`): without it that border sets *beside* the lattice line and every boundary reads 2px. It pulls each cell back 1px on all four sides (`::slotted(*) { margin: -1px }`), so the two become one line and neighbors share it. Size the cells at *item − 2px* (`cell-width="14"` for a 16px item); these cells also keep grid's `stretch` rather than the centering above — they exist to meet the lines — so an auto-width one is resized to match, and a consumer's own margin still wins (a light-DOM declaration beats a `::slotted` one). The frame gives the outermost borders a line to land on and ends the box exactly at the last item's outer edge — `n × (cell + 1) + 1` is exactly `n` items of `cell + 2` overlapping by one. On a `frameless` grid those outer borders paint a pixel outside its box; with `rules="none"` there is nothing to collapse onto and it goes inert.
+- **Semantics are the consumer's:** the grid takes no role, no keyboard behavior and no selection — `role="group"`/`aria-label` on the host for a tool palette, `role="radiogroup"` for a picker, nothing at all for a plain tiling.
+- **Slots:** default (the cells, in order). **Parts:** `grid`, `rules`. **Events:** none.
 
 #### `vf-stack` (`VfStack`, vf-stack.ts)
-The kit's layout primitive: a flexbox whose `gap`, `pad`, `width` and `height`
-are declared in whole system px and converted internally, so a window's insides
-are laid out in the art's own unit with no `calc(var(--vf-scale, 1) * Npx)` in
-the consumer's stylesheet.
-- **Why a component and not a documented snippet:** scaling is default-on and
-  *per component* — `ScaleController` sets `--vf-scale` on the component's own
-  host, never on the document — so `var(--vf-scale, 1)` in page CSS resolves
-  only where the rule's element happens to sit inside a `vf-*` ancestor and
-  inherit it. Inside a window body it does (which is the only reason the demo's
-  own hand-written rules ever worked); for a plain `<div>` holding two buttons
-  on an ordinary page it does not, and the fallback `1` silently renders an 8px
-  gap around 3×-sized controls. A page that hasn't called `applyScale()` cannot
-  express "8 system px" at all. A component always can, because it *is* the
-  scope — which is also why the stack carries a `ScaleController` of its own.
-- **Attributes/props:** `direction: 'column' | 'row'` (default `'column'`,
-  reflected), `gap: number` (whole system px, default `0`), `pad: string | number`
-  (whole system px, one to four values in CSS shorthand order),
-  `place: 'start' | 'center' | 'end'` (reflected; unset resolves per direction),
-  `width` / `height`: number (whole system px, optional). Whole system px is the
-  only expressible value — a fractional entry is truncated — so the gap half of
-  the layout contract (docs/SIZING.md rule 2) holds by construction, and a declared
-  `width` covers the size half of rule 3. On a **child**: `fill-width` and
-  `fill-height`, bare attributes like `nosnap`.
-- **Visual:** none. The stack paints nothing — no border, background or shadow —
-  and takes no role, no keyboard behavior and no selection; what it holds
-  decides what it is, as with `vf-grid`. `:host` is a plain block shell
-  (`width: fit-content`); the flex container is one shadow box coinciding with
-  the host box (`.vf-snap`, `height: 100%` so a declared or filled host height
-  reaches the flex layout) — the `vf-container` arrangement, with the
-  placed-child anchor and the grid-snap target on the same element. The box
-  carries no padding until `pad` writes some, so its padding box IS the host
-  box and the placed-child anchor ignores `pad` exactly as before
-  (`verify:position` pins this). `gap`/`pad` are written to that box's inline
-  style as `calc(var(--vf-scale, 1) * Npx)` via `sysLength`/`sysLengths` (the
-  var resolves against the host's own `--vf-scale` by inheritance);
-  `width`/`height` stay on the host via `VfSized` — each stays live against
-  the display rather than freezing at write time. **Carries a
-  `GridSnapController`** — a reversal of the original no-controller decision,
-  which accounted only for kit children: a stack is a positioned ancestor and
-  a layout box for *anything*, and consumer content inside it (a div, an
-  `<img>`, a run of text) has no controller of its own. Under
-  `applyGridSnap()` the correction moves the stack's whole coordinate system;
-  kit children then find nothing left to correct (the sweep runs
-  outermost-first). It does not fix what it never could: a text-governed child
-  width mid-row still shifts later siblings fractionally (their own
-  controllers cover that), and centering still can't land on a whole pixel.
-- **The content governs the box.** A column is as wide as its widest child and a
-  row as tall as its tallest; children neither grow nor shrink
-  (`::slotted(*) { flex: 0 0 auto }`). System 7 controls keep their natural
-  sizes — a push button is as wide as its label, a popup menu hugs its widest
-  option, a
-  swatch is a fixed well — and a window is a fixed box whose overflow is clipped
-  at the frame, not a layout that squeezes its controls. The stack distributes;
-  it never resizes. `width: fit-content` is the same rule stated in the box
-  model: a layout box that claimed its parent's whole width would be handing out
-  a size nobody declared. It shrink-wraps while staying **block-level**, which is
-  deliberate — `inline-flex` gives the same width but puts the box on a line box,
-  and a line box can never be shorter than its parent's strut, so a stack shorter
-  than the surrounding `line-height` silently gains the difference as leading
-  (the showcase's swatch panel, an 18px row in a 20px line box, grew by exactly
-  that). `width`/`height` override the content when an author says so, in system
-  px, and beat `fit-content` from the host's inline style.
-- **`place` defaults per direction** — `start` down a column (a field starts at
-  the panel edge), `center` across a row (a caption sits beside its control).
-  The two directions call for opposite defaults. Both are
-  stated as the direction's own rather than as an `auto` value, so an
-  unrecognized `place` — a stale `stretch` from before this API — lands on the
-  sane one instead of on flexbox's `normal`, which stretches. It is the only
-  placement the stack owns: there is no `justify`, and a right-aligned action row
-  is a filled column whose one child sits at the end of it. **It is `place` and
-  not `align` because `align` is a legacy HTML presentation attribute** — see
-  the transparency bullet below.
-- **`fill-width` / `fill-height` name the outcome, not an axis**, so each
-  compiles to the main axis (`flex: 1 1 0` plus the `min-*: 0` that lets it
-  shrink below its content) or the cross axis (`align-self: stretch`) depending
-  on which way the stack runs — four static rules, no allowlist. What follows is
-  one rule about geometry rather than vocabulary: **the cross axis always has a
-  size, the main axis only has slack if one was declared.** `fill-width` always
-  works in a column and needs a declared `width` in a row; `fill-height` is the
-  other way round; a fill with nothing to take is inert rather than an error; and
-  two children filling along the main axis come out equal, the zeroed flex basis
-  being what lets them divide the slack instead of keeping their natural sizes.
-  A child that declares its own size shouldn't also ask to fill it — in a column
-  the declared size wins, in a row the fill does. The host reads both attributes
-  about **itself** too (`width`/`height: 100%`), for the parents that aren't
-  stacks — a window body, a fieldset, a scroll well, a grid cell — which is where
-  a panel's width enters the tree. Three components have no width of their own
-  and need a fill to take one: `vf-separator`, `vf-progress-bar` and `vf-slider`
-  are drawn as a rule or a track that *is* the width. A light-DOM declaration
-  beats a `::slotted` one, so `align-self: stretch` in page CSS remains the
-  escape hatch for a cross-axis fill a direction doesn't offer.
-- **Typographically transparent.** `vfBase`
-  dresses a host as chrome (body face, a 1.25 ratio line box, black,
-  unselectable); the stack returns `font`, `-webkit-font-smoothing`, `color`,
-  `user-select` and `text-align` to `inherit`, because wrapping content in a
-  layout box must not change how that content reads. `text-align` is on that
-  list because **`align` is a legacy HTML presentation attribute**: Blink maps
-  the `align` content attribute on any HTML element to `text-align` — "left" /
-  "right" / "center" by name, anything else verbatim — so `align="end"` on an
-  action row right-aligned every run of copy inside it. Renaming the attribute
-  to `place` is the fix; the reset stays because it costs nothing and keeps
-  markup written against the old spelling harmless. The hint loses to
-  a `:host` rule, and the page's own `text-align` still inherits through
-  (`verify:stack` asserts all three). Of every attribute name the kit uses,
-  `align` was the only one that carried a hint — `width`, `height`, `color`,
-  `size`, `direction`, `label` and `value` are all inert on a custom element. Inside a window it goes on inheriting the
-  window's face and the SPEC §1 chrome selection rule; on an ordinary page it
-  leaves the page's typography — and its whole-pixel line boxes — alone. A ratio
-  line-height landing on slotted prose is the exact rule-2 fault the kit warns
-  pages about.
-- **The gap is the real CSS property, not a token.** Written as a custom
-  property it would inherit, and a nested stack would silently pick up its
-  parent's spacing (`--vf-button-group-gap` inherits on purpose; this must not).
-- **What it deliberately doesn't do:** equalize its children's widths. A row of
-  buttons still belongs in a `vf-button-group`, which sizes them to the widest
-  and aligns their *faces* rather than the `variant="default"` ring boxes a
-  plain flex row lines up. It is also not a grid: `grid-template-columns:
-  1fr auto 1fr` stays page CSS.
-- **Two traps it does not fix.** Centering cannot land on a whole pixel by
-  itself — a 16px caption centered against the 25-system-px `vf-number-field`
-  sits at 4.5 system px, and no container can round that without reading each
-  child's height (`applyGridSnap()` keeps the caption's own ink crisp anyway;
-  `place="start"` is the deterministic escape; `hit-list.md` files the 25px
-  height as the underlying fault). And a flex container does not collapse
-  margins, so `vf-fieldset`'s legend room — an 8px `margin-top` on its inner box
-  that escapes the host in block flow — is genuinely reserved inside a stack
-  instead of being donated by whatever precedes it.
-- **Slots:** default (the children; `fill-width` / `fill-height` on any of them).
-  **Parts:** none.
-  **Events:** none.
+The kit's layout primitive: a flexbox whose `gap`, `pad`, `width` and `height` are declared in whole system px and converted internally, so a window's insides are laid out in the art's own unit with no `calc(var(--vf-scale, 1) * Npx)` in the consumer's stylesheet.
+- **Why a component and not a documented snippet:** scaling is default-on and *per component* — `ScaleController` sets `--vf-scale` on the component's own host, never on the document — so `var(--vf-scale, 1)` in page CSS resolves only where the rule's element happens to sit inside a `vf-*` ancestor and inherit it. Inside a window body it does (which is the only reason the demo's own hand-written rules ever worked); for a plain `<div>` holding two buttons on an ordinary page it does not, and the fallback `1` silently renders an 8px gap around 3×-sized controls. A page that hasn't called `applyScale()` cannot express "8 system px" at all. A component always can, because it *is* the scope — which is also why the stack carries a `ScaleController` of its own.
+- **Attributes/props:** `direction: 'column' | 'row'` (default `'column'`, reflected), `gap: number` (whole system px, default `0`), `pad: string | number` (whole system px, one to four values in CSS shorthand order), `place: 'start' | 'center' | 'end'` (reflected; unset resolves per direction), `width` / `height`: number (whole system px, optional). Whole system px is the only expressible value — a fractional entry is truncated — so the gap half of the layout contract (docs/SIZING.md rule 2) holds by construction, and a declared `width` covers the size half of rule 3. On a **child**: `fill-width` and `fill-height`, bare attributes like `nosnap`.
+- **Visual:** none. The stack paints nothing — no border, background or shadow — and takes no role, no keyboard behavior and no selection; what it holds decides what it is, as with `vf-grid`. `:host` is a plain block shell (`width: fit-content`); the flex container is one shadow box coinciding with the host box (`.vf-snap`, `height: 100%` so a declared or filled host height reaches the flex layout) — the `vf-container` arrangement, with the placed-child anchor and the grid-snap target on the same element. The box carries no padding until `pad` writes some, so its padding box IS the host box and the placed-child anchor ignores `pad` exactly as before (`verify:position` pins this). `gap`/`pad` are written to that box's inline style as `calc(var(--vf-scale, 1) * Npx)` via `sysLength`/`sysLengths` (the var resolves against the host's own `--vf-scale` by inheritance); `width`/`height` stay on the host via `VfSized` — each stays live against the display rather than freezing at write time. **Carries a `GridSnapController`** — a reversal of the original no-controller decision, which accounted only for kit children: a stack is a positioned ancestor and a layout box for *anything*, and consumer content inside it (a div, an `<img>`, a run of text) has no controller of its own. Under `applyGridSnap()` the correction moves the stack's whole coordinate system; kit children then find nothing left to correct (the sweep runs outermost-first). It does not fix what it never could: a text-governed child width mid-row still shifts later siblings fractionally (their own controllers cover that), and centering still can't land on a whole pixel.
+- **The content governs the box.** A column is as wide as its widest child and a row as tall as its tallest; children neither grow nor shrink (`::slotted(*) { flex: 0 0 auto }`). System 7 controls keep their natural sizes — a push button is as wide as its label, a popup menu hugs its widest option, a swatch is a fixed well — and a window is a fixed box whose overflow is clipped at the frame, not a layout that squeezes its controls. The stack distributes; it never resizes. `width: fit-content` is the same rule stated in the box model: a layout box that claimed its parent's whole width would be handing out a size nobody declared. It shrink-wraps while staying **block-level**, which is deliberate — `inline-flex` gives the same width but puts the box on a line box, and a line box can never be shorter than its parent's strut, so a stack shorter than the surrounding `line-height` silently gains the difference as leading (the showcase's swatch panel, an 18px row in a 20px line box, grew by exactly that). `width`/`height` override the content when an author says so, in system px, and beat `fit-content` from the host's inline style.
+- **`place` defaults per direction** — `start` down a column (a field starts at the panel edge), `center` across a row (a caption sits beside its control). The two directions call for opposite defaults. Both are stated as the direction's own rather than as an `auto` value, so an unrecognized `place` — a stale `stretch` from before this API — lands on the sane one instead of on flexbox's `normal`, which stretches. It is the only placement the stack owns: there is no `justify`, and a right-aligned action row is a filled column whose one child sits at the end of it. **It is `place` and not `align` because `align` is a legacy HTML presentation attribute** — see the transparency bullet below.
+- **`fill-width` / `fill-height` name the outcome, not an axis**, so each compiles to the main axis (`flex: 1 1 0` plus the `min-*: 0` that lets it shrink below its content) or the cross axis (`align-self: stretch`) depending on which way the stack runs — four static rules, no allowlist. What follows is one rule about geometry rather than vocabulary: **the cross axis always has a size, the main axis only has slack if one was declared.** `fill-width` always works in a column and needs a declared `width` in a row; `fill-height` is the other way round; a fill with nothing to take is inert rather than an error; and two children filling along the main axis come out equal, the zeroed flex basis being what lets them divide the slack instead of keeping their natural sizes. A child that declares its own size shouldn't also ask to fill it — in a column the declared size wins, in a row the fill does. The host reads both attributes about **itself** too (`width`/`height: 100%`), for the parents that aren't stacks — a window body, a fieldset, a scroll well, a grid cell — which is where a panel's width enters the tree. Three components have no width of their own and need a fill to take one: `vf-separator`, `vf-progress-bar` and `vf-slider` are drawn as a rule or a track that *is* the width. A light-DOM declaration beats a `::slotted` one, so `align-self: stretch` in page CSS remains the escape hatch for a cross-axis fill a direction doesn't offer.
+- **Typographically transparent.** `vfBase` dresses a host as chrome (body face, a 1.25 ratio line box, black, unselectable); the stack returns `font`, `-webkit-font-smoothing`, `color`, `user-select` and `text-align` to `inherit`, because wrapping content in a layout box must not change how that content reads. `text-align` is on that list because **`align` is a legacy HTML presentation attribute**: Blink maps the `align` content attribute on any HTML element to `text-align` — "left" / "right" / "center" by name, anything else verbatim — so `align="end"` on an action row right-aligned every run of copy inside it. Renaming the attribute to `place` is the fix; the reset stays because it costs nothing and keeps markup written against the old spelling harmless. The hint loses to a `:host` rule, and the page's own `text-align` still inherits through (`verify:stack` asserts all three). Of every attribute name the kit uses, `align` was the only one that carried a hint — `width`, `height`, `color`, `size`, `direction`, `label` and `value` are all inert on a custom element. Inside a window it goes on inheriting the window's face and the SPEC §1 chrome selection rule; on an ordinary page it leaves the page's typography — and its whole-pixel line boxes — alone. A ratio line-height landing on slotted prose is the exact rule-2 fault the kit warns pages about.
+- **The gap is the real CSS property, not a token.** Written as a custom property it would inherit, and a nested stack would silently pick up its parent's spacing (`--vf-button-group-gap` inherits on purpose; this must not).
+- **What it deliberately doesn't do:** equalize its children's widths. A row of buttons still belongs in a `vf-button-group`, which sizes them to the widest and aligns their *faces* rather than the `variant="default"` ring boxes a plain flex row lines up. It is also not a grid: `grid-template-columns: 1fr auto 1fr` stays page CSS.
+- **Two traps it does not fix.** Centering cannot land on a whole pixel by itself — a 16px caption centered against the 25-system-px `vf-number-field` sits at 4.5 system px, and no container can round that without reading each child's height (`applyGridSnap()` keeps the caption's own ink crisp anyway; `place="start"` is the deterministic escape; `hit-list.md` files the 25px height as the underlying fault). And a flex container does not collapse margins, so `vf-fieldset`'s legend room — an 8px `margin-top` on its inner box that escapes the host in block flow — is genuinely reserved inside a stack instead of being donated by whatever precedes it.
+- **Slots:** default (the children; `fill-width` / `fill-height` on any of them). **Parts:** none. **Events:** none.
 
 #### `vf-container` (`VfContainer`, vf-container.ts)
-A plain sized box: `width`/`height` in whole system px around a bare slot —
-no paint, no layout opinion. Explicit placement (src/position.ts) leaves one
-line of CSS the kit can't write for a consumer: children placed with
-`top`/`left` need a positioned ancestor, so a region of the consumer's *own*
-needs `position: relative` in a stylesheet. This component is that region as
-an element — a DITL's enclosing rectangle with nothing drawn in it.
-- **Attributes/props:** `width` / `height`: number (whole system px, via
-  `VfSized`); the `top` / `left` pair via `VfPositioned` like nearly every
-  component. On a **child**: `fill-width` and `fill-height`, bare attributes
-  as in `vf-stack`. That is the whole API.
-- **Not a `vf-stack`.** The stack is a flexbox with opinions — an axis, a
-  cross-axis default, fills compiled into flex. The container has none:
-  in-flow children get normal flow, placed children get a coordinate system.
-  Reach for it when the stack's opinions are the thing in the way — a field of
-  placed icons, a fixed stage for placed art, a composition that brings its
-  own layout with it.
-- **Visual:** none — no border, background, role, keyboard behavior or
-  selection; what it holds decides what it is. `:host` is a block with
-  `width: fit-content`, so an undeclared axis shrink-wraps rather than
-  claiming the parent's width (the stack's rule — a layout box must not hand
-  out a size nobody declared; a declared dimension lands on the host's inline
-  style and beats it). The slot sits in one shadow box coinciding with the
-  host box (`.vf-snap`, `display: flow-root`, `height: 100%`): flow-root so a
-  slotted margin cannot collapse through the top edge and push the coordinate
-  origin off the host's corner, 100% so percentage fills resolve against a
-  declared height. That box owns `position: relative` — the anchor for
-  `top`/`left` children — the component's purpose. Content that
-  outgrows the declared box overflows it rather than growing it.
-- **Carries a `GridSnapController`.** A container's box is itself the
-  consumer's coordinate system, including for non-`vf` content that cannot
-  correct itself. The shadow box owns the positioning anchor and the `vf-snap`
-  class *together*, so under `applyGridSnap()` the correction moves the whole
-  coordinate system and everything placed against it rides along, kit or not.
-  A declared size and whole-px `top`/`left` are on the grid by construction;
-  the controller covers the origin the page contributes. (This is the
-  arrangement `vf-stack` has since adopted too — one shadow box owning
-  anchor and correction together.)
-- **Typographically transparent**, exactly as `vf-stack` and for the same
-  reason: `font`, `-webkit-font-smoothing`, `color`, `user-select` and
-  `text-align` return to `inherit`, so wrapping content in a sized box changes
-  nothing about how that content reads.
-- **`fill-width` / `fill-height`** are read about the host (`width`/`height:
-  100%`, for a parent that can give the box a size) and compiled for slotted
-  children as the percentage form — normal flow has no flex axes to translate
-  onto. `width: 100%` always binds against the box; `height: 100%` binds only
-  against a declared `height` (percentage-against-auto computes to auto), so a
-  fill with nothing to take is inert, not an error. A light-DOM declaration
-  beats the `::slotted` rule, as everywhere.
-- **Carries a `ScaleController`** for the stack's reason: a lone container on
-  a plain page must resolve its declared size against the true scale, not the
-  `var(--vf-scale, 1)` fallback its slotted children each escape on their own.
-- **Slots:** default (the content; `fill-width` / `fill-height` on any of it).
-  **Parts:** none.
-  **Events:** none.
+A plain sized box: `width`/`height` in whole system px around a bare slot — no paint, no layout opinion. Explicit placement (src/position.ts) leaves one line of CSS the kit can't write for a consumer: children placed with `top`/`left` need a positioned ancestor, so a region of the consumer's *own* needs `position: relative` in a stylesheet. This component is that region as an element — a DITL's enclosing rectangle with nothing drawn in it.
+- **Attributes/props:** `width` / `height`: number (whole system px, via `VfSized`); the `top` / `left` pair via `VfPositioned` like nearly every component. On a **child**: `fill-width` and `fill-height`, bare attributes as in `vf-stack`. That is the whole API.
+- **Not a `vf-stack`.** The stack is a flexbox with opinions — an axis, a cross-axis default, fills compiled into flex. The container has none: in-flow children get normal flow, placed children get a coordinate system. Reach for it when the stack's opinions are the thing in the way — a field of placed icons, a fixed stage for placed art, a composition that brings its own layout with it.
+- **Visual:** none — no border, background, role, keyboard behavior or selection; what it holds decides what it is. `:host` is a block with `width: fit-content`, so an undeclared axis shrink-wraps rather than claiming the parent's width (the stack's rule — a layout box must not hand out a size nobody declared; a declared dimension lands on the host's inline style and beats it). The slot sits in one shadow box coinciding with the host box (`.vf-snap`, `display: flow-root`, `height: 100%`): flow-root so a slotted margin cannot collapse through the top edge and push the coordinate origin off the host's corner, 100% so percentage fills resolve against a declared height. That box owns `position: relative` — the anchor for `top`/`left` children — the component's purpose. Content that outgrows the declared box overflows it rather than growing it.
+- **Carries a `GridSnapController`.** A container's box is itself the consumer's coordinate system, including for non-`vf` content that cannot correct itself. The shadow box owns the positioning anchor and the `vf-snap` class *together*, so under `applyGridSnap()` the correction moves the whole coordinate system and everything placed against it rides along, kit or not. A declared size and whole-px `top`/`left` are on the grid by construction; the controller covers the origin the page contributes. (This is the arrangement `vf-stack` has since adopted too — one shadow box owning anchor and correction together.)
+- **Typographically transparent**, exactly as `vf-stack` and for the same reason: `font`, `-webkit-font-smoothing`, `color`, `user-select` and `text-align` return to `inherit`, so wrapping content in a sized box changes nothing about how that content reads.
+- **`fill-width` / `fill-height`** are read about the host (`width`/`height: 100%`, for a parent that can give the box a size) and compiled for slotted children as the percentage form — normal flow has no flex axes to translate onto. `width: 100%` always binds against the box; `height: 100%` binds only against a declared `height` (percentage-against-auto computes to auto), so a fill with nothing to take is inert, not an error. A light-DOM declaration beats the `::slotted` rule, as everywhere.
+- **Carries a `ScaleController`** for the stack's reason: a lone container on a plain page must resolve its declared size against the true scale, not the `var(--vf-scale, 1)` fallback its slotted children each escape on their own.
+- **Slots:** default (the content; `fill-width` / `fill-height` on any of it). **Parts:** none. **Events:** none.
 
 ### Group E — static text
 
-The two components for text that is *not* part of a control: captions and copy.
-Both compose `vfStaticText` for their `face` / `size` / `dim` switches, both
-carry a `ScaleController` and a `GridSnapController`, and both exist for the
-same reason — a line box stated in whole system px, so text stops being the
-thing that knocks a page off the device-pixel grid (§3, "Line boxes are lengths
-too"). `npm run verify:text` asserts the line boxes, the faces and the `for`
-wiring, and A/Bs a column of paragraphs against plain `<p>`s under a ratio
-leading.
+The two components for text that is *not* part of a control: captions and copy. Both compose `vfStaticText` for their `face` / `size` / `dim` switches, both carry a `ScaleController` and a `GridSnapController`, and both exist for the same reason — a line box stated in whole system px, so text stops being the thing that knocks a page off the device-pixel grid (§3, "Line boxes are lengths too"). `npm run verify:text` asserts the line boxes, the faces and the `for` wiring, and A/Bs a column of paragraphs against plain `<p>`s under a ratio leading.
 
 #### `vf-label` (`VfLabel`, vf-label.ts)
 The static caption: "Name:" beside a field, "Mode" over a radio group, a readout.
-- **Attributes/props:** `for: string` (id of the labelled control, resolved in
-  the label's own tree scope), `face: 'display' | 'body'`, `dim: boolean`,
-  `width`/`height: number` (whole system px, via `VfSized` — src/size.ts).
-- **`width` is the caption's half of contract rule 3.** Left to its text a
-  caption measures whatever its glyphs measure (the showcase's Apple menu title
-  came to 32.641 system px) and anything sized from it inherits the fraction; a
-  declared width is whole, and so is the row built on it. It replaces the
-  `min-width: calc(var(--vf-scale, 1) * 80px)` a page used to need, which only
-  landed whole while it happened to bind. Written to the host's inline style via
-  `sysLength`, so it stays live against the display. A caption wider than its
-  width overflows rather than reflowing the row.
-- **Visual:** `display: inline-block` (so a page can give a caption column a
-  shared width — contract rule 3), the **display face** by default (dialog
-  captions are chrome), `line-height: var(--vf-label-line-height,
-  var(--vf-line-height-display, 16px))` — Chicago 12's native line, read from
-  the face token; `face="body"` reads `--vf-line-height` (12px, Geneva 9's),
-  so fine print wraps at native pitch too — `cursor: default`, not selectable
-  (chrome, per §1). `dim` greys the text to `--vf-disabled` — System 7 dims
-  the label, not the control.
-- **Behavior (`for`):** clicking the caption **focuses** the target (a focus
-  shortcut, not an activation — the kit's toggles carry their own labels), and
-  the caption text becomes the target's **accessible name** by whichever route
-  reaches it: a `vf-*` control's `label` property (the only thing that reaches
-  the focusable element inside its shadow root), or `aria-labelledby` for
-  anything in the label's own tree scope. Never overwrites a name the target
-  already has — a consumer-set attribute, **or a name computed from the
-  target's own content** (a `vf-checkbox` with slotted text, a `vf-button`, a
-  native `<button>`): the aria route declines those rather than stamping over
-  visible text. Puts back what it found when the label is removed, the id
-  changes or the caption text does. A target that hasn't upgraded yet is waited for
-  (`customElements.whenDefined`), since a pre-upgrade element has no `label`
-  property to fill in. A disabled target (`disabled`, or `isDisabled` for an
-  ancestor `<fieldset disabled>`) is not focused.
+- **Attributes/props:** `for: string` (id of the labelled control, resolved in the label's own tree scope), `face: 'display' | 'body'`, `dim: boolean`, `width`/`height: number` (whole system px, via `VfSized` — src/size.ts).
+- **`width` is the caption's half of contract rule 3.** Left to its text a caption measures whatever its glyphs measure (the showcase's Apple menu title came to 32.641 system px) and anything sized from it inherits the fraction; a declared width is whole, and so is the row built on it. It replaces the `min-width: calc(var(--vf-scale, 1) * 80px)` a page used to need, which only landed whole while it happened to bind. Written to the host's inline style via `sysLength`, so it stays live against the display. A caption wider than its width overflows rather than reflowing the row.
+- **Visual:** `display: inline-block` (so a page can give a caption column a shared width — contract rule 3), the **display face** by default (dialog captions are chrome), `line-height: var(--vf-label-line-height, var(--vf-line-height-display, 16px))` — Chicago 12's native line, read from the face token; `face="body"` reads `--vf-line-height` (12px, Geneva 9's), so fine print wraps at native pitch too — `cursor: default`, not selectable (chrome, per §1). `dim` greys the text to `--vf-disabled` — System 7 dims the label, not the control.
+- **Behavior (`for`):** clicking the caption **focuses** the target (a focus shortcut, not an activation — the kit's toggles carry their own labels), and the caption text becomes the target's **accessible name** by whichever route reaches it: a `vf-*` control's `label` property (the only thing that reaches the focusable element inside its shadow root), or `aria-labelledby` for anything in the label's own tree scope. Never overwrites a name the target already has — a consumer-set attribute, **or a name computed from the target's own content** (a `vf-checkbox` with slotted text, a `vf-button`, a native `<button>`): the aria route declines those rather than stamping over visible text. Puts back what it found when the label is removed, the id changes or the caption text does. A target that hasn't upgraded yet is waited for (`customElements.whenDefined`), since a pre-upgrade element has no `label` property to fill in. A disabled target (`disabled`, or `isDisabled` for an ancestor `<fieldset disabled>`) is not focused.
 - **Slots:** default (the caption). **Parts:** `label`.
 
 #### `vf-paragraph` (`VfParagraph`, vf-paragraph.ts)
 A paragraph of copy on the kit's body face and grid.
-- **Attributes/props:** `face: 'display' | 'body'`, `dim: boolean`,
-  `width`/`height: number` (whole system px, via `VfSized` — the measure the
-  copy wraps to, and a box the copy overflows rather than grows; set them on
-  a placed paragraph, which otherwise shrink-wraps to its longest line).
-- **Visual:** `display: block`, the **body face** by default,
-  `line-height: var(--vf-paragraph-line-height, var(--vf-line-height, 12px))`
-  — Geneva 9's native
-  strike line, the 16px em centering into it the way the icon plate's does;
-  `face="display"` defaults the box to 16px, Chicago 12's own line (ascent 12 +
-  descent 3 + leading 1), so wrapped chrome copy leaves the native 7 blank rows
-  between a baseline and the caps below it. Selectable (prose, so it re-enables
-  the text selection `vfBase` suppresses). Renders a real `<p>` in the shadow
-  root, so the copy keeps paragraph semantics for AT. **No margin** (§2):
-  paragraph spacing is the page's, in whole pixels like everything else.
+- **Attributes/props:** `face: 'display' | 'body'`, `dim: boolean`, `width`/`height: number` (whole system px, via `VfSized` — the measure the copy wraps to, and a box the copy overflows rather than grows; set them on a placed paragraph, which otherwise shrink-wraps to its longest line).
+- **Visual:** `display: block`, the **body face** by default, `line-height: var(--vf-paragraph-line-height, var(--vf-line-height, 12px))` — Geneva 9's native strike line, the 16px em centering into it the way the icon plate's does; `face="display"` defaults the box to 16px, Chicago 12's own line (ascent 12 + descent 3 + leading 1), so wrapped chrome copy leaves the native 7 blank rows between a baseline and the caps below it. Selectable (prose, so it re-enables the text selection `vfBase` suppresses). Renders a real `<p>` in the shadow root, so the copy keeps paragraph semantics for AT. **No margin** (§2): paragraph spacing is the page's, in whole pixels like everything else.
 - **Slots:** default (the copy). **Parts:** `paragraph`.
 
 ### Group F — images
 
 #### `vf-img` (`VfImg`, vf-img.ts)
-A raster image — the reference art's pixel icons — on the kit's grid, treating
-one image pixel as one system pixel.
-- **Attributes/props:** `width`, `height`: number (system px, whole; default
-  the slotted image's natural size). Stated up front they reserve the box
-  before the file loads; a whole multiple magnifies on the same grid.
-- **Visual:** `display: inline-block`; the shadow `frame` box is sized
-  `width × height` system px (× `--vf-scale` in `calc()`, so a source pixel
-  covers exactly `scale × dpr` device px — contract rule 1) and the slotted
-  `<img>` fills it with `image-rendering: pixelated`, which on a
-  whole-device-pixel box is bit-exact nearest-neighbor magnification. The box
-  is 0×0 until a size is known — never a flash of the image at some other
-  scale. `-webkit-user-drag: none` (chrome, not draggable content).
-- **Behavior:** the graphic stays a native `<img>` in the consumer's light DOM
-  (native loading, `alt` semantics — `alt=""` when decorative; the kit ships no
-  raster files). The component watches the slotted image's `load`/`error` to
-  pick up its natural size and any later `src` swap. A **failed** load
-  (settled, no natural size) releases an undeclared box instead of clamping it
-  to 0×0 — a native `<img alt="…">` that fails renders its alt text, and
-  stretching the image into a 0×0 frame erased it; declared `width`/`height`
-  still hold the box, exactly as a sized native `<img>` reserves its box
-  around the alt text. Carries a `ScaleController` and a `GridSnapController`
-  like every painted host.
+A raster image — the reference art's pixel icons — on the kit's grid, treating one image pixel as one system pixel.
+- **Attributes/props:** `width`, `height`: number (system px, whole; default the slotted image's natural size). Stated up front they reserve the box before the file loads; a whole multiple magnifies on the same grid.
+- **Visual:** `display: inline-block`; the shadow `frame` box is sized `width × height` system px (× `--vf-scale` in `calc()`, so a source pixel covers exactly `scale × dpr` device px — contract rule 1) and the slotted `<img>` fills it with `image-rendering: pixelated`, which on a whole-device-pixel box is bit-exact nearest-neighbor magnification. The box is 0×0 until a size is known — never a flash of the image at some other scale. `-webkit-user-drag: none` (chrome, not draggable content).
+- **Behavior:** the graphic stays a native `<img>` in the consumer's light DOM (native loading, `alt` semantics — `alt=""` when decorative; the kit ships no raster files). The component watches the slotted image's `load`/`error` to pick up its natural size and any later `src` swap. A **failed** load (settled, no natural size) releases an undeclared box instead of clamping it to 0×0 — a native `<img alt="…">` that fails renders its alt text, and stretching the image into a 0×0 frame erased it; declared `width`/`height` still hold the box, exactly as a sized native `<img>` reserves its box around the alt text. Carries a `ScaleController` and a `GridSnapController` like every painted host.
 - **Slots:** default (a single `<img>`). **Parts:** `frame`.
 
 #### `vf-icon` (`VfIcon`, vf-icon.ts)
-The Finder icon — pixel art in a reserved cell with its name on a plate below,
-as one selectable, movable, renameable unit. `vf-img` puts a picture on the
-grid; this makes it the thing the Finder manipulates.
-- **Attributes/props:** `label`: string (the name; empty draws no plate — that
-  is the "no label" setting, rather than a second attribute that could disagree
-  with it). `size`: `large` (default, 32×32) | `small` (16×16) — picks the slot
-  that paints *and* the cell it paints in. `selectable`, `selected`, `movable`,
-  `editable`: boolean. `open`: boolean — the icon's window is on screen, and
-  the art paints as the derived open ghost (below). `width`: number (system px,
-  **even**; the cell/grid pitch, which a longer name overflows rather than
-  being bound by). `maxlength`: number (31).
-- **Visual:** `display: inline-block`. A column: the art cell (`--_cell` system
-  px square, `overflow: hidden`, art centered), `--vf-icon-gap` (2px), then the
-  name plate — body face on a `--vf-icon-label-height` (12px) line box, the
-  Finder's own plate height: the face's 16px em centers in it, 3px above the
-  ascenders and descenders on the bottom edge, exactly as the Finder drew it —
-  1px
-  horizontal padding, **opaque `--vf-white`** in its own right rather than
-  `--vf-surface`: on the desktop dither the name reads because it sits on a
-  plate, and `--vf-surface` is unset out there (`Example screen (1-bit).png`,
-  the "Macintosh HD" icon). Selected: the plate takes the `--vf-highlight` pair
-  and the art takes `filter: invert(1)` — a System 7 icon is ink and opaque
-  white on a transparent surround, i.e. precisely an image plus its mask, so
-  inverting flips the two and leaves the surround alone. That is the complete
-  classic selected appearance for 1-bit art; color art inverts into a
-  photographic negative rather than the darkening System 7 gave it.
-- **The open ghost is derived, not shipped** (`open`; `open-art.ts`). The art
-  redraws as the Finder's open-window ghost — outline held in solid black,
-  interior re-filled with the scrollbar trough's 4×2 dot lattice (a dot at
-  (0,0) and (2,1), 25%) on opaque white, surround untouched — derived from the
-  slotted art itself, by compositing alone: a silhouette via `source-in`; a
-  1px 4-neighborhood erosion via four `destination-in` draws of the silhouette
-  shifted one pixel each way (off-canvas composites as transparent, so the
-  raster's own edge erodes too and an interior hole rings itself); the lattice
-  via `createPattern` anchored at the art's top-left, where 32 and 16 being
-  whole multiples of the tile keeps a field of icons in one phase; then the
-  fill composed over the un-eroded silhouette, so the ring the erosion removed
-  reads as the outline. Never `getImageData` — a canvas that drew a
-  cross-origin image is tainted, which forbids *reading* pixels but not
-  drawing or displaying them, so the ghost works for CORS-less sources too —
-  and never `ctx.filter` (Safari's shaky corner; compositing operators are
-  universal). Keeping the interior *opaque white* is what lets a selected open
-  icon invert under the same `filter: invert(1)` with no second treatment. The
-  slot stays in the tree while the ghost paints, hidden via a class gated on a
-  successful derivation — art the pipeline cannot draw (nothing slotted, a
-  failed load, an inline `<svg>`) keeps rendering as itself. The ghost
-  re-derives on slotchange, the art's `load`/`error`, and `open`/`size`
-  changes, keyed by `currentSrc` so a refresh that changed nothing is a string
-  compare; the source's `alt` is carried onto the ghost (`role="img"` +
-  `aria-label`) so a graphic that names its icon keeps doing so while its slot
-  is hidden. The ghost displays on `vf-img`'s terms: natural raster size in
-  system px, `image-rendering: pixelated`, one image pixel per system pixel.
-- **Behavior:** clicking selects, Shift/⌘ toggles, and a press outside every
-  icon clears — a `DocumentListenersController` capture-phase listener attached
-  only while selectable *and* selected, which is what makes single-selection
-  work with no container owning the set. Double-click fires `vf-open`, and its
-  keyboard route is ⌘O / ⌘↓ (Ctrl off the Mac) — the System 7 Open shortcuts,
-  added because a double-click is a pointer-only gesture (§1). Return is
-  deliberately not one: the Finder's Return renamed, never opened, so it
-  starts the edit on an editable icon and does nothing on a non-editable
-  one. A double-click opens the icon **wherever it lands, the name included** —
-  the handler is on the frame, and the name is as much the icon as the art is.
-  `editable`: a press on the plate of an
-  ALREADY-selected icon opens a rename field overlaying it (the press that does
-  the selecting never does); the whole name starts selected, Return commits,
-  Escape reverts, and the hidden plate keeps rendering the draft so the box
-  widens as you type. **The two pointer gestures on a name are the same press**,
-  and only the second one tells them apart, so the rename *waits*: the press
-  arms a field that opens `RENAME_DELAY_MS` (800ms, `src/motion.ts`) later, and
-  a press landing inside that window — wherever in the icon it falls — calls it
-  off, leaving the double-click to open with no rename flashing up behind it.
-  The window is long deliberately: no API reports what the browser counts as a
-  double-click (it follows a user-movable platform setting), and reading a lone
-  click as a pair costs only a wait, while reading a pair as a lone click
-  renames when the user meant to open. A press that travels into a drag, a press
-  outside, and any key call it off too — so a name drags like the art does, and
-  Return opens the field at once, having no second half to wait for.
-  `movable` — **not `draggable`**, which is a global HTML
-  attribute and an `HTMLElement` accessor (the same trap as `align`, §5
-  Group G) — drags via `DragController` on the `vf-window` delegate
-  shape, plus arrow-key nudging (1 system px, 8 with Shift) because a
-  pointer-only gesture is the kind of gap the kit closes (§1). Focus is the
-  dashed rule below the plate, gated on `FocusRuleController` rather than
-  `:focus-visible`: the host focuses itself so the press-drag can own the
-  pointer.
-- **An icon alone is a picture; an icon in a field is an option.** `option` is
-  invalid without a `listbox` that owns it — written unconditionally the
-  browser drops the role *and* `aria-selected`, which is how a `selectable`
-  icon reached AT as a bare generic in every configuration the kit shipped. So
-  the role follows the container: `role="option"` + `aria-selected` when a
-  `[role="listbox"]` ancestor claims it, otherwise `role="img"` named from
-  `label` (else the art's `alt`), since `img` is not a name-from-content role.
-  Not `button` — that promises Enter/Space activate, while here Return renames
-  and the open route is ⌘O / ⌘↓. Re-derived on every connect, so re-parenting
-  between the two contexts re-grades the icon. **The recipe for a field of
-  icons is a container carrying `role="listbox"`** (`aria-label` +
-  `aria-multiselectable`); `vf-desktop` cannot be it, since it also holds
-  windows and a menu bar and a non-`option` child of a listbox is invalid the
-  same way. Divergence from APG, recorded: its listbox options share one
-  roving tab stop, the kit's stay one stop each.
-- **`selectable` is what makes an icon focusable** — `movable` and `editable`
-  require it, as the Finder did (you cannot move or rename what you have not
-  selected; the rename already opens only on an ALREADY-selected icon). A
-  `movable`-only icon is draggable but not a tab stop, rather than a tab stop
-  that announces nothing.
-- **A name is never abbreviated, and never folded:** no ellipsis, no clipping,
-  no wrapping — `white-space: nowrap`, one line always. System 7 solved the
-  long-name problem at the other end — HFS capped a filename at 31 characters —
-  so the Finder always drew the name in full. Wider than its cell, it overflows
-  it, centered. `width` is therefore the cell (the grid pitch), not a bound on
-  the name.
-- **Every centered offset is whole, by parity.** The frame centers two things
-  over one axis, and a centered child sits at `(box − child) / 2` — whole
-  exactly when box and child share a parity. Half a system pixel is what
-  fringes 1-bit art: glyph stems smear across two device columns and go gray
-  while the plate behind them stays sharp, since backgrounds are pixel-snapped
-  by the compositor and glyphs are not (hence a crisp plate under a gray
-  name). So the component makes the parities agree rather than correcting
-  afterwards. The cell is 32 or 16; `#measurePlate()` measures the text with a
-  `Range` over the plate's own contents — the plate already carries the width
-  this last computed, so reading the element back would only return it — and
-  sizes the plate (an `inline-block`) to that plus its 1px padding, rounded UP
-  to a whole **even** number of system px, so it never clips the run it was
-  measured from. The measurement is in system px and therefore scale-invariant,
-  which is why nothing re-runs on a density change; it re-runs on `label`,
-  `_draft`, `_editing`, and once on `document.fonts.ready`, since a name
-  measured against the fallback face is a different width. The text is NOT
-  centered inside its own plate (`text-align: left` against the block's
-  `center`) — that would re-introduce the half pixel one level down; it starts
-  at the 1px padding edge, so its x is the plate's plus one whole pixel, and
-  the rounding slack lands after it as a hairline of extra plate. The rename
-  field puts its run exactly where the plate's is, so the name does not shift
-  when editing starts; its 1px border and 1px white well are a wrapper around
-  the input rather than the input's own border and padding, because the
-  selection behind a highlighted name paints at the face's full 16px em and is
-  clipped only at the input's own edge — split, the input stands the plate's
-  12px line box (clipping the selection to it) and the well stays white, for
-  an edit box 16 system px tall in all, not the em plus trim. Staying on one line is part of the same argument:
-  one run, one measured width, one parity. Nothing is snapped and nothing leans
-  on the rasterizer — the kit's normal antialiasing stays on, and `verify:icon`
-  asserts both the geometry and zero gray pixels across a field of names at dpr
-  1/2/3, declared width and auto, with a control that forces an odd plate and
-  requires the fringe to return. The one thing the component cannot round is a
-  `width` the consumer chose, so that must be even.
-- **The 31-char cap** is `maxlength` on the rename field, and exceeding it
-  fires `vf-name-too-long` rather than dropping characters silently. Detected
-  in `beforeinput`, not `input`: with `maxlength` set, a blocked keystroke
-  fires `beforeinput` and then *no* `input` at all, while an overshooting paste
-  reaches `input` already trimmed — only the "about to change" event still
-  knows what was attempted. `input` carries a trimming backstop for any route
-  that skips it. The cap bounds typing only; a `label` set from consumer code
-  is displayed as given and fires nothing (the name is the consumer's data).
-- **An empty name is refused, not applied.** A file has to be called something,
-  and System 7 would not commit a nameless one: a rename committed empty — or
-  as nothing but spaces, which would read as blank either way — drops the edit
-  and restores the previous name, firing `vf-name-rejected` and deliberately no
-  `vf-change`. An empty `label` remains a valid *starting* state (a freshly
-  made icon has no name yet): it draws no plate but stays selectable, focusable
-  and renameable. The caption element is therefore rendered whenever there is a
-  name **or** an edit is open — without that an unnamed icon has nowhere to put
-  the field and could never be named at all. The plate hugs its text in BOTH
-  states, which is what keeps a commit from moving the name: it is the same box
-  either side, so the glyphs do not shift. The single exception is an edit with
-  no text in it at all, which reserves the cell width so the field is usable
-  rather than a 2px sliver, and goes back to hugging on the first character.
-  That floor is the cell, which is even, so the parity rule holds.
-- **Slots:** `large` (32×32 art, normally a `vf-img`), `small` (16×16).
-  **Parts:** `frame`, `icon`, `label`, `plate`, `input`.
-- **Events:** `vf-select` `{ selected }`, `vf-change` `{ label, previous }`,
-  `vf-open` `{}`, `vf-name-too-long` `{ attempted, accepted, limit }`,
-  `vf-name-rejected` `{ attempted, kept, reason }`.
+The Finder icon — pixel art in a reserved cell with its name on a plate below, as one selectable, movable, renameable unit. `vf-img` puts a picture on the grid; this makes it the thing the Finder manipulates.
+- **Attributes/props:** `label`: string (the name; empty draws no plate — that is the "no label" setting, rather than a second attribute that could disagree with it). `size`: `large` (default, 32×32) | `small` (16×16) — picks the slot that paints *and* the cell it paints in. `selectable`, `selected`, `movable`, `editable`: boolean. `open`: boolean — the icon's window is on screen, and the art paints as the derived open ghost (below). `width`: number (system px, **even**; the cell/grid pitch, which a longer name overflows rather than being bound by). `maxlength`: number (31).
+- **Visual:** `display: inline-block`. A column: the art cell (`--_cell` system px square, `overflow: hidden`, art centered), `--vf-icon-gap` (2px), then the name plate — body face on a `--vf-icon-label-height` (12px) line box, the Finder's own plate height: the face's 16px em centers in it, 3px above the ascenders and descenders on the bottom edge, exactly as the Finder drew it — 1px horizontal padding, **opaque `--vf-white`** in its own right rather than `--vf-surface`: on the desktop dither the name reads because it sits on a plate, and `--vf-surface` is unset out there (`Example screen (1-bit).png`, the "Macintosh HD" icon). Selected: the plate takes the `--vf-highlight` pair and the art takes `filter: invert(1)` — a System 7 icon is ink and opaque white on a transparent surround, i.e. precisely an image plus its mask, so inverting flips the two and leaves the surround alone. That is the complete classic selected appearance for 1-bit art; color art inverts into a photographic negative rather than the darkening System 7 gave it.
+- **The open ghost is derived, not shipped** (`open`; `open-art.ts`). The art redraws as the Finder's open-window ghost — outline held in solid black, interior re-filled with the scrollbar trough's 4×2 dot lattice (a dot at (0,0) and (2,1), 25%) on opaque white, surround untouched — derived from the slotted art itself, by compositing alone: a silhouette via `source-in`; a 1px 4-neighborhood erosion via four `destination-in` draws of the silhouette shifted one pixel each way (off-canvas composites as transparent, so the raster's own edge erodes too and an interior hole rings itself); the lattice via `createPattern` anchored at the art's top-left, where 32 and 16 being whole multiples of the tile keeps a field of icons in one phase; then the fill composed over the un-eroded silhouette, so the ring the erosion removed reads as the outline. Never `getImageData` — a canvas that drew a cross-origin image is tainted, which forbids *reading* pixels but not drawing or displaying them, so the ghost works for CORS-less sources too — and never `ctx.filter` (Safari's shaky corner; compositing operators are universal). Keeping the interior *opaque white* is what lets a selected open icon invert under the same `filter: invert(1)` with no second treatment. The slot stays in the tree while the ghost paints, hidden via a class gated on a successful derivation — art the pipeline cannot draw (nothing slotted, a failed load, an inline `<svg>`) keeps rendering as itself. The ghost re-derives on slotchange, the art's `load`/`error`, and `open`/`size` changes, keyed by `currentSrc` so a refresh that changed nothing is a string compare; the source's `alt` is carried onto the ghost (`role="img"` + `aria-label`) so a graphic that names its icon keeps doing so while its slot is hidden. The ghost displays on `vf-img`'s terms: natural raster size in system px, `image-rendering: pixelated`, one image pixel per system pixel.
+- **Behavior:** clicking selects, Shift/⌘ toggles, and a press outside every icon clears — a `DocumentListenersController` capture-phase listener attached only while selectable *and* selected, which is what makes single-selection work with no container owning the set. Double-click fires `vf-open`, and its keyboard route is ⌘O / ⌘↓ (Ctrl off the Mac) — the System 7 Open shortcuts, added because a double-click is a pointer-only gesture (§1). Return is deliberately not one: the Finder's Return renamed, never opened, so it starts the edit on an editable icon and does nothing on a non-editable one. A double-click opens the icon **wherever it lands, the name included** — the handler is on the frame, and the name is as much the icon as the art is. `editable`: a press on the plate of an ALREADY-selected icon opens a rename field overlaying it (the press that does the selecting never does); the whole name starts selected, Return commits, Escape reverts, and the hidden plate keeps rendering the draft so the box widens as you type. **The two pointer gestures on a name are the same press**, and only the second one tells them apart, so the rename *waits*: the press arms a field that opens `RENAME_DELAY_MS` (800ms, `src/motion.ts`) later, and a press landing inside that window — wherever in the icon it falls — calls it off, leaving the double-click to open with no rename flashing up behind it. The window is long deliberately: no API reports what the browser counts as a double-click (it follows a user-movable platform setting), and reading a lone click as a pair costs only a wait, while reading a pair as a lone click renames when the user meant to open. A press that travels into a drag, a press outside, and any key call it off too — so a name drags like the art does, and Return opens the field at once, having no second half to wait for. `movable` — **not `draggable`**, which is a global HTML attribute and an `HTMLElement` accessor (the same trap as `align`, §5 Group G) — drags via `DragController` on the `vf-window` delegate shape, plus arrow-key nudging (1 system px, 8 with Shift) because a pointer-only gesture is the kind of gap the kit closes (§1). Focus is the dashed rule below the plate, gated on `FocusRuleController` rather than `:focus-visible`: the host focuses itself so the press-drag can own the pointer.
+- **An icon alone is a picture; an icon in a field is an option.** `option` is invalid without a `listbox` that owns it — written unconditionally the browser drops the role *and* `aria-selected`, which is how a `selectable` icon reached AT as a bare generic in every configuration the kit shipped. So the role follows the container: `role="option"` + `aria-selected` when a `[role="listbox"]` ancestor claims it, otherwise `role="img"` named from `label` (else the art's `alt`), since `img` is not a name-from-content role. Not `button` — that promises Enter/Space activate, while here Return renames and the open route is ⌘O / ⌘↓. Re-derived on every connect, so re-parenting between the two contexts re-grades the icon. **The recipe for a field of icons is a container carrying `role="listbox"`** (`aria-label` + `aria-multiselectable`); `vf-desktop` cannot be it, since it also holds windows and a menu bar and a non-`option` child of a listbox is invalid the same way. Divergence from APG, recorded: its listbox options share one roving tab stop, the kit's stay one stop each.
+- **`selectable` is what makes an icon focusable** — `movable` and `editable` require it, as the Finder did (you cannot move or rename what you have not selected; the rename already opens only on an ALREADY-selected icon). A `movable`-only icon is draggable but not a tab stop, rather than a tab stop that announces nothing.
+- **A name is never abbreviated, and never folded:** no ellipsis, no clipping, no wrapping — `white-space: nowrap`, one line always. System 7 solved the long-name problem at the other end — HFS capped a filename at 31 characters — so the Finder always drew the name in full. Wider than its cell, it overflows it, centered. `width` is therefore the cell (the grid pitch), not a bound on the name.
+- **Every centered offset is whole, by parity.** The frame centers two things over one axis, and a centered child sits at `(box − child) / 2` — whole exactly when box and child share a parity. Half a system pixel is what fringes 1-bit art: glyph stems smear across two device columns and go gray while the plate behind them stays sharp, since backgrounds are pixel-snapped by the compositor and glyphs are not (hence a crisp plate under a gray name). So the component makes the parities agree rather than correcting afterwards. The cell is 32 or 16; `#measurePlate()` measures the text with a `Range` over the plate's own contents — the plate already carries the width this last computed, so reading the element back would only return it — and sizes the plate (an `inline-block`) to that plus its 1px padding, rounded UP to a whole **even** number of system px, so it never clips the run it was measured from. The measurement is in system px and therefore scale-invariant, which is why nothing re-runs on a density change; it re-runs on `label`, `_draft`, `_editing`, and once on `document.fonts.ready`, since a name measured against the fallback face is a different width. The text is NOT centered inside its own plate (`text-align: left` against the block's `center`) — that would re-introduce the half pixel one level down; it starts at the 1px padding edge, so its x is the plate's plus one whole pixel, and the rounding slack lands after it as a hairline of extra plate. The rename field puts its run exactly where the plate's is, so the name does not shift when editing starts; its 1px border and 1px white well are a wrapper around the input rather than the input's own border and padding, because the selection behind a highlighted name paints at the face's full 16px em and is clipped only at the input's own edge — split, the input stands the plate's 12px line box (clipping the selection to it) and the well stays white, for an edit box 16 system px tall in all, not the em plus trim. Staying on one line is part of the same argument: one run, one measured width, one parity. Nothing is snapped and nothing leans on the rasterizer — the kit's normal antialiasing stays on, and `verify:icon` asserts both the geometry and zero gray pixels across a field of names at dpr 1/2/3, declared width and auto, with a control that forces an odd plate and requires the fringe to return. The one thing the component cannot round is a `width` the consumer chose, so that must be even.
+- **The 31-char cap** is `maxlength` on the rename field, and exceeding it fires `vf-name-too-long` rather than dropping characters silently. Detected in `beforeinput`, not `input`: with `maxlength` set, a blocked keystroke fires `beforeinput` and then *no* `input` at all, while an overshooting paste reaches `input` already trimmed — only the "about to change" event still knows what was attempted. `input` carries a trimming backstop for any route that skips it. The cap bounds typing only; a `label` set from consumer code is displayed as given and fires nothing (the name is the consumer's data).
+- **An empty name is refused, not applied.** A file has to be called something, and System 7 would not commit a nameless one: a rename committed empty — or as nothing but spaces, which would read as blank either way — drops the edit and restores the previous name, firing `vf-name-rejected` and deliberately no `vf-change`. An empty `label` remains a valid *starting* state (a freshly made icon has no name yet): it draws no plate but stays selectable, focusable and renameable. The caption element is therefore rendered whenever there is a name **or** an edit is open — without that an unnamed icon has nowhere to put the field and could never be named at all. The plate hugs its text in BOTH states, which is what keeps a commit from moving the name: it is the same box either side, so the glyphs do not shift. The single exception is an edit with no text in it at all, which reserves the cell width so the field is usable rather than a 2px sliver, and goes back to hugging on the first character. That floor is the cell, which is even, so the parity rule holds.
+- **Slots:** `large` (32×32 art, normally a `vf-img`), `small` (16×16). **Parts:** `frame`, `icon`, `label`, `plate`, `input`.
+- **Events:** `vf-select` `{ selected }`, `vf-change` `{ label, previous }`, `vf-open` `{}`, `vf-name-too-long` `{ attempted, accepted, limit }`, `vf-name-rejected` `{ attempted, kept, reason }`.
 
 ## 6. Exports
 
-`src/index.ts` (already written — do not change without reason) exports every
-component class. Importing the package registers all elements.
+`src/index.ts` (already written — do not change without reason) exports every component class. Importing the package registers all elements.
 
 ## 7. The faux desktop (moved out)
 
-The full-viewport System 7 desktop that used to close this spec — menu bar,
-nine windows, the composed alert, the utility palette, the Finder icons — is
-no longer part of this repo. It lives in
-**[aportilla/system7web](https://github.com/aportilla/system7web)** and
-consumes `vintage-frames` from npm, so it exercises the same published API a
-consumer gets rather than reaching into `src/`. Its clause-by-clause spec
-moved with it, to that repo's `docs/SPEC.md`.
+The full-viewport System 7 desktop that used to close this spec — menu bar, nine windows, the composed alert, the utility palette, the Finder icons — is no longer part of this repo. It lives in **[aportilla/system7web](https://github.com/aportilla/system7web)** and consumes `vintage-frames` from npm, so it exercises the same published API a consumer gets rather than reaching into `src/`. Its clause-by-clause spec moved with it, to that repo's `docs/SPEC.md`.
 
-What the kit keeps as its own demo surface is `index.html`, the component
-reference (every element, its API, a live specimen of each state), and
-`blog.html`, the integration example the verify suite covers. See
-[DEVELOPING.md](DEVELOPING.md).
+What the kit keeps as its own demo surface is `index.html`, the component reference (every element, its API, a live specimen of each state), and `blog.html`, the integration example the verify suite covers. See [DEVELOPING.md](DEVELOPING.md).
 
 <details>
 <summary>The original §7 clauses, for the record</summary>
 
-1. Full-viewport `vf-desktop` with a `vf-menu-bar` on top: Apple menu (its bar
-   title a slotted 16-px `vf-img` apple icon; about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, Page Setup…,
-   disabled Print, sep, Quit ⌘Q), Edit (Undo ⌘Z, sep, Cut/Copy/Paste), View
-   (an exclusive check across "by Icon", "by Small Icon" and "by Name"; the two
-   icon views really do switch every `vf-icon` between the family's two
-   members), Special (Restart, Shut Down, sep, "Show All Windows" — reopens
-   closed demo windows).
-2. **"DragThing 2.9 Installer" window** — faithful to the screenshot: white
-   content well (bordered) with welcome copy + bullet list, "Disk space
-   available: 58,616K / Approximate disk space needed: 4,584K" caption row
-   (the body face — System 7's fine print is Geneva 9 at its own size),
-   `vf-fieldset legend="Install Location"` containing the folder
-   text and a `vf-select` ("Macintosh HD"), and stacked `Quit` +
-   `Install` (variant=default) buttons on the right. `movable zoomable`.
-3. **"Format" dialog window** — faithful to the screenshot: Mode
-   `vf-radio-group` (Hierarchical ⌘H … Don't Reorganize ⌘R, with "Source Format
-   Profile" disabled; shortcut text right of labels), disabled "Selection Only"
-   checkbox, Options checkboxes (3, all checked), Cancel ⌘. + Format
-   (variant=default) buttons bottom-right. Rendered as a movable `vf-window`
-   with no close box (closable=false), so its own Cancel/Format buttons are
-   how it dismisses.
-4. **"Controls" kitchen-sink window** — text field, password field, textarea,
-   determinate progress animating 0→100 on a timer, indeterminate progress,
-   button variants (normal/default/disabled), a `vf-swatch` palette row (the
-   six-color wells plus the no-color checker), separator, multi-select
-   `vf-list` (each row's `icon` slot carrying its DA's 16×16 small icon as a
-   `vf-img`), `vf-scroll-area` with enough
-   text to scroll, disabled control examples.
-5. An alert: menu item Special → "Erase Disk…" opens a composed alert box —
-   `vf-dialog frame="plain"` with the demo's own 32×32 alert icon
-   (`demo/icons/alert.png`) in a row `vf-stack` via `vf-img` — "Completely
-   erase the disk named 'Macintosh HD'?" with Cancel / Erase buttons (Erase =
-   default variant, closes the dialog). The kit ships no alert component; the
-   showcase demonstrates the recipe.
-6. All windows `movable`; desktop stacking/active management demonstrably
-   works. Every window starts put away and opens from its own desktop
-   launcher icon — a `vf-icon` per demonstration window and dialog, clustered
-   around the top-left so the set stays on-canvas at any viewport size;
-   `vf-open` centers the window on the raster as it currently stands and
-   raises it (no window carries an authored position). Closing a window hides
-   it (listen for `vf-close`, set `hidden`); the close-box-less modal
-   lookalikes dismiss via their own OK/Cancel buttons instead; Special →
-   Show All Windows un-hides everything, cascaded around the center.
-7. **"Page Setup" modal dialog box** — File → Page Setup… opens a
-   `vf-dialog frame="plain"` (dBoxProc double frame, heading drawn in
-   content): Paper radio group in a fieldset, Reduce or Enlarge
-   `vf-number-field`, Cancel / OK (default) buttons.
-8. **"Desk Accessories" utility palette** — `vf-window variant="utility"
-   movable flush`: a `vf-grid` of 3×3 26px cells holding 16×16 `vf-img` DA
-   icons (one selected, inverted), frameless so the window's own border is the
-   palette's, floating above the document windows on the desktop's utility
-   tier and untouched by their active-state churn — the Group A archetype
-   table's fifth recipe, live.
-9. The **"DragThing Read Me"** window (item 2's copy points at it) carries the
-   document-window archetype at full anatomy: `movable resizable
-   scrollbars="both"`, the rails in the frame and the grow box in the corner
-   cell.
-10. **Finder icons on the desktop** — "Macintosh HD" and "Trash" as `vf-icon`,
-    each slotting its art at both resource sizes, `selectable movable
-    editable`. They sit under the windows the way desktop icons do, taking
-    the column to the right of the launcher cluster — with `left`/`top` in
-    system px, never a `right`/`bottom` anchor, which lands somewhere
-    different at each density since the desktop is the viewport. View →
-    "by Small Icon" drives them (launchers included).
+1. Full-viewport `vf-desktop` with a `vf-menu-bar` on top: Apple menu (its bar title a slotted 16-px `vf-img` apple icon; about item), File (New Window ⌘N, Open… ⌘O, sep, Close ⌘W, Page Setup…, disabled Print, sep, Quit ⌘Q), Edit (Undo ⌘Z, sep, Cut/Copy/Paste), View (an exclusive check across "by Icon", "by Small Icon" and "by Name"; the two icon views really do switch every `vf-icon` between the family's two members), Special (Restart, Shut Down, sep, "Show All Windows" — reopens closed demo windows).
+2. **"DragThing 2.9 Installer" window** — faithful to the screenshot: white content well (bordered) with welcome copy + bullet list, "Disk space available: 58,616K / Approximate disk space needed: 4,584K" caption row (the body face — System 7's fine print is Geneva 9 at its own size), `vf-fieldset legend="Install Location"` containing the folder text and a `vf-select` ("Macintosh HD"), and stacked `Quit` + `Install` (variant=default) buttons on the right. `movable zoomable`.
+3. **"Format" dialog window** — faithful to the screenshot: Mode `vf-radio-group` (Hierarchical ⌘H … Don't Reorganize ⌘R, with "Source Format Profile" disabled; shortcut text right of labels), disabled "Selection Only" checkbox, Options checkboxes (3, all checked), Cancel ⌘. + Format (variant=default) buttons bottom-right. Rendered as a movable `vf-window` with no close box (closable=false), so its own Cancel/Format buttons are how it dismisses.
+4. **"Controls" kitchen-sink window** — text field, password field, textarea, determinate progress animating 0→100 on a timer, indeterminate progress, button variants (normal/default/disabled), a `vf-swatch` palette row (the six-color wells plus the no-color checker), separator, multi-select `vf-list` (each row's `icon` slot carrying its DA's 16×16 small icon as a `vf-img`), `vf-scroll-area` with enough text to scroll, disabled control examples.
+5. An alert: menu item Special → "Erase Disk…" opens a composed alert box — `vf-dialog frame="plain"` with the demo's own 32×32 alert icon (`demo/icons/alert.png`) in a row `vf-stack` via `vf-img` — "Completely erase the disk named 'Macintosh HD'?" with Cancel / Erase buttons (Erase = default variant, closes the dialog). The kit ships no alert component; the showcase demonstrates the recipe.
+6. All windows `movable`; desktop stacking/active management demonstrably works. Every window starts put away and opens from its own desktop launcher icon — a `vf-icon` per demonstration window and dialog, clustered around the top-left so the set stays on-canvas at any viewport size; `vf-open` centers the window on the raster as it currently stands and raises it (no window carries an authored position). Closing a window hides it (listen for `vf-close`, set `hidden`); the close-box-less modal lookalikes dismiss via their own OK/Cancel buttons instead; Special → Show All Windows un-hides everything, cascaded around the center.
+7. **"Page Setup" modal dialog box** — File → Page Setup… opens a `vf-dialog frame="plain"` (dBoxProc double frame, heading drawn in content): Paper radio group in a fieldset, Reduce or Enlarge `vf-number-field`, Cancel / OK (default) buttons.
+8. **"Desk Accessories" utility palette** — `vf-window variant="utility" movable flush`: a `vf-grid` of 3×3 26px cells holding 16×16 `vf-img` DA icons (one selected, inverted), frameless so the window's own border is the palette's, floating above the document windows on the desktop's utility tier and untouched by their active-state churn — the Group A archetype table's fifth recipe, live.
+9. The **"DragThing Read Me"** window (item 2's copy points at it) carries the document-window archetype at full anatomy: `movable resizable scrollbars="both"`, the rails in the frame and the grow box in the corner cell.
+10. **Finder icons on the desktop** — "Macintosh HD" and "Trash" as `vf-icon`, each slotting its art at both resource sizes, `selectable movable editable`. They sit under the windows the way desktop icons do, taking the column to the right of the launcher cluster — with `left`/`top` in system px, never a `right`/`bottom` anchor, which lands somewhere different at each density since the desktop is the viewport. View → "by Small Icon" drives them (launchers included).
 
-The page may use small amounts of layout CSS (positioning windows on the
-desktop) but NO aesthetic CSS — looks must come from the components. That
-includes the static text: every caption is a `vf-label` and every run of copy a
-`vf-paragraph`, so its layout stylesheet sets no face or size at all (it used
-to hand-roll the display face for the field labels, which is what Group E
-replaced).
+The page may use small amounts of layout CSS (positioning windows on the desktop) but NO aesthetic CSS — looks must come from the components. That includes the static text: every caption is a `vf-label` and every run of copy a `vf-paragraph`, so its layout stylesheet sets no face or size at all (it used to hand-roll the display face for the field labels, which is what Group E replaced).
 
 </details>
 
@@ -2480,5 +505,4 @@ replaced).
 - `npm run typecheck` and `npm run build` pass.
 - Every component in §5 implemented per spec, exported, registered.
 - The component reference shows every component.
-- Side-by-side with the reference screenshots, an unfamiliar reviewer should
-  say "yes, that's System 7."
+- Side-by-side with the reference screenshots, an unfamiliar reviewer should say "yes, that's System 7."

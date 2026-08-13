@@ -315,6 +315,12 @@ li {
 .example__stage--flush {
   display: block;
   padding: 0;
+  text-align: center;
+
+  vf-desktop {
+    display: inline-block;
+    text-align: initial;
+  }
 }
 
 /*

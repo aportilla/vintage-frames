@@ -47,8 +47,8 @@ import { truePixelRatio } from './zoom.js'
  * ## Why an offset and not a transform
  *
  * The obvious tool is `transform: translate()`, since transforms don't perturb
- * layout. Measured on blog.html (stray non-1-bit pixels in a `vf-button` crop,
- * where a clean render scores 0):
+ * layout. Measured on a deliberately off-grid integration page (stray
+ * non-1-bit pixels in a `vf-button` crop, where a clean render scores 0):
  *
  *   dpr   pristine   off-grid   transform   this controller
  *   1        0          959        189            0
@@ -71,8 +71,8 @@ import { truePixelRatio } from './zoom.js'
  * the layout contract; this removes the third rule (whole-pixel line boxes),
  * which is where nearly every real fault came from.
  *
- * Opt in once per app with {@link applyGridSnap}; opt a single element out with
- * the `nosnap` attribute.
+ * Always on: the shared scheduler arms itself when the first component
+ * connects. Opt a single element out with the `nosnap` attribute.
  */
 
 /**
@@ -132,43 +132,25 @@ class GridSnapScheduler {
   private enabled = false
   private frame = 0
   private resizes?: ResizeObserver
-  private teardown: Array<() => void> = []
 
   register(controller: GridSnapController): void {
     this.controllers.add(controller)
-    if (!this.enabled) {
-      // A host can disconnect while snapping is on (its correction stays; it
-      // isn't painting) and reconnect after the cleanup ran. Hand its own
-      // styles back now rather than freezing the stale correction. No-op for
-      // the common fresh controller.
-      controller.reset()
-      return
+    // The first component to connect arms the page's scheduler; there is no
+    // switch. install() attaches the trigger set exactly once and observes
+    // every controller already in the set — this one included — so only the
+    // later registrations observe here.
+    if (!this.enabled && typeof window !== 'undefined') {
+      this.enabled = true
+      this.install()
+    } else {
+      this.resizes?.observe(controller.host)
     }
-    this.resizes?.observe(controller.host)
     this.request()
   }
 
   unregister(controller: GridSnapController): void {
     this.controllers.delete(controller)
     this.resizes?.unobserve(controller.host)
-  }
-
-  enable(): void {
-    if (this.enabled || typeof window === 'undefined') return
-    this.enabled = true
-    this.install()
-    this.request()
-  }
-
-  disable(): void {
-    if (!this.enabled) return
-    this.enabled = false
-    if (this.frame) cancelAnimationFrame(this.frame)
-    this.frame = 0
-    for (const stop of this.teardown.splice(0)) stop()
-    this.resizes?.disconnect()
-    this.resizes = undefined
-    for (const controller of this.controllers) controller.reset()
   }
 
   /** Ask for a sweep before the next paint. Cheap to call repeatedly. */
@@ -222,24 +204,18 @@ class GridSnapScheduler {
     // (requestGridSnap() covers it). The deadband keeps the quiet sweeps to one
     // rect read per host.
     window.addEventListener('scroll', onChange, { capture: true, passive: true })
-    this.teardown.push(() => {
-      window.removeEventListener('resize', onChange)
-      window.removeEventListener('orientationchange', onChange)
-      window.removeEventListener('scroll', onChange, { capture: true })
-    })
 
     // Bitmap faces register themselves asynchronously (styles/*-font.ts), and
     // every line box re-measures when one lands.
     const fonts = document.fonts
     if (fonts) {
       fonts.addEventListener('loadingdone', onChange)
-      this.teardown.push(() => fonts.removeEventListener('loadingdone', onChange))
       void fonts.ready.then(onChange)
     }
 
     // The window moving to a different-density display changes what "on the
     // grid" means, and ScaleController rewrites --vf-scale at the same moment.
-    this.teardown.push(onScaleChange(onChange))
+    onScaleChange(onChange)
 
     // `nosnap` is read during a sweep, and setting an attribute schedules none —
     // so a host opted out at runtime would keep the correction it happened to
@@ -252,7 +228,6 @@ class GridSnapScheduler {
       attributes: true,
       attributeFilter: ['nosnap'],
     })
-    this.teardown.push(() => optOuts.disconnect())
   }
 }
 
@@ -268,9 +243,8 @@ const scheduler = new GridSnapScheduler()
  *
  * The component's template must put the `vf-snap` class (see `vfBase`) on its
  * top-level painted element(s); the host box is what gets measured, so an
- * authored offset inside it (a toggle's centered box) stays put. Dormant
- * until the app calls {@link applyGridSnap}, and skipped per-element by a
- * `nosnap` attribute on the host.
+ * authored offset inside it (a toggle's centered box) stays put. Always
+ * active; skipped per-element by a `nosnap` attribute on the host.
  */
 export class GridSnapController implements ReactiveController {
   /** vf-* ancestors above this host; the sweep runs in ascending order. */
@@ -386,39 +360,6 @@ const nestingDepth = (el: Element): number => {
     if (node.tagName.toLowerCase().startsWith('vf-')) depth++
   }
   return depth
-}
-
-let holds = 0
-
-/**
- * Opt the page into automatic device-pixel-grid snapping: every mounted
- * component (and every one mounted afterwards) holds its paint on whole device
- * pixels, whatever the surrounding layout does. Returns a cleanup function
- * that turns it back off. Calls share one switch: snapping stays on until
- * every caller's cleanup has run, and running a cleanup twice releases only
- * once — so two widgets on one page can each opt in and out without turning
- * the other's snapping off.
- *
- * ```ts
- * import { applyGridSnap } from 'vintage-frames'
- * applyGridSnap()
- * ```
- *
- * The whole footprint on your DOM is two reserved custom properties
- * (`--vf-snap-dx`/`--vf-snap-dy`) on each corrected host's inline style; the
- * offset they drive is applied inside the component's own shadow root. Worth
- * knowing: a component's painted box can sit up to half a device pixel outside
- * its layout box while corrected.
- */
-export function applyGridSnap(): () => void {
-  holds++
-  scheduler.enable()
-  let released = false
-  return () => {
-    if (released) return
-    released = true
-    if (--holds === 0) scheduler.disable()
-  }
 }
 
 /**

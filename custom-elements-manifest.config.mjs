@@ -71,7 +71,7 @@ export default {
     vfElementPlugin(),
 
     // Editor data is the point of the manifest for this kit: the integration
-    // story is plain HTML in an ordinary page (blog.html), where a consumer has
+    // story is plain HTML in an ordinary page, where a consumer has
     // no TypeScript to lean on and gets no completion at all today.
     customElementVsCodePlugin({
       outdir: 'editor',

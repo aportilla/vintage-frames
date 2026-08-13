@@ -14,8 +14,8 @@
  * working. The warning matters as much as the guard, because a duplicated copy
  * is not benign even once the page survives it: the scaling, grid-snapping and
  * focus-modality registries are all module-scoped singletons, so the second
- * copy's `applyGridSnap()` reaches none of the first copy's components and the
- * two disagree silently. Better to say so than to let it look fine.
+ * copy's schedulers reach none of the first copy's components and the two
+ * disagree silently. Better to say so than to let it look fine.
  */
 
 /**
@@ -38,9 +38,9 @@ export const defineElement = (tagName: string, ctor: CustomElementConstructor): 
     console.warn(
       `[vintage-frames] <${tagName}> is already registered on this page, so this ` +
         `second registration was skipped and the first one kept. Two copies of the ` +
-        `library also mean two of every module-scoped singleton — applyGridSnap(), ` +
-        `applyScale() and the focus-modality tracker each only reach the components ` +
-        `built from their own copy. Dedupe vintage-frames to a single version.`,
+        `library also mean two of every module-scoped singleton — the grid-snap ` +
+        `scheduler, applyScale() and the focus-modality tracker each only reach the ` +
+        `components built from their own copy. Dedupe vintage-frames to a single version.`,
     )
     return
   }

@@ -9,8 +9,8 @@
  *
  * Nothing here declares --vf-scale. The components size themselves — one system
  * pixel to three device pixels, true ~72dpi — and this file never second-guesses
- * that. Where a demo box has to relate to a component's size it does it the way
- * blog.css does: `em` against the component's own type (on a vf-* host 1em is
+ * that. Where a demo box has to relate to a component's size it does it with
+ * `em` against the component's own type (on a vf-* host 1em is
  * the kit's 16-system-pixel face, so `15em` is 240 system px at every density),
  * or a percentage of the box it sits in. Plain px is for page furniture only.
  *
@@ -20,9 +20,9 @@
  * 1.5 = 24px is fine; 17px × 1.65 = 28.05px is not) and every line after it
  * pushes the components below further off the device-pixel grid.
  *
- * examples.ts also calls applyGridSnap(), so a component whose origin lands
- * fractionally anyway corrects itself. Load the page with ?nosnap to turn that
- * off and compare.
+ * Grid snapping is always on, so a component whose origin lands fractionally
+ * anyway corrects itself. Load the page with ?nosnap to opt every element out
+ * and compare.
  */
 
 :root {
@@ -121,15 +121,6 @@ code {
   color: var(--ink-soft);
 }
 
-.sidebar__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: 8px;
-  font-size: 13px;
-  line-height: 20px;
-}
-
 .toc {
   flex: 1 1 auto;
   min-height: 0;
@@ -190,7 +181,7 @@ code {
 /*
  * One column, centered in the pane. Its width is capped in whole px, so what
  * centering can land on a fractional device pixel is the origin — the half
- * applyGridSnap() corrects (docs/SIZING.md rule 3).
+ * grid snapping corrects (docs/SIZING.md rule 3).
  */
 .doc {
   max-width: 960px;
@@ -386,7 +377,7 @@ pre {
  * Sized by its content the cell is as wide as whichever is bigger, the
  * component or its caption — and the caption is proportional text, so the cell
  * came out fractional and handed the NEXT cell's component a fractional start
- * (verify:grid caught the vf-checkbox and the vf-select here). applyGridSnap()
+ * (verify:grid caught the vf-checkbox and the vf-select here). Grid snapping
  * keeps that component's ink crisp, but the layout box stays where the page put
  * it, so the page has to put it on a whole pixel.
  *
@@ -547,10 +538,6 @@ pre {
     align-items: baseline;
     gap: 0 16px;
     padding: 12px 16px;
-  }
-
-  .sidebar__links {
-    margin-top: 0;
   }
 
   .main {

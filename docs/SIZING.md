@@ -84,23 +84,22 @@ Three rules. One call covers the second:
 
 ### Grid snapping
 
-`applyGridSnap()` has every component measure its own position and cancel the fractional remainder itself, which covers rule 2 and the origin half of rule 3:
+Every component measures its own position and cancels the fractional remainder itself, always — which covers rule 2 and the origin half of rule 3. `requestGridSnap()` re-runs the check after moving components in a way that resizes nothing:
 
 ```ts
-import { applyGridSnap, requestGridSnap } from 'vintage-frames'
+import { requestGridSnap } from 'vintage-frames'
 
-applyGridSnap()   // → returns a cleanup function
-requestGridSnap() // re-run after moving components in a way that resizes nothing
+requestGridSnap()
 ```
 
-The correction is applied inside each component's shadow root — the host's `position`, `left`/`top` and `margin` are never touched, so it cannot collide with your layout. Its whole footprint on your DOM is `--vf-snap-dx` / `--vf-snap-dy` on each corrected host, and a corrected component's painted box can sit up to half a device pixel outside its layout box. Corrections re-apply on resize, scroll, webfont load and density change. Opt one element out with `nosnap`. It stays opt-in for now.
+The correction is applied inside each component's shadow root — the host's `position`, `left`/`top` and `margin` are never touched, so it cannot collide with your layout. Its whole footprint on your DOM is `--vf-snap-dx` / `--vf-snap-dy` on each corrected host, and a corrected component's painted box can sit up to half a device pixel outside its layout box. Corrections re-apply on resize, scroll, webfont load and density change. Opt one element out with `nosnap`.
 
 ```sh
 npm run verify:grid   # every vf-* host, at dpr 1 / 2 / 3 — reports ORIGIN or SIZE
-npm run verify:snap   # …and that applyGridSnap() recovers a page knocked off it
+npm run verify:snap   # …and that a page knocked off the grid recovers by itself
 ```
 
-Point both at your own pages with `VF_GRID_PAGES` / `VF_SNAP_PAGES` (and `VF_ORIGIN` / `VF_SNAP_DPR`). Both need a page that doesn't call `applyGridSnap()` itself.
+Point both at your own pages with `VF_GRID_PAGES` / `VF_SNAP_PAGES` (and `VF_ORIGIN` / `VF_SNAP_DPR`).
 
 ### The tile grid
 

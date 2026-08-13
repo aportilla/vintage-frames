@@ -565,7 +565,7 @@ export class VfIcon extends VfPositioned(LitElement) {
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  /** Device-pixel grid snapping; see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
   /** Whether to wear the dashed focus rule; see src/focus-modality.ts. */
@@ -586,7 +586,7 @@ export class VfIcon extends VfPositioned(LitElement) {
    * twice — once to measure, once to deliver one number back — and Lit's
    * change-in-update warning is exactly that round trip being spotted. It
    * feeds a single inline width and nothing else, so {@link #measurePlate}
-   * writes it straight to the plate instead, the ownership `applyGridSnap()`
+   * writes it straight to the plate instead, the ownership the grid snapper
    * has over `--vf-snap-dx`/`-dy`. The template still reads it so a caption
    * Lit re-creates (one leaving `_editing`, say) is born at the settled width
    * rather than flashing through the unmeasured one.

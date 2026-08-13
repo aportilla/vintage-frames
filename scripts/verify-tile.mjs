@@ -592,14 +592,23 @@ for (const dpr of DENSITIES) {
     consumerArt: true,
     bodyStyle: '#desk{top:0.35px;left:0.35px}',
   })
-  const before = await impureIn(page, SURFACES[0], dpr, devicePxPerSystemPxAt(dpr))
-  await page.evaluate(() => import('/src/index.js').then((m) => m.applyGridSnap()))
+  // Snapping is always on, so the correction is in by the time the page has
+  // settled; the perturbation is proven on the host origin instead, which a
+  // component's own correction never moves.
   await page.evaluate(
     () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
   )
+  const offGrid = await page.evaluate(async () => {
+    const { truePixelRatio } = await import('/src/index.js')
+    const dpr = truePixelRatio()
+    const r = document.getElementById('desk').getBoundingClientRect()
+    const err = (v) => Math.abs(v * dpr - Math.round(v * dpr))
+    return +Math.max(err(r.left), err(r.top)).toFixed(3)
+  })
   const after = await impureIn(page, SURFACES[0], dpr, devicePxPerSystemPxAt(dpr))
-  console.log(`\nsnap interplay: ${before.impure} impure off-grid → ${after.impure} after applyGridSnap()`)
-  check('desktop tile grid recovers to 1-bit under applyGridSnap()', after.impure === 0, `${after.impure} impure`)
+  console.log(`\nsnap interplay: host off-grid by ${offGrid} device px, ${after.impure} impure`)
+  check('the perturbation lands on the desktop host', offGrid > 0.05, `${offGrid} device px`)
+  check('a knocked-off-grid desktop tile grid recovers to 1-bit by itself', after.impure === 0, `${after.impure} impure`)
   await page.close()
 }
 

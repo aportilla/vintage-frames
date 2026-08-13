@@ -103,7 +103,7 @@ export type VfStackPlace = 'start' | 'center' | 'end'
  * and a layout box for *anything*, and consumer content inside it — a div, an
  * `<img>`, a run of text — has no controller of its own. So the flex
  * container, the placed-child anchor and the `vf-snap` class live on one
- * shadow box, and under `applyGridSnap()` the correction moves the stack's
+ * shadow box, and the correction moves the stack's
  * whole coordinate system; children (kit or not) ride it, and the sweep's
  * outermost-first order means the kit children then find nothing left to
  * correct. What this deliberately does not fix: a text-governed child width
@@ -342,7 +342,7 @@ export class VfStack extends VfSized(VfPositioned(LitElement)) {
   private readonly scale = new ScaleController(this)
 
   /**
-   * Hold the box on the device-pixel grid under `applyGridSnap()` — see the
+   * Hold the box on the device-pixel grid — see the
    * class doc for why the original no-controller decision was reversed. The
    * host is what gets measured; `.box` (vf-snap) is where the correction
    * lands, taking the whole coordinate system with it.

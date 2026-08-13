@@ -154,7 +154,7 @@ process.on('exit', stopEverything)
 // ── running one script ─────────────────────────────────────────────────────
 /**
  * The tally a script prints for itself. Most end with "N/M checks passed";
- * the three page-level ones (blog, grid, snap) report per-line instead, so
+ * the page-level ones (grid, snap) report per-line instead, so
  * their `ok`/`FAIL` lines are counted directly. Either way the exit code is
  * what decides pass or fail — this is for the summary column only.
  */

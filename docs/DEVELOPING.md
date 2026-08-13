@@ -16,11 +16,10 @@ Both pages are published at **[aportilla.github.io/vintage-frames](https://aport
 | Page | What it is |
 | --- | --- |
 | [`/`](http://localhost:5173/) | **Component reference** — every element, its API, and a live specimen of each state. Each code sample is the demo's own source, so it can't drift |
-| [`/blog.html`](http://localhost:5173/blog.html) | Integration example — an ordinary blog page (system-font copy, normal flow, no global CSS) using the controls in its header, sidebar and forms |
 
 The faux System 7 desktop that used to be this site's root moved to its own repo, [aportilla/system7web](https://github.com/aportilla/system7web), where it consumes `vintage-frames` from npm like any other app. Changing a component and wanting to see the desktop react means publishing (or `npm link`ing) the package — which is the point: the desktop is now a consumer, and it exercises the same public API everyone else gets.
 
-`blog.html` sets no `--vf-scale`, so its components self-scale to true ~72dpi size. `npm run shot:blog` captures it at 1× / 2× / 3×. Two query flags show grid snapping working: `?offgrid` knocks all 45 measured components off the device-pixel grid and snapping recovers them; `?offgrid&nosnap` is the same page with snapping off, for comparison.
+Grid snapping is the components' own always-on behavior. Load the reference with `?nosnap` to opt every element out (the per-element `nosnap` attribute, applied page-wide) and compare at 100% zoom.
 
 ## Tests
 

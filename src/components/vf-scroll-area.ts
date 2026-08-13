@@ -40,7 +40,7 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
 export class VfScrollArea extends VfPositioned(LitElement) {
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  /** Device-pixel grid snapping; see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
   /**

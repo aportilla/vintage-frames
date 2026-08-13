@@ -55,7 +55,20 @@ export const vfBase = css`
      painted element(s). Absolutely positioned satellites that anchor to the
      host (vf-menu's panel, the default button's ring) compose the same
      variables into their own insets instead. Controller-owned — never set the
-     variables by hand. */
+     variables by hand.
+
+     The reset below makes the two properties per-host: custom properties
+     inherit, so without it a host needing no correction of its own would
+     resolve an ancestor component's values here and its paint would leave the
+     grid by exactly that amount — invisibly, since the controller measures
+     the host box, which never moves. (Measured: a placed vf-button on a
+     corrected vf-desktop painted at the desktop's -0.39px offset.) The
+     controller's writes land on the host's inline style, which wins over
+     this rule. */
+  :host {
+    --vf-snap-dx: 0px;
+    --vf-snap-dy: 0px;
+  }
   .vf-snap {
     position: relative;
     left: var(--vf-snap-dx, 0px);

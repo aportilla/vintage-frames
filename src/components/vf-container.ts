@@ -54,7 +54,7 @@ import { GridSnapController } from '../grid-snap.js'
  * A container's box is itself the consumer's coordinate system, including for
  * non-`vf` content that cannot correct itself, so the box is the thing to
  * hold on the grid. The shadow box below owns the `position: relative` anchor
- * and the `vf-snap` class together, so under `applyGridSnap()` the correction
+ * and the `vf-snap` class together, so the correction
  * moves the whole coordinate system — everything placed against it rides
  * along instead of being re-corrected child by child. (`vf-stack` shipped
  * without a controller on the theory that slotted `vf-*` children correct
@@ -158,7 +158,7 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
   private readonly scale = new ScaleController(this)
 
   /**
-   * Hold the box on the device-pixel grid under `applyGridSnap()` — see the
+   * Hold the box on the device-pixel grid — see the
    * class doc. The host is what gets measured; `.box` (vf-snap) is where the
    * correction lands.
    */

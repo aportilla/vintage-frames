@@ -77,7 +77,7 @@ function contentStart(el: HTMLElement, axis: 'x' | 'y'): number {
  * whole system px (`vf-select` is 87⅓ at 1.5×), and deriving would move such a
  * child *off* a grid position it already held. Everything is relative to the
  * box, so a stack the page put on a fractional origin is untouched: that stays
- * the page's fault, or `applyGridSnap()`'s to absorb.
+ * the page's fault, or the grid snapper's to absorb (src/grid-snap.ts).
  *
  * The correction lands as {@link CENTER_TIE_ATTRIBUTE} plus a length in
  * `--vf-stack-dx` / `--vf-stack-dy`, applied by the container's own

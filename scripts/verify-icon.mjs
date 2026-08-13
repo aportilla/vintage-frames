@@ -176,7 +176,7 @@ for (const dpr of [1, 2, 3]) {
 // ── PARITY ──────────────────────────────────────────────────────────────────
 // The cell is centered over the name, so the offset is whole exactly when the
 // box is even. This asserts the rule the class doc states — an even declared
-// `width` is exact, and an odd one is the case that needs applyGridSnap().
+// `width` is exact, and an odd one is the case that needs grid snapping.
 {
   const page = await build(
     `${icon('width="64"', 'Read Me')}
@@ -1371,7 +1371,7 @@ for (const dpr of [1, 2, 3]) {
   )
   // The written origin, not the viewport rect: `left`/`top` are what the drag
   // states, and they are relative to the container — whose own origin the page
-  // owns (contract rule 3, and what applyGridSnap() corrects for).
+  // owns (contract rule 3, and what grid snapping corrects for).
   const origin = await page.evaluate(() => {
     const el = document.querySelector('vf-icon')
     return { left: el.left, top: el.top, css: el.style.left }

@@ -60,7 +60,7 @@ export class VfFieldset extends VfPositioned(LitElement) {
 
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  /** Device-pixel grid snapping; see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
   /** Legend text shown on the top border. */

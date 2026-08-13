@@ -283,7 +283,7 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  /** Device-pixel grid snapping; see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
   @query('button') private buttonEl!: HTMLButtonElement | null

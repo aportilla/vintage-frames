@@ -147,7 +147,7 @@ export class VfLabel extends VfSized(VfPositioned(LitElement)) {
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  /** Device-pixel grid snapping; see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
   /**

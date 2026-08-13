@@ -495,10 +495,13 @@ const rerender = (page, id, times = 3) =>
     </div>`)
 
   const initial = await counts(page)
-  check('one ResizeObserver per component (no per-call churn)',
-    initial.roCreated === 2, `${initial.roCreated} created`)
-  check('each track is observed exactly once',
-    initial.roObserve === 2, `${initial.roObserve} observe() calls`)
+  // 2 component-own observers plus the ONE shared grid-snap scheduler observer
+  // (always-on; it watches documentElement and each host).
+  check('one ResizeObserver per component plus the shared snap scheduler',
+    initial.roCreated === 3, `${initial.roCreated} created`)
+  // 2 tracks + the scheduler's documentElement + its 2 hosts.
+  check('each track and host is observed exactly once',
+    initial.roObserve === 5, `${initial.roObserve} observe() calls`)
 
   const idle = await delta(page, async () => {
     await rerender(page, 's', 4)
@@ -540,8 +543,9 @@ const rerender = (page, id, times = 3) =>
   })
   check('disconnecting tears the observers down', cycle.roDisconnect === 2,
     `${cycle.roDisconnect} disconnect() calls`)
+  // 2 tracks re-observed by the components, 2 hosts by the snap scheduler.
   check('reconnecting re-observes without creating a second observer',
-    cycle.roObserve === 2 && cycle.roCreated === 0,
+    cycle.roObserve === 4 && cycle.roCreated === 0,
     `${cycle.roObserve} observe(), ${cycle.roCreated} created`)
 
   await setWidth(240)

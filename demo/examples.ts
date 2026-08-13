@@ -1,8 +1,7 @@
 /**
  * Behavior for index.html — the Vintage Frames component reference.
  *
- * The kit's own root page. blog.html is the ordinary page a consumer actually
- * has; this one is the manual: every component, its
+ * The kit's own root page — the manual: every component, its
  * custom API, and a live specimen of each state that can be shown standing
  * still.
  *
@@ -22,7 +21,6 @@
  * in their default state, self-scaled to true size.
  */
 import {
-  applyGridSnap,
   effectiveScale,
   getZoom,
   onScaleChange,
@@ -42,15 +40,24 @@ function $<T extends Element>(selector: string): T {
 /* ------------------------------------------------------------------ *
  * Device-pixel grid snapping.
  *
- * On by default. The page follows the layout contract (whole-px line boxes
- * throughout examples.css), so there is usually nothing to correct — but a
- * documentation page is exactly where a component ends up in a flex row it
- * did not expect, and snapping is what keeps that from smearing the 1-bit
- * art. Load with ?nosnap to turn it off and A/B at 100% zoom.
+ * Always on — the components snap themselves. The page follows the layout
+ * contract (whole-px line boxes throughout examples.css), so there is usually
+ * nothing to correct — but a documentation page is exactly where a component
+ * ends up in a flex row it did not expect, and snapping is what keeps that
+ * from smearing the 1-bit art. Load with ?nosnap to opt every element out
+ * (the per-element `nosnap` attribute, applied page-wide) and A/B at 100%
+ * zoom. The sweep runs after the stages below are built; elements created
+ * later are not opted out.
  * ------------------------------------------------------------------ */
 
 const params = new URLSearchParams(location.search)
-if (!params.has('nosnap')) applyGridSnap()
+if (params.has('nosnap')) {
+  queueMicrotask(() => {
+    for (const el of document.querySelectorAll('*')) {
+      if (el.tagName.toLowerCase().startsWith('vf-')) el.setAttribute('nosnap', '')
+    }
+  })
+}
 
 /* ------------------------------------------------------------------ *
  * Examples: template → live stage + its own markup as the code sample.

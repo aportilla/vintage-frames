@@ -129,7 +129,7 @@ function onStall() {
 
 /**
  * Restart the stall clock. {@link check} calls it; the few scripts that report
- * per-line instead of per-check (grid, snap, blog, control-heights) call it
+ * per-line instead of per-check (grid, snap, control-heights) call it
  * from their own `check` so they are covered too.
  */
 export function heartbeat(label) {

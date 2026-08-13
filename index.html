@@ -19,8 +19,8 @@
       the reference tables. There is no cross-cutting "conventions" chapter:
       what a component does is stated in that component's own section.
 
-      The page pins no --vf-scale, so every specimen self-scales. It calls
-      applyGridSnap(); load with ?nosnap to turn that off.
+      The page pins no --vf-scale, so every specimen self-scales. Grid
+      snapping is always on; load with ?nosnap to opt every element out.
     -->
     <link rel="stylesheet" href="/demo/examples.css" />
     <script type="module" src="/demo/examples.ts"></script>
@@ -36,10 +36,6 @@
             </vf-img>
             <vf-label>Vintage Frames</vf-label>
           </p>
-          <nav class="sidebar__links" aria-label="Other demo pages">
-            <a href="./">Showcase</a>
-            <a href="./blog.html">Integration example</a>
-          </nav>
         </header>
 
         <nav class="toc" id="toc" aria-label="Contents"></nav>
@@ -1373,7 +1369,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Content that outgrows the box overflows it rather than growing it; an omitted axis shrink-wraps</td></tr>
               <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes, read two ways as in <code>vf-stack</code>: on a <em>child</em>, fill to this box (<code>fill-height</code> needs a declared <code>height</code> to resolve against; a fill with nothing to take is inert); on the container itself, fill whatever parent can give it a size</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default. Takes <code>top</code>/<code>left</code>, so a container is itself placeable. Under <code>applyGridSnap()</code> it corrects its own origin, carrying everything placed inside it — kit or not — with the coordinate system. Typographically transparent like <code>vf-stack</code>. No parts, tokens, events or role.</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Takes <code>top</code>/<code>left</code>, so a container is itself placeable. It corrects its own origin, carrying everything placed inside it — kit or not — with the coordinate system. Typographically transparent like <code>vf-stack</code>. No parts, tokens, events or role.</td></tr>
             </tbody>
           </table>
         </section>

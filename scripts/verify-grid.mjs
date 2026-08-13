@@ -28,11 +28,12 @@
  */
 import { ORIGIN, heartbeat, launch } from './harness.mjs'
 
-// ?nosnap on BOTH: each page turns applyGridSnap() on itself, which would
-// quietly paper over exactly the ORIGIN faults this script exists to catch.
-// (`/` is the component reference since the faux desktop moved to the
-// system7web repo; it calls applyGridSnap() the same way blog.html does.)
-const PAGES = (process.env.VF_GRID_PAGES ?? '/?nosnap,/blog.html?nosnap').split(',')
+// The audit measures HOST rects, which the components' always-on snapping
+// never moves (the correction lands inside the shadow root) — so snapping
+// cannot paper over the ORIGIN faults this script exists to catch, and the
+// page is loaded plain. (`/` is the component reference since the faux
+// desktop moved to the system7web repo.)
+const PAGES = (process.env.VF_GRID_PAGES ?? '/').split(',')
 const DENSITIES = (process.env.VF_GRID_DPR ?? '1,2,3').split(',').map(Number)
 
 const audit = async (page) =>

@@ -31,7 +31,7 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:toggle
  */
-import { SCALE, check, launch, makeBuild, report } from './harness.mjs'
+import { SCALE, check, cssPxFor, launch, makeBuild, report, scaleAt } from './harness.mjs'
 
 /** Headless Chromium runs at dpr 1, where the kit derives 1 device px per system px. */
 const S = SCALE
@@ -114,6 +114,43 @@ async function axNode(page, id) {
   check('radio circle matches the checkbox box',
     rdCircle._w === cbBox._w && rdCircle._h === cbBox._h,
     `${rdCircle._w}x${rdCircle._h}`)
+
+  // The well's PAINTED registration: 3 whole system px below the row top.
+  // The layout still centers the 13px well in the 20px row (host height and
+  // exported baseline unchanged), but that lands on the 3.5 tie, so vfToggle
+  // steps the paint back half a pixel (ties toward the start, QuickDraw
+  // div 2, the title-bar and vf-stack convention). Swept at three densities
+  // because 3.5 only misregistered where 3.5 system px wasn't whole device
+  // px (it was clean at dpr 3, where 3.5 × 4 device px per system px is 14).
+  for (const dpr of [1, 2, 3]) {
+    const p = await build(
+      `<vf-checkbox id="cb">Label</vf-checkbox>
+       <vf-radio id="rd" value="a">Label</vf-radio>`,
+      dpr
+    )
+    const expected = cssPxFor(3, scaleAt(dpr))
+    const offsets = await p.evaluate(() => {
+      // The AUTHORED offset: the well's position inside the host, minus the
+      // snap correction the host's own controller may have applied (the wells
+      // are .vf-snap targets, and the fixture's inline baseline can land a
+      // host on a fraction the controller then cancels).
+      const measure = (id, sel) => {
+        const host = document.getElementById(id)
+        const well = host.shadowRoot.querySelector(`[part=${sel}]`)
+        const dy = parseFloat(host.style.getPropertyValue('--vf-snap-dy')) || 0
+        return well.getBoundingClientRect().top - host.getBoundingClientRect().top - dy
+      }
+      return { cb: measure('cb', 'box'), rd: measure('rd', 'circle') }
+    })
+    check(`dpr ${dpr}: checkbox well sits 3 system px below the row top`,
+      Math.abs(offsets.cb - expected) < 1e-6, `${offsets.cb} CSS px, expected ${expected}`)
+    check(`dpr ${dpr}: radio well matches`,
+      Math.abs(offsets.rd - expected) < 1e-6, `${offsets.rd} CSS px`)
+    check(`dpr ${dpr}: the offset is whole device px`,
+      Math.abs(offsets.cb * dpr - Math.round(offsets.cb * dpr)) < 1e-6,
+      `${(offsets.cb * dpr).toFixed(4)} device px`)
+    await p.close()
+  }
 
   // Disabled dims the LABEL on both; the 1-bit chrome stays black (SPEC §1).
   const cbLabelOn = await partProps(page, 'cb', 'label', ['color'])

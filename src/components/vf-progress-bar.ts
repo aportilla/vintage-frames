@@ -185,7 +185,7 @@ export class VfProgressBar extends VfPositioned(LitElement) {
 
   private readonly scale = new ScaleController(this)
 
-  /** Device-pixel grid snapping (opt in with applyGridSnap()); see src/grid-snap.ts. */
+  /** Device-pixel grid snapping; see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
   /** Current progress, from 0 to `max`. Clamped for display and ARIA. */

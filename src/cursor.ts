@@ -1,7 +1,7 @@
 /**
  * The page-drawn cursor — the System 7 pointers as pixel art locked to the
  * system-pixel grid. `applyCursor()` is the one call a page makes, the same
- * shape as `applyScale()` and `applyGridSnap()`: strictly opt-in, returns a
+ * shape as `applyScale()`: strictly opt-in, returns a
  * cleanup function, and ships working defaults — the embedded arrow, I-beam,
  * crosshair and wristwatch (`src/cursor-art.ts`), each overridable with the
  * consumer's own art per kind.

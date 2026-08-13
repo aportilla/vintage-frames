@@ -107,16 +107,12 @@ export {
 } from './zoom.js'
 
 /**
- * Automatic device-pixel-grid snapping. `applyGridSnap()` is the one call an
- * app makes to have every component hold its own origin on whole device pixels
- * whatever the surrounding layout does — the half of the layout contract the
- * components can keep for you.
+ * Automatic device-pixel-grid snapping. Always on: every component holds its
+ * own origin on whole device pixels whatever the surrounding layout does — the
+ * half of the layout contract the components keep for you. `requestGridSnap()`
+ * re-checks before the next paint, for a move nothing observable resized.
  */
-export {
-  applyGridSnap,
-  requestGridSnap,
-  GridSnapController,
-} from './grid-snap.js'
+export { requestGridSnap, GridSnapController } from './grid-snap.js'
 
 /**
  * The page-drawn cursor. `applyCursor()` is the one call an app makes to

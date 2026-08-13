@@ -5,7 +5,11 @@
  * harder thing: that they get back onto it by themselves after the page puts
  * them off it. Each page is deliberately knocked off-grid with a fractional
  * offset — the generic form of the ratio line-height and text-derived width
- * faults in the layout contract — and then applyGridSnap() has to recover it.
+ * faults in the layout contract — and the components' own always-on snapping
+ * has to recover it. There is no inert baseline to render: the correction is
+ * in before the next paint, so the perturbation is proven on the HOST origins
+ * (which a component's own correction never moves) and recovery on the
+ * corrected paint positions.
  *
  * Two measurements, because passing one without the other means nothing:
  *
@@ -19,19 +23,16 @@
  *
  * Then the parts that break in the field rather than in a first render: a
  * reflow (the correction has to be re-applied, and nothing observes position
- * directly), the `nosnap` opt-out, and the cleanup function.
+ * directly), and the `nosnap` opt-out.
  *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:snap
  */
 import { ORIGIN, heartbeat, launch } from './harness.mjs'
 
-// ?nosnap on BOTH: each page turns snapping on itself, which would correct the
-// perturbation before the broken baseline is measured — a page has to stay
-// inert so enableSnap() below is the only thing that flips the switch.
 // (`/` is the component reference since the faux desktop moved to the
-// system7web repo; it calls applyGridSnap() the same way blog.html does.)
-const PAGES = (process.env.VF_SNAP_PAGES ?? '/?nosnap,/blog.html?nosnap').split(',')
+// system7web repo.)
+const PAGES = (process.env.VF_SNAP_PAGES ?? '/').split(',')
 const DENSITIES = (process.env.VF_SNAP_DPR ?? '1,2,3').split(',').map(Number)
 
 /** Must match DEADBAND_DEVICE_PX in src/grid-snap.ts, plus float slack. */
@@ -55,7 +56,9 @@ const check = (ok, label, detail = '') => {
  * themselves may sit at *authored* fractional offsets (a toggle's centered
  * box), which are the component's design, not a fault. Hosts without a
  * `.vf-snap` target (vf-button-group, vf-radio-group, rows and options that
- * ride a corrected container) are skipped.
+ * ride a corrected container) are skipped. `hostWorst` is the worst error of
+ * the bare host origins — the page's own contribution, which a component's
+ * correction never moves, so it is what proves a perturbation landed.
  */
 const worstOrigin = (page) =>
   page.evaluate(async () => {
@@ -79,6 +82,7 @@ const worstOrigin = (page) =>
     }
     let worst = 0
     let worstRaw = 0
+    let hostWorst = 0
     let tag = ''
     let hosts = 0
     for (const host of document.querySelectorAll('*')) {
@@ -95,15 +99,23 @@ const worstOrigin = (page) =>
       const raw = Math.max(err(rect.left + dx), err(rect.top + dy))
       const e = raw < floorFor(host) ? 0 : raw
       if (raw > worstRaw) worstRaw = raw
+      const hostRaw = Math.max(err(rect.left), err(rect.top))
+      if (hostRaw > hostWorst) hostWorst = hostRaw
       if (e > worst) {
         worst = e
         tag = host.tagName.toLowerCase()
       }
     }
-    // `worst` is what the kit is answerable for; `raw` includes the engine's
-    // own quantization, which is common-mode across a before/after comparison
-    // and so is the right figure for "did the perturbation land".
-    return { worst: +worst.toFixed(6), raw: +worstRaw.toFixed(6), tag, hosts }
+    // `worst` is what the kit is answerable for; `hostWorst` is the page's,
+    // untouched by corrections — the right figure for "did the perturbation
+    // land".
+    return {
+      worst: +worst.toFixed(6),
+      raw: +worstRaw.toFixed(6),
+      hostWorst: +hostWorst.toFixed(6),
+      tag,
+      hosts,
+    }
   })
 
 /**
@@ -111,25 +123,39 @@ const worstOrigin = (page) =>
  * one strays from pure black/white.
  */
 const raster = async (page) => {
-  const box = await page.evaluate(() => {
-    // Any fully visible button will do — the first in the document can sit
-    // below the fold (the showcase at --vf-scale 3), which used to skip this
-    // check silently. The margins keep the crop inside the viewport.
-    const r = [...document.querySelectorAll('vf-button')]
-      .map((el) => el.getBoundingClientRect())
-      .find(
-        (r) =>
-          r.width && r.left >= 2 && r.top >= 2 &&
-          r.right <= innerWidth - 6 && r.bottom <= innerHeight - 6
+  // Any fully visible button will do; the margins keep the crop inside the
+  // viewport.
+  const find = () =>
+    page.evaluate(() => {
+      const r = [...document.querySelectorAll('vf-button')]
+        .map((el) => el.getBoundingClientRect())
+        .find(
+          (r) =>
+            r.width && r.left >= 2 && r.top >= 2 &&
+            r.right <= innerWidth - 6 && r.bottom <= innerHeight - 6
+        )
+      if (!r) return null
+      return {
+        x: Math.floor(r.left) - 2,
+        y: Math.floor(r.top) - 2,
+        width: Math.ceil(r.width) + 6,
+        height: Math.ceil(r.height) + 6,
+      }
+    })
+  let box = await find()
+  if (!box) {
+    // The reference page's first button sits below the fold. Scroll one into
+    // view — the scroll trigger re-applies corrections before the next paint —
+    // and settle before measuring the crop.
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('vf-button')].find(
+        (el) => el.getBoundingClientRect().width
       )
-    if (!r) return null
-    return {
-      x: Math.floor(r.left) - 2,
-      y: Math.floor(r.top) - 2,
-      width: Math.ceil(r.width) + 6,
-      height: Math.ceil(r.height) + 6,
-    }
-  })
+      btn?.scrollIntoView({ block: 'center' })
+    })
+    await settle(page)
+    box = await find()
+  }
   if (!box) return null
   const png = (await page.screenshot({ clip: box })).toString('base64')
   return page.evaluate(async (data) => {
@@ -156,26 +182,6 @@ const raster = async (page) => {
     return { stray, worst }
   }, png)
 }
-
-/**
- * Turn snapping on through the library's own entry point. The demo pages import
- * `../src/index.js`, which Vite serves as /src/index.ts — importing the same
- * specifier here yields the same module instance, and therefore the same
- * scheduler the components registered with.
- */
-const enableSnap = (page) =>
-  page.evaluate(async () => {
-    const mod = await import('/src/index.ts')
-    window.__vfSnapOff = mod.applyGridSnap()
-    // Two frames: one for the sweep, one to be sure it settled.
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
-  })
-
-const disableSnap = (page) =>
-  page.evaluate(async () => {
-    window.__vfSnapOff?.()
-    await new Promise((r) => requestAnimationFrame(r))
-  })
 
 const settle = (page) =>
   page.evaluate(
@@ -221,28 +227,33 @@ for (const path of PAGES) {
 
     await page.addStyleTag({ content: PERTURB })
     await settle(page)
-    const broken = await worstOrigin(page)
-    const brokenRaster = await raster(page)
+    // One more sweep before measuring: a correction can itself move nested
+    // content (a re-measured width, a stack's centering tie), and the residue
+    // waits for the next trigger — which a live page gets constantly and this
+    // frozen one has to ask for. (The old opt-in flow forced the same fresh
+    // sweep by enabling snapping here.)
+    await page.evaluate(async () => {
+      const { requestGridSnap } = await import('/src/index.ts')
+      requestGridSnap()
+    })
+    await settle(page)
+    const perturbed = await worstOrigin(page)
     check(
-      broken.raw > DEADBAND,
-      'perturbation knocks it off the grid',
-      `worst ${broken.raw} device px (${broken.tag || 'engine quantization'})`
+      perturbed.hostWorst > DEADBAND,
+      'perturbation lands on the hosts',
+      `worst host origin ${perturbed.hostWorst} device px`
     )
-
-    await enableSnap(page)
-    const snapped = await worstOrigin(page)
     check(
-      snapped.worst <= DEADBAND,
-      'GEOMETRY  every host back on the grid',
-      `worst ${snapped.worst} device px${snapped.tag ? ` (${snapped.tag})` : ''}`
+      perturbed.worst <= DEADBAND,
+      'GEOMETRY  every paint recovered, by itself',
+      `worst ${perturbed.worst} device px${perturbed.tag ? ` (${perturbed.tag})` : ''}`
     )
-    const snappedRaster = await raster(page)
-    if (snappedRaster && brokenRaster) {
+    const perturbedRaster = await raster(page)
+    if (perturbedRaster) {
       rasterCheck(
-        snappedRaster.worst <= MAX_LEVEL,
-        'RASTER    no visible fringe left',
-        `${brokenRaster.stray} stray px (worst ±${brokenRaster.worst}/255) → ` +
-          `${snappedRaster.stray} (worst ±${snappedRaster.worst}/255)`
+        perturbedRaster.worst <= MAX_LEVEL,
+        'RASTER    no visible fringe under the perturbation',
+        `${perturbedRaster.stray} stray px (worst ±${perturbedRaster.worst}/255)`
       )
     } else {
       console.log('  --   RASTER skipped: no fully visible vf-button to crop')
@@ -285,18 +296,6 @@ for (const path of PAGES) {
         ? `${optOut.tag} "${optOut.before}" → "${optOut.remaining.join(' ') || '(cleared)'}"`
         : 'no host was corrected — nothing to opt out'
     )
-
-    await disableSnap(page)
-    const restored = await page.evaluate(() =>
-      [...document.querySelectorAll('*')]
-        .filter((el) => el.tagName.toLowerCase().startsWith('vf-'))
-        .filter(
-          (el) =>
-            el.style.getPropertyValue('--vf-snap-dx') ||
-            el.style.getPropertyValue('--vf-snap-dy')
-        ).length
-    )
-    check(restored === 0, 'cleanup restores every host', `${restored} left with snap variables`)
 
     await page.close()
   }
@@ -351,10 +350,12 @@ for (const path of PAGES) {
       const el = document.getElementById('win')
       const frame = el.shadowRoot.querySelector('.vf-snap')
       const rect = frame.getBoundingClientRect()
+      const host = el.getBoundingClientRect()
       const err = (v) => Math.abs(v * dpr - Math.round(v * dpr))
       return {
         worst: +Math.max(err(rect.left), err(rect.top)).toFixed(6),
-        left: +el.getBoundingClientRect().left.toFixed(3),
+        hostWorst: +Math.max(err(host.left), err(host.top)).toFixed(6),
+        left: +host.left.toFixed(3),
         position: getComputedStyle(el).position,
         offset: `${el.style.left || '—'},${el.style.top || '—'}`,
         vars: `${el.style.getPropertyValue('--vf-snap-dx') || '—'},${
@@ -363,15 +364,16 @@ for (const path of PAGES) {
       }
     })
 
-  const off = await state()
-  check(off.worst > DEADBAND, 'window starts off the grid', `worst ${off.worst} device px`)
-
-  await enableSnap(page)
-  const on = await state()
+  const initial = await state()
   check(
-    on.worst <= DEADBAND,
+    initial.hostWorst > DEADBAND,
+    'the desktop leaves the window host off the grid',
+    `worst ${initial.hostWorst} device px`
+  )
+  check(
+    initial.worst <= DEADBAND,
     'in-flow window corrects via its frame',
-    `worst ${on.worst}, vars ${on.vars}, host left/top ${on.offset}`
+    `worst ${initial.worst}, vars ${initial.vars}, host left/top ${initial.offset}`
   )
 
   const bar = await page.evaluate(() => {
@@ -402,7 +404,6 @@ for (const path of PAGES) {
     `worst ${dragged.worst} device px, vars ${dragged.vars}, left/top ${dragged.offset}`
   )
 
-  await disableSnap(page)
   await page.close()
 }
 

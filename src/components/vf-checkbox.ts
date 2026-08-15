@@ -1,5 +1,5 @@
 import { css, html, type PropertyValues } from 'lit'
-import { property } from 'lit/decorators.js'
+import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
@@ -20,6 +20,8 @@ import { emit, emitNative } from '../events.js'
  * click and Space.
  *
  * @slot - The label, rendered to the right of the box with a 6px gap.
+ *   Left empty, the label and its gap collapse: the control is the bare
+ *   13×13 box.
  * @csspart box - The 13×13 checkbox square.
  * @csspart label - The label wrapper around the slot.
  * @fires vf-change - When toggled by user interaction. `detail: { checked: boolean }`.
@@ -98,6 +100,9 @@ export class VfCheckbox extends VfPositioned(VfToggleControl(VfFormControl)) {
   /** Value submitted with the form while checked. */
   @property() value = 'on'
 
+  /** Whether the slot holds non-whitespace content; gates the label row. */
+  @state() private _hasLabel = false
+
   /** `required` on a checkbox means it must be checked, as on a native one. */
   protected override get valueMissing(): boolean {
     return !this.checked
@@ -138,10 +143,20 @@ export class VfCheckbox extends VfPositioned(VfToggleControl(VfFormControl)) {
       >
         ${glyphSvg(CHECKBOX_X, 'check')}
       </span>
-      <span class=${classMap({ label: true, dim, 'vf-snap': true })} part="label">
-        <slot></slot>
+      <span
+        class=${classMap({ label: true, dim, empty: !this._hasLabel, 'vf-snap': true })}
+        part="label"
+      >
+        <slot @slotchange=${this.#onLabelSlotChange}></slot>
       </span>
     `
+  }
+
+  #onLabelSlotChange(event: Event): void {
+    const slot = event.target as HTMLSlotElement
+    this._hasLabel = slot
+      .assignedNodes({ flatten: true })
+      .some((node) => node.nodeType === Node.ELEMENT_NODE || !!node.textContent?.trim())
   }
 
   protected override updated(changed: PropertyValues<this>): void {

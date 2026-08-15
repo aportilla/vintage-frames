@@ -36,6 +36,14 @@ export const vfToggle = css`
   :host(:focus-visible) {
     outline: none;
   }
+  /* An empty slot still generates the label flex item, and the host gap with
+     it — a bare (label-less) control would carry 6px of phantom trailing
+     width. Each control marks the wrapper from its slotchange; display: none
+     removes the item from the gap math. The slot stays in the DOM so content
+     added later still assigns and re-fires slotchange. */
+  .label.empty {
+    display: none;
+  }
   /* Disabled dims the label only; the box/circle glyphs stay solid black. */
   .label.dim {
     color: var(--vf-disabled, #c0c0c0);

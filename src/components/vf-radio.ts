@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit'
-import { property } from 'lit/decorators.js'
+import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
@@ -26,6 +26,8 @@ import { emit } from '../events.js'
  * unselects its siblings.
  *
  * @slot - The label, rendered to the right of the circle with a 6px gap.
+ *   Left empty, the label and its gap collapse: the control is the bare
+ *   13×13 circle.
  * @csspart circle - The 13×13 radio circle.
  * @csspart label - The label wrapper around the slot.
  * @fires vf-change - When selected by user interaction. `detail: { value: string }`.
@@ -114,6 +116,9 @@ export class VfRadio extends VfPositioned(VfToggleControl(LitElement)) {
    */
   @property({ attribute: false }) groupDisabled = false
 
+  /** Whether the slot holds non-whitespace content; gates the label row. */
+  @state() private _hasLabel = false
+
   private readonly internals: ElementInternals
 
   constructor() {
@@ -161,10 +166,17 @@ export class VfRadio extends VfPositioned(VfToggleControl(LitElement)) {
           <path class="dot" d=${RADIO_DOT.d}></path>
         </svg>
       </span>
-      <span class=${classMap({ label: true, dim })} part="label">
-        <slot></slot>
+      <span class=${classMap({ label: true, dim, empty: !this._hasLabel })} part="label">
+        <slot @slotchange=${this.#onLabelSlotChange}></slot>
       </span>
     `
+  }
+
+  #onLabelSlotChange(event: Event): void {
+    const slot = event.target as HTMLSlotElement
+    this._hasLabel = slot
+      .assignedNodes({ flatten: true })
+      .some((node) => node.nodeType === Node.ELEMENT_NODE || !!node.textContent?.trim())
   }
 
   /** Click/Space on an enabled, unselected radio selects it. */

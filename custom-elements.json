@@ -16814,6 +16814,16 @@
               "description": "the slim `vf-window[variant=\"utility\"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png`",
               "name": "--vf-titlebar-height-utility",
               "default": "12px"
+            },
+            {
+              "description": "the status strip: 1px rule + 14px interior — the grow box's own height, so the two compose flush",
+              "name": "--vf-status-bar-height",
+              "default": "15px"
+            },
+            {
+              "description": "the body face's native line, which the status strip's text rides (whole-pixel centered in the 14px interior)",
+              "name": "--vf-line-height",
+              "default": "12px"
             }
           ],
           "cssParts": [
@@ -16842,6 +16852,10 @@
               "name": "body"
             },
             {
+              "description": "The bottom status strip (when the `status` slot is populated).",
+              "name": "status-bar"
+            },
+            {
               "description": "The resize widget (bottom-right, when `resizable`).",
               "name": "grow-box"
             },
@@ -16854,6 +16868,10 @@
             {
               "description": "Default slot: window body content.",
               "name": ""
+            },
+            {
+              "description": "Optional status-bar content — the classic bottom readout strip (\"40px x 40px\"): a 1px rule over a 15px white band under the body, body-face text on its native line. Takes no space until populated; a `resizable` window's grow box sits flush in its right end.",
+              "name": "status"
             }
           ],
           "members": [
@@ -16952,6 +16970,16 @@
               "description": "Put System 7 scroll rails on the window edge — the classic document\nwindow. The body slot renders inside a built-in `vf-scroll-area` pulled\none system pixel under the frame on every side, so the rails repaint the\nborder lines and a `resizable` window's grow box lands in the corner\ncell. Values mirror `vf-scroll-area`'s `axis`; the `heading` names the\nscroll region; the viewport part is re-exported. Implies `flush` (the\nviewport carries its own padding). The slotted composition (SPEC §5\nvf-scroll-area) still works for windows that want an inset well instead.",
               "attribute": "scrollbars",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "_hasStatus",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether the `status` slot has assigned content (drives the strip)."
             },
             {
               "kind": "field",
@@ -17078,6 +17106,25 @@
                 }
               },
               "description": "Both dimensions are required: a window is a fixed box in both axes, and\neach one left out falls back to a different wrong thing.\n\nAn inline `width`/`height` is the other honest way to declare it — the grow\nbox writes exactly that — so it counts. A stylesheet rule we cannot tell\napart from normal block layout, so it still warns."
+            },
+            {
+              "kind": "method",
+              "name": "_onStatusSlotChange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "description": "The `.empty` gate: the strip renders only while the slot is populated."
             },
             {
               "kind": "method",

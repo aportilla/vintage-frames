@@ -85,6 +85,7 @@ A pattern token renders as a placed tile grid rather than a CSS `background-repe
 | --- | --- | --- |
 | `--vf-titlebar-height` | `18px` | Window / dialog title bars |
 | `--vf-titlebar-height-utility` | `12px` | The windoid bar |
+| `--vf-status-bar-height` | `15px` | `vf-window`'s bottom status strip (1px rule + 14px interior) |
 | `--vf-title-inset` | `16px` / `60px` | The centered title's clearance from the widgets |
 | `--vf-shadow-offset` | `2px` | Window / menu hard shadow |
 | `--vf-scrollbar-thumb` | `#ffffff` | The elevator |

@@ -1,5 +1,5 @@
 import { html, css, LitElement, nothing, type PropertyValues } from 'lit'
-import { property } from 'lit/decorators.js'
+import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { PlacementController, VfPositioned, warnMovableContract } from '../position.js'
 import type { PlacementBounds } from '../position.js'
@@ -98,12 +98,18 @@ const DOTS_LAYER_HEIGHT = 8
  * says so once in the console.
  *
  * @slot - Default slot: window body content.
+ * @slot status - Optional status-bar content — the classic bottom readout
+ *   strip ("40px x 40px"): a 1px rule over a 15px white band under the body,
+ *   body-face text on its native line. Takes no space until populated; a
+ *   `resizable` window's grow box sits flush in its right end.
  * @csspart frame - The outer chrome frame.
  * @csspart title-bar - The striped (or dithered) title bar.
  * @csspart title - The centered title patch (hidden on the utility bar).
  * @csspart close-box - The close widget (left).
  * @csspart zoom-box - The zoom widget (right).
  * @csspart body - The content area.
+ * @csspart status-bar - The bottom status strip (when the `status` slot is
+ *   populated).
  * @csspart grow-box - The resize widget (bottom-right, when `resizable`).
  * @csspart viewport - The built-in scroll area's viewport (when `scrollbars`;
  *   re-exported from vf-scroll-area).
@@ -126,6 +132,10 @@ const DOTS_LAYER_HEIGHT = 8
  * @cssprop [--vf-titlebar-height-utility=12px] - the slim
  *   `vf-window[variant="utility"]` (windoid) bar — 11px interior + 1px bottom
  *   rule, traced from `Windows/utility-window.png`
+ * @cssprop [--vf-status-bar-height=15px] - the status strip: 1px rule + 14px
+ *   interior — the grow box's own height, so the two compose flush
+ * @cssprop [--vf-line-height=12px] - the body face's native line, which the
+ *   status strip's text rides (whole-pixel centered in the 14px interior)
  */
 @vfElement('vf-window')
 export class VfWindow extends VfSized(VfPositioned(LitElement)) {
@@ -304,6 +314,36 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         margin: calc(var(--vf-scale, 1) * -1px);
       }
 
+      /* --- Status bar (slot="status") ---------------------------------- */
+      /* The classic bottom readout strip: a 1px rule over a white interior,
+         15px in all — the grow box's own height, so a resizable window's
+         grow box sits flush in the strip's right end the way it sits in the
+         scroll rails' corner cell (its top and left borders take over the
+         rule there). Body-face text rides its native 12px line, whole-pixel
+         centered in the 14px interior. Under the scrollbars parameter, the
+         edge rails' bottom frame line lands exactly on the strip's rule (the
+         1px overhang), so the two never double up. Takes no space until the
+         slot is populated. */
+      .status {
+        flex: none;
+        display: flex;
+        align-items: center;
+        height: calc(var(--vf-scale, 1) * var(--vf-status-bar-height, 15px));
+        border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        background: var(--vf-white, #ffffff);
+        padding-inline: calc(var(--vf-scale, 1) * 6px);
+        line-height: calc(var(--vf-scale, 1) * var(--vf-line-height, 12px));
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      /* Clear the grow box: its 15px cell plus the strip's own 6px inset. */
+      :host([resizable]) .status {
+        padding-inline-end: calc(var(--vf-scale, 1) * 21px);
+      }
+      .status.empty {
+        display: none;
+      }
+
       /* --- Grow box --------------------------------------------------- */
       .grow {
         position: absolute;
@@ -392,6 +432,9 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * vf-scroll-area) still works for windows that want an inset well instead.
    */
   @property({ reflect: true }) scrollbars?: 'vertical' | 'horizontal' | 'both'
+
+  /** Whether the `status` slot has assigned content (drives the strip). */
+  @state() private _hasStatus = false
 
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
@@ -591,6 +634,12 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     this._resizeState = null
   }
 
+  /** The `.empty` gate: the strip renders only while the slot is populated. */
+  private _onStatusSlotChange(event: Event): void {
+    const slot = event.target as HTMLSlotElement
+    this._hasStatus = slot.assignedElements().length > 0
+  }
+
   private _onCloseClick(): void {
     emit(this, 'vf-close', { reason: 'close' })
   }
@@ -726,6 +775,9 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
                 </vf-scroll-area>
               `
             : html`<slot></slot>`}
+        </div>
+        <div class="status ${this._hasStatus ? '' : 'empty'}" part="status-bar">
+          <slot name="status" @slotchange=${this._onStatusSlotChange}></slot>
         </div>
         ${this.resizable
           ? html`

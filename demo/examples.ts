@@ -203,6 +203,24 @@ function wireWindowClosing(): void {
 }
 
 /**
+ * `data-size-readout` on a window's `slot="status"` element: mirror the
+ * window's size in system px from `vf-resize` — the status bar and the
+ * resize event working as the pair they were built to be.
+ */
+function wireSizeReadouts(): void {
+  for (const readout of document.querySelectorAll<HTMLElement>(
+    '[data-size-readout]'
+  )) {
+    readout.closest('vf-window')?.addEventListener('vf-resize', (event) => {
+      const { width, height } = (
+        event as CustomEvent<{ width: number; height: number }>
+      ).detail
+      readout.textContent = `${width}px x ${height}px`
+    })
+  }
+}
+
+/**
  * `data-value-src="<id>"` on a readout: mirror that control's current value.
  * `data-value-prop` picks a different property (`values`, `checked`).
  *
@@ -390,6 +408,7 @@ mountExamples()
 buildToc()
 wireModalTriggers()
 wireWindowClosing()
+wireSizeReadouts()
 wireReadouts()
 wireEventLogs()
 wireProgress()

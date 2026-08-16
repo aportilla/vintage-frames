@@ -12,6 +12,11 @@
  *    `width`/`height` write fires nothing. Details stay in system px at
  *    every density (the CSS-px pointer delta is converted, not passed
  *    through).
+ *  - STATUS BAR: the `status` slot renders the classic bottom strip — 15px
+ *    total (1px rule over a 14px white interior, the grow box's own height,
+ *    so the grow box sits flush in its right end), body-face text on its
+ *    native 12px line — and takes no space at all until the slot is
+ *    populated, collapsing again when it empties.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window
@@ -197,6 +202,86 @@ async function dragGrow(page, dx, dy, steps = 5) {
       .map((e) => `${e.width}sys measured ${e.measuredW}css`)
       .join(', ')
   )
+  await page.close()
+}
+
+/* ── STATUS BAR ───────────────────────────────────────────────────────────
+   dpr 1, scale 1: system px and CSS px coincide. */
+
+{
+  const page = await build(`
+    <div style="position:relative;width:900px;height:700px">
+      <vf-window id="bare" heading="Bare" top="10" left="10"
+                 width="240" height="176"></vf-window>
+      <vf-window id="doc" heading="Doc" top="10" left="300"
+                 width="240" height="176" resizable>
+        <span id="readout" slot="status">40px x 40px</span>
+      </vf-window>
+    </div>
+  `)
+
+  const geo = await page.evaluate(() => {
+    const measure = (id) => {
+      const root = document.getElementById(id).shadowRoot
+      const frame = root.querySelector('[part=frame]').getBoundingClientRect()
+      const body = root.querySelector('[part=body]').getBoundingClientRect()
+      const strip = root.querySelector('[part=status-bar]')
+      const style = getComputedStyle(strip)
+      const stripBox = strip.getBoundingClientRect()
+      return {
+        bodyToFrameBottom: frame.bottom - body.bottom,
+        display: style.display,
+        stripHeight: stripBox.height,
+        stripToFrameBottom: frame.bottom - stripBox.bottom,
+        rule: style.borderTopWidth,
+        background: style.backgroundColor,
+        lineHeight: style.lineHeight,
+      }
+    }
+    return { bare: measure('bare'), doc: measure('doc') }
+  })
+
+  check(
+    'no status content: the strip takes no space (body reaches the frame)',
+    geo.bare.display === 'none' && near(geo.bare.bodyToFrameBottom, 1),
+    `display ${geo.bare.display}, body ends ${geo.bare.bodyToFrameBottom}px above frame bottom`
+  )
+  check(
+    'populated: the strip is the 15px band over the frame bottom',
+    near(geo.doc.stripHeight, 15) && near(geo.doc.stripToFrameBottom, 1),
+    `strip ${geo.doc.stripHeight}px tall, ${geo.doc.stripToFrameBottom}px above frame bottom`
+  )
+  check(
+    '…1px rule, white interior, body-face 12px line',
+    geo.doc.rule === '1px' &&
+      geo.doc.background === 'rgb(255, 255, 255)' &&
+      geo.doc.lineHeight === '12px',
+    `rule ${geo.doc.rule}, bg ${geo.doc.background}, line ${geo.doc.lineHeight}`
+  )
+
+  const grow = await page.evaluate(() => {
+    const root = document.getElementById('doc').shadowRoot
+    const grow = root.querySelector('[part=grow-box]').getBoundingClientRect()
+    const strip = root.querySelector('[part=status-bar]').getBoundingClientRect()
+    return { dTop: grow.top - strip.top, dRight: strip.right - grow.right, dBottom: strip.bottom - grow.bottom }
+  })
+  check(
+    'the grow box sits flush in the strip\'s right end',
+    near(grow.dTop, 0) && near(grow.dRight, 0) && near(grow.dBottom, 0),
+    JSON.stringify(grow)
+  )
+
+  const emptied = await page.evaluate(async () => {
+    document.getElementById('readout').remove()
+    // slotchange dispatches async — give it a frame, then the re-render.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const win = document.getElementById('doc')
+    await win.updateComplete
+    return getComputedStyle(win.shadowRoot.querySelector('[part=status-bar]'))
+      .display
+  })
+  check('emptying the slot collapses the strip again', emptied === 'none', emptied)
+
   await page.close()
 }
 

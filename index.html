@@ -85,11 +85,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 movable
                 resizable
                 width="192"
-                height="84"
+                height="100"
                 left="16"
                 top="16"
               >
                 <vf-paragraph>Drag my title bar. Drag the grow box.</vf-paragraph>
+                <span slot="status" data-size-readout>192px x 100px</span>
               </vf-window>
               <vf-window
                 heading="Second"
@@ -270,12 +271,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td>Slot</td><td>(default)</td><td class="wrap">Body content</td></tr>
+              <tr><td>Slot</td><td><code>status</code></td><td class="wrap">The bottom status strip: a 1px rule over a 15px white band, body-face text on its native line, the grow box flush in its right end. Takes no space until populated</td></tr>
               <tr><td>Role</td><td><code>group</code></td><td class="wrap">Named by its <code>heading</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap">The close box was clicked. The window does <strong>not</strong> remove itself — the consumer decides</td></tr>
               <tr><td>Event</td><td><code>vf-zoom</code></td><td class="wrap">The zoom box was clicked</td></tr>
               <tr><td>Event</td><td><code>vf-resize</code></td><td class="wrap"><code>{ width, height, commit }</code>, system px — one per size the grow box writes, fired after the box is applied (a handler that measures reads the new layout), then <code>commit: true</code> as the gesture settles. Programmatic size writes fire nothing</td></tr>
-              <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>zoom-box</code>, <code>body</code>, <code>grow-box</code></td><td class="wrap">Plus <code>viewport</code> when <code>scrollbars</code> is set</td></tr>
-              <tr><td>Tokens</td><td class="wrap"><code>--vf-titlebar-height</code>, <code>--vf-titlebar-height-utility</code>, <code>--vf-title-inset</code>, <code>--vf-dots-pattern</code>, <code>--vf-shadow-offset</code></td><td class="wrap">18px / 12px bars, the title's clearance from the widgets, the windoid dither, the hard shadow</td></tr>
+              <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>zoom-box</code>, <code>body</code>, <code>status-bar</code>, <code>grow-box</code></td><td class="wrap">Plus <code>viewport</code> when <code>scrollbars</code> is set</td></tr>
+              <tr><td>Tokens</td><td class="wrap"><code>--vf-titlebar-height</code>, <code>--vf-titlebar-height-utility</code>, <code>--vf-status-bar-height</code>, <code>--vf-title-inset</code>, <code>--vf-dots-pattern</code>, <code>--vf-shadow-offset</code></td><td class="wrap">18px / 12px bars, the 15px status strip, the title's clearance from the widgets, the windoid dither, the hard shadow</td></tr>
             </tbody>
           </table>
         </section>

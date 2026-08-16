@@ -84,6 +84,7 @@
     "verify:tile": "node scripts/verify-tile.mjs",
     "verify:zoom": "tsc src/zoom.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/verify-zoom.mjs",
     "verify:chrome": "node scripts/verify-chrome.mjs",
+    "verify:window": "node scripts/verify-window.mjs",
     "verify:window-a11y": "node scripts/verify-window-a11y.mjs",
     "verify:archetypes": "node scripts/verify-archetypes.mjs",
     "verify:button": "node scripts/verify-button.mjs",

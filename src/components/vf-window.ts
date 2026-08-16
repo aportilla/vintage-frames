@@ -41,6 +41,13 @@ interface ResizeState {
   /** The box at press time, in SYSTEM px — the unit the size is stored in. */
   baseWidth: number
   baseHeight: number
+  /**
+   * A grow-box write is waiting for its update to flush — `updated()` fires
+   * the stream `vf-resize` then, after the new box is applied to layout.
+   */
+  emitPending: boolean
+  /** Whether the gesture changed the size at all — gates the commit event. */
+  resized: boolean
 }
 
 /** Grow-box floors, in system px: a window smaller than this can't be worked. */
@@ -104,6 +111,13 @@ const DOTS_LAYER_HEIGHT = 8
  *   compatible with vf-dialog's `vf-close`). The window does NOT
  *   remove itself; the consumer decides what closing means.
  * @fires vf-zoom - Zoom box clicked. Detail `{}`.
+ * @fires vf-resize - The grow box resized the window. Detail `{ width,
+ *   height, commit }`, sizes in whole system px: one event per size the drag
+ *   writes (`commit: false`), fired after the new box is applied so a handler
+ *   that measures reads the resized layout, then a final `commit: true` as
+ *   the gesture settles — only when it changed the size. Fired by the gesture
+ *   alone: a programmatic `width`/`height` write fires nothing, the way a
+ *   value set fires no `vf-change`.
  * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 motif,
  *   one black pixel at its origin, on a 30-system-px tile (`vfDots`; override
  *   the whole tile like `--vf-desktop-pattern` — consumer art renders as a
@@ -499,9 +513,23 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * are the same declaration and neither can be re-asserted over the other.
    * Controllers run before this hook, so the inline style the warning reads is
    * already written.
+   *
+   * The stream half of `vf-resize` also fires here, not from the pointermove
+   * that wrote the size: by this hook the controller has applied the box, so
+   * a handler that measures reads the resized layout — the contract that lets
+   * window content follow the grow box without a ResizeObserver.
    */
   protected override updated(): void {
     this.#warnIfUnsized()
+    const resize = this._resizeState
+    if (resize?.emitPending) {
+      resize.emitPending = false
+      emit(this, 'vf-resize', {
+        width: this.width,
+        height: this.height,
+        commit: false,
+      })
+    }
   }
 
   /** One warning per element, not per render. */
@@ -585,6 +613,8 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       startY: event.clientY,
       baseWidth: toSysExact(rect.width, this),
       baseHeight: toSysExact(rect.height, this),
+      emitPending: false,
+      resized: false,
     }
     const grow = event.currentTarget as HTMLElement
     grow.setPointerCapture(event.pointerId)
@@ -602,16 +632,29 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     // zoom instead of being re-read as a different number of art pixels at
     // every step. Only the pointer delta crosses units: clientX is real
     // (scaled) CSS px.
-    const width = Math.max(
-      MIN_WIDTH,
-      resize.baseWidth + toSysExact(event.clientX - resize.startX, this)
+    const width = snapSys(
+      Math.max(
+        MIN_WIDTH,
+        resize.baseWidth + toSysExact(event.clientX - resize.startX, this)
+      ),
+      this
     )
-    const height = Math.max(
-      MIN_HEIGHT,
-      resize.baseHeight + toSysExact(event.clientY - resize.startY, this)
+    const height = snapSys(
+      Math.max(
+        MIN_HEIGHT,
+        resize.baseHeight + toSysExact(event.clientY - resize.startY, this)
+      ),
+      this
     )
-    this.width = snapSys(width, this)
-    this.height = snapSys(height, this)
+    // Flag rather than emit: `updated()` fires the event once the write has
+    // been applied to layout, and only moves that changed the snapped size
+    // fire at all.
+    if (width !== this.width || height !== this.height) {
+      resize.emitPending = true
+      resize.resized = true
+    }
+    this.width = width
+    this.height = height
   }
 
   /**
@@ -626,6 +669,16 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     const grow = event.currentTarget as HTMLElement
     if (grow.hasPointerCapture(event.pointerId)) {
       grow.releasePointerCapture(event.pointerId)
+    }
+    // The commit half of vf-resize: once per gesture, only when it changed
+    // the size — the vf-change rule. A cancel commits too: the size keeps
+    // whatever the drag last wrote, and that settled box is the news.
+    if (resize.resized) {
+      emit(this, 'vf-resize', {
+        width: this.width,
+        height: this.height,
+        commit: true,
+      })
     }
   }
 

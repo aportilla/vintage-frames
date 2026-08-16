@@ -258,7 +258,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">The left close box</td></tr>
               <tr><td><code>zoomable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The right zoom box</td></tr>
               <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag the title bar to move; the drag writes <code>top</code>/<code>left</code> in system px</td></tr>
-              <tr><td><code>resizable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The 15×15 grow box, bottom right; writes <code>width</code>/<code>height</code></td></tr>
+              <tr><td><code>resizable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The 15×15 grow box, bottom right; writes <code>width</code>/<code>height</code> and fires <code>vf-resize</code></td></tr>
               <tr><td><code>flush</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Removes the 12px body padding</td></tr>
               <tr><td><code>variant</code></td><td class="wrap"><code>'utility'</code></td><td>—</td><td class="wrap">The windoid: 12px bar with a dot dither instead of racing stripes, 7×7 widgets, no title patch. Floats above document windows inside a <code>vf-desktop</code></td></tr>
               <tr><td><code>scrollbars</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td>—</td><td class="wrap">Rails on the window's edge with the grow box in the corner cell. Implies <code>flush</code></td></tr>
@@ -273,6 +273,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Role</td><td><code>group</code></td><td class="wrap">Named by its <code>heading</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap">The close box was clicked. The window does <strong>not</strong> remove itself — the consumer decides</td></tr>
               <tr><td>Event</td><td><code>vf-zoom</code></td><td class="wrap">The zoom box was clicked</td></tr>
+              <tr><td>Event</td><td><code>vf-resize</code></td><td class="wrap"><code>{ width, height, commit }</code>, system px — one per size the grow box writes, fired after the box is applied (a handler that measures reads the new layout), then <code>commit: true</code> as the gesture settles. Programmatic size writes fire nothing</td></tr>
               <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>zoom-box</code>, <code>body</code>, <code>grow-box</code></td><td class="wrap">Plus <code>viewport</code> when <code>scrollbars</code> is set</td></tr>
               <tr><td>Tokens</td><td class="wrap"><code>--vf-titlebar-height</code>, <code>--vf-titlebar-height-utility</code>, <code>--vf-title-inset</code>, <code>--vf-dots-pattern</code>, <code>--vf-shadow-offset</code></td><td class="wrap">18px / 12px bars, the title's clearance from the widgets, the windoid dither, the hard shadow</td></tr>
             </tbody>

@@ -150,6 +150,7 @@ const VF_EVENTS = [
   'vf-change',
   'vf-close',
   'vf-zoom',
+  'vf-resize',
   'vf-menu-select',
   'vf-select',
   'vf-open',

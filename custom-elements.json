@@ -17134,6 +17134,10 @@
             {
               "description": "Zoom box clicked. Detail `{}`.",
               "name": "vf-zoom"
+            },
+            {
+              "description": "The grow box resized the window. Detail `{ width, height, commit }`, sizes in whole system px: one event per size the drag writes (`commit: false`), fired after the new box is applied so a handler that measures reads the resized layout, then a final `commit: true` as the gesture settles — only when it changed the size. Fired by the gesture alone: a programmatic `width`/`height` write fires nothing, the way a value set fires no `vf-change`.",
+              "name": "vf-resize"
             }
           ],
           "attributes": [

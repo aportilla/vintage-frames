@@ -106,10 +106,17 @@ const clamp = (v: number, max: number): number =>
  * precisely an image plus its mask — so inverting it flips ink and fill and
  * leaves the surround alone, which is the whole of the classic selected
  * appearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color
- * art inverts too, into a photographic negative rather than the darkening
- * System 7 gave it; that is the case to revisit if the kit ever grows a
- * selected-state treatment of its own. The label plate inverts to the
- * `--vf-highlight` pair, sharing one selection color with `vf-list-item`.
+ * art would invert into a photographic negative, which was never what
+ * System 7 showed: declare `color` and selection **darkens** the art
+ * instead — Icon Utilities' ttSelected transform, every color blended
+ * halfway toward black (`brightness(0.5)`), whites going gray, the
+ * transparent surround still untouched. The declaration is the consumer's
+ * because the component cannot tell color art from a mask by looking at a
+ * slotted image. It covers whatever the cell shows, the derived open ghost
+ * included, so a color icon has one selected treatment open or closed. The
+ * label plate inverts to the `--vf-highlight` pair either way, sharing one
+ * selection color with `vf-list-item` — the selected name was inverted
+ * whatever the art.
  *
  * ### Open is derived, not shipped
  *
@@ -318,6 +325,13 @@ export class VfIcon extends VfPositioned(LitElement) {
       :host([selected]) .art {
         filter: invert(1);
       }
+      /* A color icon's selection darkens instead — ttSelected, colors
+         blended halfway toward black — since a photographic negative was
+         never what System 7 showed for color art (see the class doc). One
+         treatment for whatever the cell shows, the open ghost included. */
+      :host([selected][color]) .art {
+        filter: brightness(0.5);
+      }
       /* The open ghost replaces the slotted art while there is one — the
          slot stays in the tree (it is where the art loads and re-loads
          from) but paints nothing. Gated on the class, not :host([open]):
@@ -509,6 +523,15 @@ export class VfIcon extends VfPositioned(LitElement) {
 
   /** Whether the icon is selected: the art inverts and the plate goes black. */
   @property({ type: Boolean, reflect: true }) selected = false
+
+  /**
+   * Declares the slotted art a **color icon**, so selection darkens it — the
+   * ttSelected transform, every color blended halfway toward black — instead
+   * of inverting it into a photographic negative (see the class doc). Yours
+   * to declare because the component cannot tell color art from a 1-bit mask
+   * by looking at a slotted image. The label plate inverts either way.
+   */
+  @property({ type: Boolean, reflect: true }) color = false
 
   /**
    * The icon's window is on screen, so the art paints as the Finder's open

@@ -41,10 +41,12 @@ import {
   ORIGIN,
   check,
   cssPxFor,
+  decodePng,
   gridTolerance,
   holdableScale,
   launch,
   report,
+  rgb,
 } from './harness.mjs'
 
 /** A 1×1 transparent PNG stands in for art: the cell is reserved, not measured. */
@@ -1070,6 +1072,72 @@ for (const dpr of [1, 2, 3]) {
     'SELECT  the plate takes the kit highlight pair',
     look.bg === 'rgb(0, 0, 0)' && look.color === 'rgb(255, 255, 255)',
     `${look.bg} on ${look.color}`
+  )
+  await page.close()
+}
+
+// ── COLOR ───────────────────────────────────────────────────────────────────
+/* A `color` icon's selection darkens — ttSelected, colors blended halfway
+   toward black — instead of inverting into a photographic negative. The
+   pixels prove the treatment: solid red art reads half-red selected, never
+   cyan. Without the declaration the classic inversion stands. */
+{
+  const RED32 =
+    'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23f00%27/%3E%3C/svg%3E'
+  const redIcon = (attrs) =>
+    `<vf-icon label="Cargo" ${attrs}>
+       <vf-img slot="large"><img src="${RED32}" alt=""></vf-img>
+     </vf-icon>`
+  const page = await build(
+    `${redIcon('selectable color selected')}<hr>${redIcon('selectable selected')}`
+  )
+  await page.evaluate(() =>
+    Promise.all([...document.images].map((img) => img.decode()))
+  )
+  await page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  )
+
+  const filters = await page.evaluate(() =>
+    [...document.querySelectorAll('vf-icon')].map(
+      (el) => getComputedStyle(el.shadowRoot.querySelector('.art')).filter
+    )
+  )
+  check(
+    'COLOR  a selected color icon darkens (ttSelected), never inverts',
+    filters[0] === 'brightness(0.5)',
+    filters[0]
+  )
+  check(
+    'COLOR  without the declaration the classic inversion stands',
+    filters[1] === 'invert(1)',
+    filters[1]
+  )
+
+  const centre = await page.evaluate(() => {
+    const b = document
+      .querySelector('vf-icon')
+      .shadowRoot.querySelector('.art')
+      .getBoundingClientRect()
+    return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }
+  })
+  const dark = rgb(decodePng(await page.screenshot()), centre.x, centre.y)
+  check(
+    'COLOR  the darkened art really paints half-red',
+    Math.abs(dark[0] - 128) <= 5 && dark[1] <= 5 && dark[2] <= 5,
+    `selected rgb(${dark})`
+  )
+
+  await page.evaluate(async () => {
+    const el = document.querySelector('vf-icon')
+    el.selected = false
+    await el.updateComplete
+  })
+  const rest = rgb(decodePng(await page.screenshot()), centre.x, centre.y)
+  check(
+    'COLOR  …and full red at rest',
+    rest[0] >= 250 && rest[1] <= 5 && rest[2] <= 5,
+    `rest rgb(${rest})`
   )
   await page.close()
 }

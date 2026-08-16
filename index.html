@@ -1502,6 +1502,21 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
+            <code>color</code> declares the art a color icon: selection darkens
+            it — every color blended halfway toward black — instead of
+            inverting it into a negative. The plate inverts either way.
+          </p>
+
+          <template data-example data-caption="The six-color art with color, darkened when selected; the same file without it inverts.">
+            <vf-icon size="small" color label="Color" width="64" selectable selected>
+              <vf-img slot="small"><img src="/demo/icons/apple.png" alt="" /></vf-img>
+            </vf-icon>
+            <vf-icon size="small" label="Negative" width="64" selectable selected>
+              <vf-img slot="small"><img src="/demo/icons/apple.png" alt="" /></vf-img>
+            </vf-icon>
+          </template>
+
+          <p>
             <code>open</code> — the icon's window is on screen — redraws the art
             as a ghost: outline held, interior re-filled with the kit's dither. It
             is derived from the slotted art — no second file, and cross-origin art
@@ -1612,6 +1627,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>size</code></td><td><code>large</code> | <code>small</code></td><td><code>large</code></td><td class="wrap">Picks the slot that paints and the cell it paints in: 32×32 or 16×16</td></tr>
               <tr><td><code>selectable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Clicking selects and the icon becomes focusable; <code>movable</code> and <code>editable</code> presuppose it. Set <code>selected</code> yourself to drive selection some other way</td></tr>
               <tr><td><code>selected</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; the art inverts and the plate takes the <code>--vf-highlight</code> pair</td></tr>
+              <tr><td><code>color</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Declares the art a color icon: selection darkens it — every color blended halfway toward black, whites going gray — instead of inverting it into a negative. The plate inverts either way</td></tr>
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The open ghost: outline held, interior re-filled with the kit's dither. Derived from the art you already slotted — no second file. Selection inverts the ghost the same way</td></tr>
               <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag to move, plus arrow keys (Shift for eight)</td></tr>
               <tr><td><code>editable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Click the plate of an already-selected icon to rename; the field opens once the double-click window has passed, so a double-click opens the icon instead</td></tr>

@@ -46,6 +46,10 @@ function toAriaKeyshortcuts(shortcut: string): string {
  * case-insensitively (Shift capitalizes a letter's `key`, so "⇧⌘Z" must still
  * meet a `key` of "Z").
  *
+ * A declared ⌘ is met by the Control key too — Ctrl standing in for ⌘ off
+ * the Mac, the same reading vf-icon's ⌘O open route takes — while a shortcut
+ * that spells ⌃ itself keeps meaning the Control key alone.
+ *
  * A shortcut with no ⌘/⌃/⌥ and a single printable key never matches — it
  * renders and announces, but a bare letter claimed globally would hijack
  * typing in every field on the page. A named key ("F1") needs no modifier.
@@ -61,9 +65,15 @@ function matchesKeydown(event: KeyboardEvent, shortcut: string): boolean {
   if (!mods.Meta && !mods.Control && !mods.Alt && [...key].length === 1) {
     return false
   }
+  const commandOk = mods.Meta
+    ? event.metaKey || event.ctrlKey
+    : !event.metaKey
+  const controlOk = mods.Control
+    ? event.ctrlKey
+    : mods.Meta || !event.ctrlKey
   return (
-    event.metaKey === mods.Meta &&
-    event.ctrlKey === mods.Control &&
+    commandOk &&
+    controlOk &&
     event.altKey === mods.Alt &&
     event.shiftKey === mods.Shift &&
     event.key.toLowerCase() === key.toLowerCase()

@@ -97,13 +97,22 @@ const lastKey = (page) => page.evaluate(() => window.__keys.at(-1) ?? null)
     JSON.stringify(got)
   )
 
+  // Ctrl stands in for ⌘ off the Mac (vf-icon's own ⌘O reading).
+  await page.keyboard.press('Control+s')
+  got = await selects(page)
+  check(
+    'Ctrl stands in for ⌘: Ctrl+S fires Save too',
+    got.length === 3 && got[2] === 'save',
+    JSON.stringify(got)
+  )
+
   // A disabled item claims nothing — the stroke falls through untouched.
   await page.keyboard.press('Meta+p')
   got = await selects(page)
   key = await lastKey(page)
   check(
     'a disabled item does not activate on its key',
-    got.length === 2,
+    got.length === 3,
     JSON.stringify(got)
   )
   check('…and does not claim the stroke', key?.claimed === false)
@@ -115,7 +124,7 @@ const lastKey = (page) => page.evaluate(() => window.__keys.at(-1) ?? null)
   const typed = await page.evaluate(() => document.getElementById('field').value)
   check(
     'a bare-letter shortcut never hijacks typing',
-    got.length === 2 && typed === 's',
+    got.length === 3 && typed === 's',
     `selects ${JSON.stringify(got)}, field "${typed}"`
   )
 
@@ -126,12 +135,12 @@ const lastKey = (page) => page.evaluate(() => window.__keys.at(-1) ?? null)
   key = await lastKey(page)
   check(
     'a standalone vf-menu[shortcuts] answers its item',
-    got.length === 3 && got[2] === 'duplicate',
+    got.length === 4 && got[3] === 'duplicate',
     JSON.stringify(got)
   )
   check(
     'no grant, no claim: the ungranted menu ignores its shortcut',
-    got.length === 3 && key?.claimed === false,
+    got.length === 4 && key?.claimed === false,
     JSON.stringify(key)
   )
 
@@ -145,7 +154,7 @@ const lastKey = (page) => page.evaluate(() => window.__keys.at(-1) ?? null)
   got = await selects(page)
   check(
     "a consumer's earlier preventDefault keeps the key",
-    got.length === 3,
+    got.length === 4,
     JSON.stringify(got)
   )
 

@@ -121,6 +121,15 @@ export class VfMenuBar extends VfPositioned(LitElement) {
    */
   @property({ type: Boolean, reflect: true }) rounded = false
 
+  /**
+   * Makes every slotted menu's item `shortcut`s live key equivalents — one
+   * declaration for the whole bar, the way MenuKey() answered for every menu
+   * at once. See `vf-menu.shortcuts` (the per-menu grant) and
+   * `vf-menu-item.shortcut` for the claim contract. Off by default: key
+   * equivalents are page-global, and only *the* menu bar should own them.
+   */
+  @property({ type: Boolean, reflect: true }) shortcuts = false
+
   @queryAssignedElements({ selector: 'vf-menu', flatten: true })
   private _menus!: VfMenu[]
 

@@ -929,6 +929,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td>Properties</td><td><code>rounded</code></td><td class="wrap">Boolean; paints the 5px screen-corner stair-step on the bar's top corners. Otherwise the bar is the coordinator: one menu open at a time, hover switches while open, ArrowLeft/Right move between menus</td></tr>
+              <tr><td>Properties</td><td><code>shortcuts</code></td><td class="wrap">Boolean; makes every item's <code>shortcut</code> a live key equivalent, bar-wide. Off by default — key equivalents are page-global, so only <em>the</em> menu bar should declare it</td></tr>
               <tr><td>Slot</td><td>(default)</td><td class="wrap"><code>vf-menu</code> elements</td></tr>
               <tr><td>Part</td><td><code>bar</code></td><td class="wrap">Style this to align a full-bleed nav with a centered content column</td></tr>
               <tr><td>Token</td><td><code>--vf-menubar-height</code></td><td class="wrap">20px — 19 white system px over the 1px black rule</td></tr>
@@ -941,6 +942,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">The title in the bar, and the accessible name when the <code>label</code> slot replaces the text</td></tr>
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected; managed by the bar, or by the menu itself when standalone</td></tr>
+              <tr><td><code>shortcuts</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The key-equivalent grant for a standalone menu; in a bar, declare it once on the bar</td></tr>
               <tr><td colspan="4" class="wrap">Slots: default (<code>vf-menu-item</code> / <code>vf-separator</code>), <code>label</code>. Parts: <code>label</code>, <code>panel</code>. Roles <code>menubar</code> / <code>menu</code> / <code>menuitem</code> (<code>menuitemcheckbox</code> when checkable); arrows move, Enter or Space activate, Esc closes.</td></tr>
             </tbody>
           </table>
@@ -950,7 +952,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>value</code></td><td>string</td><td class="wrap">text content</td><td class="wrap">Carried in the event detail</td></tr>
-              <tr><td><code>shortcut</code></td><td>string</td><td><code>''</code></td><td class="wrap">Key equivalent (<code>⌘N</code>), left-aligned in a shared right-anchored column so every ⌘ lines up. Display only — binding the key is yours</td></tr>
+              <tr><td><code>shortcut</code></td><td>string</td><td><code>''</code></td><td class="wrap">Key equivalent (<code>⌘N</code>), left-aligned in a shared right-anchored column so every ⌘ lines up, announced via <code>aria-keyshortcuts</code>. Under a <code>shortcuts</code> grant on the menu or bar it is live: the matching keydown activates the item from anywhere, menu open or not, and a closed menu flashes its title. A disabled item claims nothing; a claimed stroke is <code>preventDefault()</code>ed; a bare letter never matches</td></tr>
               <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows the ✓ in the left gutter</td></tr>
               <tr><td><code>checkable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">A toggle that starts unchecked; announces as <code>menuitemcheckbox</code></td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the whole row, ✓ included, as System 7 did</td></tr>

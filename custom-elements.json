@@ -5953,6 +5953,17 @@
             },
             {
               "kind": "field",
+              "name": "shortcuts",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Makes every slotted menu's item `shortcut`s live key equivalents — one\ndeclaration for the whole bar, the way MenuKey() answered for every menu\nat once. See `vf-menu.shortcuts` (the per-menu grant) and\n`vf-menu-item.shortcut` for the claim contract. Off by default: key\nequivalents are page-global, and only *the* menu bar should own them.",
+              "attribute": "shortcuts",
+              "reflects": true
+            },
+            {
+              "kind": "field",
               "name": "_menus",
               "type": {
                 "text": "VfMenu[]"
@@ -6219,6 +6230,15 @@
               "fieldName": "rounded"
             },
             {
+              "name": "shortcuts",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Makes every slotted menu's item `shortcut`s live key equivalents — one\ndeclaration for the whole bar, the way MenuKey() answered for every menu\nat once. See `vf-menu.shortcuts` (the per-menu grant) and\n`vf-menu-item.shortcut` for the claim contract. Off by default: key\nequivalents are page-global, and only *the* menu bar should own them.",
+              "fieldName": "shortcuts"
+            },
+            {
               "name": "top",
               "type": {
                 "text": "number | null | undefined"
@@ -6384,7 +6404,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Keyboard shortcut text, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. Display only in the\nvisual sense — the span is `aria-hidden` so the glyphs never concatenate\ninto the item's accessible name (\"Print… place of interest sign P\") —\nwhile the host mirrors it as `aria-keyshortcuts` (\"Meta+H\"), so AT\nannounces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.",
+              "description": "Keyboard shortcut, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. The span is `aria-hidden` so the glyphs never\nconcatenate into the item's accessible name (\"Print… place of interest\nsign P\") — the host mirrors it as `aria-keyshortcuts` (\"Meta+H\") instead,\nso AT announces it *as* a shortcut. A consumer's own `aria-keyshortcuts`\nwins.\n\nInside a `vf-menu`/`vf-menu-bar` that declares `shortcuts`, this is a\nLIVE key equivalent, not a legend: a matching keydown anywhere on the\npage activates the item — menu open or not — claiming the stroke with\n`preventDefault()` (see the document keydown handler below for the full\ncontract).",
               "attribute": "shortcut"
             },
             {
@@ -6530,6 +6550,12 @@
               ]
             },
             {
+              "kind": "field",
+              "name": "#onDocKeydown",
+              "privacy": "private",
+              "description": "The MenuKey() half of shortcut: a document-level ear that answers\nthe item's key equivalent from anywhere on the page, menu open or not —\nso File → Save shows ⌘S *and* answers it, with no page-side plumbing.\n\nLive only under a grant: an ancestor `vf-menu` or `vf-menu-bar` declaring\n`shortcuts`. Key equivalents are page-global — the one thing in the kit\nthat is — and a page may hold several menus (a component reference, a\ndialog mock-up) of which only one is *the* menu bar; the grant says which,\nthe way `applyCursor()` is the page's own call. Checked per event, so\ntoggling the grant needs no re-wiring.\n\nContract, in claim order:\n- A `defaultPrevented` stroke is already someone's — a page handler that\n  ran first keeps its key. A match claims with `preventDefault()` (no\n  `stopPropagation`), so with several items contesting one key the first\n  connected wins and later page listeners still observe the claimed event.\n- A disabled item claims nothing: the stroke falls through untouched, so\n  a grayed Undo leaves ⌘Z to the focused field's own native undo.\n- Auto-repeat strokes are claimed but activate only once per press.\n- Activation is the normal path — blink, `vf-menu-select` — plus an\n  internal flash request so a *closed* ancestor menu answers by flashing\n  its bar title, exactly MenuKey's acknowledgment; the panel never opens\n  and focus never moves. An open menu shows the item blink and closes."
+            },
+            {
               "kind": "method",
               "name": "activate",
               "return": {
@@ -6636,7 +6662,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Keyboard shortcut text, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. Display only in the\nvisual sense — the span is `aria-hidden` so the glyphs never concatenate\ninto the item's accessible name (\"Print… place of interest sign P\") —\nwhile the host mirrors it as `aria-keyshortcuts` (\"Meta+H\"), so AT\nannounces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.",
+              "description": "Keyboard shortcut, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. The span is `aria-hidden` so the glyphs never\nconcatenate into the item's accessible name (\"Print… place of interest\nsign P\") — the host mirrors it as `aria-keyshortcuts` (\"Meta+H\") instead,\nso AT announces it *as* a shortcut. A consumer's own `aria-keyshortcuts`\nwins.\n\nInside a `vf-menu`/`vf-menu-bar` that declares `shortcuts`, this is a\nLIVE key equivalent, not a legend: a matching keydown anywhere on the\npage activates the item — menu open or not — claiming the stroke with\n`preventDefault()` (see the document keydown handler below for the full\ncontract).",
               "fieldName": "shortcut"
             },
             {
@@ -6727,7 +6753,7 @@
           ],
           "cssParts": [
             {
-              "description": "The menu title in the bar (inverts while open).",
+              "description": "The menu title in the bar (inverts while open; flashes when a closed menu's item is activated by its key equivalent).",
               "name": "label"
             },
             {
@@ -6788,6 +6814,17 @@
               "default": "false",
               "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
               "attribute": "open",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "shortcuts",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Makes the items' `shortcut`s live key equivalents: a matching keydown\nanywhere on the page activates the item — menu open or not — and a\nclosed menu answers by flashing its bar title, MenuKey's acknowledgment.\nOff by default because key equivalents are page-global and a page may\nhold several menus of which only one is *the* menu bar; on a bar, declare\nit there once for every menu in it. The full claim contract lives on\n`vf-menu-item.shortcut`.",
+              "attribute": "shortcuts",
               "reflects": true
             },
             {
@@ -6889,6 +6926,41 @@
               "kind": "field",
               "name": "#onCloseRequest",
               "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "_flashOn",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "`true` while the key-equivalent flash paints the title inverted."
+            },
+            {
+              "kind": "field",
+              "name": "#flashHandle",
+              "privacy": "private",
+              "type": {
+                "text": "BlinkHandle | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#onFlashRequest",
+              "privacy": "private",
+              "description": "A key equivalent activated one of this menu's items through the closed\npanel: flash the bar title on the item blink's own cadence, so the\nacknowledgment lands where the user can see it — the item's own blink\nruns unseen inside the hidden panel. An open menu skips it: the dropped\npanel already shows the blink, and the title is inverted the whole time."
+            },
+            {
+              "kind": "method",
+              "name": "#cancelFlash",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Stops an in-flight title flash — opening or teardown takes over."
             },
             {
               "kind": "field",
@@ -7104,6 +7176,15 @@
               "default": "false",
               "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
               "fieldName": "open"
+            },
+            {
+              "name": "shortcuts",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Makes the items' `shortcut`s live key equivalents: a matching keydown\nanywhere on the page activates the item — menu open or not — and a\nclosed menu answers by flashing its bar title, MenuKey's acknowledgment.\nOff by default because key equivalents are page-global and a page may\nhold several menus of which only one is *the* menu bar; on a bar, declare\nit there once for every menu in it. The full claim contract lives on\n`vf-menu-item.shortcut`.",
+              "fieldName": "shortcuts"
             },
             {
               "name": "top",

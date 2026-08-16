@@ -3,6 +3,7 @@ import {
   property,
   query,
   queryAssignedElements,
+  state,
 } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
@@ -15,6 +16,7 @@ import {
 } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { MenuPressController } from '../menu-press.js'
+import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
 import { deferActivation, emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
@@ -47,7 +49,8 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *   icon for the Apple menu. Keep the `label` attribute set too: it stays the
  *   menu's accessible name (the bar item's `aria-label` and the panel's) when
  *   the visible title is an image.
- * @csspart label - The menu title in the bar (inverts while open).
+ * @csspart label - The menu title in the bar (inverts while open; flashes
+ *   when a closed menu's item is activated by its key equivalent).
  * @csspart panel - The dropped `.vf-panel` containing the items.
  * @cssprop [--vf-menubar-height=20px] - `vf-menu-bar`
  * @cssprop [--vf-menu-row-height=16px] - `vf-menu-item` row pitch; the panel
@@ -83,7 +86,12 @@ export class VfMenu extends VfPositioned(LitElement) {
         touch-action: none;
         cursor: var(--vf-cursor, default);
       }
-      :host([open]) .label {
+      /* .flash-on: the key-equivalent acknowledgment — a closed menu whose
+         item was activated by its shortcut flashes the title on the item
+         blink's own cadence, the way MenuKey() flashed the bar. Shares the
+         open inversion so the two can't drift apart. */
+      :host([open]) .label,
+      .label.flash-on {
         /* Forced colors: exempt the inverted title from the mode's text
            backplate, which would land a Canvas slab on the highlight bar —
            see vf-list-item's forced-colors note. The pair is already the
@@ -223,6 +231,17 @@ export class VfMenu extends VfPositioned(LitElement) {
   @property({ type: Boolean, reflect: true }) open = false
 
   /**
+   * Makes the items' `shortcut`s live key equivalents: a matching keydown
+   * anywhere on the page activates the item — menu open or not — and a
+   * closed menu answers by flashing its bar title, MenuKey's acknowledgment.
+   * Off by default because key equivalents are page-global and a page may
+   * hold several menus of which only one is *the* menu bar; on a bar, declare
+   * it there once for every menu in it. The full claim contract lives on
+   * `vf-menu-item.shortcut`.
+   */
+  @property({ type: Boolean, reflect: true }) shortcuts = false
+
+  /**
    * The bar label's tabindex. A parent `vf-menu-bar` owns a roving tabindex
    * across its menus and sets this to 0 on the active menu, -1 on the rest,
    * so the whole bar is a single Tab stop. Defaults to 0 so a standalone
@@ -307,6 +326,39 @@ export class VfMenu extends VfPositioned(LitElement) {
     // owns that move, so only self-manage standalone.
     if (!this.#inBar) this.focus()
     this.open = false
+  }
+
+  /** `true` while the key-equivalent flash paints the title inverted. */
+  @state() private _flashOn = false
+
+  #flashHandle: BlinkHandle | undefined
+
+  /**
+   * A key equivalent activated one of this menu's items through the closed
+   * panel: flash the bar title on the item blink's own cadence, so the
+   * acknowledgment lands where the user can see it — the item's own blink
+   * runs unseen inside the hidden panel. An open menu skips it: the dropped
+   * panel already shows the blink, and the title is inverted the whole time.
+   */
+  #onFlashRequest = (): void => {
+    if (this.open) return
+    this.#cancelFlash()
+    this.#flashHandle = runSelectionBlink(
+      (on) => {
+        this._flashOn = on
+      },
+      () => {
+        this._flashOn = false
+        this.#flashHandle = undefined
+      }
+    )
+  }
+
+  /** Stops an in-flight title flash — opening or teardown takes over. */
+  #cancelFlash(): void {
+    this.#flashHandle?.cancel()
+    this.#flashHandle = undefined
+    this._flashOn = false
   }
 
   #onDocPointerDown = (event: PointerEvent): void => {
@@ -396,6 +448,7 @@ export class VfMenu extends VfPositioned(LitElement) {
     // contexts must re-evaluate it.
     this.requestUpdate()
     this.addEventListener('vf-menu-close-request', this.#onCloseRequest)
+    this.addEventListener('vf-menu-flash-request', this.#onFlashRequest)
     this.addEventListener('pointerdown', this.#onHostPointerDown)
     this.addEventListener('focusout', this.#onHostFocusOut)
   }
@@ -413,8 +466,10 @@ export class VfMenu extends VfPositioned(LitElement) {
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     this.removeEventListener('vf-menu-close-request', this.#onCloseRequest)
+    this.removeEventListener('vf-menu-flash-request', this.#onFlashRequest)
     this.removeEventListener('pointerdown', this.#onHostPointerDown)
     this.removeEventListener('focusout', this.#onHostFocusOut)
+    this.#cancelFlash()
   }
 
   /**
@@ -434,6 +489,9 @@ export class VfMenu extends VfPositioned(LitElement) {
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
     if (changed.has('open')) {
+      // Opening mid-flash: the open inversion takes the label over; a timer
+      // still flipping the flash class would blink it against that state.
+      if (this.open) this.#cancelFlash()
       // A parent vf-menu-bar owns document-level dismissal; only self-manage
       // when standalone.
       if (this.open && !this.#inBar) this.#docListeners.attach()
@@ -486,7 +544,9 @@ export class VfMenu extends VfPositioned(LitElement) {
   protected override render() {
     return html`
       <div
-        class="label vf-snap ${this.#focusRule.marked ? 'vf-focus-rule' : ''}"
+        class="label vf-snap ${this.#focusRule.marked
+          ? 'vf-focus-rule'
+          : ''} ${this._flashOn ? 'flash-on' : ''}"
         part="label"
         role=${this.#inBar ? 'menuitem' : 'button'}
         tabindex=${this.barTabIndex}

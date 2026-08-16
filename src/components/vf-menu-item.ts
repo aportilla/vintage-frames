@@ -41,6 +41,36 @@ function toAriaKeyshortcuts(shortcut: string): string {
 }
 
 /**
+ * Whether this keydown IS the item's key equivalent: every declared modifier
+ * down, no undeclared one, and `event.key` matching the rest of the shortcut
+ * case-insensitively (Shift capitalizes a letter's `key`, so "⇧⌘Z" must still
+ * meet a `key` of "Z").
+ *
+ * A shortcut with no ⌘/⌃/⌥ and a single printable key never matches — it
+ * renders and announces, but a bare letter claimed globally would hijack
+ * typing in every field on the page. A named key ("F1") needs no modifier.
+ */
+function matchesKeydown(event: KeyboardEvent, shortcut: string): boolean {
+  const chars = [...shortcut.trim()]
+  const mods = { Meta: false, Control: false, Alt: false, Shift: false }
+  while (chars.length > 0 && MODIFIER_GLYPHS.has(chars[0]!)) {
+    mods[MODIFIER_GLYPHS.get(chars.shift()!)! as keyof typeof mods] = true
+  }
+  const key = chars.join('')
+  if (!key) return false
+  if (!mods.Meta && !mods.Control && !mods.Alt && [...key].length === 1) {
+    return false
+  }
+  return (
+    event.metaKey === mods.Meta &&
+    event.ctrlKey === mods.Control &&
+    event.altKey === mods.Alt &&
+    event.shiftKey === mods.Shift &&
+    event.key.toLowerCase() === key.toLowerCase()
+  )
+}
+
+/**
  * `<vf-menu-item>` — a single command inside a `<vf-menu>` panel.
  *
  * Renders the classic System 7 menu row: optional ✓ check in the
@@ -238,12 +268,18 @@ export class VfMenuItem extends VfPositioned(LitElement) {
   @property({ type: Boolean, reflect: true }) checkable = false
 
   /**
-   * Keyboard shortcut text, e.g. `"⌘H"`, drawn left-aligned in the panel's
-   * shared shortcut column. Display only in the
-   * visual sense — the span is `aria-hidden` so the glyphs never concatenate
-   * into the item's accessible name ("Print… place of interest sign P") —
-   * while the host mirrors it as `aria-keyshortcuts` ("Meta+H"), so AT
-   * announces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.
+   * Keyboard shortcut, e.g. `"⌘H"`, drawn left-aligned in the panel's
+   * shared shortcut column. The span is `aria-hidden` so the glyphs never
+   * concatenate into the item's accessible name ("Print… place of interest
+   * sign P") — the host mirrors it as `aria-keyshortcuts` ("Meta+H") instead,
+   * so AT announces it *as* a shortcut. A consumer's own `aria-keyshortcuts`
+   * wins.
+   *
+   * Inside a `vf-menu`/`vf-menu-bar` that declares `shortcuts`, this is a
+   * LIVE key equivalent, not a legend: a matching keydown anywhere on the
+   * page activates the item — menu open or not — claiming the stroke with
+   * `preventDefault()` (see the document keydown handler below for the full
+   * contract).
    */
   @property() shortcut = ''
 
@@ -325,10 +361,15 @@ export class VfMenuItem extends VfPositioned(LitElement) {
     this.#syncRole()
     this.#syncKeyshortcuts()
     if (!this.hasAttribute('tabindex')) this.tabIndex = -1
+    // The key-equivalent ear: always attached while connected, gated live in
+    // the handler (the `shortcuts` grant and the shortcut itself may both
+    // change after connect).
+    document.addEventListener('keydown', this.#onDocKeydown)
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback()
+    document.removeEventListener('keydown', this.#onDocKeydown)
     this.#cancelBlink()
   }
 
@@ -425,6 +466,42 @@ export class VfMenuItem extends VfPositioned(LitElement) {
   }
 
   /**
+   * The MenuKey() half of {@link shortcut}: a document-level ear that answers
+   * the item's key equivalent from anywhere on the page, menu open or not —
+   * so File → Save shows ⌘S *and* answers it, with no page-side plumbing.
+   *
+   * Live only under a grant: an ancestor `vf-menu` or `vf-menu-bar` declaring
+   * `shortcuts`. Key equivalents are page-global — the one thing in the kit
+   * that is — and a page may hold several menus (a component reference, a
+   * dialog mock-up) of which only one is *the* menu bar; the grant says which,
+   * the way `applyCursor()` is the page's own call. Checked per event, so
+   * toggling the grant needs no re-wiring.
+   *
+   * Contract, in claim order:
+   * - A `defaultPrevented` stroke is already someone's — a page handler that
+   *   ran first keeps its key. A match claims with `preventDefault()` (no
+   *   `stopPropagation`), so with several items contesting one key the first
+   *   connected wins and later page listeners still observe the claimed event.
+   * - A disabled item claims nothing: the stroke falls through untouched, so
+   *   a grayed Undo leaves ⌘Z to the focused field's own native undo.
+   * - Auto-repeat strokes are claimed but activate only once per press.
+   * - Activation is the normal path — blink, `vf-menu-select` — plus an
+   *   internal flash request so a *closed* ancestor menu answers by flashing
+   *   its bar title, exactly MenuKey's acknowledgment; the panel never opens
+   *   and focus never moves. An open menu shows the item blink and closes.
+   */
+  #onDocKeydown = (event: KeyboardEvent): void => {
+    if (event.defaultPrevented || event.isComposing) return
+    if (this.disabled || !this.shortcut) return
+    if (!this.closest('vf-menu[shortcuts], vf-menu-bar[shortcuts]')) return
+    if (!matchesKeydown(event, this.shortcut)) return
+    event.preventDefault()
+    if (event.repeat || this.#blinking) return
+    emit(this, 'vf-menu-flash-request', { item: this }, { composed: false })
+    this.activate()
+  }
+
+  /**
    * Runs the classic 3-blink inversion, then dispatches `vf-menu-select` and an
    * internal `vf-menu-close-request` so ancestor menu/menu-bar close. Public
    * because the menu's press gesture activates the row a drag was released
@@ -468,7 +545,13 @@ export class VfMenuItem extends VfPositioned(LitElement) {
     const value = this.value ?? (this.textContent ?? '').trim()
     emit(this, 'vf-menu-select', { value, item: this })
     // Internal coordination event: `vf-menu` / `vf-menu-bar` listen and close.
-    emit(this, 'vf-menu-close-request', { item: this }, { composed: false })
+    // Skipped when the ancestor menu is CLOSED — a key equivalent activates
+    // through the closed panel, and the close paths return focus to the bar
+    // label, which would yank it from wherever the user was typing.
+    const menu = this.closest('vf-menu')
+    if (!menu || menu.hasAttribute('open')) {
+      emit(this, 'vf-menu-close-request', { item: this }, { composed: false })
+    }
   }
 }
 

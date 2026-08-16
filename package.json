@@ -76,6 +76,7 @@
     "verify:list-typeahead": "node scripts/verify-list-typeahead.mjs",
     "verify:key-models": "node scripts/verify-key-models.mjs",
     "verify:menu-select": "node scripts/verify-menu-select.mjs",
+    "verify:menu-keys": "node scripts/verify-menu-keys.mjs",
     "verify:select-overflow": "node scripts/verify-select-overflow.mjs",
     "verify:scrollbars": "node scripts/verify-scrollbars.mjs",
     "verify:menu-press": "node scripts/verify-menu-press.mjs",

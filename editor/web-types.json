@@ -1283,6 +1283,11 @@
               "value": { "type": "boolean", "default": "false" }
             },
             {
+              "name": "shortcuts",
+              "description": "Makes every slotted menu's item `shortcut`s live key equivalents — one\ndeclaration for the whole bar, the way MenuKey() answered for every menu\nat once. See `vf-menu.shortcuts` (the per-menu grant) and\n`vf-menu-item.shortcut` for the claim contract. Off by default: key\nequivalents are page-global, and only *the* menu bar should own them.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
               "name": "top",
               "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
               "value": { "type": "number | null | undefined" }
@@ -1305,6 +1310,11 @@
               {
                 "name": "rounded",
                 "description": "Rounds the bar's top corners the way System 7's were: not a curve of the\nbar itself but the black stair-step mask the compact Mac's ROM painted\nover the CRT's rounded corners, which the menu bar wore by sitting flush\nwith the screen top. Drawn as the traced 5-px staircase in `--vf-black`\nink over the bar's own corners — over any backdrop, as the hardware\nmask was.",
+                "type": "boolean"
+              },
+              {
+                "name": "shortcuts",
+                "description": "Makes every slotted menu's item `shortcut`s live key equivalents — one\ndeclaration for the whole bar, the way MenuKey() answered for every menu\nat once. See `vf-menu.shortcuts` (the per-menu grant) and\n`vf-menu-item.shortcut` for the claim contract. Off by default: key\nequivalents are page-global, and only *the* menu bar should own them.",
                 "type": "boolean"
               },
               {
@@ -1348,7 +1358,7 @@
             },
             {
               "name": "shortcut",
-              "description": "Keyboard shortcut text, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. Display only in the\nvisual sense — the span is `aria-hidden` so the glyphs never concatenate\ninto the item's accessible name (\"Print… place of interest sign P\") —\nwhile the host mirrors it as `aria-keyshortcuts` (\"Meta+H\"), so AT\nannounces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.",
+              "description": "Keyboard shortcut, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. The span is `aria-hidden` so the glyphs never\nconcatenate into the item's accessible name (\"Print… place of interest\nsign P\") — the host mirrors it as `aria-keyshortcuts` (\"Meta+H\") instead,\nso AT announces it *as* a shortcut. A consumer's own `aria-keyshortcuts`\nwins.\n\nInside a `vf-menu`/`vf-menu-bar` that declares `shortcuts`, this is a\nLIVE key equivalent, not a legend: a matching keydown anywhere on the\npage activates the item — menu open or not — claiming the stroke with\n`preventDefault()` (see the document keydown handler below for the full\ncontract).",
               "value": { "type": "string", "default": "''" }
             },
             {
@@ -1398,7 +1408,7 @@
               },
               {
                 "name": "shortcut",
-                "description": "Keyboard shortcut text, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. Display only in the\nvisual sense — the span is `aria-hidden` so the glyphs never concatenate\ninto the item's accessible name (\"Print… place of interest sign P\") —\nwhile the host mirrors it as `aria-keyshortcuts` (\"Meta+H\"), so AT\nannounces it *as* a shortcut. A consumer's own `aria-keyshortcuts` wins.",
+                "description": "Keyboard shortcut, e.g. `\"⌘H\"`, drawn left-aligned in the panel's\nshared shortcut column. The span is `aria-hidden` so the glyphs never\nconcatenate into the item's accessible name (\"Print… place of interest\nsign P\") — the host mirrors it as `aria-keyshortcuts` (\"Meta+H\") instead,\nso AT announces it *as* a shortcut. A consumer's own `aria-keyshortcuts`\nwins.\n\nInside a `vf-menu`/`vf-menu-bar` that declares `shortcuts`, this is a\nLIVE key equivalent, not a legend: a matching keydown anywhere on the\npage activates the item — menu open or not — claiming the stroke with\n`preventDefault()` (see the document keydown handler below for the full\ncontract).",
                 "type": "string"
               },
               {
@@ -1427,7 +1437,7 @@
         },
         {
           "name": "vf-menu",
-          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n\nTakes `top`/`left` like every other element (VfPositioned) — the\nnatural fit being a standalone menu, which is a free-standing menu button and\nplaces like any other control. The panel is anchored to the host's own box\n(`top: 100%`), so it follows a placed menu down without any further work.\nInside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one\nlifts it off the bar and the titles beside it close the gap.\n---\n\n\n### **Slots:**\n - _default_ - Menu contents: `vf-menu-item` and `vf-separator` elements.\n- **label** - Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 20px)_\n- **--vf-menu-row-height** - `vf-menu-item` row pitch; the panel also spends one of these on every slotted `vf-separator`, the full row the MDEF gave a divider (rule 8px into it — see the panel CSS) _(default: 16px)_\n\n### **CSS Parts:**\n - **label** - The menu title in the bar (inverts while open).\n- **panel** - The dropped `.vf-panel` containing the items.",
+          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n\nTakes `top`/`left` like every other element (VfPositioned) — the\nnatural fit being a standalone menu, which is a free-standing menu button and\nplaces like any other control. The panel is anchored to the host's own box\n(`top: 100%`), so it follows a placed menu down without any further work.\nInside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one\nlifts it off the bar and the titles beside it close the gap.\n---\n\n\n### **Slots:**\n - _default_ - Menu contents: `vf-menu-item` and `vf-separator` elements.\n- **label** - Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.\n\n### **CSS Properties:**\n - **--vf-menubar-height** - `vf-menu-bar` _(default: 20px)_\n- **--vf-menu-row-height** - `vf-menu-item` row pitch; the panel also spends one of these on every slotted `vf-separator`, the full row the MDEF gave a divider (rule 8px into it — see the panel CSS) _(default: 16px)_\n\n### **CSS Parts:**\n - **label** - The menu title in the bar (inverts while open; flashes when a closed menu's item is activated by its key equivalent).\n- **panel** - The dropped `.vf-panel` containing the items.",
           "doc-url": "",
           "attributes": [
             {
@@ -1438,6 +1448,11 @@
             {
               "name": "open",
               "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "shortcuts",
+              "description": "Makes the items' `shortcut`s live key equivalents: a matching keydown\nanywhere on the page activates the item — menu open or not — and a\nclosed menu answers by flashing its bar title, MenuKey's acknowledgment.\nOff by default because key equivalents are page-global and a page may\nhold several menus of which only one is *the* menu bar; on a bar, declare\nit there once for every menu in it. The full claim contract lives on\n`vf-menu-item.shortcut`.",
               "value": { "type": "boolean", "default": "false" }
             },
             {
@@ -1472,6 +1487,11 @@
               {
                 "name": "open",
                 "description": "Whether the panel is dropped. Reflected. Managed by the parent\n`vf-menu-bar` when present, otherwise by the menu itself.",
+                "type": "boolean"
+              },
+              {
+                "name": "shortcuts",
+                "description": "Makes the items' `shortcut`s live key equivalents: a matching keydown\nanywhere on the page activates the item — menu open or not — and a\nclosed menu answers by flashing its bar title, MenuKey's acknowledgment.\nOff by default because key equivalents are page-global and a page may\nhold several menus of which only one is *the* menu bar; on a bar, declare\nit there once for every menu in it. The full claim contract lives on\n`vf-menu-item.shortcut`.",
                 "type": "boolean"
               },
               {

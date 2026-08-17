@@ -72,6 +72,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             and marks it <code>active</code>, clearing <code>active</code> on the
             others. DOM order follows the stacking order. Utility windows float on
             their own tier above document windows, outside the single-active rule.
+            <code>clearActive()</code> deactivates the whole document tier — zero
+            active windows is a legal state — until a press, keyboard focus, or a
+            newly slotted window reactivates it. A press on the desktop's own
+            dither changes nothing: the page decides which presses mean the
+            Finder. Every change of holder fires <code>vf-activate</code>.
           </p>
 
           <template
@@ -165,7 +170,10 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td>Property</td><td><code>width</code>, <code>height</code></td><td class="wrap">The screen raster, in system px (defaults 512×342). The host box is the screen plus 2×<code>bezel</code> per axis</td></tr>
               <tr><td>Property</td><td><code>bezel</code></td><td class="wrap">The black screen surround, in system px (default 0), added on every side. Flow, window coordinates and the drag clip belong to the screen; the corner mask on its top corners means a menu bar inside needs no <code>rounded</code></td></tr>
+              <tr><td>Property</td><td><code>activeWindow</code></td><td class="wrap">Read-only: the active document-tier window, or <code>null</code> while the tier is deactivated or empty. Utility windows are never the holder</td></tr>
               <tr><td>Method</td><td><code>fitWithin(w,&nbsp;h)</code></td><td class="wrap">Sets and returns the largest whole raster whose host box, bezel included, fits a CSS-px bound. Call on <code>resize</code> and <code>onScaleChange</code> to fill the viewport</td></tr>
+              <tr><td>Method</td><td><code>clearActive()</code></td><td class="wrap">Deactivates the document tier. A press or focus in a document window, or a newly slotted one, reactivates; utility windows keep their <code>active</code></td></tr>
+              <tr><td>Event</td><td><code>vf-activate</code></td><td class="wrap"><code>{ window }</code> — the new holder, <code>null</code> on deactivation. Once per change of holder; re-asserting the current one is silent</td></tr>
               <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, anything</td></tr>
               <tr><td>Part</td><td><code>desktop</code></td><td class="wrap">The dithered surface</td></tr>
               <tr><td>Token</td><td><code>--vf-desktop</code></td><td class="wrap">Base color under the tile (<code>#808080</code>)</td></tr>

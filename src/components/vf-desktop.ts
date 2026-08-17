@@ -1,5 +1,6 @@
 import { html, css, LitElement, unsafeCSS, type PropertyValues } from 'lit'
 import { property, queryAssignedElements } from 'lit/decorators.js'
+import { emit } from '../events.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { vfBase } from '../styles/base.js'
@@ -72,6 +73,20 @@ const DITHER_SPAN = tileSpan(DITHER_MOTIF)
  * deactivates the active document window nor greys the palette, exactly as
  * System 7's floating windoids behaved while their application was frontmost.
  *
+ * **Deactivation.** On a real System 7 machine clicking the desktop clicked
+ * the *Finder* — the frontmost application's windows lost their stripes.
+ * {@link clearActive} is that gesture's handler: it clears `active` from
+ * the whole document tier, and **zero active windows is a legal state**,
+ * held until a press or keyboard focus re-enters a document window (or a
+ * new one is slotted, which activates it — opening a window brings its
+ * application forward). The desktop never takes this decision itself: its
+ * furniture is slotted light DOM (an icon layer, say), so only the page
+ * knows which of its children — or which presses on the bare dither — mean
+ * "the Finder", and it routes those through `clearActive()`. Left alone,
+ * the classic always-one-active behavior is unchanged. {@link activeWindow}
+ * reads the current holder, and every change of holder — including to and
+ * from none — fires `vf-activate`.
+ *
  * The desktop is a raster with an explicit size, always: **`width` and
  * `height`**, in system px, the way a WIND resource declared a window's —
  * the host box renders at the declared screen plus `2 × bezel` per axis, a
@@ -96,6 +111,11 @@ const DITHER_SPAN = tileSpan(DITHER_MOTIF)
  *   cells (or with `none`).
  *
  * @slot - Default slot: menu bar, windows, anything.
+ * @fires vf-activate - The active document-tier window changed. Detail
+ *   `{ window: HTMLElement | null }` — the new holder, or `null` when the
+ *   document tier deactivated (a {@link clearActive} call, or the active
+ *   window leaving the DOM with none behind it). Fired once per change of
+ *   holder, never for a re-assertion of the same one.
  * @csspart desktop - The dithered screen surface — the whole-system-px
  *   raster (inset by `bezel` when one is set).
  * @cssprop [--vf-desktop=#808080] - base color under the desktop dither —
@@ -313,6 +333,22 @@ export class VfDesktop extends VfPositioned(LitElement) {
   /** Monotonic z-index counter for window stacking. */
   private _zCounter = 0
 
+  /**
+   * The active document-tier window, or null when the tier is deactivated
+   * (or empty). The single change-tracked truth behind {@link activeWindow}
+   * and the `vf-activate` event — written only by {@link _setActive}.
+   */
+  private _activeWindow: HTMLElement | null = null
+
+  /**
+   * Whether the document tier was *deliberately* deactivated (a
+   * {@link clearActive} call) — as opposed to `_activeWindow` being null
+   * because nothing has activated yet. Slot changes preserve a deliberate
+   * deactivation instead of promoting a survivor; a newly slotted document
+   * window still activates (opening a window brings its application forward).
+   */
+  private _deactivated = false
+
   /** Whether a one-shot post-upgrade re-normalization is already pending. */
   private _awaitingUpgrade = false
 
@@ -373,6 +409,25 @@ export class VfDesktop extends VfPositioned(LitElement) {
   bringToFront(win: HTMLElement): void {
     this._restack(win)
     this._requestDomSync()
+  }
+
+  /** The active document-tier window, or null while the tier is deactivated
+   *  (or has no windows). Utility windows are never the holder. */
+  get activeWindow(): HTMLElement | null {
+    return this._activeWindow
+  }
+
+  /**
+   * Deactivate the whole document tier — clear `active` from every document
+   * window, leaving none the holder. Pages route "the user clicked the
+   * Finder" presses — on the bare dither, on their own desktop furniture
+   * (an icon layer) — through here; the deactivated state holds until a
+   * document window is pressed, focused, brought to front, or newly
+   * slotted.
+   */
+  clearActive(): void {
+    this._deactivated = true
+    this._setActive(null)
   }
 
   /** The z/active half of a raise, shared by every path. */
@@ -481,9 +536,22 @@ export class VfDesktop extends VfPositioned(LitElement) {
         if (!utility) newest = win
       }
     }
-    const top =
-      newest ?? this._topmost(windows.filter((w) => !this._isUtility(w)))
-    if (top) this._setActive(top)
+    // Resolve who should hold `active` after the mutation. A newly slotted
+    // document window takes it (opening a window brings its application
+    // forward — this also ends a deliberate deactivation); otherwise a
+    // still-present holder keeps it, a deliberate deactivation is preserved
+    // (never promote a survivor over the user's "clicked the Finder"), and
+    // only then does the topmost survivor inherit — the active window left
+    // the DOM. Applied even when null, so a stray `active` attribute on
+    // slotted markup is normalized in the deactivated state too.
+    const docTier = windows.filter((w) => !this._isUtility(w))
+    const kept =
+      this._activeWindow && docTier.includes(this._activeWindow)
+        ? this._activeWindow
+        : null
+    this._setActive(
+      newest ?? kept ?? (this._deactivated ? null : this._topmost(docTier))
+    )
     // Windows slotted before vf-window is defined are plain unknown elements,
     // so _setWindowActive can only *clear their attribute* — and on upgrade
     // vf-window's reflected `active = true` default puts it straight back,
@@ -507,22 +575,37 @@ export class VfDesktop extends VfPositioned(LitElement) {
       if (!this.isConnected) return
       // Every window now exposes the property, so _setWindowActive takes the
       // authoritative property path; z-indices were already seeded above, so
-      // the topmost document-tier window is the one that should be active.
-      const top = this._topmost(
-        this._windows.filter((w) => !this._isUtility(w))
+      // the holder is whoever slotchange resolved — re-asserted through the
+      // same funnel (silent when unchanged), which also re-clears the tier
+      // if the resolution was "none" (a deliberate deactivation, or no
+      // document windows at all).
+      const docTier = this._windows.filter((w) => !this._isUtility(w))
+      const kept =
+        this._activeWindow && docTier.includes(this._activeWindow)
+          ? this._activeWindow
+          : null
+      this._setActive(
+        kept ?? (this._deactivated ? null : this._topmost(docTier))
       )
-      if (top) this._setActive(top)
     })
   }
 
   /** Set `active` on `win` only, clearing it on every other *document-tier*
-   *  window. Utility windows stand outside the invariant: a palette keeps
-   *  whatever `active` state it has (true by default, so its dither and
-   *  widgets stay drawn while document windows trade the highlight). */
-  private _setActive(win: HTMLElement): void {
+   *  window (`null` clears the whole tier — the deactivated state). Utility
+   *  windows stand outside the invariant: a palette keeps whatever `active`
+   *  state it has (true by default, so its dither and widgets stay drawn
+   *  while document windows trade the highlight). The one write site of
+   *  {@link _activeWindow}, so `vf-activate` fires exactly on a change of
+   *  holder — re-asserting the current holder is silent. */
+  private _setActive(win: HTMLElement | null): void {
+    if (win) this._deactivated = false
     for (const other of this._windows) {
       if (this._isUtility(other)) continue
       this._setWindowActive(other, other === win)
+    }
+    if (win !== this._activeWindow) {
+      this._activeWindow = win
+      emit(this, 'vf-activate', { window: win })
     }
   }
 

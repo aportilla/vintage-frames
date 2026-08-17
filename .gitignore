@@ -15,3 +15,6 @@ scripts/.tmp/
 shots/
 __pycache__/
 hit-list.md
+
+# npm pack artifacts — a tarball is cut for a release, never kept in-tree
+*.tgz

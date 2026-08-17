@@ -17,6 +17,12 @@
  *    so the grow box sits flush in its right end), body-face text on its
  *    native 12px line — and takes no space at all until the slot is
  *    populated, collapsing again when it empties.
+ *  - WINDOID COMPOSITION: `variant="utility"` composes with `resizable` and
+ *    the `status` slot — the windoid bar (11px interior + 1px rule) over a
+ *    working grow box and the same 15px strip. The variant restyles the
+ *    title bar and widgets only; a resizable windoid with a status readout
+ *    is a legal archetype (a satellite view window), not just the classic
+ *    fixed palette.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window
@@ -281,6 +287,80 @@ async function dragGrow(page, dx, dy, steps = 5) {
       .display
   })
   check('emptying the slot collapses the strip again', emptied === 'none', emptied)
+
+  await page.close()
+}
+
+/* ── WINDOID COMPOSITION ──────────────────────────────────────────────────
+   variant="utility" × resizable × status: the satellite-view archetype.
+   dpr 1, scale 1: system px and CSS px coincide. */
+
+{
+  const page = await build(`
+    <div style="position:relative;width:900px;height:700px">
+      <vf-window id="windoid" heading="3D View" variant="utility"
+                 top="20" left="20" width="240" height="176" resizable>
+        <span slot="status">12×5×30 · 402 tris</span>
+      </vf-window>
+    </div>
+  `)
+
+  const geo = await page.evaluate(() => {
+    const root = document.getElementById('windoid').shadowRoot
+    const bar = root.querySelector('.vf-title-bar').getBoundingClientRect()
+    const strip = root.querySelector('[part=status-bar]')
+    const stripBox = strip.getBoundingClientRect()
+    const grow = root.querySelector('[part=grow-box]')
+    const growBox = grow ? grow.getBoundingClientRect() : null
+    return {
+      barHeight: bar.height,
+      stripDisplay: getComputedStyle(strip).display,
+      stripHeight: stripBox.height,
+      grow: growBox
+        ? { dTop: growBox.top - stripBox.top, dRight: stripBox.right - growBox.right }
+        : null,
+    }
+  })
+  check(
+    'windoid + status: the bar is the 12px windoid bar, the strip the 15px band',
+    near(geo.barHeight, 12) &&
+      geo.stripDisplay !== 'none' &&
+      near(geo.stripHeight, 15),
+    `bar ${geo.barHeight}px, strip ${geo.stripDisplay} ${geo.stripHeight}px`
+  )
+  check(
+    'windoid + resizable: the grow box renders flush in the strip',
+    geo.grow !== null && near(geo.grow.dTop, 0) && near(geo.grow.dRight, 0),
+    JSON.stringify(geo.grow)
+  )
+
+  // instrument() targets #win; log the windoid's own resize stream instead.
+  await page.evaluate(() => {
+    window.vfEvents = []
+    document.addEventListener('vf-resize', (event) => {
+      if (event.target.id === 'windoid') window.vfEvents.push(event.detail)
+    })
+  })
+  const grow = await page.evaluate(() => {
+    const box = document
+      .getElementById('windoid')
+      .shadowRoot.querySelector('[part=grow-box]')
+      .getBoundingClientRect()
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 }
+  })
+  await page.mouse.move(grow.x, grow.y)
+  await page.mouse.down()
+  await page.mouse.move(grow.x + 40, grow.y + 24, { steps: 4 })
+  await page.mouse.up()
+  const resized = await page.evaluate(() => {
+    const win = document.getElementById('windoid')
+    return { width: win.width, height: win.height, events: window.vfEvents.length }
+  })
+  check(
+    'windoid + resizable: the grow box drag resizes and streams vf-resize',
+    resized.width === 240 + 40 && resized.height === 176 + 24 && resized.events > 0,
+    `${resized.width}×${resized.height}, ${resized.events} events`
+  )
 
   await page.close()
 }

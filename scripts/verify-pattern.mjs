@@ -24,6 +24,10 @@
  * 7. Forced colors flatten the fill to one color.
  * 8. A patterned container knocked off the device grid recovers to 1-bit by
  *    itself — the always-on snap, on the same box the fill paints.
+ * 9. `vf-desktop pattern`: dkGray lands at the raster's phase as the screen's
+ *    own background (no tile grid), 1-bit; `white` is a white desktop; an
+ *    unknown name warns once and keeps the dither; a `--vf-desktop-pattern`
+ *    token still wins, rendering the placed tile grid and no background.
  *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:pattern
@@ -463,6 +467,80 @@ for (const dpr of DENSITIES) {
     'a patterned container knocked off the grid recovers to 1-bit by itself',
     impure === 0,
     `${impure}/${counted} impure`
+  )
+  await page.close()
+}
+
+// ── 9. the desktop pattern ─────────────────────────────────────────────────
+{
+  const page = await build(
+    '<vf-desktop id="d" width="96" height="64" pattern="gray-75"></vf-desktop>',
+    { dpr: 2 }
+  )
+  const n = devicePxPerSystemPxAt(2)
+  const screen = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('#d').shadowRoot.querySelector('.screen')
+      return {
+        patterned: el.classList.contains('vf-patterned'),
+        tiles: el.querySelectorAll('.vf-tile').length,
+        image: getComputedStyle(el).backgroundImage.startsWith('url("data:image/png'),
+      }
+    })
+  /** The screen's first two system-px rows, one character per system px. */
+  const rows = (png) =>
+    [0, 1].map((y) =>
+      [0, 1, 2, 3, 4, 5, 6, 7]
+        .map((x) => {
+          const i = ((y * n + 1) * png.width + (x * n + 1)) * png.bpp
+          return png.data[i] === 0 ? '#' : '.'
+        })
+        .join('')
+    )
+  const png = decodePng(await page.locator('#d').screenshot())
+  const [row0, row1] = rows(png)
+  const s1 = await screen()
+  check(
+    'vf-desktop pattern="gray-75" paints dkGray at the raster\'s phase (DD / 77) as the screen background',
+    row0 === '##.###.#' && row1 === '.###.###' && s1.patterned && s1.image && s1.tiles === 0,
+    `${row0} / ${row1}; patterned ${s1.patterned}, image ${s1.image}, ${s1.tiles} tiles`
+  )
+  const i1 = interior(png)
+  check('…and the desktop rasterizes 1-bit', i1.impure === 0, `${i1.impure}/${i1.counted} impure`)
+  await setPattern(page, '#d', 'white')
+  check(
+    'pattern="white" is a white desktop',
+    allPixels(decodePng(await page.locator('#d').screenshot()), [255, 255, 255])
+  )
+  const warnings = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'warning') warnings.push(msg.text())
+  })
+  await setPattern(page, '#d', 'nope')
+  const [u0] = rows(decodePng(await page.locator('#d').screenshot()))
+  check(
+    'an unknown desktop pattern warns once and keeps the dither',
+    warnings.length === 1 &&
+      /vf-desktop: unknown pattern "nope"/.test(warnings[0]) &&
+      u0 === '#.#.#.#.',
+    `${warnings.length} warning(s); ${u0}`
+  )
+  await page.evaluate(() => {
+    const el = document.querySelector('#d')
+    el.style.setProperty(
+      '--vf-desktop-pattern',
+      `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E` +
+        `%3Crect width='30' height='30' fill='%23ff0000'/%3E%3C/svg%3E")`
+    )
+    el.requestUpdate()
+  })
+  await page.evaluate(() => document.querySelector('#d').updateComplete)
+  await frames(page)
+  const s2 = await screen()
+  check(
+    'a --vf-desktop-pattern token wins over the attribute: the placed tile grid, no screen background',
+    !s2.patterned && !s2.image && s2.tiles === 12,
+    `patterned ${s2.patterned}, image ${s2.image}, ${s2.tiles} tiles`
   )
   await page.close()
 }

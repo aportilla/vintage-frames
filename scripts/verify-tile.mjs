@@ -20,7 +20,10 @@
  *   neighbor sampling can only produce source colors, and one box has no
  *   interior seams — measured here as ZERO impure pixels at every density,
  *   including 1.7 and 2.3 (scales 20/17 and 30/23, the emulated proxy for
- *   Safari's broken zoom rungs; real ⌘± cannot be driven headlessly).
+ *   Safari's broken zoom rungs; real ⌘± cannot be driven headlessly). The
+ *   desktop's raster is its screen's own background since the pattern fill
+ *   (src/pattern-fill.ts, `background: true` below); the others remain
+ *   `.vf-tile-raster` children.
  *
  * - CONSUMER pattern tokens render as a flat grid of absolutely placed tiles
  *   at the token's documented 30/60-px tile geometry. Each tile's box is one
@@ -105,6 +108,9 @@ const SURFACES = [
     motif: { w: 2, h: 2, rects: [[0, 0, 2, 2, '#ffffff'], [0, 0, 1, 1, '#000000'], [1, 1, 1, 1, '#000000']] },
     tile: 30,
     tiles: 48, // ceil(240/30) × ceil(160/30)
+    // The kit path paints the raster as the screen's own background
+    // (src/pattern-fill.ts): its box is the stated background-size.
+    background: true,
   },
   {
     name: 'windoid dots  ',
@@ -409,14 +415,19 @@ for (const dpr of DENSITIES) {
       continue
     }
     const raster = await page.evaluate(
-      ([host, layer]) => {
+      ([host, layer, background]) => {
         const el = document.querySelector(host).shadowRoot.querySelector(layer)
-        const r = el?.querySelector('.vf-tile-raster')
+        if (!el) return null
+        if (background) {
+          const [w, h] = getComputedStyle(el).backgroundSize.split(' ').map(parseFloat)
+          return Number.isFinite(w) && Number.isFinite(h) ? { w, h } : null
+        }
+        const r = el.querySelector('.vf-tile-raster')
         if (!r) return null
         const box = r.getBoundingClientRect()
         return { w: box.width, h: box.height }
       },
-      [s.host, s.layer]
+      [s.host, s.layer, s.background ?? false]
     )
     if (!raster) {
       check(`${s.name}: whole-surface raster rendered`, false, `${s.host} ${s.layer}`)

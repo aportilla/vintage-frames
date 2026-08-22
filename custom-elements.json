@@ -1974,7 +1974,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-container>` — a box that is nothing but its declared size.\n\nThe kit's positioned-placement story (src/position.ts) ends with one line of\nCSS it can't write for you: children placed with `top`/`left` need a\npositioned ancestor, and while every kit container is one — a window body, a\nstack, a fieldset — a region of *your own* needs `position: relative` in a\nstylesheet. This component is that region as an element: declare `width` and\n`height` in whole system px, slot anything into it, place children against\nits origin. A DITL's enclosing rectangle, with nothing drawn in it.\n\n```html\n<vf-container width=\"200\" height=\"120\">\n  <vf-icon label=\"System\" width=\"64\" top=\"8\" left=\"12\">…</vf-icon>\n  <vf-icon label=\"Finder\" width=\"64\" top=\"8\" left=\"104\">…</vf-icon>\n</vf-container>\n```\n\nThe rectangle is the whole API — `width`/`height` here, plus the `top`/`left`\npair nearly every component takes (VfPositioned), so a container is\nitself placeable: inside a window, a desktop, or another container, at whole\nsystem px that keep its box on the device-pixel grid by construction.\n\n**It is not a `vf-stack`.** The stack is a flexbox with opinions — it\ndistributes children along an axis, compiles `fill-width`/`fill-height` into\nflex, defaults a cross-axis alignment. This box has no layout opinion at\nall: in-flow children get normal flow, placed children get a coordinate\nsystem, and that is the whole API. Reach for it when the stack's opinions\nare the thing in the way — a field of placed icons, a fixed stage for\nabsolutely-positioned art, a consumer's own composition that brings its\nlayout with it.\n\n**The declared size is the layout.** `width`/`height` land on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)` (VfSized), so the box scales\nwith the display and sits on the device-pixel grid by construction. Content\nthat outgrows the box overflows it rather than growing it — the number is\nthe layout, and content that doesn't fit is a number to raise. Leave a\ndimension off and that axis shrink-wraps: `fit-content`, not the parent's\nwidth, because a layout box that silently claimed a size nobody declared\nwould be inventing one (the `vf-stack` rule, held here too).\n\n**It paints nothing and means nothing.** No border, background, role,\nkeyboard behavior or selection — what it holds decides what it is.\n\n**It holds its box on the device-pixel grid** — with a `GridSnapController`.\nA container's box is itself the consumer's coordinate system, including for\nnon-`vf` content that cannot correct itself, so the box is the thing to\nhold on the grid. The shadow box below owns the `position: relative` anchor\nand the `vf-snap` class together, so the correction\nmoves the whole coordinate system — everything placed against it rides\nalong instead of being re-corrected child by child. (`vf-stack` shipped\nwithout a controller on the theory that slotted `vf-*` children correct\ntheir own origins; this component is where that theory's gap — consumer\ncontent — became visible, and the stack has since adopted the same\narrangement.)\n\nLike the stack it is **typographically transparent**: `vfBase`'s chrome\ndress is returned to `inherit` on the host, so wrapping content in a sized\nbox changes nothing about how that content reads.\n\n`fill-width` / `fill-height` work here the way they do everywhere: read\nabout the host (be as big as *its* parent allows), and compiled for slotted\nchildren — `width: 100%` in normal flow, so a child filling the cross of a\ndeclared box needs no stylesheet. A height fill needs a declared `height`\nto resolve against; with none it is inert, not an error.",
+          "description": "`<vf-container>` — a box that is nothing but its declared size.\n\nThe kit's positioned-placement story (src/position.ts) ends with one line of\nCSS it can't write for you: children placed with `top`/`left` need a\npositioned ancestor, and while every kit container is one — a window body, a\nstack, a fieldset — a region of *your own* needs `position: relative` in a\nstylesheet. This component is that region as an element: declare `width` and\n`height` in whole system px, slot anything into it, place children against\nits origin. A DITL's enclosing rectangle, with nothing drawn in it.\n\n```html\n<vf-container width=\"200\" height=\"120\">\n  <vf-icon label=\"System\" width=\"64\" top=\"8\" left=\"12\">…</vf-icon>\n  <vf-icon label=\"Finder\" width=\"64\" top=\"8\" left=\"104\">…</vf-icon>\n</vf-container>\n```\n\nThe rectangle is the whole API — `width`/`height` here, plus the `top`/`left`\npair nearly every component takes (VfPositioned), so a container is\nitself placeable: inside a window, a desktop, or another container, at whole\nsystem px that keep its box on the device-pixel grid by construction.\n\n**It is not a `vf-stack`.** The stack is a flexbox with opinions — it\ndistributes children along an axis, compiles `fill-width`/`fill-height` into\nflex, defaults a cross-axis alignment. This box has no layout opinion at\nall: in-flow children get normal flow, placed children get a coordinate\nsystem, and that is the whole API. Reach for it when the stack's opinions\nare the thing in the way — a field of placed icons, a fixed stage for\nabsolutely-positioned art, a consumer's own composition that brings its\nlayout with it.\n\n**The declared size is the layout.** `width`/`height` land on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)` (VfSized), so the box scales\nwith the display and sits on the device-pixel grid by construction. Content\nthat outgrows the box overflows it rather than growing it — the number is\nthe layout, and content that doesn't fit is a number to raise. Leave a\ndimension off and that axis shrink-wraps: `fit-content`, not the parent's\nwidth, because a layout box that silently claimed a size nobody declared\nwould be inventing one (the `vf-stack` rule, held here too).\n\n**It paints nothing and means nothing** — unless `pattern` says what to\npaint. No border, role, keyboard behavior or selection; what it holds\ndecides what it is.\n\n**`pattern` fills the box with a 1-bit pattern**: one of the 38 standard\nMacPaint patterns by name (`pattern=\"bricks\"`, `pattern=\"gray-50\"` —\ndocs/PATTERNS.md has the table), or sixteen hex digits stating a custom\n8×8 pattern row by row, the way a PAT resource did. It is painted as the\nbox's own background — black ink on a `--vf-white` ground, anchored at\nthe box's top-left corner, under the content — by the same whole-surface\nraster mechanism as the desktop dither, so it is 1-bit at every density\nand zoom (src/pattern-fill.ts). A declared `width`/`height` sizes the\nraster exactly; an undeclared axis (`fill-width`, a shrink-wrapped\nheight) is measured. Under forced colors the pattern goes flat Canvas.\n\n**It holds its box on the device-pixel grid** — with a `GridSnapController`.\nA container's box is itself the consumer's coordinate system, including for\nnon-`vf` content that cannot correct itself, so the box is the thing to\nhold on the grid. The shadow box below owns the `position: relative` anchor\nand the `vf-snap` class together, so the correction\nmoves the whole coordinate system — everything placed against it rides\nalong instead of being re-corrected child by child. (`vf-stack` shipped\nwithout a controller on the theory that slotted `vf-*` children correct\ntheir own origins; this component is where that theory's gap — consumer\ncontent — became visible, and the stack has since adopted the same\narrangement.)\n\nLike the stack it is **typographically transparent**: `vfBase`'s chrome\ndress is returned to `inherit` on the host, so wrapping content in a sized\nbox changes nothing about how that content reads.\n\n`fill-width` / `fill-height` work here the way they do everywhere: read\nabout the host (be as big as *its* parent allows), and compiled for slotted\nchildren — `width: 100%` in normal flow, so a child filling the cross of a\ndeclared box needs no stylesheet. A height fill needs a declared `height`\nto resolve against; with none it is inert, not an error.",
           "name": "VfContainer",
           "slots": [
             {
@@ -1983,6 +1983,45 @@
             }
           ],
           "members": [
+            {
+              "kind": "field",
+              "name": "pattern",
+              "type": {
+                "text": "string | null | undefined"
+              },
+              "description": "A 1-bit fill for the box: a library pattern by name (`bricks`,\n`gray-50`, … — the 38 standard MacPaint patterns, docs/PATTERNS.md) or\nsixteen hex digits stating a custom 8×8 pattern row by row, bit 7 the\nleftmost pixel, 1 = ink (`\"DD 77 DD 77 DD 77 DD 77\"`). Painted in black\non a `--vf-white` ground under the content, anchored at the box's\ntop-left. Unset, the container paints nothing; an unrecognized value\npaints nothing and warns once.",
+              "attribute": "pattern"
+            },
+            {
+              "kind": "field",
+              "name": "_pattern",
+              "type": {
+                "text": "Pattern | null"
+              },
+              "privacy": "private",
+              "default": "null",
+              "description": "`pattern`, resolved — what the fill paints; null paints nothing."
+            },
+            {
+              "kind": "field",
+              "name": "#warnedPattern",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "One warning per element for an unrecognized `pattern`, not per render."
+            },
+            {
+              "kind": "field",
+              "name": "box",
+              "type": {
+                "text": "HTMLDivElement"
+              },
+              "privacy": "private",
+              "readonly": true,
+              "description": "The shadow box the fill paints on; exists from the first render."
+            },
             {
               "kind": "field",
               "name": "scale",
@@ -1998,6 +2037,14 @@
               "readonly": true,
               "default": "new GridSnapController(this)",
               "description": "Hold the box on the device-pixel grid — see the\nclass doc. The host is what gets measured; `.box` (vf-snap) is where the\ncorrection lands."
+            },
+            {
+              "kind": "field",
+              "name": "patternFill",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new PatternFillController(this, { getBox: () => this.box, getPattern: () => this._pattern, getSize: () => ({ width: this.width, height: this.height }), })",
+              "description": "The pattern fill, painted on `.box` so it rides the snap correction with\nthe coordinate system. A declared axis sizes the raster exactly; an\nundeclared one is measured (src/pattern-fill.ts)."
             },
             {
               "kind": "field",
@@ -2052,23 +2099,15 @@
               }
             }
           ],
-          "mixins": [
-            {
-              "name": "VfSized",
-              "module": "/src/size.js"
-            },
-            {
-              "name": "VfPositioned",
-              "module": "/src/position.js"
-            }
-          ],
-          "superclass": {
-            "name": "LitElement",
-            "package": "lit"
-          },
-          "tagName": "vf-container",
-          "customElement": true,
           "attributes": [
+            {
+              "name": "pattern",
+              "type": {
+                "text": "string | null | undefined"
+              },
+              "description": "A 1-bit fill for the box: a library pattern by name (`bricks`,\n`gray-50`, … — the 38 standard MacPaint patterns, docs/PATTERNS.md) or\nsixteen hex digits stating a custom 8×8 pattern row by row, bit 7 the\nleftmost pixel, 1 = ink (`\"DD 77 DD 77 DD 77 DD 77\"`). Painted in black\non a `--vf-white` ground under the content, anchored at the box's\ntop-left. Unset, the container paints nothing; an unrecognized value\npaints nothing and warns once.",
+              "fieldName": "pattern"
+            },
             {
               "name": "width",
               "type": {
@@ -2117,7 +2156,23 @@
                 "module": "src/position.ts"
               }
             }
-          ]
+          ],
+          "mixins": [
+            {
+              "name": "VfSized",
+              "module": "/src/size.js"
+            },
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "vf-container",
+          "customElement": true
         }
       ],
       "exports": [

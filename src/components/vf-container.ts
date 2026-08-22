@@ -1,10 +1,13 @@
-import { css, html, LitElement } from 'lit'
+import { css, html, LitElement, type PropertyValues } from 'lit'
+import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { VfSized } from '../size.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
+import { parsePattern, type Pattern } from '../patterns.js'
+import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
 
 /**
  * `<vf-container>` — a box that is nothing but its declared size.
@@ -47,8 +50,20 @@ import { GridSnapController } from '../grid-snap.js'
  * width, because a layout box that silently claimed a size nobody declared
  * would be inventing one (the `vf-stack` rule, held here too).
  *
- * **It paints nothing and means nothing.** No border, background, role,
- * keyboard behavior or selection — what it holds decides what it is.
+ * **It paints nothing and means nothing** — unless `pattern` says what to
+ * paint. No border, role, keyboard behavior or selection; what it holds
+ * decides what it is.
+ *
+ * **`pattern` fills the box with a 1-bit pattern**: one of the 38 standard
+ * MacPaint patterns by name (`pattern="bricks"`, `pattern="gray-50"` —
+ * docs/PATTERNS.md has the table), or sixteen hex digits stating a custom
+ * 8×8 pattern row by row, the way a PAT resource did. It is painted as the
+ * box's own background — black ink on a `--vf-white` ground, anchored at
+ * the box's top-left corner, under the content — by the same whole-surface
+ * raster mechanism as the desktop dither, so it is 1-bit at every density
+ * and zoom (src/pattern-fill.ts). A declared `width`/`height` sizes the
+ * raster exactly; an undeclared axis (`fill-width`, a shrink-wrapped
+ * height) is measured. Under forced colors the pattern goes flat Canvas.
  *
  * **It holds its box on the device-pixel grid** — with a `GridSnapController`.
  * A container's box is itself the consumer's coordinate system, including for
@@ -80,6 +95,7 @@ import { GridSnapController } from '../grid-snap.js'
 export class VfContainer extends VfSized(VfPositioned(LitElement)) {
   static override styles = [
     vfBase,
+    vfPatternFill,
     css`
       :host {
         display: block;
@@ -147,7 +163,27 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
   ]
 
   // `width`/`height` come from VfSized, `top`/`left` from VfPositioned — the
-  // whole DITL rectangle, and the whole API.
+  // DITL rectangle; `pattern` is the one thing drawn in it.
+
+  /**
+   * A 1-bit fill for the box: a library pattern by name (`bricks`,
+   * `gray-50`, … — the 38 standard MacPaint patterns, docs/PATTERNS.md) or
+   * sixteen hex digits stating a custom 8×8 pattern row by row, bit 7 the
+   * leftmost pixel, 1 = ink (`"DD 77 DD 77 DD 77 DD 77"`). Painted in black
+   * on a `--vf-white` ground under the content, anchored at the box's
+   * top-left. Unset, the container paints nothing; an unrecognized value
+   * paints nothing and warns once.
+   */
+  @property() pattern?: string | null
+
+  /** `pattern`, resolved — what the fill paints; null paints nothing. */
+  private _pattern: Pattern | null = null
+
+  /** One warning per element for an unrecognized `pattern`, not per render. */
+  #warnedPattern = false
+
+  /** The shadow box the fill paints on; exists from the first render. */
+  @query('.box') private readonly box!: HTMLDivElement
 
   /**
    * Default-on display scaling (true 72dpi size); see src/scale.ts. Without
@@ -164,8 +200,39 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
    */
   private readonly gridSnap = new GridSnapController(this)
 
+  /**
+   * The pattern fill, painted on `.box` so it rides the snap correction with
+   * the coordinate system. A declared axis sizes the raster exactly; an
+   * undeclared one is measured (src/pattern-fill.ts).
+   */
+  private readonly patternFill = new PatternFillController(this, {
+    getBox: () => this.box,
+    getPattern: () => this._pattern,
+    getSize: () => ({ width: this.width, height: this.height }),
+  })
+
+  protected override willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed)
+    if (!changed.has('pattern')) return
+    this._pattern = parsePattern(this.pattern)
+    if (this._pattern === null && this.pattern?.trim() && !this.#warnedPattern) {
+      this.#warnedPattern = true
+      console.warn(
+        `vf-container: unknown pattern "${this.pattern}" — a library name ` +
+          '(docs/PATTERNS.md) or sixteen hex digits. Painting nothing.'
+      )
+    }
+  }
+
   protected override render() {
-    return html`<div class="vf-snap box"><slot></slot></div>`
+    // vf-patterned rides the resolved pattern, so the recipe's paper and
+    // pixelation apply only while there is a pattern to paint — an
+    // unpatterned container paints nothing and inherits nothing new.
+    return html`<div
+      class="vf-snap box vf-pattern-fill${this._pattern ? ' vf-patterned' : ''}"
+    >
+      <slot></slot>
+    </div>`
   }
 }
 

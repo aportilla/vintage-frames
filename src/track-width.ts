@@ -21,11 +21,16 @@ import type { ReactiveController, ReactiveControllerHost } from 'lit'
  * why re-observing is skipped when the element hasn't changed: `observe()` on
  * an already-observed element re-fires the initial callback, and `hostUpdated`
  * runs on every update.
+ *
+ * The height comes along from the same observation, for a box measured on
+ * both axes: `PatternFillController` (src/pattern-fill.ts) sizes a pattern
+ * raster to a box whose extent nobody declared.
  */
 export class TrackWidthController implements ReactiveController {
   private resizeObserver?: ResizeObserver
   private observed: Element | null = null
   private measured = 0
+  private measuredHeight = 0
 
   constructor(
     private readonly host: ReactiveControllerHost,
@@ -41,6 +46,11 @@ export class TrackWidthController implements ReactiveController {
    */
   get width(): number {
     return this.measured
+  }
+
+  /** Content height of the track in CSS px, on the same terms as {@link width}. */
+  get height(): number {
+    return this.measuredHeight
   }
 
   hostConnected(): void {
@@ -68,9 +78,11 @@ export class TrackWidthController implements ReactiveController {
     this.resizeObserver ??= new ResizeObserver((entries) => {
       const entry = entries[0]
       if (!entry) return
-      const next = Math.floor(entry.contentRect.width)
-      if (next === this.measured) return
-      this.measured = next
+      const width = Math.floor(entry.contentRect.width)
+      const height = Math.floor(entry.contentRect.height)
+      if (width === this.measured && height === this.measuredHeight) return
+      this.measured = width
+      this.measuredHeight = height
       this.host.requestUpdate()
     })
     this.resizeObserver.observe(track)

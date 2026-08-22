@@ -45,6 +45,7 @@ import {
   check,
   decodePng,
   devicePxPerSystemPxAt,
+  impureIn as impurePixels,
   launch,
   makeBuild,
   report,
@@ -76,17 +77,9 @@ const pxAt = (png, x, y) => {
 }
 const isInk = ([r, g, b]) => r < 32 && g < 32 && b < 32
 const isPaper = ([r, g, b]) => r > 224 && g > 224 && b > 224
-const isPure = ([r, g, b]) =>
-  (r === 0 && g === 0 && b === 0) || (r === 255 && g === 255 && b === 255)
-
-/** Impure (neither pure black nor pure white) pixels in a device-px region. */
-function impureIn(png, x0, y0, x1, y1) {
-  let impure = 0
-  for (let y = Math.max(0, y0); y < Math.min(png.height, y1); y++)
-    for (let x = Math.max(0, x0); x < Math.min(png.width, x1); x++)
-      if (!isPure(pxAt(png, x, y))) impure++
-  return impure
-}
+/** Impure (neither pure black nor pure white) pixels in a device-px region —
+ *  the harness's count, as the bare number this script's checks read. */
+const impureIn = (png, x0, y0, x1, y1) => impurePixels(png, x0, y0, x1, y1).impure
 
 /** Run-length pattern of one device row: [['b', 3], ['w', 12], …]. */
 function rowRuns(png, y, x0, x1) {

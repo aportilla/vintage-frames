@@ -72,7 +72,15 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:tile
  */
-import { ORIGIN, check, decodePng, launch, report, devicePxPerSystemPxAt } from './harness.mjs'
+import {
+  ORIGIN,
+  check,
+  decodePng,
+  impureIn as impurePixels,
+  launch,
+  report,
+  devicePxPerSystemPxAt,
+} from './harness.mjs'
 
 /** Chromium's layout grid; Gecko's app unit is 1/60 and the same argument holds. */
 const LAYOUT_UNIT = 1 / 64
@@ -282,20 +290,10 @@ async function impureIn(page, s, dpr, n) {
   const y0 = Math.ceil((r.ly - r.hy) * dpr)
   const y1 = Math.floor((r.ly - r.hy + r.lh) * dpr)
   const padY = Math.max(2, Math.min(4, Math.floor((y1 - y0) / 4)))
-  let impure = 0
-  let counted = 0
-  for (let y = Math.max(0, y0 + padY); y < Math.min(height, y1 - padY); y++)
-    for (let x = Math.max(0, x0); x < Math.min(width, x1); x++) {
-      const i = (y * width + x) * bpp
-      const [red, g, b] = [data[i], data[i + 1], data[i + 2]]
-      const pure =
-        (red === 0 && g === 0 && b === 0) ||
-        (red === 255 && g === 255 && b === 255) ||
-        (red === 192 && g === 192 && b === 192)
-      if (!pure) impure++
-      counted++
-    }
-  return { impure, counted }
+  // #c0c0c0 is the swatch checker's own second color, pure for this purpose.
+  return impurePixels({ width, height, bpp, data }, x0, y0 + padY, x1, y1 - padY, [
+    [192, 192, 192],
+  ])
 }
 
 // ── the arithmetic, including the surface the page cannot render ──────────

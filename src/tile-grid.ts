@@ -158,7 +158,9 @@ export function patternOverride(el: Element, token: string): string {
  * A one-entry cache for a surface's whole-surface raster, keyed by its
  * system-px size — so every render with an unchanged size (all of them except
  * a declared-size change) reuses the encoded image instead of re-running
- * `tileRaster`'s canvas encode.
+ * `tileRaster`'s canvas encode. A surface whose *art* can change under the
+ * same size (a `pattern` attribute, src/pattern-fill.ts) passes an `id` for
+ * it — the fixed-motif surfaces leave it empty.
  */
 export class TileRasterCache {
   #key = ''
@@ -169,9 +171,10 @@ export class TileRasterCache {
     motifHeight: number,
     rects: readonly TileRect[],
     width: number,
-    height: number
+    height: number,
+    id = ''
   ): string {
-    const key = `${width}x${height}`
+    const key = `${id}|${width}x${height}`
     if (this.#key !== key) {
       this.#key = key
       this.#uri = tileRaster(motifWidth, motifHeight, rects, width, height)

@@ -347,6 +347,34 @@ export const isBlack = (png, x, y) => rgb(png, x, y).every((c) => c < 32)
 /** …and paper, likewise — anything between the two is the smear 1-bit art forbids. */
 export const isWhite = (png, x, y) => rgb(png, x, y).every((c) => c > 224)
 
+/**
+ * The impure pixels in a device-px region `[x0, x1) × [y0, y1)` of a decoded
+ * PNG — anything that is neither pure black nor pure white, nor one of
+ * `extraPure` (an `[r, g, b]` per extra color a surface legitimately
+ * carries, like the swatch checker's `#c0c0c0`). Clamped to the image. The
+ * 1-bit surfaces' whole claim is that `impure` is zero; `counted` is the
+ * region's size, so a zero is also demonstrably a zero over something.
+ */
+export function impureIn(png, x0, y0, x1, y1, extraPure = []) {
+  let impure = 0
+  let counted = 0
+  for (let y = Math.max(0, y0); y < Math.min(png.height, y1); y++) {
+    for (let x = Math.max(0, x0); x < Math.min(png.width, x1); x++) {
+      const i = (y * png.width + x) * png.bpp
+      const r = png.data[i]
+      const g = png.data[i + 1]
+      const b = png.data[i + 2]
+      const pure =
+        (r === 0 && g === 0 && b === 0) ||
+        (r === 255 && g === 255 && b === 255) ||
+        extraPure.some(([er, eg, eb]) => r === er && g === eg && b === eb)
+      if (!pure) impure++
+      counted++
+    }
+  }
+  return { impure, counted }
+}
+
 // ──────────────────────────────────────────────── the accessibility tree
 
 /** Walk the pierced DOM (CDP `DOM.getDocument`), shadow roots included. */

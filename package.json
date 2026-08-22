@@ -84,6 +84,7 @@
     "verify:low-sweep": "node scripts/verify-low-sweep.mjs",
     "verify:scale": "node scripts/verify-scale.mjs",
     "verify:tile": "node scripts/verify-tile.mjs",
+    "verify:pattern": "node scripts/verify-pattern.mjs",
     "verify:zoom": "tsc src/zoom.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/verify-zoom.mjs",
     "verify:chrome": "node scripts/verify-chrome.mjs",
     "verify:window": "node scripts/verify-window.mjs",

@@ -179,6 +179,29 @@ export type { TileRect } from './styles/base.js'
  */
 export { vfTileGrid, tileGrid, patternOverride, TileRasterCache } from './tile-grid.js'
 
+/**
+ * The standard pattern set — the 38 MacPaint fills as 8-byte QuickDraw
+ * patterns (`PATTERNS`, named; `PATTERN_NAMES` in palette order), the
+ * attribute grammar (`parsePattern` reads a name or sixteen hex digits,
+ * `patternHex` writes one back), and the adapters onto the tile machinery
+ * (`patternMotif` on the minimal cell, `patternRects` on the full 8×8). The
+ * fill itself is `PatternFillController` + `vfPatternFill`: a pattern
+ * painted as a box's own background, exact at every density and zoom — what
+ * `vf-container pattern="…"` does.
+ */
+export {
+  PATTERNS,
+  PATTERN_NAMES,
+  PATTERN_SIZE,
+  parsePattern,
+  patternHex,
+  patternMotif,
+  patternRects,
+} from './patterns.js'
+export type { Pattern, PatternMotif, PatternName } from './patterns.js'
+export { PatternFillController, vfPatternFill } from './pattern-fill.js'
+export type { PatternFillOptions } from './pattern-fill.js'
+
 /** Glyph sprites (`glyphSvg(CHECKMARK, 'check')`) and their pixel geometry. */
 export {
   glyphSvg,

@@ -257,7 +257,7 @@ const build = makeBuild(browser, {
   `)
   const r = await page.evaluate(() => {
     const dlg = document.getElementById('auto')
-    const frame = dlg.shadowRoot.querySelector('.vf-frame')
+    const frame = dlg.shadowRoot.querySelector('[part=frame]')
     const fr = frame.getBoundingClientRect()
     const ok = document.getElementById('ok2').getBoundingClientRect()
     return {

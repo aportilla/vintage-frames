@@ -7,7 +7,6 @@ import {
   vfStripes,
   vfFocus,
   vfFocusRing,
-  vfChromeFrame,
   vfModalFrame,
   vfTitleBar,
   vfWindowWidgets,
@@ -31,19 +30,21 @@ import './vf-button-group.js'
  * `<vf-dialog>` — the System 7 modal dialog shell.
  *
  * Two chromes, one modal lifecycle (native `<dialog>` for top-layer rendering
- * and focus trapping, with a fully transparent backdrop — no dimming):
+ * and focus trapping, with a fully transparent backdrop — no dimming). Both
+ * are the same dBoxProc double frame — 1px outer rule, 2px gap, 2px inner
+ * band, no shadow ({@link vfModalFrame}):
  *
- * - **Default:** a striped title bar with a centered title over a white body —
- *   the movable-modal look. Drag the title bar to move it. `closable` adds the
- *   standard close box (left of the bar) — the HIG's own figures disagree on
- *   whether a movable modal carries one (Figure 5-1 says yes, Figure 6-1 and
- *   the Chapter 6 text say no), so the component enables either reading rather
- *   than enforcing one.
- * - **`frame="plain"`:** the classic dBoxProc modal-dialog frame — 1px outer
- *   border, 2px gap, 2px inner band, no shadow, no title bar — and immovable,
- *   like the original. A `heading` renders as a centered display-face heading
- *   at the top of the body (the reference art's "Dialog title"); `closable` is
- *   ignored, there being no bar to carry the widget.
+ * - **Default:** the movable modal (movableDBoxProc) — the striped title bar
+ *   set into the top of that frame, with a centered title over a white body.
+ *   Drag the title bar to move it. `closable` adds the standard close box
+ *   (left of the bar) — the HIG's own figures disagree on whether a movable
+ *   modal carries one (Figure 5-1 says yes, Figure 6-1 and the Chapter 6 text
+ *   say no), so the component enables either reading rather than enforcing
+ *   one.
+ * - **`frame="plain"`:** the modal dialog box — the bare frame, no title bar —
+ *   and immovable, like the original. A `heading` renders as a centered
+ *   display-face heading at the top of the body (the reference art's "Dialog
+ *   title"); `closable` is ignored, there being no bar to carry the widget.
  *
  * Open it with `show()` (or set the `open` attribute/property); close with
  * `close()`. Escape closes it and fires `vf-close` with
@@ -54,7 +55,8 @@ import './vf-button-group.js'
  * @slot buttons - Optional action buttons. Rendered as a bottom-right
  *   `vf-button-group` (equal-width, faces aligned); the footer only takes
  *   space when the slot is populated.
- * @csspart frame - The outer chrome frame (striped-bar or plain).
+ * @csspart frame - The outer frame (the double frame's 1px rule; the bar and
+ *   the inner band sit inside it).
  * @csspart title-bar - The striped title bar (default chrome only).
  * @csspart title - The centered title patch (or the plain-frame heading).
  * @csspart close-box - The close widget (`closable`, default chrome only).
@@ -79,7 +81,6 @@ export class VfDialog extends VfModalDialog {
     vfBase,
     vfStripes,
     vfFocus,
-    vfChromeFrame,
     vfModalFrame,
     vfTitleBar,
     vfWindowWidgets,
@@ -90,14 +91,13 @@ export class VfDialog extends VfModalDialog {
         display: contents;
       }
       /* A declared height lands on the <dialog> (dialogSize), so the frame has
-         to be told to fill it — vfChromeFrame is skin only. Both chromes are
-         full-height flex columns for the same reason vf-window's is: the body
+         to be told to fill it — vfModalFrame is skin only. The frame is a
+         full-height flex column for the same reason vf-window's is: the body
          takes the slack the title bar doesn't. The frame is the flex child of
          the <dialog> itself (modalDialogStyles), not a height: 100% block —
          a percentage can't resolve against the undeclared-height dialog that
          only the UA's dialog:modal max-height caps, and that spill was
          exactly how a tall modal used to strand its buttons off-screen. */
-      .vf-frame,
       .vf-modal-frame {
         display: flex;
         flex-direction: column;
@@ -302,8 +302,9 @@ export class VfDialog extends VfModalDialog {
   @property({ type: Boolean, reflect: true }) closable = false
 
   /**
-   * Frame chrome. Omit for the striped title bar (movable modal); `'plain'`
-   * for the immovable dBoxProc double frame with no bar (modal dialog box).
+   * Frame chrome. Omit for the movable modal (the double frame with the
+   * striped title bar set into it); `'plain'` for the immovable modal dialog
+   * box (the bare double frame, no bar).
    */
   @property({ reflect: true }) frame?: 'plain'
 
@@ -388,31 +389,25 @@ export class VfDialog extends VfModalDialog {
         @cancel=${this._onNativeCancel}
         @close=${this._onNativeClose}
       >
-        ${plain
-          ? html`
-              <div class="vf-modal-frame" part="frame">
-                <div class="vf-modal-frame-inner">${body}</div>
-              </div>
-            `
-          : html`
-              <div class="vf-frame" part="frame">
-                ${chromeTitleBar(
-                  this._drag,
-                  html`
-                    ${this.closable
-                      ? closeBox(
-                          widgetLabel('Close', this.heading),
-                          this._onCloseClick
-                        )
-                      : nothing}
-                    <span class="vf-title" part="title" id="title"
-                      >${this.heading}</span
-                    >
-                  `
-                )}
-                ${body}
-              </div>
-            `}
+        <div class="vf-modal-frame" part="frame">
+          ${plain
+            ? nothing
+            : chromeTitleBar(
+                this._drag,
+                html`
+                  ${this.closable
+                    ? closeBox(
+                        widgetLabel('Close', this.heading),
+                        this._onCloseClick
+                      )
+                    : nothing}
+                  <span class="vf-title" part="title" id="title"
+                    >${this.heading}</span
+                  >
+                `
+              )}
+          <div class="vf-modal-frame-inner">${body}</div>
+        </div>
       </dialog>
     `
   }

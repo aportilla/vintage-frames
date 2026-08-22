@@ -294,25 +294,86 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <h2><code>vf-dialog</code></h2>
           <p>
             The modal-dialog shell, over a native <code>&lt;dialog&gt;</code>: it
-            opens in the top layer, traps focus and closes on Escape. Movable
-            modal by default (striped bar, no close box);
-            <code>frame="plain"</code> is the modal dialog box. No backdrop
-            dimming. <code>top</code>/<code>left</code> are viewport coordinates,
-            and unset means centered.
+            opens in the top layer, traps focus and closes on Escape. Both
+            chromes are the modal double frame — 1px rule, 2px gap, 2px band,
+            no shadow. Movable modal by default (the striped bar set into the
+            top of the frame, no close box); <code>frame="plain"</code> is the
+            modal dialog box (no bar, immovable). No backdrop dimming.
+            <code>top</code>/<code>left</code> are viewport coordinates, and
+            unset means centered.
           </p>
 
           <template
             data-example
-            data-caption="Both open with show(). Escape closes either, with reason: 'escape'."
+            data-caption="Two dialogs traced from System 7 captures, each item placed by top/left in the content area the way a DITL stated its rectangles. New is the movable modal; Close opens the plain frame. Escape closes any of them, with reason: 'escape'."
           >
-            <vf-button data-show="#ex-dialog">Save As…</vf-button>
+            <vf-button data-show="#ex-dialog-new">New…</vf-button>
+            <vf-button data-show="#ex-dialog-save">Close</vf-button>
             <vf-button data-show="#ex-dialog-plain">Page Setup…</vf-button>
 
-            <vf-dialog id="ex-dialog" heading="Save As" closable width="320" height="138">
-              <vf-label for="ex-dialog-name">Save this document as:</vf-label>
-              <vf-text-field id="ex-dialog-name" value="Untitled 1"></vf-text-field>
-              <vf-button slot="buttons" data-close="#ex-dialog">Cancel</vf-button>
-              <vf-button slot="buttons" variant="default" data-close="#ex-dialog">Save</vf-button>
+            <vf-dialog id="ex-dialog-new" heading="New" width="436" height="358">
+              <vf-label for="ex-new-name" left="10" top="3">Name:</vf-label>
+              <vf-text-field id="ex-new-name" value="Untitled-1" left="57" top="0" style="--vf-field-width: 246px"></vf-text-field>
+              <vf-button-group vertical left="330" top="0" style="--vf-button-group-gap: 8px">
+                <vf-button variant="default" data-close="#ex-dialog-new">OK</vf-button>
+                <vf-button data-close="#ex-dialog-new">Cancel</vf-button>
+              </vf-button-group>
+
+              <vf-fieldset legend="Image Size: 532K" left="0" top="37">
+                <vf-container width="280" height="119">
+                  <vf-label for="ex-new-width" width="74" left="0" top="7" style="text-align: right">Width:</vf-label>
+                  <vf-text-field id="ex-new-width" value="7" left="80" top="4" style="--vf-field-width: 71px"></vf-text-field>
+                  <vf-select value="in" label="Width unit" left="160" top="6">
+                    <vf-option value="in">inches</vf-option>
+                    <vf-option value="cm">cm</vf-option>
+                    <vf-option value="pt">points</vf-option>
+                    <vf-option value="px">pixels</vf-option>
+                  </vf-select>
+
+                  <vf-label for="ex-new-height" width="74" left="0" top="37" style="text-align: right">Height:</vf-label>
+                  <vf-text-field id="ex-new-height" value="5" left="80" top="34" style="--vf-field-width: 71px"></vf-text-field>
+                  <vf-select value="in" label="Height unit" left="160" top="36">
+                    <vf-option value="in">inches</vf-option>
+                    <vf-option value="cm">cm</vf-option>
+                    <vf-option value="pt">points</vf-option>
+                    <vf-option value="px">pixels</vf-option>
+                  </vf-select>
+
+                  <vf-label for="ex-new-res" width="74" left="0" top="67" style="text-align: right">Resolution:</vf-label>
+                  <vf-text-field id="ex-new-res" value="72" left="80" top="64" style="--vf-field-width: 71px"></vf-text-field>
+                  <vf-select value="ppi" label="Resolution unit" left="160" top="66">
+                    <vf-option value="ppi">pixels/inch</vf-option>
+                    <vf-option value="ppcm">pixels/cm</vf-option>
+                  </vf-select>
+
+                  <vf-label for="ex-new-mode" width="74" left="0" top="96" style="text-align: right">Mode:</vf-label>
+                  <vf-select id="ex-new-mode" value="rgb" left="81" top="95">
+                    <vf-option value="bitmap">Bitmap</vf-option>
+                    <vf-option value="gray">Grayscale</vf-option>
+                    <vf-option value="rgb">RGB Color</vf-option>
+                    <vf-option value="cmyk">CMYK Color</vf-option>
+                  </vf-select>
+                </vf-container>
+              </vf-fieldset>
+
+              <vf-fieldset legend="Contents" left="0" top="201">
+                <vf-container width="280" height="72">
+                  <vf-radio-group name="contents" value="white" label="Contents" left="20" top="0">
+                    <vf-radio value="white">White</vf-radio>
+                    <vf-radio value="background">Background Color</vf-radio>
+                    <vf-radio value="transparent">Transparent</vf-radio>
+                  </vf-radio-group>
+                </vf-container>
+              </vf-fieldset>
+            </vf-dialog>
+
+            <vf-dialog id="ex-dialog-save" frame="plain" label="Save changes" width="296" height="140">
+              <vf-paragraph face="display" width="240" left="3" top="0">Save changes to “Untitled-1” before closing?</vf-paragraph>
+              <vf-button-group vertical left="1" top="54" style="--vf-button-group-gap: 7px">
+                <vf-button variant="default" data-close="#ex-dialog-save">Yes</vf-button>
+                <vf-button data-close="#ex-dialog-save">No</vf-button>
+              </vf-button-group>
+              <vf-button left="186" top="85" data-close="#ex-dialog-save">Cancel</vf-button>
             </vf-dialog>
 
             <vf-dialog id="ex-dialog-plain" frame="plain" heading="Page Setup" width="300" height="194">
@@ -337,7 +398,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title-bar text — or, on <code>frame="plain"</code>, a centered heading at the top of the body. Also the accessible name</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for a dialog with no <code>heading</code>; wins over one when both are set. Falls back to <code>'Dialog'</code></td></tr>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Opt into the close box. Ignored under <code>frame="plain"</code>, which has no bar</td></tr>
-              <tr><td><code>frame</code></td><td class="wrap"><code>'plain'</code></td><td>—</td><td class="wrap">The modal double frame: 1px outer rule, 2px gap, 2px inner band, no shadow, no title bar, immovable. Also the shell an alert box is composed from (last example below)</td></tr>
+              <tr><td><code>frame</code></td><td class="wrap"><code>'plain'</code></td><td>—</td><td class="wrap">The bare double frame: no title bar, immovable. Also the shell an alert box is composed from (last example below). The content area starts 5px inside every edge; under the default bar it starts 20px below the top</td></tr>
             </tbody>
           </table>
 

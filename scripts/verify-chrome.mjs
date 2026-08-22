@@ -10,7 +10,11 @@
  *  - SHARED: every metric window and dialog have in common is asserted to be
  *    equal *between the two components* — not just individually correct. That's
  *    the check a future one-sided edit trips, which is the whole point of
- *    hoisting the recipe.
+ *    hoisting the recipe. The bar and title are shared; the FRAME is not —
+ *    vf-window wears `vfChromeFrame` (1px rule + hard shadow), vf-dialog wears
+ *    the `vfModalFrame` double frame with the bar set into it (1px rule, 2px
+ *    gap, 2px band, no shadow — the traced movableDBoxProc), so the frame
+ *    group asserts each against its own art and the bar's seat in it.
  *  - LATTICE: the traced title geometry (the stated row, the 6px padding) and
  *    the TitleCenterController hold — at both width parities the centered
  *    patch lands on whole system px, the odd one only because the controller
@@ -77,7 +81,8 @@ const partMetrics = (page, hostId, part, props) =>
   const winFrame = await partMetrics(page, 'win', 'frame', FRAME)
   const dlgFrame = await partMetrics(page, 'dlg', 'frame', FRAME)
 
-  for (const p of FRAME) {
+  // The outer rule is the one thing the two frames share.
+  for (const p of FRAME.filter((p) => p !== 'box-shadow')) {
     check(`frame ${p} identical across window/dialog`, winFrame[p] === dlgFrame[p],
       `${winFrame[p]} vs ${dlgFrame[p]}`)
   }
@@ -88,9 +93,35 @@ const partMetrics = (page, hostId, part, props) =>
     winFrame['border-top-width'])
   check('frame border is solid black', winFrame['border-top-style'] === 'solid' &&
     winFrame['border-top-color'] === 'rgb(0, 0, 0)')
-  check(`frame shadow is the hard ${2 * S}px offset, no blur/spread`,
+  check(`window frame shadow is the hard ${2 * S}px offset, no blur/spread`,
     winFrame['box-shadow'] === `rgb(0, 0, 0) ${2 * S}px ${2 * S}px 0px 0px`,
     winFrame['box-shadow'])
+  // The movable modal is the dBoxProc double frame with the bar set into it
+  // (traced from a 2× System 7 capture): no shadow, and under the bar the
+  // inner box's 2px band — 1px of its own top border over the bar's 1px rule,
+  // no gap row — then 2px gap + 2px band down the sides and along the bottom.
+  check('dialog frame casts NO shadow (the modal double frame)',
+    dlgFrame['box-shadow'] === 'none', dlgFrame['box-shadow'])
+  const dlgInner = await page.evaluate(() => {
+    const el = document.getElementById('dlg').shadowRoot
+      .querySelector('.vf-title-bar + .vf-modal-frame-inner')
+    if (!el) return null
+    const cs = getComputedStyle(el)
+    return {
+      marginTop: cs.marginTop, marginLeft: cs.marginLeft, marginBottom: cs.marginBottom,
+      borderTop: cs.borderTopWidth, borderLeft: cs.borderLeftWidth,
+      borderBottom: cs.borderBottomWidth, color: cs.borderTopColor,
+    }
+  })
+  check('dialog inner band sits directly under the bar (no gap row)',
+    dlgInner !== null && dlgInner.marginTop === '0px', JSON.stringify(dlgInner))
+  check(`dialog band under the bar: bar rule + 1px x${S} inner top border`,
+    dlgInner !== null && dlgInner.borderTop === `${1 * S}px` &&
+      dlgInner.color === 'rgb(0, 0, 0)', JSON.stringify(dlgInner))
+  check(`dialog sides/bottom: 2px x${S} gap then 2px x${S} band`,
+    dlgInner !== null && dlgInner.marginLeft === `${2 * S}px` &&
+      dlgInner.marginBottom === `${2 * S}px` && dlgInner.borderLeft === `${2 * S}px` &&
+      dlgInner.borderBottom === `${2 * S}px`, JSON.stringify(dlgInner))
 
   const BAR = ['position', 'height', 'border-bottom-width', 'border-bottom-color',
     'display', 'align-items', 'justify-content', 'overflow-x', 'overflow-y']
@@ -108,10 +139,15 @@ const partMetrics = (page, hostId, part, props) =>
     winBar['align-items'] === 'flex-start' && winBar['justify-content'] === 'center',
     `${winBar['align-items']}/${winBar['justify-content']}`)
   check('title-bar clips an over-long title', winBar['overflow-x'] === 'hidden')
-  check('title-bar sits at the frame origin, inside the border',
-    near(winBar._rect.x, 1 * S) && near(winBar._rect.y, 1 * S) &&
-    near(dlgBar._rect.x, 1 * S) && near(dlgBar._rect.y, 1 * S),
-    `win ${winBar._rect.x},${winBar._rect.y} dlg ${dlgBar._rect.x},${dlgBar._rect.y}`)
+  check('window title-bar sits at the frame origin, inside the border',
+    near(winBar._rect.x, 1 * S) && near(winBar._rect.y, 1 * S),
+    `win ${winBar._rect.x},${winBar._rect.y}`)
+  // The dialog's bar is set into the double frame: directly under the outer
+  // rule, 2px in from it at either end (the same white the inner band keeps).
+  check(`dialog title-bar sits under the rule, ${2 * S}px in at either end`,
+    near(dlgBar._rect.x, 3 * S) && near(dlgBar._rect.y, 1 * S) &&
+    near(dlgBar._rect.w, 200 * S - 6 * S),
+    `dlg ${dlgBar._rect.x},${dlgBar._rect.y} w${dlgBar._rect.w}`)
 
   const TITLE = ['font-family', 'font-size', '-webkit-font-smoothing', 'font-weight',
     'background-color', 'white-space', 'text-overflow', 'overflow-x',
@@ -149,7 +185,10 @@ const partMetrics = (page, hostId, part, props) =>
     near(dlgTitle._rect.y - dlgBar._rect.y, 1 * S),
     `win +${winTitle._rect.y - winBar._rect.y} dlg +${dlgTitle._rect.y - dlgBar._rect.y}`)
 
-  // The stripe layer is inside both bars and inset by the shared 3px/1px.
+  // The stripe layer is inside both bars, inset 3px top/bottom in both; the
+  // window's keeps 1px of white from its frame, the dialog's runs to the bar's
+  // own edge (the frame's 2px gap is its buffer — stripes start 2px from the
+  // outer rule, as the trace has them).
   const stripes = (id) =>
     page.evaluate((hostId) => {
       const bar = document.getElementById(hostId).shadowRoot.querySelector('[part=title-bar]')
@@ -169,9 +208,9 @@ const partMetrics = (page, hostId, part, props) =>
   const dlgStripes = await stripes('dlg')
   check('both bars carry the stripe layer',
     !!winStripes && !!dlgStripes && winStripes.position === 'absolute')
-  check(`stripes inset 3px/1px x${S} in both`,
+  check(`stripes inset 3px x${S} top in both; 1px x${S} side on the window, flush on the dialog`,
     near(winStripes.insetTop, 3 * S) && near(winStripes.insetLeft, 1 * S) &&
-    near(dlgStripes.insetTop, 3 * S) && near(dlgStripes.insetLeft, 1 * S),
+    near(dlgStripes.insetTop, 3 * S) && near(dlgStripes.insetLeft, 0),
     `win ${winStripes.insetTop}/${winStripes.insetLeft} dlg ${dlgStripes.insetTop}/${dlgStripes.insetLeft}`)
   check('stripes never eat pointer events (the bar is a drag handle)',
     winStripes.pointerEvents === 'none' && dlgStripes.pointerEvents === 'none')
@@ -321,7 +360,8 @@ const partMetrics = (page, hostId, part, props) =>
   const want = `rgb(0, 0, 0) ${4 * S}px ${4 * S}px 0px 0px`
   check('re-themed shadow offset carries the window', (await shadow('win')) === want,
     await shadow('win'))
-  check('…and the dialog', (await shadow('dlg')) === want, await shadow('dlg'))
+  check('…and leaves the dialog shadowless (the modal frame never casts one)',
+    (await shadow('dlg')) === 'none', await shadow('dlg'))
 
   await page.close()
 }

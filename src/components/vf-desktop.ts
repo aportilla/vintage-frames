@@ -10,9 +10,9 @@ import {
   tileRects,
   tileSpan,
   vfTileSize,
-  type TileRect,
 } from '../styles/recipes/tile.js'
 import { TileRasterCache, patternOverride, tileGrid, vfTileGrid } from '../tile-grid.js'
+import { PATTERNS, patternMotif } from '../patterns.js'
 import { ScaleController, effectiveScale, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
@@ -36,20 +36,19 @@ const DEFAULT_SCREEN_WIDTH = 512
 const DEFAULT_SCREEN_HEIGHT = 342
 
 /**
- * The desktop's 50% checker: a 2-system-px motif — an opaque white base with
- * two black pixels on the diagonal — stated once as rect data and derived into
- * both artifacts: the SVG tile for the CSS-repeated underlay ({@link tileImage})
- * and the raster tile for the placed grid ({@link tileRaster}). Declared above
- * the class because `@vfElement` upgrades synchronously at module evaluation,
- * so a module-tail const would be in its temporal dead zone by the time
- * `styles` is read.
+ * The desktop's 50% checker is the library's `gray-50` — QuickDraw's `gray`
+ * — on its minimal cell: the 2-system-px motif with two black pixels on the
+ * diagonal, over an opaque white paper baked in (the authentic black-on-white
+ * dither, which is why `--vf-desktop` only shows through a custom token).
+ * Derived into both artifacts: the SVG tile for the CSS-repeated underlay
+ * ({@link tileImage}) and the raster tile for the placed grid
+ * ({@link tileRaster}). Declared above the class because `@vfElement`
+ * upgrades synchronously at module evaluation, so a module-tail const would
+ * be in its temporal dead zone by the time `styles` is read.
  */
-const DITHER_MOTIF = 2
-const DITHER_RECTS: readonly TileRect[] = [
-  [0, 0, 2, 2, '#ffffff'],
-  [0, 0, 1, 1, '#000000'],
-  [1, 1, 1, 1, '#000000'],
-]
+const DITHER = patternMotif(PATTERNS['gray-50'], '#000000', '#ffffff')
+const DITHER_MOTIF = DITHER.width
+const DITHER_RECTS = DITHER.rects
 const DITHER_TILE = tileImage(DITHER_MOTIF, DITHER_MOTIF, tileRects(DITHER_RECTS))
 const DITHER_TILE_RASTER = tileRaster(DITHER_MOTIF, DITHER_MOTIF, DITHER_RECTS)
 

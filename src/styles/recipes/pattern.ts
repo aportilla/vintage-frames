@@ -1,17 +1,20 @@
 import { css, unsafeCSS } from 'lit'
-import { tileImage, tileRects, tileSpan, vfTileMaskSize, vfTileSize, type TileRect } from './tile.js'
+import { tileImage, tileRects, tileSpan, vfTileMaskSize, vfTileSize } from './tile.js'
+import { PATTERNS, patternMotif } from '../../patterns.js'
 
 /**
- * The windoid bar's dither: a 2-system-px motif with a single black pixel at
- * its origin, stated once as rect data. Transparent ground, because the layer
- * floats over the bar and the same art doubles as the forced-colors mask,
- * where the ground would be opacity rather than paint. The SVG tile below is
- * the CSS-repeated form (the no-declared-width fallback and the forced-colors
- * mask); `vf-window` renders the exact fill — the whole-surface raster or a
- * consumer token's placed tile grid — from the same data (src/tile-grid.ts).
+ * The windoid bar's dither is the library's `dots` on its minimal cell: a
+ * 2-system-px motif with a single black pixel at its origin. Transparent
+ * ground, because the layer floats over the bar and the same art doubles as
+ * the forced-colors mask, where the ground would be opacity rather than
+ * paint. The SVG tile below is the CSS-repeated form (the no-declared-width
+ * fallback and the forced-colors mask); `vf-window` renders the exact fill
+ * — the whole-surface raster or a consumer token's placed tile grid — from
+ * the same data (src/tile-grid.ts).
  */
-export const DOT_MOTIF = 2
-export const DOT_RECTS: readonly TileRect[] = [[0, 0, 1, 1, '#000000']]
+const DOTS = patternMotif(PATTERNS['dots'])
+export const DOT_MOTIF = DOTS.width
+export const DOT_RECTS = DOTS.rects
 const DOT_TILE = tileImage(DOT_MOTIF, DOT_MOTIF, tileRects(DOT_RECTS))
 
 /** The dots' tile size in system px (30) — the consumer token's documented box. */

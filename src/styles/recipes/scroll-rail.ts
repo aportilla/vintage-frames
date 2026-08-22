@@ -1,20 +1,20 @@
 import { css, unsafeCSS } from 'lit'
-import { tileImage, tileRects, vfTileMaskSize, type TileRect } from './tile.js'
+import { tileImage, tileRects, vfTileMaskSize } from './tile.js'
+import { PATTERNS, patternMotif } from '../../patterns.js'
 
 /**
- * The trough's 25% lattice — a 4×2-system-px motif with a dot at (0,0) and
- * (2,1), traced from the UI kit's "Scroll bg" sprite — stated once as rect
- * data. The DOM trough renders it as a whole-surface raster
- * (`tileRaster`, written by `ScrollRailController` — 1-bit at every scale,
- * zoom-minted ones included); the SVG span tile below is the forced-colors
- * mask, which repaints the same art in the remapped ink token.
+ * The trough's 25% lattice is the library's `gray-25` — QuickDraw's
+ * `ltGray`, and the UI kit's "Scroll bg" sprite — on its minimal cell: a
+ * 4×2-system-px motif with a dot at (0,0) and (2,1). The DOM trough renders
+ * it as a whole-surface raster (`tileRaster`, written by
+ * `ScrollRailController` — 1-bit at every scale, zoom-minted ones included);
+ * the SVG span tile below is the forced-colors mask, which repaints the same
+ * art in the remapped ink token.
  */
-export const TROUGH_MOTIF_X = 4
-export const TROUGH_MOTIF_Y = 2
-export const TROUGH_RECTS: readonly TileRect[] = [
-  [0, 0, 1, 1],
-  [2, 1, 1, 1],
-]
+const TROUGH = patternMotif(PATTERNS['gray-25'])
+export const TROUGH_MOTIF_X = TROUGH.width
+export const TROUGH_MOTIF_Y = TROUGH.height
+export const TROUGH_RECTS = TROUGH.rects
 const TROUGH_TILE = tileImage(
   TROUGH_MOTIF_X,
   TROUGH_MOTIF_Y,

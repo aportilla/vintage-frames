@@ -53,6 +53,8 @@ Under forced colors (Windows High Contrast) the kit remaps these to the system p
 
 A pattern token renders as a placed tile grid rather than a CSS `background-repeat`, so it stays 1-bit at every scale; a token swapped at runtime without touching the component needs a `requestUpdate()`.
 
+The 38 named patterns are not tokens: `vf-container` and `vf-desktop` take them as the `pattern` attribute ([PATTERNS.md](./PATTERNS.md)). `--vf-desktop-pattern` still wins over the desktop's attribute.
+
 ## Control metrics
 
 | Token | Default | Used for |

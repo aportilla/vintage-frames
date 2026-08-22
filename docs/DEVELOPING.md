@@ -24,7 +24,7 @@ Grid snapping is the components' own always-on behavior. Load the reference with
 ## Tests
 
 ```sh
-npm test                   # all 34 verify scripts, in parallel
+npm test                   # all 37 verify scripts, in parallel
 npm test -- focus button   # only the ones whose name matches
 npm test -- --bail         # stop at the first failing script
 npm run verify:focus       # one script, against a dev server you started

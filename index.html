@@ -1427,8 +1427,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <p>
             A box that is nothing but its declared size: <code>width</code> and
             <code>height</code> in whole system px around anything you slot into
-            it. It paints nothing and has no layout opinion — in-flow children get
-            normal flow, placed children get a coordinate system.
+            it. It paints nothing but what <code>pattern</code> and <code>rule</code>
+            name, and has no layout opinion — in-flow children get normal flow,
+            placed children get a coordinate system.
           </p>
 
           <template data-example data-caption="A placed layout: the container is the positioned ancestor, and every child states its own top/left in system px against its origin.">
@@ -1460,6 +1461,20 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template data-example data-caption="A fill-width strip: with no declared width the raster is measured to whatever width the box gets.">
             <vf-container width="300">
               <vf-container fill-width height="24" pattern="gray-25"></vf-container>
+            </vf-container>
+          </template>
+
+          <template data-example data-caption="rule — the 1px rule on the edges named, drawn inside the declared size. A strip with rule=&quot;bottom&quot; is the menu bar's anatomy: the box's rows over one row of ink, its content inside the rule. The second box names all four edges.">
+            <vf-container width="300" height="24" rule="bottom">
+              <vf-label left="8" top="4" for="ex-cont-unit">Units:</vf-label>
+              <vf-select value="px" left="56" top="2" id="ex-cont-unit">
+                <vf-option value="px">pixels</vf-option>
+                <vf-option value="in">inches</vf-option>
+                <vf-option value="cm">cm</vf-option>
+              </vf-select>
+            </vf-container>
+            <vf-container width="96" height="48" rule="top right bottom left">
+              <vf-label left="8" top="16">Framed</vf-label>
             </vf-container>
           </template>
 
@@ -1512,6 +1527,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Content that outgrows the box overflows it rather than growing it; an omitted axis shrink-wraps</td></tr>
               <tr><td><code>pattern</code></td><td>string</td><td>—</td><td class="wrap">A library pattern by name (<code>bricks</code>, <code>gray-50</code>, … — the 38 standard MacPaint patterns, shown above) or sixteen hex digits stating a custom 8×8 pattern row by row, bit 7 the leftmost pixel, 1 = ink. Painted as the box's background, black on <code>--vf-white</code>, anchored at the box's top-left, 1-bit at every density. A declared axis sizes the raster; an undeclared one is measured. Unset paints nothing; an unrecognized value paints nothing and warns once. Flat under forced colors</td></tr>
+              <tr><td><code>rule</code></td><td>string</td><td>—</td><td class="wrap">Edge names separated by spaces — <code>bottom</code>, <code>top bottom</code>, up to all four in any order. Draws the 1px rule on those edges as the box's own border, inside the declared size, in <code>--vf-black</code>: a 24px <code>rule="bottom"</code> strip is 23 rows of box over one of ink. Content, <code>fill-width</code> children and placed children begin inside the rule. Unset draws none; a value naming anything but an edge draws none and warns once</td></tr>
               <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes, read two ways as in <code>vf-stack</code>: on a <em>child</em>, fill to this box (<code>fill-height</code> needs a declared <code>height</code> to resolve against; a fill with nothing to take is inert); on the container itself, fill whatever parent can give it a size</td></tr>
               <tr><td colspan="4" class="wrap">Slot: default. Takes <code>top</code>/<code>left</code>, so a container is itself placeable. It corrects its own origin, carrying everything placed inside it — kit or not — with the coordinate system. Typographically transparent like <code>vf-stack</code>. No parts, tokens, events or role.</td></tr>
             </tbody>

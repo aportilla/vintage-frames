@@ -2,7 +2,7 @@ import { css, html, LitElement, unsafeCSS } from 'lit'
 import { property, queryAssignedElements } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfRule } from '../styles/base.js'
 import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -37,6 +37,7 @@ import type { VfMenuItem } from './vf-menu-item.js'
 export class VfMenuBar extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
+    vfRule,
     css`
       :host {
         display: block;
@@ -48,9 +49,9 @@ export class VfMenuBar extends VfPositioned(LitElement) {
       }
       .bar {
         /* Paint lives here rather than on the host so it rides the snap offset
-           (see .vf-snap in base.ts); border-box sizing keeps the geometry. */
+           (see .vf-snap in base.ts); border-box sizing keeps the geometry. The
+           rule is vfRule's vf-rule-bottom on the element. */
         background: var(--vf-white, #fff);
-        border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         display: flex;
         align-items: stretch;
         height: 100%;
@@ -236,7 +237,7 @@ export class VfMenuBar extends VfPositioned(LitElement) {
     // the layout div: the menubar's items are the slotted menus' labels, and
     // this generic sits between them in the AX tree otherwise.
     return html`
-      <div class="bar vf-snap" part="bar" role="presentation">
+      <div class="bar vf-snap vf-rule-bottom" part="bar" role="presentation">
         <slot @slotchange=${this.#onSlotChange}></slot>
       </div>
     `

@@ -3,7 +3,7 @@ import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { VfSized } from '../size.js'
-import { vfBase } from '../styles/base.js'
+import { parseRule, ruleClasses, vfBase, vfRule, type RuleEdge } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { parsePattern, type Pattern } from '../patterns.js'
@@ -50,9 +50,17 @@ import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
  * width, because a layout box that silently claimed a size nobody declared
  * would be inventing one (the `vf-stack` rule, held here too).
  *
- * **It paints nothing and means nothing** — unless `pattern` says what to
- * paint. No border, role, keyboard behavior or selection; what it holds
+ * **It paints nothing and means nothing** — unless `pattern` or `rule` say
+ * what to paint. No role, keyboard behavior or selection; what it holds
  * decides what it is.
+ *
+ * **`rule` draws the 1px rule on the edges it names** — `rule="bottom"` is
+ * the menu bar's anatomy (the box's rows over one row of ink), `rule="top"`
+ * a status strip's, all four a framed box. The rule is the box's own border
+ * ({@link vfRule}), inside the declared size, so a 24px `rule="bottom"`
+ * strip is 23 rows of box over the line; content, `fill-width` children and
+ * placed children begin inside it, as a rectangle's interior begins inside
+ * FrameRect's line.
  *
  * **`pattern` fills the box with a 1-bit pattern**: one of the 38 standard
  * MacPaint patterns by name (`pattern="bricks"`, `pattern="gray-50"` —
@@ -96,6 +104,7 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
   static override styles = [
     vfBase,
     vfPatternFill,
+    vfRule,
     css`
       :host {
         display: block;
@@ -163,7 +172,7 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
   ]
 
   // `width`/`height` come from VfSized, `top`/`left` from VfPositioned — the
-  // DITL rectangle; `pattern` is the one thing drawn in it.
+  // DITL rectangle; `pattern` and `rule` are the two things drawn in it.
 
   /**
    * A 1-bit fill for the box: a library pattern by name (`bricks`,
@@ -181,6 +190,23 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
 
   /** One warning per element for an unrecognized `pattern`, not per render. */
   #warnedPattern = false
+
+  /**
+   * The 1px rule on the box's edges: edge names separated by spaces —
+   * `"bottom"`, `"top bottom"`, up to all four in any order. Drawn as the
+   * box's own border inside the declared size, in `--vf-black`, scaled with
+   * the display like every kit frame's border; content and placed children
+   * begin inside it.
+   * Unset, no rule; a value naming anything but an edge draws none and
+   * warns once.
+   */
+  @property() rule?: string | null
+
+  /** `rule`, resolved — the edges drawn; empty draws nothing. */
+  private _rule: RuleEdge[] = []
+
+  /** One warning per element for an unrecognized `rule`, not per render. */
+  #warnedRule = false
 
   /** The shadow box the fill paints on; exists from the first render. */
   @query('.box') private readonly box!: HTMLDivElement
@@ -213,23 +239,41 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
 
   protected override willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed)
-    if (!changed.has('pattern')) return
-    this._pattern = parsePattern(this.pattern)
-    if (this._pattern === null && this.pattern?.trim() && !this.#warnedPattern) {
-      this.#warnedPattern = true
-      console.warn(
-        `vf-container: unknown pattern "${this.pattern}" — a library name ` +
-          '(docs/PATTERNS.md) or sixteen hex digits. Painting nothing.'
-      )
+    if (changed.has('pattern')) {
+      this._pattern = parsePattern(this.pattern)
+      if (this._pattern === null && this.pattern?.trim() && !this.#warnedPattern) {
+        this.#warnedPattern = true
+        console.warn(
+          `vf-container: unknown pattern "${this.pattern}" — a library name ` +
+            '(docs/PATTERNS.md) or sixteen hex digits. Painting nothing.'
+        )
+      }
+    }
+    if (changed.has('rule')) {
+      const edges = parseRule(this.rule)
+      this._rule = edges ?? []
+      if (edges === null && !this.#warnedRule) {
+        this.#warnedRule = true
+        console.warn(
+          `vf-container: unknown rule "${this.rule}" — edge names ` +
+            '(top, right, bottom, left) separated by spaces. Drawing none.'
+        )
+      }
     }
   }
 
   protected override render() {
     // vf-patterned rides the resolved pattern, so the recipe's paper and
     // pixelation apply only while there is a pattern to paint — an
-    // unpatterned container paints nothing and inherits nothing new.
+    // unpatterned container paints nothing and inherits nothing new. The
+    // rule classes ride the resolved edges the same way: an unruled box
+    // carries none. Both on the snapped box, so the paint rides the
+    // correction with the coordinate system.
+    const rule = ruleClasses(this._rule)
     return html`<div
-      class="vf-snap box vf-pattern-fill${this._pattern ? ' vf-patterned' : ''}"
+      class="vf-snap box vf-pattern-fill${this._pattern ? ' vf-patterned' : ''}${
+        rule ? ` ${rule}` : ''
+      }"
     >
       <slot></slot>
     </div>`

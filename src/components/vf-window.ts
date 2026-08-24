@@ -10,6 +10,7 @@ import {
   vfDots,
   vfFocus,
   vfChromeFrame,
+  vfRule,
   vfTitleBar,
   vfWindowWidgets,
 } from '../styles/base.js'
@@ -146,6 +147,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     vfTileGrid,
     vfFocus,
     vfChromeFrame,
+    vfRule,
     vfTitleBar,
     vfWindowWidgets,
     css`
@@ -329,7 +331,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         display: flex;
         align-items: center;
         height: calc(var(--vf-scale, 1) * var(--vf-status-bar-height, 15px));
-        border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        /* The rule is vfRule's vf-rule-top on the element. */
         background: var(--vf-white, #ffffff);
         padding-inline: calc(var(--vf-scale, 1) * 6px);
         line-height: calc(var(--vf-scale, 1) * var(--vf-line-height, 12px));
@@ -776,7 +778,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
               `
             : html`<slot></slot>`}
         </div>
-        <div class="status ${this._hasStatus ? '' : 'empty'}" part="status-bar">
+        <div class="status vf-rule-top ${this._hasStatus ? '' : 'empty'}" part="status-bar">
           <slot name="status" @slotchange=${this._onStatusSlotChange}></slot>
         </div>
         ${this.resizable

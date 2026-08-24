@@ -146,6 +146,7 @@ export {
   vfPanel,
   vfChromeFrame,
   vfModalFrame,
+  vfRule,
   vfTitleBar,
   vfWindowWidgets,
   vfHardShadowDecls,
@@ -166,6 +167,14 @@ export {
   TILE_LATTICE,
 } from './styles/base.js'
 export type { TileRect } from './styles/base.js'
+
+/**
+ * The 1px rule's attribute grammar (`vf-container rule="top bottom"`): the
+ * edge names, the parser, and the class list a resolved rule puts on a box
+ * styled by `vfRule`.
+ */
+export { RULE_EDGES, parseRule, ruleClasses } from './styles/base.js'
+export type { RuleEdge } from './styles/base.js'
 
 /**
  * The exact tiled fill (TILE-GRID-PLAN.md): a surface's own art as one

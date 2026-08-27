@@ -42,7 +42,9 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * places like any other control. The panel is anchored to the host's own box
  * (`top: 100%`), so it follows a placed menu down without any further work.
  * Inside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one
- * lifts it off the bar and the titles beside it close the gap.
+ * lifts it off the bar and the titles beside it close the gap. Slotted straight
+ * into a `<vf-desktop>`, a free-standing menu sits on the desktop's menu tier
+ * above every window, palettes included, as a bar does.
  *
  * @slot - Menu contents: `vf-menu-item` and `vf-separator` elements.
  * @slot label - Replaces the `label` text in the bar — e.g. a `vf-img` apple

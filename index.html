@@ -71,7 +71,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             keyboard focus in a slotted <code>vf-window</code> brings it to front
             and marks it <code>active</code>, clearing <code>active</code> on the
             others. DOM order follows the stacking order. Utility windows float on
-            their own tier above document windows, outside the single-active rule.
+            their own tier above document windows, outside the single-active rule;
+            a slotted <code>vf-menu-bar</code> (or free-standing <code>vf-menu</code>)
+            sits above both, so its dropped menus cover palettes too.
             <code>clearActive()</code> deactivates the whole document tier — zero
             active windows is a legal state — until a press, keyboard focus, or a
             newly slotted window reactivates it. A press on the desktop's own

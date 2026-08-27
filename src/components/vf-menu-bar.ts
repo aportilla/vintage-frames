@@ -45,6 +45,11 @@ export class VfMenuBar extends VfPositioned(LitElement) {
            exactly (white rows y 69..87 of the sheet). */
         height: calc(var(--vf-scale, 1) * var(--vf-menubar-height, 20px));
         position: relative;
+        /* Above the page content a bar stands among: its dropped panels are
+           z-index 1000 inside this stacking context, so this is the level
+           they paint at. Inside a vf-desktop the desktop restates the level
+           through ::slotted(vf-menu-bar) — its utility-window band is
+           higher than this, and the desktop owns the tiers. */
         z-index: 1000;
       }
       .bar {

@@ -20,12 +20,25 @@ import { DocumentListenersController } from '../document-listeners.js'
 import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
 
 /**
- * z-index offset lifting the utility (floating) tier above the document tier.
- * Both tiers share the one monotonic counter, so a utility window assigned
- * `counter + BAND` stays above every document window until the counter itself
- * crosses the band — far beyond any real session's restack count.
+ * The screen's stacking tiers, bottom to top, inside the one stacking context
+ * `.screen` isolates: a consumer tile grid (`z-index: -1`), document windows
+ * (the counter), utility windows (`counter + UTILITY_Z_BAND`), the menu tier
+ * (`MENU_BAR_Z` — a slotted bar or free-standing menu, its dropped panel with
+ * it), the corner mask (the maximal z-index — hardware, in front of every
+ * pixel).
+ *
+ * Both window tiers share the one monotonic counter, so a utility window
+ * assigned `counter + BAND` stays above every document window until the
+ * counter itself crosses the band — far beyond any real session's restack
+ * count; the bar sits a second band up, the same margin above the floating
+ * tier. The Menu Manager drew menus over every window, floating ones
+ * included, which is why the bar's tier is the desktop's to state (see the
+ * `::slotted(vf-menu-bar)` rule): the bar's own `z-index: 1000` serves it
+ * outside a desktop, and a slotted sibling in the utility band would outrank
+ * it.
  */
 const UTILITY_Z_BAND = 1_000_000
+const MENU_BAR_Z = 2 * UTILITY_Z_BAND
 
 /**
  * The classic compact Mac raster — the screen an undeclared desktop gets.
@@ -76,6 +89,9 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * outside the single-active invariant entirely — clicking a palette neither
  * deactivates the active document window nor greys the palette, exactly as
  * System 7's floating windoids behaved while their application was frontmost.
+ * A slotted `vf-menu-bar` (or a free-standing `vf-menu`) sits on a tier
+ * above both, so its dropped menus cover palettes and document windows
+ * alike; only the screen-corner mask is in front of it.
  *
  * **Deactivation.** On a real System 7 machine clicking the desktop clicked
  * the *Finder* — the frontmost application's windows lost their stripes.
@@ -227,6 +243,19 @@ export class VfDesktop extends VfPositioned(LitElement) {
          (An inline position: absolute set by a movable window wins.) */
       ::slotted(vf-window) {
         position: relative;
+      }
+      /* The menu tier: a slotted bar, or a free-standing menu placed on the
+         desktop, sits above both window tiers (MENU_BAR_Z), so a dropped
+         menu paints over a floating palette exactly as it does over a
+         document window. Stated here rather than left to the bar's own
+         :host z-index (1000, which the utility band outranks): an outer
+         tree's ::slotted declaration beats the inner tree's :host one, so the
+         desktop that hands out the window bands owns this band too. Under
+         the corner mask, like everything. */
+      ::slotted(vf-menu-bar),
+      ::slotted(vf-menu) {
+        position: relative;
+        z-index: ${MENU_BAR_Z};
       }
       /* With a bezel, the screen's top corners wear the SCREEN_CORNER mask,
          rounding into the surrounding black — the top pair only, because the

@@ -22,6 +22,10 @@
  *  - FLOATING TIER: on a vf-desktop, utility windows stack a band above the
  *    document tier, restack only among themselves, and neither steal nor
  *    lose `active`.
+ *  - MENU TIER: a slotted vf-menu-bar sits above both window tiers, so a
+ *    dropped menu hit-tests over a palette it overlaps — before and after
+ *    the palette restacks — as it does over a document window; a
+ *    free-standing vf-menu slotted into the desktop rides the same tier.
  *  - EDGE RAILS: scrollbars="both" reproduces the TeachText composition —
  *    the built-in scroll area sits flush on the frame with the grow box in
  *    the rail corner.
@@ -425,6 +429,135 @@ function decodePng(buf) {
   check('…and never drags a palette below the floating band',
     s.u.z > s.a.z && s.u2.z > s.a.z, `a ${s.a.z} u ${s.u.z}`)
   check('…or clears a palette’s active state', s.u.active && s.u2.active)
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   4b. MENU TIER — a slotted menu bar's dropped menu covers the floating tier
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  // The palette and the document window both start under the bar, where the
+  // File menu drops; one probe point lies inside all three boxes, so the
+  // hit-test at that point reads the stack directly.
+  const page = await build(`
+    <vf-desktop id="desk" style="display:block;width:900px;height:600px">
+      <vf-menu-bar id="bar">
+        <vf-menu id="file" label="File">
+          <vf-menu-item value="new">New</vf-menu-item>
+          <vf-menu-item value="open">Open…</vf-menu-item>
+          <vf-menu-item value="close">Close</vf-menu-item>
+          <vf-menu-item value="save">Save</vf-menu-item>
+        </vf-menu>
+      </vf-menu-bar>
+      <vf-window id="doc" heading="Doc" style="position:absolute;left:0;top:80px;width:400px;height:300px"></vf-window>
+      <vf-window id="pal" variant="utility" heading="Pal" style="position:absolute;left:0;top:80px;width:200px;height:150px"></vf-window>
+      <!-- A second palette, clear of the probe point, so a press on the first
+           has something to restack over (a lone palette is already topmost in
+           its tier and _raise skips the bump). A free-standing menu placed
+           over it drops its panel into it, for the same-tier check. -->
+      <vf-window id="pal2" variant="utility" heading="Pal 2" style="position:absolute;left:600px;top:80px;width:200px;height:150px"></vf-window>
+      <vf-menu id="lone" label="Options" left="200" top="25">
+        <vf-menu-item value="a">Alpha</vf-menu-item>
+        <vf-menu-item value="b">Beta</vf-menu-item>
+        <vf-menu-item value="c">Gamma</vf-menu-item>
+        <vf-menu-item value="d">Delta</vf-menu-item>
+      </vf-menu>
+    </vf-desktop>
+  `)
+
+  const z = () =>
+    page.evaluate(() => ({
+      bar: Number(getComputedStyle(document.getElementById('bar')).zIndex),
+      lone: Number(getComputedStyle(document.getElementById('lone')).zIndex),
+      pal: Number(document.getElementById('pal').style.zIndex),
+      pal2: Number(document.getElementById('pal2').style.zIndex),
+      doc: Number(document.getElementById('doc').style.zIndex),
+    }))
+  /** Which slotted child of the desktop the hit-test at `p` lands in. */
+  const hit = (p) =>
+    page.evaluate(({ x, y }) => {
+      const el = document.elementFromPoint(x, y)
+      const owner = ['bar', 'lone', 'pal', 'pal2', 'doc'].find((id) => {
+        const host = document.getElementById(id)
+        return host === el || host.contains(el)
+      })
+      return owner ?? (el ? el.tagName.toLowerCase() : null)
+    }, p)
+  const labelCentre = (id) =>
+    page.evaluate((i) => {
+      const r = document.getElementById(i).labelRect
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+    }, id)
+  /** A point inside a menu's dropped panel AND a palette's box. */
+  const overlapPoint = (menuId, palId) =>
+    page.evaluate(([m, w]) => {
+      const panel = document.getElementById(m).shadowRoot
+        .querySelector('[part=panel]').getBoundingClientRect()
+      const pal = document.getElementById(w).getBoundingClientRect()
+      const left = Math.max(panel.left, pal.left)
+      const top = Math.max(panel.top, pal.top)
+      const right = Math.min(panel.right, pal.right)
+      const bottom = Math.min(panel.bottom, pal.bottom)
+      if (right <= left || bottom <= top) return null
+      return { x: (left + right) / 2, y: (top + bottom) / 2 }
+    }, [menuId, palId])
+
+  let s = await z()
+  check('a slotted menu bar computes a z-index above the floating band',
+    s.bar > s.pal && s.pal > 1_000_000, `bar ${s.bar} pal ${s.pal}`)
+
+  const label = await labelCentre('file')
+  await page.mouse.click(label.x, label.y)
+  await page.evaluate(() => document.getElementById('file').updateComplete)
+  check('a tap on the title drops the menu',
+    await page.evaluate(() => document.getElementById('file').open))
+  const p = await overlapPoint('file', 'pal')
+  check('the dropped panel overlaps the palette', p !== null, JSON.stringify(p))
+  check('inside the overlap, the hit-test lands on the menu, not the palette',
+    p !== null && (await hit(p)) === 'bar', p && (await hit(p)))
+
+  // Closing hands the point back to the palette — the overlap is real, and
+  // the palette is still above the document window under it.
+  await page.keyboard.press('Escape')
+  await page.evaluate(() => document.getElementById('file').updateComplete)
+  check('closed, the same point hits the palette (above the document window)',
+    p !== null && (await hit(p)) === 'pal', p && (await hit(p)))
+
+  // Restack the palette (a press on its bar) and drop the menu again: the
+  // bar's tier holds over a freshly raised palette too.
+  const palBar = await page.evaluate(() => {
+    const b = document.getElementById('pal').shadowRoot
+      .querySelector('[part=title-bar]').getBoundingClientRect()
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
+  })
+  await page.mouse.click(palBar.x, palBar.y)
+  const before = s
+  s = await z()
+  check('the palette restacked', s.pal > before.pal, `${before.pal} → ${s.pal}`)
+  await page.mouse.click(label.x, label.y)
+  await page.evaluate(() => document.getElementById('file').updateComplete)
+  check('…and the re-dropped menu still covers it',
+    p !== null && s.bar > s.pal && (await hit(p)) === 'bar',
+    `bar ${s.bar} pal ${s.pal} hit ${p && (await hit(p))}`)
+
+  // A free-standing menu slotted into the desktop rides the same tier: its
+  // panel drops into the second palette's box and hit-tests over it. The
+  // click lands outside the bar, which closes the bar's menu on the way.
+  check('a free-standing slotted menu computes the same tier',
+    s.lone === s.bar && s.lone > s.pal2, `lone ${s.lone} bar ${s.bar} pal2 ${s.pal2}`)
+  const loneLabel = await labelCentre('lone')
+  await page.mouse.click(loneLabel.x, loneLabel.y)
+  await page.evaluate(() => document.getElementById('lone').updateComplete)
+  check('a tap on the free-standing title drops its menu',
+    await page.evaluate(() => document.getElementById('lone').open))
+  const q = await overlapPoint('lone', 'pal2')
+  check('its panel overlaps the second palette', q !== null, JSON.stringify(q))
+  check('inside that overlap, the hit-test lands on the menu, not the palette',
+    q !== null && (await hit(q)) === 'lone', q && (await hit(q)))
+  await page.keyboard.press('Escape')
+  await page.evaluate(() => document.getElementById('lone').updateComplete)
+  check('closed, the same point hits the second palette',
+    q !== null && (await hit(q)) === 'pal2', q && (await hit(q)))
   await page.close()
 }
 

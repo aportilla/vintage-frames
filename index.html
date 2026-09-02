@@ -309,7 +309,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <h2><code>vf-dialog</code></h2>
           <p>
             The modal-dialog shell, over a native <code>&lt;dialog&gt;</code>: it
-            opens in the top layer, traps focus and closes on Escape. Both
+            opens in the top layer, traps focus and closes on Escape — and,
+            with <code>light-dismiss</code>, on a click outside it. Both
             chromes are the modal double frame — 1px rule, 2px gap, 2px band,
             no shadow. Movable modal by default (the striped bar set into the
             top of the frame, no close box); <code>frame="plain"</code> is the
@@ -320,11 +321,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
 
           <template
             data-example
-            data-caption="Two dialogs traced from System 7 captures, each item placed by top/left in the content area the way a DITL stated its rectangles. New is the movable modal; Close opens the plain frame. Escape closes any of them, with reason: 'escape'."
+            data-caption="Two dialogs traced from System 7 captures, each item placed by top/left in the content area the way a DITL stated its rectangles. New is the movable modal; Close opens the plain frame. Escape closes any of them, with reason: 'escape'. About is the plain frame with light-dismiss: a click outside it closes it, with reason: 'outside'."
           >
             <vf-button data-show="#ex-dialog-new">New…</vf-button>
             <vf-button data-show="#ex-dialog-save">Close</vf-button>
             <vf-button data-show="#ex-dialog-plain">Page Setup…</vf-button>
+            <vf-button data-show="#ex-dialog-about">About…</vf-button>
 
             <vf-dialog id="ex-dialog-new" heading="New" width="436" height="358">
               <vf-label for="ex-new-name" left="10" top="3">Name:</vf-label>
@@ -401,6 +403,14 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <vf-button slot="buttons" data-close="#ex-dialog-plain">Cancel</vf-button>
               <vf-button slot="buttons" variant="default" data-close="#ex-dialog-plain">OK</vf-button>
             </vf-dialog>
+
+            <vf-dialog id="ex-dialog-about" frame="plain" label="About Vintage Frames" light-dismiss width="300" height="112">
+              <vf-stack fill-width gap="8">
+                <vf-paragraph fill-width face="display">Vintage Frames</vf-paragraph>
+                <vf-paragraph fill-width>Lit web components that rebuild the Mac OS System 7 interface.</vf-paragraph>
+                <vf-paragraph fill-width>© 2026 Adam Portilla</vf-paragraph>
+              </vf-stack>
+            </vf-dialog>
           </template>
 
           <table class="api">
@@ -413,6 +423,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">Title-bar text — or, on <code>frame="plain"</code>, a centered heading at the top of the body. Also the accessible name</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for a dialog with no <code>heading</code>; wins over one when both are set. Falls back to <code>'Dialog'</code></td></tr>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Opt into the close box. Ignored under <code>frame="plain"</code>, which has no bar</td></tr>
+              <tr><td><code>light-dismiss</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">A click outside the frame closes the dialog, with <code>reason: 'outside'</code>. Both the press and the release have to land outside: a press that starts on a control and slides off, or a title-bar drag, leaves it open. The click is consumed — nothing under the backdrop sees it. Property <code>lightDismiss</code>, reflected; read at the release, so it can be set on an open dialog</td></tr>
               <tr><td><code>frame</code></td><td class="wrap"><code>'plain'</code></td><td>—</td><td class="wrap">The bare double frame: no title bar, immovable. Also the shell an alert box is composed from (last example below). The content area starts 5px inside every edge; under the default bar it starts 20px below the top</td></tr>
             </tbody>
           </table>
@@ -423,7 +434,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td>Method</td><td><code>show()</code></td><td class="wrap">Opens it (native <code>showModal()</code>), pinned onto the device-pixel grid</td></tr>
               <tr><td>Method</td><td><code>close()</code></td><td class="wrap">Closes it; fires <code>vf-close</code> with <code>reason: 'close'</code></td></tr>
-              <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' }</code> — every close path routes through the native <code>close</code> event</td></tr>
+              <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' | 'outside' }</code> — every close path routes through the native <code>close</code> event. <code>'outside'</code> only under <code>light-dismiss</code></td></tr>
               <tr><td>Slots</td><td class="wrap">(default), <code>buttons</code></td><td class="wrap">The <code>buttons</code> slot renders a bottom-right <code>vf-button-group</code> footer (equal width, faces aligned) that takes no space when empty</td></tr>
               <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>body</code>, <code>footer</code>, <code>buttons</code></td><td class="wrap">Title bar and close box only on the default chrome</td></tr>
             </tbody>

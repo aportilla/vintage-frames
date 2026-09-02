@@ -9,9 +9,14 @@ import {
   toSysExact,
 } from './scale.js'
 import { emit } from './events.js'
+import { DocumentListenersController } from './document-listeners.js'
 
-/** Reason a modal closed, carried by the `vf-close` event's detail. */
-export type VfCloseReason = 'escape' | 'close'
+/**
+ * Reason a modal closed, carried by the `vf-close` event's detail: the Escape
+ * key, the close box or `close()`, or — with {@link VfModalDialog.lightDismiss}
+ * — a click outside the frame.
+ */
+export type VfCloseReason = 'escape' | 'close' | 'outside'
 
 /**
  * The width an undeclared modal falls back to, in system px — a classic
@@ -80,9 +85,10 @@ export const modalDialogStyles = css`
  * Owns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /
  * `close()`, the {@link top}/{@link left} placement (stated or centered) and the
  * single `close` funnel that drops the written origin and fires `vf-close` with
- * the reason. Because every close path — Escape, `close()`, backdrop — routes
- * through the native `close` event, an Escape-close no longer leaves a stale
- * origin behind, so the next open re-derives it.
+ * the reason. Because every close path — Escape, `close()`, the opt-in
+ * {@link lightDismiss} click outside — routes through the native `close`
+ * event, an Escape-close no longer leaves a stale origin behind, so the next
+ * open re-derives it.
  *
  * Removing an open modal from the DOM is a close path too. HTML's dialog
  * *removing steps* take the element out of the top layer **without** running
@@ -99,7 +105,8 @@ export const modalDialogStyles = css`
  * `<dialog @cancel=${this._onNativeCancel} @close=${this._onNativeClose}>` with
  * their role/ARIA and body, and {@link modalDialogStyles} in `static styles`.
  *
- * @fires vf-close - The modal closed. `detail: { reason: 'escape' | 'close' }`.
+ * @fires vf-close - The modal closed. `detail: { reason: 'escape' | 'close' |
+ *   'outside' }`.
  */
 export class VfModalDialog extends LitElement {
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
@@ -156,6 +163,24 @@ export class VfModalDialog extends LitElement {
   /** Offset from the left of the viewport, in whole system px. See {@link top}. */
   @property({ type: Number }) left?: number | null
 
+  /**
+   * Close on a click outside the frame — a press on the backdrop — and fire
+   * `vf-close` with `{ reason: 'outside' }`. Off by default: the classic modal
+   * ignored an outside click (and beeped), and a dialog that asks a question
+   * should keep ignoring it. Opt in for the About box and the splash, the
+   * dialogs the classic Mac did dismiss on a click.
+   *
+   * Both halves of the click have to land outside — the two-step the
+   * platform's own `closedby="any"` light dismiss uses — so a press that
+   * starts on a control and slides off the frame, or a title-bar drag
+   * released past it, leaves the dialog open. The press is consumed either
+   * way: a modal's backdrop lets nothing beneath it see the click, so
+   * dismissing the About box does not also select whatever was under the
+   * pointer. Escape closes the dialog regardless, as it always has.
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'light-dismiss' })
+  lightDismiss = false
+
   @query('dialog') protected _dialog!: HTMLDialogElement
 
   /**
@@ -207,6 +232,58 @@ export class VfModalDialog extends LitElement {
 
   /** Close reason pending for the next native `close` event. */
   #closeReason: VfCloseReason | null = null
+
+  /**
+   * The `pointerId` of a press that landed on the backdrop, held until its
+   * release decides whether the click was outside; null while nothing is
+   * pending. See {@link lightDismiss}.
+   */
+  #outsidePress: number | null = null
+
+  /**
+   * The light-dismiss listeners, on the `<dialog>` itself and only while it is
+   * open. The `::backdrop` hit-tests as its dialog, and the frame the subclass
+   * renders fills the dialog's box, so the dialog is an event's *target* only
+   * when the pointer was outside the frame — no rect arithmetic, no
+   * composedPath. Attached whether or not {@link lightDismiss} is set: the
+   * handlers read the property at the release, so it can be toggled on an
+   * open dialog.
+   */
+  readonly #dismissListeners = new DocumentListenersController(this, () => [
+    [this._dialog, 'pointerdown', this.#onDialogPointerDown],
+    [this._dialog, 'pointerup', this.#onDialogPointerUp],
+    [this._dialog, 'pointercancel', this.#onDialogPointerCancel],
+  ])
+
+  /**
+   * A press on the backdrop arms the dismissal. A press anywhere else — the
+   * frame, a control, the title bar — disarms it, so a stale arm (a press the
+   * platform never released to us, a right-click's on macOS) can't survive to
+   * the next release.
+   */
+  #onDialogPointerDown = (event: PointerEvent): void => {
+    this.#outsidePress =
+      event.target === this._dialog ? event.pointerId : null
+  }
+
+  /**
+   * The release completes it — the same press *and* release on the backdrop.
+   * Deliberately not the `click` event: UI Events dispatches a
+   * press-drag-release click at the common ancestor of the two targets, which
+   * for a press on the frame released outside is the dialog itself, and that
+   * would dismiss on exactly the gesture the two-step rule exists to ignore.
+   */
+  #onDialogPointerUp = (event: PointerEvent): void => {
+    const armed = this.#outsidePress === event.pointerId
+    this.#outsidePress = null
+    if (!armed || event.target !== this._dialog || !this.lightDismiss) return
+    this.#closeReason = 'outside'
+    this.close()
+  }
+
+  #onDialogPointerCancel = (): void => {
+    this.#outsidePress = null
+  }
 
   /**
    * The element that was focused when the modal opened. The normal close path
@@ -339,6 +416,7 @@ export class VfModalDialog extends LitElement {
       dialog.showModal()
       this.settle()
       this.#watchGeometry(dialog)
+      this.#dismissListeners.attach()
     } else if (!this.open && dialog.open) {
       dialog.close()
     }
@@ -430,6 +508,8 @@ export class VfModalDialog extends LitElement {
     const reason = this.#closeReason ?? 'close'
     this.#closeReason = null
     this.#invoker = null
+    this.#outsidePress = null
+    this.#dismissListeners.detach()
     this.#unwatchGeometry()
     this.open = false
     this.#clearPlacement()

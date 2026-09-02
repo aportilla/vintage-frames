@@ -73,6 +73,7 @@
     "probe:menus": "node scripts/probe-menu-scale.mjs",
     "verify:desktop": "node scripts/verify-desktop-upgrade.mjs",
     "verify:desktop-activate": "node scripts/verify-desktop-activate.mjs",
+    "verify:dialog": "node scripts/verify-dialog.mjs",
     "verify:list-focus": "node scripts/verify-list-focus.mjs",
     "verify:control-heights": "node scripts/verify-control-heights.mjs",
     "verify:list-typeahead": "node scripts/verify-list-typeahead.mjs",

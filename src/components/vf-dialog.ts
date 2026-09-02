@@ -49,7 +49,9 @@ import './vf-button-group.js'
  * Open it with `show()` (or set the `open` attribute/property); close with
  * `close()`. Escape closes it and fires `vf-close` with
  * `{ reason: 'escape' }`; the close box and programmatic closing fire
- * `{ reason: 'close' }`.
+ * `{ reason: 'close' }`. With `light-dismiss`, a click outside the frame
+ * closes it too, with `{ reason: 'outside' }` — for the About box; off by
+ * default, since the classic modal ignored an outside click.
  *
  * @slot - Default slot: dialog body content.
  * @slot buttons - Optional action buttons. Rendered as a bottom-right
@@ -66,7 +68,8 @@ import './vf-button-group.js'
  *   scrolls under a System 7 rail and becomes a keyboard stop.
  * @csspart footer - The action row wrapping the buttons.
  * @csspart buttons - The button group inside the footer.
- * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' }`.
+ * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' |
+ *   'outside' }` — `'outside'` only under `light-dismiss`.
  * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,
  *   one black pixel at the origin (`vfDots`; override the whole pattern like
  *   `--vf-desktop-pattern`)

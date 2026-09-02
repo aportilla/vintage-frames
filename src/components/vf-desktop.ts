@@ -80,9 +80,9 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * `vf-window` children: a `pointerdown` or
  * `focusin` (keyboard focus) anywhere inside a window brings it to the front
  * and makes it the single active window. The windows' light-DOM order is kept
- * in step with the stacking order (bottom-most first, at pointer-gesture
- * ends), so tabbing walks the stack the way the eye does and Shift+Tab is
- * its exact mirror.
+ * in step with the stacking order (bottom-most first, synced in a task once
+ * any pointer gesture has ended), so tabbing walks the stack the way the eye
+ * does and Shift+Tab is its exact mirror.
  *
  * Utility windows (`vf-window[variant="utility"]`) stack in a floating tier
  * above every document-tier window, restack only among themselves, and stand
@@ -413,6 +413,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
   /** Whether {@link _syncDomOrder} is putting focus back after a node move. */
   private _restoringFocus = false
 
+  /** The pending DOM-order sync task, or 0 (see {@link _requestDomSync}). */
+  private _domSyncTimer = 0
+
   /**
    * Ends the pointer-gesture window that defers DOM reordering. Capture-phase
    * on the document so a component's `stopPropagation` can't strand the flag,
@@ -435,6 +438,10 @@ export class VfDesktop extends VfPositioned(LitElement) {
     // The controller detaches the document listeners; drop the flag with
     // them so a reconnected desktop doesn't sit on a stale deferral.
     this._pointerGesture = false
+    if (this._domSyncTimer) {
+      clearTimeout(this._domSyncTimer)
+      this._domSyncTimer = 0
+    }
     super.disconnectedCallback()
   }
 
@@ -456,10 +463,12 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * visual stacking and sequential focus order come from independent channels
    * (z-index vs DOM position), and letting them drift apart is how a desktop
    * tabs front-to-back one way and back-to-front the other, with widgets
-   * reachable only travelling backwards. Deferred to the end of any in-flight
-   * pointer gesture — moving a node clears the pointer capture a title-bar
-   * drag or grow-box resize holds on it, and a background window must stay
-   * draggable in the same gesture that raises it.
+   * reachable only travelling backwards. The sync runs in a task, and not
+   * before any in-flight pointer gesture has ended — moving a node clears the
+   * pointer capture a title-bar drag or grow-box resize holds on it (a
+   * background window must stay draggable in the same gesture that raises
+   * it), and a node moved between a press's release and its `click` costs a
+   * control in the raised window that click (see {@link _requestDomSync}).
    */
   bringToFront(win: HTMLElement): void {
     this._restack(win)
@@ -492,9 +501,29 @@ export class VfDesktop extends VfPositioned(LitElement) {
     if (!utility) this._setActive(win)
   }
 
-  /** Sync the DOM order now, or at gesture end if a pointer is down. */
+  /**
+   * Schedule the DOM-order sync: one task from now, coalesced, and never
+   * while a pointer is down — the gesture's end schedules it instead.
+   *
+   * A task rather than the synchronous move this used to be, because the
+   * browser dispatches a release's pointerup, mouseup and click in ONE task,
+   * and Chromium drops a click whose mousedown node left the tree before the
+   * click was dispatched — and re-inserting a window is a removal. Synced at
+   * pointerup, a raise moved the window between the press and its click, so
+   * a control in a background window (a checkbox in a palette under another
+   * palette) got its press and release but never its click: it looked
+   * pressed and never acted. Not a microtask either — that runs between the
+   * listeners of the same dispatch, still ahead of the click. A task runs
+   * after the whole chain, the shape `deferActivation` (src/events.ts) falls
+   * back on for the same reason.
+   */
   private _requestDomSync(): void {
-    if (!this._pointerGesture) this._syncDomOrder()
+    if (this._pointerGesture || this._domSyncTimer) return
+    this._domSyncTimer = window.setTimeout(() => {
+      this._domSyncTimer = 0
+      // A press that began meanwhile re-defers: its own end schedules again.
+      if (!this._pointerGesture) this._syncDomOrder()
+    }, 0)
   }
 
   /**
@@ -508,8 +537,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * MUST NOT move nodes: moving the window focus just entered re-orders the
    * sequence mid-traversal, and a Shift+Tab that raises each window it
    * enters (pushing it forward in the DOM, back the way the traversal came)
-   * would revisit it forever. The pointer path syncs at gesture end instead,
-   * which is also the next safe point after any keyboard-session staleness.
+   * would revisit it forever. The pointer path schedules the sync at gesture
+   * end instead, which is also the next safe point after any keyboard-session
+   * staleness.
    */
   private _raise(win: HTMLElement): void {
     const utility = this._isUtility(win)
@@ -539,16 +569,16 @@ export class VfDesktop extends VfPositioned(LitElement) {
   }
 
   /**
-   * The press ended (or was cancelled) — sync the DOM order. Unconditional
-   * rather than only-if-raised: the sync no-ops when order already agrees,
-   * and running it at every gesture end is what heals the staleness a
-   * keyboard-only stretch leaves behind (focus-driven raises change z but
-   * never move nodes — see {@link _raise}).
+   * The press ended (or was cancelled) — schedule the DOM-order sync.
+   * Unconditional rather than only-if-raised: the sync no-ops when order
+   * already agrees, and running it after every gesture is what heals the
+   * staleness a keyboard-only stretch leaves behind (focus-driven raises
+   * change z but never move nodes — see {@link _raise}).
    */
   private _onGestureEnd = (): void => {
     this._gestureEnd.detach()
     this._pointerGesture = false
-    this._syncDomOrder()
+    this._requestDomSync()
   }
 
   /**
@@ -713,8 +743,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * element drops focus to `<body>`, so it is restored afterwards — behind
    * `_restoringFocus`, because the restore re-fires focusin (see
    * {@link _onFocusIn}) on an element that may sit in a background window.
-   * Only runs between pointer gestures or programmatically, never from a
-   * focus-driven raise (see {@link _raise} for why).
+   * Reached only through {@link _requestDomSync}'s task — after a pointer
+   * gesture or a programmatic raise, never from a focus-driven one (see
+   * {@link _raise} for why).
    */
   private _syncDomOrder(): void {
     if (!this.isConnected) return

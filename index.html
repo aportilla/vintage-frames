@@ -70,7 +70,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             The gray desktop: a 50% dither, plus window management. Pointerdown or
             keyboard focus in a slotted <code>vf-window</code> brings it to front
             and marks it <code>active</code>, clearing <code>active</code> on the
-            others. DOM order follows the stacking order. Utility windows float on
+            others. DOM order follows the stacking order, synced in a task after
+            the press ends, so a click on a control in a background window still
+            reaches it. Utility windows float on
             their own tier above document windows, outside the single-active rule;
             a slotted <code>vf-menu-bar</code> (or free-standing <code>vf-menu</code>)
             sits above both, so its dropped menus cover palettes too.

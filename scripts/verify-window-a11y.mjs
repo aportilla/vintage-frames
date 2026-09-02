@@ -17,12 +17,15 @@
  *    raise activates the window under the arriving focus, and a static-body
  *    background window can be closed by keyboard end to end.
  *  - §8.3 DOM ORDER FOLLOWS Z: raising a window re-orders the slotted windows
- *    (bottom-most first) at pointer-gesture end, so sequential focus order
- *    matches the visual stack and Shift+Tab mirrors Tab exactly. Deferred
- *    while a pointer is down (a DOM move would clear the drag's pointer
- *    capture); never run from a focus-driven raise (moving the window focus
- *    just entered would re-order the sequence mid-traversal); focus surviving
- *    its own window's move is restored without re-raising its window.
+ *    (bottom-most first) in a task after the pointer gesture ends, so
+ *    sequential focus order matches the visual stack and Shift+Tab mirrors
+ *    Tab exactly. Deferred while a pointer is down (a DOM move would clear
+ *    the drag's pointer capture) and past the release's click (Chromium
+ *    drops a click whose mousedown node was re-inserted first — a control in
+ *    a background window used to get its press and never its click); never
+ *    run from a focus-driven raise (moving the window focus just entered
+ *    would re-order the sequence mid-traversal); focus surviving its own
+ *    window's move is restored without re-raising its window.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window-a11y
@@ -62,6 +65,14 @@ const STOP_LABEL = `(() => {
 /** DOM order of the desktop's slotted windows, by id. */
 const WINDOW_ORDER = `[...document.getElementById('desk').children]
   .filter((el) => el.tagName === 'VF-WINDOW').map((el) => el.id)`
+
+/**
+ * One task later. The desktop schedules its DOM-order sync as a task (so the
+ * click a release produces lands before the node move), and a timer queued
+ * after that one fires after it — same delay, in order — so a check on the
+ * order waits exactly one out.
+ */
+const nextTask = (page) => page.evaluate(() => new Promise((r) => setTimeout(r, 0)))
 
 /* ────────────────────────────────────────────────────────────────────────────
    1. §9.3 — zero banner landmarks; §9.4 — the frame is a named group
@@ -242,9 +253,10 @@ const WINDOW_ORDER = `[...document.getElementById('desk').children]
     held.active && held.z1 > held.z2 && held.order.join() === 'w1,w2',
     JSON.stringify(held))
   await page.mouse.up()
-  const released = await page.evaluate(WINDOW_ORDER)
-  check('on release the DOM re-orders to match the stack (bottom-most first)',
-    released.join() === 'w2,w1', released.join())
+  await nextTask(page)
+  check('after the release the DOM re-orders to match the stack (bottom-most first)',
+    (await page.evaluate(WINDOW_ORDER)).join() === 'w2,w1',
+    (await page.evaluate(WINDOW_ORDER)).join())
   const barFirst = await page.evaluate(
     () => document.getElementById('desk').children[0].id
   )
@@ -262,6 +274,7 @@ const WINDOW_ORDER = `[...document.getElementById('desk').children]
   await page.mouse.down()
   await page.mouse.move(bar2.x + 200, bar2.y + 150, { steps: 2 })
   await page.mouse.up()
+  await nextTask(page)
   // The origin is stated in system px (PlacementController), so compare in the
   // unit the gesture was measured in: CSS px = system px x the scale in force.
   const dragged = await page.evaluate(`({
@@ -311,6 +324,7 @@ const WINDOW_ORDER = `[...document.getElementById('desk').children]
   await page.mouse.move(bar3.x, bar3.y)
   await page.mouse.down()
   await page.mouse.up()
+  await nextTask(page)
   const end = await page.evaluate(`({
     order: ${WINDOW_ORDER},
     stop: ${STOP_LABEL},
@@ -375,17 +389,99 @@ const WINDOW_ORDER = `[...document.getElementById('desk').children]
       <vf-window id="w2" heading="Bravo" style="width:220px;height:120px"><p>B</p></vf-window>
     </vf-desktop>
   `)
-  await page.evaluate(() => {
+  // The raise restacks at once but moves no node until the current task
+  // ends: a raise made from an event handler must not move nodes under the
+  // dispatch in flight (the click case below). The property, not the
+  // attribute: `active` reflects on the window's next update.
+  const during = await page.evaluate(`(() => {
     const desk = document.getElementById('desk')
     desk.bringToFront(document.getElementById('w1'))
-  })
+    return { order: ${WINDOW_ORDER}, active: document.getElementById('w1').active }
+  })()`)
+  check('a programmatic raise is live at once (active) but moves no node in the same task',
+    during.active && during.order.join() === 'pal,w1,w2', JSON.stringify(during))
+  await nextTask(page)
   const order = await page.evaluate(WINDOW_ORDER)
-  check('a programmatic raise syncs immediately, floating tier last in the DOM',
+  check('…and syncs a task later, floating tier last in the DOM',
     order.join() === 'w2,w1,pal', order.join())
   const palActive = await page.evaluate(
     () => document.getElementById('pal').hasAttribute('active')
   )
   check('the palette rides the sort without losing its active state', palActive)
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   6. §8.3 — the sync waits for the click. Chromium drops a click whose
+      mousedown node left the tree before the click was dispatched, and
+      re-inserting a window is a removal: synced at pointerup — ahead of the
+      same task's mouseup and click — the raise cost a control in a background
+      window its click (it looked pressed and never acted). Both tiers.
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  const page = await build(`
+    <vf-desktop id="desk" width="600" height="450">
+      <vf-window id="w1" heading="Alpha" top="40" left="20" width="240" height="120">
+        <vf-checkbox id="c1">one</vf-checkbox></vf-window>
+      <vf-window id="w2" heading="Bravo" top="40" left="300" width="240" height="120">
+        <vf-checkbox id="c2">two</vf-checkbox></vf-window>
+      <vf-window id="pa" heading="Tools" variant="utility" top="220" left="20" width="200" height="100">
+        <vf-checkbox id="ca">a</vf-checkbox></vf-window>
+      <vf-window id="pb" heading="Colors" variant="utility" top="220" left="300" width="200" height="100">
+        <vf-checkbox id="cb">b</vf-checkbox></vf-window>
+    </vf-desktop>
+  `)
+  // w2 and pb boot topmost of their tiers, so c1 and ca sit in background
+  // windows. Each logs the DOM order as its click arrives — the log shows
+  // whether the move landed before or after the click.
+  await page.evaluate(`(() => {
+    window.clicks = []
+    for (const id of ['c1', 'ca']) {
+      document.getElementById(id).addEventListener('click', () => {
+        window.clicks.push(id + '@' + ${WINDOW_ORDER}.join())
+      })
+    }
+  })()`)
+
+  await page.locator('#c1').click()
+  const doc = await page.evaluate(`({
+    checked: document.getElementById('c1').checked,
+    active: document.getElementById('w1').hasAttribute('active'),
+    clicks: window.clicks.splice(0),
+  })`)
+  check('a click on a checkbox in a background document window raises the window AND flips the box',
+    doc.checked && doc.active, JSON.stringify(doc))
+  check('…the click reached it before the node move (old DOM order at click time)',
+    doc.clicks.join() === 'c1@w1,w2,pa,pb', doc.clicks.join())
+  await nextTask(page)
+  const docOrder = await page.evaluate(WINDOW_ORDER)
+  check('…and the order synced one task later',
+    docOrder.join() === 'w2,w1,pa,pb', docOrder.join())
+
+  await page.locator('#ca').click()
+  const pal = await page.evaluate(`({
+    checked: document.getElementById('ca').checked,
+    clicks: window.clicks.splice(0),
+    zA: +document.getElementById('pa').style.zIndex,
+    zB: +document.getElementById('pb').style.zIndex,
+  })`)
+  check('a click on a checkbox in a background palette raises the palette AND flips the box',
+    pal.checked && pal.zA > pal.zB, JSON.stringify(pal))
+  check('…the click reached it before the node move',
+    pal.clicks.join() === 'ca@w2,w1,pa,pb', pal.clicks.join())
+  await nextTask(page)
+  const palOrder = await page.evaluate(WINDOW_ORDER)
+  check('…and the floating tier re-sorted a task later',
+    palOrder.join() === 'w2,w1,pb,pa', palOrder.join())
+
+  // The move drops focus and the sync puts it back — a pointer focus, so the
+  // restore must not turn it into a marked one.
+  const mark = await page.evaluate(() => {
+    const ca = document.getElementById('ca')
+    return { focused: document.activeElement === ca, visible: ca.matches(':focus-visible') }
+  })
+  check('the clicked box keeps focus through its window\'s move, unmarked (a pointer focus)',
+    mark.focused && !mark.visible, JSON.stringify(mark))
   await page.close()
 }
 

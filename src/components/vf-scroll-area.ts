@@ -26,9 +26,13 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
  * dither and thumb filling in only once that axis overflows (System 7 drew
  * an active window's no-overflow bar as arrows on a bare channel; driven
  * by {@link ScrollStateController}). Which rails are reserved is set by
- * {@link axis}; when both are reserved the bottom-right corner joins them.
+ * {@link axis}; when both are reserved the bottom-right corner joins them,
+ * and {@link corner} reserves that cell on a single-axis rail too — the
+ * rail stops 15px short of the frame, for a grow box to land in.
  *
- * Size the host (width/height) from the outside; the viewport fills it.
+ * Size the host (width/height) from the outside; the viewport fills it. The
+ * viewport insets its content 8px; {@link flush} drops that inset so content
+ * runs to the frame and the rails.
  *
  * @slot - Scrollable content.
  * @csspart viewport - The inner scrolling container.
@@ -51,6 +55,23 @@ export class VfScrollArea extends VfPositioned(LitElement) {
    */
   @property({ reflect: true }) axis: 'vertical' | 'horizontal' | 'both' =
     'vertical'
+
+  /**
+   * Drop the viewport's 8px inset: slotted content and the (0,0) of placed
+   * children sit at the frame's inner edge, one system px from the frame
+   * box (the border-floor compensation stays — see the viewport rule).
+   * `vf-window[scrollbars]` forwards its own `flush` here.
+   */
+  @property({ type: Boolean, reflect: true }) flush = false
+
+  /**
+   * Reserve the bottom-right corner cell on a single-axis rail: the rail
+   * stops 15px short of the frame and the viewport spans the rest, leaving
+   * the 15×15 cell — with the two dividers a `both` rail's corner carries —
+   * for a grow box to land in. A `both` rail always has the cell, so the
+   * flag changes nothing there. `vf-window[scrollbars resizable]` sets it.
+   */
+  @property({ type: Boolean, reflect: true }) corner = false
 
   /**
    * Accessible name for the scrolling viewport, applied as its `aria-label`
@@ -117,11 +138,13 @@ export class VfScrollArea extends VfPositioned(LitElement) {
       }
       :host(:not([axis])) .box,
       :host([axis='vertical']) .box,
-      :host([axis='both']) .box {
+      :host([axis='both']) .box,
+      :host([corner]) .box {
         grid-template-columns: 1fr auto;
       }
       :host([axis='horizontal']) .box,
-      :host([axis='both']) .box {
+      :host([axis='both']) .box,
+      :host([corner]) .box {
         grid-template-rows: 1fr auto;
       }
       .viewport {
@@ -143,6 +166,23 @@ export class VfScrollArea extends VfPositioned(LitElement) {
         padding: calc(
           var(--vf-scale, 1) * 8px + mod(var(--vf-scale, 1) * 1px, 1px)
         );
+      }
+      /* flush: the inset goes, the border-floor term stays — content and the
+         (0,0) of placed children sit at the frame's inner edge, exactly one
+         system px from the frame box at every scale. */
+      :host([flush]) .viewport {
+        padding: mod(var(--vf-scale, 1) * 1px, 1px);
+      }
+      /* A single-axis rail with a reserved corner: the viewport spans the
+         track the missing rail would have taken, up to the corner cell, so
+         the rail stops 15px short of the frame. (A both-axes rail has no
+         missing track — the flag is inert there.) */
+      :host([corner][axis='horizontal']) .viewport {
+        grid-column: 1 / 3;
+      }
+      :host([corner]:not([axis])) .viewport,
+      :host([corner][axis='vertical']) .viewport {
+        grid-row: 1 / 3;
       }
       .vf-rail--vertical {
         grid-area: 1 / 2;
@@ -178,6 +218,7 @@ export class VfScrollArea extends VfPositioned(LitElement) {
     // `region` when labelled (a named landmark), `group` when not.
     const vertical = this.axis !== 'horizontal'
     const horizontal = this.axis === 'horizontal' || this.axis === 'both'
+    const corner = (vertical && horizontal) || this.corner
     return html`
       <div class="box vf-snap">
         <div
@@ -191,7 +232,7 @@ export class VfScrollArea extends VfPositioned(LitElement) {
         </div>
         ${vertical ? renderScrollRail(this.rail, 'vertical') : nothing}
         ${horizontal ? renderScrollRail(this.rail, 'horizontal') : nothing}
-        ${vertical && horizontal
+        ${corner
           ? html`<div class="vf-rail-corner" aria-hidden="true"></div>`
           : nothing}
       </div>

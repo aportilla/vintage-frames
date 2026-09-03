@@ -225,11 +225,17 @@ export const vfScrollRail = css`
     width: calc(var(--vf-scale, 1) * 16px);
   }
 
-  /* The both-axes corner cell. It supplies the two interior dividers
+  /* The corner cell: the rails' own 15px in both dimensions, so it sizes its
+     grid track even when only one rail is there to size it (vf-scroll-area's
+     corner flag on a single-axis rail). It supplies the two interior dividers
      (against the vertical increment arrow above and the horizontal one
-     beside it) that those buttons leave to it; a resizable window's grow box
-     lands exactly over it. */
+     beside it) that those buttons leave to it — on a single-axis rail the
+     other divider continues the rail's line across the cell, the way
+     DrawGrowIcon drew it; a resizable window's grow box lands exactly over
+     it. */
   .vf-rail-corner {
+    width: calc(var(--vf-scale, 1) * 15px);
+    height: calc(var(--vf-scale, 1) * 15px);
     background: var(--vf-white, #fff);
     border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
     border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);

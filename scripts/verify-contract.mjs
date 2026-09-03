@@ -687,6 +687,53 @@ const build = makeBuild(browser, {
   )
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+   8. OVERSCROLL — every kit scroller stops hard at its end
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  // The vfScrollRail recipe sets `overscroll-behavior: none` on the scroll
+  // element (SPEC §4): no rubber-band, which the rail cannot express, at the
+  // cost of scroll chaining — restored per part by a page that scrolls.
+  // Headless Chromium has no elastic overscroll to observe, so this holds
+  // the computed value on all five scrollers, the dialog's included.
+  const page = await build(`
+    <vf-scroll-area id="area" style="width:200px;height:100px"><div style="height:400px"></div></vf-scroll-area>
+    <vf-window id="win" heading="W" scrollbars="both" width="200" height="120"><div style="height:400px"></div></vf-window>
+    <vf-text-area id="ta" value="Hello"></vf-text-area>
+    <vf-list id="list"><vf-list-item value="a">A</vf-list-item></vf-list>
+    <vf-dialog id="dlg" heading="D"><vf-paragraph>Body</vf-paragraph></vf-dialog>
+  `)
+  const found = await page.evaluate(() => {
+    const scroller = (id, part) => {
+      const host = document.getElementById(id)
+      // vf-window re-exports the part from its built-in area; the scroll
+      // element itself is one shadow root further in.
+      const root =
+        host.tagName === 'VF-WINDOW'
+          ? host.shadowRoot.querySelector('vf-scroll-area').shadowRoot
+          : host.shadowRoot
+      const cs = getComputedStyle(root.querySelector(`[part="${part}"]`))
+      return [`${id}::part(${part})`, `${cs.overscrollBehaviorX}/${cs.overscrollBehaviorY}`]
+    }
+    return [
+      scroller('area', 'viewport'),
+      scroller('win', 'viewport'),
+      scroller('ta', 'textarea'),
+      scroller('list', 'list'),
+      scroller('dlg', 'content'),
+    ]
+  })
+  const wrong = found.filter(([, value]) => value !== 'none/none')
+  check(
+    'overscroll: every kit scroller computes overscroll-behavior none on both axes',
+    wrong.length === 0,
+    wrong.length
+      ? wrong.map(([name, value]) => `${name}=${value}`).join(', ')
+      : `${found.length} scrollers`
+  )
+  await page.close()
+}
+
 await browser.close()
 const passed = results.filter(Boolean).length
 console.log(`\n${passed}/${results.length} checks passed`)

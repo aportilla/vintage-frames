@@ -27,7 +27,7 @@ A flexbox whose `gap`, `pad`, `width` and `height` are declared in whole system 
 | --- | --- | --- |
 | `direction` | `column` (default), `row` | |
 | `gap` | system px | Between children; `0` by default |
-| `pad` | system px, 1–4 values | CSS shorthand order. A `vf-window` body carries its own 12px inset |
+| `pad` | system px, 1–4 values | CSS shorthand order. The way to inset a window's or a scroll area's content, which carry none of their own |
 | `place` | `start`, `center`, `end` | Where children sit across the stack. Unset resolves to `start` down a column, `center` across a row. There is no `justify` — a right-aligned action row is a filled column whose one child sits at the end |
 | `width`, `height` | system px | Optional. Declaring one on a panel's outermost stack puts it on the device-pixel grid by construction |
 | `fill-width`, `fill-height` | bare attribute on a **child** | Be as wide (tall) as the stack allows |

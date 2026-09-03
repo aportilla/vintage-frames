@@ -51,9 +51,25 @@ interface ResizeState {
   resized: boolean
 }
 
-/** Grow-box floors, in system px: a window smaller than this can't be worked. */
+/**
+ * The sizeRect's default floors, in system px: a window smaller than this
+ * can't be worked. `min-width`/`min-height` replace them per axis.
+ */
 const MIN_WIDTH = 80
 const MIN_HEIGHT = 54
+
+/**
+ * One axis of the sizeRect clamp. The max is applied last, so where the two
+ * cross the max wins — see {@link VfWindow.minWidth}.
+ */
+function clampAxis(
+  value: number,
+  min: number,
+  max: number | null | undefined
+): number {
+  const floored = Math.max(min, value)
+  return max == null ? floored : Math.min(max, floored)
+}
 
 /**
  * How much of a dragged window must stay inside its parent, in system px —
@@ -419,8 +435,38 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   /** Allow dragging the window by its title bar. */
   @property({ type: Boolean, reflect: true }) movable = false
 
-  /** Show a grow box at the bottom-right corner for resizing. */
+  /**
+   * Show a grow box at the bottom-right corner for resizing. The drag is
+   * bounded per axis by the sizeRect below.
+   */
   @property({ type: Boolean, reflect: true }) resizable = false
+
+  /**
+   * The sizeRect: the range of sizes the grow box can drag the window to,
+   * per axis, in whole system px — GrowWindow's, where the app stated the
+   * rectangle and the Window Manager clamped the drag to it. `minWidth` and
+   * `minHeight` default to the 80×54 floor a window can still be worked at;
+   * the maxes are unbounded. A min equal to its max locks that axis —
+   * `min-height="67" max-height="67"` on a strip that scrolls sideways and
+   * never grows taller, so the grow box changes the width alone.
+   *
+   * Bounds the gesture only: an authored `width`/`height` outside the rect
+   * renders as declared, and the first grow-box move brings it inside. The
+   * clamp runs after the drag's lattice snap, so a bound lands exactly the
+   * way an authored size does, even off the lattice (an odd height at 2×);
+   * where a min and max cross, the max wins, so a window held under the
+   * floor stays put instead of jumping to it.
+   */
+  @property({ type: Number, attribute: 'min-width' }) minWidth?: number | null
+
+  /** See {@link minWidth}. Default 54. */
+  @property({ type: Number, attribute: 'min-height' }) minHeight?: number | null
+
+  /** See {@link minWidth}. Unbounded by default. */
+  @property({ type: Number, attribute: 'max-width' }) maxWidth?: number | null
+
+  /** See {@link minWidth}. Unbounded by default. */
+  @property({ type: Number, attribute: 'max-height' }) maxHeight?: number | null
 
   /**
    * Remove the default 12px body padding. Under `scrollbars` the body has
@@ -692,20 +738,23 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     // the left/top edges, and the box a user grew holds its size through a
     // zoom instead of being re-read as a different number of art pixels at
     // every step. Only the pointer delta crosses units: clientX is real
-    // (scaled) CSS px.
-    const width = snapSys(
-      Math.max(
-        MIN_WIDTH,
-        resize.baseWidth + toSysExact(event.clientX - resize.startX, this)
+    // (scaled) CSS px. The sizeRect clamp comes last, after the snap: a
+    // bound is an authored number and lands exactly, like an authored size.
+    const width = clampAxis(
+      snapSys(
+        resize.baseWidth + toSysExact(event.clientX - resize.startX, this),
+        this
       ),
-      this
+      this.minWidth ?? MIN_WIDTH,
+      this.maxWidth
     )
-    const height = snapSys(
-      Math.max(
-        MIN_HEIGHT,
-        resize.baseHeight + toSysExact(event.clientY - resize.startY, this)
+    const height = clampAxis(
+      snapSys(
+        resize.baseHeight + toSysExact(event.clientY - resize.startY, this),
+        this
       ),
-      this
+      this.minHeight ?? MIN_HEIGHT,
+      this.maxHeight
     )
     // Flag rather than emit: `updated()` fires the event once the write has
     // been applied to layout, and only moves that changed the snapped size

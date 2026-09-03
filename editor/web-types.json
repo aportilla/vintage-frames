@@ -3290,8 +3290,28 @@
             },
             {
               "name": "resizable",
-              "description": "Show a grow box at the bottom-right corner for resizing.",
+              "description": "Show a grow box at the bottom-right corner for resizing. The drag is\nbounded per axis by the sizeRect below.",
               "value": { "type": "boolean", "default": "false" }
+            },
+            {
+              "name": "min-width",
+              "description": "The sizeRect: the range of sizes the grow box can drag the window to,\nper axis, in whole system px — GrowWindow's, where the app stated the\nrectangle and the Window Manager clamped the drag to it. `minWidth` and\n`minHeight` default to the 80×54 floor a window can still be worked at;\nthe maxes are unbounded. A min equal to its max locks that axis —\n`min-height=\"67\" max-height=\"67\"` on a strip that scrolls sideways and\nnever grows taller, so the grow box changes the width alone.\n\nBounds the gesture only: an authored `width`/`height` outside the rect\nrenders as declared, and the first grow-box move brings it inside. The\nclamp runs after the drag's lattice snap, so a bound lands exactly the\nway an authored size does, even off the lattice (an odd height at 2×);\nwhere a min and max cross, the max wins, so a window held under the\nfloor stays put instead of jumping to it.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "min-height",
+              "description": "See minWidth. Default 54.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "max-width",
+              "description": "See minWidth. Unbounded by default.",
+              "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "max-height",
+              "description": "See minWidth. Unbounded by default.",
+              "value": { "type": "number | null | undefined" }
             },
             {
               "name": "flush",
@@ -3381,8 +3401,28 @@
               },
               {
                 "name": "resizable",
-                "description": "Show a grow box at the bottom-right corner for resizing.",
+                "description": "Show a grow box at the bottom-right corner for resizing. The drag is\nbounded per axis by the sizeRect below.",
                 "type": "boolean"
+              },
+              {
+                "name": "minWidth",
+                "description": "The sizeRect: the range of sizes the grow box can drag the window to,\nper axis, in whole system px — GrowWindow's, where the app stated the\nrectangle and the Window Manager clamped the drag to it. `minWidth` and\n`minHeight` default to the 80×54 floor a window can still be worked at;\nthe maxes are unbounded. A min equal to its max locks that axis —\n`min-height=\"67\" max-height=\"67\"` on a strip that scrolls sideways and\nnever grows taller, so the grow box changes the width alone.\n\nBounds the gesture only: an authored `width`/`height` outside the rect\nrenders as declared, and the first grow-box move brings it inside. The\nclamp runs after the drag's lattice snap, so a bound lands exactly the\nway an authored size does, even off the lattice (an odd height at 2×);\nwhere a min and max cross, the max wins, so a window held under the\nfloor stays put instead of jumping to it.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "minHeight",
+                "description": "See minWidth. Default 54.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "maxWidth",
+                "description": "See minWidth. Unbounded by default.",
+                "type": "number | null | undefined"
+              },
+              {
+                "name": "maxHeight",
+                "description": "See minWidth. Unbounded by default.",
+                "type": "number | null | undefined"
               },
               {
                 "name": "flush",

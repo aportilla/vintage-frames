@@ -17285,9 +17285,45 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Show a grow box at the bottom-right corner for resizing.",
+              "description": "Show a grow box at the bottom-right corner for resizing. The drag is\nbounded per axis by the sizeRect below.",
               "attribute": "resizable",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "minWidth",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "The sizeRect: the range of sizes the grow box can drag the window to,\nper axis, in whole system px — GrowWindow's, where the app stated the\nrectangle and the Window Manager clamped the drag to it. `minWidth` and\n`minHeight` default to the 80×54 floor a window can still be worked at;\nthe maxes are unbounded. A min equal to its max locks that axis —\n`min-height=\"67\" max-height=\"67\"` on a strip that scrolls sideways and\nnever grows taller, so the grow box changes the width alone.\n\nBounds the gesture only: an authored `width`/`height` outside the rect\nrenders as declared, and the first grow-box move brings it inside. The\nclamp runs after the drag's lattice snap, so a bound lands exactly the\nway an authored size does, even off the lattice (an odd height at 2×);\nwhere a min and max cross, the max wins, so a window held under the\nfloor stays put instead of jumping to it.",
+              "attribute": "min-width"
+            },
+            {
+              "kind": "field",
+              "name": "minHeight",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "See minWidth. Default 54.",
+              "attribute": "min-height"
+            },
+            {
+              "kind": "field",
+              "name": "maxWidth",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "See minWidth. Unbounded by default.",
+              "attribute": "max-width"
+            },
+            {
+              "kind": "field",
+              "name": "maxHeight",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "See minWidth. Unbounded by default.",
+              "attribute": "max-height"
             },
             {
               "kind": "field",
@@ -17667,8 +17703,40 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Show a grow box at the bottom-right corner for resizing.",
+              "description": "Show a grow box at the bottom-right corner for resizing. The drag is\nbounded per axis by the sizeRect below.",
               "fieldName": "resizable"
+            },
+            {
+              "name": "min-width",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "The sizeRect: the range of sizes the grow box can drag the window to,\nper axis, in whole system px — GrowWindow's, where the app stated the\nrectangle and the Window Manager clamped the drag to it. `minWidth` and\n`minHeight` default to the 80×54 floor a window can still be worked at;\nthe maxes are unbounded. A min equal to its max locks that axis —\n`min-height=\"67\" max-height=\"67\"` on a strip that scrolls sideways and\nnever grows taller, so the grow box changes the width alone.\n\nBounds the gesture only: an authored `width`/`height` outside the rect\nrenders as declared, and the first grow-box move brings it inside. The\nclamp runs after the drag's lattice snap, so a bound lands exactly the\nway an authored size does, even off the lattice (an odd height at 2×);\nwhere a min and max cross, the max wins, so a window held under the\nfloor stays put instead of jumping to it.",
+              "fieldName": "minWidth"
+            },
+            {
+              "name": "min-height",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "See minWidth. Default 54.",
+              "fieldName": "minHeight"
+            },
+            {
+              "name": "max-width",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "See minWidth. Unbounded by default.",
+              "fieldName": "maxWidth"
+            },
+            {
+              "name": "max-height",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "See minWidth. Unbounded by default.",
+              "fieldName": "maxHeight"
             },
             {
               "name": "flush",

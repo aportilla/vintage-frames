@@ -90,7 +90,7 @@ The 1992 *Macintosh Human Interface Guidelines* names five standard windows. The
 
 Every recipe also declares `width` and `height` in system px; the three `movable` ones declare `top` and `left` as well. A window is a fixed box in both axes — content taller than the declared box is clipped at the frame, and `scrollbars` is how the user reaches the rest. A control's drop-open list still escapes the clip.
 
-`frame="plain"` is the modal double frame (1px outer rule, 2px gap, 2px inner band, no shadow). `variant="utility"` is the windoid: a 12px bar with a dot-grid dither and 7×7 widgets, floating above every document window inside a `vf-desktop` and standing outside the single-active rule. `scrollbars` puts the rails on the window edge with the grow box in the corner cell.
+`frame="plain"` is the modal double frame (1px outer rule, 2px gap, 2px inner band, no shadow). `variant="utility"` is the windoid: a 12px bar with a dot-grid dither and 7×7 widgets, floating above every document window inside a `vf-desktop` and standing outside the single-active rule. `scrollbars` puts the rails on the window edge with the grow box in the corner cell. A `resizable` window's `min-width`/`max-width` and `min-height`/`max-height` bound the grow box per axis, in system px; a min equal to its max locks that axis, which is how a strip that scrolls sideways keeps its height.
 
 There is no alert component. An alert is the plain frame plus your own icon art:
 

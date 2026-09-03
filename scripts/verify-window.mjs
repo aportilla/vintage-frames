@@ -12,6 +12,12 @@
  *    `width`/`height` write fires nothing. Details stay in system px at
  *    every density (the CSS-px pointer delta is converted, not passed
  *    through).
+ *  - SIZE RECT: `min-width`/`max-width`/`min-height`/`max-height` clamp the
+ *    grow box per axis, after the lattice snap — a bound lands exactly, an
+ *    odd one at dpr 2 included; a min equal to its max locks the axis, so a
+ *    diagonal drag moves the other alone and a drag along it fires nothing;
+ *    the max wins where the two cross, so a window authored under the floor
+ *    and held there never jumps; a programmatic write ignores the rect.
  *  - STATUS BAR: the `status` slot renders the classic bottom strip — 15px
  *    total (1px rule over a 14px white interior, the grow box's own height,
  *    so the grow box sits flush in its right end), body-face text on its
@@ -69,17 +75,17 @@ const instrument = (page) =>
     })
   })
 
-const growCenter = (page) =>
-  page.evaluate(() => {
+const growCenter = (page, id = 'win') =>
+  page.evaluate((id) => {
     const box = document
-      .getElementById('win')
+      .getElementById(id)
       .shadowRoot.querySelector('[part=grow-box]')
       .getBoundingClientRect()
     return { x: box.left + box.width / 2, y: box.top + box.height / 2 }
-  })
+  }, id)
 
-async function dragGrow(page, dx, dy, steps = 5) {
-  const grow = await growCenter(page)
+async function dragGrow(page, dx, dy, { steps = 5, id = 'win' } = {}) {
+  const grow = await growCenter(page, id)
   await page.mouse.move(grow.x, grow.y)
   await page.mouse.down()
   await page.mouse.move(grow.x + dx, grow.y + dy, { steps })
@@ -207,6 +213,118 @@ async function dragGrow(page, dx, dy, steps = 5) {
     events
       .map((e) => `${e.width}sys measured ${e.measuredW}css`)
       .join(', ')
+  )
+  await page.close()
+}
+
+/* ── SIZE RECT ────────────────────────────────────────────────────────────
+   dpr 1, scale 1: system px and CSS px coincide. Three windows: a strip
+   with its height locked (min == max), a window bounded on both axes, and
+   one authored under the 80×54 floor with a max holding it there. */
+
+const RECT_PAGE = `
+  <div style="position:relative;width:900px;height:700px">
+    <vf-window id="strip" heading="Strip" top="20" left="20"
+               width="272" height="67" min-height="67" max-height="67"
+               resizable></vf-window>
+    <vf-window id="rect" heading="Rect" top="20" left="400"
+               width="240" height="176"
+               min-width="200" max-width="300" min-height="150" max-height="200"
+               resizable></vf-window>
+    <vf-window id="under" heading="Under" top="300" left="20"
+               width="120" height="40" max-width="120" max-height="40"
+               resizable></vf-window>
+  </div>
+`
+
+const sizeOf = (page, id) =>
+  page.evaluate((id) => {
+    const win = document.getElementById(id)
+    return { width: win.width, height: win.height }
+  }, id)
+
+{
+  const page = await build(RECT_PAGE)
+  await page.evaluate(() => {
+    window.vfEvents = []
+    document.addEventListener('vf-resize', (event) =>
+      window.vfEvents.push({ ...event.detail, target: event.target.id })
+    )
+  })
+
+  await dragGrow(page, 45, 30, { id: 'strip' })
+  let size = await sizeOf(page, 'strip')
+  check(
+    'min == max locks the height: a diagonal drag changes the width alone',
+    size.width === 272 + 45 && size.height === 67,
+    `${size.width}×${size.height}, expected 317×67`
+  )
+  const commit = await page.evaluate(() => window.vfEvents.at(-1))
+  check(
+    '…and the commit carries the locked height',
+    commit?.commit === true && commit.width === 317 && commit.height === 67,
+    JSON.stringify(commit)
+  )
+
+  await page.evaluate(() => (window.vfEvents = []))
+  await dragGrow(page, 0, 40, { id: 'strip' })
+  const alongLock = await page.evaluate(() => window.vfEvents.length)
+  size = await sizeOf(page, 'strip')
+  check(
+    'a drag along the locked axis changes nothing and fires nothing',
+    alongLock === 0 && size.width === 317 && size.height === 67,
+    `${alongLock} events, ${size.width}×${size.height}`
+  )
+
+  await dragGrow(page, 100, 60, { id: 'rect' })
+  size = await sizeOf(page, 'rect')
+  check(
+    'a drag past the max clamps both axes at it',
+    size.width === 300 && size.height === 200,
+    `${size.width}×${size.height}, expected 300×200`
+  )
+  await dragGrow(page, -200, -100, { id: 'rect' })
+  size = await sizeOf(page, 'rect')
+  check(
+    'a drag under the min clamps both axes at it',
+    size.width === 200 && size.height === 150,
+    `${size.width}×${size.height}, expected 200×150`
+  )
+
+  await dragGrow(page, 30, 30, { id: 'under' })
+  size = await sizeOf(page, 'under')
+  check(
+    'a max under the 80×54 floor wins: the window never jumps to the floor',
+    size.width === 120 && size.height === 40,
+    `${size.width}×${size.height}, expected 120×40`
+  )
+
+  const programmatic = await page.evaluate(async () => {
+    const win = document.getElementById('strip')
+    win.height = 100
+    await win.updateComplete
+    return win.getBoundingClientRect().height
+  })
+  check(
+    'the rect bounds the gesture only: a programmatic write lands as declared',
+    near(programmatic, 100),
+    `${programmatic}px`
+  )
+  await page.close()
+}
+
+/* ── SIZE RECT, dpr 2 ─────────────────────────────────────────────────────
+   The drag lattice is 2 system px and 67 is not on it: the lock must hold
+   the authored number, not the nearest lattice step. */
+
+{
+  const page = await build(RECT_PAGE, { dpr: 2 })
+  await dragGrow(page, 60, 30, { id: 'strip' })
+  const size = await sizeOf(page, 'strip')
+  check(
+    'dpr 2: an off-lattice lock holds exactly (67 stays 67, width +40)',
+    size.width === 272 + 40 && size.height === 67,
+    `${size.width}×${size.height}, expected 312×67`
   )
   await page.close()
 }

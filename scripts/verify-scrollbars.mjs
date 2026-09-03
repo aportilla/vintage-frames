@@ -38,6 +38,17 @@
  * 6. A11Y: the rail subtree is aria-hidden and absent from the accessibility
  *    tree; the viewport's role/name/tab-stop contract is untouched.
  *
+ * 7. RECONNECT: a window the desktop's DOM-order sync re-inserts (a raise)
+ *    comes back with a live rail — degenerate state cleared on a show, the
+ *    thumb still following scroll writes — with the overflow state held
+ *    constant across the move, so no re-render masks a dead controller.
+ *
+ * 8. CONTENT GROWTH: the scrolled plane sizes to its content, so a row
+ *    gaining a cell moves the thumb and flips the idle rail live with no
+ *    scroll and no resize; copy still wraps; a row nested in an auto-width
+ *    wrapper still counts; a sticky child holds; and measure() picks up a
+ *    scroll-range change that moves no box.
+ *
  *   npm run dev               # in another shell (port 5173)
  *   npm run verify:scrollbars
  */
@@ -767,6 +778,282 @@ for (const dpr of [1, 2, 3]) {
     'bottom rail band incl. the corner'
   )
   await page.close()
+}
+
+/* ── 3d. reconnect: the desktop's DOM-order sync moves a raised window ──── */
+{
+  console.log('\nreconnect after a desktop raise (dpr 1)')
+  // A raised window that sits before a lower one in the DOM is re-inserted by
+  // vf-desktop's sync task (_syncDomOrder), which disconnects and reconnects
+  // everything inside it. Lit schedules no update on a reconnect, so a
+  // controller that wired only in hostUpdated came back dead. Both fixtures
+  // hold the overflow state constant across the raise — a flip re-renders
+  // the area, whose hostUpdated re-wires the rail and masks the defect.
+  const desktop = (ringStyle, content) => `
+    <vf-desktop id="d" width="800" height="600">
+      <vf-window id="ring" variant="utility" movable resizable scrollbars="horizontal" flush
+                 width="240" height="120" top="20" left="20" style="${ringStyle}">${content}</vf-window>
+      <vf-window id="tools" variant="utility" movable width="120" height="200" top="20" left="400"></vf-window>
+      <vf-window id="doc" heading="Doc" movable width="300" height="200" top="250" left="20"></vf-window>
+    </vf-desktop>`
+  const ringState = (page) =>
+    page.evaluate(() => {
+      const area = document
+        .getElementById('ring')
+        .shadowRoot.querySelector('vf-scroll-area')
+      const rail = area.shadowRoot.querySelector('.vf-rail--horizontal')
+      const viewport = area.shadowRoot.querySelector('.viewport')
+      return {
+        degenerate: rail.getAttribute('data-degenerate'),
+        overflowX: viewport.getAttribute('data-overflow-x'),
+        arrowsDrawn:
+          getComputedStyle(rail.querySelector('.vf-rail-button--decrement'))
+            .display !== 'none',
+        thumb: rail.querySelector('.vf-rail-thumb').style.translate,
+        first: document.querySelector('#d > vf-window').id,
+      }
+    })
+  // The sync is a 0 ms task after the raise: flush it, then give the shown
+  // box's ResizeObserver its frame.
+  const settleRaise = async (page) => {
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 30)))
+    await page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    )
+  }
+  const scrollRing = (page, x) =>
+    page.evaluate((x) => {
+      const area = document
+        .getElementById('ring')
+        .shadowRoot.querySelector('vf-scroll-area')
+      area.shadowRoot.querySelector('.viewport').scrollLeft = x
+    }, x)
+
+  // (a) Hidden with a row that fits, shown and raised in one tick (a
+  // windoid's first open): the rail measured degenerate while hidden and
+  // must clear on the show, arrows and all, with nothing else re-rendering.
+  {
+    const page = await build(
+      desktop('display:none', '<div style="height:8px;width:100px"></div>'),
+      1
+    )
+    await page.evaluate(() => {
+      const ring = document.getElementById('ring')
+      ring.style.display = ''
+      document.getElementById('d').bringToFront(ring)
+    })
+    await settleRaise(page)
+    const s = await ringState(page)
+    check(
+      'raise moved the shown window (fixture premise)',
+      s.first !== 'ring',
+      `first in DOM: ${s.first}`
+    )
+    check(
+      'shown after a raise: degenerate state cleared, arrows drawn',
+      s.degenerate === null && s.arrowsDrawn && s.overflowX === 'false',
+      JSON.stringify(s)
+    )
+    await page.close()
+  }
+
+  // (b) Visible and overflowing, raised: the overflow state never changes,
+  // and the thumb must still follow scroll writes after the move.
+  {
+    const page = await build(
+      desktop('', '<div style="height:8px;width:900px"></div>'),
+      1
+    )
+    const before = await ringState(page)
+    await page.evaluate(() =>
+      document.getElementById('d').bringToFront(document.getElementById('ring'))
+    )
+    await settleRaise(page)
+    const moved = await ringState(page)
+    check(
+      'raise moved the visible window, overflow unchanged (fixture premise)',
+      moved.first !== 'ring' &&
+        before.overflowX === 'true' &&
+        moved.overflowX === 'true',
+      `first: ${moved.first}, overflow ${before.overflowX} -> ${moved.overflowX}`
+    )
+    await scrollRing(page, 300)
+    await page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    )
+    const scrolled = await ringState(page)
+    check(
+      'thumb follows scrollLeft after the move',
+      scrolled.thumb !== '' && scrolled.thumb !== moved.thumb,
+      `${moved.thumb} -> ${scrolled.thumb}`
+    )
+    await page.close()
+  }
+}
+
+/* ── 3e. content growth: the scrolled plane sizes to its content ────────── */
+{
+  console.log('\ncontent growth (dpr 1)')
+  // The wrapper the slot renders into is `width: fit-content; min-width:
+  // 100%`: never narrower than the viewport, and as wide as content that
+  // cannot wrap, so the controllers' ResizeObserver on it sees horizontal
+  // growth the way it always saw vertical (a block wrapper's auto width is
+  // the viewport's whatever the row does). Copy still wraps: fit-content is
+  // the shrink-to-fit width, not max-content.
+  const tile = '<div style="width:64px;height:64px;flex:none;background:#000"></div>'
+  const row = (count) => `<div id="row" style="display:flex">${tile.repeat(count)}</div>`
+  const area = (inner) =>
+    `<vf-scroll-area id="sa" axis="horizontal" flush style="position:absolute;top:0;left:0;width:240px;height:120px">${inner}</vf-scroll-area>`
+  const frames = (page) =>
+    page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    )
+  const state = (page) =>
+    page.evaluate(() => {
+      const root = document.getElementById('sa').shadowRoot
+      const viewport = root.querySelector('.viewport')
+      return {
+        plane: root.querySelector('.content').getBoundingClientRect().width,
+        clientWidth: viewport.clientWidth,
+        scrollWidth: viewport.scrollWidth,
+        overflowX: viewport.getAttribute('data-overflow-x'),
+        thumb: root.querySelector('.vf-rail-thumb').style.translate,
+      }
+    })
+  const addTile = (page) =>
+    page.evaluate(() => {
+      const t = document.createElement('div')
+      t.style.cssText = 'width:64px;height:64px;flex:none;background:#000'
+      document.getElementById('row').append(t)
+    })
+  const scrollTo = (page, x) =>
+    page.evaluate((x) => {
+      document.getElementById('sa').shadowRoot.querySelector('.viewport').scrollLeft = x
+    }, x)
+
+  // A row growing while scrolled: the thumb moves with no scroll, no resize.
+  {
+    const page = await build(area(row(12)), 1)
+    await scrollTo(page, 200)
+    await frames(page)
+    const before = await state(page)
+    await addTile(page)
+    await frames(page)
+    const after = await state(page)
+    check(
+      'the scrolled plane is as wide as the row',
+      Math.abs(before.plane - before.scrollWidth) < 1 &&
+        Math.abs(after.plane - after.scrollWidth) < 1,
+      `${before.plane}/${before.scrollWidth} -> ${after.plane}/${after.scrollWidth}`
+    )
+    check(
+      'a wider row moves the thumb with no scroll and no resize',
+      after.thumb !== before.thumb,
+      `${before.thumb} -> ${after.thumb}`
+    )
+    await page.close()
+  }
+
+  // A row that outgrows the viewport flips the idle rail live.
+  {
+    const page = await build(area(row(3)), 1)
+    const idle = await state(page)
+    await addTile(page)
+    await frames(page)
+    const live = await state(page)
+    check(
+      'idle rail goes live when the row outgrows the viewport',
+      idle.overflowX === 'false' && live.overflowX === 'true',
+      `${idle.overflowX} -> ${live.overflowX} (${live.scrollWidth} > ${live.clientWidth})`
+    )
+    await page.close()
+  }
+
+  // Copy still wraps: the plane stays the viewport's width and the
+  // paragraph keeps its wrapped height.
+  {
+    const copy =
+      '<vf-paragraph>' +
+      'The quick brown fox jumps over the lazy dog. '.repeat(12) +
+      '</vf-paragraph>'
+    const page = await build(area(copy), 1)
+    const s = await state(page)
+    const p = await page.evaluate(() => {
+      const r = document.querySelector('vf-paragraph').getBoundingClientRect()
+      return { w: r.width, h: r.height }
+    })
+    check(
+      'copy wraps: the plane stays the viewport width',
+      Math.abs(s.plane - s.clientWidth) < 1 && p.w === s.clientWidth && p.h > 3 * 12,
+      `plane ${s.plane}, viewport ${s.clientWidth}, paragraph ${p.w}×${p.h}`
+    )
+    await page.close()
+  }
+
+  // The row nested in an auto-width wrapper: intrinsic width propagates up,
+  // which an observer on the slotted elements alone could never see.
+  {
+    const page = await build(area(`<div>${row(12)}</div>`), 1)
+    await scrollTo(page, 200)
+    await frames(page)
+    const before = await state(page)
+    await addTile(page)
+    await frames(page)
+    const after = await state(page)
+    check(
+      'a row nested in an auto-width wrapper still moves the thumb',
+      after.thumb !== before.thumb,
+      `${before.thumb} -> ${after.thumb}`
+    )
+    await page.close()
+  }
+
+  // A sticky child's containing block is the whole plane: it holds at the
+  // viewport's left edge across the scroll (a controls strip over a row).
+  {
+    const strip =
+      '<div id="strip" style="position:sticky;left:0;width:100px;height:12px;background:#000"></div>'
+    const page = await build(area(strip + row(12)), 1)
+    await scrollTo(page, 300)
+    await frames(page)
+    const r = await page.evaluate(() => ({
+      strip: document.getElementById('strip').getBoundingClientRect().left,
+      viewport: document
+        .getElementById('sa')
+        .shadowRoot.querySelector('.viewport')
+        .getBoundingClientRect().left,
+    }))
+    check(
+      'a sticky child holds at the viewport edge while the row scrolls',
+      Math.abs(r.strip - r.viewport) < 2,
+      `${r.strip} vs ${r.viewport}`
+    )
+    await page.close()
+  }
+
+  // measure(): a scroll-range change that moves no box — a placed child
+  // moved out of view through `left` — is the consumer's to report.
+  {
+    const page = await build(
+      area('<vf-container id="c" top="0" left="0" width="64" height="64"></vf-container>'),
+      1
+    )
+    const idle = await state(page)
+    await page.evaluate(() => {
+      document.getElementById('c').left = 600
+    })
+    await page.evaluate(() => document.getElementById('c').updateComplete)
+    await frames(page)
+    const moved = await state(page)
+    await page.evaluate(() => document.getElementById('sa').measure())
+    const measured = await state(page)
+    check(
+      'measure() picks up a placed child moved out of view',
+      idle.overflowX === 'false' && measured.overflowX === 'true',
+      `${idle.overflowX} -> ${moved.overflowX} (before measure) -> ${measured.overflowX}`
+    )
+    await page.close()
+  }
 }
 
 /* ── 4. interactions (dpr 1, trusted input) ─────────────────────────────── */

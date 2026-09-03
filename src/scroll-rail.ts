@@ -130,6 +130,20 @@ export class ScrollRailController implements ReactiveController {
     host.addController(this)
   }
 
+  /**
+   * Wire on connect as well as on update. A host the desktop re-inserts (its
+   * DOM-order sync moves a raised window, src/components/vf-desktop.ts) is
+   * disconnected and reconnected with no update scheduled — Lit's
+   * `enableUpdating` is a no-op after the first — so `hostUpdated` alone
+   * left the rail with no scroll listener, no observers, and whatever
+   * degenerate state it wrote while hidden. Both calls no-op before the
+   * first render, when the scroller query is still null.
+   */
+  hostConnected(): void {
+    this.wire()
+    this.sync()
+  }
+
   hostUpdated(): void {
     this.wire()
     this.sync()

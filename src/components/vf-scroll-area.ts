@@ -34,6 +34,12 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
  * viewport insets its content 8px; {@link flush} drops that inset so content
  * runs to the frame and the rails.
  *
+ * The scrolled plane sizes to its content — never narrower than the
+ * viewport, as wide as content that cannot wrap — so the rails follow a row
+ * that grows sideways the way they follow copy that grows down, and a
+ * `slotchange` re-measures. {@link measure} covers a scroll range that
+ * changes with no box changing (a placed child moved through `top`/`left`).
+ *
  * @slot - Scrollable content.
  * @csspart viewport - The inner scrolling container.
  * @cssprop --vf-scrollbar-thumb - scrollbar thumb/elevator (white)
@@ -114,6 +120,23 @@ export class VfScrollArea extends VfPositioned(LitElement) {
    */
   override focus(options?: FocusOptions): void {
     this.viewport?.focus(options)
+  }
+
+  /**
+   * Re-measure overflow and re-sync the rails. The area tracks its content's
+   * box and its slot by itself; call this for a scroll range that changes
+   * with no box changing anywhere — a placed child moved through
+   * `top`/`left`, a transform — the way the kit's own fields re-measure on
+   * input.
+   */
+  measure(): void {
+    this.scrollState.measure()
+    this.rail.sync()
+  }
+
+  /** Content added or removed under the fixed box — re-measure. */
+  private _onSlotChange(): void {
+    this.measure()
   }
 
   static override styles = [
@@ -198,9 +221,23 @@ export class VfScrollArea extends VfPositioned(LitElement) {
          rides the scroll, so positioned children travel with the content —
          anchored to .box they would hang fixed over the rail while the plane
          moved beneath them. Inside the viewport's 8px padding, so (0,0) is
-         where flow content starts. */
+         where flow content starts.
+
+         Sized to its content: never narrower than the viewport, and as wide
+         as content that cannot wrap. A block's auto width is the viewport's
+         whatever the row inside does, so the controllers' ResizeObserver on
+         this box never saw horizontal growth — a row gaining a cell left the
+         thumb and the overflow state stale until something else re-measured.
+         fit-content is the shrink-to-fit width, not max-content: copy wraps
+         exactly as before, and only unwrappable width (a nowrap row, a
+         fixed-width box, a wide image) grows the plane — precisely the
+         content that overflows sideways. It also makes this box the
+         containing block of a sticky child, so a sticky left: 0 strip holds
+         across the scroll. */
       .content {
         position: relative;
+        width: fit-content;
+        min-width: 100%;
       }
       /* Focusable so keyboard users can scroll; inset ring to stay in-box. */
       .viewport:focus-visible {
@@ -228,7 +265,9 @@ export class VfScrollArea extends VfPositioned(LitElement) {
           role=${this.label ? 'region' : this._scrollable ? 'group' : nothing}
           aria-label=${this.label || nothing}
         >
-          <div class="content"><slot></slot></div>
+          <div class="content">
+            <slot @slotchange=${this._onSlotChange}></slot>
+          </div>
         </div>
         ${vertical ? renderScrollRail(this.rail, 'vertical') : nothing}
         ${horizontal ? renderScrollRail(this.rail, 'horizontal') : nothing}

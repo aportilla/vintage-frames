@@ -276,7 +276,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="A single-axis rail on a resizable window stops at the corner cell, and flush runs the content to the frame: 32px cells fill a 67px window exactly. Drag the grow box."
+            data-caption="A single-axis rail on a resizable window stops at the corner cell, and flush runs the content to the frame: 32px cells fill a 67px window exactly. min-height and max-height hold the height there, so the grow box changes the width alone."
           >
             <vf-desktop width="512" height="99">
               <vf-window
@@ -287,6 +287,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 flush
                 width="272"
                 height="67"
+                min-height="67"
+                max-height="67"
                 left="16"
                 top="16"
               >
@@ -319,7 +321,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">The left close box</td></tr>
               <tr><td><code>zoomable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The right zoom box</td></tr>
               <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag the title bar to move; the drag writes <code>top</code>/<code>left</code> in system px</td></tr>
-              <tr><td><code>resizable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The 15×15 grow box, bottom right; writes <code>width</code>/<code>height</code> and fires <code>vf-resize</code></td></tr>
+              <tr><td><code>resizable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The 15×15 grow box, bottom right; writes <code>width</code>/<code>height</code> within the size rect below and fires <code>vf-resize</code></td></tr>
+              <tr><td><code>min-width</code>, <code>min-height</code></td><td>number</td><td><code>80</code>, <code>54</code></td><td class="wrap">Whole system px. The narrowest and shortest the grow box will make the window. Properties are <code>minWidth</code> / <code>minHeight</code></td></tr>
+              <tr><td><code>max-width</code>, <code>max-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. The widest and tallest. Equal to the min, an axis is locked and the grow box changes the other alone. Bounds the gesture only: a size authored outside the rect renders as declared. Properties are <code>maxWidth</code> / <code>maxHeight</code></td></tr>
               <tr><td><code>flush</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Removes the 12px body padding. Under <code>scrollbars</code>, removes the built-in viewport's 8px inset instead, so content runs to the frame and the rails</td></tr>
               <tr><td><code>variant</code></td><td class="wrap"><code>'utility'</code></td><td>—</td><td class="wrap">The windoid: 12px bar with a dot dither instead of racing stripes, 7×7 widgets, no title patch. Floats above document windows inside a <code>vf-desktop</code></td></tr>
               <tr><td><code>scrollbars</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td>—</td><td class="wrap">Rails on the window's edge. The body padding goes; the viewport keeps an 8px inset unless <code>flush</code>. A <code>resizable</code> window's grow box lands in the corner cell, reserved on a single-axis rail too; with a status strip the grow box sits in the strip and the rail runs edge to edge</td></tr>

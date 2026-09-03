@@ -613,6 +613,162 @@ for (const dpr of [1, 2, 3]) {
   await page.close()
 }
 
+/* ── 3c. single-axis corner cell + flush passthrough (dpr 1) ────────────── */
+{
+  const n = devicePxPerSystemPxAt(1)
+  console.log('\nsingle-axis corner + flush (dpr 1)')
+  const WIDE = '<div style="height:8px;width:900px"></div>'
+  const page = await build(
+    `<vf-window id="h" heading="Strip" scrollbars="horizontal" resizable flush width="240" height="120" style="position:absolute;top:0;left:0">
+       ${WIDE}
+     </vf-window>
+     <vf-window id="v" heading="Column" scrollbars="vertical" resizable width="240" height="120" style="position:absolute;top:0;left:260px">
+       ${TALL}
+     </vf-window>
+     <vf-window id="s" heading="Status" scrollbars="horizontal" resizable width="240" height="120" style="position:absolute;top:140px;left:0">
+       ${WIDE}
+       <span slot="status">40px x 40px</span>
+     </vf-window>
+     <vf-window id="fixed" heading="Fixed" scrollbars="horizontal" width="240" height="120" style="position:absolute;top:140px;left:260px">
+       ${WIDE}
+     </vf-window>
+     <vf-scroll-area id="bare" axis="horizontal" flush style="position:absolute;top:280px;left:0;${sysSize}">
+       ${WIDE}
+     </vf-scroll-area>
+     <vf-scroll-area id="inset" axis="horizontal" style="position:absolute;top:280px;left:260px;${sysSize}">
+       ${WIDE}
+     </vf-scroll-area>`,
+    1
+  )
+
+  const geo = await page.evaluate(() => {
+    const rect = (el) => {
+      const r = el.getBoundingClientRect()
+      return [r.left, r.top, r.width, r.height]
+    }
+    const areaOf = (id) => {
+      const host = document.getElementById(id)
+      return host.tagName === 'VF-SCROLL-AREA'
+        ? host
+        : host.shadowRoot.querySelector('vf-scroll-area')
+    }
+    const read = (id) => {
+      const host = document.getElementById(id)
+      const area = areaOf(id)
+      const root = area.shadowRoot
+      const corner = root.querySelector('.vf-rail-corner')
+      const rail = root.querySelector('.vf-rail')
+      const viewport = root.querySelector('[part=viewport]')
+      const grow = host.shadowRoot?.querySelector('[part=grow-box]')
+      const status = host.shadowRoot?.querySelector('[part=status-bar]')
+      const content = host.firstElementChild
+      return {
+        area: rect(area),
+        corner: corner ? rect(corner) : null,
+        rail: rect(rail),
+        grow: grow ? rect(grow) : null,
+        status: status ? rect(status) : null,
+        content: rect(content),
+        padding: getComputedStyle(viewport).paddingLeft,
+        cornerFlag: area.hasAttribute('corner'),
+        flushFlag: area.hasAttribute('flush'),
+      }
+    }
+    return {
+      h: read('h'),
+      v: read('v'),
+      s: read('s'),
+      fixed: read('fixed'),
+      bare: read('bare'),
+      inset: read('inset'),
+    }
+  })
+  const same = (a, b) => a && b && a.every((v, i) => Math.abs(v - b[i]) < 0.6)
+  const eq = (a, b) => Math.abs(a - b) < 0.6
+
+  // Horizontal rail + grow box: the corner cell is reserved, the grow box sits
+  // exactly over it, and the rail stops 15px short of the frame's inner edge.
+  const h = geo.h
+  check(
+    'horizontal rail: a resizable window reserves the corner cell',
+    h.cornerFlag && h.corner !== null && same(h.corner, h.grow),
+    JSON.stringify({ corner: h.corner, grow: h.grow })
+  )
+  check(
+    'horizontal rail stops at the corner cell',
+    h.corner !== null &&
+      eq(h.rail[0] + h.rail[2], h.corner[0]) &&
+      eq(h.corner[0] + h.corner[2], h.area[0] + h.area[2] - n),
+    JSON.stringify({ rail: h.rail, corner: h.corner, area: h.area })
+  )
+  // Vertical rail: the same cell, under the rail's down arrow.
+  const v = geo.v
+  check(
+    'vertical rail: a resizable window reserves the corner cell',
+    v.cornerFlag && v.corner !== null && same(v.corner, v.grow),
+    JSON.stringify({ corner: v.corner, grow: v.grow })
+  )
+  check(
+    'vertical rail stops at the corner cell',
+    v.corner !== null &&
+      eq(v.rail[1] + v.rail[3], v.corner[1]) &&
+      eq(v.corner[1] + v.corner[3], v.area[1] + v.area[3] - n),
+    JSON.stringify({ rail: v.rail, corner: v.corner, area: v.area })
+  )
+  // With a status strip the grow box lives in the strip: no corner, and the
+  // rail runs edge to edge onto the strip's rule.
+  const s = geo.s
+  check(
+    'status strip: no corner cell, the rail runs edge to edge',
+    !s.cornerFlag &&
+      s.corner === null &&
+      eq(s.rail[0] + s.rail[2], s.area[0] + s.area[2] - n) &&
+      s.grow[1] >= s.status[1] - 0.6,
+    JSON.stringify({ rail: s.rail, area: s.area, grow: s.grow, status: s.status })
+  )
+  check(
+    'a fixed window reserves no corner',
+    !geo.fixed.cornerFlag && geo.fixed.corner === null,
+    JSON.stringify(geo.fixed.corner)
+  )
+
+  // flush passes through: the viewport's inset is the border-floor term alone
+  // (0 at a whole scale), so content starts at the frame's inner edge — one
+  // system px from the window's frame box.
+  check(
+    'flush passes through to the built-in viewport',
+    h.flushFlag && h.padding === '0px' && eq(h.content[0], h.area[0] + n),
+    JSON.stringify({ padding: h.padding, content: h.content, area: h.area })
+  )
+  check(
+    'without flush the viewport keeps its 8px inset',
+    !geo.s.flushFlag &&
+      geo.s.padding === `${8 * n}px` &&
+      eq(geo.s.content[0], geo.s.area[0] + 9 * n),
+    JSON.stringify({ padding: geo.s.padding })
+  )
+  check(
+    'a bare flush scroll area drops its inset too',
+    geo.bare.padding === '0px' &&
+      eq(geo.bare.content[0], geo.bare.area[0] + n) &&
+      geo.inset.padding === `${8 * n}px`,
+    JSON.stringify({ bare: geo.bare.padding, inset: geo.inset.padding })
+  )
+  check(
+    'a bare single-axis scroll area reserves no corner',
+    geo.bare.corner === null && geo.inset.corner === null
+  )
+
+  // The corner cell and the rail beside it are 1-bit like the rest.
+  const strip = decodePng(await page.locator('#h').screenshot())
+  check(
+    'single-axis rail and corner are 1-bit',
+    impureIn(strip, 2 * n, (120 - 16) * n, (240 - 1) * n, (120 - 1) * n) === 0,
+    'bottom rail band incl. the corner'
+  )
+  await page.close()
+}
+
 /* ── 4. interactions (dpr 1, trusted input) ─────────────────────────────── */
 {
   console.log('\ninteractions (dpr 1)')

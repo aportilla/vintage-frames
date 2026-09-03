@@ -98,7 +98,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 left="16"
                 top="16"
               >
-                <vf-paragraph>Drag my title bar. Drag the grow box.</vf-paragraph>
+                <vf-stack fill-width pad="12">
+                  <vf-paragraph fill-width>Drag my title bar. Drag the grow box.</vf-paragraph>
+                </vf-stack>
                 <span slot="status" data-size-readout>192px x 100px</span>
               </vf-window>
               <vf-window
@@ -109,13 +111,14 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 left="128"
                 top="96"
               >
-                <vf-paragraph>Click me to come forward.</vf-paragraph>
+                <vf-stack fill-width pad="12">
+                  <vf-paragraph fill-width>Click me to come forward.</vf-paragraph>
+                </vf-stack>
               </vf-window>
               <vf-window
                 variant="utility"
                 heading="Tools"
                 movable
-                flush
                 width="82"
                 height="94"
                 left="352"
@@ -155,7 +158,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 left="32"
                 top="48"
               >
-                <vf-paragraph>The bezel is in front.</vf-paragraph>
+                <vf-stack fill-width pad="12">
+                  <vf-paragraph fill-width>The bezel is in front.</vf-paragraph>
+                </vf-stack>
               </vf-window>
             </vf-desktop>
           </template>
@@ -167,7 +172,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           >
             <vf-desktop width="300" height="132" pattern="bricks">
               <vf-window heading="General Controls" width="180" height="72" left="24" top="24">
-                <vf-paragraph>pattern="bricks"</vf-paragraph>
+                <vf-stack fill-width pad="12">
+                  <vf-paragraph fill-width>pattern="bricks"</vf-paragraph>
+                </vf-stack>
               </vf-window>
             </vf-desktop>
           </template>
@@ -239,12 +246,14 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 left="16"
                 top="16"
               >
-                <vf-paragraph>DragThing 2.9 — read me before installing.</vf-paragraph>
-                <vf-paragraph>
-                  The rails sit on the window's own frame rather than inset in
-                  its body, and the grow box sits in the corner cell between
-                  them.
-                </vf-paragraph>
+                <vf-stack fill-width pad="8">
+                  <vf-paragraph fill-width>DragThing 2.9 — read me before installing.</vf-paragraph>
+                  <vf-paragraph fill-width>
+                    The rails sit on the window's own frame rather than inset in
+                    its body, and the grow box sits in the corner cell between
+                    them. The margin around this text is the stack's own pad.
+                  </vf-paragraph>
+                </vf-stack>
               </vf-window>
               <vf-window
                 heading="Find"
@@ -255,8 +264,10 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 left="288"
                 top="48"
               >
-                <vf-label for="ex-find">Find:</vf-label>
-                <vf-text-field id="ex-find" value="System" style="width: 100%"></vf-text-field>
+                <vf-stack fill-width pad="12" gap="4">
+                  <vf-label for="ex-find">Find:</vf-label>
+                  <vf-text-field fill-width id="ex-find" value="System"></vf-text-field>
+                </vf-stack>
               </vf-window>
               <vf-window
                 variant="utility"
@@ -267,7 +278,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 left="288"
                 top="192"
               >
-                <vf-paragraph>A windoid: 12px bar, dot dither, 7×7 widgets.</vf-paragraph>
+                <vf-stack fill-width pad="12">
+                  <vf-paragraph fill-width>A windoid: 12px bar, dot dither, 7×7 widgets.</vf-paragraph>
+                </vf-stack>
               </vf-window>
               <vf-button data-reopen="#ex-window-doc" left="16" top="224">Reopen</vf-button>
             </vf-desktop>
@@ -276,7 +289,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="A single-axis rail on a resizable window stops at the corner cell, and flush runs the content to the frame: 32px cells fill a 67px window exactly. min-height and max-height hold the height there, so the grow box changes the width alone."
+            data-caption="A single-axis rail on a resizable window stops at the corner cell, and the content runs to the frame: 32px cells fill a 67px window exactly. min-height and max-height hold the height there, so the grow box changes the width alone."
           >
             <vf-desktop width="512" height="99">
               <vf-window
@@ -284,7 +297,6 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 movable
                 resizable
                 scrollbars="horizontal"
-                flush
                 width="272"
                 height="67"
                 min-height="67"
@@ -324,9 +336,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>resizable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The 15×15 grow box, bottom right; writes <code>width</code>/<code>height</code> within the size rect below and fires <code>vf-resize</code></td></tr>
               <tr><td><code>min-width</code>, <code>min-height</code></td><td>number</td><td><code>80</code>, <code>54</code></td><td class="wrap">Whole system px. The narrowest and shortest the grow box will make the window. Properties are <code>minWidth</code> / <code>minHeight</code></td></tr>
               <tr><td><code>max-width</code>, <code>max-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. The widest and tallest. Equal to the min, an axis is locked and the grow box changes the other alone. Bounds the gesture only: a size authored outside the rect renders as declared. Properties are <code>maxWidth</code> / <code>maxHeight</code></td></tr>
-              <tr><td><code>flush</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Removes the 12px body padding. Under <code>scrollbars</code>, removes the built-in viewport's 8px inset instead, so content runs to the frame and the rails</td></tr>
               <tr><td><code>variant</code></td><td class="wrap"><code>'utility'</code></td><td>—</td><td class="wrap">The windoid: 12px bar with a dot dither instead of racing stripes, 7×7 widgets, no title patch. Floats above document windows inside a <code>vf-desktop</code></td></tr>
-              <tr><td><code>scrollbars</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td>—</td><td class="wrap">Rails on the window's edge. The body padding goes; the viewport keeps an 8px inset unless <code>flush</code>. A <code>resizable</code> window's grow box lands in the corner cell, reserved on a single-axis rail too; with a status strip the grow box sits in the strip and the rail runs edge to edge</td></tr>
+              <tr><td><code>scrollbars</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td>—</td><td class="wrap">Rails on the window's edge; content runs to the frame and the rails. A <code>resizable</code> window's grow box lands in the corner cell, reserved on a single-axis rail too; with a status strip the grow box sits in the strip and the rail runs edge to edge</td></tr>
             </tbody>
           </table>
 
@@ -334,7 +345,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <caption>Anatomy</caption>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
-              <tr><td>Slot</td><td>(default)</td><td class="wrap">Body content</td></tr>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap">Body content. Starts at the content region's corner, where a placed child's (0,0) is; the body adds no inset, so an inset is the content's own, such as a <code>vf-stack pad</code></td></tr>
               <tr><td>Slot</td><td><code>status</code></td><td class="wrap">The bottom status strip: a 1px rule over a 15px white band, body-face text on its native line, the grow box flush in its right end. Takes no space until populated</td></tr>
               <tr><td>Role</td><td><code>group</code></td><td class="wrap">Named by its <code>heading</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap">The close box was clicked. The window does <strong>not</strong> remove itself — the consumer decides</td></tr>
@@ -1192,9 +1203,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
 
           <template data-example data-caption="axis='both' reserves both rails; the horizontal one here has nothing to scroll, so it stays an empty channel.">
             <vf-scroll-area axis="both" label="Release notes" style="width: 16em; height: 9em">
-              <vf-paragraph>System 7.0 introduced virtual memory, file sharing, aliases, TrueType fonts and the Application menu.</vf-paragraph>
-              <vf-paragraph>It also replaced the MultiFinder switch with permanent multitasking.</vf-paragraph>
-              <vf-paragraph>Scroll me.</vf-paragraph>
+              <vf-stack fill-width pad="8">
+                <vf-paragraph fill-width>System 7.0 introduced virtual memory, file sharing, aliases, TrueType fonts and the Application menu.</vf-paragraph>
+                <vf-paragraph fill-width>It also replaced the MultiFinder switch with permanent multitasking.</vf-paragraph>
+                <vf-paragraph fill-width>Scroll me.</vf-paragraph>
+              </vf-stack>
             </vf-scroll-area>
           </template>
 
@@ -1203,7 +1216,6 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>axis</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td><code>'vertical'</code></td><td class="wrap">Which rails to reserve. The unreserved axis stays on-demand</td></tr>
-              <tr><td><code>flush</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drops the viewport's 8px inset; content and placed children start at the frame's inner edge</td></tr>
               <tr><td><code>corner</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reserves the 15×15 corner cell beside a single rail, for a grow box to land in. <code>both</code> always has one</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for the focusable viewport. A non-empty value also promotes it to <code>role="region"</code>; the role is omitted while empty</td></tr>
               <tr><td><code>measure()</code></td><td>method</td><td>—</td><td class="wrap">Re-measures overflow and re-syncs the rails. Content growth and slot changes are tracked by themselves; call this for a scroll range that changes with no box changing, such as a placed child moved through <code>top</code>/<code>left</code></td></tr>
@@ -1433,7 +1445,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td><code>direction</code></td><td class="wrap"><code>'column' | 'row'</code></td><td><code>'column'</code></td><td class="wrap">A stack is vertical unless it says otherwise</td></tr>
               <tr><td><code>gap</code></td><td>number</td><td><code>0</code></td><td class="wrap">Whole system px between children</td></tr>
-              <tr><td><code>pad</code></td><td class="wrap">string | number</td><td>—</td><td class="wrap">Whole system px, one to four values in CSS shorthand order (<code>pad="12"</code>, <code>pad="10 12"</code>, <code>pad="14 12 10"</code>). Leave it off inside a <code>vf-window</code> body, which carries its own 12px inset</td></tr>
+              <tr><td><code>pad</code></td><td class="wrap">string | number</td><td>—</td><td class="wrap">Whole system px, one to four values in CSS shorthand order (<code>pad="12"</code>, <code>pad="10 12"</code>, <code>pad="14 12 10"</code>). The way to inset a <code>vf-window</code> or <code>vf-scroll-area</code>'s content, which carry no inset of their own</td></tr>
               <tr><td><code>place</code></td><td class="wrap"><code>'start' | 'center' | 'end'</code></td><td class="wrap">per direction</td><td class="wrap">Where the children sit across the stack. Unset resolves to <code>start</code> down a column and <code>center</code> across a row. There is no <code>justify</code>. Centering that would land on a half system px is stepped back onto a whole one, the half toward the start</td></tr>
               <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px; optional — the content otherwise decides. In a row, a declared width is what creates the slack a child's <code>fill-width</code> divides</td></tr>
               <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Bare attributes on a <em>child</em>: be as wide (tall) as this stack allows. <code>fill-width</code> always works in a column and needs a declared <code>width</code> in a row; <code>fill-height</code> is the reverse. A fill with nothing to take is inert; two children filling along the main axis come out equal. A stack also reads both about itself, for parents that aren't stacks</td></tr>

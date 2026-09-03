@@ -14,8 +14,8 @@
  *  - OVERRIDES: the stated offsets are the whole story — a consumer margin or
  *    right/bottom cannot shift or stretch a placed box.
  *  - ANCHORS: each kit container is a deliberate positioning parent — a
- *    window's content region (frame's inner edge, below the title bar — the
- *    12px inset governs flow content only, the DITL convention), a dialog's
+ *    window's content region (frame's inner edge, below the title bar, with
+ *    no inset of its own — the DITL convention), a dialog's
  *    content area, a stack's box, a fieldset's border interior, and a scroll
  *    area's *scrolled plane*, so a placed child travels with the content.
  *  - LIVE: the offsets are calc()s against --vf-scale, not resolved numbers,
@@ -260,8 +260,8 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
 
   // Window: (0,0) is the content region's corner — the frame's inner edge,
   // right below the title bar. The .body's padding box IS that corner (no
-  // border of its own), so the placed child sits exactly on it while the flow
-  // sibling is 12px further in.
+  // border, no inset of its own), so the placed child and the flow sibling
+  // both sit exactly on it.
   const body = await page.evaluate(() => {
     const r = document
       .getElementById('win')
@@ -276,9 +276,9 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
     `${(atorigin.x - body.x).toFixed(2)} / ${(atorigin.y - body.y).toFixed(2)} from .body`
   )
   check(
-    'anchors: …while the 12px inset still governs the flow sibling',
-    near(influx.x - body.x, 12 * DEVICE_PX_PER_SYSTEM_PX),
-    `${influx.x - body.x}px CSS`
+    'anchors: …and a flow sibling starts at that corner too (no inset)',
+    near(influx.x, body.x) && near(influx.y, body.y),
+    `${(influx.x - body.x).toFixed(2)} / ${(influx.y - body.y).toFixed(2)} from .body`
   )
 
   const [stack, instack] = await Promise.all([rect(page, 'stack'), rect(page, 'instack')])

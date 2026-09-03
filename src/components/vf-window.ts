@@ -299,17 +299,13 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         /* The positioning anchor for slotted children placed with top/left
            (src/position.ts): coordinates measure from the content region's
            corner — the frame's inner edge, below the title bar — exactly the
-           DITL convention. CSS anchors absolute children at the padding box,
-           so the 12px inset below governs flow content only. */
+           DITL convention. No inset of its own: the classic content region
+           had none, and flow content starts at the same corner a placed
+           child does. An inset is the content's (a vf-stack pad). */
         position: relative;
         flex: 1 1 auto;
         min-height: 0;
         overflow: hidden;
-        padding: calc(var(--vf-scale, 1) * 12px);
-      }
-      :host([flush]) .body,
-      :host([scrollbars]) .body {
-        padding: 0;
       }
       /* The edge-rail composition pulls the scroll area one system px OUT of
          the body on every side so its frame border repaints the window's
@@ -469,14 +465,6 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   @property({ type: Number, attribute: 'max-height' }) maxHeight?: number | null
 
   /**
-   * Remove the default 12px body padding. Under `scrollbars` the body has
-   * none to remove, so the flag reaches the built-in scroll area instead
-   * and drops its viewport's 8px inset: content runs to the frame and the
-   * rails, and the (0,0) of placed children is the content region's corner.
-   */
-  @property({ type: Boolean, reflect: true }) flush = false
-
-  /**
    * Put System 7 scroll rails on the window edge — the classic document
    * window. The body slot renders inside a built-in `vf-scroll-area` pulled
    * one system pixel under the frame on every side, so the rails repaint the
@@ -485,9 +473,9 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * a populated status strip holds the grow box, when the rail runs edge to
    * edge onto the strip's rule. Values mirror `vf-scroll-area`'s `axis`; the
    * `heading` names the scroll region; the viewport part is re-exported.
-   * The body's own padding goes; the viewport keeps its 8px inset unless
-   * `flush`, which passes through. The slotted composition (SPEC §5
-   * vf-scroll-area) still works for windows that want an inset well instead.
+   * Content runs to the frame and the rails; an inset is the content's own.
+   * The slotted composition (SPEC §5 vf-scroll-area) still works for a well
+   * placed inside the body.
    */
   @property({ reflect: true }) scrollbars?: 'vertical' | 'horizontal' | 'both'
 
@@ -829,7 +817,6 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
                 <vf-scroll-area
                   class="edge-scroll"
                   axis=${this.scrollbars}
-                  ?flush=${this.flush}
                   ?corner=${this.resizable && !this._hasStatus}
                   label=${this.heading || nothing}
                   exportparts="viewport"

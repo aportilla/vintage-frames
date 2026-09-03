@@ -30,9 +30,9 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
  * and {@link corner} reserves that cell on a single-axis rail too — the
  * rail stops 15px short of the frame, for a grow box to land in.
  *
- * Size the host (width/height) from the outside; the viewport fills it. The
- * viewport insets its content 8px; {@link flush} drops that inset so content
- * runs to the frame and the rails.
+ * Size the host (width/height) from the outside; the viewport fills it.
+ * Content runs to the frame and the rails — the area adds no inset of its
+ * own; an inset is the content's (a `vf-stack pad`).
  *
  * The scrolled plane sizes to its content — never narrower than the
  * viewport, as wide as content that cannot wrap — so the rails follow a row
@@ -61,14 +61,6 @@ export class VfScrollArea extends VfPositioned(LitElement) {
    */
   @property({ reflect: true }) axis: 'vertical' | 'horizontal' | 'both' =
     'vertical'
-
-  /**
-   * Drop the viewport's 8px inset: slotted content and the (0,0) of placed
-   * children sit at the frame's inner edge, one system px from the frame
-   * box (the border-floor compensation stays — see the viewport rule).
-   * `vf-window[scrollbars]` forwards its own `flush` here.
-   */
-  @property({ type: Boolean, reflect: true }) flush = false
 
   /**
    * Reserve the bottom-right corner cell on a single-axis rail: the rail
@@ -177,23 +169,15 @@ export class VfScrollArea extends VfPositioned(LitElement) {
            recipe (.vf-scroll) and the reservation is the rail element, not a
            native gutter. The unreserved axis still scrolls, railless.
 
-           8px inset plus border-floor compensation: engines floor the
-           fractional frame border to whole CSS px, and the mod() term is
-           exactly what they floored away — so slotted content (and the (0,0)
-           of placed children) sits exactly 9 system px from the frame box at
-           every scale, as it did under the borderless-scroller construction.
-           (mod is 0 at whole scales.) */
+           No inset of its own — only the border-floor compensation: engines
+           floor the fractional frame border to whole CSS px, and the mod()
+           term is exactly what they floored away, so slotted content (and
+           the (0,0) of placed children) sits exactly one system px from the
+           frame box at every scale (mod is 0 at whole scales). An inset is
+           the content's (a vf-stack pad). */
         overflow: auto;
         min-width: 0;
         min-height: 0;
-        padding: calc(
-          var(--vf-scale, 1) * 8px + mod(var(--vf-scale, 1) * 1px, 1px)
-        );
-      }
-      /* flush: the inset goes, the border-floor term stays — content and the
-         (0,0) of placed children sit at the frame's inner edge, exactly one
-         system px from the frame box at every scale. */
-      :host([flush]) .viewport {
         padding: mod(var(--vf-scale, 1) * 1px, 1px);
       }
       /* A single-axis rail with a reserved corner: the viewport spans the
@@ -220,8 +204,7 @@ export class VfScrollArea extends VfPositioned(LitElement) {
          (src/position.ts). It must be THIS wrapper and not .box: .content
          rides the scroll, so positioned children travel with the content —
          anchored to .box they would hang fixed over the rail while the plane
-         moved beneath them. Inside the viewport's 8px padding, so (0,0) is
-         where flow content starts.
+         moved beneath them. (0,0) is where flow content starts.
 
          Sized to its content: never narrower than the viewport, and as wide
          as content that cannot wrap. A block's auto width is the viewport's

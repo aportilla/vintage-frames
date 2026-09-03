@@ -624,13 +624,13 @@ for (const dpr of [1, 2, 3]) {
   await page.close()
 }
 
-/* ── 3c. single-axis corner cell + flush passthrough (dpr 1) ────────────── */
+/* ── 3c. single-axis corner cell + no inset (dpr 1) ─────────────────────── */
 {
   const n = devicePxPerSystemPxAt(1)
-  console.log('\nsingle-axis corner + flush (dpr 1)')
+  console.log('\nsingle-axis corner + no inset (dpr 1)')
   const WIDE = '<div style="height:8px;width:900px"></div>'
   const page = await build(
-    `<vf-window id="h" heading="Strip" scrollbars="horizontal" resizable flush width="240" height="120" style="position:absolute;top:0;left:0">
+    `<vf-window id="h" heading="Strip" scrollbars="horizontal" resizable width="240" height="120" style="position:absolute;top:0;left:0">
        ${WIDE}
      </vf-window>
      <vf-window id="v" heading="Column" scrollbars="vertical" resizable width="240" height="120" style="position:absolute;top:0;left:260px">
@@ -643,10 +643,7 @@ for (const dpr of [1, 2, 3]) {
      <vf-window id="fixed" heading="Fixed" scrollbars="horizontal" width="240" height="120" style="position:absolute;top:140px;left:260px">
        ${WIDE}
      </vf-window>
-     <vf-scroll-area id="bare" axis="horizontal" flush style="position:absolute;top:280px;left:0;${sysSize}">
-       ${WIDE}
-     </vf-scroll-area>
-     <vf-scroll-area id="inset" axis="horizontal" style="position:absolute;top:280px;left:260px;${sysSize}">
+     <vf-scroll-area id="bare" axis="horizontal" style="position:absolute;top:280px;left:0;${sysSize}">
        ${WIDE}
      </vf-scroll-area>`,
     1
@@ -682,7 +679,6 @@ for (const dpr of [1, 2, 3]) {
         content: rect(content),
         padding: getComputedStyle(viewport).paddingLeft,
         cornerFlag: area.hasAttribute('corner'),
-        flushFlag: area.hasAttribute('flush'),
       }
     }
     return {
@@ -691,7 +687,6 @@ for (const dpr of [1, 2, 3]) {
       s: read('s'),
       fixed: read('fixed'),
       bare: read('bare'),
-      inset: read('inset'),
     }
   })
   const same = (a, b) => a && b && a.every((v, i) => Math.abs(v - b[i]) < 0.6)
@@ -743,32 +738,25 @@ for (const dpr of [1, 2, 3]) {
     JSON.stringify(geo.fixed.corner)
   )
 
-  // flush passes through: the viewport's inset is the border-floor term alone
-  // (0 at a whole scale), so content starts at the frame's inner edge — one
-  // system px from the window's frame box.
+  // No inset: the viewport's padding is the border-floor term alone (0 at a
+  // whole scale), so content starts at the frame's inner edge — one system
+  // px from the window's frame box — in every composition.
   check(
-    'flush passes through to the built-in viewport',
-    h.flushFlag && h.padding === '0px' && eq(h.content[0], h.area[0] + n),
+    'the built-in viewport has no inset: content starts inside the frame',
+    h.padding === '0px' && eq(h.content[0], h.area[0] + n),
     JSON.stringify({ padding: h.padding, content: h.content, area: h.area })
   )
   check(
-    'without flush the viewport keeps its 8px inset',
-    !geo.s.flushFlag &&
-      geo.s.padding === `${8 * n}px` &&
-      eq(geo.s.content[0], geo.s.area[0] + 9 * n),
+    'the status-strip window has none either',
+    geo.s.padding === '0px' && eq(geo.s.content[0], geo.s.area[0] + n),
     JSON.stringify({ padding: geo.s.padding })
   )
   check(
-    'a bare flush scroll area drops its inset too',
-    geo.bare.padding === '0px' &&
-      eq(geo.bare.content[0], geo.bare.area[0] + n) &&
-      geo.inset.padding === `${8 * n}px`,
-    JSON.stringify({ bare: geo.bare.padding, inset: geo.inset.padding })
+    'a bare scroll area has no inset of its own',
+    geo.bare.padding === '0px' && eq(geo.bare.content[0], geo.bare.area[0] + n),
+    JSON.stringify({ padding: geo.bare.padding })
   )
-  check(
-    'a bare single-axis scroll area reserves no corner',
-    geo.bare.corner === null && geo.inset.corner === null
-  )
+  check('a bare single-axis scroll area reserves no corner', geo.bare.corner === null)
 
   // The corner cell and the rail beside it are 1-bit like the rest.
   const strip = decodePng(await page.locator('#h').screenshot())
@@ -791,7 +779,7 @@ for (const dpr of [1, 2, 3]) {
   // the area, whose hostUpdated re-wires the rail and masks the defect.
   const desktop = (ringStyle, content) => `
     <vf-desktop id="d" width="800" height="600">
-      <vf-window id="ring" variant="utility" movable resizable scrollbars="horizontal" flush
+      <vf-window id="ring" variant="utility" movable resizable scrollbars="horizontal"
                  width="240" height="120" top="20" left="20" style="${ringStyle}">${content}</vf-window>
       <vf-window id="tools" variant="utility" movable width="120" height="200" top="20" left="400"></vf-window>
       <vf-window id="doc" heading="Doc" movable width="300" height="200" top="250" left="20"></vf-window>
@@ -903,7 +891,7 @@ for (const dpr of [1, 2, 3]) {
   const tile = '<div style="width:64px;height:64px;flex:none;background:#000"></div>'
   const row = (count) => `<div id="row" style="display:flex">${tile.repeat(count)}</div>`
   const area = (inner) =>
-    `<vf-scroll-area id="sa" axis="horizontal" flush style="position:absolute;top:0;left:0;width:240px;height:120px">${inner}</vf-scroll-area>`
+    `<vf-scroll-area id="sa" axis="horizontal" style="position:absolute;top:0;left:0;width:240px;height:120px">${inner}</vf-scroll-area>`
   const frames = (page) =>
     page.evaluate(
       () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))

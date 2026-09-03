@@ -23,6 +23,11 @@
  *    so the grow box sits flush in its right end), body-face text on its
  *    native 12px line — and takes no space at all until the slot is
  *    populated, collapsing again when it empties.
+ *  - HEADER: the `header` slot renders a band between the title bar and the
+ *    body, the full width of the window, a white interior over a 1px rule;
+ *    as tall as its content plus the rule, or `header-height` (rule
+ *    included); no inset, a positioning anchor; no space until populated,
+ *    collapsing again when it empties.
  *  - WINDOID COMPOSITION: `variant="utility"` composes with `resizable` and
  *    the `status` slot — the windoid bar (11px interior + 1px rule) over a
  *    working grow box and the same 15px strip. The variant restyles the
@@ -405,6 +410,108 @@ const sizeOf = (page, id) =>
       .display
   })
   check('emptying the slot collapses the strip again', emptied === 'none', emptied)
+
+  await page.close()
+}
+
+/* ── HEADER ───────────────────────────────────────────────────────────────
+   The `header` slot: a band between the title bar and the body across the
+   whole window. dpr 1, scale 1: system px and CSS px coincide. */
+
+{
+  const page = await build(`
+    <div style="position:relative;width:900px;height:700px">
+      <vf-window id="bare" heading="Bare" top="10" left="10"
+                 width="240" height="176"></vf-window>
+      <vf-window id="auto" heading="Auto" top="10" left="300"
+                 width="240" height="176">
+        <div id="strip-content" slot="header" style="height:24px"></div>
+        <vf-button id="placed" slot="header" left="8" top="2">OK</vf-button>
+      </vf-window>
+      <vf-window id="stated" heading="Stated" top="200" left="10"
+                 width="240" height="176" header-height="20">
+        <span id="readout" slot="header">7 items</span>
+        <div id="flow"></div>
+      </vf-window>
+    </div>
+  `)
+
+  const geo = await page.evaluate(() => {
+    const measure = (id) => {
+      const root = document.getElementById(id).shadowRoot
+      const bar = root.querySelector('.vf-title-bar').getBoundingClientRect()
+      const body = root.querySelector('[part=body]').getBoundingClientRect()
+      const frame = root.querySelector('[part=frame]').getBoundingClientRect()
+      const strip = root.querySelector('[part=header]')
+      const style = getComputedStyle(strip)
+      const box = strip.getBoundingClientRect()
+      return {
+        display: style.display,
+        barBottomToBody: body.top - bar.bottom,
+        stripTop: box.top - bar.bottom,
+        stripHeight: box.height,
+        stripWidth: box.width,
+        frameInnerWidth: frame.width - 2,
+        stripBottomToBody: body.top - box.bottom,
+        ruleBottom: parseFloat(style.borderBottomWidth),
+        ruleTop: parseFloat(style.borderTopWidth),
+        padding: style.padding,
+        position: style.position,
+      }
+    }
+    const placed = document.getElementById('placed').getBoundingClientRect()
+    const strip = document
+      .getElementById('auto')
+      .shadowRoot.querySelector('[part=header]')
+      .getBoundingClientRect()
+    return {
+      bare: measure('bare'),
+      auto: measure('auto'),
+      stated: measure('stated'),
+      placed: { dx: placed.left - strip.left, dy: placed.top - strip.top },
+    }
+  })
+
+  check(
+    'no header content: the strip takes no space (body starts under the bar)',
+    geo.bare.display === 'none' && near(geo.bare.barBottomToBody, 0),
+    `display ${geo.bare.display}, body ${geo.bare.barBottomToBody}px under the bar`
+  )
+  check(
+    'populated: the strip sits between the title bar and the body, full width',
+    geo.auto.display !== 'none' &&
+      near(geo.auto.stripTop, 0) &&
+      near(geo.auto.stripBottomToBody, 0) &&
+      near(geo.auto.stripWidth, geo.auto.frameInnerWidth),
+    `strip ${geo.auto.stripTop}px under the bar, body ${geo.auto.stripBottomToBody}px under the strip, ${geo.auto.stripWidth} wide in a ${geo.auto.frameInnerWidth} frame`
+  )
+  check(
+    'unstated height: as tall as the content plus the 1px rule beneath',
+    near(geo.auto.stripHeight, 25) && geo.auto.ruleBottom === 1 && geo.auto.ruleTop === 0,
+    `${geo.auto.stripHeight}px, rule ${geo.auto.ruleTop}/${geo.auto.ruleBottom}`
+  )
+  check(
+    'header-height states the height, rule included',
+    near(geo.stated.stripHeight, 20) && geo.stated.ruleBottom === 1,
+    `${geo.stated.stripHeight}px`
+  )
+  check(
+    'no inset, and a positioning anchor: a placed child measures from the strip corner',
+    geo.auto.padding === '0px' &&
+      geo.auto.position === 'relative' &&
+      near(geo.placed.dx, 8) &&
+      near(geo.placed.dy, 2),
+    `padding ${geo.auto.padding}, ${geo.auto.position}, placed at ${geo.placed.dx} × ${geo.placed.dy}`
+  )
+
+  const emptied = await page.evaluate(async () => {
+    document.getElementById('readout').remove()
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const win = document.getElementById('stated')
+    await win.updateComplete
+    return getComputedStyle(win.shadowRoot.querySelector('[part=header]')).display
+  })
+  check('emptying the header slot collapses the strip again', emptied === 'none', emptied)
 
   await page.close()
 }

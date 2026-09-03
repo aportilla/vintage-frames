@@ -49,6 +49,13 @@
  *    wrapper still counts; a sticky child holds; and measure() picks up a
  *    scroll-range change that moves no box.
  *
+ * 9. FIXED CHILDREN (dpr 1 and 2): a `fixed` placement holds at its stated
+ *    top/left against the viewport on both axes, through vf-window's slot
+ *    into the built-in area too; the flow content behind it starts at the
+ *    plane's origin and the plane neither grows nor overflows for it; a
+ *    stated top past a short plane still lands (the plane is never shorter
+ *    than the viewport); and it paints over a later placed sibling.
+ *
  *   npm run dev               # in another shell (port 5173)
  *   npm run verify:scrollbars
  */
@@ -60,6 +67,7 @@ import {
   launch,
   makeBuild,
   report,
+  scaleAt,
   ax,
   axFor,
   axRole,
@@ -645,7 +653,11 @@ for (const dpr of [1, 2, 3]) {
      </vf-window>
      <vf-scroll-area id="bare" axis="horizontal" style="position:absolute;top:280px;left:0;${sysSize}">
        ${WIDE}
-     </vf-scroll-area>`,
+     </vf-scroll-area>
+     <vf-window id="c" heading="Header" scrollbars="vertical" resizable header-height="20" width="240" height="120" style="position:absolute;top:280px;left:260px">
+       <span slot="header">7 items</span>
+       ${TALL}
+     </vf-window>`,
     1
   )
 
@@ -669,13 +681,17 @@ for (const dpr of [1, 2, 3]) {
       const viewport = root.querySelector('[part=viewport]')
       const grow = host.shadowRoot?.querySelector('[part=grow-box]')
       const status = host.shadowRoot?.querySelector('[part=status-bar]')
-      const content = host.firstElementChild
+      const header = host.shadowRoot?.querySelector('[part=header]')
+      const frame = host.shadowRoot?.querySelector('[part=frame]')
+      const content = host.querySelector(':scope > :not([slot])') ?? host.firstElementChild
       return {
         area: rect(area),
         corner: corner ? rect(corner) : null,
         rail: rect(rail),
         grow: grow ? rect(grow) : null,
         status: status ? rect(status) : null,
+        header: header && getComputedStyle(header).display !== 'none' ? rect(header) : null,
+        frame: frame ? rect(frame) : null,
         content: rect(content),
         padding: getComputedStyle(viewport).paddingLeft,
         cornerFlag: area.hasAttribute('corner'),
@@ -687,6 +703,7 @@ for (const dpr of [1, 2, 3]) {
       s: read('s'),
       fixed: read('fixed'),
       bare: read('bare'),
+      c: read('c'),
     }
   })
   const same = (a, b) => a && b && a.every((v, i) => Math.abs(v - b[i]) < 0.6)
@@ -736,6 +753,26 @@ for (const dpr of [1, 2, 3]) {
     'a fixed window reserves no corner',
     !geo.fixed.cornerFlag && geo.fixed.corner === null,
     JSON.stringify(geo.fixed.corner)
+  )
+  // A header spans the whole window width above the rails: the area's top
+  // frame line lands on the header's rule (the 1px overhang), so the
+  // vertical rail's top arrow begins under the header, and the header runs
+  // across the rail's column to the frame's inner edge — the same column the
+  // rail ends on.
+  const c = geo.c
+  check(
+    'header: the vertical rail begins under the header',
+    c.header !== null &&
+      eq(c.header[3], 20 * n) &&
+      eq(c.area[1], c.header[1] + c.header[3] - n) &&
+      eq(c.rail[1], c.header[1] + c.header[3]) &&
+      eq(c.header[0] + c.header[2], c.rail[0] + c.rail[2]),
+    JSON.stringify({ header: c.header, rail: c.rail, area: c.area })
+  )
+  check(
+    'header: the grow box still lands in the corner cell',
+    c.cornerFlag && c.corner !== null && same(c.corner, c.grow),
+    JSON.stringify({ corner: c.corner, grow: c.grow })
   )
 
   // No inset: the viewport's padding is the border-floor term alone (0 at a
@@ -1041,6 +1078,163 @@ for (const dpr of [1, 2, 3]) {
       `${idle.overflowX} -> ${moved.overflowX} (before measure) -> ${measured.overflowX}`
     )
     await page.close()
+  }
+}
+
+/* ── 3f. fixed children: a placement held against the viewport ─────────── */
+{
+  console.log('\nfixed children (dpr 1, 2)')
+  // `fixed` (src/position.ts) is `position: sticky` with the placement's own
+  // offsets and the sticky box's flow footprint erased. What the plane owes
+  // it is `min-height: 100%`: a sticky box cannot leave its containing block,
+  // so a plane shorter than the viewport would clamp a stated top to the
+  // plane's bottom edge.
+  const frames = (page) =>
+    page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    )
+  const tall = '<div id="flow" style="height:1000px;background:#ddd"></div>'
+  const wide = '<div id="flow" style="height:1000px;width:1500px;background:#ddd"></div>'
+  const short = '<div id="flow" style="height:50px"></div>'
+  const s1 = '<vf-button id="s1" fixed top="10" left="10">Tool</vf-button>'
+  const s2 = '<vf-label id="s2" fixed top="40" left="150">Sticky label</vf-label>'
+  const over = '<vf-container id="over" top="10" left="10" width="100" height="30"></vf-container>'
+  const areaOf = (inner, attrs = '') =>
+    `<vf-scroll-area id="sa" ${attrs} style="width:300px;height:200px">${inner}</vf-scroll-area>`
+  const SA = `document.getElementById('sa')`
+  const WIN_SA = `document.getElementById('win').shadowRoot.querySelector('vf-scroll-area')`
+  /** Everything relative to the viewport's content origin (padding included). */
+  const measure = (page, saExpr = SA) =>
+    page.evaluate(`(() => {
+      const sa = ${saExpr}
+      const vp = sa.shadowRoot.querySelector('.viewport')
+      const plane = sa.shadowRoot.querySelector('.content').getBoundingClientRect()
+      const vr = vp.getBoundingClientRect()
+      const cs = getComputedStyle(vp)
+      const ox = vr.left + parseFloat(cs.paddingLeft)
+      const oy = vr.top + parseFloat(cs.paddingTop)
+      const rel = (id) => {
+        const e = document.getElementById(id)
+        if (!e) return null
+        const r = e.getBoundingClientRect()
+        return { x: r.left - ox, y: r.top - oy, w: r.width, h: r.height }
+      }
+      const hit = document.elementFromPoint(ox + 15, oy + 15)
+      return {
+        s1: rel('s1'), s2: rel('s2'), flow: rel('flow'),
+        planeW: plane.width, planeH: plane.height,
+        overflowY: vp.dataset.overflowY,
+        hit: hit && (hit.id || hit.tagName.toLowerCase()),
+      }
+    })()`)
+  const scrollTo = async (page, y, x = 0, saExpr = SA) => {
+    await page.evaluate(`(() => {
+      const vp = ${saExpr}.shadowRoot.querySelector('.viewport')
+      vp.scrollTop = ${y}; vp.scrollLeft = ${x}
+    })()`)
+    await frames(page)
+  }
+  const near = (a, b) => Math.abs(a - b) < 1 / 64 + 1e-6
+  const at = (r, x, y, k) => r && near(r.x, x * k) && near(r.y, y * k)
+  const fmt = (r) => (r ? `(${r.x},${r.y})` : 'missing')
+
+  for (const dpr of [1, 2]) {
+    const k = scaleAt(dpr)
+    const tag = `dpr ${dpr}:`
+
+    // Two fixed children over tall copy: both hold, the copy starts at the
+    // plane's origin, the plane is the copy's box and nothing else.
+    {
+      const page = await build(areaOf(s1 + s2 + tall), dpr)
+      let m = await measure(page)
+      check(
+        `${tag} two fixed children sit at their stated top/left`,
+        at(m.s1, 10, 10, k) && at(m.s2, 150, 40, k),
+        `${fmt(m.s1)} ${fmt(m.s2)}`
+      )
+      check(
+        `${tag} the flow content behind them starts at the plane origin`,
+        m.flow.x === 0 && m.flow.y === 0,
+        fmt(m.flow)
+      )
+      check(
+        `${tag} the plane is the flow content's box — no footprint, no growth`,
+        near(m.planeW, m.flow.w) && near(m.planeH, 1000),
+        `plane ${m.planeW}×${m.planeH}, flow ${m.flow.w}×${m.flow.h}`
+      )
+      await scrollTo(page, 300)
+      m = await measure(page)
+      check(
+        `${tag} …and hold there after a 300px scroll`,
+        at(m.s1, 10, 10, k) && at(m.s2, 150, 40, k) && near(m.flow.y, -300),
+        `${fmt(m.s1)} ${fmt(m.s2)} flow at ${m.flow.y}`
+      )
+      check(`${tag} a fixed child is what the pointer finds over it`, m.hit === 's1', String(m.hit))
+      await page.close()
+    }
+
+    // Both axes: a wide row grows the plane, the fixed child holds on X too.
+    {
+      const page = await build(areaOf(s1 + wide, 'axis="both"'), dpr)
+      await scrollTo(page, 300, 200)
+      const m = await measure(page)
+      check(
+        `${tag} holds on both axes over a plane the row grew`,
+        near(m.planeW, 1500) && at(m.s1, 10, 10, k) && near(m.flow.x, -200) && near(m.flow.y, -300),
+        `plane ${m.planeW}, s1 ${fmt(m.s1)}, flow ${fmt(m.flow)}`
+      )
+      await page.close()
+    }
+
+    // Short content: the stated top is past the content's height and still
+    // lands, and the plane's min-height adds no overflow.
+    {
+      const page = await build(
+        areaOf('<vf-button id="s1" fixed top="100" left="10">Tool</vf-button>' + short),
+        dpr
+      )
+      const m = await measure(page)
+      check(
+        `${tag} a stated top past a short plane still lands`,
+        at(m.s1, 10, 100, k),
+        fmt(m.s1)
+      )
+      check(
+        `${tag} …and the plane's viewport-height floor overflows nothing`,
+        m.overflowY === 'false',
+        `overflow-y ${m.overflowY}`
+      )
+      await page.close()
+    }
+
+    // Through vf-window[scrollbars]: the child crosses the window's slot into
+    // the built-in area and holds against its viewport.
+    {
+      const page = await build(
+        `<vf-window id="win" heading="Doc" width="300" height="200" scrollbars="vertical">${s1 + tall}</vf-window>`,
+        dpr
+      )
+      await scrollTo(page, 300, 0, WIN_SA)
+      const m = await measure(page, WIN_SA)
+      check(
+        `${tag} holds inside vf-window[scrollbars] too`,
+        at(m.s1, 10, 10, k) && near(m.flow.y, -300),
+        `${fmt(m.s1)} flow at ${m.flow.y}`
+      )
+      await page.close()
+    }
+
+    // Paint order: a later placed sibling over the same spot loses to it.
+    {
+      const page = await build(areaOf(s1 + over + tall), dpr)
+      const m = await measure(page)
+      check(
+        `${tag} paints over a later placed sibling`,
+        m.hit === 's1',
+        `pointer finds ${m.hit}`
+      )
+      await page.close()
+    }
   }
 }
 

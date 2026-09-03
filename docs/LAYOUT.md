@@ -70,6 +70,25 @@ The coordinates are written as a live `calc(var(--vf-scale, 1) * Npx)`, so a pla
 - **Read a moved element's position off the properties** (`win.left`), not `style.left` — the inline value is a live `calc()`, so `parseFloat` gives `NaN`. Coordinates land on the lattice a drag step uses: 1 system px on a 1× display, 2 on a 2× one. Nothing re-snaps a dropped coordinate afterwards.
 - **Non-movable costs nothing:** an element nobody asked to move takes no position, no tab stop and no role, and lays out in your flex row or grid like any other element.
 
+### `fixed`
+
+`fixed` holds a placement against the visible region of the nearest scrolling ancestor instead of its scrolled plane — a tool strip over a document, a header over rows. The element keeps its stated `top`/`left` while the content scrolls under it, and the flag alone places it at (0,0):
+
+```html
+<vf-window heading="Notes" width="300" height="200" scrollbars="vertical">
+  <vf-button-group fixed top="4" left="4">
+    <vf-button>Bold</vf-button>
+    <vf-button>Italic</vf-button>
+  </vf-button-group>
+  <vf-stack fill-width pad="12">…</vf-stack>
+</vf-window>
+```
+
+- **A fixed child comes before the flow content in its parent.** The engine underneath is `position: sticky`, which only ever pushes a box down from where the flow put it. The kit erases the box's footprint — blockified, shrink-wrapped, a 0×0 margin box — so the content after it lays out as if it weren't there. Placed siblings can come in any order.
+- **It paints over the plane's placed children** (`z-index: 1`), and never over the rails, which sit outside the viewport.
+- **Scrolling over it still scrolls the content.** The child is inside the viewport, not floating over it, so wheel, trackpad, touch and keyboard scrolling all pass through.
+- **Where nothing scrolls it renders exactly as placed.** A plain window body is a scroll container that never scrolls; outside any kit scroller it holds against CSS's nearest scroll container, the page included.
+
 `width` and `height`, also in whole system px, are the other half of the rectangle: `vf-window`, `vf-stack`, `vf-container`, `vf-label` and `vf-paragraph` take them as the `VfSized` mixin, and `vf-desktop`, `vf-dialog`, `vf-img`, `vf-swatch` and `vf-icon` declare their own size the same way. Everything else keeps the size it draws itself at.
 
 ```sh
@@ -90,7 +109,7 @@ The 1992 *Macintosh Human Interface Guidelines* names five standard windows. The
 
 Every recipe also declares `width` and `height` in system px; the three `movable` ones declare `top` and `left` as well. A window is a fixed box in both axes — content taller than the declared box is clipped at the frame, and `scrollbars` is how the user reaches the rest. A control's drop-open list still escapes the clip.
 
-`frame="plain"` is the modal double frame (1px outer rule, 2px gap, 2px inner band, no shadow). `variant="utility"` is the windoid: a 12px bar with a dot-grid dither and 7×7 widgets, floating above every document window inside a `vf-desktop` and standing outside the single-active rule. `scrollbars` puts the rails on the window edge with the grow box in the corner cell. A `resizable` window's `min-width`/`max-width` and `min-height`/`max-height` bound the grow box per axis, in system px; a min equal to its max locks that axis, which is how a strip that scrolls sideways keeps its height.
+`frame="plain"` is the modal double frame (1px outer rule, 2px gap, 2px inner band, no shadow). `variant="utility"` is the windoid: a 12px bar with a dot-grid dither and 7×7 widgets, floating above every document window inside a `vf-desktop` and standing outside the single-active rule. `scrollbars` puts the rails on the window edge with the grow box in the corner cell. A `header` slot is a strip between the title bar and the body across the whole window, a white band over a 1px rule with no inset of its own; `header-height` states its height in system px, rule included, and the vertical rail begins under it. A `resizable` window's `min-width`/`max-width` and `min-height`/`max-height` bound the grow box per axis, in system px; a min equal to its max locks that axis, which is how a strip that scrolls sideways keeps its height.
 
 There is no alert component. An alert is the plain frame plus your own icon art:
 

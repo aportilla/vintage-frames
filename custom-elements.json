@@ -94,6 +94,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -134,6 +149,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -400,6 +428,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -1052,6 +1095,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "description",
               "type": {
                 "text": "string"
@@ -1346,6 +1402,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -1905,6 +1976,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -2126,6 +2210,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -2188,6 +2287,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -2752,6 +2864,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -2810,6 +2937,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -3817,6 +3957,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -3848,6 +4003,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -4031,6 +4199,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -4115,6 +4298,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -4746,6 +4942,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -4879,6 +5090,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -5058,6 +5282,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -5096,6 +5335,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -5337,6 +5589,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -5408,6 +5675,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -5564,6 +5844,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -5613,6 +5908,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -6083,6 +6391,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -6147,6 +6470,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -6507,6 +6843,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -6556,6 +6907,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -6910,6 +7274,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -6991,6 +7370,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -7455,6 +7847,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -7504,6 +7911,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -7798,6 +8218,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -8716,6 +9151,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -8970,6 +9418,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -9028,6 +9491,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -9190,6 +9666,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -9253,6 +9744,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -9489,6 +9993,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -9547,6 +10066,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -9828,6 +10360,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -10295,6 +10842,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -10554,6 +11114,21 @@
             },
             {
               "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "scale",
               "privacy": "private",
               "readonly": true,
@@ -10707,6 +11282,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -10935,6 +11523,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -10984,6 +11587,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -12046,6 +12662,21 @@
             },
             {
               "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "bridgedAriaAttributes",
               "type": {
                 "text": "array"
@@ -12602,6 +13233,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "description",
               "type": {
                 "text": "string"
@@ -12760,6 +13404,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -12791,6 +13450,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -13207,6 +13879,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -13710,6 +14397,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -13929,6 +14629,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -14009,6 +14724,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -14206,6 +14934,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -14820,6 +15563,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "description",
               "type": {
                 "text": "string"
@@ -14996,6 +15752,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -15875,6 +16646,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -16110,6 +16894,21 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -16996,6 +17795,19 @@
               }
             },
             {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -17192,6 +18004,10 @@
               "name": "body"
             },
             {
+              "description": "The header strip between the title bar and the body (when the `header` slot is populated).",
+              "name": "header"
+            },
+            {
               "description": "The bottom status strip (when the `status` slot is populated).",
               "name": "status-bar"
             },
@@ -17208,6 +18024,10 @@
             {
               "description": "Default slot: window body content.",
               "name": ""
+            },
+            {
+              "description": "Optional header content — a band between the title bar and the body, the full width of the window (the Finder window's header line): a white interior over a 1px rule, no inset of its own, a positioning anchor for placed children. As tall as its content unless `header-height` states it. Under `scrollbars` the vertical rail begins below it, so the header spans the rail's column. Takes no space until populated.",
+              "name": "header"
             },
             {
               "description": "Optional status-bar content — the classic bottom readout strip (\"40px x 40px\"): a 1px rule over a 15px white band under the body, body-face text on its native line. Takes no space until populated; a `resizable` window's grow box sits flush in its right end.",
@@ -17335,6 +18155,25 @@
               "description": "Put System 7 scroll rails on the window edge — the classic document\nwindow. The body slot renders inside a built-in `vf-scroll-area` pulled\none system pixel under the frame on every side, so the rails repaint the\nborder lines and a `resizable` window's grow box lands in the corner\ncell — reserved on a single-axis rail too (the area's `corner`), unless\na populated status strip holds the grow box, when the rail runs edge to\nedge onto the strip's rule. Values mirror `vf-scroll-area`'s `axis`; the\n`heading` names the scroll region; the viewport part is re-exported.\nContent runs to the frame and the rails; an inset is the content's own.\nThe slotted composition (SPEC §5 vf-scroll-area) still works for a well\nplaced inside the body.",
               "attribute": "scrollbars",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "headerHeight",
+              "type": {
+                "text": "| number\n    | null | undefined"
+              },
+              "description": "The header's height in whole system px, rule included — the way every\nkit bar counts its rule (an 18px title bar is 17 + 1). Unset, the header\nis as tall as what is slotted into it, plus the rule. Only matters while\nthe `header` slot is populated.",
+              "attribute": "header-height"
+            },
+            {
+              "kind": "field",
+              "name": "_hasHeader",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether the `header` slot has assigned content (drives the header)."
             },
             {
               "kind": "field",
@@ -17493,6 +18332,25 @@
             },
             {
               "kind": "method",
+              "name": "_onHeaderSlotChange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "description": "The header's own gate, on the same terms."
+            },
+            {
+              "kind": "method",
               "name": "_onCloseClick",
               "privacy": "private",
               "return": {
@@ -17617,6 +18475,21 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -17737,6 +18610,14 @@
               "fieldName": "scrollbars"
             },
             {
+              "name": "header-height",
+              "type": {
+                "text": "| number\n    | null | undefined"
+              },
+              "description": "The header's height in whole system px, rule included — the way every\nkit bar counts its rule (an 18px title bar is 17 + 1). Unset, the header\nis as tall as what is slotted into it, plus the rule. Only matters while\nthe `header` slot is populated.",
+              "fieldName": "headerHeight"
+            },
+            {
               "name": "width",
               "type": {
                 "text": "number | null | undefined"
@@ -17779,6 +18660,19 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -20360,6 +21254,13 @@
               "type": {
                 "text": "number | null | undefined"
               }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              }
             }
           ],
           "superclass": {
@@ -20370,7 +21271,7 @@
         },
         {
           "kind": "mixin",
-          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.",
+          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.\n\n**`fixed`** holds the placement against the *visible* region of the nearest\nscrolling ancestor instead of its scrolled plane — a tool strip over a\ndocument, a column header over rows — and the flag alone places at (0,0).\nThe engine underneath is `position: sticky`, the one way the platform holds\na box against a scrollport from inside it on the compositor (a scroll\nlistener counter-translating lags a frame; a layer outside the scroller\nstops wheel and touch over it). Sticky boxes stay in flow, which is not\nwhat a placement is, so the controller erases the footprint: the host is\nblockified (no line box), shrink-wrapped, and given a negative right/bottom\nmargin equal to its own box — a 0×0 margin box that flow content lays out\nas if it weren't there, measured by a ResizeObserver so a relabel or a zoom\nstep keeps it exact. `z-index: 1` puts it over the plane's placed children,\nwhich is where a fixed strip belongs. Two facts of the engine that the\ndocs state as rules: sticky only ever pushes a box *down* from where the\nflow put it, so a fixed child comes before the flow content in its parent;\nand a scroll container that never scrolls (a plain window body is\n`overflow: hidden`) holds it exactly where placement would.",
           "name": "VfPositioned",
           "members": [
             {
@@ -20390,6 +21291,17 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "attribute": "left"
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true
             }
           ],
           "attributes": [
@@ -20408,6 +21320,15 @@
               },
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "fieldName": "left"
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed"
             }
           ],
           "parameters": [
@@ -20429,7 +21350,7 @@
               "name": "#host",
               "privacy": "private",
               "type": {
-                "text": "HTMLElement & { top?: number | null; left?: number | null }"
+                "text": "PositionedHost"
               },
               "readonly": true,
               "default": "host"
@@ -20531,7 +21452,7 @@
             {
               "name": "host",
               "type": {
-                "text": "HTMLElement & { top?: number | null; left?: number | null }"
+                "text": "PositionedHost"
               }
             },
             {

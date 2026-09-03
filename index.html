@@ -289,6 +289,41 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
+            data-caption="A header: the header slot is a band between the title bar and the body across the whole window, and the vertical rail begins under it. header-height states its height in system px, rule included."
+          >
+            <vf-desktop width="512" height="162">
+              <vf-window
+                heading="Macintosh HD"
+                movable
+                resizable
+                scrollbars="vertical"
+                header-height="20"
+                width="272"
+                height="128"
+                left="16"
+                top="16"
+              >
+                <vf-stack slot="header" fill-width direction="row" pad="2 8" gap="20">
+                  <vf-label>7 items</vf-label>
+                  <vf-label>2,431K in disk</vf-label>
+                  <vf-label>1,204K available</vf-label>
+                </vf-stack>
+                <vf-stack fill-width pad="8" gap="4">
+                  <vf-paragraph fill-width>System Folder</vf-paragraph>
+                  <vf-paragraph fill-width>Applications</vf-paragraph>
+                  <vf-paragraph fill-width>Documents</vf-paragraph>
+                  <vf-paragraph fill-width>Utilities</vf-paragraph>
+                  <vf-paragraph fill-width>Games</vf-paragraph>
+                  <vf-paragraph fill-width>Read Me</vf-paragraph>
+                  <vf-paragraph fill-width>TeachText</vf-paragraph>
+                </vf-stack>
+              </vf-window>
+            </vf-desktop>
+          </template>
+
+          <template
+            data-example
+            data-stage="desktop"
             data-caption="A single-axis rail on a resizable window stops at the corner cell, and the content runs to the frame: 32px cells fill a 67px window exactly. min-height and max-height hold the height there, so the grow box changes the width alone."
           >
             <vf-desktop width="512" height="99">
@@ -338,6 +373,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>max-width</code>, <code>max-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. The widest and tallest. Equal to the min, an axis is locked and the grow box changes the other alone. Bounds the gesture only: a size authored outside the rect renders as declared. Properties are <code>maxWidth</code> / <code>maxHeight</code></td></tr>
               <tr><td><code>variant</code></td><td class="wrap"><code>'utility'</code></td><td>—</td><td class="wrap">The windoid: 12px bar with a dot dither instead of racing stripes, 7×7 widgets, no title patch. Floats above document windows inside a <code>vf-desktop</code></td></tr>
               <tr><td><code>scrollbars</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td>—</td><td class="wrap">Rails on the window's edge; content runs to the frame and the rails. A <code>resizable</code> window's grow box lands in the corner cell, reserved on a single-axis rail too; with a status strip the grow box sits in the strip and the rail runs edge to edge</td></tr>
+              <tr><td><code>header-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px, rule included: the header's height. Unset, the header is as tall as its content plus the rule. Property is <code>headerHeight</code></td></tr>
             </tbody>
           </table>
 
@@ -346,12 +382,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td>Slot</td><td>(default)</td><td class="wrap">Body content. Starts at the content region's corner, where a placed child's (0,0) is; the body adds no inset, so an inset is the content's own, such as a <code>vf-stack pad</code></td></tr>
+              <tr><td>Slot</td><td><code>header</code></td><td class="wrap">The header: a band between the title bar and the body across the whole window, a white interior over a 1px rule. No inset, and a placed child's (0,0) is its corner. Under <code>scrollbars</code> the vertical rail begins below it. Takes no space until populated</td></tr>
               <tr><td>Slot</td><td><code>status</code></td><td class="wrap">The bottom status strip: a 1px rule over a 15px white band, body-face text on its native line, the grow box flush in its right end. Takes no space until populated</td></tr>
               <tr><td>Role</td><td><code>group</code></td><td class="wrap">Named by its <code>heading</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap">The close box was clicked. The window does <strong>not</strong> remove itself — the consumer decides</td></tr>
               <tr><td>Event</td><td><code>vf-zoom</code></td><td class="wrap">The zoom box was clicked</td></tr>
               <tr><td>Event</td><td><code>vf-resize</code></td><td class="wrap"><code>{ width, height, commit }</code>, system px — one per size the grow box writes, fired after the box is applied (a handler that measures reads the new layout), then <code>commit: true</code> as the gesture settles. Programmatic size writes fire nothing</td></tr>
-              <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>zoom-box</code>, <code>body</code>, <code>status-bar</code>, <code>grow-box</code></td><td class="wrap">Plus <code>viewport</code> when <code>scrollbars</code> is set</td></tr>
+              <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>zoom-box</code>, <code>header</code>, <code>body</code>, <code>status-bar</code>, <code>grow-box</code></td><td class="wrap">Plus <code>viewport</code> when <code>scrollbars</code> is set</td></tr>
               <tr><td>Tokens</td><td class="wrap"><code>--vf-titlebar-height</code>, <code>--vf-titlebar-height-utility</code>, <code>--vf-status-bar-height</code>, <code>--vf-title-inset</code>, <code>--vf-dots-pattern</code>, <code>--vf-shadow-offset</code></td><td class="wrap">18px / 12px bars, the 15px status strip, the title's clearance from the widgets, the windoid dither, the hard shadow</td></tr>
             </tbody>
           </table>
@@ -1478,6 +1515,14 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             moved element's position off <code>el.left</code>, not
             <code>style.left</code>, which holds a live <code>calc()</code>.
           </p>
+          <p>
+            <code>fixed</code> holds the placement against the visible region of
+            the nearest scrolling ancestor instead of its scrolled plane: the
+            element keeps its <code>top</code>/<code>left</code> while the content
+            scrolls under it, and the flag alone places it at (0,0). A fixed child
+            comes before the flow content in its parent and paints over placed
+            siblings. Where nothing scrolls it renders as placed.
+          </p>
 
           <template data-example data-caption="A placed layout: every child states its own top/left in system px against the window's content region.">
             <vf-window heading="Rename" width="300" height="140">
@@ -1487,6 +1532,21 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 <vf-button>Cancel</vf-button>
                 <vf-button variant="default">OK</vf-button>
               </vf-button-group>
+            </vf-window>
+          </template>
+
+          <template data-example data-caption="A fixed strip: the button group holds at its top/left against the viewport while the copy scrolls under it. The stack's top pad clears the strip.">
+            <vf-window heading="Notes" width="300" height="160" scrollbars="vertical">
+              <vf-button-group fixed top="4" left="4">
+                <vf-button>Bold</vf-button>
+                <vf-button>Italic</vf-button>
+              </vf-button-group>
+              <vf-stack fill-width pad="32 12 12" gap="8">
+                <vf-paragraph fill-width>The strip above is a fixed child: it states top and left like any placed element, and the flag holds it against the visible region.</vf-paragraph>
+                <vf-paragraph fill-width>Scroll, and the copy moves under it while the strip stays put.</vf-paragraph>
+                <vf-paragraph fill-width>It comes first in the markup, before the stack, because the engine underneath only ever pushes a box down from where the flow put it.</vf-paragraph>
+                <vf-paragraph fill-width>The wheel still scrolls the window over the strip, since the strip sits inside the viewport rather than floating over it.</vf-paragraph>
+              </vf-stack>
             </vf-window>
           </template>
         </section>

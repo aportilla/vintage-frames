@@ -216,11 +216,19 @@ export class VfScrollArea extends VfPositioned(LitElement) {
          fixed-width box, a wide image) grows the plane — precisely the
          content that overflows sideways. It also makes this box the
          containing block of a sticky child, so a sticky left: 0 strip holds
-         across the scroll. */
+         across the scroll.
+
+         Never shorter than the viewport either: a fixed child (position.ts)
+         is a sticky box whose containing block is this plane, and a plane
+         shorter than the child's stated top clamps the child to the plane's
+         bottom edge (measured: top 100 over 50px of content landed at 50).
+         Content that fits still fits — the plane grows to the viewport, not
+         past it, so nothing overflows that didn't. */
       .content {
         position: relative;
         width: fit-content;
         min-width: 100%;
+        min-height: 100%;
       }
       /* Focusable so keyboard users can scroll; inset ring to stay in-box. */
       .viewport:focus-visible {

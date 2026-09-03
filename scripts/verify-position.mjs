@@ -18,6 +18,10 @@
  *    no inset of its own — the DITL convention), a dialog's
  *    content area, a stack's box, a fieldset's border interior, and a scroll
  *    area's *scrolled plane*, so a placed child travels with the content.
+ *  - FIXED: `fixed` holds a placement against the visible region of the
+ *    nearest scrolling ancestor — the flag alone is (0,0), the flow content
+ *    behind it starts at the plane's origin, and removing the flag or the
+ *    pair unwinds the whole recipe.
  *  - LIVE: the offsets are calc()s against --vf-scale, not resolved numbers,
  *    so a pinned scale in scope repositions without any property write.
  *  - INTERPLAY: placement seeds vf-window drag / vf-icon moves; a drag then
@@ -354,6 +358,138 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
     near(indlg.x - wrap.x, 24 * DEVICE_PX_PER_SYSTEM_PX) &&
       near(indlg.y - wrap.y, 16 * DEVICE_PX_PER_SYSTEM_PX),
     `${indlg.x - wrap.x} × ${indlg.y - wrap.y}px CSS`
+  )
+  await page.close()
+}
+
+/* ── FIXED ────────────────────────────────────────────────────────────────
+   `fixed` is the same placement held against the VISIBLE region of the
+   nearest scrolling ancestor rather than its plane: the child keeps its
+   stated top/left while the content scrolls under it, the flag alone is
+   (0,0), and the flow content behind it starts at the plane's origin — the
+   sticky box underneath has had its footprint erased. Removing the flag is
+   ordinary placement again (it rides the plane); removing the pair as well
+   is flow, and both leave none of the recipe's inline declarations behind. */
+
+{
+  const page = await build(`
+    <vf-scroll-area id="sa" style="width:300px;height:200px">
+      <vf-button id="held" fixed left="10" top="10">Tool</vf-button>
+      <vf-label id="origin" fixed>At origin</vf-label>
+      <div id="flow" style="height:1200px"></div>
+    </vf-scroll-area>
+  `)
+  // The viewport's content origin — where the plane's (0,0) is — measured
+  // from the viewport itself, padding (the border-floor mod() term) included.
+  const origin = () =>
+    page.evaluate(() => {
+      const vp = document.getElementById('sa').shadowRoot.querySelector('.viewport')
+      const r = vp.getBoundingClientRect()
+      const s = getComputedStyle(vp)
+      return { x: r.left + parseFloat(s.paddingLeft), y: r.top + parseFloat(s.paddingTop) }
+    })
+  const scrollBy = (y) =>
+    page.evaluate((v) => {
+      document.getElementById('sa').shadowRoot.querySelector('.viewport').scrollTop = v
+    }, y)
+  const settle = () =>
+    page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    )
+  const inline = (id) =>
+    page.evaluate((i) => {
+      const s = document.getElementById(i).style
+      return {
+        position: s.position,
+        leftovers: ['display', 'max-width', 'z-index']
+          .map((prop) => s.getPropertyValue(prop))
+          .join(''),
+        margin: s.margin,
+        computed: getComputedStyle(document.getElementById(i)).position,
+      }
+    }, id)
+
+  const o = await origin()
+  let [held, atOrigin, flow] = await Promise.all([
+    rect(page, 'held'),
+    rect(page, 'origin'),
+    rect(page, 'flow'),
+  ])
+  check(
+    'fixed: a fixed child sits at its stated top/left against the viewport',
+    near(held.x - o.x, 10 * DEVICE_PX_PER_SYSTEM_PX) &&
+      near(held.y - o.y, 10 * DEVICE_PX_PER_SYSTEM_PX),
+    `${held.x - o.x} × ${held.y - o.y}px CSS`
+  )
+  check(
+    'fixed: the flag alone places at (0,0)',
+    near(atOrigin.x - o.x, 0) && near(atOrigin.y - o.y, 0),
+    `${atOrigin.x - o.x} × ${atOrigin.y - o.y}px CSS`
+  )
+  check(
+    'fixed: the flow content behind two fixed children starts at the plane origin',
+    near(flow.x - o.x, 0) && near(flow.y - o.y, 0),
+    `${flow.x - o.x} × ${flow.y - o.y}px CSS`
+  )
+
+  await scrollBy(300)
+  await settle()
+  ;[held, atOrigin, flow] = await Promise.all([
+    rect(page, 'held'),
+    rect(page, 'origin'),
+    rect(page, 'flow'),
+  ])
+  check(
+    'fixed: …and both hold there while the content scrolls',
+    near(held.x - o.x, 10 * DEVICE_PX_PER_SYSTEM_PX) &&
+      near(held.y - o.y, 10 * DEVICE_PX_PER_SYSTEM_PX) &&
+      near(atOrigin.y - o.y, 0) &&
+      near(flow.y - o.y, -300),
+    `held at ${held.y - o.y}, origin at ${atOrigin.y - o.y}, flow at ${flow.y - o.y}`
+  )
+  const fixedStyle = await inline('held')
+  check(
+    'fixed: the recipe is position: sticky on the host, blockified and shrink-wrapped',
+    fixedStyle.computed === 'sticky' && fixedStyle.leftovers === 'flexfit-content1',
+    `${fixedStyle.computed}; display/max-width/z-index "${fixedStyle.leftovers}"`
+  )
+
+  // Off: ordinary placement again — it rides the plane, so at scroll 300 the
+  // stated top: 10 is 300px above where it was holding.
+  await page.evaluate(() => {
+    const el = document.getElementById('held')
+    el.removeAttribute('fixed')
+    return el.updateComplete
+  })
+  await settle()
+  held = await rect(page, 'held')
+  const placedStyle = await inline('held')
+  check(
+    'fixed: removing the flag returns the child to placement on the plane',
+    placedStyle.computed === 'absolute' &&
+      near(held.y - o.y, 10 * DEVICE_PX_PER_SYSTEM_PX - 300),
+    `${placedStyle.computed} at ${held.y - o.y}px CSS`
+  )
+  check(
+    'fixed: …with the recipe unwound (margin back to 0)',
+    placedStyle.leftovers === '' && placedStyle.margin === '0px',
+    `display/max-width/z-index "${placedStyle.leftovers}", margin "${placedStyle.margin}"`
+  )
+
+  // Off entirely: flow, nothing left behind.
+  await page.evaluate(() => {
+    const el = document.getElementById('origin')
+    el.removeAttribute('fixed')
+    return el.updateComplete
+  })
+  const flowStyle = await inline('origin')
+  check(
+    'fixed: removing the flag with no pair returns the child to flow, unwound',
+    flowStyle.computed !== 'sticky' &&
+      flowStyle.position === '' &&
+      flowStyle.leftovers === '' &&
+      flowStyle.margin === '',
+    `${flowStyle.computed}; position "${flowStyle.position}", leftovers "${flowStyle.leftovers}", margin "${flowStyle.margin}"`
   )
   await page.close()
 }
@@ -762,6 +898,45 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
       : misplaced.map((p) => `${p.tag}:${p.dx},${p.dy}`).join(' ')
   )
   await page.close()
+
+  // `fixed` on the same terms: every placeable component takes it, is held
+  // by the sticky engine, and — thirty of them stacked at the same origin,
+  // each with its footprint erased — lands at the stated coordinates against
+  // the page (the nearest scroll container here) at scroll 0.
+  const fixedPage = await build(
+    `<div id="anchor" style="position:relative;width:800px;height:600px">
+       ${placeable.map((t) => `<${t} data-tag="${t}" fixed top="12" left="20"></${t}>`).join('\n')}
+     </div>`
+  )
+  const held = await fixedPage.evaluate(() =>
+    [...document.querySelectorAll('[data-tag]')].map((el) => {
+      const anchor = document.getElementById('anchor').getBoundingClientRect()
+      const box = el.getBoundingClientRect()
+      return {
+        tag: el.dataset.tag,
+        position: getComputedStyle(el).position,
+        dx: box.left - anchor.left,
+        dy: box.top - anchor.top,
+      }
+    })
+  )
+  const notSticky = held.filter((p) => p.position !== 'sticky')
+  check(
+    'universal: every component takes fixed — no exceptions',
+    notSticky.length === 0,
+    notSticky.length === 0
+      ? `${held.length}/${held.length} held by the sticky engine`
+      : notSticky.map((p) => `${p.tag}:${p.position}`).join(' ')
+  )
+  const adrift = held.filter((p) => !near(p.dx, 20 * scale) || !near(p.dy, 12 * scale))
+  check(
+    'universal: …and each holds at the stated system-px origin',
+    adrift.length === 0,
+    adrift.length === 0
+      ? `all at (20,12) system px with no flow footprint between them`
+      : adrift.map((p) => `${p.tag}:${p.dx},${p.dy}`).join(' ')
+  )
+  await fixedPage.close()
 }
 
 {

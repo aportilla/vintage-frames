@@ -13,6 +13,27 @@ type Constructor<T = object> = new (...args: any[]) => T
 export declare abstract class VfPositionedInterface extends LitElement {
   top?: number | null
   left?: number | null
+  fixed: boolean
+}
+
+/** A host that takes the placement trio. */
+type PositionedHost = HTMLElement & {
+  top?: number | null
+  left?: number | null
+  fixed?: boolean
+}
+
+/**
+ * The outer display a placed host takes. `position: absolute` blockifies by
+ * itself; `position: sticky` does not, and an inline-level fixed host would
+ * sit in a line box — a footprint no margin can cancel.
+ */
+const BLOCKIFIED: Record<string, string> = {
+  inline: 'block',
+  'inline-block': 'block',
+  'inline-flex': 'flex',
+  'inline-grid': 'grid',
+  'inline-table': 'table',
 }
 
 /**
@@ -81,6 +102,24 @@ export declare abstract class VfPositionedInterface extends LitElement {
  * element. The controller re-applies **only when the values changed**, so an
  * unrelated update — a heading change, a desktop toggling `active` — never
  * re-asserts a coordinate and costs nothing.
+ *
+ * **`fixed`** holds the placement against the *visible* region of the nearest
+ * scrolling ancestor instead of its scrolled plane — a tool strip over a
+ * document, a column header over rows — and the flag alone places at (0,0).
+ * The engine underneath is `position: sticky`, the one way the platform holds
+ * a box against a scrollport from inside it on the compositor (a scroll
+ * listener counter-translating lags a frame; a layer outside the scroller
+ * stops wheel and touch over it). Sticky boxes stay in flow, which is not
+ * what a placement is, so the controller erases the footprint: the host is
+ * blockified (no line box), shrink-wrapped, and given a negative right/bottom
+ * margin equal to its own box — a 0×0 margin box that flow content lays out
+ * as if it weren't there, measured by a ResizeObserver so a relabel or a zoom
+ * step keeps it exact. `z-index: 1` puts it over the plane's placed children,
+ * which is where a fixed strip belongs. Two facts of the engine that the
+ * docs state as rules: sticky only ever pushes a box *down* from where the
+ * flow put it, so a fixed child comes before the flow content in its parent;
+ * and a scroll container that never scrolls (a plain window body is
+ * `overflow: hidden`) holds it exactly where placement would.
  */
 export const VfPositioned = <T extends Constructor<LitElement>>(Base: T) => {
   class VfPositionedElement extends Base {
@@ -98,6 +137,15 @@ export const VfPositioned = <T extends Constructor<LitElement>>(Base: T) => {
      */
     @property({ type: Number }) left?: number | null
 
+    /**
+     * Hold the placement against the visible region of the nearest scrolling
+     * ancestor: the element keeps its stated `top`/`left` while the content
+     * scrolls under it, and the flag alone places it at (0,0). It comes
+     * before the flow content in its parent. Where nothing scrolls it renders
+     * exactly as placed.
+     */
+    @property({ type: Boolean, reflect: true }) fixed = false
+
     constructor(...args: any[]) {
       super(...args)
       new PositionController(this)
@@ -112,16 +160,30 @@ export const VfPositioned = <T extends Constructor<LitElement>>(Base: T) => {
  * mixin adds nothing TS4094 would trip over.
  */
 class PositionController implements ReactiveController {
-  readonly #host: LitElement & { top?: number | null; left?: number | null }
+  readonly #host: LitElement & PositionedHost
 
-  /** Last coordinates written, valid only while {@link #applied}. */
+  /** Last values written, valid only while {@link #applied}. */
   #appliedTop: number | null = null
   #appliedLeft: number | null = null
+  #appliedFixed = false
   #applied = false
 
-  constructor(host: LitElement & { top?: number | null; left?: number | null }) {
+  /** Keeps a fixed host's footprint-cancelling margins equal to its box. */
+  #resizes: ResizeObserver | null = null
+
+  constructor(host: LitElement & PositionedHost) {
     this.#host = host
     host.addController(this)
+  }
+
+  hostConnected(): void {
+    // A re-insert (a desktop's DOM-order sync) must come back observed.
+    if (this.#applied && this.#appliedFixed) this.#observe()
+  }
+
+  hostDisconnected(): void {
+    this.#resizes?.disconnect()
+    this.#resizes = null
   }
 
   hostUpdated(): void {
@@ -129,13 +191,16 @@ class PositionController implements ReactiveController {
     // converter hands back) both mean "unset".
     const top = this.#host.top ?? null
     const left = this.#host.left ?? null
+    const fixed = this.#host.fixed === true
     const style = this.#host.style
 
-    if (top === null && left === null) {
+    if (top === null && left === null && !fixed) {
       // Only unwind our own writes: a host whose inline position was set by
       // someone else (vf-window's drag, vf-icon's move, a consumer) keeps it.
       if (!this.#applied) return
+      if (this.#appliedFixed) this.#unfix()
       this.#applied = false
+      this.#appliedFixed = false
       style.removeProperty('position')
       style.removeProperty('top')
       style.removeProperty('left')
@@ -145,17 +210,97 @@ class PositionController implements ReactiveController {
       return
     }
 
-    if (this.#applied && top === this.#appliedTop && left === this.#appliedLeft)
+    if (
+      this.#applied &&
+      top === this.#appliedTop &&
+      left === this.#appliedLeft &&
+      fixed === this.#appliedFixed
+    )
       return
+    const wasFixed = this.#applied && this.#appliedFixed
     this.#applied = true
     this.#appliedTop = top
     this.#appliedLeft = left
-    style.position = 'absolute'
+    this.#appliedFixed = fixed
+    style.position = fixed ? 'sticky' : 'absolute'
     style.top = sysLength(top ?? 0)
     style.left = sysLength(left ?? 0)
     style.right = 'auto'
     style.bottom = 'auto'
-    style.margin = '0'
+    if (fixed) {
+      if (!wasFixed) this.#fix()
+    } else {
+      if (wasFixed) this.#unfix()
+      style.margin = '0'
+    }
+  }
+
+  /**
+   * The fixed recipe on top of the offsets: shrink-wrap, a layer over the
+   * plane's placed children, and — from a box that is actually laid out —
+   * the blockify and the footprint-cancelling margins ({@link #hold}),
+   * written now if the host has a box and kept by the observer either way.
+   */
+  #fix(): void {
+    const style = this.#host.style
+    style.maxWidth = 'fit-content'
+    style.zIndex = '1'
+    this.#blockified = false
+    const box = this.#host.getBoundingClientRect()
+    if (box.width > 0 || box.height > 0) this.#hold(box.width, box.height)
+    this.#observe()
+  }
+
+  #unfix(): void {
+    this.#resizes?.disconnect()
+    this.#resizes = null
+    this.#blockified = false
+    const style = this.#host.style
+    style.removeProperty('display')
+    style.removeProperty('max-width')
+    style.removeProperty('z-index')
+  }
+
+  #observe(): void {
+    this.#resizes ??= new ResizeObserver((entries) => {
+      const size = entries[entries.length - 1]?.borderBoxSize?.[0]
+      if (size) {
+        this.#hold(size.inlineSize, size.blockSize)
+      } else {
+        const box = this.#host.getBoundingClientRect()
+        this.#hold(box.width, box.height)
+      }
+    })
+    this.#resizes.observe(this.#host)
+  }
+
+  /** Whether the outer display has been read off a rendered host and set. */
+  #blockified = false
+
+  /**
+   * Erase the footprint of a host that has a box: blockify (the outer display
+   * change `absolute` makes on its own), then the 0×0 margin box — the
+   * border box taken back on the right and bottom.
+   *
+   * The blockify waits for a rendered box on purpose. A host's first update
+   * can run before a nested slot has rendered it (a window's slot into its
+   * built-in scroll area's slot), and a host outside the flat tree has no
+   * computed style to read — the display came back empty, the map missed,
+   * and the host stayed inline-level in a line box its own height. The
+   * observer's first notification is the moment the box exists, so that is
+   * when the display is read.
+   */
+  #hold(width: number, height: number): void {
+    const style = this.#host.style
+    if (!this.#blockified) {
+      const display = getComputedStyle(this.#host).display
+      if (display) {
+        const block = BLOCKIFIED[display]
+        if (block) style.display = block
+        this.#blockified = true
+      }
+    }
+    style.margin = `0 ${-width}px ${-height}px 0`
   }
 }
 
@@ -207,16 +352,13 @@ export type PlacementClamp = (
  * as immutable as an authored one — which is the whole claim.
  */
 export class PlacementController {
-  readonly #host: HTMLElement & { top?: number | null; left?: number | null }
+  readonly #host: PositionedHost
   readonly #clamp: PlacementClamp
   #placed = false
   /** The containing box, measured once per gesture by {@link seed}. */
   #bounds: PlacementBounds | null = null
 
-  constructor(
-    host: HTMLElement & { top?: number | null; left?: number | null },
-    clamp: PlacementClamp
-  ) {
+  constructor(host: PositionedHost, clamp: PlacementClamp) {
     this.#host = host
     this.#clamp = clamp
   }
@@ -244,7 +386,7 @@ export class PlacementController {
       return { x: host.left ?? 0, y: host.top ?? 0 }
     }
     const computed = getComputedStyle(host)
-    const positioned = computed.position === 'absolute' || computed.position === 'fixed'
+    const positioned = OUT_OF_FLOW.has(computed.position)
     const left = positioned ? parseFloat(computed.left) || 0 : host.offsetLeft
     const top = positioned ? parseFloat(computed.top) || 0 : host.offsetTop
     return {
@@ -298,6 +440,13 @@ export class PlacementController {
   }
 }
 
+/**
+ * The computed positions a stated origin resolves to — the two CSS takes out
+ * of flow, plus `sticky`, which a `fixed` placement writes and whose computed
+ * offsets read the same way.
+ */
+const OUT_OF_FLOW = new Set(['absolute', 'fixed', 'sticky'])
+
 /** The two ways the movable contract is broken; see {@link warnMovableContract}. */
 type MovableFault = 'unplaced' | 'unsized-parent'
 
@@ -324,13 +473,12 @@ type MovableFault = 'unplaced' | 'unsized-parent'
  * not per render.
  */
 export function warnMovableContract(
-  host: HTMLElement & { top?: number | null; left?: number | null },
+  host: PositionedHost,
   what: string,
   example: string
 ): boolean {
-  const stated = host.top != null || host.left != null
-  const position = getComputedStyle(host).position
-  const outOfFlow = position === 'absolute' || position === 'fixed'
+  const stated = host.top != null || host.left != null || host.fixed === true
+  const outOfFlow = OUT_OF_FLOW.has(getComputedStyle(host).position)
 
   let fault: MovableFault | null = null
   if (!stated && !outOfFlow) {

@@ -115,6 +115,13 @@ const DOTS_LAYER_HEIGHT = 8
  * says so once in the console.
  *
  * @slot - Default slot: window body content.
+ * @slot header - Optional header content — a band between the title bar and
+ *   the body, the full width of the window (the Finder window's header
+ *   line): a white interior over a 1px rule, no inset of its own, a
+ *   positioning anchor for placed children. As tall as its content unless
+ *   `header-height` states it. Under `scrollbars` the vertical rail begins
+ *   below it, so the header spans the rail's column. Takes no space until
+ *   populated.
  * @slot status - Optional status-bar content — the classic bottom readout
  *   strip ("40px x 40px"): a 1px rule over a 15px white band under the body,
  *   body-face text on its native line. Takes no space until populated; a
@@ -125,6 +132,8 @@ const DOTS_LAYER_HEIGHT = 8
  * @csspart close-box - The close widget (left).
  * @csspart zoom-box - The zoom widget (right).
  * @csspart body - The content area.
+ * @csspart header - The header strip between the title bar and the body
+ *   (when the `header` slot is populated).
  * @csspart status-bar - The bottom status strip (when the `status` slot is
  *   populated).
  * @csspart grow-box - The resize widget (bottom-right, when `resizable`).
@@ -323,11 +332,37 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
          and a resizable window's grow box (z-index 1) lands over the rail
          corner cell — which the render reserves on a single-axis rail too
          (the area's corner flag), except when the status strip holds the
-         grow box instead. */
+         grow box instead. The same overhang lands the area's top frame line
+         on the header's rule, so the vertical rail's top arrow begins
+         under the header. */
       .edge-scroll {
         width: calc(100% + var(--vf-scale, 1) * 2px);
         height: calc(100% + var(--vf-scale, 1) * 2px);
         margin: calc(var(--vf-scale, 1) * -1px);
+      }
+
+      /* --- Header (slot="header") --------------------------------------- */
+      /* A band between the title bar and the body, the full width of the
+         window — the Finder window's header line: a white interior over a
+         1px rule (vfRule's vf-rule-bottom on the element). Like the body it
+         carries no inset and is a positioning anchor: (0,0) is the header's
+         own corner, flow content starts there too, an inset is the content's.
+         As tall as its content unless header-height states it — rule
+         included, the way every kit bar counts its rule (an 18px title bar
+         is 17 + 1). Under the scrollbars parameter the edge rails sit in the
+         body below it, so the header spans the rail's column and the
+         vertical rail's arrows begin under it. Takes no space until the slot
+         is populated. Clipped like the body; a drop-open panel still escapes
+         (see the body's note). A div with a class, never a <header>: that
+         element maps to a banner landmark (see render()). */
+      .header {
+        position: relative;
+        flex: none;
+        background: var(--vf-white, #ffffff);
+        overflow: hidden;
+      }
+      .header.empty {
+        display: none;
       }
 
       /* --- Status bar (slot="status") ---------------------------------- */
@@ -478,6 +513,19 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * placed inside the body.
    */
   @property({ reflect: true }) scrollbars?: 'vertical' | 'horizontal' | 'both'
+
+  /**
+   * The header's height in whole system px, rule included — the way every
+   * kit bar counts its rule (an 18px title bar is 17 + 1). Unset, the header
+   * is as tall as what is slotted into it, plus the rule. Only matters while
+   * the `header` slot is populated.
+   */
+  @property({ type: Number, attribute: 'header-height' }) headerHeight?:
+    | number
+    | null
+
+  /** Whether the `header` slot has assigned content (drives the header). */
+  @state() private _hasHeader = false
 
   /** Whether the `status` slot has assigned content (drives the strip). */
   @state() private _hasStatus = false
@@ -686,6 +734,12 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     this._hasStatus = slot.assignedElements().length > 0
   }
 
+  /** The header's own gate, on the same terms. */
+  private _onHeaderSlotChange(event: Event): void {
+    const slot = event.target as HTMLSlotElement
+    this._hasHeader = slot.assignedElements().length > 0
+  }
+
   private _onCloseClick(): void {
     emit(this, 'vf-close', { reason: 'close' })
   }
@@ -811,6 +865,15 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
           this.variant === 'utility' ? 'vf-dots' : 'vf-stripes',
           this.variant === 'utility' ? this._dotsTexture() : undefined
         )}
+        <div
+          class="header vf-rule-bottom ${this._hasHeader ? '' : 'empty'}"
+          part="header"
+          style=${this.headerHeight != null
+            ? `height:${sysLength(this.headerHeight)}`
+            : nothing}
+        >
+          <slot name="header" @slotchange=${this._onHeaderSlotChange}></slot>
+        </div>
         <div class="body" part="body">
           ${this.scrollbars
             ? html`

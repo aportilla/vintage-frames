@@ -30,6 +30,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -58,6 +63,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -125,6 +135,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "description",
@@ -202,6 +217,11 @@
                 "type": "number | null | undefined"
               },
               {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
+              },
+              {
                 "name": "description",
                 "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
                 "type": "string"
@@ -271,6 +291,11 @@
               "value": { "type": "number | null | undefined" }
             },
             {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
               "name": "disabled",
               "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
               "value": { "type": "boolean", "default": "false" }
@@ -328,6 +353,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               },
               {
                 "name": "disabled",
@@ -410,6 +440,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -450,6 +485,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -492,6 +532,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -542,6 +587,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": [
@@ -701,6 +751,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -727,6 +782,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -781,6 +841,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -836,6 +901,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -905,6 +975,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -1000,6 +1075,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": [
@@ -1050,6 +1130,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -1080,6 +1165,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -1124,6 +1214,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [{ "name": "", "description": "The caption text." }],
@@ -1164,6 +1259,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -1198,6 +1298,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -1240,6 +1345,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -1279,6 +1389,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [{ "name": "", "description": "`vf-list-item` elements." }],
@@ -1325,6 +1440,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": [
@@ -1364,6 +1484,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [{ "name": "", "description": "`vf-menu` elements." }],
@@ -1394,6 +1519,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -1443,6 +1573,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [{ "name": "", "description": "The item label." }],
@@ -1493,6 +1628,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": [
@@ -1532,6 +1672,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -1591,6 +1736,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -1625,6 +1775,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "value",
@@ -1711,6 +1866,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               },
               {
                 "name": "value",
@@ -1827,6 +1987,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "events": [],
@@ -1862,6 +2027,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -1901,6 +2071,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [{ "name": "", "description": "The paragraph copy." }],
@@ -1936,6 +2111,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -1975,6 +2155,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "events": [],
@@ -2011,6 +2196,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -2045,6 +2235,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "disabled",
@@ -2104,6 +2299,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               },
               {
                 "name": "disabled",
@@ -2181,6 +2381,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -2227,6 +2432,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": [
@@ -2269,6 +2479,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [{ "name": "", "description": "Scrollable content." }],
@@ -2299,6 +2514,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -2333,6 +2553,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "description",
@@ -2391,6 +2616,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               },
               {
                 "name": "description",
@@ -2463,6 +2693,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "events": [],
@@ -2483,6 +2718,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -2532,6 +2772,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "disabled",
@@ -2605,6 +2850,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               },
               {
                 "name": "disabled",
@@ -2701,6 +2951,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
@@ -2751,6 +3006,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": []
@@ -2800,6 +3060,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "description",
@@ -2856,6 +3121,11 @@
                 "type": "number | null | undefined"
               },
               {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
+              },
+              {
                 "name": "description",
                 "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
                 "type": "string"
@@ -2908,6 +3178,11 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             },
             {
               "name": "value",
@@ -2984,6 +3259,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               },
               {
                 "name": "value",
@@ -3087,6 +3367,11 @@
               "value": { "type": "number | null | undefined" }
             },
             {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
               "name": "value",
               "description": "Current value. Synced on every keystroke and submitted with forms.",
               "value": { "type": "string", "default": "''" }
@@ -3161,6 +3446,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               },
               {
                 "name": "value",
@@ -3245,7 +3535,7 @@
         },
         {
           "name": "vf-window",
-          "description": "`<vf-window>` — the System 7 desktop-window shell.\n\nStriped title bar with optional close box (left) and zoom box (right), a\nsolid-white frame with a hard offset shadow, an optional grow box for\nresizing, optional edge scroll rails (`scrollbars`), and the slim windoid\nchrome (`variant=\"utility\"`). The HIG's window archetypes are parameter\nrecipes over this shell rather than fixed anatomies — the component enables\nHIG compliance, it doesn't enforce it (see docs/LAYOUT.md \"Window archetypes\"):\nthe full document window is `closable zoomable movable resizable\nscrollbars=\"both\"`, a modeless dialog box is `closable movable`, a utility\nwindow is `variant=\"utility\" movable`. Place inside `<vf-desktop>` to get\nclick-to-front stacking and automatic `active` management (utility windows\nfloat above the document tier).\n\nEvery recipe also declares `width` AND `height` (VfSized), in whole\nsystem px — the art's own unit, so the window keeps its proportions to the\nchrome inside it at every display density (a CSS-px size stays put while\nthe components in it triple). A window is a fixed box in both axes, the way\nthe WIND resource carried it: left to layout it takes whatever its\ncontainer or content hands it, which is how a title bar ends up wider than\nthe screen or a dialog reflows as it moves — and a window that grows with\nits body is one the user can neither predict nor (via the grow box) own.\nContent taller than the declared box is clipped at the frame the way the\nclassic content region was; `scrollbars` lets the user reach the rest.\nUnset, the window still renders — normal block layout, as before — and\nsays so once in the console.\n---\n\n\n### **Events:**\n - **vf-close** - Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.\n- **vf-zoom** - Zoom box clicked. Detail `{}`.\n- **vf-resize** - The grow box resized the window. Detail `{ width, height, commit }`, sizes in whole system px: one event per size the drag writes (`commit: false`), fired after the new box is applied so a handler that measures reads the resized layout, then a final `commit: true` as the gesture settles — only when it changed the size. Fired by the gesture alone: a programmatic `width`/`height` write fires nothing, the way a value set fires no `vf-change`.\n\n### **Slots:**\n - _default_ - Default slot: window body content.\n- **status** - Optional status-bar content — the classic bottom readout strip (\"40px x 40px\"): a 1px rule over a 15px white band under the body, body-face text on its native line. Takes no space until populated; a `resizable` window's grow box sits flush in its right end.\n\n### **CSS Properties:**\n - **--vf-dots-pattern** - the windoid bar's dot-grid dither — a 2×2 motif, one black pixel at its origin, on a 30-system-px tile (`vfDots`; override the whole tile like `--vf-desktop-pattern` — consumer art renders as a placed tile grid at that same geometry) _(default: undefined)_\n- **--vf-titlebar-height** - window/dialog title bars _(default: undefined)_\n- **--vf-titlebar-height-utility** - the slim `vf-window[variant=\"utility\"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` _(default: 12px)_\n- **--vf-status-bar-height** - the status strip: 1px rule + 14px interior — the grow box's own height, so the two compose flush _(default: 15px)_\n- **--vf-line-height** - the body face's native line, which the status strip's text rides (whole-pixel centered in the 14px interior) _(default: 12px)_\n\n### **CSS Parts:**\n - **frame** - The outer chrome frame.\n- **title-bar** - The striped (or dithered) title bar.\n- **title** - The centered title patch (hidden on the utility bar).\n- **close-box** - The close widget (left).\n- **zoom-box** - The zoom widget (right).\n- **body** - The content area.\n- **status-bar** - The bottom status strip (when the `status` slot is populated).\n- **grow-box** - The resize widget (bottom-right, when `resizable`).\n- **viewport** - The built-in scroll area's viewport (when `scrollbars`; re-exported from vf-scroll-area).",
+          "description": "`<vf-window>` — the System 7 desktop-window shell.\n\nStriped title bar with optional close box (left) and zoom box (right), a\nsolid-white frame with a hard offset shadow, an optional grow box for\nresizing, optional edge scroll rails (`scrollbars`), and the slim windoid\nchrome (`variant=\"utility\"`). The HIG's window archetypes are parameter\nrecipes over this shell rather than fixed anatomies — the component enables\nHIG compliance, it doesn't enforce it (see docs/LAYOUT.md \"Window archetypes\"):\nthe full document window is `closable zoomable movable resizable\nscrollbars=\"both\"`, a modeless dialog box is `closable movable`, a utility\nwindow is `variant=\"utility\" movable`. Place inside `<vf-desktop>` to get\nclick-to-front stacking and automatic `active` management (utility windows\nfloat above the document tier).\n\nEvery recipe also declares `width` AND `height` (VfSized), in whole\nsystem px — the art's own unit, so the window keeps its proportions to the\nchrome inside it at every display density (a CSS-px size stays put while\nthe components in it triple). A window is a fixed box in both axes, the way\nthe WIND resource carried it: left to layout it takes whatever its\ncontainer or content hands it, which is how a title bar ends up wider than\nthe screen or a dialog reflows as it moves — and a window that grows with\nits body is one the user can neither predict nor (via the grow box) own.\nContent taller than the declared box is clipped at the frame the way the\nclassic content region was; `scrollbars` lets the user reach the rest.\nUnset, the window still renders — normal block layout, as before — and\nsays so once in the console.\n---\n\n\n### **Events:**\n - **vf-close** - Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.\n- **vf-zoom** - Zoom box clicked. Detail `{}`.\n- **vf-resize** - The grow box resized the window. Detail `{ width, height, commit }`, sizes in whole system px: one event per size the drag writes (`commit: false`), fired after the new box is applied so a handler that measures reads the resized layout, then a final `commit: true` as the gesture settles — only when it changed the size. Fired by the gesture alone: a programmatic `width`/`height` write fires nothing, the way a value set fires no `vf-change`.\n\n### **Slots:**\n - _default_ - Default slot: window body content.\n- **header** - Optional header content — a band between the title bar and the body, the full width of the window (the Finder window's header line): a white interior over a 1px rule, no inset of its own, a positioning anchor for placed children. As tall as its content unless `header-height` states it. Under `scrollbars` the vertical rail begins below it, so the header spans the rail's column. Takes no space until populated.\n- **status** - Optional status-bar content — the classic bottom readout strip (\"40px x 40px\"): a 1px rule over a 15px white band under the body, body-face text on its native line. Takes no space until populated; a `resizable` window's grow box sits flush in its right end.\n\n### **CSS Properties:**\n - **--vf-dots-pattern** - the windoid bar's dot-grid dither — a 2×2 motif, one black pixel at its origin, on a 30-system-px tile (`vfDots`; override the whole tile like `--vf-desktop-pattern` — consumer art renders as a placed tile grid at that same geometry) _(default: undefined)_\n- **--vf-titlebar-height** - window/dialog title bars _(default: undefined)_\n- **--vf-titlebar-height-utility** - the slim `vf-window[variant=\"utility\"]` (windoid) bar — 11px interior + 1px bottom rule, traced from `Windows/utility-window.png` _(default: 12px)_\n- **--vf-status-bar-height** - the status strip: 1px rule + 14px interior — the grow box's own height, so the two compose flush _(default: 15px)_\n- **--vf-line-height** - the body face's native line, which the status strip's text rides (whole-pixel centered in the 14px interior) _(default: 12px)_\n\n### **CSS Parts:**\n - **frame** - The outer chrome frame.\n- **title-bar** - The striped (or dithered) title bar.\n- **title** - The centered title patch (hidden on the utility bar).\n- **close-box** - The close widget (left).\n- **zoom-box** - The zoom widget (right).\n- **body** - The content area.\n- **header** - The header strip between the title bar and the body (when the `header` slot is populated).\n- **status-bar** - The bottom status strip (when the `status` slot is populated).\n- **grow-box** - The resize widget (bottom-right, when `resizable`).\n- **viewport** - The built-in scroll area's viewport (when `scrollbars`; re-exported from vf-scroll-area).",
           "doc-url": "",
           "attributes": [
             {
@@ -3311,6 +3601,11 @@
               }
             },
             {
+              "name": "header-height",
+              "description": "The header's height in whole system px, rule included — the way every\nkit bar counts its rule (an 18px title bar is 17 + 1). Unset, the header\nis as tall as what is slotted into it, plus the rule. Only matters while\nthe `header` slot is populated.",
+              "value": { "type": "| number\n    | null | undefined" }
+            },
+            {
               "name": "width",
               "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
               "value": { "type": "number | null | undefined" }
@@ -3329,10 +3624,19 @@
               "name": "left",
               "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
               "value": { "type": "number | null | undefined" }
+            },
+            {
+              "name": "fixed",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "value": { "type": "boolean", "default": "false" }
             }
           ],
           "slots": [
             { "name": "", "description": "Default slot: window body content." },
+            {
+              "name": "header",
+              "description": "Optional header content — a band between the title bar and the body, the full width of the window (the Finder window's header line): a white interior over a 1px rule, no inset of its own, a positioning anchor for placed children. As tall as its content unless `header-height` states it. Under `scrollbars` the vertical rail begins below it, so the header spans the rail's column. Takes no space until populated."
+            },
             {
               "name": "status",
               "description": "Optional status-bar content — the classic bottom readout strip (\"40px x 40px\"): a 1px rule over a 15px white band under the body, body-face text on its native line. Takes no space until populated; a `resizable` window's grow box sits flush in its right end."
@@ -3415,6 +3719,11 @@
                 "type": "'vertical' | 'horizontal' | 'both' | undefined"
               },
               {
+                "name": "headerHeight",
+                "description": "The header's height in whole system px, rule included — the way every\nkit bar counts its rule (an 18px title bar is 17 + 1). Unset, the header\nis as tall as what is slotted into it, plus the rule. Only matters while\nthe `header` slot is populated.",
+                "type": "| number\n    | null | undefined"
+              },
+              {
                 "name": "width",
                 "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
                 "type": "number | null | undefined"
@@ -3433,6 +3742,11 @@
                 "name": "left",
                 "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
                 "type": "number | null | undefined"
+              },
+              {
+                "name": "fixed",
+                "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+                "type": "boolean"
               }
             ],
             "events": [

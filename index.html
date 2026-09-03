@@ -1206,7 +1206,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>flush</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drops the viewport's 8px inset; content and placed children start at the frame's inner edge</td></tr>
               <tr><td><code>corner</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reserves the 15×15 corner cell beside a single rail, for a grow box to land in. <code>both</code> always has one</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name for the focusable viewport. A non-empty value also promotes it to <code>role="region"</code>; the role is omitted while empty</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>viewport</code> — focusable, driven by the arrow and Page keys. Set width and height on the host. The rails are kit-drawn shadow DOM, the same in every engine.</td></tr>
+              <tr><td><code>measure()</code></td><td>method</td><td>—</td><td class="wrap">Re-measures overflow and re-syncs the rails. Content growth and slot changes are tracked by themselves; call this for a scroll range that changes with no box changing, such as a placed child moved through <code>top</code>/<code>left</code></td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default. Part: <code>viewport</code> — focusable, driven by the arrow and Page keys. Set width and height on the host. The scrolled plane is never narrower than the viewport and grows to content that cannot wrap, so a row gaining a cell moves the thumb; a sticky child holds across the scroll. The scroller does not rubber-band; on a page that scrolls, restore wheel chaining with <code>::part(viewport) { overscroll-behavior: auto }</code>. The rails are kit-drawn shadow DOM, the same in every engine.</td></tr>
             </tbody>
           </table>
         </section>

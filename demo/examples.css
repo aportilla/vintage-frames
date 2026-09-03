@@ -179,6 +179,21 @@ code {
 }
 
 /*
+ * The kit's scrollers set `overscroll-behavior: none` (no rubber-band;
+ * SPEC §4 vfScrollRail), which also keeps a wheel at a scroller's end from
+ * chaining to the page. This page scrolls, so chaining comes back here,
+ * through each scroller's part. A desktop page that does not scroll wants
+ * the kit's default, and a modal's content should not chain to the page
+ * behind it, so vf-dialog keeps it.
+ */
+vf-scroll-area::part(viewport),
+vf-window::part(viewport),
+vf-text-area::part(textarea),
+vf-list::part(list) {
+  overscroll-behavior: auto;
+}
+
+/*
  * One column, centered in the pane. Its width is capped in whole px, so what
  * centering can land on a fractional device pixel is the origin — the half
  * grid snapping corrects (docs/SIZING.md rule 3).

@@ -80,9 +80,16 @@ const TROUGH_TILE = tileImage(
 export const vfScrollRail = css`
   /* Hide the native bar, keep the native scrolling. Both lines ship:
      scrollbar-width reaches Chromium 121+/Firefox/Safari 18.2+, the pseudo
-     covers older WebKit — the last scrollbar pseudo left in the kit. */
+     covers older WebKit — the last scrollbar pseudo left in the kit.
+
+     No rubber-band: a bounce moves content the rail cannot express (the
+     thumb is clamped to its track), and 1-bit has no smooth motion — System
+     7 stopped hard. none rather than contain, which keeps the bounce. The
+     cost is scroll chaining, which a page that scrolls restores through the
+     scroller's part (the reference page does — SPEC §4 vfScrollRail). */
   .vf-scroll {
     scrollbar-width: none;
+    overscroll-behavior: none;
   }
   .vf-scroll::-webkit-scrollbar {
     display: none;

@@ -405,7 +405,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             top of the frame, no close box); <code>frame="plain"</code> is the
             modal dialog box (no bar, immovable). No backdrop dimming.
             <code>top</code>/<code>left</code> are viewport coordinates, and
-            unset means centered.
+            unset means centered. It opens with focus in its first text
+            field, or on the default button; Return activates the default
+            button from anywhere in the dialog.
           </p>
 
           <template
@@ -524,6 +526,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Method</td><td><code>show()</code></td><td class="wrap">Opens it (native <code>showModal()</code>), pinned onto the device-pixel grid</td></tr>
               <tr><td>Method</td><td><code>close()</code></td><td class="wrap">Closes it; fires <code>vf-close</code> with <code>reason: 'close'</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' | 'outside' }</code> — every close path routes through the native <code>close</code> event. <code>'outside'</code> only under <code>light-dismiss</code></td></tr>
+              <tr><td>Keyboard</td><td class="wrap">Initial focus</td><td class="wrap">On open: a slotted control with <code>autofocus</code>, else the first text-entry control (<code>vf-text-field</code>, <code>vf-number-field</code>, <code>vf-text-area</code>, native text input/textarea), else the default button (<code>vf-button variant="default"</code>)</td></tr>
+              <tr><td>Keyboard</td><td class="wrap">Return / Enter</td><td class="wrap">Activates the default button from anywhere in the dialog, a focused Cancel included; Space presses the focused control. A link keeps its own Enter. In a text area Return inserts a newline and the keypad's Enter activates the button. Escape closes</td></tr>
               <tr><td>Slots</td><td class="wrap">(default), <code>buttons</code></td><td class="wrap">The <code>buttons</code> slot renders a bottom-right <code>vf-button-group</code> footer (equal width, faces aligned) that takes no space when empty</td></tr>
               <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>body</code>, <code>footer</code>, <code>buttons</code></td><td class="wrap">Title bar and close box only on the default chrome</td></tr>
             </tbody>

@@ -2995,7 +2995,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-dialog>` — the System 7 modal dialog shell.\n\nTwo chromes, one modal lifecycle (native `<dialog>` for top-layer rendering\nand focus trapping, with a fully transparent backdrop — no dimming). Both\nare the same dBoxProc double frame — 1px outer rule, 2px gap, 2px inner\nband, no shadow (vfModalFrame):\n\n- **Default:** the movable modal (movableDBoxProc) — the striped title bar\n  set into the top of that frame, with a centered title over a white body.\n  Drag the title bar to move it. `closable` adds the standard close box\n  (left of the bar) — the HIG's own figures disagree on whether a movable\n  modal carries one (Figure 5-1 says yes, Figure 6-1 and the Chapter 6 text\n  say no), so the component enables either reading rather than enforcing\n  one.\n- **`frame=\"plain\"`:** the modal dialog box — the bare frame, no title bar —\n  and immovable, like the original. A `heading` renders as a centered\n  display-face heading at the top of the body (the reference art's \"Dialog\n  title\"); `closable` is ignored, there being no bar to carry the widget.\n\nOpen it with `show()` (or set the `open` attribute/property); close with\n`close()`. Escape closes it and fires `vf-close` with\n`{ reason: 'escape' }`; the close box and programmatic closing fire\n`{ reason: 'close' }`. With `light-dismiss`, a click outside the frame\ncloses it too, with `{ reason: 'outside' }` — for the About box; off by\ndefault, since the classic modal ignored an outside click.",
+          "description": "`<vf-dialog>` — the System 7 modal dialog shell.\n\nTwo chromes, one modal lifecycle (native `<dialog>` for top-layer rendering\nand focus trapping, with a fully transparent backdrop — no dimming). Both\nare the same dBoxProc double frame — 1px outer rule, 2px gap, 2px inner\nband, no shadow (vfModalFrame):\n\n- **Default:** the movable modal (movableDBoxProc) — the striped title bar\n  set into the top of that frame, with a centered title over a white body.\n  Drag the title bar to move it. `closable` adds the standard close box\n  (left of the bar) — the HIG's own figures disagree on whether a movable\n  modal carries one (Figure 5-1 says yes, Figure 6-1 and the Chapter 6 text\n  say no), so the component enables either reading rather than enforcing\n  one.\n- **`frame=\"plain\"`:** the modal dialog box — the bare frame, no title bar —\n  and immovable, like the original. A `heading` renders as a centered\n  display-face heading at the top of the body (the reference art's \"Dialog\n  title\"); `closable` is ignored, there being no bar to carry the widget.\n\nOpen it with `show()` (or set the `open` attribute/property); close with\n`close()`. Escape closes it and fires `vf-close` with\n`{ reason: 'escape' }`; the close box and programmatic closing fire\n`{ reason: 'close' }`. With `light-dismiss`, a click outside the frame\ncloses it too, with `{ reason: 'outside' }` — for the About box; off by\ndefault, since the classic modal ignored an outside click.\n\nKeyboard, the classic Dialog Manager's two rules (VfModalDialog):\non open, focus goes to the first text-entry control — a slotted control\nwith `autofocus` first — or, with none, to the default button\n(`vf-button variant=\"default\"`). Return or Enter activates the default\nbutton from anywhere in the dialog, a focused Cancel included; Space\npresses the focused control. A link keeps its own Enter, and in a\nmulti-line editor Return inserts the newline while the keypad's Enter\nactivates the button.",
           "name": "VfDialog",
           "cssProperties": [
             {
@@ -3379,11 +3379,64 @@
             },
             {
               "kind": "field",
-              "name": "#dismissListeners",
+              "name": "#openListeners",
               "privacy": "private",
               "readonly": true,
-              "default": "new DocumentListenersController(this, () => [ [this._dialog, 'pointerdown', this.#onDialogPointerDown], [this._dialog, 'pointerup', this.#onDialogPointerUp], [this._dialog, 'pointercancel', this.#onDialogPointerCancel], ])",
-              "description": "The light-dismiss listeners, on the `<dialog>` itself and only while it is\nopen. The `::backdrop` hit-tests as its dialog, and the frame the subclass\nrenders fills the dialog's box, so the dialog is an event's *target* only\nwhen the pointer was outside the frame — no rect arithmetic, no\ncomposedPath. Attached whether or not lightDismiss is set: the\nhandlers read the property at the release, so it can be toggled on an\nopen dialog.",
+              "default": "new DocumentListenersController(this, () => [ [this._dialog, 'pointerdown', this.#onDialogPointerDown], [this._dialog, 'pointerup', this.#onDialogPointerUp], [this._dialog, 'pointercancel', this.#onDialogPointerCancel], [this._dialog, 'keydown', this.#onDialogKeydown], ])",
+              "description": "The while-open listeners, on the `<dialog>` itself: the light-dismiss\npointer trio and the Return/Enter routing.\n\nLight dismiss: the `::backdrop` hit-tests as its dialog, and the frame the\nsubclass renders fills the dialog's box, so the dialog is an event's\n*target* only when the pointer was outside the frame — no rect arithmetic,\nno composedPath. Attached whether or not lightDismiss is set: the\nhandlers read the property at the release, so it can be toggled on an\nopen dialog.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "defaultButton",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "protected",
+              "description": "The dialog's default button — the one wearing the bold ring\n(`vf-button[variant=\"default\"]`) — or null with none, or none enabled.\nLooked for among the slotted content first, then in the shadow tree, so a\nconsumer's own modal that renders its buttons itself is covered too.\nOverride to name it some other way.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "initialFocusTarget",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "protected",
+              "description": "Where focus lands on open. The classic Dialog Manager put the insertion\npoint in the first editable text item and gave nothing else focus at all;\nthe web needs a focused control for the keyboard to have anywhere to be,\nso with no text field the default button takes it (which is also what\nmakes Return and Space work there without a Tab). In order:\n\n1. a slotted control carrying `autofocus` — the author's say;\n2. the first enabled text-entry control (`vf-text-field`,\n   `vf-number-field`, `vf-text-area`, or a native text input/textarea);\n3. the defaultButton;\n4. null — leave the browser's own choice alone.\n\nLeft to itself, `showModal()` focuses the first focusable thing in flat\ntree order, which for a Cancel/OK row is Cancel, and for a body with a\nlink in it is the link — so Return did the one thing a classic dialog's\nReturn never did. Override to choose differently.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#focusInitial",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race).",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#onDialogKeydown",
+              "privacy": "private",
+              "description": "Return and Enter activate the default button from anywhere in the\ndialog, the way the classic Dialog Manager routed them — including from a\nfocused Cancel button, where Space is the key that presses the focused\ncontrol. Bubble phase, and only an uncancelled press: a control that\ntakes Enter for itself (`vf-select`'s list, `vf-list`, an icon's rename, a\ntext field whose form ran its implicit submission) cancels the keydown\nand is left alone. Two more keep their own Enter: a link, which follows\nit, and a multi-line editor, where Return inserts a newline and only the\nkeypad's Enter key fires the button — the same split a TextEdit item in a\nclassic dialog drew between the two keys.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -8470,10 +8523,10 @@
               "privacy": "protected",
               "return": {
                 "type": {
-                  "text": "void"
+                  "text": "boolean"
                 }
               },
-              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.",
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.\n\nReturns whether a form owner took the press — true even when a disabled\ndefault button meant no submission, since HTML gave the press to the form\neither way. The callers cancel the keydown on true, so a modal shell\n(`VfModalDialog`) sees the press as spoken for and does not also route it\nto the dialog's default button; with no form the press goes on to the\ndialog untouched.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -16004,10 +16057,10 @@
               "privacy": "protected",
               "return": {
                 "type": {
-                  "text": "void"
+                  "text": "boolean"
                 }
               },
-              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.",
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.\n\nReturns whether a form owner took the press — true even when a disabled\ndefault button meant no submission, since HTML gave the press to the form\neither way. The callers cancel the keydown on true, so a modal shell\n(`VfModalDialog`) sees the press as spoken for and does not also route it\nto the dialog's default button; with no form the press goes on to the\ndialog untouched.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -16871,7 +16924,7 @@
                   }
                 }
               ],
-              "description": "Enter in a single-line field triggers the associated form's implicit\nsubmission. The native `<input>` is shadow-encapsulated, so its form owner\nis null and the browser won't do this itself."
+              "description": "Enter in a single-line field triggers the associated form's implicit\nsubmission. The native `<input>` is shadow-encapsulated, so its form owner\nis null and the browser won't do this itself. A press the form took is\ncancelled, so an enclosing modal does not route it again."
             },
             {
               "kind": "field",
@@ -17130,10 +17183,10 @@
               "privacy": "protected",
               "return": {
                 "type": {
-                  "text": "void"
+                  "text": "boolean"
                 }
               },
-              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.",
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.\n\nReturns whether a form owner took the press — true even when a disabled\ndefault button meant no submission, since HTML gave the press to the form\neither way. The callers cancel the keydown on true, so a modal shell\n(`VfModalDialog`) sees the press as spoken for and does not also route it\nto the dialog's default button; with no form the press goes on to the\ndialog untouched.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -19835,10 +19888,10 @@
               "privacy": "protected",
               "return": {
                 "type": {
-                  "text": "void"
+                  "text": "boolean"
                 }
               },
-              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML."
+              "description": "Emulates the form's implicit submission for a plain Enter press. HTML\ndefines it as *activating the form's default button* — the first submit\nbutton in tree order — so the submission carries that button's submitter\nidentity and name/value. A bare `requestSubmit()` carries neither\n(`event.submitter === null`), which made Enter and a click on the same\nform produce different payloads. `click()` is the activation: a native\nbutton becomes the real submitter, and a `vf-button` forwards it to its\ninner button, which runs the same transient-proxy path a pointer does. A\ndisabled default button means no submission at all, as in HTML; a form\nwith no submit button falls back to the bare call, also as in HTML.\n\nReturns whether a form owner took the press — true even when a disabled\ndefault button meant no submission, since HTML gave the press to the form\neither way. The callers cancel the keydown on true, so a modal shell\n(`VfModalDialog`) sees the press as spoken for and does not also route it\nto the dialog's default button; with no form the press goes on to the\ndialog untouched."
             },
             {
               "kind": "method",
@@ -20778,7 +20831,7 @@
         },
         {
           "kind": "class",
-          "description": "Base class for the modal shell `vf-dialog` — and for a consumer's own\nmodal (an alert box, say) authored against the kit.\n\nOwns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /\n`close()`, the top/left placement (stated or centered) and the\nsingle `close` funnel that drops the written origin and fires `vf-close` with\nthe reason. Because every close path — Escape, `close()`, the opt-in\nlightDismiss click outside — routes through the native `close`\nevent, an Escape-close no longer leaves a stale origin behind, so the next\nopen re-derives it.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
+          "description": "Base class for the modal shell `vf-dialog` — and for a consumer's own\nmodal (an alert box, say) authored against the kit.\n\nOwns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /\n`close()`, the top/left placement (stated or centered) and the\nsingle `close` funnel that drops the written origin and fires `vf-close` with\nthe reason. Because every close path — Escape, `close()`, the opt-in\nlightDismiss click outside — routes through the native `close`\nevent, an Escape-close no longer leaves a stale origin behind, so the next\nopen re-derives it.\n\nIt also owns the two keyboard rules every classic dialog followed (see\ndefaultButton and initialFocusTarget): Return or Enter\nactivates the default button from anywhere in the dialog, and the box opens\nwith the insertion point in its first text field — or, with none, focus on\nthe default button.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
           "name": "VfModalDialog",
           "members": [
             {
@@ -20908,11 +20961,48 @@
             },
             {
               "kind": "field",
-              "name": "#dismissListeners",
+              "name": "#openListeners",
               "privacy": "private",
               "readonly": true,
-              "default": "new DocumentListenersController(this, () => [ [this._dialog, 'pointerdown', this.#onDialogPointerDown], [this._dialog, 'pointerup', this.#onDialogPointerUp], [this._dialog, 'pointercancel', this.#onDialogPointerCancel], ])",
-              "description": "The light-dismiss listeners, on the `<dialog>` itself and only while it is\nopen. The `::backdrop` hit-tests as its dialog, and the frame the subclass\nrenders fills the dialog's box, so the dialog is an event's *target* only\nwhen the pointer was outside the frame — no rect arithmetic, no\ncomposedPath. Attached whether or not lightDismiss is set: the\nhandlers read the property at the release, so it can be toggled on an\nopen dialog."
+              "default": "new DocumentListenersController(this, () => [ [this._dialog, 'pointerdown', this.#onDialogPointerDown], [this._dialog, 'pointerup', this.#onDialogPointerUp], [this._dialog, 'pointercancel', this.#onDialogPointerCancel], [this._dialog, 'keydown', this.#onDialogKeydown], ])",
+              "description": "The while-open listeners, on the `<dialog>` itself: the light-dismiss\npointer trio and the Return/Enter routing.\n\nLight dismiss: the `::backdrop` hit-tests as its dialog, and the frame the\nsubclass renders fills the dialog's box, so the dialog is an event's\n*target* only when the pointer was outside the frame — no rect arithmetic,\nno composedPath. Attached whether or not lightDismiss is set: the\nhandlers read the property at the release, so it can be toggled on an\nopen dialog."
+            },
+            {
+              "kind": "field",
+              "name": "defaultButton",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "protected",
+              "description": "The dialog's default button — the one wearing the bold ring\n(`vf-button[variant=\"default\"]`) — or null with none, or none enabled.\nLooked for among the slotted content first, then in the shadow tree, so a\nconsumer's own modal that renders its buttons itself is covered too.\nOverride to name it some other way.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "initialFocusTarget",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "protected",
+              "description": "Where focus lands on open. The classic Dialog Manager put the insertion\npoint in the first editable text item and gave nothing else focus at all;\nthe web needs a focused control for the keyboard to have anywhere to be,\nso with no text field the default button takes it (which is also what\nmakes Return and Space work there without a Tab). In order:\n\n1. a slotted control carrying `autofocus` — the author's say;\n2. the first enabled text-entry control (`vf-text-field`,\n   `vf-number-field`, `vf-text-area`, or a native text input/textarea);\n3. the defaultButton;\n4. null — leave the browser's own choice alone.\n\nLeft to itself, `showModal()` focuses the first focusable thing in flat\ntree order, which for a Cancel/OK row is Cancel, and for a body with a\nlink in it is the link — so Return did the one thing a classic dialog's\nReturn never did. Override to choose differently.",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#focusInitial",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race)."
+            },
+            {
+              "kind": "field",
+              "name": "#onDialogKeydown",
+              "privacy": "private",
+              "description": "Return and Enter activate the default button from anywhere in the\ndialog, the way the classic Dialog Manager routed them — including from a\nfocused Cancel button, where Space is the key that presses the focused\ncontrol. Bubble phase, and only an uncancelled press: a control that\ntakes Enter for itself (`vf-select`'s list, `vf-list`, an icon's rename, a\ntext field whose form ran its implicit submission) cancels the keydown\nand is left alone. Two more keep their own Enter: a link, which follows\nit, and a multi-line editor, where Return inserts a newline and only the\nkeypad's Enter key fires the button — the same split a TextEdit item in a\nclassic dialog drew between the two keys."
             },
             {
               "kind": "field",

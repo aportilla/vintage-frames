@@ -27,6 +27,15 @@
  *  - LIVE: the property toggled on an open dialog takes effect at the next
  *    press (and reflects); Escape and close() keep their reasons; the plain
  *    frame dismisses the same way.
+ *  - KEYBOARD: the classic Dialog Manager rules (`VfModalDialog`). On open,
+ *    focus lands in the first text-entry control — or, with none, on the
+ *    default button — never on Cancel or a link in the body, which is where
+ *    `showModal()`'s own flat-tree pick put it. Return/Enter activates the
+ *    default button from anywhere: a focused Cancel included (Space is what
+ *    presses the focused control), a text field, and a multi-line editor
+ *    on the keypad's Enter only (Return inserts the newline there). A link
+ *    keeps its own Enter; `autofocus` names the initial control; a form's
+ *    implicit submission runs once, not twice.
  *
  *   npm run dev            # in another shell (port 5173)
  *   npm run verify:dialog
@@ -250,6 +259,154 @@ async function gesture(page, from, to = from) {
   await gesture(page, { x: rect.right + 40, y: rect.bottom + 40 })
   const s = await page.evaluate(STATE)
   check("plain frame: an outside click closes with 'outside'", closedWith(s, 'outside'), JSON.stringify(s.events))
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   5. KEYBOARD — initial focus and the Return/Enter rule
+   ──────────────────────────────────────────────────────────────────────── */
+const KEYS = (body, buttons = ROW) => `
+  <button id="opener">Open</button>
+  <vf-dialog id="dlg" heading="Keys" width="360" height="220">
+    ${body}
+    ${buttons}
+  </vf-dialog>
+`
+const ROW = `
+  <vf-button slot="buttons" id="cancel">Cancel</vf-button>
+  <vf-button slot="buttons" id="ok" variant="default">OK</vf-button>
+`
+
+/** Count every button/link activation once, open, and report where focus is. */
+const OPEN_KEYS = async () => {
+  const dlg = document.getElementById('dlg')
+  if (!window.__clicks) {
+    window.__clicks = []
+    for (const el of document.querySelectorAll('vf-button, a')) {
+      el.addEventListener('click', (e) => {
+        window.__clicks.push(el.id)
+        if (el.localName === 'a') e.preventDefault()
+      })
+    }
+  }
+  window.__clicks.length = 0
+  document.getElementById('opener').focus()
+  dlg.show()
+  await dlg.updateComplete
+  return document.activeElement?.id ?? ''
+}
+const CLICKS = () => [...window.__clicks]
+const FOCUS = (id) => document.getElementById(id).focus()
+const CLOSE = () => document.getElementById('dlg').close()
+
+async function keys(page, key) {
+  await page.evaluate(() => (window.__clicks.length = 0))
+  await page.keyboard.press(key)
+  await page.waitForTimeout(30)
+  return page.evaluate(CLICKS)
+}
+
+// Buttons only: OK, not Cancel, takes focus; Return presses it from a focused
+// Cancel too, and Space is what presses Cancel.
+{
+  const page = await build(KEYS('<vf-paragraph>Body</vf-paragraph>'))
+  const focused = await page.evaluate(OPEN_KEYS)
+  check('keys: with no text field, the default button takes focus on open', focused === 'ok', focused)
+  let clicks = await keys(page, 'Enter')
+  check('keys: Enter activates the default button once', clicks.join() === 'ok', clicks.join())
+
+  await page.evaluate(FOCUS, 'cancel')
+  clicks = await keys(page, 'Enter')
+  check('keys: Enter on a focused Cancel still activates the default button', clicks.join() === 'ok', clicks.join())
+  clicks = await keys(page, 'Space')
+  check('keys: Space presses the focused Cancel', clicks.join() === 'cancel', clicks.join())
+  await page.close()
+}
+
+// A link in the body: never the initial focus; once focused, Enter is its own.
+{
+  const page = await build(
+    KEYS('<vf-paragraph>See <a id="link" href="#more">more</a></vf-paragraph>')
+  )
+  const focused = await page.evaluate(OPEN_KEYS)
+  check('keys: a link in the body does not take the initial focus', focused === 'ok', focused)
+  await page.evaluate(FOCUS, 'link')
+  const clicks = await keys(page, 'Enter')
+  check('keys: Enter on a focused link follows the link, not the default button', clicks.join() === 'link', clicks.join())
+  await page.close()
+}
+
+// A text field: the insertion point goes there, and Return means OK.
+{
+  const page = await build(
+    KEYS('<vf-text-field id="field" label="Name" value="Untitled"></vf-text-field>')
+  )
+  const focused = await page.evaluate(OPEN_KEYS)
+  check('keys: the first text field takes focus on open', focused === 'field', focused)
+  const clicks = await keys(page, 'Enter')
+  check('keys: Enter in a text field activates the default button', clicks.join() === 'ok', clicks.join())
+  await page.close()
+}
+
+// A multi-line editor: Return is a newline; the keypad's Enter is the button.
+{
+  const page = await build(
+    KEYS('<vf-text-area id="area" label="Notes" value="one"></vf-text-area>')
+  )
+  const focused = await page.evaluate(OPEN_KEYS)
+  check('keys: a text area takes focus on open', focused === 'area', focused)
+  let clicks = await keys(page, 'Enter')
+  let value = await page.evaluate(() => document.getElementById('area').value)
+  check('keys: Return in a text area inserts a newline, not a press', clicks.length === 0 && value === 'one\n', `${JSON.stringify(value)} ${clicks.join()}`)
+  clicks = await keys(page, 'NumpadEnter')
+  value = await page.evaluate(() => document.getElementById('area').value)
+  check('keys: keypad Enter in a text area activates the default button, no newline', clicks.join() === 'ok' && value === 'one\n', `${JSON.stringify(value)} ${clicks.join()}`)
+  await page.close()
+}
+
+// A form: the field's implicit submission runs once, and the dialog does not
+// press the same button a second time.
+{
+  const page = await build(
+    KEYS(
+      `<form id="form">
+        <vf-text-field id="field" name="n" label="Name" value="x"></vf-text-field>
+        <vf-button id="cancel">Cancel</vf-button>
+        <vf-button id="ok" type="submit" variant="default">OK</vf-button>
+      </form>`,
+      ''
+    )
+  )
+  await page.evaluate(() => {
+    window.__submits = 0
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault()
+      window.__submits++
+    })
+  })
+  const focused = await page.evaluate(OPEN_KEYS)
+  check('keys: form — the text field takes focus on open', focused === 'field', focused)
+  const clicks = await keys(page, 'Enter')
+  const submits = await page.evaluate(() => window.__submits)
+  check('keys: form — Enter in the field submits once, through the default button once', clicks.join() === 'ok' && submits === 1, `${clicks.join()} / ${submits} submits`)
+  await page.close()
+}
+
+// autofocus names the initial control; with no default button Enter is inert.
+{
+  const page = await build(
+    KEYS(
+      `<vf-text-field id="first" label="First"></vf-text-field>
+       <vf-text-field id="second" label="Second" autofocus></vf-text-field>`,
+      '<vf-button slot="buttons" id="cancel">Cancel</vf-button>'
+    )
+  )
+  const focused = await page.evaluate(OPEN_KEYS)
+  check('keys: autofocus wins over the first text field', focused === 'second', focused)
+  const clicks = await keys(page, 'Enter')
+  const open = await page.evaluate(() => document.getElementById('dlg').open)
+  check('keys: with no default button, Enter presses nothing and the dialog stays open', clicks.length === 0 && open, `${clicks.join()} open=${open}`)
+  await page.evaluate(CLOSE)
   await page.close()
 }
 

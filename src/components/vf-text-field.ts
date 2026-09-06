@@ -75,10 +75,13 @@ export class VfTextField extends VfPositioned(VfTextControlBase) {
   /**
    * Enter in a single-line field triggers the associated form's implicit
    * submission. The native `<input>` is shadow-encapsulated, so its form owner
-   * is null and the browser won't do this itself.
+   * is null and the browser won't do this itself. A press the form took is
+   * cancelled, so an enclosing modal does not route it again.
    */
   private handleKeydown(event: KeyboardEvent): void {
-    if (this.isSubmitEnter(event)) this.requestImplicitSubmit()
+    if (this.isSubmitEnter(event) && this.requestImplicitSubmit()) {
+      event.preventDefault()
+    }
   }
 
   protected override render() {

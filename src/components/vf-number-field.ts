@@ -240,7 +240,9 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
 
   #onKeydown = (event: KeyboardEvent): void => {
     if (this.isSubmitEnter(event)) {
-      this.requestImplicitSubmit()
+      // Cancelled when the form took it, so an enclosing modal does not
+      // route the same press to its default button as well.
+      if (this.requestImplicitSubmit()) event.preventDefault()
       return
     }
     if (this.isDisabled || this.readonly) return

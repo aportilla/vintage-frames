@@ -53,6 +53,15 @@ import './vf-button-group.js'
  * closes it too, with `{ reason: 'outside' }` — for the About box; off by
  * default, since the classic modal ignored an outside click.
  *
+ * Keyboard, the classic Dialog Manager's two rules ({@link VfModalDialog}):
+ * on open, focus goes to the first text-entry control — a slotted control
+ * with `autofocus` first — or, with none, to the default button
+ * (`vf-button variant="default"`). Return or Enter activates the default
+ * button from anywhere in the dialog, a focused Cancel included; Space
+ * presses the focused control. A link keeps its own Enter, and in a
+ * multi-line editor Return inserts the newline while the keypad's Enter
+ * activates the button.
+ *
  * @slot - Default slot: dialog body content.
  * @slot buttons - Optional action buttons. Rendered as a bottom-right
  *   `vf-button-group` (equal-width, faces aligned); the footer only takes

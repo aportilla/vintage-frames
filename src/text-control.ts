@@ -183,10 +183,17 @@ export class VfTextControlBase extends VfShadowRoleControl {
    * inner button, which runs the same transient-proxy path a pointer does. A
    * disabled default button means no submission at all, as in HTML; a form
    * with no submit button falls back to the bare call, also as in HTML.
+   *
+   * Returns whether a form owner took the press — true even when a disabled
+   * default button meant no submission, since HTML gave the press to the form
+   * either way. The callers cancel the keydown on true, so a modal shell
+   * (`VfModalDialog`) sees the press as spoken for and does not also route it
+   * to the dialog's default button; with no form the press goes on to the
+   * dialog untouched.
    */
-  protected requestImplicitSubmit(): void {
+  protected requestImplicitSubmit(): boolean {
     const form = this.internals.form
-    if (!form) return
+    if (!form) return false
     const defaultButton = [...form.elements].find(
       (el) =>
         (el instanceof HTMLButtonElement && el.type === 'submit') ||
@@ -202,11 +209,11 @@ export class VfTextControlBase extends VfShadowRoleControl {
           (el as { type?: string }).type?.toLowerCase() === 'submit')
     )
     if (defaultButton) {
-      if (defaultButton.matches(':disabled')) return
-      ;(defaultButton as HTMLElement).click()
-      return
+      if (!defaultButton.matches(':disabled')) (defaultButton as HTMLElement).click()
+      return true
     }
     form.requestSubmit()
+    return true
   }
 
   /**

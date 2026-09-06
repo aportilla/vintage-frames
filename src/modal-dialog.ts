@@ -32,6 +32,27 @@ export const MODAL_FALLBACK_WIDTH = 260
  */
 const KEEP_GRABBABLE = 24
 
+/** Native input types that take typed text (so an insertion point). */
+const TEXT_INPUT_TYPES = new Set([
+  'text',
+  'search',
+  'url',
+  'tel',
+  'email',
+  'password',
+  'number',
+])
+
+/**
+ * Whether an element is a text-entry control — one the classic dialog would
+ * have opened with the insertion point in: the kit's three text controls, a
+ * native `<textarea>`, or a native `<input>` of a typed-text type.
+ */
+const isTextEntry = (el: Element): boolean => {
+  if (el instanceof HTMLInputElement) return TEXT_INPUT_TYPES.has(el.type)
+  return true
+}
+
 /**
  * Shared native-`<dialog>` styles for the modal shells: a chromeless top-layer
  * dialog (the frame is drawn by the subclass) with a fully transparent
@@ -89,6 +110,12 @@ export const modalDialogStyles = css`
  * {@link lightDismiss} click outside — routes through the native `close`
  * event, an Escape-close no longer leaves a stale origin behind, so the next
  * open re-derives it.
+ *
+ * It also owns the two keyboard rules every classic dialog followed (see
+ * {@link defaultButton} and {@link initialFocusTarget}): Return or Enter
+ * activates the default button from anywhere in the dialog, and the box opens
+ * with the insertion point in its first text field — or, with none, focus on
+ * the default button.
  *
  * Removing an open modal from the DOM is a close path too. HTML's dialog
  * *removing steps* take the element out of the top layer **without** running
@@ -241,19 +268,117 @@ export class VfModalDialog extends LitElement {
   #outsidePress: number | null = null
 
   /**
-   * The light-dismiss listeners, on the `<dialog>` itself and only while it is
-   * open. The `::backdrop` hit-tests as its dialog, and the frame the subclass
-   * renders fills the dialog's box, so the dialog is an event's *target* only
-   * when the pointer was outside the frame — no rect arithmetic, no
-   * composedPath. Attached whether or not {@link lightDismiss} is set: the
+   * The while-open listeners, on the `<dialog>` itself: the light-dismiss
+   * pointer trio and the Return/Enter routing.
+   *
+   * Light dismiss: the `::backdrop` hit-tests as its dialog, and the frame the
+   * subclass renders fills the dialog's box, so the dialog is an event's
+   * *target* only when the pointer was outside the frame — no rect arithmetic,
+   * no composedPath. Attached whether or not {@link lightDismiss} is set: the
    * handlers read the property at the release, so it can be toggled on an
    * open dialog.
    */
-  readonly #dismissListeners = new DocumentListenersController(this, () => [
+  readonly #openListeners = new DocumentListenersController(this, () => [
     [this._dialog, 'pointerdown', this.#onDialogPointerDown],
     [this._dialog, 'pointerup', this.#onDialogPointerUp],
     [this._dialog, 'pointercancel', this.#onDialogPointerCancel],
+    [this._dialog, 'keydown', this.#onDialogKeydown],
   ])
+
+  /* --- Keyboard ------------------------------------------------------- */
+
+  /**
+   * The dialog's default button — the one wearing the bold ring
+   * (`vf-button[variant="default"]`) — or null with none, or none enabled.
+   * Looked for among the slotted content first, then in the shadow tree, so a
+   * consumer's own modal that renders its buttons itself is covered too.
+   * Override to name it some other way.
+   */
+  protected get defaultButton(): HTMLElement | null {
+    const selector = 'vf-button[variant="default"]'
+    const candidates = [
+      ...this.querySelectorAll<HTMLElement>(selector),
+      ...this.renderRoot.querySelectorAll<HTMLElement>(selector),
+    ]
+    return candidates.find((button) => !button.matches(':disabled')) ?? null
+  }
+
+  /**
+   * Where focus lands on open. The classic Dialog Manager put the insertion
+   * point in the first editable text item and gave nothing else focus at all;
+   * the web needs a focused control for the keyboard to have anywhere to be,
+   * so with no text field the default button takes it (which is also what
+   * makes Return and Space work there without a Tab). In order:
+   *
+   * 1. a slotted control carrying `autofocus` — the author's say;
+   * 2. the first enabled text-entry control (`vf-text-field`,
+   *    `vf-number-field`, `vf-text-area`, or a native text input/textarea);
+   * 3. the {@link defaultButton};
+   * 4. null — leave the browser's own choice alone.
+   *
+   * Left to itself, `showModal()` focuses the first focusable thing in flat
+   * tree order, which for a Cancel/OK row is Cancel, and for a body with a
+   * link in it is the link — so Return did the one thing a classic dialog's
+   * Return never did. Override to choose differently.
+   */
+  protected get initialFocusTarget(): HTMLElement | null {
+    const stated = this.querySelector<HTMLElement>('[autofocus]')
+    if (stated) return stated
+    const text = [
+      ...this.querySelectorAll<HTMLElement>(
+        'vf-text-field, vf-number-field, vf-text-area, textarea, input'
+      ),
+    ].find((el) => isTextEntry(el) && !el.matches(':disabled'))
+    return text ?? this.defaultButton
+  }
+
+  /**
+   * Hand focus to {@link initialFocusTarget}, right after `showModal()`'s own
+   * focusing steps have run (so this is the last word, not a race).
+   */
+  #focusInitial(): void {
+    this.initialFocusTarget?.focus()
+  }
+
+  /**
+   * Return and Enter activate the default button from anywhere in the
+   * dialog, the way the classic Dialog Manager routed them — including from a
+   * focused Cancel button, where Space is the key that presses the focused
+   * control. Bubble phase, and only an uncancelled press: a control that
+   * takes Enter for itself (`vf-select`'s list, `vf-list`, an icon's rename, a
+   * text field whose form ran its implicit submission) cancels the keydown
+   * and is left alone. Two more keep their own Enter: a link, which follows
+   * it, and a multi-line editor, where Return inserts a newline and only the
+   * keypad's Enter key fires the button — the same split a TextEdit item in a
+   * classic dialog drew between the two keys.
+   */
+  #onDialogKeydown = (event: KeyboardEvent): void => {
+    if (
+      event.key !== 'Enter' ||
+      event.defaultPrevented ||
+      event.isComposing ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    ) {
+      return
+    }
+    const path = event.composedPath()
+    if (path.some((node) => node instanceof HTMLAnchorElement && node.hasAttribute('href'))) {
+      return
+    }
+    const multiline = path.some(
+      (node) =>
+        node instanceof HTMLTextAreaElement ||
+        (node instanceof HTMLElement && node.isContentEditable)
+    )
+    if (multiline && event.code !== 'NumpadEnter') return
+    const button = this.defaultButton
+    if (!button) return
+    event.preventDefault()
+    button.click()
+  }
 
   /**
    * A press on the backdrop arms the dismissal. A press anywhere else — the
@@ -414,9 +539,10 @@ export class VfModalDialog extends LitElement {
     if (this.open && !dialog.open) {
       this.#invoker = document.activeElement
       dialog.showModal()
+      this.#focusInitial()
       this.settle()
       this.#watchGeometry(dialog)
-      this.#dismissListeners.attach()
+      this.#openListeners.attach()
     } else if (!this.open && dialog.open) {
       dialog.close()
     }
@@ -509,7 +635,7 @@ export class VfModalDialog extends LitElement {
     this.#closeReason = null
     this.#invoker = null
     this.#outsidePress = null
-    this.#dismissListeners.detach()
+    this.#openListeners.detach()
     this.#unwatchGeometry()
     this.open = false
     this.#clearPlacement()

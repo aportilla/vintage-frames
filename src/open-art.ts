@@ -1,6 +1,7 @@
 /**
  * The Finder "open" ghost — an icon's art redrawn as outline plus dither,
- * derived from the art itself in the client.
+ * derived from the art itself in the client — and, on the same terms, the
+ * dotted outline an icon drags as ({@link deriveDragOutline}).
  *
  * When a folder or application is open, the Finder redraws its icon as a
  * ghost: the outline stays, and everything inside it becomes pattern. The kit
@@ -133,4 +134,153 @@ export function deriveOpenArt(
   silhouette.ctx.globalCompositeOperation = 'source-over'
   silhouette.ctx.drawImage(interior.canvas, 0, 0)
   return silhouette.canvas
+}
+
+/** A box inside an icon's frame, in system px. */
+export interface DragOutlineBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/**
+ * Where an icon's parts sit inside its frame, in system px — measured by the
+ * icon, so the outline lands on the same pixels the frame paints.
+ */
+export interface DragOutlineGeometry {
+  /** The frame. */
+  width: number
+  height: number
+  /**
+   * The art's own box, where it paints. Null when the pipeline has nothing
+   * to draw — nothing slotted, a failed load, an inline `<svg>` — and the
+   * cell's rectangle stands in.
+   */
+  art: DragOutlineBox | null
+  /** The reserved art cell. */
+  cell: DragOutlineBox
+  /** The name plate, or null with no name. */
+  plate: DragOutlineBox | null
+}
+
+/**
+ * The 2×2 checker the outline is dotted with: ink where `x + y` is even —
+ * the desktop dither's own phase (`gray-50`, src/patterns.ts), so an outline
+ * phase-locked to the screen lands its dots on the dither's black pixels.
+ */
+let checker: HTMLCanvasElement | null = null
+
+const checkerTile = (): HTMLCanvasElement | null => {
+  if (!checker) {
+    const layer = makeLayer(2, 2)
+    if (!layer) return null
+    layer.ctx.fillStyle = '#000'
+    layer.ctx.fillRect(0, 0, 1, 1)
+    layer.ctx.fillRect(1, 1, 1, 1)
+    checker = layer.canvas
+  }
+  return checker
+}
+
+/** A one-pixel rectangle outline, as fills: a 1px stroke straddles the pixel. */
+const inkBox = (ctx: CanvasRenderingContext2D, box: DragOutlineBox): void => {
+  if (box.width <= 0 || box.height <= 0) return
+  ctx.fillStyle = '#000'
+  ctx.fillRect(box.x, box.y, box.width, box.height)
+  if (box.width > 2 && box.height > 2) {
+    ctx.clearRect(box.x + 1, box.y + 1, box.width - 2, box.height - 2)
+  }
+}
+
+/**
+ * Derive the outline an icon drags as: the mask's boundary — the same
+ * one-pixel ring the open ghost finds, by the same erosion — and the name
+ * plate's rectangle, solid black on transparent, one canvas the size of the
+ * icon's frame at one image px per system px. Not yet dotted: the ring is
+ * derived once per drag, and {@link dotOutline} re-applies the checker at
+ * each step's phase.
+ *
+ * Art the pipeline cannot draw falls back to the cell's rectangle — the
+ * ghost's rule: never a blank where a state cannot show. Compositing only,
+ * never a readback, so cross-origin art derives too.
+ *
+ * Returns null for a frame with no size, or an environment refusing a 2d
+ * context.
+ */
+export function deriveDragOutline(
+  art: HTMLImageElement | HTMLCanvasElement | null,
+  geometry: DragOutlineGeometry
+): HTMLCanvasElement | null {
+  const { width, height } = geometry
+  if (!width || !height) return null
+  const out = makeLayer(width, height)
+  if (!out) return null
+
+  const box = art ? geometry.art : null
+  if (art && box && box.width > 0 && box.height > 0) {
+    const silhouette = makeLayer(width, height)
+    const interior = makeLayer(width, height)
+    if (!silhouette || !interior) return null
+    // The silhouette at the art's own box: drawn at the size it paints, so a
+    // magnified art outlines at its magnified size, then inked solid.
+    silhouette.ctx.drawImage(art, box.x, box.y, box.width, box.height)
+    silhouette.ctx.globalCompositeOperation = 'source-in'
+    silhouette.ctx.fillStyle = '#000'
+    silhouette.ctx.fillRect(0, 0, width, height)
+    // The erosion deriveOpenArt performs, on a frame-sized layer: the frame
+    // is transparent around the art, so the art's own edge erodes exactly as
+    // the off-canvas edge did there.
+    interior.ctx.drawImage(silhouette.canvas, 0, 0)
+    interior.ctx.globalCompositeOperation = 'destination-in'
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ] as const) {
+      interior.ctx.drawImage(silhouette.canvas, dx, dy)
+    }
+    // The ring is the silhouette minus its interior.
+    out.ctx.drawImage(silhouette.canvas, 0, 0)
+    out.ctx.globalCompositeOperation = 'destination-out'
+    out.ctx.drawImage(interior.canvas, 0, 0)
+    out.ctx.globalCompositeOperation = 'source-over'
+  } else {
+    inkBox(out.ctx, geometry.cell)
+  }
+  if (geometry.plate) inkBox(out.ctx, geometry.plate)
+  return out.canvas
+}
+
+/**
+ * Paint `ring` into `into` dotted with the checker at `phase` — 0 keeps the
+ * dots where `x + y` is even in the canvas's own coordinates, 1 where it is
+ * odd. The caller picks the phase from where the outline lands on screen,
+ * so the dots share the desktop dither's phase wherever the outline goes,
+ * as QuickDraw's screen-anchored pattern pen did. Sizing `into` to the ring
+ * clears it, so each step is a fresh paint.
+ */
+export function dotOutline(
+  ring: HTMLCanvasElement,
+  into: HTMLCanvasElement,
+  phase: number
+): void {
+  const tile = checkerTile()
+  const ctx = into.getContext('2d')
+  if (!tile || !ctx) return
+  into.width = ring.width
+  into.height = ring.height
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(ring, 0, 0)
+  const pattern = ctx.createPattern(tile, 'repeat')
+  if (!pattern) return
+  // `destination-in` keeps the ring only under the checker's ink; shifting
+  // the pattern's origin by one pixel swaps which diagonal that is.
+  ctx.globalCompositeOperation = 'destination-in'
+  ctx.fillStyle = pattern
+  ctx.translate(phase & 1, 0)
+  ctx.fillRect(-2, 0, ring.width + 2, ring.height)
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.globalCompositeOperation = 'source-over'
 }

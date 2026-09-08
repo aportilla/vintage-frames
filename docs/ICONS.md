@@ -44,10 +44,10 @@ A drag on a `movable` icon is a stream of events on the icon, all bubbling and c
 
 - `clientX`, `clientY` — the pointer, in viewport CSS px, for a hit test (`document.elementsFromPoint`).
 - `left`, `top` — the proposed origin in the icon's own container, whole system px on the placement lattice.
-- `x`, `y` — the icon's frame box translated by the delta, in viewport CSS px, for a drop that lands in another container. The press offset is already inside it, so an icon placed at `container.placementAt(x, y)` lands where it was let go.
-- **The default action of an uncancelled `vf-drop` is the move:** the proposal written through `left`/`top`, clamped whole in the container measured at the press. `preventDefault()` writes nothing — re-parent or place the icon yourself. A press that never leaves its lattice cell fires nothing.
+- `x`, `y` — the outline's top-left in viewport CSS px: the icon's frame box translated by the delta, for a drop that lands in another container. The press offset is already inside it, so an icon placed at `container.placementAt(x, y)` lands exactly where the outline was.
+- **The default action of an uncancelled `vf-drop` is the move:** the proposal written through `left`/`top`, clamped whole in the container measured at the press. `left`/`top` in the detail are the proposal *unclamped*; only the default action clamps. `preventDefault()` writes nothing — re-parent or place the icon yourself. A press that never leaves its lattice cell fires nothing.
 - **Escape mid-drag cancels**: nothing is written and `vf-drag-cancel` fires. A `pointercancel` does the same.
-- The icon moves with the pointer during the gesture.
+- **The drag is an outline; the icon stays put.** The gesture draws the classic dotted outline — the mask's boundary and the name's rectangle, derived from the slotted art the way the open ghost is — with the XOR pen over everything: a dotted black line over a white window body, and over the desktop dither the composition QuickDraw's pattern pen gave, its dots phase-locked to the screen. It draws on the desktop's own surface, over windows, palettes and the menu bar, clipped at the raster's edge; with no `vf-desktop` ancestor it draws in the icon's own box instead, clipped by whatever clips the icon. It is never a hit, so `elementsFromPoint` under it sees the page.
 
 ```ts
 icon.addEventListener('vf-drag', (e) => {

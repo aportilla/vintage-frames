@@ -199,7 +199,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Method</td><td><code>clearActive()</code></td><td class="wrap">Deactivates the document tier. A press or focus in a document window, or a newly slotted one, reactivates; utility windows keep their <code>active</code></td></tr>
               <tr><td>Method</td><td><code>placementAt(x,&nbsp;y)</code></td><td class="wrap">A viewport point (CSS px) as <code>{ left, top }</code> on the screen, whole system px on the placement lattice, bezel excluded — the pair to write onto a child dropped here</td></tr>
               <tr><td>Event</td><td><code>vf-activate</code></td><td class="wrap"><code>{ window }</code> — the new holder, <code>null</code> on deactivation. Once per change of holder; re-asserting the current one is silent</td></tr>
-              <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, anything</td></tr>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, an icon field, anything. A dragged <code>vf-icon</code> anywhere inside draws its outline on the screen, above the menu bar and clipped at the raster's edge</td></tr>
               <tr><td>Part</td><td><code>desktop</code></td><td class="wrap">The dithered surface</td></tr>
               <tr><td>Token</td><td><code>--vf-desktop</code></td><td class="wrap">Base color under the tile (<code>#808080</code>)</td></tr>
               <tr><td>Token</td><td><code>--vf-desktop-pattern</code></td><td class="wrap">The whole background-image tile</td></tr>
@@ -1880,7 +1880,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="movable — drag one by its art or name, or Tab to it and use the arrow keys (Shift for eight). Escape mid-drag cancels. editable — click the name of an already-selected icon to rename; Return commits, Escape reverts. Double-clicking the name opens the icon instead."
+            data-caption="movable — drag one by its art or name: the classic dotted outline follows the pointer and the icon lands at the drop. Escape mid-drag cancels. Tab to one and use the arrow keys (Shift for eight). editable — click the name of an already-selected icon to rename; Return commits, Escape reverts. Double-clicking the name opens the icon instead."
           >
             <vf-desktop width="512" height="192">
               <vf-icon-field label="Desktop">
@@ -1926,15 +1926,16 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
-            A drag is reported, not interpreted: <code>vf-drag-start</code>,
-            <code>vf-drag</code> on every step, and a cancelable
-            <code>vf-drop</code> whose default action is the move. The page
-            decides what a drop means — the kit ships no filing semantics —
-            and cancels the default action when it files the icon itself.
-            <code>target</code> paints the destination highlight on the folder
-            under the pointer; <code>placementAt()</code> on the destination
-            converts the outline's origin into that container's own
-            coordinates.
+            A drag draws the outline on the desktop, over windows, palettes and
+            the menu bar alike, and is reported rather than interpreted:
+            <code>vf-drag-start</code>, <code>vf-drag</code> on every step,
+            and a cancelable <code>vf-drop</code> whose default action is the
+            move. The page decides what a drop means — the kit ships no filing
+            semantics — and cancels the default action when it files the icon
+            itself. <code>target</code> paints the destination highlight on
+            the folder under the pointer; <code>placementAt()</code> on the
+            destination converts the outline's origin into that container's
+            own coordinates.
           </p>
 
           <template
@@ -2008,7 +2009,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>vf-name-too-long</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, accepted, limit }</code> — a rename went past <code>maxlength</code></td></tr>
               <tr><td><code>vf-name-rejected</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, kept, reason }</code> — a rename committed empty; the old name is kept and no <code>vf-change</code> fires</td></tr>
               <tr><td><code>vf-drag-start</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ left, top }</code> — the first lattice step away from the press; the origin in the icon's container. A press that never leaves its cell fires nothing</td></tr>
-              <tr><td><code>vf-drag</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ clientX, clientY, left, top, x, y }</code> on every step that changed the proposal: the pointer in CSS px, the proposed origin in the container (whole system px on the lattice), and the frame's corner in viewport CSS px for a drop into another container</td></tr>
+              <tr><td><code>vf-drag</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ clientX, clientY, left, top, x, y }</code> on every step that changed the proposal: the pointer in CSS px, the proposed origin in the container (whole system px on the lattice, unclamped), and the outline's corner in viewport CSS px for a drop into another container</td></tr>
               <tr><td><code>vf-drop</code></td><td>Event</td><td>—</td><td class="wrap">The release, cancelable, with the same detail. The default action writes the proposal through <code>left</code>/<code>top</code>, clamped whole in the container; <code>preventDefault()</code> writes nothing, and re-parenting inside the handler is safe</td></tr>
               <tr><td><code>vf-drag-cancel</code></td><td>Event</td><td>—</td><td class="wrap"><code>{}</code> — Escape or a <code>pointercancel</code> ended the drag; nothing was written</td></tr>
               <tr><td><code>--vf-icon-gap</code></td><td>Token</td><td><code>2px</code></td><td class="wrap">Cell to plate</td></tr>

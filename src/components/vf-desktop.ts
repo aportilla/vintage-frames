@@ -2,7 +2,7 @@ import { html, css, LitElement, unsafeCSS, type PropertyValues } from 'lit'
 import { property, query, queryAssignedElements } from 'lit/decorators.js'
 import { emit } from '../events.js'
 import { vfElement } from '../define.js'
-import { VfPositioned } from '../position.js'
+import { VfPositioned, placementIn } from '../position.js'
 import { vfBase } from '../styles/base.js'
 import { tileImage, tileRects, tileSpan } from '../styles/recipes/tile.js'
 import { patternOverride, tileGrid, vfTileGrid } from '../tile-grid.js'
@@ -341,6 +341,17 @@ export class VfDesktop extends VfPositioned(LitElement) {
     this.width = fit(maxWidth)
     this.height = fit(maxHeight)
     return { width: this.width, height: this.height }
+  }
+
+  /**
+   * A viewport point (CSS px) as a placement on the screen — `{ left, top }`
+   * in whole system px on the placement lattice, measured from the raster's
+   * corner with the bezel excluded: the pair a child dropped onto the desktop
+   * is written with. The screen sits in the shadow tree, which is why the
+   * conversion is a method here.
+   */
+  placementAt(clientX: number, clientY: number): { left: number; top: number } {
+    return placementIn(this.screen ?? this, clientX, clientY, this)
   }
 
   /** Slotted `vf-window` children (direct children only). */

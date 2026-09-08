@@ -861,7 +861,7 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
   )
   check(
     'universal: the manifest lists every component this check covers',
-    tags.length === 31,
+    tags.length === 32,
     `${tags.length} elements (${placeable.length} placeable + vf-dialog)`
   )
   const placed = await page.evaluate(() =>
@@ -943,7 +943,7 @@ const warnedAbout = (page, fragment) => page.vfWarnings.some((w) => w.includes(f
   // vf-dialog's own terms: it takes the same pair, in the same unit, against
   // the viewport — showModal() puts the box in the top layer, whose containing
   // block is not the parent. Asserted here so "every component takes the pair"
-  // covers all 31 without pretending the coordinate space is the same.
+  // covers all 32 without pretending the coordinate space is the same.
   const page = await build(`
     <div style="position:relative;left:120px;top:80px">
       <vf-dialog id="d" heading="Placed" width="200" height="120" top="40" left="60"></vf-dialog>

@@ -1,7 +1,12 @@
 import { html, css, LitElement, nothing, type PropertyValues } from 'lit'
-import { property, state } from 'lit/decorators.js'
+import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { PlacementController, VfPositioned, warnMovableContract } from '../position.js'
+import {
+  PlacementController,
+  VfPositioned,
+  placementIn,
+  warnMovableContract,
+} from '../position.js'
 import type { PlacementBounds } from '../position.js'
 import { VfSized } from '../size.js'
 import {
@@ -33,6 +38,7 @@ import {
 } from '../chrome.js'
 import { emit } from '../events.js'
 import './vf-scroll-area.js'
+import type { VfScrollArea } from './vf-scroll-area.js'
 
 interface ResizeState {
   pointerId: number
@@ -530,6 +536,12 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   /** Whether the `status` slot has assigned content (drives the strip). */
   @state() private _hasStatus = false
 
+  /** The content region — the placed-child anchor; exists from the first render. */
+  @query('.body') private readonly body!: HTMLDivElement | null
+
+  /** The built-in edge scroll area, while `scrollbars` is set. */
+  @query('vf-scroll-area') private readonly scrollArea!: VfScrollArea | null
+
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
@@ -642,6 +654,31 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   })
 
   private _resizeState: ResizeState | null = null
+
+  /**
+   * A viewport point (CSS px) as a placement in the window's content region
+   * — `{ left, top }` in whole system px on the placement lattice, the pair a
+   * child dropped into this window is written with: the body's corner, or
+   * under `scrollbars` the scrolled plane, scroll offset included. The anchor
+   * sits in the shadow tree, which is why the conversion is a method here
+   * rather than the page's own `toSysExact` against a rect.
+   */
+  placementAt(clientX: number, clientY: number): { left: number; top: number } {
+    const area = this.scrollArea
+    if (area) return area.placementAt(clientX, clientY)
+    return placementIn(this.body ?? this, clientX, clientY, this)
+  }
+
+  /**
+   * Re-measure the built-in scroll area's overflow and re-sync its rails —
+   * a no-op without `scrollbars`. The area re-measures by itself on its
+   * content's box, its slot and every placement write; this is the escape
+   * hatch for a scroll range that changes with none of those, the way
+   * `vf-scroll-area.measure()` is.
+   */
+  measure(): void {
+    this.scrollArea?.measure()
+  }
 
   /**
    * Say something the first time a window is opened without a width. The size

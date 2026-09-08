@@ -24,6 +24,46 @@ const NUDGE = 1
 const NUDGE_COARSE = 8
 
 /**
+ * The detail of `vf-drag` and `vf-drop`: the pointer, for the page's hit
+ * test; the proposal in the icon's own container; and the outline's top-left
+ * in the viewport, for a drop that lands in another container (convert it
+ * with that container's `placementAt`).
+ */
+export interface VfIconDragDetail {
+  /** The pointer, in viewport CSS px. */
+  clientX: number
+  clientY: number
+  /**
+   * The proposed origin in the icon's own container, whole system px on the
+   * placement lattice.
+   */
+  left: number
+  top: number
+  /**
+   * The outline's top-left — the icon's frame box translated by the delta —
+   * in viewport CSS px. The press offset is already inside it: an icon placed
+   * at `container.placementAt(x, y)` lands exactly where the outline was.
+   */
+  x: number
+  y: number
+}
+
+/** One drag, from the press to its release. */
+interface DragGesture {
+  /** The seeded origin, system px in the container. */
+  origin: { x: number; y: number }
+  /** The frame's viewport box at the press, CSS px. */
+  frame: DOMRect
+  /** The last pointer position, so a release with no event can still report. */
+  pointer: { clientX: number; clientY: number }
+  /**
+   * The last proposal, or null until the first lattice step away from the
+   * press — the jitter test: a stationary press never starts a drag.
+   */
+  proposal: { left: number; top: number } | null
+}
+
+/**
  * Hold a drag origin in `[0, max]`. A `max` at or below zero means the
  * container is genuinely smaller than the icon and has no range to clamp into,
  * so the origin is only held off the near edge.
@@ -156,6 +196,32 @@ const clamp = (v: number, max: number): number =>
  * Shift. Focus is what `selectable` grants, so the keyboard half of `movable`
  * and `editable` presupposes it — see the role section below.
  *
+ * ### The drag reports, the page files
+ *
+ * The kit ships no filing semantics — folders are the page's own catalog —
+ * so a drag is a stream of events and a cancelable commit, on the icon:
+ *
+ * - `vf-drag-start` `{ left, top }` on the first lattice step away from the
+ *   press (a plain click never starts one, and never fires a drop);
+ * - `vf-drag` `{ clientX, clientY, left, top, x, y }` on every step that
+ *   changed the snapped proposal;
+ * - `vf-drop`, the same shape at the release, **cancelable**: its default
+ *   action is the move, the proposal written through `left`/`top` and
+ *   clamped whole in the container measured at the press. `preventDefault()`
+ *   writes nothing — the page re-parents or places the icon itself, the
+ *   outline's origin converted with the destination's `placementAt`;
+ * - `vf-drag-cancel` `{}` on Escape or a `pointercancel`: nothing written.
+ *
+ * Escape is heard by a document listener scoped to the gesture rather than
+ * by the icon's own key handler, because a `movable`-only icon never takes
+ * focus — an addition in the kit's idiom (a pointer-only gesture with no way
+ * out is the kind of gap SPEC §1 closes), not a claim about the Finder.
+ *
+ * `target` is the destination highlight the page sets on the folder under a
+ * drag: the selected treatment of the art alone — inverted, or darkened
+ * under `color` — with none of `selected`'s semantics: no event, no outside
+ * listener, no `aria-selected`, the plate untouched.
+ *
  * Opening gets the same treatment. The double-click is the pointer gesture,
  * and its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl
  * standing in for ⌘ off the Mac. Return is deliberately not one of them: the
@@ -195,21 +261,22 @@ const clamp = (v: number, max: number): number =>
  * and true of what it is. Deliberately not `button`: that would promise Enter
  * and Space activate, and here Return *renames* while the open route is ⌘O / ⌘↓.
  *
- * Declaring the owner is one attribute on whatever already holds the field, and
+ * The owner is `vf-icon-field`, the container a field of icons sits in, and
  * it is what buys the selection state back:
  *
  * ```html
- * <div role="listbox" aria-label="Desktop" aria-multiselectable="true">
+ * <vf-icon-field label="Desktop">
  *   <vf-icon label="Macintosh HD" selectable movable editable>…</vf-icon>
  *   <vf-icon label="Trash" selectable movable editable>…</vf-icon>
- * </div>
+ * </vf-icon-field>
  * ```
  *
  * A `vf-desktop` cannot be that container itself: it also holds windows and a
  * menu bar, and a non-`option` child of a listbox is invalid the same way the
- * orphaned option was. The plain wrapper above is layout-neutral — placed icons
- * anchor to the nearest *positioned* ancestor, which is still the desktop's
- * raster. One divergence from the APG listbox is deliberate: its options share
+ * orphaned option was. The field is layout-neutral — placed icons anchor to
+ * the nearest *positioned* ancestor, which is still the desktop's raster. An
+ * element of your own carrying `role="listbox"` still owns an icon the same
+ * way. One divergence from the APG listbox is deliberate: its options share
  * a single roving tab stop, while these stay one stop each, the way a Finder
  * icon is reached on its own.
  *
@@ -285,6 +352,18 @@ const clamp = (v: number, max: number): number =>
  *   edit was dropped and the old name put back.
  *   `detail: { attempted, kept, reason: 'empty' }`. A `vf-change` is *not*
  *   fired alongside it — nothing changed.
+ * @fires vf-drag-start - A drag began: the first lattice step away from the
+ *   press. `detail: { left, top }` — the origin, whole system px in the
+ *   icon's container.
+ * @fires vf-drag - A step that changed the proposal. `detail: { clientX,
+ *   clientY, left, top, x, y }` — the pointer in viewport CSS px, the
+ *   proposed origin in the container (whole system px on the lattice), and
+ *   the outline's top-left in viewport CSS px.
+ * @fires vf-drop - The release; cancelable. The same detail as `vf-drag`.
+ *   Its default action writes the proposal through `left`/`top`, clamped
+ *   whole in the container; `preventDefault()` writes nothing.
+ * @fires vf-drag-cancel - The drag was abandoned — Escape, or a
+ *   `pointercancel` — and nothing was written. `detail: {}`.
  */
 @vfElement('vf-icon')
 export class VfIcon extends VfPositioned(LitElement) {
@@ -306,6 +385,13 @@ export class VfIcon extends VfPositioned(LitElement) {
         display: flex;
         flex-direction: column;
         align-items: center;
+      }
+      /* The frame is the drag handle, so a touch on a movable icon is the
+         drag and never the page's pan — the window and dialog title bars
+         set the same. Only when movable: suppressing scrolling over an icon
+         that cannot be dragged would be a behavior change for nothing. */
+      :host([movable]) .frame {
+        touch-action: none;
       }
       .art {
         position: relative;
@@ -330,6 +416,15 @@ export class VfIcon extends VfPositioned(LitElement) {
          never what System 7 showed for color art (see the class doc). One
          treatment for whatever the cell shows, the open ghost included. */
       :host([selected][color]) .art {
+        filter: brightness(0.5);
+      }
+      /* The destination highlight under a drag: the selected treatment of
+         the art alone — the Finder inverted the folder an icon was dragged
+         over — with none of selected's semantics, and the plate untouched. */
+      :host([target]) .art {
+        filter: invert(1);
+      }
+      :host([target][color]) .art {
         filter: brightness(0.5);
       }
       /* The open ghost replaces the slotted art while there is one — the
@@ -525,6 +620,16 @@ export class VfIcon extends VfPositioned(LitElement) {
   @property({ type: Boolean, reflect: true }) selected = false
 
   /**
+   * The destination highlight: this icon is the folder under a drag, and its
+   * art paints the selected treatment — inverted, or darkened under
+   * {@link color} — with none of `selected`'s semantics: no `vf-select`, no
+   * outside-press listener, no `aria-selected`, the plate untouched. The page
+   * sets it on the folder a `vf-drag` reports the pointer over and clears it
+   * when the pointer leaves or the drop lands.
+   */
+  @property({ type: Boolean, reflect: true }) target = false
+
+  /**
    * Declares the slotted art a **color icon**, so selection darkens it — the
    * ttSelected transform, every color blended halfway toward black — instead
    * of inverting it into a photographic negative (see the class doc). Yours
@@ -636,13 +741,14 @@ export class VfIcon extends VfPositioned(LitElement) {
    * is how a selectable icon reached assistive tech as a bare `generic` in
    * every configuration the kit shipped.
    *
-   * Matched on the attribute because that is what the recipe writes
-   * (`<div role="listbox">` — see the class doc). A `vf-list` is deliberately
-   * not a match: it holds `vf-list-item` rows, and its own `listbox` role now
-   * lives in internals rather than on the tag anyway.
+   * Matched on the `vf-icon-field` tag — its `listbox` role lives in
+   * internals, which never lands as an attribute for `closest()` to find —
+   * and on the attribute a consumer's own element writes. A `vf-list` is
+   * deliberately not a match: it holds `vf-list-item` rows, and its own
+   * `listbox` role lives in internals rather than on the tag anyway.
    */
   get #inListbox(): boolean {
-    return this.closest('[role="listbox"]') !== null
+    return this.closest('vf-icon-field, [role="listbox"]') !== null
   }
 
   /** What the current ghost was derived from, so a no-op refresh is free. */
@@ -700,29 +806,141 @@ export class VfIcon extends VfPositioned(LitElement) {
     this.#keepWhole(x, y, bounds)
   )
 
+  /** The in-flight drag, or null between gestures. */
+  #gesture: DragGesture | null = null
+
   /**
    * Drag-to-move, on the same delegate shape as `vf-window`: the placement
-   * controller seeds the origin — from the in-flow offset the first time — and
-   * writes back each move the drag controller has snapped onto the lattice.
+   * controller seeds the origin — from the in-flow offset the first time —
+   * and the drag controller hands back each step snapped onto the lattice.
+   * What the icon does with a step is {@link #onDragStep}; the release is
+   * {@link #onDragEnd}, where the drop is reported and, uncancelled, written.
    */
-  /** Where the in-flight drag started, so a move can be told from jitter. */
-  #dragOrigin = { x: 0, y: 0 }
-
   readonly #drag = new DragController(this, {
     onDragStart: (event: PointerEvent): { x: number; y: number } | null => {
       if (!this.movable || event.button !== 0 || this._editing) return null
       this.#warnIfUnplaced()
-      return (this.#dragOrigin = this.#placement.seed())
+      const origin = this.#placement.seed()
+      this.#gesture = {
+        origin,
+        frame: this.#frameRect(),
+        pointer: { clientX: event.clientX, clientY: event.clientY },
+        proposal: null,
+      }
+      return origin
     },
-    onDrag: (x: number, y: number): void => {
-      // Moving an icon is not renaming it, so a press that travels calls off
-      // the rename it armed. Measured against the seeded origin rather than
-      // taken from the move itself: a stationary press still reports jitter,
-      // and every one of those steps snaps back onto the same system px.
-      if (x !== this.#dragOrigin.x || y !== this.#dragOrigin.y) this.#disarmRename()
-      this.#placement.moveTo(x, y)
+    onDrag: (x: number, y: number, event: PointerEvent): void => {
+      this.#onDragStep(x, y, event)
+    },
+    onDragEnd: (event: PointerEvent | undefined, cancelled: boolean): void => {
+      this.#onDragEnd(event, cancelled)
     },
   })
+
+  /**
+   * Escape mid-drag cancels. A document listener scoped to the gesture (the
+   * in-flight-gesture idiom) rather than the icon's own key handler, because
+   * a `movable`-only icon never takes focus. Capture phase, and the key is
+   * stopped there, so an enclosing `vf-dialog` never reads it as a dismissal
+   * — the rule the rename box's Escape follows.
+   */
+  readonly #escape = new DocumentListenersController(this, () => [
+    [document, 'keydown', this.#onDragKeyDown, true],
+  ])
+
+  #onDragKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape') return
+    event.preventDefault()
+    event.stopPropagation()
+    this.#drag.cancel()
+  }
+
+  /** The frame's viewport box — what the outline is a translation of. */
+  #frameRect(): DOMRect {
+    return (
+      this.renderRoot?.querySelector('.frame')?.getBoundingClientRect() ??
+      this.getBoundingClientRect()
+    )
+  }
+
+  /**
+   * A lattice step of the drag. The first step whose snapped origin differs
+   * from the seed is the start — a stationary press reports jitter, and every
+   * one of those steps snaps back onto the same system px, so a plain click
+   * never starts a drag and never fires a drop. Moving an icon is not
+   * renaming it, so the start calls off the rename the press armed.
+   */
+  #onDragStep(x: number, y: number, event: PointerEvent): void {
+    const gesture = this.#gesture
+    if (!gesture) return
+    gesture.pointer = { clientX: event.clientX, clientY: event.clientY }
+    if (!gesture.proposal) {
+      if (x === gesture.origin.x && y === gesture.origin.y) return
+      this.#disarmRename()
+      gesture.proposal = { left: gesture.origin.x, top: gesture.origin.y }
+      this.#escape.attach()
+      emit(this, 'vf-drag-start', { left: gesture.origin.x, top: gesture.origin.y })
+    }
+    if (x === gesture.proposal.left && y === gesture.proposal.top) return
+    gesture.proposal = { left: x, top: y }
+    // The icon moves with the pointer; the reported proposal is what was
+    // applied, clamped whole in the container measured at the press.
+    this.#placement.moveTo(x, y)
+    emit(this, 'vf-drag', this.#dragDetail(gesture))
+  }
+
+  /**
+   * The release, or a cancel. A gesture that never started (a click) reports
+   * nothing. A cancel — Escape, `pointercancel` — puts the icon back where
+   * the press found it and says so. A release reports the drop, and the
+   * default action of an uncancelled `vf-drop` is the move itself. Dispatched
+   * with the drag state already cleared and the pointer capture released, so
+   * a handler may re-parent the icon freely.
+   */
+  #onDragEnd(event: PointerEvent | undefined, cancelled: boolean): void {
+    const gesture = this.#gesture
+    this.#gesture = null
+    if (!gesture?.proposal) return
+    this.#escape.detach()
+    if (event) gesture.pointer = { clientX: event.clientX, clientY: event.clientY }
+    if (cancelled) {
+      // The seed, unsnapped and unclamped: exactly the pair the press read.
+      this.left = gesture.origin.x
+      this.top = gesture.origin.y
+      emit(this, 'vf-drag-cancel', {})
+      return
+    }
+    const detail = this.#dragDetail(gesture)
+    // The icon moved live under the gesture, so the drop is reported with the
+    // pair back where the press found it: a handler that places or
+    // re-parents the icon writes over nothing the kit did, and the default
+    // action of an uncancelled drop is the one move that lands. One update
+    // either way — nothing paints in between.
+    this.left = gesture.origin.x
+    this.top = gesture.origin.y
+    if (emit(this, 'vf-drop', detail, { cancelable: true })) {
+      this.#placement.moveTo(detail.left, detail.top)
+    }
+  }
+
+  /**
+   * The detail of `vf-drag` and `vf-drop`: the pointer, the proposal in the
+   * container, and the outline's top-left in the viewport — the frame's box
+   * at the press translated by the proposal's delta.
+   */
+  #dragDetail(gesture: DragGesture): VfIconDragDetail {
+    const left = this.left ?? 0
+    const top = this.top ?? 0
+    const scale = effectiveScale(this)
+    return {
+      clientX: gesture.pointer.clientX,
+      clientY: gesture.pointer.clientY,
+      left,
+      top,
+      x: gesture.frame.left + (left - gesture.origin.x) * scale,
+      y: gesture.frame.top + (top - gesture.origin.y) * scale,
+    }
+  }
 
   override connectedCallback(): void {
     super.connectedCallback()
@@ -732,6 +950,11 @@ export class VfIcon extends VfPositioned(LitElement) {
     // re-fire on a reconnect — so re-parenting an icon into or out of a field
     // would otherwise strand it on the role it had in the old place.
     this.#syncRole()
+    // The outside-press listener on the same terms: the controller detaches
+    // it on disconnect and updated() does not re-run for an unchanged
+    // property, so an icon re-parented while selected — filed into a window
+    // at a vf-drop — would keep its selection with no press able to clear it.
+    if (this.selectable && this.selected) this.#outside.attach()
     // On the host, not in the template: the host is the focusable element, so
     // it is where the key events land.
     this.addEventListener('keydown', this.#onKeyDown)
@@ -742,6 +965,9 @@ export class VfIcon extends VfPositioned(LitElement) {
     this.removeEventListener('keydown', this.#onKeyDown)
     // A timer outliving the element would open a field in a torn-down tree.
     this.#disarmRename()
+    // A drag cannot outlive the element either: the controller has dropped
+    // the pointer, and the Escape listener went with the controller.
+    this.#gesture = null
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {

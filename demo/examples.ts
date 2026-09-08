@@ -28,7 +28,13 @@ import {
   requestGridSnap,
   truePixelRatio,
 } from '../src/index.js'
-import type { VfProgressBar } from '../src/index.js'
+import type {
+  VfDesktop,
+  VfIcon,
+  VfIconDragDetail,
+  VfProgressBar,
+  VfWindow,
+} from '../src/index.js'
 
 /** Query a required element; fail loudly if the markup drifts. */
 function $<T extends Element>(selector: string): T {
@@ -144,7 +150,10 @@ function mountExamples(): void {
  * Generic demo hooks.
  * ------------------------------------------------------------------ */
 
-/** Every event the kit dispatches, for the live event logs. */
+/**
+ * Every event the kit dispatches, for the live event logs — except `vf-drag`,
+ * which fires on every lattice step of a drag and would bury the rest.
+ */
 const VF_EVENTS = [
   'vf-input',
   'vf-change',
@@ -156,6 +165,9 @@ const VF_EVENTS = [
   'vf-open',
   'vf-name-too-long',
   'vf-name-rejected',
+  'vf-drag-start',
+  'vf-drop',
+  'vf-drag-cancel',
 ] as const
 
 /** A modal shell — the `show()`/`close()` pair `data-show`/`data-close` drive. */
@@ -274,6 +286,107 @@ function wireEventLogs(): void {
 /** `vf-menu-select` carries the item element itself; print it as a tag name. */
 function replaceElements(_key: string, value: unknown): unknown {
   return value instanceof HTMLElement ? `<${value.localName}>` : value
+}
+
+/**
+ * `data-filing` on a `vf-desktop`: file icons across its fields by drag and
+ * drop — the page's half of the Finder drag, which the kit deliberately
+ * leaves to the page (it reports the gesture; folders are the page's own
+ * catalog). A `vf-window` holding a `vf-icon-field` is a folder window; a
+ * `vf-icon` carrying `data-folder="<id>"` is the folder that opens it.
+ *
+ * Under a drag the folder icon under the pointer wears `target`. At the
+ * drop: an icon let go over a folder icon is filed into that folder's
+ * window; one let go over a folder window is placed there at the outline's
+ * origin (`placementAt`); one let go on the desktop is placed on the
+ * desktop's field the same way. In each case the handler cancels the
+ * default action and does the write itself. A drop on the container the
+ * icon already sits in is left to the kit: the default action moves it.
+ */
+function wireFiling(): void {
+  for (const desktop of document.querySelectorAll<VfDesktop>('vf-desktop[data-filing]')) {
+    const desktopField = desktop.querySelector<HTMLElement>(':scope > vf-icon-field')
+    const isFolderIcon = (el: Element): el is VfIcon =>
+      el.localName === 'vf-icon' && (el as HTMLElement).dataset.folder !== undefined
+    const isFolderWindow = (el: Element): el is VfWindow =>
+      el.localName === 'vf-window' && el.querySelector('vf-icon-field') !== null
+
+    /** What is under the pointer, the dragged icon itself skipped. */
+    const under = (x: number, y: number, dragged: Element) => {
+      const stack = document.elementsFromPoint(x, y).filter((el) => el !== dragged)
+      return {
+        folder: stack.find(isFolderIcon) ?? null,
+        window: stack.find(isFolderWindow) ?? null,
+        desktop: stack.includes(desktop),
+      }
+    }
+    const countItems = (win: VfWindow): void => {
+      const readout = win.querySelector<HTMLElement>('[data-item-count]')
+      if (!readout) return
+      const n = win.querySelectorAll('vf-icon').length
+      readout.textContent = `${n} item${n === 1 ? '' : 's'}`
+    }
+    let target: VfIcon | null = null
+    const highlight = (next: VfIcon | null): void => {
+      if (target === next) return
+      if (target) target.target = false
+      target = next
+      if (target) target.target = true
+    }
+
+    desktop.addEventListener('vf-drag', (event) => {
+      const { clientX, clientY } = (event as CustomEvent<VfIconDragDetail>).detail
+      const hit = under(clientX, clientY, event.target as Element)
+      highlight(hit.folder && hit.folder !== event.target ? hit.folder : null)
+    })
+    desktop.addEventListener('vf-drag-cancel', () => highlight(null))
+    desktop.addEventListener('vf-drop', (event) => {
+      const icon = event.target as VfIcon
+      const { clientX, clientY, x, y } = (event as CustomEvent<VfIconDragDetail>).detail
+      const hit = under(clientX, clientY, icon)
+      highlight(null)
+      const from = icon.closest('vf-window')
+
+      if (hit.folder && hit.folder !== icon) {
+        // Into the folder: the next free cell of its window's field.
+        const win = document.getElementById(hit.folder.dataset.folder ?? '') as VfWindow | null
+        const field = win?.querySelector('vf-icon-field')
+        if (!win || !field) return
+        event.preventDefault()
+        const n = field.querySelectorAll('vf-icon').length
+        field.append(icon)
+        icon.left = 16 + (n % 3) * 80
+        icon.top = 16 + Math.floor(n / 3) * 64
+        countItems(win)
+        if (from && from !== win) countItems(from)
+        return
+      }
+      if (hit.window && hit.window !== from) {
+        // Into a folder window, where the outline was let go.
+        const field = hit.window.querySelector('vf-icon-field')
+        if (!field) return
+        event.preventDefault()
+        const { left, top } = hit.window.placementAt(x, y)
+        field.append(icon)
+        icon.left = left
+        icon.top = top
+        countItems(hit.window)
+        if (from) countItems(from)
+        return
+      }
+      if (!hit.window && hit.desktop && from && desktopField) {
+        // Out onto the desktop, where the outline was let go.
+        event.preventDefault()
+        const { left, top } = desktop.placementAt(x, y)
+        desktopField.append(icon)
+        icon.left = left
+        icon.top = top
+        countItems(from)
+      }
+      // Otherwise: the same container it came from — the kit's default
+      // action moves it.
+    })
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -411,6 +524,7 @@ wireWindowClosing()
 wireSizeReadouts()
 wireReadouts()
 wireEventLogs()
+wireFiling()
 wireProgress()
 wireZoomReadout()
 

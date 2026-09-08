@@ -1,7 +1,7 @@
 # vintage-frames
 
 Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
-31 elements, TypeScript, published to npm as `vintage-frames`.
+32 elements, TypeScript, published to npm as `vintage-frames`.
 
 ## Commands
 

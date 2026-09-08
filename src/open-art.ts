@@ -165,9 +165,9 @@ export interface DragOutlineGeometry {
 }
 
 /**
- * The 2×2 checker the outline is dotted with: ink where `x + y` is even —
- * the desktop dither's own phase (`gray-50`, src/patterns.ts), so an outline
- * phase-locked to the screen lands its dots on the dither's black pixels.
+ * The 2×2 checker the outline is dotted with: ink where `x + y` is even in
+ * the canvas's own coordinates. Which diagonal of the screen that is, the
+ * caller decides ({@link penPhase}).
  */
 let checker: HTMLCanvasElement | null = null
 
@@ -254,6 +254,19 @@ export function deriveDragOutline(
 }
 
 /**
+ * The XOR pen's dot phase for a ring whose top-left lands at (`x`, `y`) on
+ * the screen, whole system px, for {@link dotOutline}: the dots take the
+ * diagonal the desktop dither leaves white — `x + y` odd on the screen — the
+ * way the Finder's did. Over the dither each dot flips a white pixel black
+ * and the dither's own ink fills the gaps, so the ring reads as a solid
+ * black line; over paper it is a dotted black line. The other diagonal
+ * would flip the dither's ink to paper, and the ring would read white.
+ */
+export function penPhase(x: number, y: number): number {
+  return (((x + y) % 2) + 2) % 2 === 0 ? 1 : 0
+}
+
+/**
  * Paint a selection rectangle — the rubber band `vf-icon-field` drags on its
  * background — into `into`: a one-pixel outline `width` × `height` system px,
  * dotted at `phase` the way the drag outline is. A degenerate axis paints as
@@ -276,10 +289,10 @@ export function paintSelectionRect(
 /**
  * Paint `ring` into `into` dotted with the checker at `phase` — 0 keeps the
  * dots where `x + y` is even in the canvas's own coordinates, 1 where it is
- * odd. The caller picks the phase from where the outline lands on screen,
- * so the dots share the desktop dither's phase wherever the outline goes,
- * as QuickDraw's screen-anchored pattern pen did. Sizing `into` to the ring
- * clears it, so each step is a fresh paint.
+ * odd. The caller takes the phase from where the outline lands on the
+ * screen ({@link penPhase}), so the dots sit between the desktop dither's
+ * ink wherever the outline goes, as QuickDraw's screen-anchored pattern pen
+ * did. Sizing `into` to the ring clears it, so each step is a fresh paint.
  */
 export function dotOutline(
   ring: HTMLCanvasElement,

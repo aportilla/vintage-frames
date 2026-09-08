@@ -1941,10 +1941,10 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="Filing by drag and drop, done by this page's own script: drag Car onto the Vehicles folder (it wears target) or into its window, or drag Truck out onto the desktop. At the drop the page cancels the default action, re-parents the icon and places it with placementAt; a drop back in the same container is left to the kit."
+            data-caption="Filing by drag and drop, done by this page's own script: drag Car onto the Vehicles folder (it wears target) or into its window, or drag Truck out onto the desktop. At the drop the page cancels the default action, re-parents the icon and places it with placementAt; a drop back in the same container is left to the kit. Both fields are filled, so a drag on the bare desktop or the window's background is a rubber band, and a drag on one selected icon files the whole selection."
           >
             <vf-desktop width="512" height="270" data-filing>
-              <vf-icon-field label="Desktop">
+              <vf-icon-field label="Desktop" fill-width fill-height>
                 <vf-icon
                   label="Vehicles"
                   width="64"
@@ -1977,7 +1977,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 <vf-stack slot="header" fill-width pad="2 8">
                   <vf-label data-item-count>1 item</vf-label>
                 </vf-stack>
-                <vf-icon-field label="Vehicles">
+                <vf-icon-field label="Vehicles" fill-width height="140">
                   <vf-icon label="Truck" width="64" selectable movable editable left="16" top="16">
                     <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
                     <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
@@ -2003,14 +2003,16 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>editable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Click the plate of an already-selected icon to rename; the field opens once the double-click window has passed, so a double-click opens the icon instead</td></tr>
               <tr><td><code>width</code></td><td>number</td><td class="wrap">the wider of cell and name</td><td class="wrap">System px, and even. The cell pitch; a longer name overflows it</td></tr>
               <tr><td><code>maxlength</code></td><td>number</td><td><code>31</code></td><td class="wrap">The HFS filename limit, applied to the rename field. A <code>label</code> set from your own data is never truncated</td></tr>
+              <tr><td><code>setSelected(next)</code></td><td>method</td><td>—</td><td class="wrap">Select or deselect as a press would, <code>vf-select</code> included. A <code>selected</code> write from code is silent</td></tr>
+              <tr><td><code>touches(box)</code></td><td>method</td><td>—</td><td class="wrap">Whether a viewport box reaches the art cell or the name plate — the selection rectangle's test; the empty cell beside them counts for nothing</td></tr>
               <tr><td><code>vf-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ selected }</code></td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ label, previous }</code> — the name was committed</td></tr>
               <tr><td><code>vf-open</code></td><td>Event</td><td>—</td><td class="wrap"><code>{}</code> — double-clicked anywhere on the icon, name included, or ⌘O / ⌘↓ (Ctrl off the Mac). Return renames instead</td></tr>
               <tr><td><code>vf-name-too-long</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, accepted, limit }</code> — a rename went past <code>maxlength</code></td></tr>
               <tr><td><code>vf-name-rejected</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, kept, reason }</code> — a rename committed empty; the old name is kept and no <code>vf-change</code> fires</td></tr>
-              <tr><td><code>vf-drag-start</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ left, top }</code> — the first lattice step away from the press; the origin in the icon's container. A press that never leaves its cell fires nothing</td></tr>
-              <tr><td><code>vf-drag</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ clientX, clientY, left, top, x, y }</code> on every step that changed the proposal: the pointer in CSS px, the proposed origin in the container (whole system px on the lattice, unclamped), and the outline's corner in viewport CSS px for a drop into another container</td></tr>
-              <tr><td><code>vf-drop</code></td><td>Event</td><td>—</td><td class="wrap">The release, cancelable, with the same detail. The default action writes the proposal through <code>left</code>/<code>top</code>, clamped whole in the container; <code>preventDefault()</code> writes nothing, and re-parenting inside the handler is safe</td></tr>
+              <tr><td><code>vf-drag-start</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ left, top, icons }</code> — the first lattice step away from the press; the origin in the icon's container, and every icon travelling (this one first: a drag on a selected icon carries the field's other selected icons). A press that never leaves its cell fires nothing</td></tr>
+              <tr><td><code>vf-drag</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ clientX, clientY, left, top, x, y, icons }</code> on every step that changed the proposal: the pointer in CSS px, the proposed origin in the container (whole system px on the lattice, unclamped), the outline's corner in viewport CSS px for a drop into another container, and the icons travelling</td></tr>
+              <tr><td><code>vf-drop</code></td><td>Event</td><td>—</td><td class="wrap">The release, cancelable, with the same detail. The default action writes the proposal through <code>left</code>/<code>top</code> — every icon in <code>icons</code> by the same delta, clamped whole in the container as a group; <code>preventDefault()</code> writes nothing, and re-parenting inside the handler is safe</td></tr>
               <tr><td><code>vf-drag-cancel</code></td><td>Event</td><td>—</td><td class="wrap"><code>{}</code> — Escape or a <code>pointercancel</code> ended the drag; nothing was written</td></tr>
               <tr><td><code>--vf-icon-gap</code></td><td>Token</td><td><code>2px</code></td><td class="wrap">Cell to plate</td></tr>
               <tr><td><code>--vf-icon-label-height</code></td><td>Token</td><td><code>12px</code></td><td class="wrap">The plate's line box</td></tr>
@@ -2026,11 +2028,42 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             window's contents. A multiselectable <code>listbox</code> named from
             <code>label</code>, so a <code>selectable</code> icon inside is an
             <code>option</code> with <code>aria-selected</code>. It paints
-            nothing and, until placed, takes no size and no position of its
-            own: a field of placed icons is a zero-height block, and the icons
-            anchor to the desktop's raster or the window's plane as if it were
-            not there.
+            nothing and, until placed or filled, takes no size and no position
+            of its own: a field of placed icons is a zero-height block, and the
+            icons anchor to the desktop's raster or the window's plane as if it
+            were not there.
           </p>
+
+          <template
+            data-example
+            data-stage="desktop"
+            data-caption="The rubber band: fill the field and drag a rectangle across the bare desktop. Icons it touches select as it grows and release as it shrinks. Shift keeps the selection you had and the rectangle toggles against it: drag it over a selected icon and the icon deselects until the rectangle leaves. Escape cancels. Then drag one of the selected icons: the whole selection travels, one outline each, and stops as a group at the edge."
+          >
+            <vf-desktop width="512" height="192">
+              <vf-icon-field label="Desktop" fill-width fill-height>
+                <vf-icon label="System" width="64" selectable movable left="16" top="16">
+                  <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="Read Me" width="64" selectable movable left="112" top="16">
+                  <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="Notes" width="64" selectable movable left="208" top="16">
+                  <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="TeachText" width="64" selectable movable left="16" top="104">
+                  <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="Letter" width="64" selectable movable left="112" top="104">
+                  <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+              </vf-icon-field>
+            </vf-desktop>
+          </template>
 
           <template data-example data-caption="size on the field is the view's: written onto every icon inside, so View → by Small Icon is one attribute.">
             <vf-icon-field label="By Icon">
@@ -2062,7 +2095,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">The listbox's accessible name, through internals — a <code>role</code> or <code>aria-*</code> of your own on the tag wins</td></tr>
               <tr><td><code>size</code></td><td><code>large</code> | <code>small</code></td><td>—</td><td class="wrap">Written onto every icon in the field, on arrival and whenever it changes. Unset, each icon keeps its own</td></tr>
               <tr><td><code>top</code>, <code>left</code>, <code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">System px. Stated, the field is a box and the anchor its icons place against</td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default (the icons). Always <code>aria-multiselectable</code>. A <code>vf-desktop</code> renders no field of its own; the page writes one beside the windows, and a folder window holds one in its body.</td></tr>
+              <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>bare attribute</td><td>—</td><td class="wrap">Be as wide (tall) as the parent allows: the desktop's screen, a window body. The field stays static, so its icons keep their anchor; it gains a surface to press</td></tr>
+              <tr><td colspan="4" class="wrap">Slot: default (the icons). Always <code>aria-multiselectable</code>. A <code>vf-desktop</code> renders no field of its own; the page writes one beside the windows, and a folder window holds one in its body. A drag on a filled or placed field's own background is the rubber band: an icon is selected exactly when it was selected at the press XOR the rectangle touches its art or its name, each change firing <code>vf-select</code> — a plain press clears first, so the rectangle selects what it touches; Shift or ⌘ keeps the selection and the rectangle toggles against it. Escape cancels. The rectangle draws at the field's own level — under the windows on a desktop, inside the window in a body — and reaches no further than the field inside its clips.</td></tr>
             </tbody>
           </table>
         </section>

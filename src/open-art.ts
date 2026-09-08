@@ -254,6 +254,26 @@ export function deriveDragOutline(
 }
 
 /**
+ * Paint a selection rectangle — the rubber band `vf-icon-field` drags on its
+ * background — into `into`: a one-pixel outline `width` × `height` system px,
+ * dotted at `phase` the way the drag outline is. A degenerate axis paints as
+ * a one-pixel line rather than nothing.
+ */
+export function paintSelectionRect(
+  into: HTMLCanvasElement,
+  width: number,
+  height: number,
+  phase: number
+): void {
+  const w = Math.max(1, Math.round(width))
+  const h = Math.max(1, Math.round(height))
+  const ring = makeLayer(w, h)
+  if (!ring) return
+  inkBox(ring.ctx, { x: 0, y: 0, width: w, height: h })
+  dotOutline(ring.canvas, into, phase)
+}
+
+/**
  * Paint `ring` into `into` dotted with the checker at `phase` — 0 keeps the
  * dots where `x + y` is even in the canvas's own coordinates, 1 where it is
  * odd. The caller picks the phase from where the outline lands on screen,

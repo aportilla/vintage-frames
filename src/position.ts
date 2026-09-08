@@ -420,6 +420,15 @@ export class PlacementController {
   }
 
   /**
+   * The box the gesture is clamped into, in system px: the one {@link seed}
+   * measured, or a fresh measurement before any gesture. A group drag reads
+   * it to clamp a whole selection's delta at once.
+   */
+  get bounds(): PlacementBounds {
+    return this.#bounds ?? this.#measureBounds()
+  }
+
+  /**
    * The origin a move adds its delta to, in system px.
    *
    * A stated coordinate is authoritative and needs no measuring — including

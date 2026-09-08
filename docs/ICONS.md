@@ -17,7 +17,7 @@ Pictures come from your own markup. Slot them through `vf-img` (or `vf-icon`'s a
 ```
 
 - **Two slots.** `large` is the 32×32 `ICN#`, `small` the 16×16 `ics#`; `size` picks which one paints and the cell it paints in. The cell is held whether or not there is art for it, so a row of icons keeps one baseline. Both files are fetched even though only one paints — use data URIs, or slot only the size the view uses.
-- **`selectable`** makes the icon focusable, so `movable` and `editable` require it. Clicking selects, Shift adds, a press anywhere else clears — single selection with no container. Selection inverts the art, since 1-bit icon art is ink and opaque white on a transparent surround.
+- **`selectable`** makes the icon focusable, so `movable` and `editable` require it. Clicking selects, Shift adds, a press anywhere else clears — single selection with no container. Inside a field, a press on an icon that is already selected keeps the whole selection, so a drag from it carries the set; a click released with no drag collapses the selection to that icon on the release. Selection inverts the art, since 1-bit icon art is ink and opaque white on a transparent surround.
 - **Role follows the container.** Inside a `vf-icon-field` a `selectable` icon is `role="option"` with `aria-selected`; unowned, it is `role="img"` named from its `label`, because `option` is invalid without a `listbox` that owns it. An element of your own carrying `role="listbox"` owns it the same way.
 - **`open`** redraws the art as the open-window ghost — outline held in solid black, interior re-filled with the scroll rails' 25% dither, transparent surround untouched. It is derived from the slotted art in the client by canvas compositing alone, with no readback, so cross-origin art that taints its canvas still works. Set it when you handle `vf-open`.
 - **`movable`, not `draggable`** — `draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so declaring it would hand the element to the browser's drag-and-drop machinery. A focused movable icon also moves under the arrow keys: one system px, eight with Shift. A drag is reported as events, and the page decides what a drop means — see [Dragging](#dragging).
@@ -37,8 +37,8 @@ A drag on a `movable` icon is a stream of events on the icon, all bubbling and c
 
 | Event | When | `detail` |
 | --- | --- | --- |
-| `vf-drag-start` | the first lattice step away from the press | `{ left, top }` — the origin, in the icon's container |
-| `vf-drag` | every step that changed the snapped proposal | `{ clientX, clientY, left, top, x, y }` |
+| `vf-drag-start` | the first lattice step away from the press | `{ left, top, icons }` — the origin, in the icon's container, and the icons travelling |
+| `vf-drag` | every step that changed the snapped proposal | `{ clientX, clientY, left, top, x, y, icons }` |
 | `vf-drop` | the release; **cancelable** | the same shape, at the release |
 | `vf-drag-cancel` | Escape, or a `pointercancel` | `{}` |
 
@@ -47,6 +47,16 @@ A drag on a `movable` icon is a stream of events on the icon, all bubbling and c
 - `x`, `y` — the outline's top-left in viewport CSS px: the icon's frame box translated by the delta, for a drop that lands in another container. The press offset is already inside it, so an icon placed at `container.placementAt(x, y)` lands exactly where the outline was.
 - **The default action of an uncancelled `vf-drop` is the move:** the proposal written through `left`/`top`, clamped whole in the container measured at the press. `left`/`top` in the detail are the proposal *unclamped*; only the default action clamps. `preventDefault()` writes nothing — re-parent or place the icon yourself. A press that never leaves its lattice cell fires nothing.
 - **Escape mid-drag cancels**: nothing is written and `vf-drag-cancel` fires. A `pointercancel` does the same.
+- **The selection travels.** A drag that begins on a selected icon carries every other selected, movable icon of its field, one outline each, and every event's detail carries the set as `icons`, the dragged icon first. The default action moves each member by the same delta, clamped once for the whole group, so the arrangement is kept and the group stops when its outermost icon meets the container's edge. A cancel takes every outline down. A press on an unselected icon makes it the selection first, so it drags alone; so does a Shift press that deselects the pressed icon. Each member's outline is its own box translated by the same delta, so a handler filing the set lands each where its outline was:
+
+  ```ts
+  const lead = e.target.getBoundingClientRect()
+  for (const icon of e.detail.icons) {
+    const r = icon.getBoundingClientRect()
+    const { left, top } = win.placementAt(r.left + (e.detail.x - lead.left), r.top + (e.detail.y - lead.top))
+    field.append(icon); icon.left = left; icon.top = top
+  }
+  ```
 - **The drag is an outline; the icon stays put.** The gesture draws the classic dotted outline — the mask's boundary and the name's rectangle, derived from the slotted art the way the open ghost is — with the XOR pen over everything: a dotted black line over a white window body, and over the desktop dither the composition QuickDraw's pattern pen gave, its dots phase-locked to the screen. It draws on the desktop's own surface, over windows, palettes and the menu bar, clipped at the raster's edge; with no `vf-desktop` ancestor it draws in the icon's own box instead, clipped by whatever clips the icon. It is never a hit, so `elementsFromPoint` under it sees the page.
 
 ```ts
@@ -94,7 +104,11 @@ The container a field of icons sits in — a desktop's icons, a folder window's 
 | `label` | string | The listbox's accessible name |
 | `size` | `large`, `small` | Written onto every icon in the field, on arrival and whenever it changes. Unset, each icon keeps its own |
 | `top`, `left`, `width`, `height` | system px | Optional. Stated, the field is a box and the anchor its icons place against |
+| `fill-width`, `fill-height` | bare attribute | Be as wide (tall) as the parent allows — the desktop's screen, a window body. The field stays static, so its icons keep their anchor; it gains a surface to press |
 
 - **A listbox, always multi-select.** `role="listbox"` and `aria-multiselectable="true"` through internals, so a `role` or `aria-*` of your own on the tag wins. A `selectable` icon inside is an `option` with `aria-selected`, and stays one when moved between fields.
-- **Layout-neutral until placed.** An in-flow block with no size, no inset and no position of its own, painting nothing. A field whose icons are all placed is a zero-height block: the icons anchor to the desktop's raster or the window's plane, and a press on the bare desktop reaches the desktop. State `top`/`left` and `width`/`height` and it becomes the anchor.
+- **Layout-neutral until placed or filled.** An in-flow block with no size, no inset and no position of its own, painting nothing. A field whose icons are all placed is a zero-height block: the icons anchor to the desktop's raster or the window's plane, and a press on the bare desktop reaches the desktop. State `top`/`left` and `width`/`height` and it becomes the anchor; fill it and it has a box without becoming one.
+- **The rubber band.** A press on a field's own background dragged across it draws the dotted selection rectangle from the press to the pointer, and the selection follows it live by one rule: **an icon is selected exactly when it was selected at the press XOR the rectangle touches it.** A plain press has already cleared the selection, as any press outside an icon does, so the rectangle selects what it touches and releases what it leaves. With Shift or ⌘ held the selection survives the press and the rectangle toggles against it: an already-selected icon deselects while the rectangle covers it and comes back when it leaves, one that was not selects. Each change fires `vf-select`. "Touches" means the icon's art cell or its name plate, not the empty cell beside them, so a rectangle through the gap between two icons selects neither. The release keeps the result; Escape or a `pointercancel` cancels and puts the selection back as the press found it. The rectangle is drawn at the field's own level, the way the Finder drew its marquee — under the windows on the desktop, inside the window in a window body — and reaches no further than the field inside its clips. Only a field with a box can be pressed: fill it (`fill-width fill-height` on a desktop or in a window body) or place and size it; an unfilled field of placed icons draws none. On a touch screen a drag on the background still pans a scrolling window; the band is a mouse and pen gesture.
 - **The desktop renders none.** Its furniture is slotted light DOM; the page writes the field.
+
+`vf-icon.setSelected(next)` is the route a container uses to select an icon as a press would, `vf-select` included; a `selected` write from code stays silent. `vf-icon.touches(box)` is the icon's own reading of whether a viewport box reaches its art or its plate.

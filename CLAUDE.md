@@ -58,9 +58,10 @@ regenerated files with the change.
 - `docs/` — all documentation beyond the README: SPEC (the full design spec;
   ships to npm), DESIGN-TOKENS (every `--vf-*` token), SIZING (grid/zoom/tile),
   LAYOUT (stack, placement, archetypes), PATTERNS (the pattern library and
-  the `pattern` attribute), FONTS, ICONS, CURSOR, ACCESSIBILITY, TOOLKIT
-  (root exports), DEVELOPING (demo pages, verify suite), PUBLISHING (the npm
-  release guide), THREE-X-DISPLAYS
+  the `pattern` attribute), FONTS, ICONS, FINDER (assembling a Finder-style
+  page: fields, folder windows, filing by drag and drop), CURSOR,
+  ACCESSIBILITY, TOOLKIT (root exports), DEVELOPING (demo pages, verify
+  suite), PUBLISHING (the npm release guide), THREE-X-DISPLAYS
 - `README.md` — the consumer storefront, shared by GitHub and npm; deep
   material belongs in `docs/`, not there. Only `README.md`, `KNOWN-BUGS.md`
   and this file live at the root — new docs go in `docs/`

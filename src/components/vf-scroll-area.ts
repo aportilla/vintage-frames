@@ -1,7 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit'
 import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { VfPositioned } from '../position.js'
+import { VfPositioned, placementIn } from '../position.js'
 import { vfBase, vfFocusRing, vfScrollRail } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -37,8 +37,15 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
  * The scrolled plane sizes to its content — never narrower than the
  * viewport, as wide as content that cannot wrap — so the rails follow a row
  * that grows sideways the way they follow copy that grows down, and a
- * `slotchange` re-measures. {@link measure} covers a scroll range that
- * changes with no box changing (a placed child moved through `top`/`left`).
+ * `slotchange` re-measures. A placed child moved through `top`/`left` is
+ * heard too: every such write is announced as `vf-placement-change`
+ * (src/position.ts), and the area re-measures on it — a drop, an arrow
+ * nudge, a page's own `icon.left = …`, with no code on the page. {@link
+ * measure} covers a scroll range that changes with no box and no placement
+ * changing (a transform).
+ *
+ * {@link placementAt} converts a viewport point into the plane's own
+ * placement coordinates, for a drop that lands in this area from elsewhere.
  *
  * @slot - Scrollable content.
  * @csspart viewport - The inner scrolling container.
@@ -104,6 +111,34 @@ export class VfScrollArea extends VfPositioned(LitElement) {
   /** Whether the content actually overflows the viewport (either axis). */
   @state() private _scrollable = false
 
+  constructor() {
+    super()
+    // A placed child moved through top/left changes the scroll range with no
+    // box changing anywhere the ResizeObserver can see — the plane's box is
+    // never grown by an absolutely positioned child — so the placement
+    // controller announces every write and the area re-measures on it. On
+    // the host: the event is non-composed, but from a slotted child it still
+    // travels through the slot it is assigned to, which is how the window's
+    // built-in area (this element, in the window's shadow) hears an icon
+    // slotted into the window body.
+    this.addEventListener('vf-placement-change', this.#onPlacementChange)
+  }
+
+  #onPlacementChange = (): void => {
+    this.measure()
+  }
+
+  /**
+   * A viewport point (CSS px) as a placement on the scrolled plane —
+   * `{ left, top }` in whole system px on the placement lattice, the pair a
+   * child dropped here is written with. The plane travels with the scroll,
+   * so its box already carries the scroll offset and the border-floor
+   * padding; nothing is left for the caller to add.
+   */
+  placementAt(clientX: number, clientY: number): { left: number; top: number } {
+    return placementIn(this.content ?? this, clientX, clientY, this)
+  }
+
   /**
    * Moves keyboard focus to the scrolling viewport — the focusable element
    * lives inside the shadow root, where the platform's `focus()` can't reach
@@ -116,10 +151,9 @@ export class VfScrollArea extends VfPositioned(LitElement) {
 
   /**
    * Re-measure overflow and re-sync the rails. The area tracks its content's
-   * box and its slot by itself; call this for a scroll range that changes
-   * with no box changing anywhere — a placed child moved through
-   * `top`/`left`, a transform — the way the kit's own fields re-measure on
-   * input.
+   * box, its slot and every placement write by itself; call this for a
+   * scroll range that changes with none of those — a transform — the way the
+   * kit's own fields re-measure on input.
    */
   measure(): void {
     this.scrollState.measure()

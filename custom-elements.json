@@ -2440,6 +2440,30 @@
               "description": "Size the screen to the largest whole-system-px raster whose host box —\nbezel included — fits a CSS-px bound, and return what was set. The\npage's half of the sizing contract: it owns the viewport, so it\nmeasures the box and hands it here on `resize` and `onScaleChange`\n(zoom and density moves change how many CSS px a system px costs),\nand the sub-system-pixel remainder stays on the page, behind the\nbezel. The epsilon forgives float error in the division so an\nexact-fit bound never drops a whole system pixel."
             },
             {
+              "kind": "method",
+              "name": "placementAt",
+              "return": {
+                "type": {
+                  "text": "{ left: number; top: number }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "clientX",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "clientY",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "A viewport point (CSS px) as a placement on the screen — `{ left, top }`\nin whole system px on the placement lattice, measured from the raster's\ncorner with the bezel excluded: the pair a child dropped onto the desktop\nis written with. The screen sits in the shadow tree, which is why the\nconversion is a method here."
+            },
+            {
               "kind": "field",
               "name": "_windows",
               "type": {
@@ -4405,11 +4429,279 @@
     },
     {
       "kind": "javascript-module",
+      "path": "src/components/vf-icon-field.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "`<vf-icon-field>` — the container a field of `vf-icon`s sits in: a desktop's\nicons, a folder window's contents.\n\nEvery other set in the kit has its container — `vf-list` owns\n`vf-list-item`, `vf-radio-group` owns `vf-radio`, `vf-menu` owns\n`vf-menu-item`, `vf-select` owns `vf-option` — and `vf-icon` was the one\nitem whose container the consumer wrote by hand: a bare\n`<div role=\"listbox\" aria-multiselectable=\"true\">`, because an `option` is\nonly valid inside a `listbox` that owns it, and every kit container is a\npositioning anchor by design, so nothing in the kit was neutral enough to\nstand in. A consumer who forgot the role got icons that silently degraded\nto pictures. This is that container, as kit furniture:\n\n```html\n<vf-desktop width=\"512\" height=\"342\">\n  <vf-icon-field label=\"Desktop\">\n    <vf-icon label=\"Macintosh HD\" width=\"64\" selectable movable editable left=\"16\" top=\"24\">…</vf-icon>\n    <vf-icon label=\"Trash\" width=\"64\" selectable movable editable left=\"16\" top=\"280\">…</vf-icon>\n  </vf-icon-field>\n  <vf-window heading=\"Documents\" width=\"320\" height=\"201\" scrollbars=\"both\" top=\"40\" left=\"120\">\n    <vf-icon-field label=\"Documents\">\n      <vf-icon label=\"Read Me\" width=\"64\" selectable movable editable left=\"16\" top=\"16\">…</vf-icon>\n    </vf-icon-field>\n  </vf-window>\n</vf-desktop>\n```\n\n### Semantics through internals\n\n`role=\"listbox\"` and `aria-multiselectable=\"true\"` always — the Finder was\nalways multi-select, so there is no attribute for it — and `label` as the\naccessible name, the way `vf-scroll-area` takes one. Internals values are\ndefaults (SPEC §2): a consumer's own `role`/`aria-*` on the tag still wins.\nA `selectable` icon inside becomes a real `option` carrying `aria-selected`;\n`vf-icon` matches this tag directly, since a role written through internals\nnever lands as an attribute for `closest()` to find.\n\n### Layout-neutral, exactly what the div was\n\nAn in-flow block with no size, no inset and no position of its own,\npainting nothing — the `vf-stack` posture. A field whose icons are all\nplaced is a zero-height block, so the icons keep anchoring to the desktop's\nraster or the window's plane, stored coordinates mean what they meant, and\na press on the bare dither still reaches the desktop. It takes `top`/`left`\nand `width`/`height` like the other declared-box containers, so a page that\nwants the field to be a box places and sizes it, at which point it becomes\nthe anchor — the placement working, as documented for everything.\n\n### `size` is the view's\n\n`large` or `small`, written onto every icon in the field when set and\nwhenever it changes, so View → by Small Icon is one attribute instead of a\nloop over every icon. Unset, each icon keeps its own.\n\n### The desktop uses it, and renders none\n\nA desktop's icons sit in a field slotted into `vf-desktop` beside the\nwindows, written by the page; a folder window's icons sit in one slotted\ninto the window body. `vf-desktop` builds no field of its own: its furniture\nis slotted light DOM and the page decides what it is, a desktop with no\nicons should carry no empty listbox, and a field inside the desktop's\nshadow is one `closest()` could not reach.",
+          "name": "VfIconField",
+          "slots": [
+            {
+              "description": "The icons.",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Accessible name for the field — \"Desktop\", the folder's name — applied as\nthe listbox's `aria-label` through internals, so a consumer's own\n`aria-label` on the tag still wins.",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "type": {
+                "text": "VfIconSize | null | undefined"
+              },
+              "description": "The view's icon size, `large` or `small`, written onto every icon in the\nfield — View → by Small Icon as one attribute. Unset, each icon keeps\nits own `size`.",
+              "attribute": "size",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "scale",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new ScaleController(this)",
+              "description": "Default-on display scaling (true 72dpi size); see src/scale.ts. A lone\nfield with a declared size on a plain page would otherwise resolve that\nsize against the `var(--vf-scale, 1)` fallback while its icons\nself-scaled around it — the vf-stack reasoning."
+            },
+            {
+              "kind": "field",
+              "name": "#internals",
+              "privacy": "private",
+              "readonly": true,
+              "description": "ARIA goes through internals, never `setAttribute` on the host: internals\nvalues are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins\n— the platform's own precedence. See SPEC §2."
+            },
+            {
+              "kind": "field",
+              "name": "#onSlotChange",
+              "privacy": "private",
+              "description": "Icons arriving after the view was set take the view's size."
+            },
+            {
+              "kind": "method",
+              "name": "#applySize",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Push the view's size onto every icon in the field. Descendants rather\nthan direct children, so an icon inside a wrapper is one of the field's\ntoo; a property write, which Lit keeps for an icon that has not upgraded\nyet. Unset means hands off."
+            },
+            {
+              "kind": "field",
+              "name": "role",
+              "type": {
+                "text": "string"
+              },
+              "default": "'listbox'"
+            },
+            {
+              "kind": "field",
+              "name": "ariaMultiSelectable",
+              "type": {
+                "text": "string"
+              },
+              "default": "'true'"
+            },
+            {
+              "kind": "field",
+              "name": "width",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+              "attribute": "width",
+              "inheritedFrom": {
+                "name": "VfSized",
+                "module": "src/size.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "height",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+              "attribute": "height",
+              "inheritedFrom": {
+                "name": "VfSized",
+                "module": "src/size.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "attribute": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "attribute": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Accessible name for the field — \"Desktop\", the folder's name — applied as\nthe listbox's `aria-label` through internals, so a consumer's own\n`aria-label` on the tag still wins.",
+              "fieldName": "label"
+            },
+            {
+              "name": "size",
+              "type": {
+                "text": "VfIconSize | null | undefined"
+              },
+              "description": "The view's icon size, `large` or `small`, written onto every icon in the\nfield — View → by Small Icon as one attribute. Unset, each icon keeps\nits own `size`.",
+              "fieldName": "size"
+            },
+            {
+              "name": "width",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Width in whole system px. What the number means is the component's own\naffair — the measure a paragraph wraps to, a caption column, a window's\nbox — but the mechanics are shared: the length lands on the host as a\nlive `calc(var(--vf-scale, 1) * Npx)`, so the box scales with the\ndisplay and sits on the device-pixel grid by construction. Remove it\nand the width returns to layout.",
+              "fieldName": "width",
+              "inheritedFrom": {
+                "name": "VfSized",
+                "module": "src/size.ts"
+              }
+            },
+            {
+              "name": "height",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Height in whole system px; see width. Content that outgrows a\ndeclared height overflows the box rather than growing it — the number\nis the layout, and content that doesn't fit is a number to raise.",
+              "fieldName": "height",
+              "inheritedFrom": {
+                "name": "VfSized",
+                "module": "src/size.ts"
+              }
+            },
+            {
+              "name": "top",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the top of the positioning parent, in whole system px.\nSetting this (or `left`) absolutely positions the element within its\nparent; the coordinate left unset is 0. Remove both to return the\nelement to normal flow.",
+              "fieldName": "top",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "left",
+              "type": {
+                "text": "number | null | undefined"
+              },
+              "description": "Offset from the left of the positioning parent, in whole system px.\nSee top.",
+              "fieldName": "left",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "fixed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
+              "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            }
+          ],
+          "mixins": [
+            {
+              "name": "VfSized",
+              "module": "/src/size.js"
+            },
+            {
+              "name": "VfPositioned",
+              "module": "/src/position.js"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "vf-icon-field",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "VfIconField",
+          "declaration": {
+            "name": "VfIconField",
+            "module": "src/components/vf-icon-field.ts"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "vf-icon-field",
+          "declaration": {
+            "name": "VfIconField",
+            "module": "src/components/vf-icon-field.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
       "path": "src/components/vf-icon.ts",
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-list-item`'s `icon` slot makes the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart would invert into a photographic negative, which was never what\nSystem 7 showed: declare `color` and selection **darkens** the art\ninstead — Icon Utilities' ttSelected transform, every color blended\nhalfway toward black (`brightness(0.5)`), whites going gray, the\ntransparent surround still untouched. The declaration is the consumer's\nbecause the component cannot tell color art from a mask by looking at a\nslotted image. It covers whatever the cell shows, the derived open ghost\nincluded, so a color icon has one selected treatment open or closed. The\nlabel plate inverts to the `--vf-highlight` pair either way, sharing one\nselection color with `vf-list-item` — the selected name was inverted\nwhatever the art.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` tracks the gesture and\n`PlacementController` writes the result into `left`/`top` in whole system px,\nthe art's own unit — the same pair markup places an icon with, so a moved\nicon is still where it was dropped after a zoom.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift. Focus is what `selectable` grants, so the keyboard half of `movable`\nand `editable` presupposes it — see the role section below.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The name and the art are one target, and the second click decides\n\nA double-click opens the icon *wherever it lands* — the name is as much the\nicon as the picture is, and the Finder never made you aim at the 32 pixels of\nart. But the name is also where a single click renames, so the two gestures\nbegin with the same press and only the second one tells them apart.\n\nSo the rename waits for it. A press on the plate of an already-selected icon\narms the field rather than opening it, and the next press inside\nRENAME_DELAY_MS calls it off — leaving the double-click to open, with\nno rename box flashing up behind it. Nothing needs to *undo* an edit that\nbegan: the press that starts one and the press that opens are the same\npress, so the only thing that can be got right is not committing early.\n\nThe window is generous in the one direction that is cheap. Reading a lone\nclick as a pair costs a wait before the box appears; reading a pair as a lone\nclick renames when the user asked to open. The same reasoning covers a press\nthat turns into a drag, a press elsewhere, and any key — each calls the\npending rename off, because none of them is the click it is waiting for.\n\n### An icon alone is a picture; an icon in a field is an option\n\n`role=\"option\"` is only meaningful inside a `listbox` that owns it. Written\nunconditionally it is not merely untidy — the browser *drops* it, and\n`aria-selected` with it, so a `selectable` icon announced as a bare generic\nand its selection state reached assistive tech nowhere at all.\n\nSo the role follows the container. Owned, the icon is an `option` that names\nitself from its plate and publishes `aria-selected`. Unowned, it degrades to\n`role=\"img\"` with a name — the same vocabulary the derived open ghost uses,\nand true of what it is. Deliberately not `button`: that would promise Enter\nand Space activate, and here Return *renames* while the open route is ⌘O / ⌘↓.\n\nDeclaring the owner is one attribute on whatever already holds the field, and\nit is what buys the selection state back:\n\n```html\n<div role=\"listbox\" aria-label=\"Desktop\" aria-multiselectable=\"true\">\n  <vf-icon label=\"Macintosh HD\" selectable movable editable>…</vf-icon>\n  <vf-icon label=\"Trash\" selectable movable editable>…</vf-icon>\n</div>\n```\n\nA `vf-desktop` cannot be that container itself: it also holds windows and a\nmenu bar, and a non-`option` child of a listbox is invalid the same way the\norphaned option was. The plain wrapper above is layout-neutral — placed icons\nanchor to the nearest *positioned* ancestor, which is still the desktop's\nraster. One divergence from the APG listbox is deliberate: its options share\na single roving tab stop, while these stay one stop each, the way a Finder\nicon is reached on its own.\n\n**`selectable` is what makes an icon focusable**, and `movable`/`editable`\npresuppose it. That is the Finder's own model — you cannot move or rename\nwhat you have not selected — and the pointer path already assumed it: the\nrename opens on a press on the plate of an *already-selected* icon. A\n`movable`-only icon is a picture you can drag, not a widget.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box a moment later, as the Finder's\ndoes (see above), with Return committing, Escape reverting, and the plate\nwidening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
+          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-list-item`'s `icon` slot makes the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart would invert into a photographic negative, which was never what\nSystem 7 showed: declare `color` and selection **darkens** the art\ninstead — Icon Utilities' ttSelected transform, every color blended\nhalfway toward black (`brightness(0.5)`), whites going gray, the\ntransparent surround still untouched. The declaration is the consumer's\nbecause the component cannot tell color art from a mask by looking at a\nslotted image. It covers whatever the cell shows, the derived open ghost\nincluded, so a color icon has one selected treatment open or closed. The\nlabel plate inverts to the `--vf-highlight` pair either way, sharing one\nselection color with `vf-list-item` — the selected name was inverted\nwhatever the art.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` tracks the gesture and\n`PlacementController` writes the result into `left`/`top` in whole system px,\nthe art's own unit — the same pair markup places an icon with, so a moved\nicon is still where it was dropped after a zoom.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift. Focus is what `selectable` grants, so the keyboard half of `movable`\nand `editable` presupposes it — see the role section below.\n\n### The drag reports, the page files\n\nThe kit ships no filing semantics — folders are the page's own catalog —\nso a drag is a stream of events and a cancelable commit, on the icon:\n\n- `vf-drag-start` `{ left, top }` on the first lattice step away from the\n  press (a plain click never starts one, and never fires a drop);\n- `vf-drag` `{ clientX, clientY, left, top, x, y }` on every step that\n  changed the snapped proposal;\n- `vf-drop`, the same shape at the release, **cancelable**: its default\n  action is the move, the proposal written through `left`/`top` and\n  clamped whole in the container measured at the press. `preventDefault()`\n  writes nothing — the page re-parents or places the icon itself, the\n  outline's origin converted with the destination's `placementAt`;\n- `vf-drag-cancel` `{}` on Escape or a `pointercancel`: nothing written.\n\nEscape is heard by a document listener scoped to the gesture rather than\nby the icon's own key handler, because a `movable`-only icon never takes\nfocus — an addition in the kit's idiom (a pointer-only gesture with no way\nout is the kind of gap SPEC §1 closes), not a claim about the Finder.\n\n`target` is the destination highlight the page sets on the folder under a\ndrag: the selected treatment of the art alone — inverted, or darkened\nunder `color` — with none of `selected`'s semantics: no event, no outside\nlistener, no `aria-selected`, the plate untouched.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The name and the art are one target, and the second click decides\n\nA double-click opens the icon *wherever it lands* — the name is as much the\nicon as the picture is, and the Finder never made you aim at the 32 pixels of\nart. But the name is also where a single click renames, so the two gestures\nbegin with the same press and only the second one tells them apart.\n\nSo the rename waits for it. A press on the plate of an already-selected icon\narms the field rather than opening it, and the next press inside\nRENAME_DELAY_MS calls it off — leaving the double-click to open, with\nno rename box flashing up behind it. Nothing needs to *undo* an edit that\nbegan: the press that starts one and the press that opens are the same\npress, so the only thing that can be got right is not committing early.\n\nThe window is generous in the one direction that is cheap. Reading a lone\nclick as a pair costs a wait before the box appears; reading a pair as a lone\nclick renames when the user asked to open. The same reasoning covers a press\nthat turns into a drag, a press elsewhere, and any key — each calls the\npending rename off, because none of them is the click it is waiting for.\n\n### An icon alone is a picture; an icon in a field is an option\n\n`role=\"option\"` is only meaningful inside a `listbox` that owns it. Written\nunconditionally it is not merely untidy — the browser *drops* it, and\n`aria-selected` with it, so a `selectable` icon announced as a bare generic\nand its selection state reached assistive tech nowhere at all.\n\nSo the role follows the container. Owned, the icon is an `option` that names\nitself from its plate and publishes `aria-selected`. Unowned, it degrades to\n`role=\"img\"` with a name — the same vocabulary the derived open ghost uses,\nand true of what it is. Deliberately not `button`: that would promise Enter\nand Space activate, and here Return *renames* while the open route is ⌘O / ⌘↓.\n\nThe owner is `vf-icon-field`, the container a field of icons sits in, and\nit is what buys the selection state back:\n\n```html\n<vf-icon-field label=\"Desktop\">\n  <vf-icon label=\"Macintosh HD\" selectable movable editable>…</vf-icon>\n  <vf-icon label=\"Trash\" selectable movable editable>…</vf-icon>\n</vf-icon-field>\n```\n\nA `vf-desktop` cannot be that container itself: it also holds windows and a\nmenu bar, and a non-`option` child of a listbox is invalid the same way the\norphaned option was. The field is layout-neutral — placed icons anchor to\nthe nearest *positioned* ancestor, which is still the desktop's raster. An\nelement of your own carrying `role=\"listbox\"` still owns an icon the same\nway. One divergence from the APG listbox is deliberate: its options share\na single roving tab stop, while these stay one stop each, the way a Finder\nicon is reached on its own.\n\n**`selectable` is what makes an icon focusable**, and `movable`/`editable`\npresuppose it. That is the Finder's own model — you cannot move or rename\nwhat you have not selected — and the pointer path already assumed it: the\nrename opens on a press on the plate of an *already-selected* icon. A\n`movable`-only icon is a picture you can drag, not a widget.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box a moment later, as the Finder's\ndoes (see above), with Return committing, Escape reverting, and the plate\nwidening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
           "name": "VfIcon",
           "cssProperties": [
             {
@@ -4495,6 +4787,17 @@
               "default": "false",
               "description": "Whether the icon is selected: the art inverts and the plate goes black.",
               "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "target",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The destination highlight: this icon is the folder under a drag, and its\nart paints the selected treatment — inverted, or darkened under\ncolor — with none of `selected`'s semantics: no `vf-select`, no\noutside-press listener, no `aria-selected`, the plate untouched. The page\nsets it on the folder a `vf-drag` reports the pointer over and clears it\nwhen the pointer leaves or the drop lands.",
+              "attribute": "target",
               "reflects": true
             },
             {
@@ -4648,7 +4951,7 @@
               "type": {
                 "text": "boolean"
               },
-              "description": "Whether a container is claiming this icon as one item of a set — the\n`vf-menu` `#inBar` idiom. `option` is invalid without a `listbox` that owns\nit: unowned, the browser drops the role and `aria-selected` with it, which\nis how a selectable icon reached assistive tech as a bare `generic` in\nevery configuration the kit shipped.\n\nMatched on the attribute because that is what the recipe writes\n(`<div role=\"listbox\">` — see the class doc). A `vf-list` is deliberately\nnot a match: it holds `vf-list-item` rows, and its own `listbox` role now\nlives in internals rather than on the tag anyway.",
+              "description": "Whether a container is claiming this icon as one item of a set — the\n`vf-menu` `#inBar` idiom. `option` is invalid without a `listbox` that owns\nit: unowned, the browser drops the role and `aria-selected` with it, which\nis how a selectable icon reached assistive tech as a bare `generic` in\nevery configuration the kit shipped.\n\nMatched on the `vf-icon-field` tag — its `listbox` role lives in\ninternals, which never lands as an attribute for `closest()` to find —\nand on the attribute a consumer's own element writes. A `vf-list` is\ndeliberately not a match: it holds `vf-list-item` rows, and its own\n`listbox` role lives in internals rather than on the tag anyway.",
               "readonly": true
             },
             {
@@ -4715,20 +5018,120 @@
             },
             {
               "kind": "field",
-              "name": "#dragOrigin",
+              "name": "#gesture",
               "privacy": "private",
               "type": {
-                "text": "object"
+                "text": "DragGesture | null"
               },
-              "default": "{ x: 0, y: 0 }",
-              "description": "Where the in-flight drag started, so a move can be told from jitter."
+              "default": "null",
+              "description": "The in-flight drag, or null between gestures."
             },
             {
               "kind": "field",
               "name": "#drag",
               "privacy": "private",
               "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null this.#warnIfUnplaced() return (this.#dragOrigin = this.#placement.seed()) }, onDrag: (x: number, y: number): void => { // Moving an icon is not renaming it, so a press that travels calls off // the rename it armed. Measured against the seeded origin rather than // taken from the move itself: a stationary press still reports jitter, // and every one of those steps snaps back onto the same system px. if (x !== this.#dragOrigin.x || y !== this.#dragOrigin.y) this.#disarmRename() this.#placement.moveTo(x, y) }, })"
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null this.#warnIfUnplaced() const origin = this.#placement.seed() this.#gesture = { origin, frame: this.#frameRect(), pointer: { clientX: event.clientX, clientY: event.clientY }, proposal: null, } return origin }, onDrag: (x: number, y: number, event: PointerEvent): void => { this.#onDragStep(x, y, event) }, onDragEnd: (event: PointerEvent | undefined, cancelled: boolean): void => { this.#onDragEnd(event, cancelled) }, })",
+              "description": "Drag-to-move, on the same delegate shape as `vf-window`: the placement\ncontroller seeds the origin — from the in-flow offset the first time —\nand the drag controller hands back each step snapped onto the lattice.\nWhat the icon does with a step is #onDragStep; the release is\n#onDragEnd, where the drop is reported and, uncancelled, written."
+            },
+            {
+              "kind": "field",
+              "name": "#escape",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new DocumentListenersController(this, () => [ [document, 'keydown', this.#onDragKeyDown, true], ])",
+              "description": "Escape mid-drag cancels. A document listener scoped to the gesture (the\nin-flight-gesture idiom) rather than the icon's own key handler, because\na `movable`-only icon never takes focus. Capture phase, and the key is\nstopped there, so an enclosing `vf-dialog` never reads it as a dismissal\n— the rule the rename box's Escape follows."
+            },
+            {
+              "kind": "field",
+              "name": "#onDragKeyDown",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#frameRect",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "DOMRect"
+                }
+              },
+              "description": "The frame's viewport box — what the outline is a translation of."
+            },
+            {
+              "kind": "method",
+              "name": "#onDragStep",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "x",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "y",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ],
+              "description": "A lattice step of the drag. The first step whose snapped origin differs\nfrom the seed is the start — a stationary press reports jitter, and every\none of those steps snaps back onto the same system px, so a plain click\nnever starts a drag and never fires a drop. Moving an icon is not\nrenaming it, so the start calls off the rename the press armed."
+            },
+            {
+              "kind": "method",
+              "name": "#onDragEnd",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent | undefined"
+                  }
+                },
+                {
+                  "name": "cancelled",
+                  "type": {
+                    "text": "boolean"
+                  }
+                }
+              ],
+              "description": "The release, or a cancel. A gesture that never started (a click) reports\nnothing. A cancel — Escape, `pointercancel` — puts the icon back where\nthe press found it and says so. A release reports the drop, and the\ndefault action of an uncancelled `vf-drop` is the move itself. Dispatched\nwith the drag state already cleared and the pointer capture released, so\na handler may re-parent the icon freely."
+            },
+            {
+              "kind": "method",
+              "name": "#dragDetail",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "VfIconDragDetail"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "gesture",
+                  "type": {
+                    "text": "DragGesture"
+                  }
+                }
+              ],
+              "description": "The detail of `vf-drag` and `vf-drop`: the pointer, the proposal in the\ncontainer, and the outline's top-left in the viewport — the frame's box\nat the press translated by the proposal's delta."
             },
             {
               "kind": "field",
@@ -5032,6 +5435,22 @@
             {
               "description": "A rename was committed with no name in it, so the edit was dropped and the old name put back. `detail: { attempted, kept, reason: 'empty' }`. A `vf-change` is *not* fired alongside it — nothing changed.",
               "name": "vf-name-rejected"
+            },
+            {
+              "description": "A drag began: the first lattice step away from the press. `detail: { left, top }` — the origin, whole system px in the icon's container.",
+              "name": "vf-drag-start"
+            },
+            {
+              "description": "A step that changed the proposal. `detail: { clientX, clientY, left, top, x, y }` — the pointer in viewport CSS px, the proposed origin in the container (whole system px on the lattice), and the outline's top-left in viewport CSS px.",
+              "name": "vf-drag"
+            },
+            {
+              "description": "The release; cancelable. The same detail as `vf-drag`. Its default action writes the proposal through `left`/`top`, clamped whole in the container; `preventDefault()` writes nothing.",
+              "name": "vf-drop"
+            },
+            {
+              "description": "The drag was abandoned — Escape, or a `pointercancel` — and nothing was written. `detail: {}`.",
+              "name": "vf-drag-cancel"
             }
           ],
           "attributes": [
@@ -5070,6 +5489,15 @@
               "default": "false",
               "description": "Whether the icon is selected: the art inverts and the plate goes black.",
               "fieldName": "selected"
+            },
+            {
+              "name": "target",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The destination highlight: this icon is the folder under a drag, and its\nart paints the selected treatment — inverted, or darkened under\ncolor — with none of `selected`'s semantics: no `vf-select`, no\noutside-press listener, no `aria-selected`, the plate untouched. The page\nsets it on the folder a `vf-drag` reports the pointer over and clears it\nwhen the pointer leaves or the drop lands.",
+              "fieldName": "target"
             },
             {
               "name": "color",
@@ -11397,7 +11825,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-scroll-area>` — a container whose scrollbars look like System 7.\n\nWhite box with a 1px black frame, an inner scrolling viewport, and scroll\nrails the kit draws itself as shadow DOM (the shared `vfScrollRail` recipe):\nboxed arrow buttons at each end, a loose 1-bit dot-dither trough, and the\nclassic fixed 16px thumb. The native scrollbar is hidden, never the native\nscrolling — wheel, trackpad momentum, keyboard, touch and assistive-tech\nscrolling stay the platform's, and ScrollRailController keeps the\nrail in sync while driving the classic interactions (thumb drag, trough\npaging, arrow stepping with auto-repeat). Every engine renders the same\nrail — there is no Firefox fallback skin anymore.\n\nEach reserved scroll rail is a permanent placeholder: arrow buttons on an\nempty white channel sit in the gutter even when the content fits, the\ndither and thumb filling in only once that axis overflows (System 7 drew\nan active window's no-overflow bar as arrows on a bare channel; driven\nby ScrollStateController). Which rails are reserved is set by\naxis; when both are reserved the bottom-right corner joins them,\nand corner reserves that cell on a single-axis rail too — the\nrail stops 15px short of the frame, for a grow box to land in.\n\nSize the host (width/height) from the outside; the viewport fills it.\nContent runs to the frame and the rails — the area adds no inset of its\nown; an inset is the content's (a `vf-stack pad`).\n\nThe scrolled plane sizes to its content — never narrower than the\nviewport, as wide as content that cannot wrap — so the rails follow a row\nthat grows sideways the way they follow copy that grows down, and a\n`slotchange` re-measures. measure covers a scroll range that\nchanges with no box changing (a placed child moved through `top`/`left`).",
+          "description": "`<vf-scroll-area>` — a container whose scrollbars look like System 7.\n\nWhite box with a 1px black frame, an inner scrolling viewport, and scroll\nrails the kit draws itself as shadow DOM (the shared `vfScrollRail` recipe):\nboxed arrow buttons at each end, a loose 1-bit dot-dither trough, and the\nclassic fixed 16px thumb. The native scrollbar is hidden, never the native\nscrolling — wheel, trackpad momentum, keyboard, touch and assistive-tech\nscrolling stay the platform's, and ScrollRailController keeps the\nrail in sync while driving the classic interactions (thumb drag, trough\npaging, arrow stepping with auto-repeat). Every engine renders the same\nrail — there is no Firefox fallback skin anymore.\n\nEach reserved scroll rail is a permanent placeholder: arrow buttons on an\nempty white channel sit in the gutter even when the content fits, the\ndither and thumb filling in only once that axis overflows (System 7 drew\nan active window's no-overflow bar as arrows on a bare channel; driven\nby ScrollStateController). Which rails are reserved is set by\naxis; when both are reserved the bottom-right corner joins them,\nand corner reserves that cell on a single-axis rail too — the\nrail stops 15px short of the frame, for a grow box to land in.\n\nSize the host (width/height) from the outside; the viewport fills it.\nContent runs to the frame and the rails — the area adds no inset of its\nown; an inset is the content's (a `vf-stack pad`).\n\nThe scrolled plane sizes to its content — never narrower than the\nviewport, as wide as content that cannot wrap — so the rails follow a row\nthat grows sideways the way they follow copy that grows down, and a\n`slotchange` re-measures. A placed child moved through `top`/`left` is\nheard too: every such write is announced as `vf-placement-change`\n(src/position.ts), and the area re-measures on it — a drop, an arrow\nnudge, a page's own `icon.left = …`, with no code on the page. * measure covers a scroll range that changes with no box and no placement\nchanging (a transform).\n\nplacementAt converts a viewport point into the plane's own\nplacement coordinates, for a drop that lands in this area from elsewhere.",
           "name": "VfScrollArea",
           "cssProperties": [
             {
@@ -11512,6 +11940,35 @@
               "description": "Whether the content actually overflows the viewport (either axis)."
             },
             {
+              "kind": "field",
+              "name": "#onPlacementChange",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "placementAt",
+              "return": {
+                "type": {
+                  "text": "{ left: number; top: number }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "clientX",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "clientY",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "A viewport point (CSS px) as a placement on the scrolled plane —\n`{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped here is written with. The plane travels with the scroll,\nso its box already carries the scroll offset and the border-floor\npadding; nothing is left for the caller to add."
+            },
+            {
               "kind": "method",
               "name": "focus",
               "return": {
@@ -11538,7 +11995,7 @@
                   "text": "void"
                 }
               },
-              "description": "Re-measure overflow and re-sync the rails. The area tracks its content's\nbox and its slot by itself; call this for a scroll range that changes\nwith no box changing anywhere — a placed child moved through\n`top`/`left`, a transform — the way the kit's own fields re-measure on\ninput."
+              "description": "Re-measure overflow and re-sync the rails. The area tracks its content's\nbox, its slot and every placement write by itself; call this for a\nscroll range that changes with none of those — a transform — the way the\nkit's own fields re-measure on input."
             },
             {
               "kind": "method",
@@ -18240,6 +18697,26 @@
             },
             {
               "kind": "field",
+              "name": "body",
+              "type": {
+                "text": "HTMLDivElement | null"
+              },
+              "privacy": "private",
+              "readonly": true,
+              "description": "The content region — the placed-child anchor; exists from the first render."
+            },
+            {
+              "kind": "field",
+              "name": "scrollArea",
+              "type": {
+                "text": "VfScrollArea | null"
+              },
+              "privacy": "private",
+              "readonly": true,
+              "description": "The built-in edge scroll area, while `scrollbars` is set."
+            },
+            {
+              "kind": "field",
               "name": "scale",
               "privacy": "private",
               "readonly": true,
@@ -18321,6 +18798,40 @@
               },
               "privacy": "private",
               "default": "null"
+            },
+            {
+              "kind": "method",
+              "name": "placementAt",
+              "return": {
+                "type": {
+                  "text": "{ left: number; top: number }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "clientX",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "clientY",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "A viewport point (CSS px) as a placement in the window's content region\n— `{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped into this window is written with: the body's corner, or\nunder `scrollbars` the scrolled plane, scroll offset included. The anchor\nsits in the shadow tree, which is why the conversion is a method here\nrather than the page's own `toSysExact` against a rect."
+            },
+            {
+              "kind": "method",
+              "name": "measure",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Re-measure the built-in scroll area's overflow and re-sync its rails —\na no-op without `scrollbars`. The area re-measures by itself on its\ncontent's box, its slot and every placement write; this is the escape\nhatch for a scroll range that changes with none of those, the way\n`vf-scroll-area.measure()` is."
             },
             {
               "kind": "field",
@@ -21361,7 +21872,7 @@
         },
         {
           "kind": "mixin",
-          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.\n\n**`fixed`** holds the placement against the *visible* region of the nearest\nscrolling ancestor instead of its scrolled plane — a tool strip over a\ndocument, a column header over rows — and the flag alone places at (0,0).\nThe engine underneath is `position: sticky`, the one way the platform holds\na box against a scrollport from inside it on the compositor (a scroll\nlistener counter-translating lags a frame; a layer outside the scroller\nstops wheel and touch over it). Sticky boxes stay in flow, which is not\nwhat a placement is, so the controller erases the footprint: the host is\nblockified (no line box), shrink-wrapped, and given a negative right/bottom\nmargin equal to its own box — a 0×0 margin box that flow content lays out\nas if it weren't there, measured by a ResizeObserver so a relabel or a zoom\nstep keeps it exact. `z-index: 1` puts it over the plane's placed children,\nwhich is where a fixed strip belongs. Two facts of the engine that the\ndocs state as rules: sticky only ever pushes a box *down* from where the\nflow put it, so a fixed child comes before the flow content in its parent;\nand a scroll container that never scrolls (a plain window body is\n`overflow: hidden`) holds it exactly where placement would.",
+          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.\n\n**Every write it makes is announced** as `vf-placement-change` (bubbles,\n`composed: false`, detail `{ left, top }` — nulls on a return to flow). It\nis an internal coordination event on the terms of the menu handshakes:\nparent and child share one light tree, and a kit protocol must not leak out\nof a consumer's shadow boundary. `vf-scroll-area` listens for it and\nre-measures, because a placed child moved through `top`/`left` changes the\nscroll range with no box changing anywhere a ResizeObserver can see — the\nplane's box is never grown by an absolutely positioned child. One funnel\ncovers a drop, an arrow nudge and a page's own `icon.left = …` alike.\n\n**`fixed`** holds the placement against the *visible* region of the nearest\nscrolling ancestor instead of its scrolled plane — a tool strip over a\ndocument, a column header over rows — and the flag alone places at (0,0).\nThe engine underneath is `position: sticky`, the one way the platform holds\na box against a scrollport from inside it on the compositor (a scroll\nlistener counter-translating lags a frame; a layer outside the scroller\nstops wheel and touch over it). Sticky boxes stay in flow, which is not\nwhat a placement is, so the controller erases the footprint: the host is\nblockified (no line box), shrink-wrapped, and given a negative right/bottom\nmargin equal to its own box — a 0×0 margin box that flow content lays out\nas if it weren't there, measured by a ResizeObserver so a relabel or a zoom\nstep keeps it exact. `z-index: 1` puts it over the plane's placed children,\nwhich is where a fixed strip belongs. Two facts of the engine that the\ndocs state as rules: sticky only ever pushes a box *down* from where the\nflow put it, so a fixed child comes before the flow content in its parent;\nand a scroll container that never scrolls (a plain window body is\n`overflow: hidden`) holds it exactly where placement would.",
           "name": "VfPositioned",
           "members": [
             {
@@ -21429,6 +21940,43 @@
               }
             }
           ]
+        },
+        {
+          "kind": "function",
+          "name": "placementIn",
+          "return": {
+            "type": {
+              "text": "{ left: number; top: number }"
+            }
+          },
+          "parameters": [
+            {
+              "name": "anchor",
+              "type": {
+                "text": "Element"
+              }
+            },
+            {
+              "name": "clientX",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "name": "clientY",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "name": "scaleAt",
+              "default": "anchor",
+              "type": {
+                "text": "Element"
+              }
+            }
+          ],
+          "description": "A viewport point as a placement in `anchor`'s coordinates: `{ left, top }`\nin whole system px on the placement lattice, measured from the anchor's\nbox the way a placed child's `top`/`left` are — the unit and lattice a\ndrag lands on, so the result can be written straight to a child's pair.\n\nThe three containers whose anchor sits in shadow DOM (`vf-window`'s\ncontent region, `vf-desktop`'s screen, `vf-scroll-area`'s plane) expose it\nas `placementAt(clientX, clientY)`; everywhere else the anchor is the\nelement's own padding box, and `toSysExact` against\n`getBoundingClientRect()` is the documented conversion. The anchor is\nexpected to carry no border of its own (the three do not), so its border\nbox is its padding box; `scaleAt` is the element whose `--vf-scale` the\nconversion reads — the component's host."
         },
         {
           "kind": "class",
@@ -21575,6 +22123,14 @@
           "name": "VfPositioned",
           "declaration": {
             "name": "VfPositioned",
+            "module": "src/position.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "placementIn",
+          "declaration": {
+            "name": "placementIn",
             "module": "src/position.ts"
           }
         },

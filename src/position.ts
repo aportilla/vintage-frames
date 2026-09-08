@@ -1,5 +1,6 @@
 import type { LitElement, ReactiveController } from 'lit'
 import { property } from 'lit/decorators.js'
+import { emit } from './events.js'
 import { snapSys, sysLength, toSysExact } from './scale.js'
 
 type Constructor<T = object> = new (...args: any[]) => T
@@ -102,6 +103,16 @@ const BLOCKIFIED: Record<string, string> = {
  * element. The controller re-applies **only when the values changed**, so an
  * unrelated update — a heading change, a desktop toggling `active` — never
  * re-asserts a coordinate and costs nothing.
+ *
+ * **Every write it makes is announced** as `vf-placement-change` (bubbles,
+ * `composed: false`, detail `{ left, top }` — nulls on a return to flow). It
+ * is an internal coordination event on the terms of the menu handshakes:
+ * parent and child share one light tree, and a kit protocol must not leak out
+ * of a consumer's shadow boundary. `vf-scroll-area` listens for it and
+ * re-measures, because a placed child moved through `top`/`left` changes the
+ * scroll range with no box changing anywhere a ResizeObserver can see — the
+ * plane's box is never grown by an absolutely positioned child. One funnel
+ * covers a drop, an arrow nudge and a page's own `icon.left = …` alike.
  *
  * **`fixed`** holds the placement against the *visible* region of the nearest
  * scrolling ancestor instead of its scrolled plane — a tool strip over a
@@ -207,6 +218,7 @@ class PositionController implements ReactiveController {
       style.removeProperty('right')
       style.removeProperty('bottom')
       style.removeProperty('margin')
+      this.#announce(null, null)
       return
     }
 
@@ -233,6 +245,17 @@ class PositionController implements ReactiveController {
       if (wasFixed) this.#unfix()
       style.margin = '0'
     }
+    this.#announce(left ?? 0, top ?? 0)
+  }
+
+  /**
+   * The write, announced up the light tree (see the mixin doc). Non-composed:
+   * from a slotted child the event still travels through the slots it is
+   * assigned to, which is how a window's built-in scroll area hears an icon
+   * slotted into the window body.
+   */
+  #announce(left: number | null, top: number | null): void {
+    emit(this.#host, 'vf-placement-change', { left, top }, { composed: false })
   }
 
   /**
@@ -301,6 +324,34 @@ class PositionController implements ReactiveController {
       }
     }
     style.margin = `0 ${-width}px ${-height}px 0`
+  }
+}
+
+/**
+ * A viewport point as a placement in `anchor`'s coordinates: `{ left, top }`
+ * in whole system px on the placement lattice, measured from the anchor's
+ * box the way a placed child's `top`/`left` are — the unit and lattice a
+ * drag lands on, so the result can be written straight to a child's pair.
+ *
+ * The three containers whose anchor sits in shadow DOM (`vf-window`'s
+ * content region, `vf-desktop`'s screen, `vf-scroll-area`'s plane) expose it
+ * as `placementAt(clientX, clientY)`; everywhere else the anchor is the
+ * element's own padding box, and `toSysExact` against
+ * `getBoundingClientRect()` is the documented conversion. The anchor is
+ * expected to carry no border of its own (the three do not), so its border
+ * box is its padding box; `scaleAt` is the element whose `--vf-scale` the
+ * conversion reads — the component's host.
+ */
+export function placementIn(
+  anchor: Element,
+  clientX: number,
+  clientY: number,
+  scaleAt: Element = anchor
+): { left: number; top: number } {
+  const rect = anchor.getBoundingClientRect()
+  return {
+    left: snapSys(toSysExact(clientX - rect.left, scaleAt), scaleAt),
+    top: snapSys(toSysExact(clientY - rect.top, scaleAt), scaleAt),
   }
 }
 

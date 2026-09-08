@@ -352,6 +352,19 @@ li {
   gap: 0;
 }
 
+/*
+ * A field of in-flow icon specimens on an ordinary stage lays out as the stage
+ * does — a wrapping row with the stage's gap. Page CSS, because the field
+ * itself is layout-neutral by design; a desktop stage's fields stay the
+ * zero-height blocks their placed icons anchor through.
+ */
+.example__stage:not(.example__stage--desktop) > vf-icon-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 .example__src {
   border-top: 1px solid var(--rule-soft);
 }

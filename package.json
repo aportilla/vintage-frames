@@ -102,6 +102,7 @@
     "verify:baseline": "node scripts/verify-baseline.mjs",
     "verify:define": "node scripts/verify-define.mjs",
     "verify:icon": "node scripts/verify-icon.mjs",
+    "verify:icon-drag": "node scripts/verify-icon-drag.mjs",
     "verify:focus": "node scripts/verify-focus.mjs",
     "verify:grid": "node scripts/verify-grid.mjs",
     "verify:snap": "node scripts/verify-snap.mjs",

@@ -6,7 +6,8 @@ import { VfSized } from '../size.js'
 import { vfBase } from '../styles/base.js'
 import { ScaleController, effectiveScale } from '../scale.js'
 import { DocumentListenersController } from '../document-listeners.js'
-import { paintSelectionRect } from '../open-art.js'
+import { emit } from '../events.js'
+import { paintSelectionRect, penPhase } from '../open-art.js'
 import type { VfIcon, VfIconSize } from './vf-icon.js'
 
 /** A rectangle in system px from the field's box. */
@@ -30,6 +31,12 @@ interface Band {
   reach: { minX: number; minY: number; maxX: number; maxY: number }
   /** The press, system px from the field's box — the band's fixed corner. */
   origin: { x: number; y: number }
+  /**
+   * Where the field's box sits on the desktop's screen, whole system px,
+   * so the pen takes the screen's phase; (0, 0) with no desktop, when the
+   * field's own box is the reference.
+   */
+  screen: { x: number; y: number }
   /**
    * The anchor: the icons selected as the press found them — what Shift or
    * ⌘ kept, nothing after a plain press. Every icon's state under the band
@@ -129,8 +136,11 @@ const clamp = (v: number, min: number, max: number): number =>
  * layout-neutral field has no box of its own to anchor to. It reaches no
  * further than the field, inside every clip above the field (a window body,
  * a scroll viewport, the raster's edge), so it never paints outside the
- * region the icons are visible in. Its dots are phased against the field's
- * own box; a field at the screen's origin shares the desktop dither's phase.
+ * region the icons are visible in. Its dots take the pen's phase on the
+ * *screen* — the desktop's, found by the `vf-drag-surface-request`
+ * handshake the drag outline uses ({@link penPhase}) — so over the desktop
+ * dither the rectangle reads as a black line wherever the field sits; with
+ * no desktop, the field's own box is the reference.
  *
  * Only a field with a box can be pressed: fill it, or place and size it. An
  * unplaced, unfilled field of placed icons is zero-height and draws no band.
@@ -311,6 +321,7 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
       box,
       reach,
       origin: this.#point(event, box, scale, reach),
+      screen: this.#screenOffset(box, scale),
       anchor: new Set(this.#icons().filter((icon) => icon.selected)),
       rect: null,
       canvas: null,
@@ -448,6 +459,23 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
   }
 
   /**
+   * The field's box on the desktop's screen, whole system px, through the
+   * `vf-drag-surface-request` handshake `vf-icon` drags by (bubbles,
+   * non-composed — it travels up the slots the field is assigned to). The
+   * origin with no desktop on the path: the field's own box stands in.
+   */
+  #screenOffset(box: DOMRect, scale: number): { x: number; y: number } {
+    const request: { surface: HTMLElement | null } = { surface: null }
+    emit(this, 'vf-drag-surface-request', request, { composed: false })
+    if (!request.surface) return { x: 0, y: 0 }
+    const screen = request.surface.getBoundingClientRect()
+    return {
+      x: Math.round((box.left - screen.left) / scale),
+      y: Math.round((box.top - screen.top) / scale),
+    }
+  }
+
+  /**
    * The band's canvas: the drag outline's XOR pen, positioned against the
    * viewport from the field's own shadow — a layout-neutral field has no
    * positioned box of its own for it to anchor to — and never a hit.
@@ -467,15 +495,15 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
 
   /**
    * Draw the rectangle where it lands: whole system px from the field's box,
-   * which sits on the device grid, so the band does too. The checker's
-   * phase follows the rectangle's own corner parity in the field's box.
+   * which sits on the device grid, so the band does too. The pen's phase
+   * follows the rectangle's corner on the screen.
    */
   #paint(band: Band, scale: number): void {
     const { rect, canvas } = band
     if (!rect || !canvas) return
     const width = Math.max(1, rect.width)
     const height = Math.max(1, rect.height)
-    const phase = (((rect.x + rect.y) % 2) + 2) % 2
+    const phase = penPhase(band.screen.x + rect.x, band.screen.y + rect.y)
     // A changed size repaints regardless: the ring is the rectangle itself.
     paintSelectionRect(canvas, width, height, phase)
     band.phase = phase

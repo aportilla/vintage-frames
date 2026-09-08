@@ -11,7 +11,7 @@ import { DocumentListenersController } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
 import { RENAME_DELAY_MS } from '../motion.js'
-import { deriveDragOutline, deriveOpenArt, dotOutline } from '../open-art.js'
+import { deriveDragOutline, deriveOpenArt, dotOutline, penPhase } from '../open-art.js'
 import type { DragOutlineBox } from '../open-art.js'
 import { sysLength } from '../scale.js'
 
@@ -262,9 +262,11 @@ const clamp = (v: number, max: number): number =>
  * too, and art the pipeline cannot draw falls back to the cell's rectangle.
  * The canvas paints with the cursor's XOR recipe, `filter: invert(1)` under
  * `mix-blend-mode: difference`: a dotted black line over a white window
- * body, and over the desktop dither the composition QuickDraw's pattern pen
- * gave, because the checker's phase is taken from where the outline lands
- * on the *screen* — its dots share the dither's own phase wherever it goes.
+ * body, and over the desktop dither a black line, the composition
+ * QuickDraw's pattern pen gave — the checker's phase is taken from where
+ * the outline lands on the *screen* ({@link penPhase}), so its dots fall on
+ * the pixels the dither leaves white wherever it goes, and the dither's own
+ * ink fills in between them.
  *
  * It draws on the desktop's drag surface: a layer in the screen's shadow,
  * over windows, palettes and the menu bar alike, clipped at the raster's
@@ -1236,15 +1238,15 @@ export class VfIcon extends VfPositioned(LitElement) {
   /**
    * Move an outline by the drag's delta: the frame's offset plus the delta,
    * a whole count of system px from the surface's origin, re-dotted at the
-   * parity that lands on the screen — `x + y` even where the desktop dither
-   * is inked, so the two share one phase wherever the outline goes.
+   * pen's phase for where that lands on the screen — the dots between the
+   * desktop dither's ink wherever the outline goes.
    */
   #placeOutlineAt(outline: DragOutline, dx: number, dy: number): void {
     const x = outline.base.x + dx
     const y = outline.base.y + dy
     outline.canvas.style.left = sysLength(x)
     outline.canvas.style.top = sysLength(y)
-    const phase = (((x + y) % 2) + 2) % 2
+    const phase = penPhase(x, y)
     if (phase !== outline.phase) {
       outline.phase = phase
       dotOutline(outline.ring, outline.canvas, phase)

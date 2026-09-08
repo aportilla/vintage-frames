@@ -57,7 +57,7 @@ A drag on a `movable` icon is a stream of events on the icon, all bubbling and c
     field.append(icon); icon.left = left; icon.top = top
   }
   ```
-- **The drag is an outline; the icon stays put.** The gesture draws the classic dotted outline — the mask's boundary and the name's rectangle, derived from the slotted art the way the open ghost is — with the XOR pen over everything: a dotted black line over a white window body, and over the desktop dither the composition QuickDraw's pattern pen gave, its dots phase-locked to the screen. It draws on the desktop's own surface, over windows, palettes and the menu bar, clipped at the raster's edge; with no `vf-desktop` ancestor it draws in the icon's own box instead, clipped by whatever clips the icon. It is never a hit, so `elementsFromPoint` under it sees the page.
+- **The drag is an outline; the icon stays put.** The gesture draws the classic dotted outline — the mask's boundary and the name's rectangle, derived from the slotted art the way the open ghost is — with the XOR pen over everything: a dotted black line over a white window body, and over the desktop dither a black line, the composition QuickDraw's pattern pen gave: its dots are phase-locked to the screen and fall on the pixels the dither leaves white. It draws on the desktop's own surface, over windows, palettes and the menu bar, clipped at the raster's edge; with no `vf-desktop` ancestor it draws in the icon's own box instead, clipped by whatever clips the icon. It is never a hit, so `elementsFromPoint` under it sees the page.
 
 ```ts
 icon.addEventListener('vf-drag', (e) => {

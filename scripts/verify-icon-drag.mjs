@@ -38,7 +38,8 @@
  *    the XOR pen one tier above the menu bar and never a hit;
  *    elementFromPoint at the outline returns what is under it; over a white
  *    body the ring reads as a dotted black line with the interior untouched,
- *    over the dither its dots invert the dither's own ink; past the raster's
+ *    over the dither its dots fall on the dither's white pixels and the ring
+ *    reads as a black line, as the Finder's did; past the raster's
  *    edge nothing paints; a cancel removes the canvas; with no desktop the
  *    canvas lives in the icon's shadow and the drop still lands.
  *  - BAND: the rubber band on a filled field — a press on the bare field
@@ -50,7 +51,9 @@
  *    and pointercancel put the selection back and drop the rectangle; the
  *    rectangle reaches no further than the field inside its clips; a press
  *    on an icon is the icon's drag, not a band; the band's top edge over a
- *    white window body is a dotted line; an unfilled field draws none.
+ *    white window body is a dotted line, and over the dither a black line
+ *    whatever the field's own offset on the screen; an unfilled field draws
+ *    none.
  *  - GROUP: the selection travels — a drag beginning on a selected icon
  *    carries every other selected, movable icon of its field: one outline
  *    each on the surface, `icons` in every event with the leader first, the
@@ -929,9 +932,9 @@ const outline = (page) =>
   )
 
   // Over the dither: a drag by (0, 150) puts the outline at (40, 210) on the
-  // screen, left of the window. The dots land where the dither is inked, so
-  // the ring's row inverts to paper while the dither a few rows up still
-  // alternates.
+  // screen, left of the window. The dots land on the dither's white pixels
+  // and flip them, the dither's own ink fills in between, so the ring's row
+  // reads as a black line while the dither a few rows up still alternates.
   await pressAndMove(page, 'ico', 0, 150)
   const over = await outline(page)
   const png2 = decodePng(await page.screenshot())
@@ -945,8 +948,8 @@ const outline = (page) =>
     dither += c2(x2 + i, y2 - 3)
   }
   check(
-    "OUTLINE  over the dither the ring's dots invert the dither's own ink — the row reads as paper",
-    ring === 'WWWWWWWWWWWW' && (dither === 'BWBWBWBWBWBW' || dither === 'WBWBWBWBWBWB'),
+    "OUTLINE  over the dither the ring's dots fall between the dither's ink — the row reads as a black line",
+    ring === 'BBBBBBBBBBBB' && (dither === 'BWBWBWBWBWBW' || dither === 'WBWBWBWBWBWB'),
     `ring ${ring}, dither three rows up ${dither}`
   )
   await page.mouse.up()
@@ -1139,6 +1142,26 @@ const clearSelects = (page) => page.evaluate(() => void (globalThis.__selects = 
       near(mid.canvas.h, 70),
     JSON.stringify({ position: mid.position, canvas: mid.canvas })
   )
+  // The band's top edge over the bare dither: the pen's dots fall on the
+  // dither's white pixels, so the row reads as a black line while the dither
+  // three rows up still alternates.
+  {
+    const png = decodePng(await page.screenshot())
+    const x = Math.round(mid.canvas.x)
+    const y = Math.round(mid.canvas.y)
+    const c = (px, py) => (isBlack(png, px, py) ? 'B' : isWhite(png, px, py) ? 'W' : '.')
+    let edge = ''
+    let dither = ''
+    for (let i = 0; i < 12; i++) {
+      edge += c(x + i, y)
+      dither += c(x + i, y - 3)
+    }
+    check(
+      'BAND  over the dither the band’s edge reads as a black line',
+      edge === 'BBBBBBBBBBBB' && (dither === 'BWBWBWBWBWBW' || dither === 'WBWBWBWBWBWB'),
+      `edge ${edge}, dither three rows up ${dither}`
+    )
+  }
   check(
     'BAND  …and selects the icons it crosses, live',
     mid.selected.a === true && mid.selected.b === true && mid.selected.c === false,
@@ -1358,6 +1381,48 @@ const clearSelects = (page) => page.evaluate(() => void (globalThis.__selects = 
     "BAND  in a window the band is held inside the body's clip, not the field's larger box",
     near(clipped.canvas.right, body.right) && near(clipped.canvas.bottom, body.bottom),
     JSON.stringify({ canvas: clipped.canvas, body })
+  )
+  await page.close()
+}
+
+{
+  // A placed field at an odd offset on the screen: the pen's phase is the
+  // screen's, not the field's, so the band still reads as a black line over
+  // the dither — a field-relative phase would flip it to paper here.
+  const page = await build(
+    `<vf-desktop id="desk" width="512" height="342">
+       <vf-icon-field id="pf" label="Odd" left="21" top="40" width="200" height="200">
+         ${icon('id="e" width="64" selectable movable left="10" top="10"', 'E')}
+       </vf-icon-field>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  const geo = await page.evaluate(() => {
+    const s = document.getElementById('desk').shadowRoot.querySelector('.screen').getBoundingClientRect()
+    const f = document.getElementById('pf').getBoundingClientRect()
+    return { x: f.x, y: f.y, offset: Math.round(f.x - s.x) + Math.round(f.y - s.y) }
+  })
+  await page.mouse.move(geo.x + 5, geo.y + 5)
+  await page.mouse.down()
+  await page.mouse.move(geo.x + 100, geo.y + 100, { steps: 3 })
+  const odd = await band(page, 'pf')
+  const png = decodePng(await page.screenshot())
+  const x = Math.round(odd.canvas.x)
+  const y = Math.round(odd.canvas.y)
+  const c = (px, py) => (isBlack(png, px, py) ? 'B' : isWhite(png, px, py) ? 'W' : '.')
+  let edge = ''
+  let dither = ''
+  for (let i = 0; i < 12; i++) {
+    edge += c(x + i, y)
+    dither += c(x + i, y - 3)
+  }
+  await page.mouse.up()
+  check(
+    "BAND  in a field at an odd offset on the screen the band's edge still reads as a black line — the phase is the screen's",
+    geo.offset % 2 === 1 &&
+      edge === 'BBBBBBBBBBBB' &&
+      (dither === 'BWBWBWBWBWBW' || dither === 'WBWBWBWBWBWB'),
+    `field offset ${geo.offset}, edge ${edge}, dither three rows up ${dither}`
   )
   await page.close()
 }

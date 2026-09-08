@@ -24,8 +24,8 @@ import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
  * `.screen` isolates: a consumer tile grid (`z-index: -1`), document windows
  * (the counter), utility windows (`counter + UTILITY_Z_BAND`), the menu tier
  * (`MENU_BAR_Z` — a slotted bar or free-standing menu, its dropped panel with
- * it), the corner mask (the maximal z-index — hardware, in front of every
- * pixel).
+ * it), the drag outline (`DRAG_OUTLINE_Z`, one above the menu tier), the
+ * corner mask (the maximal z-index — hardware, in front of every pixel).
  *
  * Both window tiers share the one monotonic counter, so a utility window
  * assigned `counter + BAND` stays above every document window until the
@@ -39,6 +39,8 @@ import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
  */
 const UTILITY_Z_BAND = 1_000_000
 const MENU_BAR_Z = 2 * UTILITY_Z_BAND
+/** The outline an icon drags as: over windows, palettes and the menu bar alike. */
+const DRAG_OUTLINE_Z = MENU_BAR_Z + 1
 
 /**
  * The classic compact Mac raster — the screen an undeclared desktop gets.
@@ -125,6 +127,20 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * painted as the screen's own background: black ink on an opaque white
  * paper, one whole-surface raster at one image px per system px, 1-bit at
  * every density and zoom (src/pattern-fill.ts).
+ *
+ * **The drag surface.** The Finder dragged an icon as a dotted outline drawn
+ * on the *screen*, clipped at its edge and phase-locked to its raster, so
+ * the screen hosts the layer that outline draws on: a full-bleed child of
+ * the screen, `pointer-events: none` (never a hit for the page's
+ * `elementsFromPoint`), whose children paint one tier above the menu bar
+ * and under the corner mask — the layer itself is deliberately no stacking
+ * context, since a blend inside one would composite against nothing. An
+ * icon reaches it without an import, the menu-handshake idiom: on a drag's
+ * first step it dispatches `vf-drag-surface-request` (bubbles, non-composed,
+ * `detail.surface` null), and the nearest desktop on its light-DOM path
+ * fills the detail with the layer. Not the top layer: stable Safari cannot
+ * blend an element there against the page (src/cursor.ts), and a second
+ * kit entry in the top layer would need a re-promotion handshake.
  *
  * Custom properties:
  * - `--vf-desktop-pattern` — a consumer's own tile art in place of the
@@ -257,6 +273,22 @@ export class VfDesktop extends VfPositioned(LitElement) {
         position: relative;
         z-index: ${MENU_BAR_Z};
       }
+      /* The drag surface (see the class doc): the box an icon's outline is
+         positioned in — the screen's own, bezel excluded — clipped with
+         everything else at the raster's edge, and never a hit. No z-index
+         and no position: relative + z-index of its own: a stacking context
+         is an isolated group, and the outline's mix-blend-mode would then
+         composite against the empty layer instead of the windows and dither
+         beneath. The z-index goes on the outline itself, which is what puts
+         it on the tier above the menu bar within .screen's own context. */
+      .drag-surface {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .drag-surface > * {
+        z-index: ${DRAG_OUTLINE_Z};
+      }
       /* With a bezel, the screen's top corners wear the SCREEN_CORNER mask,
          rounding into the surrounding black — the top pair only, because the
          classic framebuffer masked only those; the raster's bottom corners
@@ -381,6 +413,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
   /** The screen surface the pattern paints on; exists from the first render. */
   @query('.screen') private readonly screen!: HTMLDivElement
 
+  /** The layer a dragged icon's outline draws on; exists from the first render. */
+  @query('.drag-surface') private readonly dragSurface!: HTMLDivElement
+
   /**
    * The desktop pattern, painted as the screen's own background
    * (src/pattern-fill.ts) from the declared raster — scale-independent, so
@@ -441,11 +476,13 @@ export class VfDesktop extends VfPositioned(LitElement) {
     super.connectedCallback()
     this.addEventListener('pointerdown', this._onPointerDown)
     this.addEventListener('focusin', this._onFocusIn)
+    this.addEventListener('vf-drag-surface-request', this._onDragSurfaceRequest)
   }
 
   override disconnectedCallback(): void {
     this.removeEventListener('pointerdown', this._onPointerDown)
     this.removeEventListener('focusin', this._onFocusIn)
+    this.removeEventListener('vf-drag-surface-request', this._onDragSurfaceRequest)
     // The controller detaches the document listeners; drop the flag with
     // them so a reconnected desktop doesn't sit on a stale deferral.
     this._pointerGesture = false
@@ -590,6 +627,18 @@ export class VfDesktop extends VfPositioned(LitElement) {
     this._gestureEnd.detach()
     this._pointerGesture = false
     this._requestDomSync()
+  }
+
+  /**
+   * A dragged icon asking for the screen's drag surface (see the class
+   * doc). Non-composed, so it reaches here only through the light-DOM path
+   * the icon is slotted on — a window body included. The nearest desktop
+   * answers; an outer one leaves a filled detail alone.
+   */
+  private _onDragSurfaceRequest = (event: Event): void => {
+    const detail = (event as CustomEvent<{ surface: HTMLElement | null }>).detail
+    if (!detail || detail.surface) return
+    detail.surface = this.dragSurface
   }
 
   /**
@@ -861,6 +910,7 @@ export class VfDesktop extends VfPositioned(LitElement) {
         >
           ${fill}
           <slot @slotchange=${this._onSlotChange}></slot>
+          <div class="drag-surface"></div>
           ${this.bezel > 0
             ? html`<div class="corner tl"></div>
                 <div class="corner tr"></div>`

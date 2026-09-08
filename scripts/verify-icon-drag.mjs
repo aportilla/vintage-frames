@@ -32,11 +32,30 @@
  *  - RE-MEASURE: a placed icon in a `scrollbars="both"` window nudged (and
  *    set) past the viewport flips the viewport's data-overflow-y with no box
  *    resizing; `vf-window.measure()` reaches the same attribute.
+ *  - OUTLINE: the icon's rect is unchanged mid-drag; the desktop's drag
+ *    surface holds one canvas whose box is the frame's plus the delta, one
+ *    image px per system px, on whole device px at dpr 1/2/3, painted with
+ *    the XOR pen one tier above the menu bar and never a hit;
+ *    elementFromPoint at the outline returns what is under it; over a white
+ *    body the ring reads as a dotted black line with the interior untouched,
+ *    over the dither its dots invert the dither's own ink; past the raster's
+ *    edge nothing paints; a cancel removes the canvas; with no desktop the
+ *    canvas lives in the icon's shadow and the drop still lands.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:icon-drag
  */
-import { check, launch, makeBuild, report } from './harness.mjs'
+import {
+  check,
+  decodePng,
+  gridTolerance,
+  isBlack,
+  isWhite,
+  launch,
+  makeBuild,
+  report,
+  rgb,
+} from './harness.mjs'
 
 /** A solid 32×32 square stands in for art: the cell is reserved, not measured. */
 const ART32 =
@@ -765,6 +784,234 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
       w.measure()
       return true
     })
+  )
+  await page.close()
+}
+
+// ── OUTLINE ─────────────────────────────────────────────────────────────────
+// The drag draws the classic dotted outline on the desktop's drag surface and
+// the icon stays put until the drop. The art is a solid 32×32 square, so the
+// ring is its one-pixel border, and the top row of that border is where the
+// pixels are read.
+const OUTLINE_DESK = `
+  <vf-desktop id="desk" width="512" height="342">
+    <vf-icon-field label="Desktop">
+      ${icon('id="ico" width="64" selectable movable left="40" top="60"', 'Disk')}
+    </vf-icon-field>
+    <vf-window id="win" heading="Docs" width="300" height="200" left="150" top="40"></vf-window>
+  </vf-desktop>`
+
+/** The outline canvas on the desktop's surface, and the icon's frame. */
+const outline = (page) =>
+  page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    const ico = document.getElementById('ico')
+    const surface = desk.shadowRoot.querySelector('.drag-surface')
+    const canvases = surface.querySelectorAll('canvas')
+    const c = canvases[0]
+    const r = c?.getBoundingClientRect()
+    const f = ico.shadowRoot.querySelector('.frame').getBoundingClientRect()
+    const art = ico.shadowRoot.querySelector('.art').getBoundingClientRect()
+    const cs = c ? getComputedStyle(c) : null
+    const screen = desk.shadowRoot.querySelector('.screen').getBoundingClientRect()
+    return {
+      count: canvases.length,
+      canvas: r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null,
+      frame: { x: f.x, y: f.y, w: f.width, h: f.height },
+      art: { dx: art.x - f.x, dy: art.y - f.y, w: art.width, h: art.height },
+      raster: c ? [c.width, c.height] : null,
+      blend: cs?.mixBlendMode,
+      filter: cs?.filter,
+      pointer: cs?.pointerEvents,
+      z: cs?.zIndex,
+      surfacePointer: getComputedStyle(surface).pointerEvents,
+      inFrame: !!ico.shadowRoot.querySelector('canvas.drag-outline'),
+      screen: { x: screen.x, y: screen.y, right: screen.right, bottom: screen.bottom },
+    }
+  })
+
+{
+  // A gray page, so paint that leaks past the raster's edge would show.
+  const page = await build(OUTLINE_DESK, {
+    settle: true,
+    bodyStyle: 'margin:0;padding:40px;background:#8f8f8f',
+  })
+  await record(page)
+  const before = await state(page, 'ico')
+  const scale = before.scale
+
+  // Over the window body: a drag by (160, 40) puts the outline at (200, 100)
+  // on the screen, inside the 300×200 window at (150, 40).
+  await pressAndMove(page, 'ico', 160, 40)
+  const mid = await outline(page)
+  check(
+    'OUTLINE  the icon stays put mid-drag',
+    near(mid.frame.x, before.x) && near(mid.frame.y, before.y),
+    `${mid.frame.x},${mid.frame.y} (was ${before.x},${before.y})`
+  )
+  check(
+    "OUTLINE  the desktop's surface holds one canvas: the frame's box plus the delta",
+    mid.count === 1 &&
+      !mid.inFrame &&
+      near(mid.canvas?.x, before.x + 160) &&
+      near(mid.canvas?.y, before.y + 40) &&
+      near(mid.canvas?.w, before.w) &&
+      near(mid.canvas?.h, before.h),
+    JSON.stringify({ count: mid.count, canvas: mid.canvas, frame: before })
+  )
+  check(
+    'OUTLINE  the raster is one image px per system px of the frame',
+    mid.raster?.[0] === Math.round(before.w / scale) && mid.raster?.[1] === Math.round(before.h / scale),
+    `${mid.raster} for a ${before.w / scale}×${before.h / scale} frame`
+  )
+  check(
+    'OUTLINE  the XOR pen, never a hit, one tier above the menu bar',
+    mid.blend === 'difference' &&
+      mid.filter === 'invert(1)' &&
+      mid.pointer === 'none' &&
+      mid.surfacePointer === 'none' &&
+      Number(mid.z) === 2_000_001,
+    JSON.stringify({ blend: mid.blend, filter: mid.filter, pointer: mid.pointer, z: mid.z })
+  )
+  const under = await page.evaluate(
+    ([x, y]) => document.elementFromPoint(x, y)?.localName,
+    [mid.canvas.x + 20, mid.canvas.y + 20]
+  )
+  check('OUTLINE  elementFromPoint at the outline returns what is under it', under === 'vf-window', under)
+
+  // The ring's top row over the white body: ink and paper alternating, and
+  // the row inside it untouched.
+  const png = decodePng(await page.screenshot())
+  const rowY = Math.round(mid.canvas.y + mid.art.dy)
+  const x0 = Math.round(mid.canvas.x + mid.art.dx)
+  const classify = (x, y) => (isBlack(png, x, y) ? 'B' : isWhite(png, x, y) ? 'W' : '.')
+  let row = ''
+  for (let i = 0; i < 12; i++) row += classify(x0 + i, rowY)
+  check(
+    'OUTLINE  over a white body the ring is a dotted black line',
+    row === 'BWBWBWBWBWBW' || row === 'WBWBWBWBWBWB',
+    row
+  )
+  let inside = ''
+  for (let i = 2; i < 12; i++) inside += classify(x0 + i, rowY + 2)
+  check('OUTLINE  …with the interior untouched', inside === 'WWWWWWWWWW', inside)
+
+  // A cancel takes the canvas with it — and keeps the icon out from under
+  // the window, where the next press could not reach it.
+  await page.keyboard.press('Escape')
+  const cancelled = await outline(page)
+  await page.mouse.up()
+  check(
+    'OUTLINE  a cancel removes the canvas',
+    cancelled.count === 0 && (await log(page)).some((e) => e.type === 'vf-drag-cancel'),
+    `${cancelled.count} left`
+  )
+
+  // Over the dither: a drag by (0, 150) puts the outline at (40, 210) on the
+  // screen, left of the window. The dots land where the dither is inked, so
+  // the ring's row inverts to paper while the dither a few rows up still
+  // alternates.
+  await pressAndMove(page, 'ico', 0, 150)
+  const over = await outline(page)
+  const png2 = decodePng(await page.screenshot())
+  const y2 = Math.round(over.canvas.y + over.art.dy)
+  const x2 = Math.round(over.canvas.x + over.art.dx)
+  const c2 = (x, y) => (isBlack(png2, x, y) ? 'B' : isWhite(png2, x, y) ? 'W' : '.')
+  let ring = ''
+  let dither = ''
+  for (let i = 0; i < 12; i++) {
+    ring += c2(x2 + i, y2)
+    dither += c2(x2 + i, y2 - 3)
+  }
+  check(
+    "OUTLINE  over the dither the ring's dots invert the dither's own ink — the row reads as paper",
+    ring === 'WWWWWWWWWWWW' && (dither === 'BWBWBWBWBWBW' || dither === 'WBWBWBWBWBWB'),
+    `ring ${ring}, dither three rows up ${dither}`
+  )
+  await page.mouse.up()
+  const after = await state(page, 'ico')
+  const left = (await outline(page)).count
+  check(
+    'OUTLINE  the drop lands the icon where the outline was',
+    after.left === 40 && after.top === 60 + 150 / scale,
+    `${after.left},${after.top}`
+  )
+  check('OUTLINE  …and the canvas leaves the surface', left === 0, `${left} left`)
+
+  // Past the raster's edge: the outline straddles the screen's right edge and
+  // nothing paints beyond it — the gray page stays gray on the ring's row.
+  const toEdge = over.screen.right - 20 - after.x // the frame's left lands 20px short of the edge
+  await pressAndMove(page, 'ico', toEdge, 0)
+  const edge = await outline(page)
+  const png3 = decodePng(await page.screenshot())
+  const y3 = Math.round(edge.canvas.y + edge.art.dy)
+  const beyond = []
+  for (let i = 2; i < 10; i++) beyond.push(rgb(png3, Math.round(edge.screen.right) + i, y3).join(','))
+  check(
+    "OUTLINE  past the raster's edge the visible box ends at the screen",
+    edge.canvas.x + edge.canvas.w > edge.screen.right && beyond.every((p) => p === '143,143,143'),
+    `canvas to ${edge.canvas.x + edge.canvas.w} vs screen ${edge.screen.right}; beyond: ${beyond[0]}…`
+  )
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  await page.close()
+}
+
+// Whole device px at every density: the outline's box is a whole count of
+// system px from the screen's origin, so it lands on the device grid.
+for (const dpr of [2, 3]) {
+  const page = await build(OUTLINE_DESK, { dpr, settle: true })
+  const before = await state(page, 'ico')
+  await pressAndMove(page, 'ico', 30, 18)
+  const mid = await outline(page)
+  const tol = gridTolerance(before.scale, dpr)
+  const whole = (v) => Math.abs(v * dpr - Math.round(v * dpr)) <= tol
+  check(
+    `OUTLINE dpr${dpr}  the canvas box lands on whole device px`,
+    mid.count === 1 && [mid.canvas.x, mid.canvas.y, mid.canvas.w, mid.canvas.h].every(whole),
+    `${[mid.canvas?.x, mid.canvas?.y, mid.canvas?.w, mid.canvas?.h].map((v) => v * dpr).join(', ')} device px`
+  )
+  await page.mouse.up()
+  await page.close()
+}
+
+// Without a desktop: the request goes unanswered and the canvas lives in the
+// icon's own frame, translated by the delta; the drop still lands.
+{
+  const page = await build(
+    `<div id="box" style="position:relative;width:400px;height:300px;overflow:hidden;background:#fff">
+       ${icon('id="ico" width="64" selectable movable left="20" top="20"')}
+     </div>`,
+    { settle: true }
+  )
+  await record(page)
+  const before = await state(page, 'ico')
+  await pressAndMove(page, 'ico', 50, 30)
+  const mid = await page.evaluate(() => {
+    const ico = document.getElementById('ico')
+    const c = ico.shadowRoot.querySelector('canvas.drag-outline')
+    const r = c?.getBoundingClientRect()
+    const f = ico.shadowRoot.querySelector('.frame').getBoundingClientRect()
+    return { has: !!c, canvas: r ? { x: r.x, y: r.y } : null, frame: { x: f.x, y: f.y } }
+  })
+  check(
+    'OUTLINE  with no desktop the canvas lives in the icon’s shadow, translated by the delta',
+    mid.has &&
+      near(mid.frame.x, before.x) &&
+      near(mid.frame.y, before.y) &&
+      near(mid.canvas?.x, before.x + 50) &&
+      near(mid.canvas?.y, before.y + 30),
+    JSON.stringify(mid)
+  )
+  await page.mouse.up()
+  const after = await state(page, 'ico')
+  const left = await page.evaluate(
+    () => !!document.getElementById('ico').shadowRoot.querySelector('canvas.drag-outline')
+  )
+  check(
+    'OUTLINE  …and the drop still lands',
+    after.left === 20 + 50 / before.scale && after.top === 20 + 30 / before.scale && !left,
+    `${after.left},${after.top}; canvas left: ${left}`
   )
   await page.close()
 }

@@ -11,7 +11,9 @@ import { DocumentListenersController } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
 import { RENAME_DELAY_MS } from '../motion.js'
-import { deriveOpenArt } from '../open-art.js'
+import { deriveDragOutline, deriveOpenArt, dotOutline } from '../open-art.js'
+import type { DragOutlineBox } from '../open-art.js'
+import { sysLength } from '../scale.js'
 
 /** Which member of the icon family paints — the two System 7 resource sizes. */
 export type VfIconSize = 'large' | 'small'
@@ -48,6 +50,21 @@ export interface VfIconDragDetail {
   y: number
 }
 
+/** The outline a drag draws, and where it lives. */
+interface DragOutline {
+  /** The ring and the plate's rectangle, undotted — derived once per drag. */
+  ring: HTMLCanvasElement
+  /** The dotted, positioned copy the surface (or the frame) shows. */
+  canvas: HTMLCanvasElement
+  /**
+   * The frame's offset from the surface's box in whole system px — the
+   * outline's origin at zero delta. (0,0) in the in-frame fallback.
+   */
+  base: { x: number; y: number }
+  /** The checker phase last painted, so an unchanged parity paints nothing. */
+  phase: number
+}
+
 /** One drag, from the press to its release. */
 interface DragGesture {
   /** The seeded origin, system px in the container. */
@@ -61,6 +78,8 @@ interface DragGesture {
    * press — the jitter test: a stationary press never starts a drag.
    */
   proposal: { left: number; top: number } | null
+  /** The outline, from the first step on; null while the drag has not started. */
+  outline: DragOutline | null
 }
 
 /**
@@ -196,6 +215,33 @@ const clamp = (v: number, max: number): number =>
  * Shift. Focus is what `selectable` grants, so the keyboard half of `movable`
  * and `editable` presupposes it — see the role section below.
  *
+ * ### The drag is an outline; the icon stays put
+ *
+ * The Finder dragged an icon as a dotted outline — the mask's boundary and
+ * the name's rectangle — drawn over everything with the XOR pen, the icon
+ * itself staying put until the drop. The kit draws it from what it already
+ * has: {@link deriveDragOutline} finds the ring the way the open ghost does
+ * (the silhouette from the art's alpha, eroded by one pixel, the ring the
+ * erosion removes), adds the plate's rectangle, and {@link dotOutline} dots
+ * it against a 2×2 checker — compositing only, so cross-origin art derives
+ * too, and art the pipeline cannot draw falls back to the cell's rectangle.
+ * The canvas paints with the cursor's XOR recipe, `filter: invert(1)` under
+ * `mix-blend-mode: difference`: a dotted black line over a white window
+ * body, and over the desktop dither the composition QuickDraw's pattern pen
+ * gave, because the checker's phase is taken from where the outline lands
+ * on the *screen* — its dots share the dither's own phase wherever it goes.
+ *
+ * It draws on the desktop's drag surface: a layer in the screen's shadow,
+ * over windows, palettes and the menu bar alike, clipped at the raster's
+ * edge like everything else, reached through the `vf-drag-surface-request`
+ * handshake (bubbles, non-composed — it travels up the slots the icon is
+ * assigned to, so it works from inside a window body). With no desktop the
+ * canvas lives in the icon's own frame instead, translated by the delta,
+ * clipped by whatever clips the icon; the gesture and its events are the
+ * same either way. Its origin is a whole count of system px from the
+ * surface's, written as a live `sysLength()`, so a scale change mid-gesture
+ * cannot smear it.
+ *
  * ### The drag reports, the page files
  *
  * The kit ships no filing semantics — folders are the page's own catalog —
@@ -211,6 +257,13 @@ const clamp = (v: number, max: number): number =>
  *   writes nothing — the page re-parents or places the icon itself, the
  *   outline's origin converted with the destination's `placementAt`;
  * - `vf-drag-cancel` `{}` on Escape or a `pointercancel`: nothing written.
+ *
+ * `left`/`top` in the detail are the *proposal*, unclamped — the origin plus
+ * the lattice-snapped delta — and only the default action clamps, so a page
+ * that cancels gets the raw gesture. `x`/`y` are the outline's top-left in
+ * viewport CSS px: the frame's box at the press translated by the delta,
+ * the press offset already inside it, so an icon placed at the
+ * destination's `placementAt(x, y)` lands exactly where the outline was.
  *
  * Escape is heard by a document listener scoped to the gesture rather than
  * by the icon's own key handler, because a `movable`-only icon never takes
@@ -826,6 +879,7 @@ export class VfIcon extends VfPositioned(LitElement) {
         frame: this.#frameRect(),
         pointer: { clientX: event.clientX, clientY: event.clientY },
         proposal: null,
+        outline: null,
       }
       return origin
     },
@@ -879,58 +933,147 @@ export class VfIcon extends VfPositioned(LitElement) {
       this.#disarmRename()
       gesture.proposal = { left: gesture.origin.x, top: gesture.origin.y }
       this.#escape.attach()
+      gesture.outline = this.#showOutline(gesture)
       emit(this, 'vf-drag-start', { left: gesture.origin.x, top: gesture.origin.y })
     }
     if (x === gesture.proposal.left && y === gesture.proposal.top) return
+    // The proposal: the origin plus the lattice-snapped delta, unclamped —
+    // the outline goes where the pointer takes it, and only the drop's
+    // default action clamps. The icon itself stays put.
     gesture.proposal = { left: x, top: y }
-    // The icon moves with the pointer; the reported proposal is what was
-    // applied, clamped whole in the container measured at the press.
-    this.#placement.moveTo(x, y)
+    this.#placeOutline(gesture)
     emit(this, 'vf-drag', this.#dragDetail(gesture))
   }
 
   /**
    * The release, or a cancel. A gesture that never started (a click) reports
-   * nothing. A cancel — Escape, `pointercancel` — puts the icon back where
-   * the press found it and says so. A release reports the drop, and the
-   * default action of an uncancelled `vf-drop` is the move itself. Dispatched
-   * with the drag state already cleared and the pointer capture released, so
-   * a handler may re-parent the icon freely.
+   * nothing. A cancel — Escape, `pointercancel` — drops the outline and says
+   * so; nothing was written. A release reports the drop, and the default
+   * action of an uncancelled `vf-drop` is the move itself. Dispatched with
+   * the outline gone, the drag state cleared and the pointer capture
+   * released, so a handler may re-parent the icon freely.
    */
   #onDragEnd(event: PointerEvent | undefined, cancelled: boolean): void {
     const gesture = this.#gesture
     this.#gesture = null
     if (!gesture?.proposal) return
     this.#escape.detach()
+    gesture.outline?.canvas.remove()
     if (event) gesture.pointer = { clientX: event.clientX, clientY: event.clientY }
     if (cancelled) {
-      // The seed, unsnapped and unclamped: exactly the pair the press read.
-      this.left = gesture.origin.x
-      this.top = gesture.origin.y
       emit(this, 'vf-drag-cancel', {})
       return
     }
     const detail = this.#dragDetail(gesture)
-    // The icon moved live under the gesture, so the drop is reported with the
-    // pair back where the press found it: a handler that places or
-    // re-parents the icon writes over nothing the kit did, and the default
-    // action of an uncancelled drop is the one move that lands. One update
-    // either way — nothing paints in between.
-    this.left = gesture.origin.x
-    this.top = gesture.origin.y
     if (emit(this, 'vf-drop', detail, { cancelable: true })) {
       this.#placement.moveTo(detail.left, detail.top)
     }
   }
 
   /**
+   * Build the outline for a drag that just started, and put it where it
+   * draws: the desktop's drag surface when one answers the handshake, else
+   * the icon's own frame. The geometry is measured off the rendered parts
+   * — the frame, the art as it paints (the ghost while `open`), the cell and
+   * the plate — in system px relative to the frame, so the ring lands on
+   * the pixels the frame paints. Null when there is nothing to draw with.
+   */
+  #showOutline(gesture: DragGesture): DragOutline | null {
+    const root = this.renderRoot
+    const frame = root?.querySelector<HTMLElement>('.frame')
+    if (!frame) return null
+    const scale = effectiveScale(this)
+    const at = gesture.frame
+    const box = (rect: DOMRect): DragOutlineBox => ({
+      x: Math.round((rect.left - at.left) / scale),
+      y: Math.round((rect.top - at.top) / scale),
+      width: Math.round(rect.width / scale),
+      height: Math.round(rect.height / scale),
+    })
+    const width = Math.round(at.width / scale)
+    const height = Math.round(at.height / scale)
+    const cell = root.querySelector('.art')
+    const plate = root.querySelector('.name')
+    const shown = this.open && this._ghost ? this._ghost : this.#art
+    const drawable =
+      shown != null &&
+      (shown instanceof HTMLCanvasElement
+        ? shown.width > 0
+        : shown.complete && shown.naturalWidth > 0)
+    const artRect = drawable ? shown.getBoundingClientRect() : null
+    const ring = deriveDragOutline(drawable ? shown : null, {
+      width,
+      height,
+      art: artRect && artRect.width > 0 ? box(artRect) : null,
+      cell: cell ? box(cell.getBoundingClientRect()) : { x: 0, y: 0, width, height },
+      plate: plate ? box(plate.getBoundingClientRect()) : null,
+    })
+    if (!ring) return null
+
+    // The handshake: a desktop on the light-DOM path hands over its surface.
+    const request: { surface: HTMLElement | null } = { surface: null }
+    emit(this, 'vf-drag-surface-request', request, { composed: false })
+    const surface = request.surface
+
+    const canvas = document.createElement('canvas')
+    canvas.className = 'drag-outline'
+    // One renderer, two possible parents, so the recipe rides inline: the
+    // cursor's XOR pen (ink flipped white, then difference against the
+    // backdrop), nearest-neighbor at one image px per system px, never a
+    // hit. Sized live, so a scale change mid-gesture cannot smear it.
+    const style = canvas.style
+    style.position = 'absolute'
+    style.display = 'block'
+    style.pointerEvents = 'none'
+    style.filter = 'invert(1)'
+    style.mixBlendMode = 'difference'
+    style.imageRendering = 'pixelated'
+    style.width = sysLength(ring.width)
+    style.height = sysLength(ring.height)
+    let base = { x: 0, y: 0 }
+    if (surface) {
+      const box = surface.getBoundingClientRect()
+      base = {
+        x: Math.round((at.left - box.left) / scale),
+        y: Math.round((at.top - box.top) / scale),
+      }
+      surface.append(canvas)
+    } else {
+      frame.append(canvas)
+    }
+    return { ring, canvas, base, phase: -1 }
+  }
+
+  /**
+   * Move the outline to the proposal: the frame's offset plus the delta, a
+   * whole count of system px from the surface's origin, and re-dot it at
+   * the parity that lands on the screen — `x + y` even where the desktop
+   * dither is inked, so the two share one phase wherever the outline goes.
+   */
+  #placeOutline(gesture: DragGesture): void {
+    const outline = gesture.outline
+    if (!outline || !gesture.proposal) return
+    const x = outline.base.x + (gesture.proposal.left - gesture.origin.x)
+    const y = outline.base.y + (gesture.proposal.top - gesture.origin.y)
+    outline.canvas.style.left = sysLength(x)
+    outline.canvas.style.top = sysLength(y)
+    const phase = (((x + y) % 2) + 2) % 2
+    if (phase !== outline.phase) {
+      outline.phase = phase
+      dotOutline(outline.ring, outline.canvas, phase)
+    }
+  }
+
+  /**
    * The detail of `vf-drag` and `vf-drop`: the pointer, the proposal in the
-   * container, and the outline's top-left in the viewport — the frame's box
-   * at the press translated by the proposal's delta.
+   * container — unclamped — and the outline's top-left in the viewport: the
+   * frame's box at the press translated by the proposal's delta.
    */
   #dragDetail(gesture: DragGesture): VfIconDragDetail {
-    const left = this.left ?? 0
-    const top = this.top ?? 0
+    const { left, top } = gesture.proposal ?? {
+      left: gesture.origin.x,
+      top: gesture.origin.y,
+    }
     const scale = effectiveScale(this)
     return {
       clientX: gesture.pointer.clientX,
@@ -966,7 +1109,9 @@ export class VfIcon extends VfPositioned(LitElement) {
     // A timer outliving the element would open a field in a torn-down tree.
     this.#disarmRename()
     // A drag cannot outlive the element either: the controller has dropped
-    // the pointer, and the Escape listener went with the controller.
+    // the pointer, the Escape listener went with the controller, and an
+    // outline on a desktop's surface would otherwise be orphaned there.
+    this.#gesture?.outline?.canvas.remove()
     this.#gesture = null
   }
 

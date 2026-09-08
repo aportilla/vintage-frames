@@ -296,12 +296,15 @@ function replaceElements(_key: string, value: unknown): unknown {
  * `vf-icon` carrying `data-folder="<id>"` is the folder that opens it.
  *
  * Under a drag the folder icon under the pointer wears `target`. At the
- * drop: an icon let go over a folder icon is filed into that folder's
- * window; one let go over a folder window is placed there at the outline's
- * origin (`placementAt`); one let go on the desktop is placed on the
- * desktop's field the same way. In each case the handler cancels the
- * default action and does the write itself. A drop on the container the
- * icon already sits in is left to the kit: the default action moves it.
+ * drop: icons let go over a folder icon are filed into that folder's
+ * window; ones let go over a folder window are placed there where their
+ * outlines were (`placementAt`); ones let go on the desktop are placed on
+ * the desktop's field the same way. The whole set travels — `detail.icons`,
+ * the dragged icon first — and each member lands where its own outline
+ * was: its box translated by the delta the leader's `x`/`y` carry. In each
+ * case the handler cancels the default action and does the writes itself.
+ * A drop on the container the icons already sit in is left to the kit: the
+ * default action moves them.
  */
 function wireFiling(): void {
   for (const desktop of document.querySelectorAll<VfDesktop>('vf-desktop[data-filing]')) {
@@ -311,9 +314,9 @@ function wireFiling(): void {
     const isFolderWindow = (el: Element): el is VfWindow =>
       el.localName === 'vf-window' && el.querySelector('vf-icon-field') !== null
 
-    /** What is under the pointer, the dragged icon itself skipped. */
-    const under = (x: number, y: number, dragged: Element) => {
-      const stack = document.elementsFromPoint(x, y).filter((el) => el !== dragged)
+    /** What is under the pointer, the travelling icons themselves skipped. */
+    const under = (x: number, y: number, skip: readonly Element[]) => {
+      const stack = document.elementsFromPoint(x, y).filter((el) => !skip.includes(el))
       return {
         folder: stack.find(isFolderIcon) ?? null,
         window: stack.find(isFolderWindow) ?? null,
@@ -335,56 +338,73 @@ function wireFiling(): void {
     }
 
     desktop.addEventListener('vf-drag', (event) => {
-      const { clientX, clientY } = (event as CustomEvent<VfIconDragDetail>).detail
-      const hit = under(clientX, clientY, event.target as Element)
-      highlight(hit.folder && hit.folder !== event.target ? hit.folder : null)
+      const { clientX, clientY, icons } = (event as CustomEvent<VfIconDragDetail>).detail
+      const hit = under(clientX, clientY, icons)
+      highlight(hit.folder ?? null)
     })
     desktop.addEventListener('vf-drag-cancel', () => highlight(null))
     desktop.addEventListener('vf-drop', (event) => {
       const icon = event.target as VfIcon
-      const { clientX, clientY, x, y } = (event as CustomEvent<VfIconDragDetail>).detail
-      const hit = under(clientX, clientY, icon)
+      const { clientX, clientY, x, y, icons } = (event as CustomEvent<VfIconDragDetail>).detail
+      const hit = under(clientX, clientY, icons)
       highlight(null)
       const from = icon.closest('vf-window')
 
-      if (hit.folder && hit.folder !== icon) {
-        // Into the folder: the next free cell of its window's field.
+      // Where each member's outline was: its own box, translated by the
+      // delta the leader's x/y carry. Measured before anything moves.
+      const lead = icon.getBoundingClientRect()
+      const landings = icons.map((member) => {
+        const r = member.getBoundingClientRect()
+        return { member, x: r.left + (x - lead.left), y: r.top + (y - lead.top) }
+      })
+      // Held at the container's origin: a member whose outline was let go
+      // partly past the plane's edge lands on it rather than under it.
+      const place = (
+        field: Element,
+        at: (landing: (typeof landings)[number], i: number) => { left: number; top: number }
+      ): void => {
+        landings.forEach((landing, i) => {
+          const { left, top } = at(landing, i)
+          field.append(landing.member)
+          landing.member.left = Math.max(0, left)
+          landing.member.top = Math.max(0, top)
+        })
+      }
+
+      if (hit.folder) {
+        // Into the folder: the next free cells of its window's field.
         const win = document.getElementById(hit.folder.dataset.folder ?? '') as VfWindow | null
         const field = win?.querySelector('vf-icon-field')
         if (!win || !field) return
         event.preventDefault()
         const n = field.querySelectorAll('vf-icon').length
-        field.append(icon)
-        icon.left = 16 + (n % 3) * 80
-        icon.top = 16 + Math.floor(n / 3) * 64
+        place(field, (_, i) => ({
+          left: 16 + ((n + i) % 3) * 80,
+          top: 16 + Math.floor((n + i) / 3) * 64,
+        }))
         countItems(win)
         if (from && from !== win) countItems(from)
         return
       }
       if (hit.window && hit.window !== from) {
-        // Into a folder window, where the outline was let go.
+        // Into a folder window, where the outlines were let go.
         const field = hit.window.querySelector('vf-icon-field')
         if (!field) return
         event.preventDefault()
-        const { left, top } = hit.window.placementAt(x, y)
-        field.append(icon)
-        icon.left = left
-        icon.top = top
-        countItems(hit.window)
+        const win = hit.window
+        place(field, (landing) => win.placementAt(landing.x, landing.y))
+        countItems(win)
         if (from) countItems(from)
         return
       }
       if (!hit.window && hit.desktop && from && desktopField) {
-        // Out onto the desktop, where the outline was let go.
+        // Out onto the desktop, where the outlines were let go.
         event.preventDefault()
-        const { left, top } = desktop.placementAt(x, y)
-        desktopField.append(icon)
-        icon.left = left
-        icon.top = top
+        place(desktopField, (landing) => desktop.placementAt(landing.x, landing.y))
         countItems(from)
       }
-      // Otherwise: the same container it came from — the kit's default
-      // action moves it.
+      // Otherwise: the same container they came from — the kit's default
+      // action moves them.
     })
   }
 }

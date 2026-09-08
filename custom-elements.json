@@ -4449,7 +4449,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-icon-field>` — the container a field of `vf-icon`s sits in: a desktop's\nicons, a folder window's contents.\n\nEvery other set in the kit has its container — `vf-list` owns\n`vf-list-item`, `vf-radio-group` owns `vf-radio`, `vf-menu` owns\n`vf-menu-item`, `vf-select` owns `vf-option` — and `vf-icon` was the one\nitem whose container the consumer wrote by hand: a bare\n`<div role=\"listbox\" aria-multiselectable=\"true\">`, because an `option` is\nonly valid inside a `listbox` that owns it, and every kit container is a\npositioning anchor by design, so nothing in the kit was neutral enough to\nstand in. A consumer who forgot the role got icons that silently degraded\nto pictures. This is that container, as kit furniture:\n\n```html\n<vf-desktop width=\"512\" height=\"342\">\n  <vf-icon-field label=\"Desktop\">\n    <vf-icon label=\"Macintosh HD\" width=\"64\" selectable movable editable left=\"16\" top=\"24\">…</vf-icon>\n    <vf-icon label=\"Trash\" width=\"64\" selectable movable editable left=\"16\" top=\"280\">…</vf-icon>\n  </vf-icon-field>\n  <vf-window heading=\"Documents\" width=\"320\" height=\"201\" scrollbars=\"both\" top=\"40\" left=\"120\">\n    <vf-icon-field label=\"Documents\">\n      <vf-icon label=\"Read Me\" width=\"64\" selectable movable editable left=\"16\" top=\"16\">…</vf-icon>\n    </vf-icon-field>\n  </vf-window>\n</vf-desktop>\n```\n\n### Semantics through internals\n\n`role=\"listbox\"` and `aria-multiselectable=\"true\"` always — the Finder was\nalways multi-select, so there is no attribute for it — and `label` as the\naccessible name, the way `vf-scroll-area` takes one. Internals values are\ndefaults (SPEC §2): a consumer's own `role`/`aria-*` on the tag still wins.\nA `selectable` icon inside becomes a real `option` carrying `aria-selected`;\n`vf-icon` matches this tag directly, since a role written through internals\nnever lands as an attribute for `closest()` to find.\n\n### Layout-neutral, exactly what the div was\n\nAn in-flow block with no size, no inset and no position of its own,\npainting nothing — the `vf-stack` posture. A field whose icons are all\nplaced is a zero-height block, so the icons keep anchoring to the desktop's\nraster or the window's plane, stored coordinates mean what they meant, and\na press on the bare dither still reaches the desktop. It takes `top`/`left`\nand `width`/`height` like the other declared-box containers, so a page that\nwants the field to be a box places and sizes it, at which point it becomes\nthe anchor — the placement working, as documented for everything.\n\n### `size` is the view's\n\n`large` or `small`, written onto every icon in the field when set and\nwhenever it changes, so View → by Small Icon is one attribute instead of a\nloop over every icon. Unset, each icon keeps its own.\n\n### The desktop uses it, and renders none\n\nA desktop's icons sit in a field slotted into `vf-desktop` beside the\nwindows, written by the page; a folder window's icons sit in one slotted\ninto the window body. `vf-desktop` builds no field of its own: its furniture\nis slotted light DOM and the page decides what it is, a desktop with no\nicons should carry no empty listbox, and a field inside the desktop's\nshadow is one `closest()` could not reach.",
+          "description": "`<vf-icon-field>` — the container a field of `vf-icon`s sits in: a desktop's\nicons, a folder window's contents.\n\nEvery other set in the kit has its container — `vf-list` owns\n`vf-list-item`, `vf-radio-group` owns `vf-radio`, `vf-menu` owns\n`vf-menu-item`, `vf-select` owns `vf-option` — and `vf-icon` was the one\nitem whose container the consumer wrote by hand: a bare\n`<div role=\"listbox\" aria-multiselectable=\"true\">`, because an `option` is\nonly valid inside a `listbox` that owns it, and every kit container is a\npositioning anchor by design, so nothing in the kit was neutral enough to\nstand in. A consumer who forgot the role got icons that silently degraded\nto pictures. This is that container, as kit furniture:\n\n```html\n<vf-desktop width=\"512\" height=\"342\">\n  <vf-icon-field label=\"Desktop\" fill-width fill-height>\n    <vf-icon label=\"Macintosh HD\" width=\"64\" selectable movable editable left=\"16\" top=\"24\">…</vf-icon>\n    <vf-icon label=\"Trash\" width=\"64\" selectable movable editable left=\"16\" top=\"280\">…</vf-icon>\n  </vf-icon-field>\n  <vf-window heading=\"Documents\" width=\"320\" height=\"201\" scrollbars=\"both\" top=\"40\" left=\"120\">\n    <vf-icon-field label=\"Documents\">\n      <vf-icon label=\"Read Me\" width=\"64\" selectable movable editable left=\"16\" top=\"16\">…</vf-icon>\n    </vf-icon-field>\n  </vf-window>\n</vf-desktop>\n```\n\n### Semantics through internals\n\n`role=\"listbox\"` and `aria-multiselectable=\"true\"` always — the Finder was\nalways multi-select, so there is no attribute for it — and `label` as the\naccessible name, the way `vf-scroll-area` takes one. Internals values are\ndefaults (SPEC §2): a consumer's own `role`/`aria-*` on the tag still wins.\nA `selectable` icon inside becomes a real `option` carrying `aria-selected`;\n`vf-icon` matches this tag directly, since a role written through internals\nnever lands as an attribute for `closest()` to find.\n\n### Layout-neutral, exactly what the div was\n\nAn in-flow block with no size, no inset and no position of its own,\npainting nothing — the `vf-stack` posture. A field whose icons are all\nplaced is a zero-height block, so the icons keep anchoring to the desktop's\nraster or the window's plane, stored coordinates mean what they meant, and\na press on the bare dither still reaches the desktop. It takes `top`/`left`\nand `width`/`height` like the other declared-box containers, so a page that\nwants the field to be a box places and sizes it, at which point it becomes\nthe anchor — the placement working, as documented for everything.\n`fill-width`/`fill-height` are the other way to give it a box, read about\nthe host the way `vf-stack` and `vf-container` read them: a filled field\nstays in flow and static, so its icons keep their anchor, and it has a\nsurface to press — which is what the rubber band needs.\n\n### The rubber band\n\nA press on the field's own background — not on an icon — dragged across\nthe field draws the Finder's dotted selection rectangle from the press to\nthe pointer, and the selection follows it live by the Finder's one rule:\n**an icon is selected exactly when it was selected at the press XOR the\nrectangle touches it.** The press fixes that anchor: a plain press has\nalready cleared everything (the way any press outside an icon does), so\nthe rectangle simply selects what it touches and releases what it leaves;\nwith Shift or ⌘ held the selection survives the press and the rectangle\n*toggles* against it — an icon already selected deselects while the\nrectangle covers it and comes back when it leaves, one that was not\nselects. Each change reports `vf-select` as a press would. \"Touches\"\nmeans the icon's art cell or its name plate (VfIcon.touches), not\nthe empty cell beside them, so a rectangle through the gap between two\nicons selects neither. The release keeps the result; Escape or a\n`pointercancel` cancels, the rectangle vanishes and the selection goes\nback to the anchor. A press that never leaves its system pixel draws\nnothing.\n\nThe rectangle is drawn with the drag outline's pen (* paintSelectionRect: the dotted one-pixel outline, `filter: invert(1)`\nunder `mix-blend-mode: difference`) at the field's own level, which is\nwhere the Finder drew its marquee — on the desktop under the windows, in a\nwindow body over that window's content and under any window above it —\npositioned against the viewport from the field's own shadow, since a\nlayout-neutral field has no box of its own to anchor to. It reaches no\nfurther than the field, inside every clip above the field (a window body,\na scroll viewport, the raster's edge), so it never paints outside the\nregion the icons are visible in. Its dots are phased against the field's\nown box; a field at the screen's origin shares the desktop dither's phase.\n\nOnly a field with a box can be pressed: fill it, or place and size it. An\nunplaced, unfilled field of placed icons is zero-height and draws no band.\n`touch-action` is left alone, so on a touch screen a drag on the\nbackground pans a scrolling window as it always did; the band is a mouse\nand pen gesture.\n\n### `size` is the view's\n\n`large` or `small`, written onto every icon in the field when set and\nwhenever it changes, so View → by Small Icon is one attribute instead of a\nloop over every icon. Unset, each icon keeps its own.\n\n### The desktop uses it, and renders none\n\nA desktop's icons sit in a field slotted into `vf-desktop` beside the\nwindows, written by the page; a folder window's icons sit in one slotted\ninto the window body. `vf-desktop` builds no field of its own: its furniture\nis slotted light DOM and the page decides what it is, a desktop with no\nicons should carry no empty listbox, and a field inside the desktop's\nshadow is one `closest()` could not reach.",
           "name": "VfIconField",
           "slots": [
             {
@@ -4495,6 +4495,24 @@
             },
             {
               "kind": "field",
+              "name": "#band",
+              "privacy": "private",
+              "type": {
+                "text": "Band | null"
+              },
+              "default": "null",
+              "description": "The rubber band in flight, or null between gestures."
+            },
+            {
+              "kind": "field",
+              "name": "#escape",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new DocumentListenersController(this, () => [ [document, 'keydown', this.#onKeyDown, true], ])",
+              "description": "Escape mid-band cancels — the in-flight-gesture idiom `vf-icon`'s drag\nuses, on the document because the field never takes focus. Capture\nphase, and the key is stopped there, so an enclosing `vf-dialog` never\nreads it as a dismissal."
+            },
+            {
+              "kind": "field",
               "name": "#onSlotChange",
               "privacy": "private",
               "description": "Icons arriving after the view was set take the view's size."
@@ -4509,6 +4527,181 @@
                 }
               },
               "description": "Push the view's size onto every icon in the field. Descendants rather\nthan direct children, so an icon inside a wrapper is one of the field's\ntoo; a property write, which Lit keeps for an icon that has not upgraded\nyet. Unset means hands off."
+            },
+            {
+              "kind": "method",
+              "name": "#icons",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "VfIcon[]"
+                }
+              },
+              "description": "The icons the band can select: every selectable one in the field."
+            },
+            {
+              "kind": "field",
+              "name": "#onPointerDown",
+              "privacy": "private",
+              "description": "A press on the field's own background. `event.target` is the host only\nwhen nothing slotted was hit — a press on an icon reaches here with the\nicon as its target, and that press is the icon's own gesture. The\nanchor is read after the icons' outside-press listeners have run\n(document capture, ahead of this): what they left selected is what\nShift or ⌘ kept — nothing, after a plain press."
+            },
+            {
+              "kind": "field",
+              "name": "#onPointerMove",
+              "privacy": "private",
+              "description": "A step of the band. The first step whose point differs from the press\nstarts it — a stationary press draws nothing and changes nothing beyond\nwhat the press itself did. Each changed rectangle is redrawn and the\nicons under it re-read."
+            },
+            {
+              "kind": "field",
+              "name": "#onPointerUp",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#onKeyDown",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#end",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "cancelled",
+                  "type": {
+                    "text": "boolean"
+                  }
+                }
+              ],
+              "description": "The release, or a cancel. A band that never started (a click) has\nnothing to undo. A release keeps the selection the band made; a cancel\nputs the anchor back."
+            },
+            {
+              "kind": "method",
+              "name": "#point",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ x: number; y: number }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                },
+                {
+                  "name": "box",
+                  "type": {
+                    "text": "DOMRect"
+                  }
+                },
+                {
+                  "name": "scale",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "reach",
+                  "type": {
+                    "text": "Band['reach']"
+                  }
+                }
+              ],
+              "description": "A pointer position as a point in system px from the field's box, whole\nand held inside the band's reach."
+            },
+            {
+              "kind": "method",
+              "name": "#reach",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Band['reach']"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "box",
+                  "type": {
+                    "text": "DOMRect"
+                  }
+                },
+                {
+                  "name": "scale",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "How far the band may reach: the field's own box, intersected with every\nancestor that clips — a window body, a scroll viewport, the desktop's\nraster — found by walking the flat tree, slots and shadow hosts\nincluded. In system px from the field's box, whole, rounded inward."
+            },
+            {
+              "kind": "method",
+              "name": "#makeCanvas",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "HTMLCanvasElement"
+                }
+              },
+              "description": "The band's canvas: the drag outline's XOR pen, positioned against the\nviewport from the field's own shadow — a layout-neutral field has no\npositioned box of its own for it to anchor to — and never a hit."
+            },
+            {
+              "kind": "method",
+              "name": "#paint",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "band",
+                  "type": {
+                    "text": "Band"
+                  }
+                },
+                {
+                  "name": "scale",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Draw the rectangle where it lands: whole system px from the field's box,\nwhich sits on the device grid, so the band does too. The checker's\nphase follows the rectangle's own corner parity in the field's box."
+            },
+            {
+              "kind": "method",
+              "name": "#selectUnder",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "band",
+                  "type": {
+                    "text": "Band"
+                  }
+                },
+                {
+                  "name": "scale",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "The selection under the band — the Finder's rule, re-evaluated for\nevery selectable icon on every changed rectangle: selected exactly when\nit was in the anchor XOR the rectangle touches it (its art cell or its\nplate, the icon's own reading). A plain press left an empty anchor, so\nthe rectangle selects what it touches and releases what it leaves; a\nShift or ⌘ press kept one, so the rectangle toggles against it. Each\nchange goes through the icon's own gesture route so `vf-select` reports\nit."
             },
             {
               "kind": "field",
@@ -4717,7 +4910,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-list-item`'s `icon` slot makes the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart would invert into a photographic negative, which was never what\nSystem 7 showed: declare `color` and selection **darkens** the art\ninstead — Icon Utilities' ttSelected transform, every color blended\nhalfway toward black (`brightness(0.5)`), whites going gray, the\ntransparent surround still untouched. The declaration is the consumer's\nbecause the component cannot tell color art from a mask by looking at a\nslotted image. It covers whatever the cell shows, the derived open ghost\nincluded, so a color icon has one selected treatment open or closed. The\nlabel plate inverts to the `--vf-highlight` pair either way, sharing one\nselection color with `vf-list-item` — the selected name was inverted\nwhatever the art.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` tracks the gesture and\n`PlacementController` writes the result into `left`/`top` in whole system px,\nthe art's own unit — the same pair markup places an icon with, so a moved\nicon is still where it was dropped after a zoom.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift. Focus is what `selectable` grants, so the keyboard half of `movable`\nand `editable` presupposes it — see the role section below.\n\n### The drag is an outline; the icon stays put\n\nThe Finder dragged an icon as a dotted outline — the mask's boundary and\nthe name's rectangle — drawn over everything with the XOR pen, the icon\nitself staying put until the drop. The kit draws it from what it already\nhas: deriveDragOutline finds the ring the way the open ghost does\n(the silhouette from the art's alpha, eroded by one pixel, the ring the\nerosion removes), adds the plate's rectangle, and dotOutline dots\nit against a 2×2 checker — compositing only, so cross-origin art derives\ntoo, and art the pipeline cannot draw falls back to the cell's rectangle.\nThe canvas paints with the cursor's XOR recipe, `filter: invert(1)` under\n`mix-blend-mode: difference`: a dotted black line over a white window\nbody, and over the desktop dither the composition QuickDraw's pattern pen\ngave, because the checker's phase is taken from where the outline lands\non the *screen* — its dots share the dither's own phase wherever it goes.\n\nIt draws on the desktop's drag surface: a layer in the screen's shadow,\nover windows, palettes and the menu bar alike, clipped at the raster's\nedge like everything else, reached through the `vf-drag-surface-request`\nhandshake (bubbles, non-composed — it travels up the slots the icon is\nassigned to, so it works from inside a window body). With no desktop the\ncanvas lives in the icon's own frame instead, translated by the delta,\nclipped by whatever clips the icon; the gesture and its events are the\nsame either way. Its origin is a whole count of system px from the\nsurface's, written as a live `sysLength()`, so a scale change mid-gesture\ncannot smear it.\n\n### The drag reports, the page files\n\nThe kit ships no filing semantics — folders are the page's own catalog —\nso a drag is a stream of events and a cancelable commit, on the icon:\n\n- `vf-drag-start` `{ left, top }` on the first lattice step away from the\n  press (a plain click never starts one, and never fires a drop);\n- `vf-drag` `{ clientX, clientY, left, top, x, y }` on every step that\n  changed the snapped proposal;\n- `vf-drop`, the same shape at the release, **cancelable**: its default\n  action is the move, the proposal written through `left`/`top` and\n  clamped whole in the container measured at the press. `preventDefault()`\n  writes nothing — the page re-parents or places the icon itself, the\n  outline's origin converted with the destination's `placementAt`;\n- `vf-drag-cancel` `{}` on Escape or a `pointercancel`: nothing written.\n\n`left`/`top` in the detail are the *proposal*, unclamped — the origin plus\nthe lattice-snapped delta — and only the default action clamps, so a page\nthat cancels gets the raw gesture. `x`/`y` are the outline's top-left in\nviewport CSS px: the frame's box at the press translated by the delta,\nthe press offset already inside it, so an icon placed at the\ndestination's `placementAt(x, y)` lands exactly where the outline was.\n\nEscape is heard by a document listener scoped to the gesture rather than\nby the icon's own key handler, because a `movable`-only icon never takes\nfocus — an addition in the kit's idiom (a pointer-only gesture with no way\nout is the kind of gap SPEC §1 closes), not a claim about the Finder.\n\n`target` is the destination highlight the page sets on the folder under a\ndrag: the selected treatment of the art alone — inverted, or darkened\nunder `color` — with none of `selected`'s semantics: no event, no outside\nlistener, no `aria-selected`, the plate untouched.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The name and the art are one target, and the second click decides\n\nA double-click opens the icon *wherever it lands* — the name is as much the\nicon as the picture is, and the Finder never made you aim at the 32 pixels of\nart. But the name is also where a single click renames, so the two gestures\nbegin with the same press and only the second one tells them apart.\n\nSo the rename waits for it. A press on the plate of an already-selected icon\narms the field rather than opening it, and the next press inside\nRENAME_DELAY_MS calls it off — leaving the double-click to open, with\nno rename box flashing up behind it. Nothing needs to *undo* an edit that\nbegan: the press that starts one and the press that opens are the same\npress, so the only thing that can be got right is not committing early.\n\nThe window is generous in the one direction that is cheap. Reading a lone\nclick as a pair costs a wait before the box appears; reading a pair as a lone\nclick renames when the user asked to open. The same reasoning covers a press\nthat turns into a drag, a press elsewhere, and any key — each calls the\npending rename off, because none of them is the click it is waiting for.\n\n### An icon alone is a picture; an icon in a field is an option\n\n`role=\"option\"` is only meaningful inside a `listbox` that owns it. Written\nunconditionally it is not merely untidy — the browser *drops* it, and\n`aria-selected` with it, so a `selectable` icon announced as a bare generic\nand its selection state reached assistive tech nowhere at all.\n\nSo the role follows the container. Owned, the icon is an `option` that names\nitself from its plate and publishes `aria-selected`. Unowned, it degrades to\n`role=\"img\"` with a name — the same vocabulary the derived open ghost uses,\nand true of what it is. Deliberately not `button`: that would promise Enter\nand Space activate, and here Return *renames* while the open route is ⌘O / ⌘↓.\n\nThe owner is `vf-icon-field`, the container a field of icons sits in, and\nit is what buys the selection state back:\n\n```html\n<vf-icon-field label=\"Desktop\">\n  <vf-icon label=\"Macintosh HD\" selectable movable editable>…</vf-icon>\n  <vf-icon label=\"Trash\" selectable movable editable>…</vf-icon>\n</vf-icon-field>\n```\n\nA `vf-desktop` cannot be that container itself: it also holds windows and a\nmenu bar, and a non-`option` child of a listbox is invalid the same way the\norphaned option was. The field is layout-neutral — placed icons anchor to\nthe nearest *positioned* ancestor, which is still the desktop's raster. An\nelement of your own carrying `role=\"listbox\"` still owns an icon the same\nway. One divergence from the APG listbox is deliberate: its options share\na single roving tab stop, while these stay one stop each, the way a Finder\nicon is reached on its own.\n\n**`selectable` is what makes an icon focusable**, and `movable`/`editable`\npresuppose it. That is the Finder's own model — you cannot move or rename\nwhat you have not selected — and the pointer path already assumed it: the\nrename opens on a press on the plate of an *already-selected* icon. A\n`movable`-only icon is a picture you can drag, not a widget.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box a moment later, as the Finder's\ndoes (see above), with Return committing, Escape reverting, and the plate\nwidening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
+          "description": "`<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a\nplate below, selectable, movable and renameable in place.\n\nIt is the one composite in the kit whose parts already existed separately —\n`vf-img` draws the art, `vf-list-item` inverts on selection, `vf-window`\ndrags — and the reason to have it anyway is that the *icon* is the unit the\nFinder actually manipulates. A picture and a caption that select together,\nmove together and rename together is a control, not a layout.\n\n### The art arrives by slot\n\nTwo slots, one per resource size — `large` is the 32×32 `ICN#` and `small`\nthe 16×16 `ics#` — each holding a `vf-img` around the consumer's own `<img>`:\n\n```html\n<vf-icon label=\"Macintosh HD\" selectable movable editable>\n  <vf-img slot=\"large\"><img src=\"hd-32.png\" alt=\"\"></vf-img>\n  <vf-img slot=\"small\"><img src=\"hd-16.png\" alt=\"\"></vf-img>\n</vf-icon>\n```\n\nSlots rather than `src` properties, for the reason `vf-img` exists at all:\nthe kit ships no raster files and never builds an `<img>` on a consumer's\nbehalf, so the graphic stays a real element in the light DOM with its own\n`alt`, `srcset`, loading behavior and asset URLs. A `src` string can express\nnone of that, and it could not hold an inline `<svg>` or a `<canvas>` either.\n`vf-list-item`'s `icon` slot makes the same trade.\n\nThe cost is that both files fetch even though one paints — pay it with two\ndata URIs, or slot only the size that view uses.\n\n### The cell is reserved, the art is registered in it\n\n`size` picks which slot paints *and* the cell it paints in: 32×32 or 16×16,\nheld whether or not there is art for it. A folder is 32×20 of ink and a\ndocument 25×32, and a row of them keeps one baseline only because the cell —\nnot the ink — is the unit, which is what an icon resource always was.\n\n### Everything centered lands on a whole pixel, by parity\n\nThe frame centers two things over one axis — the art cell and the name — and\na centered child sits at `(box − child) / 2`. That is a whole number exactly\nwhen the box and the child have the **same parity**. Half a system pixel is\nwhat fringes 1-bit art: the glyph stems smear across two device columns and\ngo gray, while the plate behind them stays sharp, because backgrounds are\npixel-snapped by the compositor and glyphs are not. A crisp plate under a\ngrey name is the signature of exactly this.\n\nSo the component makes the parities agree instead of correcting afterwards.\nThe cell is 32 or 16, and #measurePlate sizes the name plate to a\nwhole **even** number of system px — measured from the text, rounded up. Both\nchildren are then even, and so is every offset, at every display density and\nwhether or not a `width` is declared. Nothing is snapped, nothing leans on\nthe rasterizer, and `verify:icon` asserts both the geometry and that a field\nof names renders without a single gray pixel — with the kit's normal\nantialiasing left on, since a run on whole pixels gives it nothing to smooth.\n\nYour side of it is one rule: **a declared `width` must be even**, since the\ncomponent cannot round a number you chose. Supply art at the cell size too —\nwhich \"one image pixel is one system pixel\" already implies — because art\ndiffering from its cell by an odd number centers the same way.\n\n### Selection inverts, because the art is a 1-bit mask\n\nA System 7 icon is black ink and opaque white on a transparent surround —\nprecisely an image plus its mask — so inverting it flips ink and fill and\nleaves the surround alone, which is the whole of the classic selected\nappearance. `filter: invert(1)` reproduces it exactly for 1-bit art. Color\nart would invert into a photographic negative, which was never what\nSystem 7 showed: declare `color` and selection **darkens** the art\ninstead — Icon Utilities' ttSelected transform, every color blended\nhalfway toward black (`brightness(0.5)`), whites going gray, the\ntransparent surround still untouched. The declaration is the consumer's\nbecause the component cannot tell color art from a mask by looking at a\nslotted image. It covers whatever the cell shows, the derived open ghost\nincluded, so a color icon has one selected treatment open or closed. The\nlabel plate inverts to the `--vf-highlight` pair either way, sharing one\nselection color with `vf-list-item` — the selected name was inverted\nwhatever the art.\n\n### Open is derived, not shipped\n\nWith `open`, the art redraws as the Finder's open ghost: the outline held\nin solid black, the interior re-filled with the kit's loose 25% dither (the\nscrollbar trough's lattice), the transparent surround untouched. There is\nno second raster and no second fetch — the same alpha channel that makes\nselection an inversion makes the ghost derivable, and `src/open-art.ts`\nderives it from the slotted art by canvas compositing alone. No pixels are\never read back, so a cross-origin image that taints its canvas still works:\ntaint forbids reading, not drawing or displaying.\n\nThe ghost keeps the shape selection expects — ink and opaque white on a\ntransparent surround — so a selected open icon inverts exactly as a closed\none does, with no second treatment. The slot stays in the tree while the\nghost paints, hidden (it is where the art loads, and re-loads, from), and\nart the pipeline cannot draw — nothing slotted yet, a failed load, an\ninline `<svg>` — keeps rendering as itself rather than vanishing behind a\nstate it cannot show.\n\n### `movable`, not `draggable`\n\n`draggable` is a global HTML attribute *and* an `HTMLElement` accessor, so\ndeclaring it would both shadow a platform member and hand the element to the\nbrowser's own drag-and-drop machinery. This is the `align` trap from\n`vf-stack` in a second costume — `align`, `hidden`, `dir`, `draggable` and\n`title` all carry behavior a custom element never asked for. The kit already\nspells this parameter `movable` on `vf-window`, so the icon does too, and it\nmoves the same way: `DragController` tracks the gesture and\n`PlacementController` writes the result into `left`/`top` in whole system px,\nthe art's own unit — the same pair markup places an icon with, so a moved\nicon is still where it was dropped after a zoom.\n\nDragging is a pointer gesture with no keyboard equivalent, which is the kind\nof gap the kit closes rather than inherits (SPEC §1): a focused movable icon\nalso moves under the arrow keys, one system px at a time and eight with\nShift. Focus is what `selectable` grants, so the keyboard half of `movable`\nand `editable` presupposes it — see the role section below.\n\n### The drag is an outline; the icon stays put\n\nThe Finder dragged an icon as a dotted outline — the mask's boundary and\nthe name's rectangle — drawn over everything with the XOR pen, the icon\nitself staying put until the drop. The kit draws it from what it already\nhas: deriveDragOutline finds the ring the way the open ghost does\n(the silhouette from the art's alpha, eroded by one pixel, the ring the\nerosion removes), adds the plate's rectangle, and dotOutline dots\nit against a 2×2 checker — compositing only, so cross-origin art derives\ntoo, and art the pipeline cannot draw falls back to the cell's rectangle.\nThe canvas paints with the cursor's XOR recipe, `filter: invert(1)` under\n`mix-blend-mode: difference`: a dotted black line over a white window\nbody, and over the desktop dither the composition QuickDraw's pattern pen\ngave, because the checker's phase is taken from where the outline lands\non the *screen* — its dots share the dither's own phase wherever it goes.\n\nIt draws on the desktop's drag surface: a layer in the screen's shadow,\nover windows, palettes and the menu bar alike, clipped at the raster's\nedge like everything else, reached through the `vf-drag-surface-request`\nhandshake (bubbles, non-composed — it travels up the slots the icon is\nassigned to, so it works from inside a window body). With no desktop the\ncanvas lives in the icon's own frame instead, translated by the delta,\nclipped by whatever clips the icon; the gesture and its events are the\nsame either way. Its origin is a whole count of system px from the\nsurface's, written as a live `sysLength()`, so a scale change mid-gesture\ncannot smear it.\n\n### The drag reports, the page files\n\nThe kit ships no filing semantics — folders are the page's own catalog —\nso a drag is a stream of events and a cancelable commit, on the icon:\n\n- `vf-drag-start` `{ left, top }` on the first lattice step away from the\n  press (a plain click never starts one, and never fires a drop);\n- `vf-drag` `{ clientX, clientY, left, top, x, y }` on every step that\n  changed the snapped proposal;\n- `vf-drop`, the same shape at the release, **cancelable**: its default\n  action is the move, the proposal written through `left`/`top` and\n  clamped whole in the container measured at the press. `preventDefault()`\n  writes nothing — the page re-parents or places the icon itself, the\n  outline's origin converted with the destination's `placementAt`;\n- `vf-drag-cancel` `{}` on Escape or a `pointercancel`: nothing written.\n\n`left`/`top` in the detail are the *proposal*, unclamped — the origin plus\nthe lattice-snapped delta — and only the default action clamps, so a page\nthat cancels gets the raw gesture. `x`/`y` are the outline's top-left in\nviewport CSS px: the frame's box at the press translated by the delta,\nthe press offset already inside it, so an icon placed at the\ndestination's `placementAt(x, y)` lands exactly where the outline was.\n\n### The selection travels\n\nA drag that begins on a *selected* icon takes every other selected,\nmovable icon of its field with it — the Finder outlined the whole\nselection under a drag on any member. Each follower draws its own outline\n(followDrag), moved by the same lattice delta as the leader's, and\nthe leader's events carry the set as `detail.icons`, itself first. The\ndefault action of the drop clamps the delta once for the whole group —\nthe arrangement is kept, and the group stops when its outermost member\nmeets the container's edge — then writes each member's origin plus that\ndelta. A cancel takes every outline down and writes nothing. A press on\nan unselected icon makes it the selection first (the outside listeners\nclear the others), so it drags alone; a Shift press that deselects the\npressed icon drags it alone too, the rest staying where they are.\n\nFor the selection to travel, a plain press on one of its members must not\ncollapse it: the other icons' outside-press listeners leave a selection\nalone when the press landed on an icon already selected in the same\nfield. A *click* on such an icon — released with no drag — collapses the\nselection to it on the release, so a click still single-selects and the\nsame press could have dragged them all.\n\nEscape is heard by a document listener scoped to the gesture rather than\nby the icon's own key handler, because a `movable`-only icon never takes\nfocus — an addition in the kit's idiom (a pointer-only gesture with no way\nout is the kind of gap SPEC §1 closes), not a claim about the Finder.\n\n`target` is the destination highlight the page sets on the folder under a\ndrag: the selected treatment of the art alone — inverted, or darkened\nunder `color` — with none of `selected`'s semantics: no event, no outside\nlistener, no `aria-selected`, the plate untouched.\n\nOpening gets the same treatment. The double-click is the pointer gesture,\nand its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl\nstanding in for ⌘ off the Mac. Return is deliberately not one of them: the\nFinder's Return renamed, never opened, so on an editable icon it starts the\nedit and on a non-editable one it does nothing at all.\n\n### The name and the art are one target, and the second click decides\n\nA double-click opens the icon *wherever it lands* — the name is as much the\nicon as the picture is, and the Finder never made you aim at the 32 pixels of\nart. But the name is also where a single click renames, so the two gestures\nbegin with the same press and only the second one tells them apart.\n\nSo the rename waits for it. A press on the plate of an already-selected icon\narms the field rather than opening it, and the next press inside\nRENAME_DELAY_MS calls it off — leaving the double-click to open, with\nno rename box flashing up behind it. Nothing needs to *undo* an edit that\nbegan: the press that starts one and the press that opens are the same\npress, so the only thing that can be got right is not committing early.\n\nThe window is generous in the one direction that is cheap. Reading a lone\nclick as a pair costs a wait before the box appears; reading a pair as a lone\nclick renames when the user asked to open. The same reasoning covers a press\nthat turns into a drag, a press elsewhere, and any key — each calls the\npending rename off, because none of them is the click it is waiting for.\n\n### An icon alone is a picture; an icon in a field is an option\n\n`role=\"option\"` is only meaningful inside a `listbox` that owns it. Written\nunconditionally it is not merely untidy — the browser *drops* it, and\n`aria-selected` with it, so a `selectable` icon announced as a bare generic\nand its selection state reached assistive tech nowhere at all.\n\nSo the role follows the container. Owned, the icon is an `option` that names\nitself from its plate and publishes `aria-selected`. Unowned, it degrades to\n`role=\"img\"` with a name — the same vocabulary the derived open ghost uses,\nand true of what it is. Deliberately not `button`: that would promise Enter\nand Space activate, and here Return *renames* while the open route is ⌘O / ⌘↓.\n\nThe owner is `vf-icon-field`, the container a field of icons sits in, and\nit is what buys the selection state back:\n\n```html\n<vf-icon-field label=\"Desktop\">\n  <vf-icon label=\"Macintosh HD\" selectable movable editable>…</vf-icon>\n  <vf-icon label=\"Trash\" selectable movable editable>…</vf-icon>\n</vf-icon-field>\n```\n\nA `vf-desktop` cannot be that container itself: it also holds windows and a\nmenu bar, and a non-`option` child of a listbox is invalid the same way the\norphaned option was. The field is layout-neutral — placed icons anchor to\nthe nearest *positioned* ancestor, which is still the desktop's raster. An\nelement of your own carrying `role=\"listbox\"` still owns an icon the same\nway. One divergence from the APG listbox is deliberate: its options share\na single roving tab stop, while these stay one stop each, the way a Finder\nicon is reached on its own.\n\n**`selectable` is what makes an icon focusable**, and `movable`/`editable`\npresuppose it. That is the Finder's own model — you cannot move or rename\nwhat you have not selected — and the pointer path already assumed it: the\nrename opens on a press on the plate of an *already-selected* icon. A\n`movable`-only icon is a picture you can drag, not a widget.\n\n### The label is a property, because it is editable\n\nThe caption is `label` rather than slotted content: renaming means the\ncomponent owns the string and hands it back on `vf-change`, and it cannot own\ntext that lives in the consumer's DOM. An empty `label` draws no plate at\nall — that *is* the \"no label\" parameter, in preference to a second attribute\nthat could disagree with it. `editable` then lets a click on the plate of an\nalready-selected icon open the rename box a moment later, as the Finder's\ndoes (see above), with Return committing, Escape reverting, and the plate\nwidening as you type.\n\n### A name is never abbreviated, and never folded\n\nThere is no ellipsis, no clipping and no wrapping: one line, always. System 7\nsolved the long-name problem at the *other* end — HFS capped a filename at 31\ncharacters — so the Finder could afford to always draw the name in full, and\ndid. A name wider than its cell simply overflows it, centered, the way a name\nwider than a 32-pixel icon always did.\n\nStaying on one line is also what keeps the name on the grid: a single run has\na single measured width, so the even-plate rule above is one number rather\nthan one per line, each with its own parity. `width` is therefore the cell —\nthe grid pitch — not a bound on the name.\n\n`maxlength` (31) bounds the rename field rather than the `label` property:\nthe name belongs to the consumer's model, and truncating one handed to us\nwould lose data.\n\nThe box hugs its text while you type it, not only once you are done, which is\nwhat keeps the name from moving when the edit commits: the plate is the same\nwidth either side of it, so the glyphs stay exactly where they were.\n\nA file also has to be called *something*, so a rename committed empty — or\nas nothing but spaces — is refused rather than applied, and the previous name\ncomes back, which is what System 7 did. An empty `label` is still a perfectly\ngood state to *start* in, though: a freshly made icon has no name until it is\ngiven one. Such an icon draws no plate but stays selectable, focusable and\nrenameable — Return opens a field, and an edit with nothing in it yet is the\none time the box stops hugging and reserves a cell's width, since a field you\ncannot see is one you cannot type into.",
           "name": "VfIcon",
           "cssProperties": [
             {
@@ -4972,6 +5165,26 @@
             },
             {
               "kind": "field",
+              "name": "#field",
+              "privacy": "private",
+              "type": {
+                "text": "Element | null"
+              },
+              "description": "The field this icon is one item of — its selection's boundary — or null.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#collapseOnRelease",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "A plain press landed on this icon while it was already selected in a\nfield, and no drag has begun: the selection was kept for the drag's\nsake, and the release with no drag collapses it to this icon (see\n#onOutsidePointerDown)."
+            },
+            {
+              "kind": "field",
               "name": "#ghostKey",
               "privacy": "private",
               "type": {
@@ -5047,7 +5260,7 @@
               "name": "#drag",
               "privacy": "private",
               "readonly": true,
-              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null this.#warnIfUnplaced() const origin = this.#placement.seed() this.#gesture = { origin, frame: this.#frameRect(), pointer: { clientX: event.clientX, clientY: event.clientY }, proposal: null, outline: null, } return origin }, onDrag: (x: number, y: number, event: PointerEvent): void => { this.#onDragStep(x, y, event) }, onDragEnd: (event: PointerEvent | undefined, cancelled: boolean): void => { this.#onDragEnd(event, cancelled) }, })",
+              "default": "new DragController(this, { onDragStart: (event: PointerEvent): { x: number; y: number } | null => { if (!this.movable || event.button !== 0 || this._editing) return null this.#warnIfUnplaced() const origin = this.#placement.seed() this.#gesture = { origin, frame: this.#frameRect(), pointer: { clientX: event.clientX, clientY: event.clientY }, proposal: null, outline: null, followers: [], size: this.#sysSize(), } return origin }, onDrag: (x: number, y: number, event: PointerEvent): void => { this.#onDragStep(x, y, event) }, onDragEnd: (event: PointerEvent | undefined, cancelled: boolean): void => { this.#onDragEnd(event, cancelled) }, })",
               "description": "Drag-to-move, on the same delegate shape as `vf-window`: the placement\ncontroller seeds the origin — from the in-flow offset the first time —\nand the drag controller hands back each step snapped onto the lattice.\nWhat the icon does with a step is #onDragStep; the release is\n#onDragEnd, where the drop is reported and, uncancelled, written."
             },
             {
@@ -5073,6 +5286,73 @@
                 }
               },
               "description": "The frame's viewport box — what the outline is a translation of."
+            },
+            {
+              "kind": "method",
+              "name": "#sysSize",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ width: number; height: number }"
+                }
+              },
+              "description": "The icon's own box in system px, for the clamp."
+            },
+            {
+              "kind": "method",
+              "name": "followDrag",
+              "return": {
+                "type": {
+                  "text": "VfIconDragFollower | null"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "surface",
+                  "type": {
+                    "text": "HTMLElement | null"
+                  }
+                }
+              ],
+              "description": "Join another icon's drag as a follower (see the class doc): seed the\norigin the drop will add the delta to, draw this icon's own outline on\n`surface` (the desktop's, as the leader's handshake found it) or in its\nown frame, and hand back the handle the leader moves, drops and ends.\nNull when this icon cannot move. Internal to the kit's group drag."
+            },
+            {
+              "kind": "method",
+              "name": "#gatherFollowers",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "VfIconDragFollower[]"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "surface",
+                  "type": {
+                    "text": "HTMLElement | null"
+                  }
+                }
+              ],
+              "description": "The icons a drag beginning here carries: this one, then — when it is\nitself selected — every other selected, movable icon of its field, in\ndocument order, each joined as a follower. An icon outside any field,\nor not selected, drags alone."
+            },
+            {
+              "kind": "method",
+              "name": "#dragIcons",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "VfIcon[]"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "gesture",
+                  "type": {
+                    "text": "DragGesture"
+                  }
+                }
+              ],
+              "description": "The set a drag's events report: the leader first."
             },
             {
               "kind": "method",
@@ -5128,30 +5408,11 @@
                   }
                 }
               ],
-              "description": "The release, or a cancel. A gesture that never started (a click) reports\nnothing. A cancel — Escape, `pointercancel` — drops the outline and says\nso; nothing was written. A release reports the drop, and the default\naction of an uncancelled `vf-drop` is the move itself. Dispatched with\nthe outline gone, the drag state cleared and the pointer capture\nreleased, so a handler may re-parent the icon freely."
+              "description": "The release, or a cancel. A gesture that never started (a click) reports\nnothing. A cancel — Escape, `pointercancel` — drops every outline and\nsays so; nothing was written. A release reports the drop, and the\ndefault action of an uncancelled `vf-drop` is the move itself, the whole\ngroup by one delta. Dispatched with the outlines gone, the drag state\ncleared and the pointer capture released, so a handler may re-parent\nthe icons freely."
             },
             {
               "kind": "method",
-              "name": "#showOutline",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "DragOutline | null"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "gesture",
-                  "type": {
-                    "text": "DragGesture"
-                  }
-                }
-              ],
-              "description": "Build the outline for a drag that just started, and put it where it\ndraws: the desktop's drag surface when one answers the handshake, else\nthe icon's own frame. The geometry is measured off the rendered parts\n— the frame, the art as it paints (the ghost while `open`), the cell and\nthe plate — in system px relative to the frame, so the ring lands on\nthe pixels the frame paints. Null when there is nothing to draw with."
-            },
-            {
-              "kind": "method",
-              "name": "#placeOutline",
+              "name": "#dropGroup",
               "privacy": "private",
               "return": {
                 "type": {
@@ -5164,9 +5425,82 @@
                   "type": {
                     "text": "DragGesture"
                   }
+                },
+                {
+                  "name": "detail",
+                  "type": {
+                    "text": "VfIconDragDetail"
+                  }
                 }
               ],
-              "description": "Move the outline to the proposal: the frame's offset plus the delta, a\nwhole count of system px from the surface's origin, and re-dot it at\nthe parity that lands on the screen — `x + y` even where the desktop\ndither is inked, so the two share one phase wherever the outline goes."
+              "description": "The drop's default action. Alone, the proposal clamped whole by\n#keepWhole. As a group, one delta for all: clamped so that the\nmember nearest each edge stays whole — the group stops when its\noutermost icon meets the container, and the arrangement is kept — then\neach member's origin plus that delta. A group no edge can hold (a member\nwider than the container) is held off the near edge only, the\nsingle-icon rule."
+            },
+            {
+              "kind": "method",
+              "name": "#requestSurface",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "HTMLElement | null"
+                }
+              },
+              "description": "The handshake: a desktop on the light-DOM path hands over its drag\nsurface; null with no desktop, and the outline draws in the frame."
+            },
+            {
+              "kind": "method",
+              "name": "#buildOutline",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "DragOutline | null"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "at",
+                  "type": {
+                    "text": "DOMRect"
+                  }
+                },
+                {
+                  "name": "surface",
+                  "type": {
+                    "text": "HTMLElement | null"
+                  }
+                }
+              ],
+              "description": "Build this icon's outline for a drag, and put it where it draws: the\ndesktop's drag surface when the leader's handshake found one, else the\nicon's own frame. The geometry is measured off the rendered parts —\nthe frame (`at`, its box at the press), the art as it paints (the ghost\nwhile `open`), the cell and the plate — in system px relative to the\nframe, so the ring lands on the pixels the frame paints. Null when\nthere is nothing to draw with."
+            },
+            {
+              "kind": "method",
+              "name": "#placeOutlineAt",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "outline",
+                  "type": {
+                    "text": "DragOutline"
+                  }
+                },
+                {
+                  "name": "dx",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "dy",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Move an outline by the drag's delta: the frame's offset plus the delta,\na whole count of system px from the surface's origin, re-dotted at the\nparity that lands on the screen — `x + y` even where the desktop dither\nis inked, so the two share one phase wherever the outline goes."
             },
             {
               "kind": "method",
@@ -5373,6 +5707,42 @@
               ]
             },
             {
+              "kind": "method",
+              "name": "setSelected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "next",
+                  "type": {
+                    "text": "boolean"
+                  }
+                }
+              ],
+              "description": "Select or deselect as a press would: the state changes and `vf-select`\nreports it. A `selected` write from code is silent, the way a value set\nfires no `vf-change`; this is the route for a gesture a container runs\non the icon's behalf — `vf-icon-field`'s rubber band. A no-op when the\nstate already matches."
+            },
+            {
+              "kind": "method",
+              "name": "touches",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "box",
+                  "type": {
+                    "text": "{ left: number; top: number; right: number; bottom: number }"
+                  }
+                }
+              ],
+              "description": "Whether a viewport box (CSS px) touches the icon the way the Finder's\nselection rectangle asked: its art cell or its name plate. The empty\ncell around narrower art and the frame's margin beside the plate count\nfor nothing — a rectangle dragged through the gap between two icons\nselects neither. `vf-icon-field`'s rubber band reads it."
+            },
+            {
               "kind": "field",
               "name": "#onPointerDown",
               "privacy": "private"
@@ -5382,6 +5752,12 @@
               "name": "#onDoubleClick",
               "privacy": "private",
               "description": "The whole icon opens, name included: the handler is bound to the frame, and\nthe press path is what keeps the plate from having spent the gesture on a\nrename before the second click gets here.\n\nStill guarded on the field: a double-click inside an open rename box is a\nword being selected, not an icon being opened."
+            },
+            {
+              "kind": "field",
+              "name": "#onPointerUp",
+              "privacy": "private",
+              "description": "The release of a press on this icon. The drag controller hears it first\n(a started drag ends there); then a press that was kept from collapsing\nthe selection — a plain press on an already-selected member of a field —\ncollapses it now, if no drag ever began: a click on one of several\nselected icons selects that one alone, on the release rather than the\npress, so the same press could have dragged them all. A cancel collapses\nnothing."
             },
             {
               "kind": "field",
@@ -5491,15 +5867,15 @@
               "name": "vf-name-rejected"
             },
             {
-              "description": "A drag began: the first lattice step away from the press. `detail: { left, top }` — the origin, whole system px in the icon's container.",
+              "description": "A drag began: the first lattice step away from the press. `detail: { left, top, icons }` — the origin, whole system px in the icon's container, and every icon the drag carries (this one first).",
               "name": "vf-drag-start"
             },
             {
-              "description": "A step that changed the proposal. `detail: { clientX, clientY, left, top, x, y }` — the pointer in viewport CSS px, the proposed origin in the container (whole system px on the lattice), and the outline's top-left in viewport CSS px.",
+              "description": "A step that changed the proposal. `detail: { clientX, clientY, left, top, x, y, icons }` — the pointer in viewport CSS px, the proposed origin in the container (whole system px on the lattice), the outline's top-left in viewport CSS px, and the icons travelling.",
               "name": "vf-drag"
             },
             {
-              "description": "The release; cancelable. The same detail as `vf-drag`. Its default action writes the proposal through `left`/`top`, clamped whole in the container; `preventDefault()` writes nothing.",
+              "description": "The release; cancelable. The same detail as `vf-drag`. Its default action writes the proposal through `left`/`top` — every icon in `icons` by the same delta, clamped whole in the container as a group; `preventDefault()` writes nothing.",
               "name": "vf-drop"
             },
             {
@@ -22083,6 +22459,15 @@
                 "text": "boolean"
               },
               "description": "Whether a gesture has placed this host (as opposed to markup or CSS).",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "bounds",
+              "type": {
+                "text": "PlacementBounds"
+              },
+              "description": "The box the gesture is clamped into, in system px: the one seed\nmeasured, or a fresh measurement before any gesture. A group drag reads\nit to clamp a whole selection's delta at once.",
               "readonly": true
             },
             {

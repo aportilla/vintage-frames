@@ -41,6 +41,24 @@
  *    over the dither its dots invert the dither's own ink; past the raster's
  *    edge nothing paints; a cancel removes the canvas; with no desktop the
  *    canvas lives in the icon's shadow and the drop still lands.
+ *  - BAND: the rubber band on a filled field — a press on the bare field
+ *    with no travel draws nothing and clears the selection as any outside
+ *    press does; a drag draws the dotted rectangle from the press to the
+ *    pointer, fixed against the viewport in the field's own shadow, and
+ *    selects the icons it crosses live, each reporting vf-select, deselecting
+ *    one it leaves again; Shift keeps the existing selection and adds; Escape
+ *    and pointercancel put the selection back and drop the rectangle; the
+ *    rectangle reaches no further than the field inside its clips; a press
+ *    on an icon is the icon's drag, not a band; the band's top edge over a
+ *    white window body is a dotted line; an unfilled field draws none.
+ *  - GROUP: the selection travels — a drag beginning on a selected icon
+ *    carries every other selected, movable icon of its field: one outline
+ *    each on the surface, `icons` in every event with the leader first, the
+ *    drop moving each by one delta clamped for the group as a whole, a
+ *    cancel or a cancelled drop writing nothing for any of them, a handler
+ *    filing the whole set; an unselected icon drags alone, a Shift press
+ *    that deselects the pressed icon drags it alone, a selected icon in
+ *    another field stays, and a selected icon that cannot move stays.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:icon-drag
@@ -78,10 +96,13 @@ const record = (page) =>
     globalThis.__log = []
     for (const type of ['vf-drag-start', 'vf-drag', 'vf-drop', 'vf-drag-cancel']) {
       document.addEventListener(type, (e) => {
+        // The detail's `icons` are elements; keep their ids for the record.
+        const { icons, ...rest } = e.detail ?? {}
         globalThis.__log.push({
           type,
           id: e.target.id,
-          detail: e.detail,
+          detail: rest,
+          icons: icons?.map((i) => i.id),
           cancelable: e.cancelable,
           bubbles: e.bubbles,
           composed: e.composed,
@@ -1012,6 +1033,594 @@ for (const dpr of [2, 3]) {
     'OUTLINE  …and the drop still lands',
     after.left === 20 + 50 / before.scale && after.top === 20 + 30 / before.scale && !left,
     `${after.left},${after.top}; canvas left: ${left}`
+  )
+  await page.close()
+}
+
+// ── BAND ────────────────────────────────────────────────────────────────────
+// The rubber band: a press on a field's own background dragged across it.
+// The field fills the desktop's screen, so a press on the bare dither is a
+// press on the field.
+const BAND_DESK = `
+  <vf-desktop id="desk" width="512" height="342">
+    <vf-icon-field id="field" label="Desktop" fill-width fill-height>
+      ${icon('id="a" width="64" selectable movable left="20" top="20"', 'A')}
+      ${icon('id="b" width="64" selectable movable left="120" top="20"', 'B')}
+      ${icon('id="c" width="64" selectable movable left="20" top="200"', 'C')}
+    </vf-icon-field>
+    <vf-window id="win" heading="Docs" width="200" height="120" left="280" top="160"></vf-window>
+  </vf-desktop>`
+
+/** The band's canvas in a field's shadow, and who is selected. */
+const band = (page, fieldId = 'field') =>
+  page.evaluate((f) => {
+    const field = document.getElementById(f)
+    const c = field.shadowRoot.querySelector('canvas.selection-rect')
+    const r = c?.getBoundingClientRect()
+    const cs = c ? getComputedStyle(c) : null
+    return {
+      has: !!c,
+      canvas: r ? { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom } : null,
+      position: cs?.position,
+      blend: cs?.mixBlendMode,
+      pointer: cs?.pointerEvents,
+      selected: Object.fromEntries(
+        [...document.querySelectorAll('vf-icon')].map((i) => [i.id, i.selected])
+      ),
+    }
+  }, fieldId)
+
+/** Record vf-select on the document as {id, selected}. */
+const recordSelects = (page) =>
+  page.evaluate(() => {
+    globalThis.__selects = []
+    document.addEventListener('vf-select', (e) =>
+      globalThis.__selects.push({ id: e.target.id, selected: e.detail.selected })
+    )
+  })
+const selects = (page) => page.evaluate(() => globalThis.__selects)
+const clearSelects = (page) => page.evaluate(() => void (globalThis.__selects = []))
+
+{
+  const page = await build(BAND_DESK, { settle: true })
+  await recordSelects(page)
+  const geo = await page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    const screen = desk.shadowRoot.querySelector('.screen').getBoundingClientRect()
+    const field = document.getElementById('field')
+    const f = field.getBoundingClientRect()
+    const a = document.getElementById('a').getBoundingClientRect()
+    return {
+      screen: { x: screen.x, y: screen.y, w: screen.width, h: screen.height, right: screen.right, bottom: screen.bottom },
+      field: { x: f.x, y: f.y, w: f.width, h: f.height },
+      position: getComputedStyle(field).position,
+      aFromScreen: [a.x - screen.x, a.y - screen.y],
+      scale: parseFloat(getComputedStyle(field).getPropertyValue('--vf-scale')),
+    }
+  })
+  const S = geo.screen
+  const scale = geo.scale
+  check(
+    "BAND  a filled field is the screen's box, static, its icons still anchored to the raster",
+    near(geo.field.x, S.x) && near(geo.field.y, S.y) && near(geo.field.w, S.w) && near(geo.field.h, S.h) &&
+      geo.position === 'static' && near(geo.aFromScreen[0], 20 * scale) && near(geo.aFromScreen[1], 20 * scale),
+    JSON.stringify(geo)
+  )
+
+  // A stationary press on the bare field: no band, and the press clears the
+  // selection the way any press outside an icon does.
+  await page.locator('#a').click()
+  check('BAND  a click selected A first', (await band(page)).selected.a === true)
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  const pressed = await band(page)
+  await page.mouse.up()
+  check(
+    'BAND  a stationary press on the bare field draws nothing and clears the selection',
+    !pressed.has && pressed.selected.a === false && !(await band(page)).has,
+    JSON.stringify(pressed)
+  )
+
+  // The band: from (10,10) to (200,80) on the screen crosses A and B, not C.
+  await clearSelects(page)
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 200, S.y + 80, { steps: 4 })
+  const mid = await band(page)
+  check(
+    'BAND  a drag draws the rectangle from the press to the pointer, fixed in the field’s shadow',
+    mid.has &&
+      mid.position === 'fixed' &&
+      mid.blend === 'difference' &&
+      mid.pointer === 'none' &&
+      near(mid.canvas.x, S.x + 10) &&
+      near(mid.canvas.y, S.y + 10) &&
+      near(mid.canvas.w, 190) &&
+      near(mid.canvas.h, 70),
+    JSON.stringify({ position: mid.position, canvas: mid.canvas })
+  )
+  check(
+    'BAND  …and selects the icons it crosses, live',
+    mid.selected.a === true && mid.selected.b === true && mid.selected.c === false,
+    JSON.stringify(mid.selected)
+  )
+  const first = await selects(page)
+  check(
+    'BAND  each selection reports vf-select on the icon',
+    first.some((e) => e.id === 'a' && e.selected) && first.some((e) => e.id === 'b' && e.selected),
+    JSON.stringify(first)
+  )
+  // Shrinking it back off B deselects B.
+  await page.mouse.move(S.x + 100, S.y + 80, { steps: 3 })
+  const shrunk = await band(page)
+  check(
+    'BAND  an icon the rectangle leaves again deselects, and says so',
+    shrunk.selected.a === true &&
+      shrunk.selected.b === false &&
+      near(shrunk.canvas.w, 90) &&
+      (await selects(page)).some((e) => e.id === 'b' && e.selected === false),
+    JSON.stringify(shrunk.selected)
+  )
+  await page.mouse.up()
+  const released = await band(page)
+  check(
+    'BAND  the release keeps the selection and drops the rectangle',
+    !released.has && released.selected.a === true && released.selected.b === false,
+    JSON.stringify(released)
+  )
+
+  // The rectangle counts an icon it TOUCHES — the art cell or the plate —
+  // not the empty cell beside them: A's art sits 16px in from its 64px cell,
+  // so a band through the cell's left margin selects nothing, and one that
+  // reaches the art does.
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 30, S.y + 80, { steps: 3 })
+  const margin = await band(page)
+  await page.mouse.move(S.x + 40, S.y + 80, { steps: 2 })
+  const art = await band(page)
+  await page.mouse.up()
+  check(
+    "BAND  the rectangle counts an icon it touches — the art or the plate, not the cell's empty margin",
+    margin.has && margin.selected.a === false && art.selected.a === true,
+    `margin ${JSON.stringify(margin.selected)}, art ${JSON.stringify(art.selected)}`
+  )
+
+  // Shift: the selection survives the press and the rectangle TOGGLES against
+  // it. C by click first (which clears A); a Shift-band over A adds A.
+  await page.locator('#c').click()
+  await page.keyboard.down('Shift')
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 100, S.y + 80, { steps: 3 })
+  await page.mouse.up()
+  await page.keyboard.up('Shift')
+  const shifted = await band(page)
+  check(
+    'BAND  with Shift the existing selection survives the press and the band adds what it touches',
+    shifted.selected.a === true && shifted.selected.c === true && shifted.selected.b === false,
+    JSON.stringify(shifted.selected)
+  )
+  // …and a Shift-band over an already-selected icon deselects it while it
+  // covers it, gives it back when it leaves, and the release keeps the last
+  // state. A and C are selected; B is not.
+  await page.keyboard.down('Shift')
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 200, S.y + 80, { steps: 3 }) // over A and B
+  const covered = await band(page)
+  await page.mouse.move(S.x + 200, S.y + 5, { steps: 2 }) // off both again, a sliver
+  const uncovered = await band(page)
+  await page.mouse.move(S.x + 200, S.y + 80, { steps: 2 }) // back over A and B
+  await page.mouse.up()
+  await page.keyboard.up('Shift')
+  const toggled = await band(page)
+  check(
+    'BAND  a Shift-band toggles: a selected icon it covers deselects, an unselected one selects',
+    covered.selected.a === false && covered.selected.b === true && covered.selected.c === true,
+    JSON.stringify(covered.selected)
+  )
+  check(
+    'BAND  …the toggle is live: leaving the icon gives its anchor state back',
+    uncovered.selected.a === true && uncovered.selected.b === false && uncovered.selected.c === true,
+    JSON.stringify(uncovered.selected)
+  )
+  check(
+    'BAND  …and the release keeps the toggled result',
+    !toggled.has && toggled.selected.a === false && toggled.selected.b === true && toggled.selected.c === true,
+    JSON.stringify(toggled.selected)
+  )
+
+  // Escape mid-band: the selection goes back to the anchor (here: nothing,
+  // the plain press having cleared B and C), the rectangle goes.
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 100, S.y + 80, { steps: 3 })
+  const before = await band(page)
+  await page.keyboard.press('Escape')
+  const escaped = await band(page)
+  await page.mouse.up()
+  const afterUp = await band(page)
+  check(
+    'BAND  Escape mid-band puts the anchor back and drops the rectangle',
+    before.selected.a === true &&
+      !escaped.has &&
+      escaped.selected.a === false &&
+      !afterUp.has &&
+      afterUp.selected.a === false,
+    JSON.stringify({ before: before.selected, escaped: escaped.selected })
+  )
+  // …and with Shift held, back to the anchor the press kept — a covered,
+  // toggled-off icon included.
+  await page.locator('#c').click()
+  await page.keyboard.down('Shift')
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 100, S.y + 230, { steps: 3 }) // over A and C
+  await page.keyboard.up('Shift')
+  const mid2 = await band(page)
+  await page.evaluate(() =>
+    document
+      .getElementById('field')
+      .dispatchEvent(new PointerEvent('pointercancel', { pointerId: 1, bubbles: true, composed: true }))
+  )
+  const cancelled = await band(page)
+  await page.mouse.up()
+  check(
+    'BAND  pointercancel puts the anchor back — a toggled-off icon comes back selected',
+    mid2.selected.a === true &&
+      mid2.selected.c === false &&
+      !cancelled.has &&
+      cancelled.selected.c === true &&
+      cancelled.selected.a === false,
+    JSON.stringify({ mid: mid2.selected, cancelled: cancelled.selected })
+  )
+
+  // The band reaches no further than the field: dragged far past every
+  // edge, it stops at the screen.
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x - 500, S.y - 500, { steps: 3 })
+  const upLeft = await band(page)
+  await page.mouse.move(S.x + 5000, S.y + 5000, { steps: 3 })
+  const downRight = await band(page)
+  await page.mouse.up()
+  check(
+    "BAND  the rectangle reaches no further than the field's box",
+    near(upLeft.canvas.x, S.x) &&
+      near(upLeft.canvas.y, S.y) &&
+      near(upLeft.canvas.w, 10) &&
+      near(upLeft.canvas.h, 10) &&
+      near(downRight.canvas.right, S.right) &&
+      near(downRight.canvas.bottom, S.bottom),
+    JSON.stringify({ upLeft: upLeft.canvas, downRight: downRight.canvas })
+  )
+
+  // A press on an icon is the icon's own drag, never a band — and the band
+  // just selected all three, so the drag carries the whole selection: three
+  // outlines on the surface, no rectangle in the field.
+  const a = await state(page, 'a')
+  await page.mouse.move(a.x + 10, a.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(a.x + 60, a.y + 40, { steps: 3 })
+  const onIcon = await page.evaluate(() => ({
+    band: !!document.getElementById('field').shadowRoot.querySelector('canvas.selection-rect'),
+    outline: document.getElementById('desk').shadowRoot.querySelectorAll('.drag-surface canvas').length,
+  }))
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  check(
+    "BAND  a press on an icon is the icon's drag, not a band — carrying the selection the band made",
+    !onIcon.band && onIcon.outline === 3,
+    JSON.stringify(onIcon)
+  )
+  await page.close()
+}
+
+{
+  // Inside a window: the field is placed larger than the body, and the band
+  // is held inside the body's clip; over the white body its top edge is a
+  // dotted line.
+  const page = await build(
+    `<vf-desktop id="desk" width="512" height="342">
+       <vf-window id="win" heading="Docs" width="240" height="150" left="20" top="20">
+         <vf-icon-field id="wf" label="Docs" top="0" left="0" width="400" height="300">
+           ${icon('id="d" width="64" selectable movable left="10" top="10"', 'D')}
+         </vf-icon-field>
+       </vf-window>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  const body = await page.evaluate(() => {
+    const r = document.getElementById('win').shadowRoot.querySelector('.body').getBoundingClientRect()
+    return { x: r.x, y: r.y, right: r.right, bottom: r.bottom }
+  })
+  await page.mouse.move(body.x + 100, body.y + 60)
+  await page.mouse.down()
+  await page.mouse.move(body.x + 180, body.y + 110, { steps: 3 })
+  const inWin = await band(page, 'wf')
+  const png = decodePng(await page.screenshot())
+  const y = Math.round(body.y + 60)
+  let row = ''
+  for (let i = 0; i < 12; i++) {
+    const x = Math.round(body.x + 100) + i
+    row += isBlack(png, x, y) ? 'B' : isWhite(png, x, y) ? 'W' : '.'
+  }
+  check(
+    'BAND  over a white window body the band’s edge is a dotted black line',
+    inWin.has && (row === 'BWBWBWBWBWBW' || row === 'WBWBWBWBWBWB'),
+    row
+  )
+  await page.mouse.move(body.x + 2000, body.y + 2000, { steps: 3 })
+  const clipped = await band(page, 'wf')
+  await page.mouse.up()
+  check(
+    "BAND  in a window the band is held inside the body's clip, not the field's larger box",
+    near(clipped.canvas.right, body.right) && near(clipped.canvas.bottom, body.bottom),
+    JSON.stringify({ canvas: clipped.canvas, body })
+  )
+  await page.close()
+}
+
+{
+  // An unfilled, unplaced field has no box: a press on the desktop there is
+  // the desktop's, and no band ever draws.
+  const page = await build(
+    `<vf-desktop id="desk" width="512" height="342">
+       <vf-icon-field id="bare" label="Desktop">
+         ${icon('id="e" width="64" selectable movable left="20" top="20"', 'E')}
+       </vf-icon-field>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  const S = await page.evaluate(() => {
+    const r = document.getElementById('desk').shadowRoot.querySelector('.screen').getBoundingClientRect()
+    return { x: r.x, y: r.y }
+  })
+  await page.mouse.move(S.x + 200, S.y + 200)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 10, S.y + 10, { steps: 3 })
+  const none = await band(page, 'bare')
+  await page.mouse.up()
+  check(
+    'BAND  an unfilled field of placed icons has no surface, so no band',
+    !none.has && none.selected.e === false,
+    JSON.stringify(none)
+  )
+  await page.close()
+}
+
+// ── GROUP ───────────────────────────────────────────────────────────────────
+// The selection travels. A, B and C are movable; D is selectable but cannot
+// move; `other` is a second field.
+{
+  const page = await build(
+    `<vf-desktop id="desk" width="512" height="342">
+       <vf-icon-field id="field" label="Desktop" fill-width fill-height>
+         ${icon('id="a" width="64" selectable movable left="20" top="20"', 'A')}
+         ${icon('id="b" width="64" selectable movable left="120" top="20"', 'B')}
+         ${icon('id="c" width="64" selectable movable left="20" top="200"', 'C')}
+         ${icon('id="d" width="64" selectable left="220" top="20"', 'D')}
+       </vf-icon-field>
+       <vf-icon-field id="other" label="Other"></vf-icon-field>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  await record(page)
+  const S = await page.evaluate(() => {
+    const r = document.getElementById('desk').shadowRoot.querySelector('.screen').getBoundingClientRect()
+    return { x: r.x, y: r.y, right: r.right }
+  })
+  const where = () =>
+    page.evaluate(() =>
+      Object.fromEntries(
+        [...document.querySelectorAll('vf-icon')].map((i) => [
+          i.id,
+          { left: i.left, top: i.top, selected: i.selected, field: i.parentElement.id },
+        ])
+      )
+    )
+  const outlines = () =>
+    page.evaluate(() =>
+      [...document.getElementById('desk').shadowRoot.querySelectorAll('.drag-surface canvas')].map(
+        (c) => {
+          const r = c.getBoundingClientRect()
+          return { x: r.x, y: r.y, w: r.width, h: r.height }
+        }
+      )
+    )
+  const iconsOf = async (type) => (await log(page)).find((e) => e.type === type)?.icons
+
+  // Select A, B and D (Shift adds), then drag A by (30, 40) and hold.
+  await page.locator('#a').click()
+  await page.locator('#b').click({ modifiers: ['Shift'] })
+  await page.locator('#d').click({ modifiers: ['Shift'] })
+  const start = await where()
+  const aRect = await state(page, 'a')
+  const bRect = await state(page, 'b')
+  await clearLog(page)
+  await pressAndMove(page, 'a', 30, 40)
+  const mid = await outlines()
+  check(
+    'GROUP  a drag on a selected icon outlines every selected movable icon of its field',
+    mid.length === 2 &&
+      mid.some((o) => near(o.x, aRect.x + 30) && near(o.y, aRect.y + 40)) &&
+      mid.some((o) => near(o.x, bRect.x + 30) && near(o.y, bRect.y + 40)),
+    JSON.stringify(mid)
+  )
+  check(
+    'GROUP  vf-drag-start and vf-drag carry the set, the leader first, the immovable one left out',
+    JSON.stringify(await iconsOf('vf-drag-start')) === '["a","b"]' &&
+      JSON.stringify(await iconsOf('vf-drag')) === '["a","b"]',
+    `${await iconsOf('vf-drag-start')} / ${await iconsOf('vf-drag')}`
+  )
+  await page.mouse.up()
+  const dropped = await where()
+  check(
+    'GROUP  the drop moves each member by the same delta and nothing else',
+    dropped.a.left === start.a.left + 30 &&
+      dropped.a.top === start.a.top + 40 &&
+      dropped.b.left === start.b.left + 30 &&
+      dropped.b.top === start.b.top + 40 &&
+      dropped.c.left === start.c.left &&
+      dropped.d.left === start.d.left &&
+      dropped.a.selected &&
+      dropped.b.selected &&
+      (await outlines()).length === 0,
+    JSON.stringify(dropped)
+  )
+  check(
+    'GROUP  vf-drop carries the set too',
+    JSON.stringify(await iconsOf('vf-drop')) === '["a","b"]'
+  )
+
+  // A plain press on a member keeps the selection (that is what let the drag
+  // carry it); a click released with no drag collapses it to that icon.
+  const aNow0 = await state(page, 'a')
+  await page.mouse.move(aNow0.x + 10, aNow0.y + 10)
+  await page.mouse.down()
+  const pressed = await where()
+  await page.mouse.up()
+  const clicked = await where()
+  check(
+    'GROUP  a plain press on a selected member keeps the selection; the click’s release collapses it to that icon',
+    pressed.a.selected &&
+      pressed.b.selected &&
+      pressed.d.selected &&
+      clicked.a.selected &&
+      clicked.b.selected === false &&
+      clicked.d.selected === false,
+    JSON.stringify({ pressed: [pressed.a.selected, pressed.b.selected], clicked: [clicked.a.selected, clicked.b.selected] })
+  )
+  await page.locator('#b').click({ modifiers: ['Shift'] })
+
+  // The group clamps as a whole: dragged hard right, it stops when B meets
+  // the edge, and A keeps its distance from B.
+  await pressAndMove(page, 'a', 4000, 0)
+  await page.mouse.up()
+  const clamped = await where()
+  const bMax = 512 - 64
+  check(
+    'GROUP  the drop clamps the delta for the group as a whole — the outermost member meets the edge, the arrangement is kept',
+    clamped.b.left === bMax && clamped.a.left === bMax - (start.b.left - start.a.left),
+    `a ${clamped.a.left}, b ${clamped.b.left} (b max ${bMax})`
+  )
+
+  // Escape mid-drag: every outline goes, nothing moves.
+  await pressAndMove(page, 'a', -100, 50)
+  await page.keyboard.press('Escape')
+  const afterEsc = await outlines()
+  await page.mouse.up()
+  const held = await where()
+  check(
+    'GROUP  Escape takes every outline down and writes nothing for anyone',
+    afterEsc.length === 0 && held.a.left === clamped.a.left && held.b.left === clamped.b.left,
+    JSON.stringify({ outlines: afterEsc.length, a: held.a, b: held.b })
+  )
+
+  // A cancelled drop writes nothing for any member.
+  await page.evaluate(() => document.addEventListener('vf-drop', (e) => e.preventDefault(), { once: true }))
+  await pressAndMove(page, 'a', -100, 50)
+  await page.mouse.up()
+  const kept = await where()
+  check(
+    'GROUP  a drop cancelled with preventDefault() writes nothing for any member',
+    kept.a.left === clamped.a.left && kept.b.left === clamped.b.left && kept.a.top === clamped.a.top,
+    JSON.stringify({ a: kept.a, b: kept.b })
+  )
+
+  // A handler files the whole set.
+  await page.evaluate(() =>
+    document.addEventListener(
+      'vf-drop',
+      (e) => {
+        e.preventDefault()
+        const other = document.getElementById('other')
+        e.detail.icons.forEach((icon, i) => {
+          other.append(icon)
+          icon.left = 8 + i * 80
+          icon.top = 8
+        })
+      },
+      { once: true }
+    )
+  )
+  await pressAndMove(page, 'a', -100, 50)
+  await page.mouse.up()
+  await page.evaluate(() => Promise.all([...document.querySelectorAll('vf-icon')].map((i) => i.updateComplete)))
+  const filed = await where()
+  check(
+    'GROUP  a handler files the whole set, each still selected',
+    filed.a.field === 'other' &&
+      filed.b.field === 'other' &&
+      filed.a.selected &&
+      filed.b.selected &&
+      filed.a.left === 8 &&
+      filed.b.left === 88 &&
+      filed.c.field === 'field',
+    JSON.stringify(filed)
+  )
+
+  // A press on an unselected icon makes it the selection, so it drags alone.
+  await clearLog(page)
+  const cBefore = (await where()).c
+  await pressAndMove(page, 'c', 30, 30)
+  const alone = await outlines()
+  await page.mouse.up()
+  const cAfter = await where()
+  check(
+    'GROUP  an unselected icon pressed becomes the selection and drags alone',
+    alone.length === 1 &&
+      JSON.stringify(await iconsOf('vf-drop')) === '["c"]' &&
+      cAfter.c.left === cBefore.left + 30 &&
+      cAfter.a.left === filed.a.left &&
+      cAfter.a.selected === false,
+    JSON.stringify({ outlines: alone.length, icons: await iconsOf('vf-drop'), a: cAfter.a })
+  )
+
+  // A selected icon in ANOTHER field stays: Shift-click A (C stays selected,
+  // in its own field), drag A — only A travels.
+  await page.locator('#a').click({ modifiers: ['Shift'] })
+  await clearLog(page)
+  const both = await where()
+  await pressAndMove(page, 'a', 20, 20)
+  await page.mouse.up()
+  const perField = await where()
+  check(
+    'GROUP  the set is the field’s: a selected icon in another field stays where it is',
+    both.a.selected &&
+      both.c.selected &&
+      JSON.stringify(await iconsOf('vf-drop')) === '["a"]' &&
+      perField.a.left === both.a.left + 20 &&
+      perField.c.left === both.c.left,
+    JSON.stringify({ icons: await iconsOf('vf-drop'), c: perField.c })
+  )
+
+  // A Shift press that deselects the pressed icon drags it alone; the rest
+  // of the selection stays. B is selected beside A in `other`.
+  await page.locator('#b').click({ modifiers: ['Shift'] })
+  await clearLog(page)
+  const pre = await where()
+  const aNow = await state(page, 'a')
+  await page.keyboard.down('Shift')
+  await page.mouse.move(aNow.x + 10, aNow.y + 10)
+  await page.mouse.down()
+  await page.keyboard.up('Shift')
+  await page.mouse.move(aNow.x + 40, aNow.y + 30, { steps: 3 })
+  const shiftMid = await outlines()
+  await page.mouse.up()
+  const post = await where()
+  check(
+    'GROUP  a Shift press that deselects the pressed icon drags it alone — the rest stay',
+    pre.a.selected &&
+      pre.b.selected &&
+      shiftMid.length === 1 &&
+      JSON.stringify(await iconsOf('vf-drop')) === '["a"]' &&
+      post.a.selected === false &&
+      post.a.left === pre.a.left + 30 &&
+      post.b.left === pre.b.left &&
+      post.b.selected,
+    JSON.stringify({ outlines: shiftMid.length, icons: await iconsOf('vf-drop'), a: post.a, b: post.b })
   )
   await page.close()
 }

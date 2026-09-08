@@ -48,6 +48,33 @@ export interface VfIconDragDetail {
    */
   x: number
   y: number
+  /**
+   * Every icon the drag carries: this one first, then the other selected
+   * movable icons of its field, in document order — the selection travels
+   * as one. Each follower's outline is its own box translated by the same
+   * delta, so a page filing the set converts each icon's own rect the way
+   * it converts `x`/`y`.
+   */
+  icons: VfIcon[]
+}
+
+/**
+ * A follower's handle in a group drag: what the dragged icon holds on each
+ * other selected icon of its field, so their outlines move as one and the
+ * drop writes each by the same delta. Internal to the kit's group drag.
+ */
+export interface VfIconDragFollower {
+  icon: VfIcon
+  /** The follower's seeded origin, system px in the shared container. */
+  origin: { x: number; y: number }
+  /** The follower's box, system px, for the group clamp. */
+  size: { width: number; height: number }
+  /** Move the follower's outline by a lattice delta. */
+  move(dx: number, dy: number): void
+  /** Write the follower's origin plus the delta through `left`/`top`. */
+  drop(dx: number, dy: number): void
+  /** Take the outline down. */
+  end(): void
 }
 
 /** The outline a drag draws, and where it lives. */
@@ -80,6 +107,14 @@ interface DragGesture {
   proposal: { left: number; top: number } | null
   /** The outline, from the first step on; null while the drag has not started. */
   outline: DragOutline | null
+  /**
+   * The other selected movable icons of the field, travelling with this
+   * one — gathered at the first step, empty when the dragged icon is not
+   * itself selected or stands in no field.
+   */
+  followers: VfIconDragFollower[]
+  /** The dragged icon's own box, system px, for the group clamp. */
+  size: { width: number; height: number }
 }
 
 /**
@@ -265,6 +300,28 @@ const clamp = (v: number, max: number): number =>
  * the press offset already inside it, so an icon placed at the
  * destination's `placementAt(x, y)` lands exactly where the outline was.
  *
+ * ### The selection travels
+ *
+ * A drag that begins on a *selected* icon takes every other selected,
+ * movable icon of its field with it — the Finder outlined the whole
+ * selection under a drag on any member. Each follower draws its own outline
+ * ({@link followDrag}), moved by the same lattice delta as the leader's, and
+ * the leader's events carry the set as `detail.icons`, itself first. The
+ * default action of the drop clamps the delta once for the whole group —
+ * the arrangement is kept, and the group stops when its outermost member
+ * meets the container's edge — then writes each member's origin plus that
+ * delta. A cancel takes every outline down and writes nothing. A press on
+ * an unselected icon makes it the selection first (the outside listeners
+ * clear the others), so it drags alone; a Shift press that deselects the
+ * pressed icon drags it alone too, the rest staying where they are.
+ *
+ * For the selection to travel, a plain press on one of its members must not
+ * collapse it: the other icons' outside-press listeners leave a selection
+ * alone when the press landed on an icon already selected in the same
+ * field. A *click* on such an icon — released with no drag — collapses the
+ * selection to it on the release, so a click still single-selects and the
+ * same press could have dragged them all.
+ *
  * Escape is heard by a document listener scoped to the gesture rather than
  * by the icon's own key handler, because a `movable`-only icon never takes
  * focus — an addition in the kit's idiom (a pointer-only gesture with no way
@@ -406,15 +463,16 @@ const clamp = (v: number, max: number): number =>
  *   `detail: { attempted, kept, reason: 'empty' }`. A `vf-change` is *not*
  *   fired alongside it — nothing changed.
  * @fires vf-drag-start - A drag began: the first lattice step away from the
- *   press. `detail: { left, top }` — the origin, whole system px in the
- *   icon's container.
+ *   press. `detail: { left, top, icons }` — the origin, whole system px in
+ *   the icon's container, and every icon the drag carries (this one first).
  * @fires vf-drag - A step that changed the proposal. `detail: { clientX,
- *   clientY, left, top, x, y }` — the pointer in viewport CSS px, the
- *   proposed origin in the container (whole system px on the lattice), and
- *   the outline's top-left in viewport CSS px.
+ *   clientY, left, top, x, y, icons }` — the pointer in viewport CSS px, the
+ *   proposed origin in the container (whole system px on the lattice), the
+ *   outline's top-left in viewport CSS px, and the icons travelling.
  * @fires vf-drop - The release; cancelable. The same detail as `vf-drag`.
- *   Its default action writes the proposal through `left`/`top`, clamped
- *   whole in the container; `preventDefault()` writes nothing.
+ *   Its default action writes the proposal through `left`/`top` — every
+ *   icon in `icons` by the same delta, clamped whole in the container as a
+ *   group; `preventDefault()` writes nothing.
  * @fires vf-drag-cancel - The drag was abandoned — Escape, or a
  *   `pointercancel` — and nothing was written. `detail: {}`.
  */
@@ -801,8 +859,21 @@ export class VfIcon extends VfPositioned(LitElement) {
    * `listbox` role lives in internals rather than on the tag anyway.
    */
   get #inListbox(): boolean {
-    return this.closest('vf-icon-field, [role="listbox"]') !== null
+    return this.#field !== null
   }
+
+  /** The field this icon is one item of — its selection's boundary — or null. */
+  get #field(): Element | null {
+    return this.closest('vf-icon-field, [role="listbox"]')
+  }
+
+  /**
+   * A plain press landed on this icon while it was already selected in a
+   * field, and no drag has begun: the selection was kept for the drag's
+   * sake, and the release with no drag collapses it to this icon (see
+   * {@link #onOutsidePointerDown}).
+   */
+  #collapseOnRelease = false
 
   /** What the current ghost was derived from, so a no-op refresh is free. */
   #ghostKey = ''
@@ -880,6 +951,8 @@ export class VfIcon extends VfPositioned(LitElement) {
         pointer: { clientX: event.clientX, clientY: event.clientY },
         proposal: null,
         outline: null,
+        followers: [],
+        size: this.#sysSize(),
       }
       return origin
     },
@@ -917,6 +990,63 @@ export class VfIcon extends VfPositioned(LitElement) {
     )
   }
 
+  /** The icon's own box in system px, for the clamp. */
+  #sysSize(): { width: number; height: number } {
+    return {
+      width: toSysExact(this.offsetWidth, this),
+      height: toSysExact(this.offsetHeight, this),
+    }
+  }
+
+  /**
+   * Join another icon's drag as a follower (see the class doc): seed the
+   * origin the drop will add the delta to, draw this icon's own outline on
+   * `surface` (the desktop's, as the leader's handshake found it) or in its
+   * own frame, and hand back the handle the leader moves, drops and ends.
+   * Null when this icon cannot move. Internal to the kit's group drag.
+   */
+  followDrag(surface: HTMLElement | null): VfIconDragFollower | null {
+    if (!this.movable || this._editing) return null
+    const origin = this.#placement.seed()
+    const outline = this.#buildOutline(this.#frameRect(), surface)
+    return {
+      icon: this,
+      origin,
+      size: this.#sysSize(),
+      move: (dx, dy) => {
+        if (outline) this.#placeOutlineAt(outline, dx, dy)
+      },
+      drop: (dx, dy) => {
+        this.#placement.moveTo(origin.x + dx, origin.y + dy)
+      },
+      end: () => outline?.canvas.remove(),
+    }
+  }
+
+  /**
+   * The icons a drag beginning here carries: this one, then — when it is
+   * itself selected — every other selected, movable icon of its field, in
+   * document order, each joined as a follower. An icon outside any field,
+   * or not selected, drags alone.
+   */
+  #gatherFollowers(surface: HTMLElement | null): VfIconDragFollower[] {
+    if (!this.selected) return []
+    const field = this.#field
+    if (!field) return []
+    const followers: VfIconDragFollower[] = []
+    for (const icon of field.querySelectorAll('vf-icon')) {
+      if (icon === this || !icon.selected) continue
+      const follower = icon.followDrag(surface)
+      if (follower) followers.push(follower)
+    }
+    return followers
+  }
+
+  /** The set a drag's events report: the leader first. */
+  #dragIcons(gesture: DragGesture): VfIcon[] {
+    return [this, ...gesture.followers.map((f) => f.icon)]
+  }
+
   /**
    * A lattice step of the drag. The first step whose snapped origin differs
    * from the seed is the start — a stationary press reports jitter, and every
@@ -931,27 +1061,40 @@ export class VfIcon extends VfPositioned(LitElement) {
     if (!gesture.proposal) {
       if (x === gesture.origin.x && y === gesture.origin.y) return
       this.#disarmRename()
+      // The press turned into a drag: the selection it kept travels, and
+      // the release will not collapse it.
+      this.#collapseOnRelease = false
       gesture.proposal = { left: gesture.origin.x, top: gesture.origin.y }
       this.#escape.attach()
-      gesture.outline = this.#showOutline(gesture)
-      emit(this, 'vf-drag-start', { left: gesture.origin.x, top: gesture.origin.y })
+      const surface = this.#requestSurface()
+      gesture.outline = this.#buildOutline(gesture.frame, surface)
+      gesture.followers = this.#gatherFollowers(surface)
+      emit(this, 'vf-drag-start', {
+        left: gesture.origin.x,
+        top: gesture.origin.y,
+        icons: this.#dragIcons(gesture),
+      })
     }
     if (x === gesture.proposal.left && y === gesture.proposal.top) return
     // The proposal: the origin plus the lattice-snapped delta, unclamped —
-    // the outline goes where the pointer takes it, and only the drop's
-    // default action clamps. The icon itself stays put.
+    // the outlines go where the pointer takes them, and only the drop's
+    // default action clamps. The icons themselves stay put.
     gesture.proposal = { left: x, top: y }
-    this.#placeOutline(gesture)
+    const dx = x - gesture.origin.x
+    const dy = y - gesture.origin.y
+    if (gesture.outline) this.#placeOutlineAt(gesture.outline, dx, dy)
+    for (const follower of gesture.followers) follower.move(dx, dy)
     emit(this, 'vf-drag', this.#dragDetail(gesture))
   }
 
   /**
    * The release, or a cancel. A gesture that never started (a click) reports
-   * nothing. A cancel — Escape, `pointercancel` — drops the outline and says
-   * so; nothing was written. A release reports the drop, and the default
-   * action of an uncancelled `vf-drop` is the move itself. Dispatched with
-   * the outline gone, the drag state cleared and the pointer capture
-   * released, so a handler may re-parent the icon freely.
+   * nothing. A cancel — Escape, `pointercancel` — drops every outline and
+   * says so; nothing was written. A release reports the drop, and the
+   * default action of an uncancelled `vf-drop` is the move itself, the whole
+   * group by one delta. Dispatched with the outlines gone, the drag state
+   * cleared and the pointer capture released, so a handler may re-parent
+   * the icons freely.
    */
   #onDragEnd(event: PointerEvent | undefined, cancelled: boolean): void {
     const gesture = this.#gesture
@@ -959,6 +1102,7 @@ export class VfIcon extends VfPositioned(LitElement) {
     if (!gesture?.proposal) return
     this.#escape.detach()
     gesture.outline?.canvas.remove()
+    for (const follower of gesture.followers) follower.end()
     if (event) gesture.pointer = { clientX: event.clientX, clientY: event.clientY }
     if (cancelled) {
       emit(this, 'vf-drag-cancel', {})
@@ -966,24 +1110,74 @@ export class VfIcon extends VfPositioned(LitElement) {
     }
     const detail = this.#dragDetail(gesture)
     if (emit(this, 'vf-drop', detail, { cancelable: true })) {
-      this.#placement.moveTo(detail.left, detail.top)
+      this.#dropGroup(gesture, detail)
     }
   }
 
   /**
-   * Build the outline for a drag that just started, and put it where it
-   * draws: the desktop's drag surface when one answers the handshake, else
-   * the icon's own frame. The geometry is measured off the rendered parts
-   * — the frame, the art as it paints (the ghost while `open`), the cell and
-   * the plate — in system px relative to the frame, so the ring lands on
-   * the pixels the frame paints. Null when there is nothing to draw with.
+   * The drop's default action. Alone, the proposal clamped whole by
+   * {@link #keepWhole}. As a group, one delta for all: clamped so that the
+   * member nearest each edge stays whole — the group stops when its
+   * outermost icon meets the container, and the arrangement is kept — then
+   * each member's origin plus that delta. A group no edge can hold (a member
+   * wider than the container) is held off the near edge only, the
+   * single-icon rule.
    */
-  #showOutline(gesture: DragGesture): DragOutline | null {
+  #dropGroup(gesture: DragGesture, detail: VfIconDragDetail): void {
+    if (gesture.followers.length === 0) {
+      this.#placement.moveTo(detail.left, detail.top)
+      return
+    }
+    const bounds = this.#placement.bounds
+    const members = [
+      { origin: gesture.origin, size: gesture.size },
+      ...gesture.followers.map((f) => ({ origin: f.origin, size: f.size })),
+    ]
+    const axis = (
+      delta: number,
+      origin: (m: (typeof members)[number]) => number,
+      extent: (m: (typeof members)[number]) => number,
+      room: number
+    ): number => {
+      let lo = -Infinity
+      let hi = Infinity
+      for (const m of members) {
+        lo = Math.max(lo, -origin(m))
+        hi = Math.min(hi, room - extent(m) - origin(m))
+      }
+      if (hi < lo) hi = Infinity
+      return Math.min(Math.max(delta, lo), hi)
+    }
+    const dx = axis(detail.left - gesture.origin.x, (m) => m.origin.x, (m) => m.size.width, bounds.width)
+    const dy = axis(detail.top - gesture.origin.y, (m) => m.origin.y, (m) => m.size.height, bounds.height)
+    this.#placement.moveTo(gesture.origin.x + dx, gesture.origin.y + dy)
+    for (const follower of gesture.followers) follower.drop(dx, dy)
+  }
+
+  /**
+   * The handshake: a desktop on the light-DOM path hands over its drag
+   * surface; null with no desktop, and the outline draws in the frame.
+   */
+  #requestSurface(): HTMLElement | null {
+    const request: { surface: HTMLElement | null } = { surface: null }
+    emit(this, 'vf-drag-surface-request', request, { composed: false })
+    return request.surface
+  }
+
+  /**
+   * Build this icon's outline for a drag, and put it where it draws: the
+   * desktop's drag surface when the leader's handshake found one, else the
+   * icon's own frame. The geometry is measured off the rendered parts —
+   * the frame (`at`, its box at the press), the art as it paints (the ghost
+   * while `open`), the cell and the plate — in system px relative to the
+   * frame, so the ring lands on the pixels the frame paints. Null when
+   * there is nothing to draw with.
+   */
+  #buildOutline(at: DOMRect, surface: HTMLElement | null): DragOutline | null {
     const root = this.renderRoot
     const frame = root?.querySelector<HTMLElement>('.frame')
     if (!frame) return null
     const scale = effectiveScale(this)
-    const at = gesture.frame
     const box = (rect: DOMRect): DragOutlineBox => ({
       x: Math.round((rect.left - at.left) / scale),
       y: Math.round((rect.top - at.top) / scale),
@@ -1009,11 +1203,6 @@ export class VfIcon extends VfPositioned(LitElement) {
       plate: plate ? box(plate.getBoundingClientRect()) : null,
     })
     if (!ring) return null
-
-    // The handshake: a desktop on the light-DOM path hands over its surface.
-    const request: { surface: HTMLElement | null } = { surface: null }
-    emit(this, 'vf-drag-surface-request', request, { composed: false })
-    const surface = request.surface
 
     const canvas = document.createElement('canvas')
     canvas.className = 'drag-outline'
@@ -1045,16 +1234,14 @@ export class VfIcon extends VfPositioned(LitElement) {
   }
 
   /**
-   * Move the outline to the proposal: the frame's offset plus the delta, a
-   * whole count of system px from the surface's origin, and re-dot it at
-   * the parity that lands on the screen — `x + y` even where the desktop
-   * dither is inked, so the two share one phase wherever the outline goes.
+   * Move an outline by the drag's delta: the frame's offset plus the delta,
+   * a whole count of system px from the surface's origin, re-dotted at the
+   * parity that lands on the screen — `x + y` even where the desktop dither
+   * is inked, so the two share one phase wherever the outline goes.
    */
-  #placeOutline(gesture: DragGesture): void {
-    const outline = gesture.outline
-    if (!outline || !gesture.proposal) return
-    const x = outline.base.x + (gesture.proposal.left - gesture.origin.x)
-    const y = outline.base.y + (gesture.proposal.top - gesture.origin.y)
+  #placeOutlineAt(outline: DragOutline, dx: number, dy: number): void {
+    const x = outline.base.x + dx
+    const y = outline.base.y + dy
     outline.canvas.style.left = sysLength(x)
     outline.canvas.style.top = sysLength(y)
     const phase = (((x + y) % 2) + 2) % 2
@@ -1082,6 +1269,7 @@ export class VfIcon extends VfPositioned(LitElement) {
       top,
       x: gesture.frame.left + (left - gesture.origin.x) * scale,
       y: gesture.frame.top + (top - gesture.origin.y) * scale,
+      icons: this.#dragIcons(gesture),
     }
   }
 
@@ -1110,8 +1298,10 @@ export class VfIcon extends VfPositioned(LitElement) {
     this.#disarmRename()
     // A drag cannot outlive the element either: the controller has dropped
     // the pointer, the Escape listener went with the controller, and an
-    // outline on a desktop's surface would otherwise be orphaned there.
+    // outline on a desktop's surface — a follower's included — would
+    // otherwise be orphaned there.
     this.#gesture?.outline?.canvas.remove()
+    for (const follower of this.#gesture?.followers ?? []) follower.end()
     this.#gesture = null
   }
 
@@ -1420,8 +1610,8 @@ export class VfIcon extends VfPositioned(LitElement) {
       style=${width}
       @pointerdown=${this.#onPointerDown}
       @pointermove=${this.#drag.onPointerMove}
-      @pointerup=${this.#drag.onPointerUp}
-      @pointercancel=${this.#drag.onPointerUp}
+      @pointerup=${this.#onPointerUp}
+      @pointercancel=${this.#onPointerUp}
       @dblclick=${this.#onDoubleClick}
     >
       <div class=${artClasses} part="icon">
@@ -1527,6 +1717,38 @@ export class VfIcon extends VfPositioned(LitElement) {
     emit(this, 'vf-select', { selected: next })
   }
 
+  /**
+   * Select or deselect as a press would: the state changes and `vf-select`
+   * reports it. A `selected` write from code is silent, the way a value set
+   * fires no `vf-change`; this is the route for a gesture a container runs
+   * on the icon's behalf — `vf-icon-field`'s rubber band. A no-op when the
+   * state already matches.
+   */
+  setSelected(next: boolean): void {
+    this.#setSelected(next)
+  }
+
+  /**
+   * Whether a viewport box (CSS px) touches the icon the way the Finder's
+   * selection rectangle asked: its art cell or its name plate. The empty
+   * cell around narrower art and the frame's margin beside the plate count
+   * for nothing — a rectangle dragged through the gap between two icons
+   * selects neither. `vf-icon-field`'s rubber band reads it.
+   */
+  touches(box: { left: number; top: number; right: number; bottom: number }): boolean {
+    const root = this.renderRoot
+    if (!root) return false
+    for (const selector of ['.art', '.name']) {
+      const part = root.querySelector(selector)
+      if (!part) continue
+      const r = part.getBoundingClientRect()
+      if (r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top) {
+        return true
+      }
+    }
+    return false
+  }
+
   #onPointerDown = (event: PointerEvent): void => {
     if (event.button !== 0 || this._editing) return
     const onPlate = event
@@ -1544,12 +1766,17 @@ export class VfIcon extends VfPositioned(LitElement) {
     // rename is still waiting to be sure of.
     this.#disarmRename()
 
+    const plain = !event.shiftKey && !event.metaKey
     if (this.selectable) {
       // Shift/⌘ toggles this icon without disturbing the rest; a plain press
-      // selects, and every other selected icon's outside listener clears it.
-      if (event.shiftKey || event.metaKey) this.#setSelected(!this.selected)
-      else this.#setSelected(true)
+      // selects, and every other selected icon's outside listener clears it
+      // — unless this icon was already selected in a field, when the others
+      // stay for the drag's sake and only a release with no drag collapses
+      // the selection to this one (the Finder's rule; see the class doc).
+      if (plain) this.#setSelected(true)
+      else this.#setSelected(!this.selected)
     }
+    this.#collapseOnRelease = plain && wasSelected && this.#field !== null
 
     // A click on the plate of an icon that was ALREADY selected opens the
     // rename box — the Finder gesture. The press that does the selecting never
@@ -1592,12 +1819,46 @@ export class VfIcon extends VfPositioned(LitElement) {
     emit(this, 'vf-open', {})
   }
 
+  /**
+   * The release of a press on this icon. The drag controller hears it first
+   * (a started drag ends there); then a press that was kept from collapsing
+   * the selection — a plain press on an already-selected member of a field —
+   * collapses it now, if no drag ever began: a click on one of several
+   * selected icons selects that one alone, on the release rather than the
+   * press, so the same press could have dragged them all. A cancel collapses
+   * nothing.
+   */
+  #onPointerUp = (event: PointerEvent): void => {
+    this.#drag.onPointerUp(event)
+    if (!this.#collapseOnRelease) return
+    this.#collapseOnRelease = false
+    if (event.type !== 'pointerup') return
+    const field = this.#field
+    if (!field) return
+    for (const icon of field.querySelectorAll('vf-icon')) {
+      if (icon !== this && icon.selected) icon.setSelected(false)
+    }
+  }
+
   #onOutsidePointerDown = (event: PointerEvent): void => {
-    if (event.composedPath().includes(this)) return
+    const path = event.composedPath()
+    if (path.includes(this)) return
     // Wherever that press went, it wasn't this name: a rename still waiting to
     // open is called off even where the modifier keeps the selection.
     this.#disarmRename()
     if (event.shiftKey || event.metaKey) return
+    // A plain press on another icon that is ALREADY selected in this icon's
+    // field keeps the selection: that press may be the start of a drag that
+    // carries the whole selection, and the Finder never collapsed a
+    // selection under a press on one of its members. The pressed icon's own
+    // handler has not run yet (this is document capture), so `selected`
+    // still reads as the press found it; a click released with no drag
+    // collapses the selection then (#onPointerUp).
+    const field = this.#field
+    if (field !== null) {
+      const pressed = path.find((n): n is VfIcon => n instanceof VfIcon)
+      if (pressed?.selected && pressed.#field === field) return
+    }
     this.#setSelected(false)
   }
 

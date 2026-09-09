@@ -418,8 +418,8 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       .grow::before {
         content: '';
         position: absolute;
-        right: calc(var(--vf-scale, 1) * 2px);
-        bottom: calc(var(--vf-scale, 1) * 2px);
+        right: calc(var(--vf-scale, 1) * 1px);
+        bottom: calc(var(--vf-scale, 1) * 1px);
         width: calc(var(--vf-scale, 1) * 9px);
         height: calc(var(--vf-scale, 1) * 9px);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);

@@ -133,10 +133,16 @@ export class VfScrollArea extends VfPositioned(LitElement) {
    * `{ left, top }` in whole system px on the placement lattice, the pair a
    * child dropped here is written with. The plane travels with the scroll,
    * so its box already carries the scroll offset and the border-floor
-   * padding; nothing is left for the caller to add.
+   * padding; nothing is left for the caller to add. With `child`, the pair
+   * to write to that element: the offset its `origin` adds is folded in, so
+   * its box's corner lands on the point.
    */
-  placementAt(clientX: number, clientY: number): { left: number; top: number } {
-    return placementIn(this.content ?? this, clientX, clientY, this)
+  placementAt(
+    clientX: number,
+    clientY: number,
+    child?: Element
+  ): { left: number; top: number } {
+    return placementIn(this.content ?? this, clientX, clientY, this, child)
   }
 
   /**

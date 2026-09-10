@@ -488,7 +488,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             </vf-dialog>
 
             <vf-dialog id="ex-dialog-plain" frame="plain" label="Page Setup" width="300" height="194">
-              <vf-label left="108" top="18">Page Setup</vf-label>
+              <vf-label origin="top center" left="145" top="18">Page Setup</vf-label>
               <vf-fieldset legend="Paper" left="16" top="44">
                 <vf-container width="232" height="46">
                   <vf-radio-group name="paper" value="us-letter" label="Paper">
@@ -497,7 +497,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                   </vf-radio-group>
                 </vf-container>
               </vf-fieldset>
-              <vf-button-group left="112" top="140">
+              <vf-button-group origin="bottom right" left="274" top="168">
                 <vf-button data-close="#ex-dialog-plain">Cancel</vf-button>
                 <vf-button variant="default" data-close="#ex-dialog-plain">OK</vf-button>
               </vf-button-group>
@@ -1538,6 +1538,22 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             scrolls under it, and the flag alone places it at (0,0). A fixed child
             comes before the flow content in its parent and paints over placed
             siblings. Where nothing scrolls it renders as placed.
+          </p>
+          <p>
+            <code>origin</code> names which point of the element's own box the
+            pair places: nine keywords, vertical then horizontal —
+            <code>top left</code> (the default), <code>top center</code>,
+            <code>top right</code>, <code>center left</code>,
+            <code>center</code>, <code>center right</code>,
+            <code>bottom left</code>, <code>bottom center</code>,
+            <code>bottom right</code>. The point is measured in whole system px
+            and kept current as the box changes, an odd size's leftover half
+            going toward the start; it is never a transform. A drag keeps the
+            point, and <code>placementAt(x, y, child)</code> returns the pair
+            that lands a dropped child's corner there. The Page Setup dialog
+            under <a href="#vf-dialog"><code>vf-dialog</code></a> centers its
+            title on <code>left="145"</code> and holds its button row's
+            bottom-right corner at (274, 168) this way.
           </p>
 
           <template data-example data-caption="A placed layout: every child states its own top/left in system px against the window's content region.">

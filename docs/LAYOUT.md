@@ -68,7 +68,7 @@ The coordinates are written as a live `calc(var(--vf-scale, 1) * Npx)`, so a pla
 - **Gestures write through the same properties.** A title-bar drag on a `vf-window` or `vf-dialog`, a drag or arrow-key nudge on a `vf-icon`, and `vf-window`'s grow box all state whole system px, so activating a window never snaps it back and a zoom leaves it where it was dropped. Setting a property yourself re-places it.
 - **A movable element needs a coordinate system**, and its parent needs a declared size for the clamp to work in. Without one, the first move pulls the element out of flow and reflows the page under it; the kit warns once per element and keeps the gesture working. `position: absolute` in your own stylesheet satisfies the requirement too.
 - **Read a moved element's position off the properties** (`win.left`), not `style.left` — the inline value is a live `calc()`, so `parseFloat` gives `NaN`. Coordinates land on the lattice a drag step uses: 1 system px on a 1× display, 2 on a 2× one. Nothing re-snaps a dropped coordinate afterwards.
-- **A viewport point converts with `placementAt(clientX, clientY)`** on `vf-window`, `vf-desktop` and `vf-scroll-area` — the three containers whose anchor sits in shadow DOM. It returns `{ left, top }` in whole system px on the placement lattice, measured from the window's content region (under `scrollbars`, the scrolled plane, scroll offset included), the screen with the bezel excluded, or the plane — the pair a child dropped there is written with. Everywhere else the anchor is the element's own padding box, and `toSysExact(clientX - rect.left, el)` against `getBoundingClientRect()` is the conversion.
+- **A viewport point converts with `placementAt(clientX, clientY)`** on `vf-window`, `vf-desktop` and `vf-scroll-area` — the three containers whose anchor sits in shadow DOM. It returns `{ left, top }` in whole system px on the placement lattice, measured from the window's content region (under `scrollbars`, the scrolled plane, scroll offset included), the screen with the bezel excluded, or the plane — the pair a child dropped there is written with. Pass the child as a third argument and the pair carries that child's `origin` offset, so its box's corner lands on the point. Everywhere else the anchor is the element's own padding box, and `toSysExact(clientX - rect.left, el)` against `getBoundingClientRect()` is the conversion.
 - **A scroll area re-measures under a moved child.** Every placement write is announced to its tree (`vf-placement-change`, an internal event), and `vf-scroll-area` — a window's built-in one included — re-measures its overflow on it, so a placed child dragged, nudged or set past the viewport brings the rail live with no call from the page. `measure()` on `vf-scroll-area` and `vf-window` covers a scroll range that changes with no placement write.
 - **Non-movable costs nothing:** an element nobody asked to move takes no position, no tab stop and no role, and lays out in your flex row or grid like any other element.
 
@@ -90,6 +90,28 @@ The coordinates are written as a live `calc(var(--vf-scale, 1) * Npx)`, so a pla
 - **It paints over the plane's placed children** (`z-index: 1`), and never over the rails, which sit outside the viewport.
 - **Scrolling over it still scrolls the content.** The child is inside the viewport, not floating over it, so wheel, trackpad, touch and keyboard scrolling all pass through.
 - **Where nothing scrolls it renders exactly as placed.** A plain window body is a scroll container that never scrolls; outside any kit scroller it holds against CSS's nearest scroll container, the page included.
+
+### `origin`
+
+`origin` names which point of the element's own box `left`/`top` place. Nine keywords, vertical then horizontal — `top left` (the default), `top center`, `top right`, `center left`, `center`, `center right`, `bottom left`, `bottom center`, `bottom right`:
+
+```html
+<!-- a 300-wide plain dialog: its body is 290 × 184 -->
+<vf-label origin="top center" left="145" top="18">Page Setup</vf-label>
+<vf-button-group origin="bottom right" left="274" top="168">
+  <vf-button>Cancel</vf-button>
+  <vf-button variant="default">OK</vf-button>
+</vf-button-group>
+```
+
+The title stays centered on x = 145 whatever its text, and the button group keeps its bottom-right corner 16px in from the body's corner however long its labels run.
+
+- **Measured, in whole system px.** The kit reads the element's border box, rounds it to whole system px, and writes the pair less the point's offset — never a transform. An odd width under a center origin puts the leftover half on the left; an odd height, on top. The box is the border box, margins excluded: a `vf-fieldset`'s includes the legend room above its frame line, and a group holding a default button includes its bold ring.
+- **Kept current.** A relabel, a late font or a translated string re-measures and rewrites, and each rewrite is announced (`vf-placement-change`), so a scroll area re-measures under it. A zoom step changes CSS px, not system px, so the same offset comes back.
+- **Gestures keep the point.** A drag or an arrow nudge writes the origin-point pair, and the clamp holds the box inside the container. A dragged title stays centered on wherever it was dropped; `el.left` reads the point, not the corner.
+- **Drops add the offset.** `placementAt(clientX, clientY, child)` returns the pair to write to `child` so its box's corner lands there; without the child it is the corner's own pair.
+- **`fixed` takes it too.** `vf-dialog` does not: its own pair is the viewport's, and unset already centers it.
+- **On its own it places nothing.** It changes what the pair means and is inert on an element in flow. An unknown value places as `top left` and warns once per element.
 
 `width` and `height`, also in whole system px, are the other half of the rectangle: `vf-window`, `vf-stack`, `vf-container`, `vf-icon-field`, `vf-label` and `vf-paragraph` take them as the `VfSized` mixin, and `vf-desktop`, `vf-dialog`, `vf-img`, `vf-swatch` and `vf-icon` declare their own size the same way. Everything else keeps the size it draws itself at.
 

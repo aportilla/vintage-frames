@@ -1,9 +1,65 @@
 import type { LitElement, ReactiveController } from 'lit'
 import { property } from 'lit/decorators.js'
 import { emit } from './events.js'
-import { snapSys, sysLength, toSysExact } from './scale.js'
+import { effectiveScale, snapSys, sysLength, toSysExact } from './scale.js'
 
 type Constructor<T = object> = new (...args: any[]) => T
+
+/**
+ * The nine placement origins — which point of a placed element's own box
+ * `left`/`top` place, the vertical keyword first. `top left` is the default.
+ */
+export type PlacementOrigin =
+  | 'top left'
+  | 'top center'
+  | 'top right'
+  | 'center left'
+  | 'center'
+  | 'center right'
+  | 'bottom left'
+  | 'bottom center'
+  | 'bottom right'
+
+/** Where each origin sits on the box, as fractions of its width and height. */
+type OriginPoint = readonly [fx: number, fy: number]
+
+const ORIGIN_POINTS = new Map<PlacementOrigin, OriginPoint>([
+  ['top left', [0, 0]],
+  ['top center', [0.5, 0]],
+  ['top right', [1, 0]],
+  ['center left', [0, 0.5]],
+  ['center', [0.5, 0.5]],
+  ['center right', [1, 0.5]],
+  ['bottom left', [0, 1]],
+  ['bottom center', [0.5, 1]],
+  ['bottom right', [1, 1]],
+])
+
+const TOP_LEFT = ORIGIN_POINTS.get('top left')!
+
+/** A system-px offset, `{ x, y }`. */
+type Offset = { x: number; y: number }
+
+const NO_OFFSET: Readonly<Offset> = { x: 0, y: 0 }
+
+/**
+ * The origin point's offset from the box's top-left corner, in whole system
+ * px, for a border box of `width` × `height` CSS px. The box is rounded to
+ * whole system px first, and the ceiling sends an odd size's leftover half
+ * toward the start (left, up) — the tie rule `vf-stack`'s centering and the
+ * title bar's title patch already use.
+ */
+function originOffset(
+  width: number,
+  height: number,
+  [fx, fy]: OriginPoint,
+  scale: number
+): Offset {
+  return {
+    x: Math.ceil(Math.round(width / scale) * fx),
+    y: Math.ceil(Math.round(height / scale) * fy),
+  }
+}
 
 /**
  * The mixin's surface, as a `declare class` for the same TS4094 reason
@@ -15,13 +71,15 @@ export declare abstract class VfPositionedInterface extends LitElement {
   top?: number | null
   left?: number | null
   fixed: boolean
+  origin?: PlacementOrigin | null
 }
 
-/** A host that takes the placement trio. */
+/** A host that takes the placement trio and its origin. */
 type PositionedHost = HTMLElement & {
   top?: number | null
   left?: number | null
   fixed?: boolean
+  origin?: string | null
 }
 
 /**
@@ -114,6 +172,27 @@ const BLOCKIFIED: Record<string, string> = {
  * plane's box is never grown by an absolutely positioned child. One funnel
  * covers a drop, an arrow nudge and a page's own `icon.left = …` alike.
  *
+ * **`origin`** names which point of the host's own box the pair places —
+ * nine keywords, vertical then horizontal (`top center`, `bottom right`,
+ * `center`), `top left` the default. A title stays centered on its `left`
+ * whatever its text; a button group keeps its bottom-right corner in from
+ * the dialog's however long its labels run. The point is measured, not
+ * transformed: the controller reads the host's border box in whole system px
+ * (w × h) and writes `left` as the stated `L` less ⌈w·fx⌉ (`fx` 0, ½ or 1),
+ * `top` the same way — the ceiling sends an odd size's leftover half toward
+ * the start, the tie rule the kit's other centering uses. A ResizeObserver
+ * keeps the offset current through a relabel or a late font, and each such
+ * rewrite is announced like any other write. A zoom step changes CSS px, not
+ * system px, so it recomputes the same offset. `translate: -50% 0` would have
+ * been the no-JavaScript version, and fails twice: a percentage of an odd
+ * width is half a pixel, which smears the 1-bit art, and a transform makes
+ * the host the containing block for `position: fixed` descendants — a placed
+ * group holding a `vf-select` would trap its list. `top left` is the plain
+ * code path: no observer, no measurement, the same inline style as before
+ * the attribute existed. An unknown value places as `top left` and warns once
+ * per element. On its own the attribute places nothing: it changes what the
+ * pair means, and is inert on a host in flow.
+ *
  * **`fixed`** holds the placement against the *visible* region of the nearest
  * scrolling ancestor instead of its scrolled plane — a tool strip over a
  * document, a column header over rows — and the flag alone places at (0,0).
@@ -157,6 +236,17 @@ export const VfPositioned = <T extends Constructor<LitElement>>(Base: T) => {
      */
     @property({ type: Boolean, reflect: true }) fixed = false
 
+    /**
+     * Which point of the element's own box `top`/`left` place: one of nine
+     * keywords, vertical then horizontal — `top left` (the default), `top
+     * center`, `top right`, `center left`, `center`, `center right`, `bottom
+     * left`, `bottom center`, `bottom right`. The point is measured in whole
+     * system px and kept current as the box changes; an odd size's leftover
+     * half goes toward the start. An unknown value places as `top left` and
+     * warns once. On its own it places nothing.
+     */
+    @property({ reflect: true }) origin?: PlacementOrigin | null
+
     constructor(...args: any[]) {
       super(...args)
       new PositionController(this)
@@ -164,6 +254,18 @@ export const VfPositioned = <T extends Constructor<LitElement>>(Base: T) => {
   }
 
   return VfPositionedElement as Constructor<VfPositionedInterface> & T
+}
+
+/** Each positioned host's controller, for the offset its origin adds. */
+const controllers = new WeakMap<Element, PositionController>()
+
+/**
+ * The offset `el`'s stated pair sits from its box's top-left corner, in
+ * whole system px — what its `origin` adds, and `(0, 0)` for an element
+ * with none, or with no placement controller at all.
+ */
+function placementOffset(el: Element): Readonly<Offset> {
+  return controllers.get(el)?.offset ?? NO_OFFSET
 }
 
 /**
@@ -177,24 +279,56 @@ class PositionController implements ReactiveController {
   #appliedTop: number | null = null
   #appliedLeft: number | null = null
   #appliedFixed = false
+  #appliedOrigin: string | null = null
   #applied = false
 
-  /** Keeps a fixed host's footprint-cancelling margins equal to its box. */
+  /** The `origin` value last resolved, and the point it resolved to. */
+  #seenOrigin: string | null = null
+  #point: OriginPoint = TOP_LEFT
+  #warnedOrigin = false
+
+  /**
+   * Whether the applied placement carries a non-default origin — the offset
+   * below is live, measured and observed.
+   */
+  #anchored = false
+
+  /** The origin point's offset from the box's corner, in whole system px. */
+  #offsetX = 0
+  #offsetY = 0
+
+  /**
+   * Keeps a fixed host's footprint-cancelling margins equal to its box, and
+   * an anchored host's origin offset equal to its box — one observer, either
+   * or both jobs.
+   */
   #resizes: ResizeObserver | null = null
 
   constructor(host: LitElement & PositionedHost) {
     this.#host = host
     host.addController(this)
+    controllers.set(host, this)
+  }
+
+  /**
+   * The offset the host's stated pair sits from its box's corner: the
+   * measured one while placed, a fresh measurement for an origin on a host
+   * not yet placed (a gesture seeding from flow), and zero for `top left`.
+   */
+  get offset(): Readonly<Offset> {
+    if (this.#point === TOP_LEFT) return NO_OFFSET
+    if (this.#applied) return { x: this.#offsetX, y: this.#offsetY }
+    const box = this.#host.getBoundingClientRect()
+    return originOffset(box.width, box.height, this.#point, effectiveScale(this.#host))
   }
 
   hostConnected(): void {
     // A re-insert (a desktop's DOM-order sync) must come back observed.
-    if (this.#applied && this.#appliedFixed) this.#observe()
+    if (this.#applied && (this.#appliedFixed || this.#anchored)) this.#observe()
   }
 
   hostDisconnected(): void {
-    this.#resizes?.disconnect()
-    this.#resizes = null
+    this.#unobserve()
   }
 
   hostUpdated(): void {
@@ -203,15 +337,27 @@ class PositionController implements ReactiveController {
     const top = this.#host.top ?? null
     const left = this.#host.left ?? null
     const fixed = this.#host.fixed === true
+    const origin = this.#host.origin ?? null
     const style = this.#host.style
+
+    // Resolved whenever it changes, placed or not, so a misspelling is
+    // reported when it is written rather than when the pair arrives.
+    if (origin !== this.#seenOrigin) {
+      this.#seenOrigin = origin
+      this.#point = this.#resolveOrigin(origin)
+    }
 
     if (top === null && left === null && !fixed) {
       // Only unwind our own writes: a host whose inline position was set by
       // someone else (vf-window's drag, vf-icon's move, a consumer) keeps it.
       if (!this.#applied) return
       if (this.#appliedFixed) this.#unfix()
+      this.#unobserve()
       this.#applied = false
       this.#appliedFixed = false
+      this.#anchored = false
+      this.#offsetX = 0
+      this.#offsetY = 0
       style.removeProperty('position')
       style.removeProperty('top')
       style.removeProperty('left')
@@ -226,17 +372,29 @@ class PositionController implements ReactiveController {
       this.#applied &&
       top === this.#appliedTop &&
       left === this.#appliedLeft &&
-      fixed === this.#appliedFixed
+      fixed === this.#appliedFixed &&
+      origin === this.#appliedOrigin
     )
       return
     const wasFixed = this.#applied && this.#appliedFixed
+    const anchored = this.#point !== TOP_LEFT
     this.#applied = true
     this.#appliedTop = top
     this.#appliedLeft = left
     this.#appliedFixed = fixed
+    this.#appliedOrigin = origin
+    this.#anchored = anchored
     style.position = fixed ? 'sticky' : 'absolute'
-    style.top = sysLength(top ?? 0)
-    style.left = sysLength(left ?? 0)
+    // The origin's offset, from a box that is actually laid out — the
+    // observer's first notification covers a host that has none yet.
+    if (anchored) {
+      const box = this.#host.getBoundingClientRect()
+      if (box.width > 0 || box.height > 0) this.#measure(box.width, box.height)
+    } else {
+      this.#offsetX = 0
+      this.#offsetY = 0
+    }
+    this.#writeOffsets()
     style.right = 'auto'
     style.bottom = 'auto'
     if (fixed) {
@@ -245,7 +403,47 @@ class PositionController implements ReactiveController {
       if (wasFixed) this.#unfix()
       style.margin = '0'
     }
+    if (fixed || anchored) this.#observe()
+    else this.#unobserve()
     this.#announce(left ?? 0, top ?? 0)
+  }
+
+  /**
+   * The nine keywords, whitespace-normalized; anything else is `top left`,
+   * said once per element. Unset and empty are `top left` and say nothing.
+   */
+  #resolveOrigin(value: string | null): OriginPoint {
+    if (value == null) return TOP_LEFT
+    const key = value.trim().replace(/\s+/g, ' ')
+    if (key === '') return TOP_LEFT
+    const point = ORIGIN_POINTS.get(key as PlacementOrigin)
+    if (point) return point
+    if (!this.#warnedOrigin) {
+      this.#warnedOrigin = true
+      console.warn(
+        `${this.#host.localName}: origin="${value}" is not a placement origin — ` +
+          'one of top left, top center, top right, center left, center, ' +
+          'center right, bottom left, bottom center, bottom right. Placing as ' +
+          'top left.'
+      )
+    }
+    return TOP_LEFT
+  }
+
+  /** The stated pair, less the origin's offset, as live system-px lengths. */
+  #writeOffsets(): void {
+    const style = this.#host.style
+    style.top = sysLength((this.#appliedTop ?? 0) - this.#offsetY)
+    style.left = sysLength((this.#appliedLeft ?? 0) - this.#offsetX)
+  }
+
+  /** Read the origin's offset off a border box of `width` × `height` CSS px. */
+  #measure(width: number, height: number): boolean {
+    const next = originOffset(width, height, this.#point, effectiveScale(this.#host))
+    if (next.x === this.#offsetX && next.y === this.#offsetY) return false
+    this.#offsetX = next.x
+    this.#offsetY = next.y
+    return true
   }
 
   /**
@@ -271,12 +469,9 @@ class PositionController implements ReactiveController {
     this.#blockified = false
     const box = this.#host.getBoundingClientRect()
     if (box.width > 0 || box.height > 0) this.#hold(box.width, box.height)
-    this.#observe()
   }
 
   #unfix(): void {
-    this.#resizes?.disconnect()
-    this.#resizes = null
     this.#blockified = false
     const style = this.#host.style
     style.removeProperty('display')
@@ -284,17 +479,31 @@ class PositionController implements ReactiveController {
     style.removeProperty('z-index')
   }
 
+  /**
+   * Watch the host's border box. A fixed host keeps its margins equal to it;
+   * an anchored host keeps its origin offset equal to it — a relabel, a late
+   * font, a zoom step (which changes the CSS px, not the system px, so the
+   * same offset comes back and nothing is rewritten). A rewrite is a
+   * placement write like any other, and is announced as one.
+   */
   #observe(): void {
     this.#resizes ??= new ResizeObserver((entries) => {
       const size = entries[entries.length - 1]?.borderBoxSize?.[0]
-      if (size) {
-        this.#hold(size.inlineSize, size.blockSize)
-      } else {
-        const box = this.#host.getBoundingClientRect()
-        this.#hold(box.width, box.height)
+      const box = size
+        ? { width: size.inlineSize, height: size.blockSize }
+        : this.#host.getBoundingClientRect()
+      if (this.#appliedFixed) this.#hold(box.width, box.height)
+      if (this.#anchored && this.#measure(box.width, box.height)) {
+        this.#writeOffsets()
+        this.#announce(this.#appliedLeft ?? 0, this.#appliedTop ?? 0)
       }
     })
     this.#resizes.observe(this.#host)
+  }
+
+  #unobserve(): void {
+    this.#resizes?.disconnect()
+    this.#resizes = null
   }
 
   /** Whether the outer display has been read off a rendered host and set. */
@@ -341,17 +550,23 @@ class PositionController implements ReactiveController {
  * expected to carry no border of its own (the three do not), so its border
  * box is its padding box; `scaleAt` is the element whose `--vf-scale` the
  * conversion reads — the component's host.
+ *
+ * With `child`, the pair to write to *that* element so its box's corner
+ * lands on the point: the offset its `origin` adds is folded in, and is zero
+ * for a child with none.
  */
 export function placementIn(
   anchor: Element,
   clientX: number,
   clientY: number,
-  scaleAt: Element = anchor
+  scaleAt: Element = anchor,
+  child?: Element
 ): { left: number; top: number } {
   const rect = anchor.getBoundingClientRect()
+  const offset = child ? placementOffset(child) : NO_OFFSET
   return {
-    left: snapSys(toSysExact(clientX - rect.left, scaleAt), scaleAt),
-    top: snapSys(toSysExact(clientY - rect.top, scaleAt), scaleAt),
+    left: snapSys(toSysExact(clientX - rect.left, scaleAt) + offset.x, scaleAt),
+    top: snapSys(toSysExact(clientY - rect.top, scaleAt) + offset.y, scaleAt),
   }
 }
 
@@ -429,7 +644,17 @@ export class PlacementController {
   }
 
   /**
-   * The origin a move adds its delta to, in system px.
+   * The offset the host's stated pair sits from its box's top-left corner,
+   * in whole system px — what its `origin` adds, `(0, 0)` without one. A
+   * group drag reads it to clamp each member's box rather than its pair.
+   */
+  get offset(): Readonly<Offset> {
+    return placementOffset(this.#host)
+  }
+
+  /**
+   * The origin a move adds its delta to, in system px — the stated pair,
+   * which with an `origin` is the origin point rather than the corner.
    *
    * A stated coordinate is authoritative and needs no measuring — including
    * the one this controller wrote last time. Otherwise the host is wherever
@@ -438,6 +663,7 @@ export class PlacementController {
    * (`left: 10%` and `left: 1em` are perfectly good ways to place one, and
    * both resolve to px here), everything else through its in-flow offset,
    * which is measured against the same padding box `left`/`top` will be.
+   * That read is the corner, so the origin's offset is added back.
    */
   seed(): { x: number; y: number } {
     const host = this.#host
@@ -449,9 +675,10 @@ export class PlacementController {
     const positioned = OUT_OF_FLOW.has(computed.position)
     const left = positioned ? parseFloat(computed.left) || 0 : host.offsetLeft
     const top = positioned ? parseFloat(computed.top) || 0 : host.offsetTop
+    const offset = this.offset
     return {
-      x: snapSys(toSysExact(left, host), host),
-      y: snapSys(toSysExact(top, host), host),
+      x: snapSys(toSysExact(left, host), host) + offset.x,
+      y: snapSys(toSysExact(top, host), host) + offset.y,
     }
   }
 
@@ -471,12 +698,17 @@ export class PlacementController {
    * the gesture into that phantom, walking the host to the parent's origin
    * while the user drags away from it. The box at the moment of the press is
    * the one the user is pushing against.
+   *
+   * The pair is the origin point; the clamp is a rule about the *box*. So
+   * the origin's offset comes off before the clamp and goes back on after,
+   * and a dragged title stays centered on wherever it was dropped.
    */
   moveTo(x: number, y: number): void {
     const host = this.#host
-    const kept = this.#clamp(x, y, this.#bounds ?? this.#measureBounds())
-    host.left = snapSys(kept.x, host)
-    host.top = snapSys(kept.y, host)
+    const { x: ox, y: oy } = this.offset
+    const kept = this.#clamp(x - ox, y - oy, this.#bounds ?? this.#measureBounds())
+    host.left = snapSys(kept.x + ox, host)
+    host.top = snapSys(kept.y + oy, host)
     this.#placed = true
   }
 

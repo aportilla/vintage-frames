@@ -30,6 +30,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -103,6 +108,11 @@
           "values": []
         },
         {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
+        },
+        {
           "name": "description",
           "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
@@ -155,6 +165,11 @@
           "values": []
         },
         {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
+        },
+        {
           "name": "disabled",
           "description": "Disables the control: it stops responding and submits no value. Each\ncontrol dims per SPEC §1 (typically the label greys while the 1-bit chrome\nstays black).",
           "values": []
@@ -205,6 +220,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -247,6 +267,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -331,6 +356,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -388,6 +418,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -430,6 +465,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -507,6 +547,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -539,6 +584,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -586,6 +636,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -623,6 +678,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -665,6 +725,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -702,6 +767,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -754,6 +824,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -791,6 +866,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -828,6 +908,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         },
         {
           "name": "value",
@@ -910,6 +995,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -952,6 +1042,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -994,6 +1089,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -1031,6 +1131,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         },
         {
           "name": "disabled",
@@ -1078,6 +1183,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -1119,6 +1229,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -1156,6 +1271,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         },
         {
           "name": "description",
@@ -1198,6 +1318,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -1250,6 +1375,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         },
         {
           "name": "disabled",
@@ -1312,6 +1442,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []
@@ -1366,6 +1501,11 @@
           "values": []
         },
         {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
+        },
+        {
           "name": "description",
           "description": "Description for the control — hint text, a format, a unit. A host-level\n`aria-describedby` cannot reach a focusable element inside a shadow root,\nso there was structurally no way to describe a field; this property is\nthat channel. It renders as a hidden span in the control's own shadow root\nwith the inner control's `aria-describedby` pointing at it — the\nshadow-internal IDREF idiom `vf-dialog`'s title patch already uses. A\nhost-level `aria-describedby` is bridged into the same span when this\nproperty is empty, and a failing constraint's validationMessage\njoins it too, so AT hears the error where it hears the hint.\n\nHost-role controls get neither half: their `aria-describedby` already\nworks, and their validation message reaches AT the way a native control's\ndoes — `aria-invalid` plus the browser's own validation UI, not AccName.",
           "values": []
@@ -1401,6 +1541,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         },
         {
           "name": "value",
@@ -1468,6 +1613,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         },
         {
           "name": "value",
@@ -1609,6 +1759,11 @@
           "name": "fixed",
           "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
           "values": []
+        },
+        {
+          "name": "origin",
+          "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+          "values": [{ "name": "PlacementOrigin" }]
         }
       ],
       "references": []

@@ -574,16 +574,19 @@ for (const dpr of [1, 2, 3]) {
     'right and bottom rail bands'
   )
 
-  // The dialog rail is on-demand: absent while the content fits, present —
-  // with its boxing frame — once it overflows, per the documented contract.
+  // The dialog rail is on-demand: absent while the content fits, present once
+  // it overflows — flush against the frame's inner band, per the documented
+  // contract.
   const railState = () =>
     page.evaluate(() => {
       const root = document.querySelector('#dlg').shadowRoot
-      const display = (q) => getComputedStyle(root.querySelector(q)).display
       const content = root.querySelector('.content')
+      const rail = root.querySelector('.vf-rail')
+      const r = rail.getBoundingClientRect()
+      const b = root.querySelector('[part=body]').getBoundingClientRect()
       return {
-        rail: display('.vf-rail'),
-        frame: display('.scroll-frame'),
+        rail: getComputedStyle(rail).display,
+        offBody: [r.right - b.right, r.top - b.top, r.bottom - b.bottom],
         overflowY: getComputedStyle(content).overflowY,
         scrollTop: content.scrollTop,
       }
@@ -596,8 +599,7 @@ for (const dpr of [1, 2, 3]) {
   const fitting = await railState()
   check(
     'fitting dialog shows no rail at all',
-    fitting.rail === 'none' && fitting.frame === 'none' &&
-      fitting.overflowY === 'hidden',
+    fitting.rail === 'none' && fitting.overflowY === 'hidden',
     JSON.stringify(fitting)
   )
   await page.evaluate(async () => {
@@ -609,10 +611,14 @@ for (const dpr of [1, 2, 3]) {
   })
   const stuffed = await railState()
   check(
-    'over-stuffed dialog grows the rail and its boxing frame',
-    stuffed.rail === 'grid' && stuffed.frame === 'block' &&
-      stuffed.overflowY === 'scroll',
+    'over-stuffed dialog grows the rail',
+    stuffed.rail === 'grid' && stuffed.overflowY === 'scroll',
     JSON.stringify(stuffed)
+  )
+  check(
+    'over-stuffed dialog rail sits flush against the frame\'s inner band',
+    stuffed.offBody.every((d) => Math.abs(d) < 0.01),
+    JSON.stringify(stuffed.offBody)
   )
   // …and the rail drives the region: one arrow click, one 16px line.
   const arrow = await page.evaluate(() => {

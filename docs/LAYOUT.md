@@ -27,7 +27,7 @@ A flexbox whose `gap`, `pad`, `width` and `height` are declared in whole system 
 | --- | --- | --- |
 | `direction` | `column` (default), `row` | |
 | `gap` | system px | Between children; `0` by default |
-| `pad` | system px, 1–4 values | CSS shorthand order. The way to inset a window's or a scroll area's content, which carry none of their own |
+| `pad` | system px, 1–4 values | CSS shorthand order. The way to inset a window's, a dialog's or a scroll area's content, which carry none of their own |
 | `place` | `start`, `center`, `end` | Where children sit across the stack. Unset resolves to `start` down a column, `center` across a row. There is no `justify` — a right-aligned action row is a filled column whose one child sits at the end |
 | `width`, `height` | system px | Optional. Declaring one on a panel's outermost stack puts it on the device-pixel grid by construction |
 | `fill-width`, `fill-height` | bare attribute on a **child** | Be as wide (tall) as the stack allows |
@@ -61,7 +61,7 @@ Every component takes `top` and `left` in whole system px. Set either and the el
 
 The coordinates are written as a live `calc(var(--vf-scale, 1) * Npx)`, so a placed layout scales with the display and sits on the device-pixel grid. `right`/`bottom` are released and `margin` zeroed while placed; removing both attributes returns the element to flow with every inline declaration unwound.
 
-**(0,0)** is CSS's nearest positioned ancestor, and every kit container is one: the desktop's raster, a window's content region, a dialog's content area, a stack's box, a fieldset just inside its border, a scroll area's scrolled plane. In a parent of your own, add `position: relative`, or slot the children into a `vf-container` — a plain sized box made for this.
+**(0,0)** is CSS's nearest positioned ancestor, and every kit container is one: the desktop's raster, a window's or a dialog's content region, a stack's box, a fieldset just inside its border, a scroll area's scrolled plane. In a parent of your own, add `position: relative`, or slot the children into a `vf-container` — a plain sized box made for this.
 
 - **No exceptions, including the rows.** `vf-option`, `vf-menu-item`, `vf-list-item` and `vf-menu` take the pair too. These are web components; where you put one is your call, not the kit's. What *does* change is what the managing parent stops doing for a placed child, since the child has left its flow: a `vf-select` panel and a `vf-menu` panel are each as wide as their widest row and no longer count a placed one, the popup's scroll clamp stops counting it, a `vf-list`'s rows below it close the gap, and a placed `vf-menu` lifts off its bar. That is the placement working, not failing — but it isn't how a popup, a pulldown or a list box is laid out, so reach for it when the row is genuinely standing on its own.
 - **`vf-dialog` takes it in viewport coordinates** — `showModal()` puts a modal in the top layer, whose containing block is the viewport, so this one origin is the screen's rather than the parent's. Everything else about the pair is identical: same unit, same live `calc()`, same drag-writes-through. Leave the pair off and the modal is centered, recomputed whenever its box or the viewport changes. Setting either coordinate back to `null` returns it to centering.
@@ -117,14 +117,16 @@ There is no alert component. An alert is the plain frame plus your own icon art:
 
 ```html
 <vf-dialog id="alert" frame="plain" label="Caution" width="340" height="126">
-  <vf-stack fill-width direction="row" gap="16">
+  <vf-stack left="16" top="16" width="298" direction="row" gap="16">
     <vf-img width="32" height="32"><img src="alert-32.png" alt="" /></vf-img>
     <vf-paragraph fill-width face="display"
       >Completely erase the disk named “Macintosh HD”?</vf-paragraph
     >
   </vf-stack>
-  <vf-button slot="buttons">Cancel</vf-button>
-  <vf-button slot="buttons" variant="default">Erase</vf-button>
+  <vf-button-group left="152" top="64">
+    <vf-button>Cancel</vf-button>
+    <vf-button variant="default">Erase</vf-button>
+  </vf-button-group>
 </vf-dialog>
 ```
 

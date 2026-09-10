@@ -338,26 +338,37 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
 }
 
 {
-  // Dialog: the content area (.content-wrap) is the pre-existing positioned
-  // wrapper, so placed children measure from where dialog content starts.
+  // Dialog: (0,0) is the content region's corner — the frame's inner edge,
+  // right below the title bar, measured here off the inner band itself — with
+  // no inset, so a flow sibling starts on it too.
   const page = await build(`
     <vf-dialog id="dlg" heading="Options" width="340" height="180" open>
       <vf-checkbox id="indlg" left="24" top="16">E</vf-checkbox>
+      <vf-button id="dlgflow">F</vf-button>
     </vf-dialog>
   `)
-  const wrap = await page.evaluate(() => {
-    const r = document
+  const inner = await page.evaluate(() => {
+    const band = document
       .getElementById('dlg')
-      .shadowRoot.querySelector('.content-wrap')
-      .getBoundingClientRect()
-    return { x: r.left, y: r.top }
+      .shadowRoot.querySelector('.vf-modal-frame-inner')
+    const r = band.getBoundingClientRect()
+    const s = getComputedStyle(band)
+    return {
+      x: r.left + parseFloat(s.borderLeftWidth),
+      y: r.top + parseFloat(s.borderTopWidth),
+    }
   })
-  const indlg = await rect(page, 'indlg')
+  const [indlg, dlgflow] = await Promise.all([rect(page, 'indlg'), rect(page, 'dlgflow')])
   check(
-    'anchors: a dialog anchors placed children to its content area',
-    near(indlg.x - wrap.x, 24 * DEVICE_PX_PER_SYSTEM_PX) &&
-      near(indlg.y - wrap.y, 16 * DEVICE_PX_PER_SYSTEM_PX),
-    `${indlg.x - wrap.x} × ${indlg.y - wrap.y}px CSS`
+    "anchors: a dialog anchors placed children to the frame's inner edge",
+    near(indlg.x - inner.x, 24 * DEVICE_PX_PER_SYSTEM_PX) &&
+      near(indlg.y - inner.y, 16 * DEVICE_PX_PER_SYSTEM_PX),
+    `${indlg.x - inner.x} × ${indlg.y - inner.y}px CSS`
+  )
+  check(
+    "anchors: …and a dialog's flow sibling starts at that corner too (no inset)",
+    near(dlgflow.x, inner.x) && near(dlgflow.y, inner.y),
+    `${(dlgflow.x - inner.x).toFixed(2)} / ${(dlgflow.y - inner.y).toFixed(2)} from the inner edge`
   )
   await page.close()
 }

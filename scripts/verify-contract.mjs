@@ -54,7 +54,7 @@ const build = makeBuild(browser, {
     <button id="opener">Open</button>
     <vf-dialog id="dlg" heading="Doomed" width="320" height="160">
       <vf-paragraph>Body</vf-paragraph>
-      <vf-button slot="buttons" variant="default">OK</vf-button>
+      <vf-button variant="default">OK</vf-button>
     </vf-dialog>
   `)
 
@@ -129,27 +129,27 @@ const build = makeBuild(browser, {
   const page = await build(`
     <vf-dialog id="fits" heading="Fits" width="320" height="200" open>
       <vf-paragraph>Short.</vf-paragraph>
-      <vf-button slot="buttons" variant="default">OK</vf-button>
+      <vf-button variant="default" left="200" top="140">OK</vf-button>
     </vf-dialog>
   `)
   const fits = await page.evaluate(() => {
     const dlg = document.getElementById('fits')
     const content = dlg.shadowRoot.querySelector('.content')
-    const frame = dlg.shadowRoot.querySelector('.content-wrap .scroll-frame')
+    const rail = dlg.shadowRoot.querySelector('.vf-rail')
     return {
       overflowAttr: content.getAttribute('data-overflow-y'),
       tabindex: content.getAttribute('tabindex'),
       role: content.getAttribute('role'),
-      frameShown: getComputedStyle(frame).display !== 'none',
+      railShown: getComputedStyle(rail).display !== 'none',
       overflowY: getComputedStyle(content).overflowY,
     }
   })
   check(
-    'overflow: a fitting dialog has no rail, no stop, no role, no frame',
+    'overflow: a fitting dialog has no rail, no stop, no role',
     fits.overflowAttr === 'false' &&
       fits.tabindex === null &&
       fits.role === null &&
-      fits.frameShown === false,
+      fits.railShown === false,
     JSON.stringify(fits)
   )
   // The CSS has to agree with the controller. `auto` here let a dialog the kit
@@ -184,23 +184,27 @@ const build = makeBuild(browser, {
   await page.close()
 }
 {
-  // 40 paragraphs in a 200-system-px box: over-stuffed by any measure.
+  // 40 paragraphs in a 200-system-px box: over-stuffed by any measure. The
+  // buttons are placed, so they anchor to the body, outside the scroller.
   const page = await build(`
     <vf-dialog id="stuffed" heading="Stuffed" width="360" height="200" open>
       ${Array.from({ length: 40 }, (_, i) => `<vf-paragraph>Line ${i + 1} of the body copy.</vf-paragraph>`).join('')}
-      <vf-button slot="buttons">Cancel</vf-button>
-      <vf-button id="ok" slot="buttons" variant="default">OK</vf-button>
+      <vf-button-group left="160" top="140">
+        <vf-button>Cancel</vf-button>
+        <vf-button id="ok" variant="default">OK</vf-button>
+      </vf-button-group>
     </vf-dialog>
   `)
   const r = await page.evaluate(() => {
     const dlg = document.getElementById('stuffed')
     const content = dlg.shadowRoot.querySelector('.content')
-    const frame = dlg.shadowRoot.querySelector('.content-wrap .scroll-frame')
+    const rail = dlg.shadowRoot.querySelector('.vf-rail')
     const ok = document.getElementById('ok')
-    const okRect = ok.getBoundingClientRect()
+    const okBefore = ok.getBoundingClientRect()
     const before = content.scrollTop
     content.scrollTop = 99999
     const scrolled = content.scrollTop > before
+    const okRect = ok.getBoundingClientRect()
     return {
       overflowAttr: content.getAttribute('data-overflow-y'),
       scrollable: content.scrollHeight - content.clientHeight > 1,
@@ -208,7 +212,8 @@ const build = makeBuild(browser, {
       overflowY: getComputedStyle(content).overflowY,
       tabindex: content.getAttribute('tabindex'),
       role: content.getAttribute('role'),
-      frameShown: getComputedStyle(frame).display !== 'none',
+      railShown: getComputedStyle(rail).display !== 'none',
+      okHeld: okRect.top === okBefore.top && okRect.left === okBefore.left,
       okOnScreen:
         okRect.top >= 0 &&
         okRect.bottom <= window.innerHeight &&
@@ -225,8 +230,9 @@ const build = makeBuild(browser, {
     `overflow-y: ${r.overflowY}`
   )
   check('overflow: scrollable region is a keyboard stop with a role', r.tabindex === '0' && r.role === 'group')
-  check('overflow: the System 7 rail frame is shown', r.frameShown)
-  check('overflow: the default button stays on-screen (footer pinned)', r.okOnScreen)
+  check('overflow: the System 7 rail is shown', r.railShown)
+  check('overflow: a placed default button holds still while the content scrolls', r.okHeld)
+  check('overflow: …and stays on-screen', r.okOnScreen)
 
   const clicked = await page.evaluate(async () => {
     let hit = false
@@ -252,7 +258,7 @@ const build = makeBuild(browser, {
   const page = await build(`
     <vf-dialog id="auto" heading="Auto" width="360" open>
       ${Array.from({ length: 60 }, (_, i) => `<vf-paragraph>Line ${i + 1}.</vf-paragraph>`).join('')}
-      <vf-button id="ok2" slot="buttons" variant="default">OK</vf-button>
+      <vf-button id="ok2" variant="default" left="8" top="8">OK</vf-button>
     </vf-dialog>
   `)
   const r = await page.evaluate(() => {
@@ -266,7 +272,7 @@ const build = makeBuild(browser, {
     }
   })
   check('overflow: undeclared-height frame stays inside the viewport', r.frameInViewport)
-  check('overflow: undeclared-height dialog keeps its button on-screen', r.okOnScreen)
+  check('overflow: undeclared-height dialog keeps a placed button on-screen', r.okOnScreen)
   await page.close()
 }
 

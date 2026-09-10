@@ -10,7 +10,6 @@ import {
   vfModalFrame,
   vfTitleBar,
   vfWindowWidgets,
-  vfDisplayDecls,
   vfScrollRail,
 } from '../styles/base.js'
 import { snapSys, toSysExact } from '../scale.js'
@@ -24,7 +23,6 @@ import {
   closeBox,
 } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
-import './vf-button-group.js'
 
 /**
  * `<vf-dialog>` — the System 7 modal dialog shell.
@@ -42,9 +40,8 @@ import './vf-button-group.js'
  *   say no), so the component enables either reading rather than enforcing
  *   one.
  * - **`frame="plain"`:** the modal dialog box — the bare frame, no title bar —
- *   and immovable, like the original. A `heading` renders as a centered
- *   display-face heading at the top of the body (the reference art's "Dialog
- *   title"); `closable` is ignored, there being no bar to carry the widget.
+ *   and immovable, like the original. With no bar, `heading` only names the
+ *   dialog and `closable` is ignored.
  *
  * Open it with `show()` (or set the `open` attribute/property); close with
  * `close()`. Escape closes it and fires `vf-close` with
@@ -62,21 +59,20 @@ import './vf-button-group.js'
  * multi-line editor Return inserts the newline while the keypad's Enter
  * activates the button.
  *
- * @slot - Default slot: dialog body content.
- * @slot buttons - Optional action buttons. Rendered as a bottom-right
- *   `vf-button-group` (equal-width, faces aligned); the footer only takes
- *   space when the slot is populated.
+ * Slotted children placed with `top`/`left` measure from the content region's
+ * corner — the frame's inner edge, below the title bar — and flow content
+ * starts at the same corner.
+ *
+ * @slot - Default slot: the dialog's content.
  * @csspart frame - The outer frame (the double frame's 1px rule; the bar and
  *   the inner band sit inside it).
  * @csspart title-bar - The striped title bar (default chrome only).
- * @csspart title - The centered title patch (or the plain-frame heading).
+ * @csspart title - The centered title patch (default chrome only).
  * @csspart close-box - The close widget (`closable`, default chrome only).
- * @csspart body - The white content area.
- * @csspart content - The scrolling region inside the body (heading + slotted
- *   content, not the footer). Inert while the content fits; over-stuffed, it
- *   scrolls under a System 7 rail and becomes a keyboard stop.
- * @csspart footer - The action row wrapping the buttons.
- * @csspart buttons - The button group inside the footer.
+ * @csspart body - The white content region.
+ * @csspart content - The scrolling region inside the body (the slotted
+ *   content). Inert while the content fits; over-stuffed, it scrolls under a
+ *   System 7 rail and becomes a keyboard stop.
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' |
  *   'outside' }` — `'outside'` only under `light-dismiss`.
  * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,
@@ -134,34 +130,27 @@ export class VfDialog extends VfModalDialog {
       :host([closable]) .vf-title {
         --vf-title-inset: 60px;
       }
-      /* Takes the slack under the title bar. A modal is a fixed box — the
-         frame never grows with its body — but content taller than the box is
-         no longer silently clipped: the .content region below scrolls it
-         under a System 7 rail, with the footer pinned outside the scroll so
-         the action buttons stay reachable. overflow: hidden stays as the
-         frame-level backstop. A slotted vf-select's list still escapes: it is
-         position:fixed off the control's own rect (see vf-select.ts). */
+      /* The content region: takes the slack under the title bar, and is the
+         positioning anchor for slotted children placed with top/left
+         (src/position.ts) — coordinates measure from the frame's inner edge,
+         exactly the DITL convention. No inset of its own: flow content starts
+         at the same corner a placed child does. A modal is a fixed box — the
+         frame never grows with its body — but flow content taller than the
+         box is not silently clipped: the .content region below scrolls it
+         under a System 7 rail. Placed children anchor here, outside that
+         scroller, so they hold still while it scrolls. overflow: hidden stays
+         as the frame-level backstop. A slotted vf-select's list still
+         escapes: it is position:fixed off the control's own rect (see
+         vf-select.ts). */
       .body {
         --vf-surface: var(--vf-white, #ffffff);
         background: var(--vf-white, #ffffff);
+        position: relative;
         display: flex;
         flex-direction: column;
         flex: 1 1 auto;
         min-height: 0;
         overflow: hidden;
-        padding: calc(var(--vf-scale, 1) * 16px);
-      }
-      /* The scroll region's positioned wrapper (the .scroll-frame overlay and
-         the rail overlay anchor against it). Shrink-only (flex-grow 0): with
-         slack in the box the footer sits right after the content, exactly
-         where block flow put it before this wrapper existed — the wrap only
-         gives height back when the content doesn't fit. */
-      .content-wrap {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        flex: 0 1 auto;
-        min-height: 0;
       }
       /* hidden, not auto, until the controller says otherwise — the two have
          to agree on what "overflowing" means or the dialog scrolls without a
@@ -182,46 +171,31 @@ export class VfDialog extends VfModalDialog {
         overflow-y: hidden;
       }
       /* Only while genuinely over-stuffed (ScrollStateController's measured
-         signal) does the region scroll — reserving the 16px channel as its
-         own padding (what the native gutter used to reserve) — and only then
-         do the rail and the 1px frame boxing it appear. While the content
-         fits, none of this matches and the body renders exactly as it always
-         has. */
+         signal) does the region scroll — reserving the rail's 15px as its
+         own padding — and only then does the rail appear. While the content
+         fits, none of this matches. */
       .content[data-overflow-y='true'] {
         overflow-y: scroll;
-        padding-right: calc(var(--vf-scale, 1) * 16px);
+        padding-right: calc(var(--vf-scale, 1) * 15px);
       }
-      /* The rail rides the wrapper as an OVERLAY pinned to its right edge,
-         inside the boxing frame's lines (the 1px insets; the fourth side is
-         its own divider) — deliberately out of the layout flow: a rail
-         column's two fixed 15px arrow cells would hand the region a 32px
-         minimum height, and a short dialog would then measure as fitting
-         with the rail shown and overflowing without it, flip-flopping
-         forever. An overlay cannot move the box; the channel the content
-         pays for is the padding above. Hidden until the region actually
-         scrolls. */
-      .content-wrap .vf-rail {
+      /* The rail rides the body as an OVERLAY pinned to its right edge, flush
+         against the frame's inner band — the band is the classic 16px cell's
+         outer line on three sides; the fourth is the rail's own divider —
+         deliberately out of the layout flow: a rail column's two fixed 15px
+         arrow cells would hand the region a 32px minimum height, and a short
+         dialog would then measure as fitting with the rail shown and
+         overflowing without it, flip-flopping forever. An overlay cannot move
+         the box; the channel the content pays for is the padding above.
+         Hidden until the region actually scrolls. */
+      .body > .vf-rail {
         position: absolute;
-        top: calc(var(--vf-scale, 1) * 1px);
-        right: calc(var(--vf-scale, 1) * 1px);
-        bottom: calc(var(--vf-scale, 1) * 1px);
+        top: 0;
+        right: 0;
+        bottom: 0;
         display: none;
       }
       .content[data-overflow-y='true'] ~ .vf-rail {
         display: grid;
-      }
-      /* The 1px frame boxing the scrolling region and its rail — an overlay
-         (spanning both grid columns via inset 0) so the fitting dialog keeps
-         no reserved line. */
-      .scroll-frame {
-        position: absolute;
-        inset: 0;
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-        pointer-events: none;
-        display: none;
-      }
-      .content[data-overflow-y='true'] ~ .scroll-frame {
-        display: block;
       }
       /* A scrollable region is a keyboard stop (tabindex in the template);
          mark it with the kit's dotted ring, inset to stay in-box — the same
@@ -229,26 +203,6 @@ export class VfDialog extends VfModalDialog {
       .content:focus-visible {
         --vf-focus-offset: -2px;
         ${vfFocusRing}
-      }
-      /* The plain frame's heading: centered chrome type at the top of the
-         body, the way dBoxProc dialogs drew their title in content (see
-         Windows/modal dialog.png). No patch, no ellipsis — it's body-top
-         text, not a bar. */
-      .plain-heading {
-        ${vfDisplayDecls}
-        display: block;
-        text-align: center;
-        margin-bottom: calc(var(--vf-scale, 1) * 16px);
-      }
-      /* Optional action row (slot="buttons"): a right-aligned vf-button-group
-         that only takes space when populated. */
-      .footer {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: calc(var(--vf-scale, 1) * 16px);
-      }
-      .footer.empty {
-        display: none;
       }
     `,
   ]
@@ -295,13 +249,16 @@ export class VfDialog extends VfModalDialog {
   /** Holds the centered title patch on the placement lattice (src/chrome.ts). */
   private readonly _titleCenter = new TitleCenterController(this)
 
-  /** Title text: the bar's centered patch, or the plain frame's heading. */
+  /**
+   * Title text: the bar's centered patch, and the dialog's accessible name.
+   * With `frame="plain"`, which has no bar, it only names the dialog.
+   */
   @property() heading = ''
 
   /**
    * Accessible name for the dialog (`aria-label`), for a dialog with no
    * `heading` — an untitled title bar has no text to be named by. Ignored when
-   * empty and a `heading` is set (the title patch names the dialog then);
+   * empty and a `heading` is set (the heading names the dialog then);
    * defaults to `'Dialog'` when neither is given.
    */
   @property() label = ''
@@ -319,9 +276,6 @@ export class VfDialog extends VfModalDialog {
    * box (the bare double frame, no bar).
    */
   @property({ reflect: true }) frame?: 'plain'
-
-  /** Whether the `buttons` slot has assigned content (drives the footer). */
-  @state() private _hasButtons = false
 
   @query('.content') private _content!: HTMLElement | null
 
@@ -357,47 +311,31 @@ export class VfDialog extends VfModalDialog {
   }
 
   protected override render(): unknown {
-    // A titled dialog is named by its own title patch (or, on the plain
-    // frame, its body-top heading — both carry id="title"). An untitled one
-    // has nothing to point at — aria-labelledby would resolve to an empty
-    // node and leave the dialog with no accessible name at all — so it names
-    // itself with aria-label instead.
-    const titled = !this.label && this.heading !== ''
+    // A titled default-chrome dialog is named by its own title patch
+    // (id="title"). Anything else has no patch to point at — aria-labelledby
+    // would resolve to an empty node and leave the dialog with no accessible
+    // name at all — so it names itself with aria-label: the label, else the
+    // heading (a plain frame's), else 'Dialog'.
     const plain = this.frame === 'plain'
+    const titled = !plain && !this.label && this.heading !== ''
     const body = html`
       <div class="body" part="body">
-        <div class="content-wrap">
-          <div
-            class="content vf-scroll"
-            part="content"
-            tabindex=${this._scrollable ? '0' : nothing}
-            role=${this._scrollable ? 'group' : nothing}
-          >
-            ${plain && this.heading !== ''
-              ? html`<span class="plain-heading" part="title" id="title"
-                  >${this.heading}</span
-                >`
-              : nothing}
-            <slot @slotchange=${this._onBodySlotChange}></slot>
-          </div>
-          ${renderScrollRail(this._rail, 'vertical')}
-          <div class="scroll-frame" aria-hidden="true"></div>
+        <div
+          class="content vf-scroll"
+          part="content"
+          tabindex=${this._scrollable ? '0' : nothing}
+          role=${this._scrollable ? 'group' : nothing}
+        >
+          <slot @slotchange=${this._onBodySlotChange}></slot>
         </div>
-        <div class="footer ${this._hasButtons ? '' : 'empty'}" part="footer">
-          <vf-button-group class="buttons" part="buttons">
-            <slot
-              name="buttons"
-              @slotchange=${this._onButtonsSlotChange}
-            ></slot>
-          </vf-button-group>
-        </div>
+        ${renderScrollRail(this._rail, 'vertical')}
       </div>
     `
     return html`
       <dialog
         style=${styleMap(this.dialogSize)}
         aria-labelledby=${titled ? 'title' : nothing}
-        aria-label=${titled ? nothing : this.label || 'Dialog'}
+        aria-label=${titled ? nothing : this.label || this.heading || 'Dialog'}
         @cancel=${this._onNativeCancel}
         @close=${this._onNativeClose}
       >
@@ -422,11 +360,6 @@ export class VfDialog extends VfModalDialog {
         </div>
       </dialog>
     `
-  }
-
-  private _onButtonsSlotChange(event: Event): void {
-    const slot = event.target as HTMLSlotElement
-    this._hasButtons = slot.assignedElements().length > 0
   }
 }
 

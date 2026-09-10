@@ -298,11 +298,12 @@ function replaceElements(_key: string, value: unknown): unknown {
  * Under a drag the folder icon under the pointer wears `target`. At the
  * drop: icons let go over a folder icon are filed into that folder's
  * window; ones let go over a folder window are placed there where their
- * outlines were (`placementAt`); ones let go on the desktop are placed on
- * the desktop's field the same way. The whole set travels — `detail.icons`,
- * the dragged icon first — and each member lands where its own outline
- * was: its box translated by the delta the leader's `x`/`y` carry. In each
- * case the handler cancels the default action and does the writes itself.
+ * outlines were (`placementAt`, handed the member so an `origin` it carries
+ * is folded in); ones let go on the desktop are placed on the desktop's
+ * field the same way. The whole set travels — `detail.icons`, the dragged
+ * icon first — and each member lands where its own outline was: its box
+ * translated by the delta the leader's `x`/`y` carry. In each case the
+ * handler cancels the default action and does the writes itself.
  * A drop on the container the icons already sit in is left to the kit: the
  * default action moves them.
  */
@@ -392,7 +393,7 @@ function wireFiling(): void {
         if (!field) return
         event.preventDefault()
         const win = hit.window
-        place(field, (landing) => win.placementAt(landing.x, landing.y))
+        place(field, (landing) => win.placementAt(landing.x, landing.y, landing.member))
         countItems(win)
         if (from) countItems(from)
         return
@@ -400,7 +401,9 @@ function wireFiling(): void {
       if (!hit.window && hit.desktop && from && desktopField) {
         // Out onto the desktop, where the outlines were let go.
         event.preventDefault()
-        place(desktopField, (landing) => desktop.placementAt(landing.x, landing.y))
+        place(desktopField, (landing) =>
+          desktop.placementAt(landing.x, landing.y, landing.member)
+        )
         countItems(from)
       }
       // Otherwise: the same container they came from — the kit's default

@@ -380,10 +380,16 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * in whole system px on the placement lattice, measured from the raster's
    * corner with the bezel excluded: the pair a child dropped onto the desktop
    * is written with. The screen sits in the shadow tree, which is why the
-   * conversion is a method here.
+   * conversion is a method here. With `child`, the pair to write to that
+   * element: the offset its `origin` adds is folded in, so its box's corner
+   * lands on the point.
    */
-  placementAt(clientX: number, clientY: number): { left: number; top: number } {
-    return placementIn(this.screen ?? this, clientX, clientY, this)
+  placementAt(
+    clientX: number,
+    clientY: number,
+    child?: Element
+  ): { left: number; top: number } {
+    return placementIn(this.screen ?? this, clientX, clientY, this, child)
   }
 
   /** Slotted `vf-window` children (direct children only). */

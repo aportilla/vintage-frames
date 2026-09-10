@@ -661,12 +661,18 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * child dropped into this window is written with: the body's corner, or
    * under `scrollbars` the scrolled plane, scroll offset included. The anchor
    * sits in the shadow tree, which is why the conversion is a method here
-   * rather than the page's own `toSysExact` against a rect.
+   * rather than the page's own `toSysExact` against a rect. With `child`,
+   * the pair to write to that element: the offset its `origin` adds is
+   * folded in, so its box's corner lands on the point.
    */
-  placementAt(clientX: number, clientY: number): { left: number; top: number } {
+  placementAt(
+    clientX: number,
+    clientY: number,
+    child?: Element
+  ): { left: number; top: number } {
     const area = this.scrollArea
-    if (area) return area.placementAt(clientX, clientY)
-    return placementIn(this.body ?? this, clientX, clientY, this)
+    if (area) return area.placementAt(clientX, clientY, child)
+    return placementIn(this.body ?? this, clientX, clientY, this, child)
   }
 
   /**

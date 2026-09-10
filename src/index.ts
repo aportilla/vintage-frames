@@ -283,7 +283,12 @@ export { VfTextControlBase } from './text-control.js'
 export { VfToggleControl } from './toggle-control.js'
 export type { VfToggleControlInterface } from './toggle-control.js'
 export { PlacementController, VfPositioned } from './position.js'
-export type { PlacementBounds, PlacementClamp, VfPositionedInterface } from './position.js'
+export type {
+  PlacementBounds,
+  PlacementClamp,
+  PlacementOrigin,
+  VfPositionedInterface,
+} from './position.js'
 export { VfSized } from './size.js'
 export type { VfSizedInterface } from './size.js'
 export { VfModalDialog, modalDialogStyles } from './modal-dialog.js'

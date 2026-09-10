@@ -67,6 +67,8 @@ export interface VfIconDragFollower {
   icon: VfIcon
   /** The follower's seeded origin, system px in the shared container. */
   origin: { x: number; y: number }
+  /** How far that origin sits from the follower's box corner (its `origin`). */
+  offset: { x: number; y: number }
   /** The follower's box, system px, for the group clamp. */
   size: { width: number; height: number }
   /** Move the follower's outline by a lattice delta. */
@@ -1014,6 +1016,7 @@ export class VfIcon extends VfPositioned(LitElement) {
     return {
       icon: this,
       origin,
+      offset: this.#placement.offset,
       size: this.#sysSize(),
       move: (dx, dy) => {
         if (outline) this.#placeOutlineAt(outline, dx, dy)
@@ -1131,27 +1134,33 @@ export class VfIcon extends VfPositioned(LitElement) {
       return
     }
     const bounds = this.#placement.bounds
+    // The clamp is about each box, and a member's origin is its stated pair
+    // — the corner only without an `origin` — so the offset comes off here.
+    const corner = (o: { x: number; y: number }, off: { x: number; y: number }) => ({
+      x: o.x - off.x,
+      y: o.y - off.y,
+    })
     const members = [
-      { origin: gesture.origin, size: gesture.size },
-      ...gesture.followers.map((f) => ({ origin: f.origin, size: f.size })),
+      { corner: corner(gesture.origin, this.#placement.offset), size: gesture.size },
+      ...gesture.followers.map((f) => ({ corner: corner(f.origin, f.offset), size: f.size })),
     ]
     const axis = (
       delta: number,
-      origin: (m: (typeof members)[number]) => number,
+      start: (m: (typeof members)[number]) => number,
       extent: (m: (typeof members)[number]) => number,
       room: number
     ): number => {
       let lo = -Infinity
       let hi = Infinity
       for (const m of members) {
-        lo = Math.max(lo, -origin(m))
-        hi = Math.min(hi, room - extent(m) - origin(m))
+        lo = Math.max(lo, -start(m))
+        hi = Math.min(hi, room - extent(m) - start(m))
       }
       if (hi < lo) hi = Infinity
       return Math.min(Math.max(delta, lo), hi)
     }
-    const dx = axis(detail.left - gesture.origin.x, (m) => m.origin.x, (m) => m.size.width, bounds.width)
-    const dy = axis(detail.top - gesture.origin.y, (m) => m.origin.y, (m) => m.size.height, bounds.height)
+    const dx = axis(detail.left - gesture.origin.x, (m) => m.corner.x, (m) => m.size.width, bounds.width)
+    const dy = axis(detail.top - gesture.origin.y, (m) => m.corner.y, (m) => m.size.height, bounds.height)
     this.#placement.moveTo(gesture.origin.x + dx, gesture.origin.y + dy)
     for (const follower of gesture.followers) follower.drop(dx, dy)
   }

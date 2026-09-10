@@ -109,6 +109,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -162,6 +176,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -442,6 +468,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -1108,6 +1148,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "description",
               "type": {
                 "text": "string"
@@ -1416,6 +1468,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -1989,6 +2055,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -2225,6 +2303,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -2300,6 +2392,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -2459,9 +2563,16 @@
                   "type": {
                     "text": "number"
                   }
+                },
+                {
+                  "name": "child",
+                  "optional": true,
+                  "type": {
+                    "text": "Element"
+                  }
                 }
               ],
-              "description": "A viewport point (CSS px) as a placement on the screen — `{ left, top }`\nin whole system px on the placement lattice, measured from the raster's\ncorner with the bezel excluded: the pair a child dropped onto the desktop\nis written with. The screen sits in the shadow tree, which is why the\nconversion is a method here."
+              "description": "A viewport point (CSS px) as a placement on the screen — `{ left, top }`\nin whole system px on the placement lattice, measured from the raster's\ncorner with the bezel excluded: the pair a child dropped onto the desktop\nis written with. The screen sits in the shadow tree, which is why the\nconversion is a method here. With `child`, the pair to write to that\nelement: the offset its `origin` adds is folded in, so its box's corner\nlands on the point."
             },
             {
               "kind": "field",
@@ -2919,6 +3030,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -2990,6 +3115,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -4025,6 +4162,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -4069,6 +4220,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -4267,6 +4430,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -4364,6 +4541,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -4770,6 +4959,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -4846,6 +5049,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -5828,6 +6043,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -5999,6 +6228,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -6193,6 +6434,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -6244,6 +6499,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -6500,6 +6767,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -6584,6 +6865,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -6755,6 +7048,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -6817,6 +7124,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -7302,6 +7621,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -7379,6 +7712,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -7754,6 +8099,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -7816,6 +8175,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -8185,6 +8556,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -8279,6 +8664,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -8758,6 +9155,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -8820,6 +9231,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -9128,6 +9551,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -10060,6 +10497,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -10329,6 +10778,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -10400,6 +10863,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -10577,6 +11052,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -10653,6 +11142,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -10904,6 +11405,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -10975,6 +11490,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -11270,6 +11797,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -11751,6 +12292,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -12025,6 +12578,20 @@
             },
             {
               "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "scale",
               "privacy": "private",
               "readonly": true,
@@ -12191,6 +12758,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -12379,9 +12958,16 @@
                   "type": {
                     "text": "number"
                   }
+                },
+                {
+                  "name": "child",
+                  "optional": true,
+                  "type": {
+                    "text": "Element"
+                  }
                 }
               ],
-              "description": "A viewport point (CSS px) as a placement on the scrolled plane —\n`{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped here is written with. The plane travels with the scroll,\nso its box already carries the scroll offset and the border-floor\npadding; nothing is left for the caller to add."
+              "description": "A viewport point (CSS px) as a placement on the scrolled plane —\n`{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped here is written with. The plane travels with the scroll,\nso its box already carries the scroll offset and the border-floor\npadding; nothing is left for the caller to add. With `child`, the pair\nto write to that element: the offset its `origin` adds is folded in, so\nits box's corner lands on the point."
             },
             {
               "kind": "method",
@@ -12463,6 +13049,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -12525,6 +13125,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -13602,6 +14214,20 @@
             },
             {
               "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "bridgedAriaAttributes",
               "type": {
                 "text": "array"
@@ -14171,6 +14797,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "description",
               "type": {
                 "text": "string"
@@ -14344,6 +14982,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -14388,6 +15040,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -14818,6 +15482,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -15335,6 +16013,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "disabled",
               "type": {
                 "text": "boolean"
@@ -15569,6 +16259,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "attributes": [
@@ -15662,6 +16366,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -15873,6 +16589,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -16501,6 +17231,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "description",
               "type": {
                 "text": "string"
@@ -16691,6 +17433,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -17584,6 +18340,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -17833,6 +18601,20 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
               "reflects": true,
               "inheritedFrom": {
                 "name": "VfPositioned",
@@ -18733,6 +19515,18 @@
               }
             },
             {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
               "name": "value",
               "type": {
                 "text": "string"
@@ -19234,9 +20028,16 @@
                   "type": {
                     "text": "number"
                   }
+                },
+                {
+                  "name": "child",
+                  "optional": true,
+                  "type": {
+                    "text": "Element"
+                  }
                 }
               ],
-              "description": "A viewport point (CSS px) as a placement in the window's content region\n— `{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped into this window is written with: the body's corner, or\nunder `scrollbars` the scrolled plane, scroll offset included. The anchor\nsits in the shadow tree, which is why the conversion is a method here\nrather than the page's own `toSysExact` against a rect."
+              "description": "A viewport point (CSS px) as a placement in the window's content region\n— `{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped into this window is written with: the body's corner, or\nunder `scrollbars` the scrolled plane, scroll offset included. The anchor\nsits in the shadow tree, which is why the conversion is a method here\nrather than the page's own `toSysExact` against a rect. With `child`,\nthe pair to write to that element: the offset its `origin` adds is\nfolded in, so its box's corner lands on the point."
             },
             {
               "kind": "method",
@@ -19469,6 +20270,20 @@
                 "name": "VfPositioned",
                 "module": "src/position.ts"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
             }
           ],
           "events": [
@@ -19652,6 +20467,18 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed",
+              "inheritedFrom": {
+                "name": "VfPositioned",
+                "module": "src/position.ts"
+              }
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin",
               "inheritedFrom": {
                 "name": "VfPositioned",
                 "module": "src/position.ts"
@@ -22277,6 +23104,13 @@
               "type": {
                 "text": "boolean"
               }
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              }
             }
           ],
           "superclass": {
@@ -22287,7 +23121,7 @@
         },
         {
           "kind": "mixin",
-          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\nor a dialog's content region (the frame's inner edge, below any title bar,\nwith no inset — flow content starts there too, exactly the DITL\nconvention), a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.\n\n**Every write it makes is announced** as `vf-placement-change` (bubbles,\n`composed: false`, detail `{ left, top }` — nulls on a return to flow). It\nis an internal coordination event on the terms of the menu handshakes:\nparent and child share one light tree, and a kit protocol must not leak out\nof a consumer's shadow boundary. `vf-scroll-area` listens for it and\nre-measures, because a placed child moved through `top`/`left` changes the\nscroll range with no box changing anywhere a ResizeObserver can see — the\nplane's box is never grown by an absolutely positioned child. One funnel\ncovers a drop, an arrow nudge and a page's own `icon.left = …` alike.\n\n**`fixed`** holds the placement against the *visible* region of the nearest\nscrolling ancestor instead of its scrolled plane — a tool strip over a\ndocument, a column header over rows — and the flag alone places at (0,0).\nThe engine underneath is `position: sticky`, the one way the platform holds\na box against a scrollport from inside it on the compositor (a scroll\nlistener counter-translating lags a frame; a layer outside the scroller\nstops wheel and touch over it). Sticky boxes stay in flow, which is not\nwhat a placement is, so the controller erases the footprint: the host is\nblockified (no line box), shrink-wrapped, and given a negative right/bottom\nmargin equal to its own box — a 0×0 margin box that flow content lays out\nas if it weren't there, measured by a ResizeObserver so a relabel or a zoom\nstep keeps it exact. `z-index: 1` puts it over the plane's placed children,\nwhich is where a fixed strip belongs. Two facts of the engine that the\ndocs state as rules: sticky only ever pushes a box *down* from where the\nflow put it, so a fixed child comes before the flow content in its parent;\nand a scroll container that never scrolls (a plain window body is\n`overflow: hidden`) holds it exactly where placement would.",
+          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\nor a dialog's content region (the frame's inner edge, below any title bar,\nwith no inset — flow content starts there too, exactly the DITL\nconvention), a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.\n\n**Every write it makes is announced** as `vf-placement-change` (bubbles,\n`composed: false`, detail `{ left, top }` — nulls on a return to flow). It\nis an internal coordination event on the terms of the menu handshakes:\nparent and child share one light tree, and a kit protocol must not leak out\nof a consumer's shadow boundary. `vf-scroll-area` listens for it and\nre-measures, because a placed child moved through `top`/`left` changes the\nscroll range with no box changing anywhere a ResizeObserver can see — the\nplane's box is never grown by an absolutely positioned child. One funnel\ncovers a drop, an arrow nudge and a page's own `icon.left = …` alike.\n\n**`origin`** names which point of the host's own box the pair places —\nnine keywords, vertical then horizontal (`top center`, `bottom right`,\n`center`), `top left` the default. A title stays centered on its `left`\nwhatever its text; a button group keeps its bottom-right corner in from\nthe dialog's however long its labels run. The point is measured, not\ntransformed: the controller reads the host's border box in whole system px\n(w × h) and writes `left` as the stated `L` less ⌈w·fx⌉ (`fx` 0, ½ or 1),\n`top` the same way — the ceiling sends an odd size's leftover half toward\nthe start, the tie rule the kit's other centering uses. A ResizeObserver\nkeeps the offset current through a relabel or a late font, and each such\nrewrite is announced like any other write. A zoom step changes CSS px, not\nsystem px, so it recomputes the same offset. `translate: -50% 0` would have\nbeen the no-JavaScript version, and fails twice: a percentage of an odd\nwidth is half a pixel, which smears the 1-bit art, and a transform makes\nthe host the containing block for `position: fixed` descendants — a placed\ngroup holding a `vf-select` would trap its list. `top left` is the plain\ncode path: no observer, no measurement, the same inline style as before\nthe attribute existed. An unknown value places as `top left` and warns once\nper element. On its own the attribute places nothing: it changes what the\npair means, and is inert on a host in flow.\n\n**`fixed`** holds the placement against the *visible* region of the nearest\nscrolling ancestor instead of its scrolled plane — a tool strip over a\ndocument, a column header over rows — and the flag alone places at (0,0).\nThe engine underneath is `position: sticky`, the one way the platform holds\na box against a scrollport from inside it on the compositor (a scroll\nlistener counter-translating lags a frame; a layer outside the scroller\nstops wheel and touch over it). Sticky boxes stay in flow, which is not\nwhat a placement is, so the controller erases the footprint: the host is\nblockified (no line box), shrink-wrapped, and given a negative right/bottom\nmargin equal to its own box — a 0×0 margin box that flow content lays out\nas if it weren't there, measured by a ResizeObserver so a relabel or a zoom\nstep keeps it exact. `z-index: 1` puts it over the plane's placed children,\nwhich is where a fixed strip belongs. Two facts of the engine that the\ndocs state as rules: sticky only ever pushes a box *down* from where the\nflow put it, so a fixed child comes before the flow content in its parent;\nand a scroll container that never scrolls (a plain window body is\n`overflow: hidden`) holds it exactly where placement would.",
           "name": "VfPositioned",
           "members": [
             {
@@ -22318,6 +23152,16 @@
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "attribute": "fixed",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "attribute": "origin",
+              "reflects": true
             }
           ],
           "attributes": [
@@ -22345,6 +23189,14 @@
               "default": "false",
               "description": "Hold the placement against the visible region of the nearest scrolling\nancestor: the element keeps its stated `top`/`left` while the content\nscrolls under it, and the flag alone places it at (0,0). It comes\nbefore the flow content in its parent. Where nothing scrolls it renders\nexactly as placed.",
               "fieldName": "fixed"
+            },
+            {
+              "name": "origin",
+              "type": {
+                "text": "PlacementOrigin | null | undefined"
+              },
+              "description": "Which point of the element's own box `top`/`left` place: one of nine\nkeywords, vertical then horizontal — `top left` (the default), `top\ncenter`, `top right`, `center left`, `center`, `center right`, `bottom\nleft`, `bottom center`, `bottom right`. The point is measured in whole\nsystem px and kept current as the box changes; an odd size's leftover\nhalf goes toward the start. An unknown value places as `top left` and\nwarns once. On its own it places nothing.",
+              "fieldName": "origin"
             }
           ],
           "parameters": [
@@ -22389,9 +23241,16 @@
               "type": {
                 "text": "Element"
               }
+            },
+            {
+              "name": "child",
+              "optional": true,
+              "type": {
+                "text": "Element"
+              }
             }
           ],
-          "description": "A viewport point as a placement in `anchor`'s coordinates: `{ left, top }`\nin whole system px on the placement lattice, measured from the anchor's\nbox the way a placed child's `top`/`left` are — the unit and lattice a\ndrag lands on, so the result can be written straight to a child's pair.\n\nThe three containers whose anchor sits in shadow DOM (`vf-window`'s\ncontent region, `vf-desktop`'s screen, `vf-scroll-area`'s plane) expose it\nas `placementAt(clientX, clientY)`; everywhere else the anchor is the\nelement's own padding box, and `toSysExact` against\n`getBoundingClientRect()` is the documented conversion. The anchor is\nexpected to carry no border of its own (the three do not), so its border\nbox is its padding box; `scaleAt` is the element whose `--vf-scale` the\nconversion reads — the component's host."
+          "description": "A viewport point as a placement in `anchor`'s coordinates: `{ left, top }`\nin whole system px on the placement lattice, measured from the anchor's\nbox the way a placed child's `top`/`left` are — the unit and lattice a\ndrag lands on, so the result can be written straight to a child's pair.\n\nThe three containers whose anchor sits in shadow DOM (`vf-window`'s\ncontent region, `vf-desktop`'s screen, `vf-scroll-area`'s plane) expose it\nas `placementAt(clientX, clientY)`; everywhere else the anchor is the\nelement's own padding box, and `toSysExact` against\n`getBoundingClientRect()` is the documented conversion. The anchor is\nexpected to carry no border of its own (the three do not), so its border\nbox is its padding box; `scaleAt` is the element whose `--vf-scale` the\nconversion reads — the component's host.\n\nWith `child`, the pair to write to *that* element so its box's corner\nlands on the point: the offset its `origin` adds is folded in, and is zero\nfor a child with none."
         },
         {
           "kind": "class",
@@ -22456,6 +23315,15 @@
               "readonly": true
             },
             {
+              "kind": "field",
+              "name": "offset",
+              "type": {
+                "text": "Readonly<Offset>"
+              },
+              "description": "The offset the host's stated pair sits from its box's top-left corner,\nin whole system px — what its `origin` adds, `(0, 0)` without one. A\ngroup drag reads it to clamp each member's box rather than its pair.",
+              "readonly": true
+            },
+            {
               "kind": "method",
               "name": "seed",
               "return": {
@@ -22463,7 +23331,7 @@
                   "text": "{ x: number; y: number }"
                 }
               },
-              "description": "The origin a move adds its delta to, in system px.\n\nA stated coordinate is authoritative and needs no measuring — including\nthe one this controller wrote last time. Otherwise the host is wherever\nlayout or a stylesheet put it, so the *used* position is read and\nconverted: absolutely positioned hosts through their computed offsets\n(`left: 10%` and `left: 1em` are perfectly good ways to place one, and\nboth resolve to px here), everything else through its in-flow offset,\nwhich is measured against the same padding box `left`/`top` will be."
+              "description": "The origin a move adds its delta to, in system px — the stated pair,\nwhich with an `origin` is the origin point rather than the corner.\n\nA stated coordinate is authoritative and needs no measuring — including\nthe one this controller wrote last time. Otherwise the host is wherever\nlayout or a stylesheet put it, so the *used* position is read and\nconverted: absolutely positioned hosts through their computed offsets\n(`left: 10%` and `left: 1em` are perfectly good ways to place one, and\nboth resolve to px here), everything else through its in-flow offset,\nwhich is measured against the same padding box `left`/`top` will be.\nThat read is the corner, so the origin's offset is added back."
             },
             {
               "kind": "method",
@@ -22487,7 +23355,7 @@
                   }
                 }
               ],
-              "description": "Place the host at a system-px origin, clamped by its own rule and snapped.\n\nThe clamp runs *here*, during the gesture, which is the moment the user is\nactually pushing against an edge — and nowhere else. Re-clamping later, on\na parent that shrank under a zoom, would move a host nobody moved and would\nnot give the position back when the parent grew again.\n\nIt runs against the box seed measured, not a fresh one. The\ndifference only shows when the movable contract is unmet: a host with no\nstated origin is in normal flow, so its first move takes it out — and an\nauto-height parent then collapses to whatever is left, which is a box the\nhost never actually sat in. Re-measuring per move would clamp the rest of\nthe gesture into that phantom, walking the host to the parent's origin\nwhile the user drags away from it. The box at the moment of the press is\nthe one the user is pushing against."
+              "description": "Place the host at a system-px origin, clamped by its own rule and snapped.\n\nThe clamp runs *here*, during the gesture, which is the moment the user is\nactually pushing against an edge — and nowhere else. Re-clamping later, on\na parent that shrank under a zoom, would move a host nobody moved and would\nnot give the position back when the parent grew again.\n\nIt runs against the box seed measured, not a fresh one. The\ndifference only shows when the movable contract is unmet: a host with no\nstated origin is in normal flow, so its first move takes it out — and an\nauto-height parent then collapses to whatever is left, which is a box the\nhost never actually sat in. Re-measuring per move would clamp the rest of\nthe gesture into that phantom, walking the host to the parent's origin\nwhile the user drags away from it. The box at the moment of the press is\nthe one the user is pushing against.\n\nThe pair is the origin point; the clamp is a rule about the *box*. So\nthe origin's offset comes off before the clamp and goes back on after,\nand a dragged title stays centered on wherever it was dropped."
             },
             {
               "kind": "method",

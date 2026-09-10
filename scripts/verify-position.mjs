@@ -22,6 +22,15 @@
  *    nearest scrolling ancestor — the flag alone is (0,0), the flow content
  *    behind it starts at the plane's origin, and removing the flag or the
  *    pair unwinds the whole recipe.
+ *  - ORIGIN: `origin` names which point of the element's own box the pair
+ *    places — nine keywords, measured in whole system px, never a transform.
+ *    Each lands its named point on (L, T) at dpr 1, 2 and 3; an odd size's
+ *    leftover half goes toward the start; a relabel re-centers and
+ *    re-right-aligns and is announced; a scale step keeps the point; a drag
+ *    writes the origin-point pair and the clamp holds the box; `fixed` takes
+ *    it; `placementAt(x, y, child)` folds the child's offset in; unset and
+ *    `top left` write exactly the plain inline style; an unknown value warns
+ *    once and places as `top left`.
  *  - LIVE: the offsets are calc()s against --vf-scale, not resolved numbers,
  *    so a pinned scale in scope repositions without any property write.
  *  - INTERPLAY: placement seeds vf-window drag / vf-icon moves; a drag then
@@ -501,6 +510,330 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
       flowStyle.leftovers === '' &&
       flowStyle.margin === '',
     `${flowStyle.computed}; position "${flowStyle.position}", leftovers "${flowStyle.leftovers}", margin "${flowStyle.margin}"`
+  )
+  await page.close()
+}
+
+/* ── ORIGIN ───────────────────────────────────────────────────────────────
+   `origin` names which point of the element's own box `left`/`top` place:
+   nine keywords, vertical then horizontal, `top left` the default. The point
+   is measured — the border box in whole system px, the pair less ⌈w·fx⌉ and
+   ⌈h·fy⌉ — never a transform, and kept current by a ResizeObserver. */
+
+const ORIGINS = {
+  'top left': [0, 0],
+  'top center': [0.5, 0],
+  'top right': [1, 0],
+  'center left': [0, 0.5],
+  center: [0.5, 0.5],
+  'center right': [1, 0.5],
+  'bottom left': [0, 1],
+  'bottom center': [0.5, 1],
+  'bottom right': [1, 1],
+}
+
+/** Two frames: the ResizeObserver delivers after layout, before paint. */
+const settleFrames = (page) =>
+  page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  )
+
+for (const dpr of DENSITIES) {
+  const scale = scaleAt(dpr)
+  const names = Object.keys(ORIGINS)
+  const page = await build(
+    `
+    <div id="p" style="position:relative;width:900px;height:600px">
+      ${names
+        .map((o, i) => `<vf-button id="o${i}" origin="${o}" left="120" top="90">Cancel</vf-button>`)
+        .join('\n')}
+    </div>
+  `,
+    dpr
+  )
+  const p = await rect(page, 'p')
+  const misses = []
+  const offGrid = []
+  for (const [i, name] of names.entries()) {
+    const [fx, fy] = ORIGINS[name]
+    const r = await rect(page, `o${i}`)
+    // The offset the kit derives: the border box rounded to whole system px,
+    // the fraction of it taken, the ceiling sending an odd half to the start.
+    const w = Math.round(r.w / scale)
+    const h = Math.round(r.h / scale)
+    const corner = { x: 120 - Math.ceil(w * fx), y: 90 - Math.ceil(h * fy) }
+    const dx = (r.x - p.x) * dpr
+    const dy = (r.y - p.y) * dpr
+    if (!near(dx, devicePxFor(corner.x, scale, dpr)) || !near(dy, devicePxFor(corner.y, scale, dpr))) {
+      misses.push(`${name}: ${dx},${dy} vs ${devicePxFor(corner.x, scale, dpr)},${devicePxFor(corner.y, scale, dpr)}`)
+    }
+    if (
+      Math.abs(dx - Math.round(dx)) > gridTolerance(scale, dpr) ||
+      Math.abs(dy - Math.round(dy)) > gridTolerance(scale, dpr)
+    ) {
+      offGrid.push(`${name}: ${dx},${dy}`)
+    }
+  }
+  check(
+    `dpr ${dpr}: each of the nine origins lands its named point on (120, 90)`,
+    misses.length === 0,
+    misses.join(' | ') || 'all nine, measured against each box'
+  )
+  check(
+    `dpr ${dpr}: …and every box corner stays on whole device pixels`,
+    offGrid.length === 0,
+    offGrid.join(' | ') ||
+      'all nine' + (holdableScale(scale) ? '' : ' (3× device: 4/3 is not a holdable scale)')
+  )
+  await page.close()
+}
+
+{
+  // The tie rule: an odd width under a center origin puts the leftover half
+  // on the left, an odd height on top — ⌈w/2⌉ off the pair, not w/2.
+  const page = await build(`
+    <div id="p" style="position:relative;width:900px;height:600px">
+      <vf-label id="odd" origin="center" width="71" height="33" left="200" top="100">Odd</vf-label>
+      <vf-label id="even" origin="center" width="70" height="32" left="200" top="100">Even</vf-label>
+    </div>
+  `)
+  const scale = scaleAt(1)
+  const [p, odd, even] = await Promise.all([rect(page, 'p'), rect(page, 'odd'), rect(page, 'even')])
+  const oddSys = { w: Math.round(odd.w / scale), h: Math.round(odd.h / scale) }
+  check(
+    'origin: an odd width under a center origin puts the leftover half on the left, an odd height on top',
+    oddSys.w % 2 === 1 &&
+      oddSys.h % 2 === 1 &&
+      near(200 * scale - odd.x + p.x, Math.ceil(oddSys.w / 2) * scale) &&
+      near(100 * scale - odd.y + p.y, Math.ceil(oddSys.h / 2) * scale),
+    `${oddSys.w} × ${oddSys.h}: ${(200 * scale - odd.x + p.x) / scale} left of the point, ${(100 * scale - odd.y + p.y) / scale} above`
+  )
+  check(
+    'origin: …and an even one splits exactly',
+    near(200 * scale - even.x + p.x, (Math.round(even.w / scale) / 2) * scale) &&
+      near(100 * scale - even.y + p.y, (Math.round(even.h / scale) / 2) * scale),
+    `${Math.round(even.w / scale)} × ${Math.round(even.h / scale)}: ${(200 * scale - even.x + p.x) / scale} left, ${(100 * scale - even.y + p.y) / scale} above`
+  )
+  await page.close()
+}
+
+{
+  // The observer: a relabel changes the box, and the named point stays put —
+  // re-centered, re-right-aligned — with the rewrite announced like any
+  // other placement write, so a scroll area re-measures under it.
+  const page = await build(`
+    <div id="p" style="position:relative;width:900px;height:600px">
+      <vf-button id="c" origin="top center" left="300" top="40">OK</vf-button>
+      <vf-button id="r" origin="bottom right" left="300" top="200">OK</vf-button>
+    </div>
+  `)
+  const scale = scaleAt(1)
+  const p = await rect(page, 'p')
+  const before = await rect(page, 'c')
+  const announced = await page.evaluate(() => {
+    let n = 0
+    document.getElementById('p').addEventListener('vf-placement-change', () => n++)
+    document.getElementById('c').textContent = 'Cancel everything'
+    document.getElementById('r').textContent = 'Cancel everything'
+    return new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve(n)))
+    )
+  })
+  const [c, r] = await Promise.all([rect(page, 'c'), rect(page, 'r')])
+  const cw = Math.round(c.w / scale)
+  check(
+    'origin: a relabel re-centers on the same point',
+    c.w > before.w && near(c.x - p.x, (300 - Math.ceil(cw / 2)) * scale),
+    `${cw} wide now, corner at ${(c.x - p.x) / scale} (point 300 less ⌈${cw}/2⌉ = ${300 - Math.ceil(cw / 2)})`
+  )
+  check(
+    'origin: …and re-right-aligns, bottom edge held too',
+    near(r.right - p.x, 300 * scale) && near(r.bottom - p.y, 200 * scale),
+    `right edge at ${(r.right - p.x) / scale}, bottom at ${(r.bottom - p.y) / scale}`
+  )
+  check(
+    "origin: the observer's rewrite is announced as vf-placement-change",
+    announced >= 2,
+    `${announced} announced for two relabels`
+  )
+  await page.close()
+}
+
+{
+  // A scale step changes what a system px costs in CSS px, not the box's
+  // size in system px: the observer fires, derives the same offset, and
+  // rewrites nothing — the point holds in the art's own unit.
+  const page = await build(`
+    <div id="p" style="--vf-scale:1;position:relative;width:900px;height:600px">
+      <vf-button id="c" origin="top center" left="300" top="40">Cancel</vf-button>
+    </div>
+  `)
+  const inline = () =>
+    page.evaluate(() => {
+      const s = document.getElementById('c').style
+      return `${s.left}|${s.top}`
+    })
+  const inlineBefore = await inline()
+  await page.evaluate(() => document.getElementById('p').style.setProperty('--vf-scale', '2'))
+  await settleFrames(page)
+  const [p, c, inlineAfter] = await Promise.all([rect(page, 'p'), rect(page, 'c'), inline()])
+  const w = Math.round(c.w / 2)
+  check(
+    'origin: a scale step keeps the named point where it was, in system px',
+    near(c.x - p.x, (300 - Math.ceil(w / 2)) * 2) && inlineAfter === inlineBefore,
+    `corner at ${(c.x - p.x) / 2} system px for a ${w}-wide box; inline ${inlineAfter === inlineBefore ? 'unchanged' : `rewritten to ${inlineAfter}`}`
+  )
+  await page.close()
+}
+
+{
+  // Gestures: the pair is the origin point, so a drag writes the point's
+  // pair, the box follows the pointer, and the clamp holds the BOX inside
+  // the container — vf-icon's whole-icon rule, converted around the offset.
+  const page = await build(`
+    <vf-desktop id="desk" width="512" height="342">
+      <vf-icon id="ico" label="Disk" movable selectable origin="top center" left="256" top="40" style="width:64px"></vf-icon>
+    </vf-desktop>
+  `)
+  const scale = scaleAt(1)
+  const desk = await rect(page, 'desk')
+  const seeded = await rect(page, 'ico')
+  const iw = Math.round(seeded.w / scale)
+  check(
+    'origin: a movable icon with an origin sits with its named point on the pair',
+    near(seeded.x - desk.x, (256 - Math.ceil(iw / 2)) * scale) && near(seeded.y - desk.y, 40 * scale),
+    `corner at ${(seeded.x - desk.x) / scale} × ${(seeded.y - desk.y) / scale} for a ${iw}-wide icon`
+  )
+  const moved = await dragBy(page, 'ico', 60, 30, 16)
+  const stated = await page.evaluate(() => {
+    const i = document.getElementById('ico')
+    return { left: i.left, top: i.top }
+  })
+  check(
+    'origin: a drag keeps the box under the pointer and writes the origin-point pair',
+    near(moved.dx, 60) &&
+      near(moved.dy, 30) &&
+      stated.left === 256 + 60 / scale &&
+      stated.top === 40 + 30 / scale,
+    `moved ${moved.dx} × ${moved.dy}px CSS; left=${stated.left} top=${stated.top}`
+  )
+  // Far past the right edge: the box stops at the raster's edge (512 − w),
+  // and the pair reads that corner plus the offset.
+  await dragBy(page, 'ico', 600, 0, 16)
+  const clamped = await rect(page, 'ico')
+  const clampedPair = await page.evaluate(() => document.getElementById('ico').left)
+  check(
+    'origin: …and the clamp holds the box, not the point, inside the container',
+    near(clamped.right - desk.x, 512 * scale) && clampedPair === 512 - iw + Math.ceil(iw / 2),
+    `right edge at ${(clamped.right - desk.x) / scale}, left=${clampedPair} (expected ${512 - iw + Math.ceil(iw / 2)})`
+  )
+  await page.close()
+}
+
+{
+  // `fixed` with an origin: the sticky thresholds carry the offset, so the
+  // named point holds against the viewport while the content scrolls.
+  const page = await build(`
+    <vf-scroll-area id="sa" style="width:300px;height:200px">
+      <vf-button id="held" fixed origin="top center" left="150" top="10">Tool</vf-button>
+      <div style="height:1200px"></div>
+    </vf-scroll-area>
+  `)
+  const scale = scaleAt(1)
+  const o = await page.evaluate(() => {
+    const vp = document.getElementById('sa').shadowRoot.querySelector('.viewport')
+    const r = vp.getBoundingClientRect()
+    const s = getComputedStyle(vp)
+    return { x: r.left + parseFloat(s.paddingLeft), y: r.top + parseFloat(s.paddingTop) }
+  })
+  const centered = (r) => {
+    const w = Math.round(r.w / scale)
+    return near(r.x - o.x, (150 - Math.ceil(w / 2)) * scale) && near(r.y - o.y, 10 * scale)
+  }
+  let held = await rect(page, 'held')
+  check(
+    'origin: fixed with an origin holds the named point against the viewport',
+    centered(held),
+    `corner at ${(held.x - o.x) / scale} × ${(held.y - o.y) / scale}`
+  )
+  await page.evaluate(() => {
+    document.getElementById('sa').shadowRoot.querySelector('.viewport').scrollTop = 300
+  })
+  await settleFrames(page)
+  held = await rect(page, 'held')
+  check(
+    'origin: …and while the content scrolls under it',
+    centered(held),
+    `corner at ${(held.x - o.x) / scale} × ${(held.y - o.y) / scale} at scroll 300`
+  )
+  await page.close()
+}
+
+{
+  // Drops: placementAt's pair is the corner's; with the child it is the pair
+  // to write to THAT child, its offset folded in. Unset and `top left` are
+  // the plain path — byte-identical inline styles. An unknown value places
+  // as `top left` and says so once per element, not once per update.
+  const page = await build(`
+    <vf-window id="win" heading="Drop" width="300" height="200" style="position:relative">
+      <vf-button id="child" origin="top center" left="150" top="60">Cancel</vf-button>
+    </vf-window>
+    <div id="p" style="position:relative;width:900px;height:300px">
+      <vf-button id="bare" left="40" top="25">OK</vf-button>
+      <vf-button id="tl" origin="top left" left="40" top="25">OK</vf-button>
+      <vf-button id="typo" origin="centre" left="40" top="25">OK</vf-button>
+    </div>
+  `)
+  const scale = scaleAt(1)
+  const at = await page.evaluate(() => {
+    const win = document.getElementById('win')
+    const child = document.getElementById('child')
+    const r = child.getBoundingClientRect()
+    return {
+      plain: win.placementAt(r.left, r.top),
+      withChild: win.placementAt(r.left, r.top, child),
+      pair: { left: child.left, top: child.top },
+      width: r.width,
+    }
+  })
+  const cw = Math.round(at.width / scale)
+  check(
+    "origin: placementAt(x, y, child) returns the pair that lands the child's corner there",
+    at.withChild.left === at.pair.left &&
+      at.withChild.top === at.pair.top &&
+      at.plain.left === at.pair.left - Math.ceil(cw / 2) &&
+      at.plain.top === at.pair.top,
+    `with child ${at.withChild.left},${at.withChild.top}; corner's pair ${at.plain.left},${at.plain.top}; stated ${at.pair.left},${at.pair.top}`
+  )
+
+  const styles = await page.evaluate(() =>
+    ['bare', 'tl'].map((id) => {
+      const s = document.getElementById(id).style
+      return `${s.left}|${s.top}`
+    })
+  )
+  check(
+    'origin: unset and top left write exactly the same inline style',
+    styles[0] === styles[1] && styles[0].includes('var(--vf-scale') && styles[0].includes('40px'),
+    styles.join(' vs ')
+  )
+
+  const [p, typo] = await Promise.all([rect(page, 'p'), rect(page, 'typo')])
+  check(
+    'origin: an unknown value places as top left',
+    near(typo.x - p.x, 40 * scale) && near(typo.y - p.y, 25 * scale),
+    `${(typo.x - p.x) / scale} × ${(typo.y - p.y) / scale} system px`
+  )
+  await page.evaluate(() => {
+    const el = document.getElementById('typo')
+    el.top = 26
+    return el.updateComplete
+  })
+  const warned = page.vfWarnings.filter((w) => w.includes('origin="centre"'))
+  check(
+    'origin: …and warns once per element, not per update',
+    warned.length === 1,
+    warned[0] ?? `${warned.length} warnings`
   )
   await page.close()
 }

@@ -13,8 +13,8 @@
  *    `{ reason: 'close' }`, a drag from the widget never moves the dialog,
  *    and the title inset widens to vf-window's 60px.
  *  - PLAIN FRAME: `frame="plain"` is the dBoxProc trace — 1px outer, 2px
- *    gap, 2px inner band, NO shadow, no title bar — with the heading drawn
- *    in content as the aria-labelledby target, and `closable` ignored.
+ *    gap, 2px inner band, NO shadow, no title bar and no title of its own —
+ *    `heading` becomes the aria-label — and `closable` ignored.
  *  - UTILITY BAR: variant="utility" measures the windoid trace (12px bar,
  *    7×7 widgets at left:7/right:8, 3px nested zoom square, vf-dots layer),
  *    and a scale-1 raster of the bar is probed pixel-for-pixel against
@@ -239,16 +239,8 @@ function decodePng(buf) {
   check('…and ignores closable (no bar to carry the widget)',
     (await partMetrics(page, 'plain', 'close-box', ['width'])) === null)
 
-  const title = await partMetrics(page, 'plain', 'title',
-    ['font-family', 'text-align', 'display', 'margin-bottom', '-webkit-font-smoothing'])
-  check('plain heading is drawn in content, centered, in the display face',
-    title !== null && title['text-align'] === 'center' && title.display === 'block' &&
-    // Quoted in the computed value (the family name has a space), so compare
-    // the first stack entry unquoted rather than prefix-matching.
-    title['font-family'].split(',')[0].replace(/["']/g, '') === 'VF Display',
-    title && title['font-family'])
-  check(`plain heading keeps 16px x${S} below itself`,
-    title['margin-bottom'] === `${16 * S}px`, title['margin-bottom'])
+  check('…and draws no title of its own (heading only names it)',
+    (await partMetrics(page, 'plain', 'title', ['display'])) === null)
 
   const naming = await page.evaluate(() => {
     const grab = (id) => {
@@ -257,8 +249,8 @@ function decodePng(buf) {
     }
     return { plain: grab('plain'), unnamed: grab('unnamed') }
   })
-  check('plain dialog is named by its content heading',
-    naming.plain.by === 'title' && naming.plain.label === null,
+  check('plain dialog takes its heading as its accessible name',
+    naming.plain.by === null && naming.plain.label === 'Page Setup',
     JSON.stringify(naming.plain))
   check('a heading-less plain dialog falls back to aria-label',
     naming.unnamed.by === null && naming.unnamed.label === 'Dialog',

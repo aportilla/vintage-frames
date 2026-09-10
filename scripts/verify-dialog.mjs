@@ -51,7 +51,7 @@ const PAGE = (attrs) => `
   <button id="opener" style="position:fixed;left:100px;top:0">Open</button>
   <vf-dialog id="dlg" heading="About" width="320" height="160" ${attrs}>
     <vf-paragraph>Body</vf-paragraph>
-    <vf-button slot="buttons" variant="default">OK</vf-button>
+    <vf-button variant="default">OK</vf-button>
   </vf-dialog>
 `
 
@@ -273,8 +273,8 @@ const KEYS = (body, buttons = ROW) => `
   </vf-dialog>
 `
 const ROW = `
-  <vf-button slot="buttons" id="cancel">Cancel</vf-button>
-  <vf-button slot="buttons" id="ok" variant="default">OK</vf-button>
+  <vf-button id="cancel">Cancel</vf-button>
+  <vf-button id="ok" variant="default">OK</vf-button>
 `
 
 /** Count every button/link activation once, open, and report where focus is. */
@@ -398,7 +398,7 @@ async function keys(page, key) {
     KEYS(
       `<vf-text-field id="first" label="First"></vf-text-field>
        <vf-text-field id="second" label="Second" autofocus></vf-text-field>`,
-      '<vf-button slot="buttons" id="cancel">Cancel</vf-button>'
+      '<vf-button id="cancel">Cancel</vf-button>'
     )
   )
   const focused = await page.evaluate(OPEN_KEYS)

@@ -3035,7 +3035,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-dialog>` — the System 7 modal dialog shell.\n\nTwo chromes, one modal lifecycle (native `<dialog>` for top-layer rendering\nand focus trapping, with a fully transparent backdrop — no dimming). Both\nare the same dBoxProc double frame — 1px outer rule, 2px gap, 2px inner\nband, no shadow (vfModalFrame):\n\n- **Default:** the movable modal (movableDBoxProc) — the striped title bar\n  set into the top of that frame, with a centered title over a white body.\n  Drag the title bar to move it. `closable` adds the standard close box\n  (left of the bar) — the HIG's own figures disagree on whether a movable\n  modal carries one (Figure 5-1 says yes, Figure 6-1 and the Chapter 6 text\n  say no), so the component enables either reading rather than enforcing\n  one.\n- **`frame=\"plain\"`:** the modal dialog box — the bare frame, no title bar —\n  and immovable, like the original. A `heading` renders as a centered\n  display-face heading at the top of the body (the reference art's \"Dialog\n  title\"); `closable` is ignored, there being no bar to carry the widget.\n\nOpen it with `show()` (or set the `open` attribute/property); close with\n`close()`. Escape closes it and fires `vf-close` with\n`{ reason: 'escape' }`; the close box and programmatic closing fire\n`{ reason: 'close' }`. With `light-dismiss`, a click outside the frame\ncloses it too, with `{ reason: 'outside' }` — for the About box; off by\ndefault, since the classic modal ignored an outside click.\n\nKeyboard, the classic Dialog Manager's two rules (VfModalDialog):\non open, focus goes to the first text-entry control — a slotted control\nwith `autofocus` first — or, with none, to the default button\n(`vf-button variant=\"default\"`). Return or Enter activates the default\nbutton from anywhere in the dialog, a focused Cancel included; Space\npresses the focused control. A link keeps its own Enter, and in a\nmulti-line editor Return inserts the newline while the keypad's Enter\nactivates the button.",
+          "description": "`<vf-dialog>` — the System 7 modal dialog shell.\n\nTwo chromes, one modal lifecycle (native `<dialog>` for top-layer rendering\nand focus trapping, with a fully transparent backdrop — no dimming). Both\nare the same dBoxProc double frame — 1px outer rule, 2px gap, 2px inner\nband, no shadow (vfModalFrame):\n\n- **Default:** the movable modal (movableDBoxProc) — the striped title bar\n  set into the top of that frame, with a centered title over a white body.\n  Drag the title bar to move it. `closable` adds the standard close box\n  (left of the bar) — the HIG's own figures disagree on whether a movable\n  modal carries one (Figure 5-1 says yes, Figure 6-1 and the Chapter 6 text\n  say no), so the component enables either reading rather than enforcing\n  one.\n- **`frame=\"plain\"`:** the modal dialog box — the bare frame, no title bar —\n  and immovable, like the original. With no bar, `heading` only names the\n  dialog and `closable` is ignored.\n\nOpen it with `show()` (or set the `open` attribute/property); close with\n`close()`. Escape closes it and fires `vf-close` with\n`{ reason: 'escape' }`; the close box and programmatic closing fire\n`{ reason: 'close' }`. With `light-dismiss`, a click outside the frame\ncloses it too, with `{ reason: 'outside' }` — for the About box; off by\ndefault, since the classic modal ignored an outside click.\n\nKeyboard, the classic Dialog Manager's two rules (VfModalDialog):\non open, focus goes to the first text-entry control — a slotted control\nwith `autofocus` first — or, with none, to the default button\n(`vf-button variant=\"default\"`). Return or Enter activates the default\nbutton from anywhere in the dialog, a focused Cancel included; Space\npresses the focused control. A link keeps its own Enter, and in a\nmulti-line editor Return inserts the newline while the keypad's Enter\nactivates the button.\n\nSlotted children placed with `top`/`left` measure from the content region's\ncorner — the frame's inner edge, below the title bar — and flow content\nstarts at the same corner.",
           "name": "VfDialog",
           "cssProperties": [
             {
@@ -3065,7 +3065,7 @@
               "name": "title-bar"
             },
             {
-              "description": "The centered title patch (or the plain-frame heading).",
+              "description": "The centered title patch (default chrome only).",
               "name": "title"
             },
             {
@@ -3073,30 +3073,18 @@
               "name": "close-box"
             },
             {
-              "description": "The white content area.",
+              "description": "The white content region.",
               "name": "body"
             },
             {
-              "description": "The scrolling region inside the body (heading + slotted content, not the footer). Inert while the content fits; over-stuffed, it scrolls under a System 7 rail and becomes a keyboard stop.",
+              "description": "The scrolling region inside the body (the slotted content). Inert while the content fits; over-stuffed, it scrolls under a System 7 rail and becomes a keyboard stop.",
               "name": "content"
-            },
-            {
-              "description": "The action row wrapping the buttons.",
-              "name": "footer"
-            },
-            {
-              "description": "The button group inside the footer.",
-              "name": "buttons"
             }
           ],
           "slots": [
             {
-              "description": "Default slot: dialog body content.",
+              "description": "Default slot: the dialog's content.",
               "name": ""
-            },
-            {
-              "description": "Optional action buttons. Rendered as a bottom-right `vf-button-group` (equal-width, faces aligned); the footer only takes space when the slot is populated.",
-              "name": "buttons"
             }
           ],
           "members": [
@@ -3123,7 +3111,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Title text: the bar's centered patch, or the plain frame's heading.",
+              "description": "Title text: the bar's centered patch, and the dialog's accessible name.\nWith `frame=\"plain\"`, which has no bar, it only names the dialog.",
               "attribute": "heading"
             },
             {
@@ -3133,7 +3121,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given.",
+              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the heading names the dialog then);\ndefaults to `'Dialog'` when neither is given.",
               "attribute": "label"
             },
             {
@@ -3156,16 +3144,6 @@
               "description": "Frame chrome. Omit for the movable modal (the double frame with the\nstriped title bar set into it); `'plain'` for the immovable modal dialog\nbox (the bare double frame, no bar).",
               "attribute": "frame",
               "reflects": true
-            },
-            {
-              "kind": "field",
-              "name": "_hasButtons",
-              "type": {
-                "text": "boolean"
-              },
-              "privacy": "private",
-              "default": "false",
-              "description": "Whether the `buttons` slot has assigned content (drives the footer)."
             },
             {
               "kind": "field",
@@ -3221,24 +3199,6 @@
                   "text": "void"
                 }
               }
-            },
-            {
-              "kind": "method",
-              "name": "_onButtonsSlotChange",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "event",
-                  "type": {
-                    "text": "Event"
-                  }
-                }
-              ]
             },
             {
               "kind": "field",
@@ -3805,7 +3765,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Title text: the bar's centered patch, or the plain frame's heading.",
+              "description": "Title text: the bar's centered patch, and the dialog's accessible name.\nWith `frame=\"plain\"`, which has no bar, it only names the dialog.",
               "fieldName": "heading"
             },
             {
@@ -3814,7 +3774,7 @@
                 "text": "string"
               },
               "default": "''",
-              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the title patch names the dialog then);\ndefaults to `'Dialog'` when neither is given.",
+              "description": "Accessible name for the dialog (`aria-label`), for a dialog with no\n`heading` — an untitled title bar has no text to be named by. Ignored when\nempty and a `heading` is set (the heading names the dialog then);\ndefaults to `'Dialog'` when neither is given.",
               "fieldName": "label"
             },
             {
@@ -22327,7 +22287,7 @@
         },
         {
           "kind": "mixin",
-          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\ncontent region (the frame's inner edge, below the title bar — the 12px body\ninset governs flow content only, exactly the DITL convention), a dialog's\ncontent area, a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.\n\n**Every write it makes is announced** as `vf-placement-change` (bubbles,\n`composed: false`, detail `{ left, top }` — nulls on a return to flow). It\nis an internal coordination event on the terms of the menu handshakes:\nparent and child share one light tree, and a kit protocol must not leak out\nof a consumer's shadow boundary. `vf-scroll-area` listens for it and\nre-measures, because a placed child moved through `top`/`left` changes the\nscroll range with no box changing anywhere a ResizeObserver can see — the\nplane's box is never grown by an absolutely positioned child. One funnel\ncovers a drop, an arrow nudge and a page's own `icon.left = …` alike.\n\n**`fixed`** holds the placement against the *visible* region of the nearest\nscrolling ancestor instead of its scrolled plane — a tool strip over a\ndocument, a column header over rows — and the flag alone places at (0,0).\nThe engine underneath is `position: sticky`, the one way the platform holds\na box against a scrollport from inside it on the compositor (a scroll\nlistener counter-translating lags a frame; a layer outside the scroller\nstops wheel and touch over it). Sticky boxes stay in flow, which is not\nwhat a placement is, so the controller erases the footprint: the host is\nblockified (no line box), shrink-wrapped, and given a negative right/bottom\nmargin equal to its own box — a 0×0 margin box that flow content lays out\nas if it weren't there, measured by a ResizeObserver so a relabel or a zoom\nstep keeps it exact. `z-index: 1` puts it over the plane's placed children,\nwhich is where a fixed strip belongs. Two facts of the engine that the\ndocs state as rules: sticky only ever pushes a box *down* from where the\nflow put it, so a fixed child comes before the flow content in its parent;\nand a scroll container that never scrolls (a plain window body is\n`overflow: hidden`) holds it exactly where placement would.",
+          "description": "Explicit placement — `top`/`left` in whole system px, on **every** component.\n\nNo exceptions, deliberately. These are web components, and a consumer may put\none wherever they like; the kit does not get to decide that a `vf-option` is\nonly ever a popup row. The rows a container normally owns (`vf-option`,\n`vf-menu-item`, `vf-list-item`) and a bar's `vf-menu` take the pair on the\nsame terms as anything else — and stating an origin on one *inside* its\nmanaging parent does take it out of that parent's flow layout, which is the\nplacement working, not failing. Each of those components documents what its\ncontainer stops doing for it. `vf-dialog` takes the pair in viewport\ncoordinates, the one difference the platform forces (see modal-dialog.ts).\n\nA DITL resource laid a dialog out as a list of items, each with a rectangle\nin the window's own coordinates; arranging controls by stating where they go\nis as native to System 7 as stacking them. This mixin is that mechanism:\ndeclaring `top` or `left` takes the element out of normal flow and\nabsolutely positions it within its parent, both coordinates in the art's own\nunit so the position scales with the display like every other metric. A\nwindow or dialog body can be laid out either way — a tree of `vf-stack`s, or\npositioned children — with no stylesheet in either case.\n\nMechanics, mirroring how `vf-stack` writes its declared size:\n\n- Setting either property writes `position: absolute` and both offsets onto\n  the host's inline style as `calc(var(--vf-scale, 1) * Npx)` — live against\n  the display, resolved at paint time. The coordinate left unset is 0.\n- `right`/`bottom` are released to `auto` and `margin` zeroed, so the stated\n  offsets are the whole story — an auto-width box with both edges set would\n  stretch rather than sit (the `vf-icon` seed logic, generalized).\n- Unsetting both returns the element to normal flow: every inline\n  declaration this wrote is removed, and stylesheet values resume.\n\nThe anchor is CSS's own: the nearest positioned ancestor's padding box. The\nkit's containers are all deliberate anchors — a desktop's raster, a window's\nor a dialog's content region (the frame's inner edge, below any title bar,\nwith no inset — flow content starts there too, exactly the DITL\nconvention), a stack's box, a fieldset's border box, a scroll area's\nscrolled plane. In a non-kit parent, give the parent `position: relative`,\nthe one line of CSS this feature can't write for you.\n\nThe writing rides a ReactiveController (`hostUpdated`) rather than\nan `updated()` override, for a lifecycle reason worth keeping in the source:\nthe mixin sits *under* each component class, and most components override\n`updated()` without calling `super.updated()` — Lit's base is a no-op, so\nnothing ever forced the call — which would silently shadow a mixin-level\noverride. A controller is invoked by ReactiveElement itself, after every\nupdate, no matter what the subclass does.\n\nA gesture writes **through these properties**: `vf-window`'s title-bar drag\nand `vf-icon`'s drag and arrow nudge hand their new origin to a\nPlacementController, which snaps it onto the placement lattice and\nsets `left`/`top`. A moved element is therefore placed exactly the way an\nauthored one is — a live `calc()` in the art's own unit — and stays where it\nwas dropped when the zoom or the display changes what a system px costs.\n\nIt did not always. Writing the resolved CSS px straight to the inline style\nfroze the coordinate in the wrong unit: `--vf-scale` moved under it at every\nzoom step and the same constant read back as a different number of system px,\nso moved windows and icons slid off the grid the rest of the kit stayed on\n(by `3z / round(3z)` — 10% at 110% zoom, where nothing else moves at all).\n\nSetting a property yourself is still the deliberate way to re-place a moved\nelement. The controller re-applies **only when the values changed**, so an\nunrelated update — a heading change, a desktop toggling `active` — never\nre-asserts a coordinate and costs nothing.\n\n**Every write it makes is announced** as `vf-placement-change` (bubbles,\n`composed: false`, detail `{ left, top }` — nulls on a return to flow). It\nis an internal coordination event on the terms of the menu handshakes:\nparent and child share one light tree, and a kit protocol must not leak out\nof a consumer's shadow boundary. `vf-scroll-area` listens for it and\nre-measures, because a placed child moved through `top`/`left` changes the\nscroll range with no box changing anywhere a ResizeObserver can see — the\nplane's box is never grown by an absolutely positioned child. One funnel\ncovers a drop, an arrow nudge and a page's own `icon.left = …` alike.\n\n**`fixed`** holds the placement against the *visible* region of the nearest\nscrolling ancestor instead of its scrolled plane — a tool strip over a\ndocument, a column header over rows — and the flag alone places at (0,0).\nThe engine underneath is `position: sticky`, the one way the platform holds\na box against a scrollport from inside it on the compositor (a scroll\nlistener counter-translating lags a frame; a layer outside the scroller\nstops wheel and touch over it). Sticky boxes stay in flow, which is not\nwhat a placement is, so the controller erases the footprint: the host is\nblockified (no line box), shrink-wrapped, and given a negative right/bottom\nmargin equal to its own box — a 0×0 margin box that flow content lays out\nas if it weren't there, measured by a ResizeObserver so a relabel or a zoom\nstep keeps it exact. `z-index: 1` puts it over the plane's placed children,\nwhich is where a fixed strip belongs. Two facts of the engine that the\ndocs state as rules: sticky only ever pushes a box *down* from where the\nflow put it, so a fixed child comes before the flow content in its parent;\nand a scroll container that never scrolls (a plain window body is\n`overflow: hidden`) holds it exactly where placement would.",
           "name": "VfPositioned",
           "members": [
             {

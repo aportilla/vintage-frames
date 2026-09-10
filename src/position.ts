@@ -72,9 +72,9 @@ const BLOCKIFIED: Record<string, string> = {
  *
  * The anchor is CSS's own: the nearest positioned ancestor's padding box. The
  * kit's containers are all deliberate anchors — a desktop's raster, a window's
- * content region (the frame's inner edge, below the title bar — the 12px body
- * inset governs flow content only, exactly the DITL convention), a dialog's
- * content area, a stack's box, a fieldset's border box, a scroll area's
+ * or a dialog's content region (the frame's inner edge, below any title bar,
+ * with no inset — flow content starts there too, exactly the DITL
+ * convention), a stack's box, a fieldset's border box, a scroll area's
  * scrolled plane. In a non-kit parent, give the parent `position: relative`,
  * the one line of CSS this feature can't write for you.
  *

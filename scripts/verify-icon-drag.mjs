@@ -41,7 +41,9 @@
  *    over the dither its dots fall on the dither's white pixels and the ring
  *    reads as a black line, as the Finder's did; past the raster's
  *    edge nothing paints; a cancel removes the canvas; with no desktop the
- *    canvas lives in the icon's shadow and the drop still lands.
+ *    canvas lives in the icon's shadow and the drop still lands; a plate
+ *    wider than `width` widens the canvas and keeps its own sides; a 45°
+ *    edge is drawn at either parity of the pen.
  *  - BAND: the rubber band on a filled field — a press on the bare field
  *    with no travel draws nothing and clears the selection as any outside
  *    press does; a drag draws the dotted rectangle from the press to the
@@ -83,6 +85,26 @@ const ART32 =
   'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23000%27/%3E%3C/svg%3E'
 const ART16 =
   'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2716%27 height=%2716%27%3E%3Crect width=%2716%27 height=%2716%27 fill=%27%23000%27/%3E%3C/svg%3E'
+/**
+ * A folder silhouette, 32×32: a tab on rows 4–6 widening by one pixel a side
+ * (45° sides) over a body on rows 7–27 — one rect per row, so nothing
+ * anti-aliases. For the diagonal check.
+ */
+const FOLDER32 = (() => {
+  const rows = [
+    [4, 3, 11],
+    [5, 2, 12],
+    [6, 1, 13],
+  ]
+  for (let y = 7; y <= 27; y++) rows.push([y, 0, 31])
+  const rects = rows
+    .map(
+      ([y, x0, x1]) =>
+        `%3Crect x=%27${x0}%27 y=%27${y}%27 width=%27${x1 - x0 + 1}%27 height=%271%27 fill=%27%23000%27/%3E`
+    )
+    .join('')
+  return `data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 shape-rendering=%27crispEdges%27%3E${rects}%3C/svg%3E`
+})()
 
 const browser = await launch()
 const build = makeBuild(browser, { bodyStyle: 'margin:0;padding:40px' })
@@ -836,6 +858,7 @@ const outline = (page) =>
     const r = c?.getBoundingClientRect()
     const f = ico.shadowRoot.querySelector('.frame').getBoundingClientRect()
     const art = ico.shadowRoot.querySelector('.art').getBoundingClientRect()
+    const plate = ico.shadowRoot.querySelector('.name')?.getBoundingClientRect()
     const cs = c ? getComputedStyle(c) : null
     const screen = desk.shadowRoot.querySelector('.screen').getBoundingClientRect()
     return {
@@ -843,6 +866,7 @@ const outline = (page) =>
       canvas: r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null,
       frame: { x: f.x, y: f.y, w: f.width, h: f.height },
       art: { dx: art.x - f.x, dy: art.y - f.y, w: art.width, h: art.height },
+      plate: plate ? { dx: plate.x - f.x, dy: plate.y - f.y, w: plate.width, h: plate.height } : null,
       raster: c ? [c.width, c.height] : null,
       blend: cs?.mixBlendMode,
       filter: cs?.filter,
@@ -919,6 +943,35 @@ const outline = (page) =>
   let inside = ''
   for (let i = 2; i < 12; i++) inside += classify(x0 + i, rowY + 2)
   check('OUTLINE  …with the interior untouched', inside === 'WWWWWWWWWW', inside)
+
+  // The art fills its cell and the plate sits directly under it, narrower.
+  // The Finder framed the mask united with the name's rect as one region,
+  // so the outline wraps around the two: no edge runs between them — the
+  // art's bottom row above the plate and the plate's top row under the art
+  // are untouched — while the art's bottom edge is still drawn beside the
+  // plate, where it is the shape's boundary.
+  const plateX = Math.round(mid.canvas.x + mid.plate.dx)
+  const plateY = Math.round(mid.canvas.y + mid.plate.dy)
+  const artBottom = plateY - 1
+  let above = ''
+  let below = ''
+  let beside = ''
+  for (let x = plateX + 1; x < plateX + mid.plate.w - 1; x++) {
+    above += classify(x, artBottom)
+    below += classify(x, plateY)
+  }
+  for (let x = x0; x < plateX; x++) beside += classify(x, artBottom)
+  const alternating = (s) =>
+    s.includes('B') && [...s].every((ch, i) => i === 0 || ch !== s[i - 1]) && !s.includes('.')
+  check(
+    'OUTLINE  the art and the plate abut, and the outline wraps them as one shape — no edge between them',
+    mid.plate.dy === mid.art.dy + mid.art.h &&
+      mid.plate.w < mid.art.w &&
+      /^W+$/.test(above) &&
+      /^W+$/.test(below) &&
+      alternating(beside),
+    `above ${above}, below ${below}, beside ${beside}`
+  )
 
   // A cancel takes the canvas with it — and keeps the icon out from under
   // the window, where the next press could not reach it.
@@ -1036,6 +1089,133 @@ for (const dpr of [2, 3]) {
     'OUTLINE  …and the drop still lands',
     after.left === 20 + 50 / before.scale && after.top === 20 + 30 / before.scale && !left,
     `${after.left},${after.top}; canvas left: ${left}`
+  )
+  await page.close()
+}
+
+// A name wider than a declared `width` overhangs the frame on both sides, and
+// the outline's canvas is the frame widened to the plate: the plate's own
+// sides are drawn, not cut off at the frame's edges.
+{
+  const page = await build(
+    `<vf-desktop id="desk" width="512" height="342">
+       <vf-icon-field label="Desktop">
+         ${icon('id="ico" width="64" selectable movable left="40" top="60"', 'untitled folder')}
+       </vf-icon-field>
+       <vf-window id="win" heading="Docs" width="300" height="200" left="150" top="40"></vf-window>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  const before = await state(page, 'ico')
+  const plate = await page.evaluate(() => {
+    const r = document.getElementById('ico').shadowRoot.querySelector('.name').getBoundingClientRect()
+    return { x: r.x, w: r.width, h: r.height }
+  })
+  // Over the window body, as above: the outline lands inside the 300×200
+  // window at (150, 40).
+  await pressAndMove(page, 'ico', 160, 40)
+  const mid = await outline(page)
+  check(
+    'OUTLINE  a plate wider than `width` overhangs the frame, and the canvas is the frame widened to it',
+    plate.x < before.x &&
+      plate.x + plate.w > before.x + before.w &&
+      mid.count === 1 &&
+      near(mid.canvas?.x, plate.x + 160) &&
+      near(mid.canvas?.w, plate.w) &&
+      near(mid.canvas?.y, before.y + 40) &&
+      near(mid.canvas?.h, before.h),
+    JSON.stringify({ canvas: mid.canvas, frame: before, plate })
+  )
+  // The plate's left and right columns over the white body: dotted lines,
+  // where a frame-sized canvas had nothing.
+  const png = decodePng(await page.screenshot())
+  const classify = (x, y) => (isBlack(png, x, y) ? 'B' : isWhite(png, x, y) ? 'W' : '.')
+  const plateTop = Math.round(mid.canvas.y + mid.canvas.h - plate.h)
+  const x0 = Math.round(mid.canvas.x)
+  const x1 = Math.round(mid.canvas.x + mid.canvas.w) - 1
+  let leftCol = ''
+  let rightCol = ''
+  for (let i = 0; i < 12; i++) {
+    leftCol += classify(x0, plateTop + i)
+    rightCol += classify(x1, plateTop + i)
+  }
+  const dotted = (s) => s === 'BWBWBWBWBWBW' || s === 'WBWBWBWBWBWB'
+  check(
+    "OUTLINE  …and the plate's own sides are drawn: dotted columns over the white body",
+    dotted(leftCol) && dotted(rightCol),
+    `left ${leftCol}, right ${rightCol}`
+  )
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  await page.close()
+}
+
+// A 45° edge — a folder tab's slanted sides. A one-pixel diagonal is all one
+// parity of the checker, so the pen would keep all of it or none, and over
+// the dither "none" is the dither's own ink diagonal, no line at all. The
+// ring is a region inset (the 3×3 box, FrameRgn's), which makes a diagonal
+// two pixels wide, and one full diagonal of dots survives at either phase.
+// Read over the white body at two origins of opposite parity.
+{
+  const page = await build(
+    `<vf-desktop id="desk" width="512" height="342">
+       <vf-icon-field label="Desktop">
+         <vf-icon id="ico" label="Disk" width="64" selectable movable left="40" top="60">
+           <vf-img slot="large"><img src="${FOLDER32}" alt=""></vf-img>
+         </vf-icon>
+       </vf-icon-field>
+       <vf-window id="win" heading="Docs" width="300" height="200" left="150" top="40"></vf-window>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  const results = []
+  for (const [dx, dy] of [
+    [160, 40],
+    [161, 40],
+  ]) {
+    await pressAndMove(page, 'ico', dx, dy)
+    const mid = await outline(page)
+    const png = decodePng(await page.screenshot())
+    const x0 = Math.round(mid.canvas.x + mid.art.dx)
+    const y0 = Math.round(mid.canvas.y + mid.art.dy)
+    // On rows 5 and 6 the tab's sides are pure diagonal: the ring holds the
+    // step pixel and the one inside it, and the dots keep one of the two.
+    const pairs = {
+      left: [
+        [
+          [2, 5],
+          [3, 5],
+        ],
+        [
+          [1, 6],
+          [2, 6],
+        ],
+      ],
+      right: [
+        [
+          [11, 5],
+          [12, 5],
+        ],
+        [
+          [12, 6],
+          [13, 6],
+        ],
+      ],
+    }
+    const ink = (pair) => pair.map(([x, y]) => (isBlack(png, x0 + x, y0 + y) ? 'B' : 'W')).join('')
+    results.push({
+      dx,
+      left: pairs.left.map(ink),
+      right: pairs.right.map(ink),
+    })
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+  }
+  const drawn = (rows) => rows.every((pair) => pair.includes('B'))
+  check(
+    "OUTLINE  a 45° edge is drawn at either parity — the tab's sides carry ink at both origins",
+    results.every((r) => drawn(r.left) && drawn(r.right)),
+    JSON.stringify(results)
   )
   await page.close()
 }

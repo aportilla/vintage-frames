@@ -92,7 +92,7 @@ The 38 named patterns are not tokens: `vf-container` and `vf-desktop` take them 
 | `--vf-shadow-offset` | `2px` | Window / menu hard shadow |
 | `--vf-scrollbar-thumb` | `#ffffff` | The elevator |
 | `--vf-scrollbar-track` | `#c0c0c0` | Firefox fallback only — the dither's flat average |
-| `--vf-icon-gap` | `2px` | `vf-icon`, cell to plate |
+| `--vf-icon-gap` | `0px` | `vf-icon`, cell to plate — none by default, the plate directly under the cell |
 | `--vf-icon-label-height` | `12px` | `vf-icon`'s plate line box |
 
 ## Focus

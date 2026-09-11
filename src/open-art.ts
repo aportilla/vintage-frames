@@ -24,6 +24,8 @@
  * where the source is opaque, so intersecting the silhouette with itself
  * shifted one pixel each way leaves exactly the pixels whose neighbors are
  * all opaque — the interior. The ring the erosion removes is the outline.
+ * The ghost erodes with the four edge neighbors; the drag outline with all
+ * eight, a region inset — {@link deriveDragOutline} says why it matters.
  */
 
 /** A canvas the size of the art, with the settings every layer shares. */
@@ -136,7 +138,7 @@ export function deriveOpenArt(
   return silhouette.canvas
 }
 
-/** A box inside an icon's frame, in system px. */
+/** A box inside the outline's box, in system px. */
 export interface DragOutlineBox {
   x: number
   y: number
@@ -145,11 +147,12 @@ export interface DragOutlineBox {
 }
 
 /**
- * Where an icon's parts sit inside its frame, in system px — measured by the
- * icon, so the outline lands on the same pixels the frame paints.
+ * Where an icon's parts sit inside the outline's box, in system px —
+ * measured by the icon, so the outline lands on the same pixels the frame
+ * paints.
  */
 export interface DragOutlineGeometry {
-  /** The frame. */
+  /** The outline's box: the frame, widened to a name plate that overhangs it. */
   width: number
   height: number
   /**
@@ -194,18 +197,28 @@ const inkBox = (ctx: CanvasRenderingContext2D, box: DragOutlineBox): void => {
 }
 
 /**
- * Derive the outline an icon drags as: the mask's boundary — the same
- * one-pixel ring the open ghost finds, by the same erosion — and the name
- * plate's rectangle, solid black on transparent, one canvas the size of the
- * icon's frame at one image px per system px. Not yet dotted: the ring is
- * derived once per drag, and {@link dotOutline} re-applies the checker at
- * each step's phase.
+ * Derive the outline an icon drags as: the boundary of the mask united with
+ * the name plate's rectangle — one shape, the one-pixel ring a 3×3 box
+ * erosion removes from it, so where the art and the plate abut the outline
+ * wraps around both — solid black on transparent, one canvas the size of
+ * the outline's box (the icon's frame, widened to a plate that overhangs
+ * it) at one image px per system px. Not yet dotted: the ring is derived
+ * once per drag, and {@link dotOutline} re-applies the checker at each
+ * step's phase.
+ *
+ * The box, not the ghost's four-neighbor plus: it is the region inset
+ * `FrameRgn` painted a frame from, and the difference shows on a 45° edge.
+ * A one-pixel diagonal is all one parity of the checker, so the pen would
+ * keep all of it or none — and over the dither "none" is the dither's own
+ * ink diagonal, no line at all. Under the box a 45° edge is two pixels
+ * wide and carries both parities, so one full diagonal of dots survives at
+ * either phase.
  *
  * Art the pipeline cannot draw falls back to the cell's rectangle — the
  * ghost's rule: never a blank where a state cannot show. Compositing only,
  * never a readback, so cross-origin art derives too.
  *
- * Returns null for a frame with no size, or an environment refusing a 2d
+ * Returns null for a box with no size, or an environment refusing a 2d
  * context.
  */
 export function deriveDragOutline(
@@ -214,42 +227,63 @@ export function deriveDragOutline(
 ): HTMLCanvasElement | null {
   const { width, height } = geometry
   if (!width || !height) return null
+  const silhouette = makeLayer(width, height)
+  const interior = makeLayer(width, height)
   const out = makeLayer(width, height)
-  if (!out) return null
+  if (!silhouette || !interior || !out) return null
 
   const box = art ? geometry.art : null
   if (art && box && box.width > 0 && box.height > 0) {
-    const silhouette = makeLayer(width, height)
-    const interior = makeLayer(width, height)
-    if (!silhouette || !interior) return null
     // The silhouette at the art's own box: drawn at the size it paints, so a
     // magnified art outlines at its magnified size, then inked solid.
     silhouette.ctx.drawImage(art, box.x, box.y, box.width, box.height)
     silhouette.ctx.globalCompositeOperation = 'source-in'
     silhouette.ctx.fillStyle = '#000'
     silhouette.ctx.fillRect(0, 0, width, height)
-    // The erosion deriveOpenArt performs, on a frame-sized layer: the frame
-    // is transparent around the art, so the art's own edge erodes exactly as
-    // the off-canvas edge did there.
-    interior.ctx.drawImage(silhouette.canvas, 0, 0)
-    interior.ctx.globalCompositeOperation = 'destination-in'
-    for (const [dx, dy] of [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ] as const) {
-      interior.ctx.drawImage(silhouette.canvas, dx, dy)
-    }
-    // The ring is the silhouette minus its interior.
-    out.ctx.drawImage(silhouette.canvas, 0, 0)
-    out.ctx.globalCompositeOperation = 'destination-out'
-    out.ctx.drawImage(interior.canvas, 0, 0)
-    out.ctx.globalCompositeOperation = 'source-over'
+    // The cell clips art larger than itself (`overflow: hidden`), so the
+    // silhouette is clipped to it too: the outline traces what shows.
+    silhouette.ctx.globalCompositeOperation = 'destination-in'
+    silhouette.ctx.fillRect(
+      geometry.cell.x,
+      geometry.cell.y,
+      geometry.cell.width,
+      geometry.cell.height
+    )
+    silhouette.ctx.globalCompositeOperation = 'source-over'
   } else {
-    inkBox(out.ctx, geometry.cell)
+    silhouette.ctx.fillStyle = '#000'
+    silhouette.ctx.fillRect(
+      geometry.cell.x,
+      geometry.cell.y,
+      geometry.cell.width,
+      geometry.cell.height
+    )
   }
-  if (geometry.plate) inkBox(out.ctx, geometry.plate)
+  // The plate joins the silhouette as a solid, not as a ring of its own: the
+  // Finder's drag region was the mask's region united with the name's
+  // rectangle, framed once — so where the two abut, the outline wraps around
+  // both and no edge runs between them; apart, each is ringed on its own.
+  if (geometry.plate) {
+    const plate = geometry.plate
+    silhouette.ctx.fillStyle = '#000'
+    silhouette.ctx.fillRect(plate.x, plate.y, plate.width, plate.height)
+  }
+  // The erosion, on a layer the box's size: the box is transparent around
+  // the shape, so its own edge erodes exactly as the off-canvas edge does in
+  // deriveOpenArt. All eight neighbors — the 3×3 box — where the ghost takes
+  // the four edge neighbors (see above).
+  interior.ctx.drawImage(silhouette.canvas, 0, 0)
+  interior.ctx.globalCompositeOperation = 'destination-in'
+  for (const dx of [-1, 0, 1] as const) {
+    for (const dy of [-1, 0, 1] as const) {
+      if (dx || dy) interior.ctx.drawImage(silhouette.canvas, dx, dy)
+    }
+  }
+  // The ring is the silhouette minus its interior.
+  out.ctx.drawImage(silhouette.canvas, 0, 0)
+  out.ctx.globalCompositeOperation = 'destination-out'
+  out.ctx.drawImage(interior.canvas, 0, 0)
+  out.ctx.globalCompositeOperation = 'source-over'
   return out.canvas
 }
 

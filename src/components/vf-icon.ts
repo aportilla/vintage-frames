@@ -86,8 +86,9 @@ interface DragOutline {
   /** The dotted, positioned copy the surface (or the frame) shows. */
   canvas: HTMLCanvasElement
   /**
-   * The frame's offset from the surface's box in whole system px — the
-   * outline's origin at zero delta. (0,0) in the in-frame fallback.
+   * The outline box's offset from the surface's box in whole system px —
+   * the outline's origin at zero delta. In the in-frame fallback, its offset
+   * from the frame: (0,0) unless the plate overhangs it.
    */
   base: { x: number; y: number }
   /** The checker phase last painted, so an unchanged parity paints nothing. */
@@ -258,10 +259,14 @@ const clamp = (v: number, max: number): number =>
  * the name's rectangle — drawn over everything with the XOR pen, the icon
  * itself staying put until the drop. The kit draws it from what it already
  * has: {@link deriveDragOutline} finds the ring the way the open ghost does
- * (the silhouette from the art's alpha, eroded by one pixel, the ring the
- * erosion removes), adds the plate's rectangle, and {@link dotOutline} dots
- * it against a 2×2 checker — compositing only, so cross-origin art derives
- * too, and art the pipeline cannot draw falls back to the cell's rectangle.
+ * (the silhouette from the art's alpha, the plate's rectangle united with
+ * it, the whole inset by one pixel as `FrameRgn` inset a region, the ring
+ * the inset removes — so where the art and the plate abut, the outline
+ * wraps around both), and {@link dotOutline} dots it against a 2×2 checker
+ * — compositing only, so cross-origin art derives too, and art the
+ * pipeline cannot draw falls back to the cell's rectangle. The canvas
+ * covers the frame widened to the plate, since a name wider than a
+ * declared `width` overhangs the frame.
  * The canvas paints with the cursor's XOR recipe, `filter: invert(1)` under
  * `mix-blend-mode: difference`: a dotted black line over a white window
  * body, and over the desktop dither a black line, the composition
@@ -449,7 +454,8 @@ const clamp = (v: number, max: number): number =>
  * @csspart plate - The inked run behind the name, which each wrapped line gets
  *   its own of (inverts when selected).
  * @csspart input - The rename field, while editing.
- * @cssprop --vf-icon-gap - Space between the art cell and the name plate
+ * @cssprop --vf-icon-gap - Space between the art cell and the name plate;
+ *   0 by default, the plate directly under the cell as the Finder drew it
  * @cssprop --vf-icon-label-height - The name plate's line box
  * @fires vf-select - Selection changed by user interaction. `detail: { selected: boolean }`.
  * @fires vf-change - The name was committed. `detail: { label: string, previous: string }`.
@@ -565,7 +571,7 @@ export class VfIcon extends VfPositioned(LitElement) {
          centring below is still a whole number of system px. */
       .caption {
         position: relative;
-        margin-top: calc(var(--vf-scale, 1) * var(--vf-icon-gap, 2px));
+        margin-top: calc(var(--vf-scale, 1) * var(--vf-icon-gap, 0px));
       }
       .label {
         ${vfBodyDecls}
@@ -1181,24 +1187,34 @@ export class VfIcon extends VfPositioned(LitElement) {
    * icon's own frame. The geometry is measured off the rendered parts —
    * the frame (`at`, its box at the press), the art as it paints (the ghost
    * while `open`), the cell and the plate — in system px relative to the
-   * frame, so the ring lands on the pixels the frame paints. Null when
-   * there is nothing to draw with.
+   * outline's box, the frame widened to a plate that overhangs it, so the
+   * ring lands on the pixels the frame paints. Null when there is nothing
+   * to draw with.
    */
   #buildOutline(at: DOMRect, surface: HTMLElement | null): DragOutline | null {
     const root = this.renderRoot
     const frame = root?.querySelector<HTMLElement>('.frame')
     if (!frame) return null
     const scale = effectiveScale(this)
+    const cell = root.querySelector('.art')
+    const plate = root.querySelector('.name')
+    const plateRect = plate?.getBoundingClientRect() ?? null
+    // The outline's box: the frame, widened to the plate. A name wider than
+    // a declared `width` overhangs the frame on both sides — the caption is
+    // deliberately not clamped to it — so a canvas the frame's size would
+    // cut the plate's rectangle at the frame's edges and lose its sides.
+    const left = plateRect ? Math.min(at.left, plateRect.left) : at.left
+    const top = plateRect ? Math.min(at.top, plateRect.top) : at.top
+    const right = plateRect ? Math.max(at.right, plateRect.right) : at.right
+    const bottom = plateRect ? Math.max(at.bottom, plateRect.bottom) : at.bottom
     const box = (rect: DOMRect): DragOutlineBox => ({
-      x: Math.round((rect.left - at.left) / scale),
-      y: Math.round((rect.top - at.top) / scale),
+      x: Math.round((rect.left - left) / scale),
+      y: Math.round((rect.top - top) / scale),
       width: Math.round(rect.width / scale),
       height: Math.round(rect.height / scale),
     })
-    const width = Math.round(at.width / scale)
-    const height = Math.round(at.height / scale)
-    const cell = root.querySelector('.art')
-    const plate = root.querySelector('.name')
+    const width = Math.round((right - left) / scale)
+    const height = Math.round((bottom - top) / scale)
     const shown = this.open && this._ghost ? this._ghost : this.#art
     const drawable =
       shown != null &&
@@ -1211,7 +1227,7 @@ export class VfIcon extends VfPositioned(LitElement) {
       height,
       art: artRect && artRect.width > 0 ? box(artRect) : null,
       cell: cell ? box(cell.getBoundingClientRect()) : { x: 0, y: 0, width, height },
-      plate: plate ? box(plate.getBoundingClientRect()) : null,
+      plate: plateRect ? box(plateRect) : null,
     })
     if (!ring) return null
 
@@ -1230,17 +1246,16 @@ export class VfIcon extends VfPositioned(LitElement) {
     style.imageRendering = 'pixelated'
     style.width = sysLength(ring.width)
     style.height = sysLength(ring.height)
-    let base = { x: 0, y: 0 }
-    if (surface) {
-      const box = surface.getBoundingClientRect()
-      base = {
-        x: Math.round((at.left - box.left) / scale),
-        y: Math.round((at.top - box.top) / scale),
-      }
-      surface.append(canvas)
-    } else {
-      frame.append(canvas)
+    // The box's whole-system-px offset from what the canvas is positioned
+    // in: the surface, or the frame itself in the fallback — where a plate
+    // overhanging the frame puts the box's corner outside it.
+    const parent = surface ?? frame
+    const origin = surface ? surface.getBoundingClientRect() : at
+    const base = {
+      x: Math.round((left - origin.left) / scale),
+      y: Math.round((top - origin.top) / scale),
     }
+    parent.append(canvas)
     return { ring, canvas, base, phase: -1 }
   }
 

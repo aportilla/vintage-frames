@@ -4,8 +4,8 @@
  * Groups, each covering a claim the component's doc comment makes:
  *
  *  - CELL: the reserved cell really is the icon resource's, 32×32 large and
- *    16×16 small, with the name plate on a whole-system-px line box and a
- *    whole-px gap — at dpr 1/2/3, where "whole" is the only thing that keeps
+ *    16×16 small, with the name plate on a whole-system-px line box directly
+ *    under it — at dpr 1/2/3, where "whole" is the only thing that keeps
  *    the 1-bit art off half device pixels (layout contract rule 1).
  *  - SELECT: a plain press single-selects with NO container managing the set
  *    (the outside-press listener is what buys that), Shift adds, and a press
@@ -122,8 +122,8 @@ const boxes = (page, index = 0) =>
 
 // ── CELL ────────────────────────────────────────────────────────────────────
 // The cell is the resource's, the plate's line box is whole system px, and the
-// gap between them is the --vf-icon-gap default. Checked in DEVICE px, which is
-// the unit that has to come out whole.
+// plate abuts the cell — the --vf-icon-gap default is 0, the Finder's own
+// layout. Checked in DEVICE px, which is the unit that has to come out whole.
 for (const dpr of [1, 2, 3]) {
   const page = await build(`${icon('selectable')}<hr>${icon('size="small"')}`, { dpr })
   const large = await boxes(page, 0)
@@ -152,8 +152,8 @@ for (const dpr of [1, 2, 3]) {
     `${large.label.h} css`
   )
   check(
-    `CELL dpr${dpr}  gap between cell and plate is 2 system px`,
-    same(large.label.y - (large.art.y + large.art.h), cssPxFor(2, large.scale)),
+    `CELL dpr${dpr}  the plate abuts the cell — no gap`,
+    same(large.label.y, large.art.y + large.art.h),
     `${large.label.y - (large.art.y + large.art.h)} css`
   )
   // Every inner edge is a whole count of system px, so on a holdable scale it
@@ -164,7 +164,7 @@ for (const dpr of [1, 2, 3]) {
   const wholeEdges = [
     [large.art.h, cssPxFor(32, large.scale)],
     [large.label.h, cssPxFor(12, large.scale)],
-    [large.label.y - large.art.y, cssPxFor(32, large.scale) + cssPxFor(2, large.scale)],
+    [large.label.y - large.art.y, cssPxFor(32, large.scale)],
   ]
   check(
     `CELL dpr${dpr}  every inner edge lands on a whole device px`,

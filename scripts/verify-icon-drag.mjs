@@ -64,6 +64,24 @@
  *    filing the whole set; an unselected icon drags alone, a Shift press
  *    that deselects the pressed icon drags it alone, a selected icon in
  *    another field stays, and a selected icon that cannot move stays.
+ *  - WALK: the page moves an icon the way a drag does — `moveTo` clamps
+ *    whole at the raster, snaps, announces one vf-placement-change and works
+ *    on a non-movable icon; `dragTo` puts one canvas on the desktop's
+ *    surface at whole system px between the origin and the landing while the
+ *    icon stays put, takes it down and lands the icon at the end, announces
+ *    once and fires no drag event; a target past the raster travels to and
+ *    lands at the clamped landing; `dragIcons` walks three icons one at a
+ *    time in the array's order with never more than one outline up; a press
+ *    or Escape mid-walk lands every icon at once; a second call finishes the
+ *    first; an icon removed before its turn is skipped; a move to where the
+ *    icon already is shows nothing and settles at once; `moveTo` mid-travel
+ *    finishes it; under reduced motion everything lands at once with no
+ *    outline; with no desktop the canvas draws in the icon's frame. In a
+ *    scrolling plane (a window body under `scrollbars`) only the origin
+ *    holds: `moveTo` past the window's box lands there and the viewport
+ *    reports the overflow, a negative pair lands at the origin, a hand drag
+ *    of a two-icon group past the bottom lands past it, and `dragTo` walks
+ *    there; in a plain window body the icon still lands whole.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:icon-drag
@@ -1866,6 +1884,540 @@ const clearSelects = (page) => page.evaluate(() => void (globalThis.__selects = 
       post.b.left === pre.b.left &&
       post.b.selected,
     JSON.stringify({ outlines: shiftMid.length, icons: await iconsOf('vf-drop'), a: post.a, b: post.b })
+  )
+  await page.close()
+}
+
+// ── WALK ────────────────────────────────────────────────────────────────────
+// A page moves an icon the way a drag moves it: the outline travels on the
+// desktop's surface to where the icon will land, and the icon lands when it
+// arrives. A field walks its icons one at a time.
+const WALK_DESK = `
+  <vf-desktop id="desk" width="512" height="342">
+    <vf-icon-field id="field" label="Desktop" fill-width fill-height>
+      ${icon('id="a" width="64" selectable movable left="16" top="24"', 'A')}
+      ${icon('id="b" width="64" selectable movable left="16" top="104"', 'B')}
+      ${icon('id="c" width="64" selectable left="16" top="184"', 'C')}
+    </vf-icon-field>
+  </vf-desktop>`
+
+/** Placement and drag events reaching the document, in order. */
+const recordWalk = (page) =>
+  page.evaluate(() => {
+    globalThis.__walk = []
+    for (const type of ['vf-placement-change', 'vf-drag-start', 'vf-drag', 'vf-drop', 'vf-drag-cancel']) {
+      document.addEventListener(type, (e) => globalThis.__walk.push({ type, id: e.target.id }))
+    }
+  })
+const walkLog = (page) => page.evaluate(() => globalThis.__walk)
+const clearWalkLog = (page) => page.evaluate(() => void (globalThis.__walk = []))
+const placements = (log, id) =>
+  log.filter((e) => e.type === 'vf-placement-change' && e.id === id).length
+const dragEvents = (log) => log.filter((e) => e.type !== 'vf-placement-change').length
+
+/**
+ * One sample of the walk: the canvases on the desktop's surface as offsets
+ * from it in system px, the three icons' stated pairs and frame x, and
+ * whether the page's `__p` has settled.
+ */
+const walkSample = (page) =>
+  page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    const surface = desk.shadowRoot.querySelector('.drag-surface')
+    const r = surface.getBoundingClientRect()
+    const scale = parseFloat(getComputedStyle(desk).getPropertyValue('--vf-scale'))
+    const canvases = [...surface.querySelectorAll('canvas')].map((c) => {
+      const b = c.getBoundingClientRect()
+      return { x: (b.x - r.x) / scale, y: (b.y - r.y) / scale }
+    })
+    const where = Object.fromEntries(
+      ['a', 'b', 'c'].map((id) => {
+        const el = document.getElementById(id)
+        return [
+          id,
+          el
+            ? { left: el.left, top: el.top, x: el.shadowRoot.querySelector('.frame').getBoundingClientRect().x }
+            : null,
+        ]
+      })
+    )
+    return { settled: globalThis.__settled, result: globalThis.__result, canvases, where }
+  })
+
+/** Sample every ~15 ms until the page's walk settles (or a deadline). */
+async function sampleWalk(page, ms = 5000) {
+  const samples = []
+  const t0 = Date.now()
+  while (Date.now() - t0 < ms) {
+    const s = await walkSample(page)
+    samples.push(s)
+    if (s.settled) break
+    await page.waitForTimeout(15)
+  }
+  return samples
+}
+
+/** Put the three icons back at the fixture's pairs. */
+const resetWalk = (page) =>
+  page.evaluate(() => {
+    const at = { a: [16, 24], b: [16, 104], c: [16, 184] }
+    for (const [id, [left, top]] of Object.entries(at)) {
+      const el = document.getElementById(id)
+      el.left = left
+      el.top = top
+    }
+  })
+
+const whole = (v) => Math.abs(v - Math.round(v)) < 1e-6
+
+{
+  const page = await build(WALK_DESK, { settle: true })
+  await recordWalk(page)
+  const scale = (await state(page, 'a')).scale
+
+  // moveTo: the drop's write, on an icon that is not movable.
+  const c = await page.evaluate(() => {
+    const el = document.getElementById('c')
+    el.moveTo(600, 400)
+    return { left: el.left, top: el.top, w: el.offsetWidth, h: el.offsetHeight }
+  })
+  await settle(page)
+  const cLog = await walkLog(page)
+  check(
+    'WALK  moveTo clamps whole at the raster, announces once, and needs no movable',
+    c.left === 512 - Math.round(c.w / scale) &&
+      c.top === 342 - Math.round(c.h / scale) &&
+      placements(cLog, 'c') === 1 &&
+      dragEvents(cLog) === 0,
+    JSON.stringify({ c, log: cLog })
+  )
+  await resetWalk(page)
+  await settle(page)
+  await clearWalkLog(page)
+
+  // dragTo: a long move, sampled while it travels.
+  await page.evaluate(() => {
+    globalThis.__settled = false
+    globalThis.__result = undefined
+    globalThis.__p = document
+      .getElementById('a')
+      .dragTo(400, 24)
+      .then((v) => {
+        globalThis.__settled = true
+        globalThis.__result = v
+      })
+  })
+  const a0 = await state(page, 'a')
+  const travel = await sampleWalk(page)
+  const mid = travel.filter((s) => !s.settled)
+  const shown = mid.filter((s) => s.canvases.length === 1)
+  const last = travel[travel.length - 1]
+  const xs = shown.map((s) => s.canvases[0].x)
+  check(
+    'WALK  dragTo: one canvas on the surface mid-travel, whole system px from it, from the origin toward the landing',
+    shown.length >= 3 &&
+      mid.every((s) => s.canvases.length <= 1) &&
+      xs.every((x) => whole(x) && x >= 16 && x <= 400) &&
+      xs.every((x, i) => i === 0 || x >= xs[i - 1]) &&
+      xs[xs.length - 1] >= 400 - 16 &&
+      shown.every((s) => whole(s.canvases[0].y) && s.canvases[0].y === 24),
+    JSON.stringify({ samples: travel.length, xs })
+  )
+  check(
+    'WALK  …the icon stays put until it lands',
+    mid.every((s) => s.where.a.left === 16 && near(s.where.a.x, a0.x)),
+    JSON.stringify(mid.map((s) => [s.where.a.left, s.where.a.x]))
+  )
+  const aLog = await walkLog(page)
+  check(
+    'WALK  …then the canvas is gone, the icon is at the landing, one announce, no drag event, resolved true',
+    last.settled &&
+      last.result === true &&
+      last.canvases.length === 0 &&
+      last.where.a.left === 400 &&
+      last.where.a.top === 24 &&
+      placements(aLog, 'a') === 1 &&
+      dragEvents(aLog) === 0,
+    JSON.stringify({ last, log: aLog })
+  )
+
+  // A target past the raster: the outline travels to the clamped landing.
+  await clearWalkLog(page)
+  await page.evaluate(() => {
+    globalThis.__settled = false
+    globalThis.__result = undefined
+    globalThis.__p = document
+      .getElementById('a')
+      .dragTo(600, 24)
+      .then((v) => {
+        globalThis.__settled = true
+        globalThis.__result = v
+      })
+  })
+  const past = await sampleWalk(page)
+  const pastXs = past.filter((s) => !s.settled && s.canvases.length === 1).map((s) => s.canvases[0].x)
+  const pastLast = past[past.length - 1]
+  check(
+    'WALK  a target past the raster travels to the clamped landing and lands there',
+    pastXs.length >= 2 &&
+      pastXs.every((x) => x <= 448) &&
+      pastXs[pastXs.length - 1] >= 448 - 16 &&
+      pastLast.where.a.left === 448 &&
+      pastLast.canvases.length === 0,
+    JSON.stringify({ pastXs, a: pastLast.where.a })
+  )
+  await resetWalk(page)
+  await settle(page)
+
+  // dragIcons: three icons, one at a time, in the array's order.
+  await page.evaluate(() => {
+    globalThis.__settled = false
+    globalThis.__result = undefined
+    const at = (id) => document.getElementById(id)
+    globalThis.__p = document
+      .getElementById('field')
+      .dragIcons([
+        { icon: at('a'), left: 300, top: 24 },
+        { icon: at('b'), left: 300, top: 104 },
+        { icon: at('c'), left: 300, top: 184 },
+      ])
+      .then(() => {
+        globalThis.__settled = true
+      })
+  })
+  const walk = await sampleWalk(page)
+  const walkMid = walk.filter((s) => !s.settled)
+  const walkLast = walk[walk.length - 1]
+  const moved = (s, id) => s.where[id].left !== 16
+  check(
+    'WALK  dragIcons walks the icons one at a time in the order given — never two outlines up, B after A has landed, C after B',
+    walkMid.every((s) => s.canvases.length <= 1) &&
+      walkMid.some((s) => moved(s, 'a') && !moved(s, 'b')) &&
+      walkMid.some((s) => moved(s, 'b') && !moved(s, 'c')) &&
+      !walkMid.some((s) => moved(s, 'b') && !moved(s, 'a')) &&
+      !walkMid.some((s) => moved(s, 'c') && !moved(s, 'b')) &&
+      walkLast.settled &&
+      walkLast.canvases.length === 0 &&
+      ['a', 'b', 'c'].every((id) => walkLast.where[id].left === 300),
+    JSON.stringify({
+      samples: walk.length,
+      trail: walkMid.map((s) => [s.canvases.length, s.where.a.left, s.where.b.left, s.where.c.left]),
+    })
+  )
+
+  // A press mid-walk finishes it: every icon at its target at once.
+  await page.evaluate(() => {
+    globalThis.__settled = false
+    const at = (id) => document.getElementById(id)
+    globalThis.__p = document
+      .getElementById('field')
+      .dragIcons([
+        { icon: at('a'), left: 16, top: 24 },
+        { icon: at('b'), left: 16, top: 104 },
+        { icon: at('c'), left: 16, top: 184 },
+      ])
+      .then(() => {
+        globalThis.__settled = true
+      })
+  })
+  await page.waitForTimeout(80)
+  const beforePress = await walkSample(page)
+  await page.mouse.move(600, 60)
+  await page.mouse.down()
+  await page.mouse.up()
+  const afterPress = await walkSample(page)
+  check(
+    'WALK  a press mid-walk lands every icon at once and resolves',
+    !beforePress.settled &&
+      beforePress.canvases.length === 1 &&
+      afterPress.settled &&
+      afterPress.canvases.length === 0 &&
+      ['a', 'b', 'c'].every((id) => afterPress.where[id].left === 16),
+    JSON.stringify({ beforePress, afterPress })
+  )
+
+  // Escape the same.
+  await page.evaluate(() => {
+    globalThis.__settled = false
+    const at = (id) => document.getElementById(id)
+    globalThis.__p = document
+      .getElementById('field')
+      .dragIcons([
+        { icon: at('a'), left: 300, top: 24 },
+        { icon: at('b'), left: 300, top: 104 },
+      ])
+      .then(() => {
+        globalThis.__settled = true
+      })
+  })
+  await page.waitForTimeout(80)
+  const beforeEsc = await walkSample(page)
+  await page.keyboard.press('Escape')
+  const afterEsc = await walkSample(page)
+  check(
+    'WALK  Escape mid-walk lands every icon at once and resolves',
+    !beforeEsc.settled &&
+      beforeEsc.canvases.length === 1 &&
+      afterEsc.settled &&
+      afterEsc.canvases.length === 0 &&
+      afterEsc.where.a.left === 300 &&
+      afterEsc.where.b.left === 300,
+    JSON.stringify({ beforeEsc, afterEsc })
+  )
+
+  // A second call finishes the first.
+  const second = await page.evaluate(async () => {
+    const field = document.getElementById('field')
+    const a = document.getElementById('a')
+    const b = document.getElementById('b')
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    const p1 = field.dragIcons([
+      { icon: a, left: 16, top: 24 },
+      { icon: b, left: 16, top: 104 },
+    ])
+    await sleep(60)
+    const p2 = field.dragIcons([
+      { icon: a, left: 100, top: 24 },
+      { icon: b, left: 100, top: 104 },
+    ])
+    const first = await Promise.race([p1.then(() => 'first'), sleep(20).then(() => 'late')])
+    const atOnce = { a: a.left, b: b.left }
+    await p2
+    return { first, atOnce, a: a.left, b: b.left }
+  })
+  check(
+    "WALK  a second dragIcons finishes the first — its icons at their targets, its promise resolved — then runs",
+    second.first === 'first' &&
+      second.atOnce.a === 16 &&
+      second.atOnce.b === 16 &&
+      second.a === 100 &&
+      second.b === 100,
+    JSON.stringify(second)
+  )
+
+  // An icon removed before its turn is skipped.
+  const removed = await page.evaluate(async () => {
+    const field = document.getElementById('field')
+    const [a, b, c] = ['a', 'b', 'c'].map((id) => document.getElementById(id))
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    const p = field.dragIcons([
+      { icon: a, left: 16, top: 24 },
+      { icon: b, left: 16, top: 104 },
+      { icon: c, left: 16, top: 184 },
+    ])
+    await sleep(30)
+    const bBefore = b.left
+    b.remove()
+    await p
+    const result = { a: a.left, b: b.left, bBefore, c: c.left }
+    field.append(b)
+    return result
+  })
+  check(
+    'WALK  an icon removed before its turn is skipped; the rest land',
+    removed.a === 16 && removed.c === 16 && removed.b === removed.bBefore && removed.b !== 16,
+    JSON.stringify(removed)
+  )
+  await resetWalk(page)
+  await settle(page)
+
+  // A move to where the icon already is shows nothing and settles at once.
+  const tidy = await page.evaluate(async () => {
+    const field = document.getElementById('field')
+    const desk = document.getElementById('desk')
+    const a = document.getElementById('a')
+    const b = document.getElementById('b')
+    const p = field.dragIcons([
+      { icon: a, left: a.left, top: a.top },
+      { icon: b, left: b.left, top: b.top },
+    ])
+    const canvases = desk.shadowRoot.querySelector('.drag-surface').querySelectorAll('canvas').length
+    const outcome = await Promise.race([
+      p.then(() => 'settled'),
+      new Promise((r) => setTimeout(() => r('late'), 10)),
+    ])
+    return { canvases, outcome }
+  })
+  check(
+    'WALK  a tidy field shows nothing and settles at once',
+    tidy.canvases === 0 && tidy.outcome === 'settled',
+    JSON.stringify(tidy)
+  )
+
+  // moveTo mid-travel finishes the travel.
+  const cut = await page.evaluate(async () => {
+    const a = document.getElementById('a')
+    const desk = document.getElementById('desk')
+    const canvases = () => desk.shadowRoot.querySelector('.drag-surface').querySelectorAll('canvas').length
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    const p = a.dragTo(400, 24)
+    await sleep(60)
+    const during = canvases()
+    a.moveTo(100, 24)
+    const after = canvases()
+    const shown = await Promise.race([p, sleep(20).then(() => 'late')])
+    return { during, after, shown, left: a.left }
+  })
+  check(
+    'WALK  moveTo mid-travel finishes it: outline down, the new pair written, the promise resolved',
+    cut.during === 1 && cut.after === 0 && cut.shown === true && cut.left === 100,
+    JSON.stringify(cut)
+  )
+  await page.close()
+}
+
+{
+  // Reduced motion: everything lands at once, no outline, no beat.
+  const page = await build(WALK_DESK, { settle: true, reducedMotion: true })
+  const reduced = await page.evaluate(async () => {
+    const field = document.getElementById('field')
+    const desk = document.getElementById('desk')
+    const a = document.getElementById('a')
+    const b = document.getElementById('b')
+    const canvases = () => desk.shadowRoot.querySelector('.drag-surface').querySelectorAll('canvas').length
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    const p = field.dragIcons([
+      { icon: a, left: 300, top: 24 },
+      { icon: b, left: 300, top: 104 },
+    ])
+    const during = canvases()
+    const outcome = await Promise.race([p.then(() => 'settled'), sleep(5).then(() => 'late')])
+    const landed = { a: a.left, b: b.left }
+    const shown = await a.dragTo(100, 24)
+    return { during, outcome, ...landed, shown, aAfter: a.left, canvases: canvases() }
+  })
+  check(
+    'WALK  under reduced motion every icon lands at once, no outline, no beat, dragTo resolves false',
+    reduced.during === 0 &&
+      reduced.outcome === 'settled' &&
+      reduced.a === 300 &&
+      reduced.b === 300 &&
+      reduced.shown === false &&
+      reduced.aAfter === 100 &&
+      reduced.canvases === 0,
+    JSON.stringify(reduced)
+  )
+  await page.close()
+}
+
+{
+  // No desktop: the canvas draws in the icon's own frame, and the icon lands.
+  const page = await build(
+    `<div style="position:relative;width:600px;height:400px">
+       ${icon('id="solo" width="64" selectable movable left="20" top="20"')}
+     </div>`,
+    { settle: true }
+  )
+  const solo = await page.evaluate(async () => {
+    const el = document.getElementById('solo')
+    const inFrame = () => !!el.shadowRoot.querySelector('canvas.drag-outline')
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    const p = el.dragTo(300, 20)
+    await sleep(60)
+    const during = inFrame()
+    const leftDuring = el.left
+    const shown = await p
+    return { during, leftDuring, shown, after: inFrame(), left: el.left, top: el.top }
+  })
+  check(
+    "WALK  with no desktop the canvas draws in the icon's frame and the icon still lands",
+    solo.during && solo.leftDuring === 20 && solo.shown === true && !solo.after && solo.left === 300 && solo.top === 20,
+    JSON.stringify(solo)
+  )
+  await page.close()
+}
+
+// A scrolling plane holds only the origin; any other box holds the icon whole.
+const WALK_WIN = `
+  <vf-desktop id="desk" width="512" height="342">
+    <vf-icon-field label="Desktop"></vf-icon-field>
+    <vf-window id="scroller" heading="Scrolls" width="300" height="180" scrollbars="both" left="20" top="40">
+      <vf-icon-field id="sf" label="Scrolls" fill-width height="120">
+        ${icon('id="s" width="64" selectable movable left="16" top="16"', 'S')}
+        ${icon('id="t" width="64" selectable movable left="96" top="16"', 'T')}
+      </vf-icon-field>
+    </vf-window>
+    <vf-window id="plain" heading="Plain" width="180" height="120" left="320" top="40">
+      <vf-icon-field label="Plain">
+        ${icon('id="p" width="64" selectable movable left="16" top="16"', 'P')}
+      </vf-icon-field>
+    </vf-window>
+  </vf-desktop>`
+
+{
+  const page = await build(WALK_WIN, { settle: true })
+  const scale = (await state(page, 's')).scale
+  const overflowY = () =>
+    page.evaluate(() => {
+      const win = document.getElementById('scroller')
+      const viewport = win.shadowRoot.querySelector('vf-scroll-area')?.shadowRoot.querySelector('.viewport')
+      return viewport?.dataset.overflowY ?? null
+    })
+  const held = await page.evaluate(() => {
+    const s = document.getElementById('s')
+    const p = document.getElementById('p')
+    s.moveTo(-5, -9)
+    const origin = { left: s.left, top: s.top }
+    s.moveTo(176, 300)
+    const past = { left: s.left, top: s.top }
+    p.moveTo(400, 400)
+    return { origin, past, plain: { left: p.left, top: p.top, w: p.offsetWidth, h: p.offsetHeight } }
+  })
+  await settle(page)
+  check(
+    'WALK  in a scrolling plane moveTo holds the origin and nothing else: past the window lands past it, and the viewport overflows',
+    held.origin.left === 0 &&
+      held.origin.top === 0 &&
+      held.past.left === 176 &&
+      held.past.top === 300 &&
+      (await overflowY()) === 'true',
+    JSON.stringify({ held, overflowY: await overflowY() })
+  )
+  check(
+    'WALK  in a plain window body the icon still lands whole',
+    held.plain.left === 180 - Math.round(held.plain.w / scale) &&
+      held.plain.top === 120 - Math.round(held.plain.h / scale),
+    JSON.stringify(held.plain)
+  )
+
+  // The hand: a two-icon group dragged past the window's bottom lands past it.
+  await page.evaluate(() => {
+    const s = document.getElementById('s')
+    s.left = 16
+    s.top = 16
+  })
+  await settle(page)
+  await page.locator('#s').click()
+  await page.locator('#t').click({ modifiers: ['Shift'] })
+  await pressAndMove(page, 's', 0, 390)
+  await page.mouse.up()
+  const group = await page.evaluate(() => {
+    const at = (id) => document.getElementById(id)
+    return { s: [at('s').left, at('s').top], t: [at('t').left, at('t').top] }
+  })
+  // 390 CSS px of travel in system px at this page's scale — past the box's
+  // bottom (180 − 44 = 136) at any scale the suite runs at.
+  const travelled = 16 + Math.round(390 / scale)
+  check(
+    'WALK  …and so does a hand drag of a group: both members the whole travel past their origin, below the window',
+    travelled > 136 &&
+      group.s[0] === 16 &&
+      group.s[1] === travelled &&
+      group.t[0] === 96 &&
+      group.t[1] === travelled,
+    JSON.stringify({ group, travelled, scale })
+  )
+
+  // The walk: dragTo past the box travels there and lands there.
+  const walked = await page.evaluate(async () => {
+    const s = document.getElementById('s')
+    const shown = await s.dragTo(16, 260)
+    return { shown, left: s.left, top: s.top }
+  })
+  check(
+    'WALK  …and dragTo walks an icon below the fold',
+    walked.shown === true && walked.left === 16 && walked.top === 260,
+    JSON.stringify(walked)
   )
   await page.close()
 }

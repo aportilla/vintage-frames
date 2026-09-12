@@ -10,7 +10,8 @@ import { DragController } from '../drag.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
-import { RENAME_DELAY_MS } from '../motion.js'
+import { prefersReducedMotion, RENAME_DELAY_MS, runOutlineTravel } from '../motion.js'
+import type { TravelHandle } from '../motion.js'
 import { deriveDragOutline, deriveOpenArt, dotOutline, penPhase } from '../open-art.js'
 import type { DragOutlineBox } from '../open-art.js'
 import { sysLength } from '../scale.js'
@@ -297,7 +298,8 @@ const clamp = (v: number, max: number): number =>
  *   changed the snapped proposal;
  * - `vf-drop`, the same shape at the release, **cancelable**: its default
  *   action is the move, the proposal written through `left`/`top` and
- *   clamped whole in the container measured at the press. `preventDefault()`
+ *   clamped whole in the container measured at the press — held at the
+ *   origin only in a scrolling plane, whose rails reach the rest. `preventDefault()`
  *   writes nothing — the page re-parents or places the icon itself, the
  *   outline's origin converted with the destination's `placementAt`;
  * - `vf-drag-cancel` `{}` on Escape or a `pointercancel`: nothing written.
@@ -340,6 +342,33 @@ const clamp = (v: number, max: number): number =>
  * drag: the selected treatment of the art alone — inverted, or darkened
  * under `color` — with none of `selected`'s semantics: no event, no outside
  * listener, no `aria-selected`, the plate untouched.
+ *
+ * ### The page drags it too
+ *
+ * The Finder's Clean Up walked a container's icons one at a time, each
+ * icon's outline travelling from where it sat to its cell and the icon
+ * landing when the outline arrived — the drag's own vocabulary, with the
+ * Finder for a hand. {@link dragTo} is that move for one icon: the outline
+ * built and placed as a drag's is, on the desktop's surface or in the frame,
+ * stepped to the landing at the walk's cadence ({@link runOutlineTravel},
+ * src/motion.ts — the kit's, no knobs), then the outline down and the icon
+ * written where a drop would write it. The landing is resolved before the
+ * outline sets off, so the outline goes where the icon will land rather
+ * than where a pair past the container's edge pointed. {@link moveTo} is
+ * that write alone: the drop's clamp and snap, one `vf-placement-change` —
+ * where a property set is the authored pair, unclamped. Neither fires a
+ * drag event (the page is the mover and already knows) and neither needs
+ * `movable`, which says the hand may drag: the page may always place its
+ * icon. `vf-icon-field.dragIcons` walks a set through `dragTo` with the
+ * Finder's beat between landings.
+ *
+ * A walk is finished, never cancelled: a press anywhere, or Escape, lands
+ * the icon at once — the user wants the machine back, and the move was the
+ * page's to make. A second `dragTo`, or a `moveTo`, finishes the one in
+ * flight the same way; leaving the DOM takes the outline down and writes
+ * nothing. Under `prefers-reduced-motion` the icon lands at once with no
+ * outline, the blink's posture — as does one being renamed, or one under
+ * the hand's own press.
  *
  * Opening gets the same treatment. The double-click is the pointer gesture,
  * and its keyboard route is ⌘O / ⌘↓ — the System 7 Open shortcuts, with Ctrl
@@ -918,17 +947,46 @@ export class VfIcon extends VfPositioned(LitElement) {
    * Where a moved icon is allowed to end up, in system px. Unlike `vf-window`,
    * which only keeps a grabbable strip on screen, an icon is small enough to
    * hold whole — losing half of one to an edge reads as a bug rather than as a
-   * window pushed aside.
+   * window pushed aside. Except in a box that scrolls ({@link #anchorScrolls}):
+   * the rails reach anything placed past such a box, so only its origin holds
+   * — the Finder put an icon below a window's fold and scrolled to it.
    */
   #keepWhole = (
     x: number,
     y: number,
     bounds: PlacementBounds
   ): { x: number; y: number } => {
+    if (this.#anchorScrolls()) return { x: Math.max(x, 0), y: Math.max(y, 0) }
     return {
       x: clamp(x, bounds.width - toSysExact(this.offsetWidth, this)),
       y: clamp(y, bounds.height - toSysExact(this.offsetHeight, this)),
     }
+  }
+
+  /**
+   * Whether the box this icon is placed in scrolls: a `vf-scroll-area`'s
+   * plane, which a window body is under `scrollbars`. Found by walking the
+   * flat tree from the icon toward its positioning parent — through the
+   * slots it is assigned to and out of the shadow roots on the way. A scroll
+   * area met before the parent is the one whose plane the icon sits on; one
+   * met only beyond it (a placed container inside a scrolling window) is not
+   * this icon's box. Read per clamp: a handful of nodes, and the answer
+   * changes when the icon is re-parented.
+   */
+  #anchorScrolls(): boolean {
+    const anchor = this.offsetParent
+    let node: Node | null = this.assignedSlot ?? this.parentNode
+    while (node && node !== anchor) {
+      if (node instanceof Element) {
+        if (node.localName === 'vf-scroll-area') return true
+        node = node.assignedSlot ?? node.parentNode
+      } else if (node instanceof ShadowRoot) {
+        node = node.host
+      } else {
+        node = null
+      }
+    }
+    return false
   }
 
   /**
@@ -990,6 +1048,30 @@ export class VfIcon extends VfPositioned(LitElement) {
     event.preventDefault()
     event.stopPropagation()
     this.#drag.cancel()
+  }
+
+  /** The walk in flight — a page's {@link dragTo} — or null. */
+  #travel: TravelHandle | null = null
+
+  /**
+   * A press anywhere, or Escape, finishes a walk in flight: the icon lands
+   * at once. Scoped to the travel, on the document, capture phase, the key
+   * stopped there — the drag's Escape rule above, for the same reasons.
+   */
+  readonly #interrupt = new DocumentListenersController(this, () => [
+    [document, 'pointerdown', this.#onTravelPress, true],
+    [document, 'keydown', this.#onTravelKeyDown, true],
+  ])
+
+  #onTravelPress = (): void => {
+    this.#travel?.finish()
+  }
+
+  #onTravelKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape' || !this.#travel) return
+    event.preventDefault()
+    event.stopPropagation()
+    this.#travel.finish()
   }
 
   /** The frame's viewport box — what the outline is a translation of. */
@@ -1132,7 +1214,8 @@ export class VfIcon extends VfPositioned(LitElement) {
    * outermost icon meets the container, and the arrangement is kept — then
    * each member's origin plus that delta. A group no edge can hold (a member
    * wider than the container) is held off the near edge only, the
-   * single-icon rule.
+   * single-icon rule; so is any group in a box that scrolls, where only the
+   * origin holds ({@link #anchorScrolls}).
    */
   #dropGroup(gesture: DragGesture, detail: VfIconDragDetail): void {
     if (gesture.followers.length === 0) {
@@ -1150,6 +1233,7 @@ export class VfIcon extends VfPositioned(LitElement) {
       { corner: corner(gesture.origin, this.#placement.offset), size: gesture.size },
       ...gesture.followers.map((f) => ({ corner: corner(f.origin, f.offset), size: f.size })),
     ]
+    const open = this.#anchorScrolls()
     const axis = (
       delta: number,
       start: (m: (typeof members)[number]) => number,
@@ -1160,7 +1244,7 @@ export class VfIcon extends VfPositioned(LitElement) {
       let hi = Infinity
       for (const m of members) {
         lo = Math.max(lo, -start(m))
-        hi = Math.min(hi, room - extent(m) - start(m))
+        if (!open) hi = Math.min(hi, room - extent(m) - start(m))
       }
       if (hi < lo) hi = Infinity
       return Math.min(Math.max(delta, lo), hi)
@@ -1329,6 +1413,8 @@ export class VfIcon extends VfPositioned(LitElement) {
     this.#gesture?.outline?.canvas.remove()
     for (const follower of this.#gesture?.followers ?? []) follower.end()
     this.#gesture = null
+    // Nor a walk: its outline comes down, and nothing is written.
+    this.#travel?.finish()
   }
 
   protected override updated(changed: Map<PropertyKey, unknown>): void {
@@ -1773,6 +1859,77 @@ export class VfIcon extends VfPositioned(LitElement) {
       }
     }
     return false
+  }
+
+  /**
+   * Place the icon as a drop would: the stated pair — the origin point
+   * under an `origin`, the corner without one — clamped whole in the
+   * container measured now (held at the origin only in a scrolling plane),
+   * snapped onto the lattice, announced as one `vf-placement-change`. A
+   * `left`/`top` write is the authored pair, unclamped; this is the
+   * gesture's. Finishes a walk in flight first.
+   */
+  moveTo(left: number, top: number): void {
+    this.#travel?.finish()
+    this.#warnIfUnplaced()
+    // seed() is what measures the container; the origin it returns is not
+    // needed here.
+    this.#placement.seed()
+    this.#placement.moveTo(left, top)
+  }
+
+  /**
+   * Move the icon the way a drag moves it (see the class doc): its outline
+   * travels from where it sits to where it will land, and the icon lands
+   * when the outline arrives, written as {@link moveTo} writes. Resolves
+   * once it has landed — to whether the outline travelled; false when the
+   * icon landed at once: already there, `prefers-reduced-motion`, nothing
+   * to draw the outline with, or not in the DOM (nothing written then).
+   * Fires no drag event. A walk already in flight here is finished first.
+   */
+  async dragTo(left: number, top: number): Promise<boolean> {
+    this.#travel?.finish()
+    // A frame to measure: an icon appended this turn has none until it has
+    // rendered. Anything that set off during the wait is finished too.
+    await this.updateComplete
+    this.#travel?.finish()
+    if (!this.isConnected) return false
+    this.#warnIfUnplaced()
+    const origin = this.#placement.seed()
+    const landing = this.#placement.resolve(left, top)
+    const dx = landing.x - origin.x
+    const dy = landing.y - origin.y
+    // Reduced motion is decided here, before an outline is drawn for
+    // nothing, so runOutlineTravel below never lands synchronously.
+    const still =
+      (dx === 0 && dy === 0) ||
+      prefersReducedMotion() ||
+      this._editing ||
+      this.#gesture !== null
+    const outline = still ? null : this.#buildOutline(this.#frameRect(), this.#requestSurface())
+    if (!outline) {
+      this.#placement.moveTo(landing.x, landing.y)
+      return false
+    }
+    this.#placeOutlineAt(outline, 0, 0)
+    return new Promise<boolean>((resolve) => {
+      let handle: TravelHandle | null = null
+      handle = runOutlineTravel(
+        Math.hypot(dx, dy),
+        (t) => this.#placeOutlineAt(outline, Math.round(dx * t), Math.round(dy * t)),
+        () => {
+          if (this.#travel === handle) {
+            this.#travel = null
+            this.#interrupt.detach()
+          }
+          outline.canvas.remove()
+          if (this.isConnected) this.#placement.moveTo(landing.x, landing.y)
+          resolve(true)
+        }
+      )
+      this.#travel = handle
+      this.#interrupt.attach()
+    })
   }
 
   #onPointerDown = (event: PointerEvent): void => {

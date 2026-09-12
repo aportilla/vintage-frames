@@ -45,6 +45,7 @@ export type {
   VfIconDragFollower,
 } from './components/vf-icon.js'
 export { VfIconField } from './components/vf-icon-field.js'
+export type { VfIconMove } from './components/vf-icon-field.js'
 
 // Menus, lists, containers
 export { VfMenuBar } from './components/vf-menu-bar.js'
@@ -263,12 +264,16 @@ export { emit } from './events.js'
 export {
   prefersReducedMotion,
   runSelectionBlink,
+  runOutlineTravel,
   BLINK_INTERVAL_MS,
   BLINK_FLIPS,
   PRESS_HOLD_MS,
   RENAME_DELAY_MS,
+  WALK_STEP_PX,
+  WALK_STEP_MS,
+  WALK_BEAT_MS,
 } from './motion.js'
-export type { BlinkHandle } from './motion.js'
+export type { BlinkHandle, TravelHandle } from './motion.js'
 
 /**
  * Element registration. `vfElement` is the kit's `@customElement`: it registers

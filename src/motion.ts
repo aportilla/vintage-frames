@@ -108,3 +108,67 @@ export function runSelectionBlink(
     },
   }
 }
+
+/**
+ * The walk: an icon's drag outline travelling to where a page sends it
+ * (`vf-icon.dragTo`), the Finder's own Clean Up. System px the outline
+ * advances per step, milliseconds between steps, and the beat after one
+ * icon lands before the next of a field sets off (`vf-icon-field.dragIcons`).
+ *
+ * Constant speed rather than a fixed frame count: the walk is the drag's
+ * outline moved by the kit instead of the hand, and most of a Clean Up's
+ * moves are short — a fixed count would crawl a one-pixel correction across
+ * as many frames as a trip across the screen. Set by eye; nothing in the
+ * verify suite asserts them.
+ */
+export const WALK_STEP_PX = 16
+export const WALK_STEP_MS = 25
+export const WALK_BEAT_MS = 50
+
+/** Handle for an in-flight {@link runOutlineTravel}; {@link finish} lands it now. */
+export interface TravelHandle {
+  finish(): void
+}
+
+/**
+ * The walk's cadence. `setProgress(t)` is called once per step with the
+ * fraction of `distance` (system px) covered — whole steps of
+ * {@link WALK_STEP_PX}, the last exactly 1 — and one interval after the last
+ * step `onDone()`, so the outline rests where it arrived before the icon
+ * lands. A timer chain at {@link WALK_STEP_MS}, not `requestAnimationFrame`,
+ * so a 120 Hz display does not double the speed. `finish()` clears the
+ * timer and calls `onDone()` at once — a walk is finished, never cancelled.
+ * `onDone` runs exactly once, and never before this returns except under
+ * `prefers-reduced-motion`, where it runs at once and the handle is a no-op.
+ */
+export function runOutlineTravel(
+  distance: number,
+  setProgress: (t: number) => void,
+  onDone: () => void
+): TravelHandle {
+  if (prefersReducedMotion()) {
+    onDone()
+    return { finish() {} }
+  }
+  const steps = Math.max(1, Math.ceil(distance / WALK_STEP_PX))
+  let step = 0
+  let done = false
+  let timer = 0
+  const finish = (): void => {
+    if (done) return
+    done = true
+    window.clearTimeout(timer)
+    onDone()
+  }
+  const tick = (): void => {
+    if (step >= steps) {
+      finish()
+      return
+    }
+    step += 1
+    setProgress(step / steps)
+    timer = window.setTimeout(tick, WALK_STEP_MS)
+  }
+  timer = window.setTimeout(tick, WALK_STEP_MS)
+  return { finish }
+}

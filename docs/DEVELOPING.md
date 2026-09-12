@@ -15,7 +15,7 @@ Both pages are published at **[aportilla.github.io/vintage-frames](https://aport
 
 | Page | What it is |
 | --- | --- |
-| [`/`](http://localhost:5173/) | **Component reference** — every element, its API, and a live specimen of each state. Each code sample is the demo's own source, so it can't drift |
+| [`/`](http://localhost:5173/) | **Component reference** — every element, its API, and a live specimen of each state. Each markup sample is the demo's own source, so it can't drift. A demo whose behavior needs page script beyond its markup shows that too, as a "Script" block: the API surface the demo rests on, written the way a page would write it — the elements by name, an `app` object standing for the page's own state — not the `data-*` hooks in `demo/examples.ts` that actually drive it. Authored as a `<script type="text/plain" data-script>` last child of the demo's template |
 
 The faux System 7 desktop that used to be this site's root moved to its own repo, [aportilla/system7web](https://github.com/aportilla/system7web), where it consumes `vintage-frames` from npm like any other app. Changing a component and wanting to see the desktop react means publishing (or `npm link`ing) the package — which is the point: the desktop is now a consumer, and it exercises the same public API everyone else gets.
 

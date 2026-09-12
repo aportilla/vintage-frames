@@ -221,7 +221,7 @@ A drag on a movable icon draws the classic dotted outline over the desktop; the 
 | `vf-drop` (cancelable) | the same, at the release |
 | `vf-drag-cancel` | `{}` |
 
-`icons` is every icon travelling, the dragged one first. `x`/`y` is the dragged icon's outline in viewport CSS px; each follower's outline is its own box translated by the same delta. The default action of an uncancelled `vf-drop` moves the set within its own container, clamped whole. The page cancels that when it files the icons itself.
+`icons` is every icon travelling, the dragged one first. `x`/`y` is the dragged icon's outline in viewport CSS px; each follower's outline is its own box translated by the same delta. The default action of an uncancelled `vf-drop` moves the set within its own container, clamped whole, or held at the origin only in a scrolling plane, whose rails reach the rest. The page cancels that when it files the icons itself.
 
 Hit-test with `elementsFromPoint`, skipping the travelling icons themselves — the outline is never a hit, so what is under the pointer is what the page sees:
 
@@ -334,6 +334,21 @@ document.addEventListener('vf-drop', (e) => {
 
 Read `icon.left`, never `style.left`: the inline value is a live `calc()`.
 
+## Clean Up
+
+Special → Clean Up moves every icon of the front container onto its lattice one at a time, each icon's outline travelling to its cell and the icon landing when the outline arrives. The cells are the page's; the walk is the kit's:
+
+```ts
+async function cleanUp(field: VfIconField, cells: Map<VfIcon, { left: number; top: number }>): Promise<void> {
+  const moves = [...cells].map(([icon, at]) => ({ icon, ...at }))
+  await field.dragIcons(moves)
+}
+```
+
+`dragIcons` walks the array in the order given, so sort it in the container's own fill order first. Each icon lands through the drop's write — clamped whole in its container, or held at the origin only in a scrolling plane, snapped to the lattice, one `vf-placement-change` — so a folder window's lattice may run as many rows as it takes, and its scroll range re-measures per icon. A floor of the page's own, such as the desktop's menu bar, is the page's clamp: apply it to the cells before handing them over. The promise resolves when the last icon has landed; refit a folder window's field and persist positions after it, since a snapshot taken mid-walk reads half-moved positions. A press anywhere, or Escape, finishes the walk at once with every remaining icon at its cell. Under `prefers-reduced-motion` every icon lands at once.
+
+One icon alone is `icon.dragTo(left, top)`. `icon.moveTo(left, top)` is the same landing with no outline — the write a drop makes — where `icon.left = …` is the authored pair, unclamped.
+
 ## Renaming
 
 `editable` opens the rename box on a click on the name of an already-selected icon, or on Return. Commit the name to the model on `vf-change`; the two refusals are the page's alerts:
@@ -374,7 +389,7 @@ The kit's routes, which need nothing from the page: Tab reaches each selectable 
 - **Fields need a box for the rubber band.** Fill the desktop's field; place and size a folder window's. An unfilled field of placed icons is zero-height and takes no press.
 - **Keep a placed field at its container's origin** (`top="0" left="0"`), so the container's `placementAt()` and the field's coordinates agree. A field placed elsewhere needs its own conversion: `toSysExact(clientX - fieldRect.left, field)`.
 - **Group drops land each member where its own outline was.** Convert each icon's own rect plus the leader's delta, as above; converting only `x`/`y` stacks the group on one spot.
-- **Hold landings at the origin.** A member let go partly past a plane's edge would land under it; `Math.max(0, …)` keeps it on the plane. The kit's own default action clamps the group whole; the page's writes are its own.
+- **Hold landings at the origin.** A member let go partly past a plane's edge would land under it; `Math.max(0, …)` keeps it on the plane. That is the kit's own rule in a scrolling plane, where the default action holds only the origin and the rails reach the rest; in any other box it clamps the group whole. The page's writes are its own.
 - **Skip the travelling icons in the hit test.** A follower can be under the pointer; it is never a destination.
 - **`open` is the page's to set and clear**, on the icon whose window is on screen.
 - **Touch.** A movable icon sets `touch-action: none`, so a touch drag on an icon is the drag. A touch drag on a field's background pans a scrolling window; the rubber band is a mouse and pen gesture.

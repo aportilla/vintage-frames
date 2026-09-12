@@ -134,6 +134,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 </vf-grid>
               </vf-window>
             </vf-desktop>
+            <script type="text/plain" data-script>
+              // vf-resize reports the grow box's result in system px; the status strip
+              // is the natural place to show it.
+              untitledWindow.addEventListener('vf-resize', ({ detail: { width, height } }) => {
+                sizeReadout.textContent = `${width}px x ${height}px`
+              })
+            </script>
           </template>
 
           <template
@@ -285,6 +292,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               </vf-window>
               <vf-button data-reopen="#ex-window-doc" left="16" top="224">Reopen</vf-button>
             </vf-desktop>
+            <script type="text/plain" data-script>
+              // vf-close is a report, not a removal: what a closed window becomes is the
+              // page's decision. Here it hides, and the button brings it back.
+              readMeWindow.addEventListener('vf-close', () => { readMeWindow.hidden = true })
+              reopenButton.addEventListener('click', () => { readMeWindow.hidden = false })
+            </script>
           </template>
 
           <template
@@ -510,6 +523,15 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 <vf-paragraph fill-width>© 2026 Adam Portilla</vf-paragraph>
               </vf-stack>
             </vf-dialog>
+            <script type="text/plain" data-script>
+              // A dialog opens and closes through its own show() and close(). vf-close
+              // reports every way it closed: the page's close(), Escape, or a click
+              // outside under light-dismiss.
+              newButton.addEventListener('click', () => newDialog.show())
+              okButton.addEventListener('click', () => { app.createDocument(nameField.value); newDialog.close() })
+              cancelButton.addEventListener('click', () => newDialog.close())
+              newDialog.addEventListener('vf-close', ({ detail: { reason } }) => app.dialogClosed(reason))   // 'close', 'escape' or 'outside'
+            </script>
           </template>
 
           <table class="api">
@@ -563,6 +585,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 <vf-button variant="default" data-close="#ex-alert">Erase</vf-button>
               </vf-button-group>
             </vf-dialog>
+            <script type="text/plain" data-script>
+              // An alert is a dialog: show() raises it and close() dismisses it. Return
+              // presses the default button from anywhere in it; Escape closes it.
+              eraseButton.addEventListener('click', () => eraseAlert.show())
+              cancelButton.addEventListener('click', () => eraseAlert.close())
+              confirmButton.addEventListener('click', () => { app.eraseDisk(); eraseAlert.close() })
+            </script>
           </template>
         </section>
 
@@ -778,6 +807,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <vf-radio value="none">Don't Reorganize</vf-radio>
             </vf-radio-group>
             <span class="readout" data-value-src="ex-mode"></span>
+            <script type="text/plain" data-script>
+              // vf-change reports the picked radio's value; the group's value property
+              // reads the same. A value set from code is silent.
+              modeGroup.addEventListener('vf-change', ({ detail: { value } }) => {
+                app.settings.mode = value
+              })
+            </script>
           </template>
 
           <table class="api">
@@ -824,6 +860,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <vf-text-field value="Read only" readonly></vf-text-field>
             <vf-text-field value="Disabled" disabled></vf-text-field>
             <span class="readout" data-value-src="ex-name"></span>
+            <script type="text/plain" data-script>
+              // vf-input on every keystroke, vf-change on commit, each with the value.
+              nameField.addEventListener('vf-input', ({ detail: { value } }) => { app.draft.name = value })
+              nameField.addEventListener('vf-change', ({ detail: { value } }) => app.rename(value))
+            </script>
           </template>
 
           <table class="api">
@@ -880,6 +921,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <vf-number-field value="4" min="1" max="9" step="0.5"></vf-number-field>
             <vf-number-field value="12" disabled></vf-number-field>
             <span class="readout" data-value-src="ex-scale"></span>
+            <script type="text/plain" data-script>
+              // Every keystroke is vf-input; a commit or an arrow step is vf-change. Both
+              // carry the text and its number, the number clamped and rounded to step.
+              scaleField.addEventListener('vf-change', ({ detail: { valueAsNumber } }) => {
+                app.pageSetup.scale = valueAsNumber
+              })
+            </script>
           </template>
 
           <table class="api">
@@ -923,6 +971,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <vf-option value="a">Disabled popup</vf-option>
             </vf-select>
             <span class="readout" data-value-src="ex-select"></span>
+            <script type="text/plain" data-script>
+              // vf-change reports the committed pick — after the blink, once the popup
+              // has closed. A value set from code is silent.
+              locationSelect.addEventListener('vf-change', ({ detail: { value } }) => {
+                app.install.disk = value
+              })
+            </script>
           </template>
 
           <p>
@@ -965,6 +1020,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <vf-option value="fragment">code fragment</vf-option>
             </vf-select>
             <span class="readout" data-value-src="ex-select-long"></span>
+            <script type="text/plain" data-script>
+              // The same event whatever the list's length — and the other direction,
+              // a write from code, which selects the option and fires nothing.
+              criteriaSelect.addEventListener('vf-change', ({ detail: { value } }) => { app.find.criterion = value })
+              criteriaSelect.value = app.find.criterion
+            </script>
           </template>
 
           <table class="api">
@@ -1006,6 +1067,14 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <vf-progress-bar value="45" style="width: 15em"></vf-progress-bar>
             <vf-progress-bar value="100" style="width: 15em"></vf-progress-bar>
             <vf-progress-bar indeterminate label="Searching" style="width: 15em"></vf-progress-bar>
+            <script type="text/plain" data-script>
+              // A determinate bar is driven by value, 0 to 100: write it as the work
+              // advances. indeterminate shows the stripes instead, and holds still under
+              // prefers-reduced-motion.
+              app.copy.addEventListener('progress', ({ done, total }) => {
+                copyingBar.value = (100 * done) / total
+              })
+            </script>
           </template>
 
           <table class="api">
@@ -1035,6 +1104,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <vf-slider value="3" min="1" max="7" step="1" label="Zoom" style="width: 15em"></vf-slider>
             <vf-slider value="60" disabled label="Disabled" style="width: 15em"></vf-slider>
             <span class="readout" data-value-src="ex-slider"></span>
+            <script type="text/plain" data-script>
+              // vf-input on every move, for a live preview; vf-change on release, to keep.
+              volumeSlider.addEventListener('vf-input', ({ detail: { value } }) => app.sound.preview(value))
+              volumeSlider.addEventListener('vf-change', ({ detail: { value } }) => { app.sound.volume = value })
+            </script>
           </template>
 
           <table class="api">
@@ -1092,6 +1166,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               </vf-menu>
             </vf-menu-bar>
             <pre class="log" data-log></pre>
+            <script type="text/plain" data-script>
+              // vf-menu-select fires after the blink, with the item's value and the item
+              // itself. It bubbles and composes, so one listener on the bar hears every menu.
+              menuBar.addEventListener('vf-menu-select', ({ detail: { value, item } }) => app.run(value))
+            </script>
           </template>
 
           <template
@@ -1202,6 +1281,11 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               </vf-list-item>
             </vf-list>
             <span class="readout" data-value-src="ex-list"></span>
+            <script type="text/plain" data-script>
+              // vf-change carries the selected item's value, and values — the array a
+              // multiple list fills. The value property reads the same.
+              accessoriesList.addEventListener('vf-change', ({ detail: { value } }) => app.open(value))
+            </script>
           </template>
 
           <template data-example data-stage="column" data-caption="multiple: Shift and ⌘ extend, Space toggles. `values` is a property, not an attribute.">
@@ -1212,6 +1296,12 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <vf-list-item value="new-york">New York</vf-list-item>
             </vf-list>
             <span class="readout" data-value-src="ex-list-multi" data-value-prop="values"></span>
+            <script type="text/plain" data-script>
+              // A multiple list reports its whole selection as values, and takes one the
+              // same way — an array, so a property rather than an attribute.
+              fontsList.addEventListener('vf-change', ({ detail: { values } }) => { app.fonts.selected = values })
+              fontsList.values = app.fonts.selected
+            </script>
           </template>
 
           <table class="api">
@@ -1880,6 +1970,15 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               </vf-icon>
             </vf-icon-field>
             <pre class="log" data-log></pre>
+            <script type="text/plain" data-script>
+              // A rename's three outcomes, heard on the field since the events bubble. The
+              // commit carries the new name and the old; the two refusals are the page's
+              // alerts, as System 7's were.
+              documentsField.addEventListener('vf-change', ({ target, detail: { label } }) => app.rename(target, label))
+              documentsField.addEventListener('vf-name-too-long', ({ detail: { limit } }) =>
+                app.alert(`That name is too long. Names can have up to ${limit} characters.`))
+              documentsField.addEventListener('vf-name-rejected', () => app.alert('An item must have a name.'))
+            </script>
           </template>
 
           <template data-example data-caption='size="small" swaps to the 16×16 art. An empty label draws no plate but stays selectable and renameable: focus the last one and press Return to name it. Committing an empty name over a real one is refused.'>
@@ -1947,6 +2046,17 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               </vf-icon-field>
             </vf-desktop>
             <pre class="log" data-log></pre>
+            <script type="text/plain" data-script>
+              // What an icon reports, heard on the desktop since the events bubble.
+              desktop.addEventListener('vf-select', ({ target, detail: { selected } }) => app.select(target, selected))
+              desktop.addEventListener('vf-open', ({ target }) => app.open(target))
+              desktop.addEventListener('vf-change', ({ target, detail: { label } }) => app.rename(target, label))
+              // A drag is a stream and a cancelable commit; left alone, the drop's default
+              // action is the move. Filing the set elsewhere is the next example.
+              desktop.addEventListener('vf-drag-start', ({ detail: { left, top, icons } }) => app.dragBegan(icons))
+              desktop.addEventListener('vf-drop', ({ detail: { left, top, icons } }) => app.moved(icons))
+              desktop.addEventListener('vf-drag-cancel', () => app.dragEnded())
+            </script>
           </template>
 
           <p>
@@ -2010,6 +2120,37 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               </vf-window>
             </vf-desktop>
             <pre class="log" data-log></pre>
+            <script type="text/plain" data-script>
+              // The page's half of the Finder drag: the kit reports the gesture, and
+              // folders are the page's own catalog.
+
+              // Under the drag, the folder icon under the pointer wears target — the
+              // Finder's inverted destination, with none of selected's semantics. The
+              // outline is never a hit, so the pointer's own coordinates find it.
+              desktop.addEventListener('vf-drag', ({ detail: { clientX, clientY, icons } }) => {
+                app.showTarget(app.folderIconUnder(clientX, clientY, { except: icons }))   // icon.target = true, one at a time
+              })
+              desktop.addEventListener('vf-drag-cancel', () => app.showTarget(null))
+
+              // At the drop the page files the set. Cancelling the default action writes
+              // nothing; the page re-parents each icon and places it where its own outline
+              // was let go, converted into the destination's coordinates by placementAt.
+              desktop.addEventListener('vf-drop', (event) => {
+                const { clientX, clientY, x, y, icons } = event.detail
+                const destination = app.destinationUnder(clientX, clientY, { except: icons })   // a folder icon, a folder window, the desktop
+                if (!destination) return                                                        // the same container: the kit's default action moves the set
+                event.preventDefault()
+                app.showTarget(null)
+                const lead = event.target.getBoundingClientRect()
+                for (const icon of icons) {
+                  const box = icon.getBoundingClientRect()   // each member's outline: its own box, moved by the leader's delta
+                  const at = destination.isFolderIcon
+                    ? app.nextFreeCell(destination.folder)
+                    : destination.container.placementAt(box.left + (x - lead.left), box.top + (y - lead.top), icon)
+                  app.file(icon, destination.folder, at)     // field.append(icon); icon.left = at.left; icon.top = at.top
+                }
+              })
+            </script>
           </template>
 
           <table class="api">
@@ -2029,6 +2170,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>maxlength</code></td><td>number</td><td><code>31</code></td><td class="wrap">The HFS filename limit, applied to the rename field. A <code>label</code> set from your own data is never truncated</td></tr>
               <tr><td><code>setSelected(next)</code></td><td>method</td><td>—</td><td class="wrap">Select or deselect as a press would, <code>vf-select</code> included. A <code>selected</code> write from code is silent</td></tr>
               <tr><td><code>touches(box)</code></td><td>method</td><td>—</td><td class="wrap">Whether a viewport box reaches the art cell or the name plate — the selection rectangle's test; the empty cell beside them counts for nothing</td></tr>
+              <tr><td><code>moveTo(left, top)</code></td><td>method</td><td>—</td><td class="wrap">Place as a drop would: clamped whole in the container (held at the origin only in a scrolling plane, whose rails reach the rest), snapped to the lattice, one <code>vf-placement-change</code>. A <code>left</code>/<code>top</code> write is the authored pair, unclamped</td></tr>
+              <tr><td><code>dragTo(left, top)</code></td><td>method</td><td>—</td><td class="wrap">Move the way a drag moves: the dotted outline travels from where the icon sits to where it will land, and the icon lands when the outline arrives, written as <code>moveTo</code> writes. A promise, resolved once it has landed — <code>true</code> when the outline travelled, <code>false</code> when the icon landed at once (already there, or reduced motion). Fires no drag event and needs no <code>movable</code>. A press anywhere, or Escape, lands it at once</td></tr>
               <tr><td><code>vf-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ selected }</code></td></tr>
               <tr><td><code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ label, previous }</code> — the name was committed</td></tr>
               <tr><td><code>vf-open</code></td><td>Event</td><td>—</td><td class="wrap"><code>{}</code> — double-clicked anywhere on the icon, name included, or ⌘O / ⌘↓ (Ctrl off the Mac). Return renames instead</td></tr>
@@ -2036,7 +2179,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>vf-name-rejected</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ attempted, kept, reason }</code> — a rename committed empty; the old name is kept and no <code>vf-change</code> fires</td></tr>
               <tr><td><code>vf-drag-start</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ left, top, icons }</code> — the first lattice step away from the press; the origin in the icon's container, and every icon travelling (this one first: a drag on a selected icon carries the field's other selected icons). A press that never leaves its cell fires nothing</td></tr>
               <tr><td><code>vf-drag</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ clientX, clientY, left, top, x, y, icons }</code> on every step that changed the proposal: the pointer in CSS px, the proposed origin in the container (whole system px on the lattice, unclamped), the outline's corner in viewport CSS px for a drop into another container, and the icons travelling</td></tr>
-              <tr><td><code>vf-drop</code></td><td>Event</td><td>—</td><td class="wrap">The release, cancelable, with the same detail. The default action writes the proposal through <code>left</code>/<code>top</code> — every icon in <code>icons</code> by the same delta, clamped whole in the container as a group; <code>preventDefault()</code> writes nothing, and re-parenting inside the handler is safe</td></tr>
+              <tr><td><code>vf-drop</code></td><td>Event</td><td>—</td><td class="wrap">The release, cancelable, with the same detail. The default action writes the proposal through <code>left</code>/<code>top</code> — every icon in <code>icons</code> by the same delta, clamped whole in the container as a group, or held at the origin only in a scrolling plane; <code>preventDefault()</code> writes nothing, and re-parenting inside the handler is safe</td></tr>
               <tr><td><code>vf-drag-cancel</code></td><td>Event</td><td>—</td><td class="wrap"><code>{}</code> — Escape or a <code>pointercancel</code> ended the drag; nothing was written</td></tr>
               <tr><td><code>--vf-icon-gap</code></td><td>Token</td><td><code>0px</code></td><td class="wrap">Cell to plate — none by default, the plate directly under the cell</td></tr>
               <tr><td><code>--vf-icon-label-height</code></td><td>Token</td><td><code>12px</code></td><td class="wrap">The plate's line box</td></tr>
@@ -2089,6 +2232,86 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             </vf-desktop>
           </template>
 
+          <template
+            data-example
+            data-stage="desktop"
+            data-caption="Clean Up, done by this page's own script. Special's item names its object: Clean Up Window while the folder window is active, Clean Up Desktop after a press on the bare desktop. Drag icons anywhere, then pick it: the page finds each icon's nearest free cell on that container's lattice (the desktop's 16 in from the edges below the menu bar, the window's from the plane's corner with as many rows as it takes, both on the 80 by 72 pitch), sorts the moves in reading order and calls dragIcons on the container's field. The outlines walk one at a time and each icon lands as its outline arrives; a cell below the window's fold is reached by the rail. A press anywhere or Escape mid-walk lands the rest at once. The cells and the order are the page's; the outline, the cadence and the landing are the kit's."
+          >
+            <vf-desktop width="512" height="232" data-clean-up>
+              <vf-menu-bar>
+                <vf-menu label="Special">
+                  <vf-menu-item value="clean-up">Clean Up Desktop</vf-menu-item>
+                </vf-menu>
+              </vf-menu-bar>
+              <vf-icon-field label="Desktop" fill-width fill-height>
+                <vf-icon label="System" width="64" selectable movable left="29" top="47">
+                  <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="Read Me" width="64" selectable movable left="123" top="58">
+                  <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="Notes" width="64" selectable movable left="181" top="41">
+                  <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="TeachText" width="64" selectable movable left="9" top="131">
+                  <vf-img slot="large"><img src="/demo/icons/app-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/app-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+                <vf-icon label="Letter" width="64" selectable movable left="149" top="119">
+                  <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+              </vf-icon-field>
+              <vf-window heading="Folder" width="232" height="156" movable scrollbars="both" left="264" top="36">
+                <vf-icon-field label="Folder" fill-width height="120">
+                  <vf-icon label="Alpha" width="64" selectable movable left="24" top="21">
+                    <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                    <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                  </vf-icon>
+                  <vf-icon label="Beta" width="64" selectable movable left="110" top="29">
+                    <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                    <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                  </vf-icon>
+                  <vf-icon label="Gamma" width="64" selectable movable left="20" top="98">
+                    <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                    <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                  </vf-icon>
+                  <vf-icon label="Delta" width="64" selectable movable left="104" top="84">
+                    <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                    <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                  </vf-icon>
+                  <vf-icon label="Epsilon" width="64" selectable movable left="60" top="70">
+                    <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                    <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                  </vf-icon>
+                </vf-icon-field>
+              </vf-window>
+            </vf-desktop>
+            <script type="text/plain" data-script>
+              // Special's item names its object. vf-activate reports the active window,
+              // null once the desktop deactivates; a press on the desktop's own field
+              // clicks the Finder, which the page states through clearActive().
+              desktop.addEventListener('vf-activate', ({ detail: { window } }) => {
+                cleanUpItem.textContent = window ? 'Clean Up Window' : 'Clean Up Desktop'
+              })
+              desktopField.addEventListener('pointerdown', () => desktop.clearActive())
+
+              // The walk is the kit's; the cells are the page's, since the kit ships no
+              // lattice. Each icon goes to the nearest free cell of its container's
+              // lattice, the moves in the lattice's reading order — the order they walk in.
+              menuBar.addEventListener('vf-menu-select', ({ detail: { value } }) => {
+                if (value !== 'clean-up') return
+                const container = desktop.activeWindow ?? desktop
+                const field = app.fieldOf(container)
+                const moves = app.cleanUp(field)   // [{ icon, left, top }, …]
+                field.dragIcons(moves)             // one at a time, each outline travelling; resolves when the last lands
+              })
+            </script>
+          </template>
+
           <template data-example data-caption="size on the field is the view's: written onto every icon inside, so View → by Small Icon is one attribute.">
             <vf-icon-field label="By Icon">
               <vf-icon label="SimpleText" width="64" selectable>
@@ -2120,6 +2343,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>size</code></td><td><code>large</code> | <code>small</code></td><td>—</td><td class="wrap">Written onto every icon in the field, on arrival and whenever it changes. Unset, each icon keeps its own</td></tr>
               <tr><td><code>top</code>, <code>left</code>, <code>width</code>, <code>height</code></td><td>number</td><td>—</td><td class="wrap">System px. Stated, the field is a box and the anchor its icons place against</td></tr>
               <tr><td><code>fill-width</code>, <code>fill-height</code></td><td>bare attribute</td><td>—</td><td class="wrap">Be as wide (tall) as the parent allows: the desktop's screen, a window body. The field stays static, so its icons keep their anchor; it gains a surface to press</td></tr>
+              <tr><td><code>dragIcons(moves)</code></td><td>method</td><td>—</td><td class="wrap"><code>{ icon, left, top }[]</code> — the Finder's Clean Up: each icon's outline travels to its pair and the icon lands as it arrives, one icon at a time in the array's order, the kit's beat between landings. A promise, resolved when the last has landed. A second call finishes the first; a press anywhere, or Escape, lands every remaining icon at once; under reduced motion everything lands at once with no outline</td></tr>
               <tr><td colspan="4" class="wrap">Slot: default (the icons). Always <code>aria-multiselectable</code>. A <code>vf-desktop</code> renders no field of its own; the page writes one beside the windows, and a folder window holds one in its body. A drag on a filled or placed field's own background is the rubber band: an icon is selected exactly when it was selected at the press XOR the rectangle touches its art or its name, each change firing <code>vf-select</code> — a plain press clears first, so the rectangle selects what it touches; Shift or ⌘ keeps the selection and the rectangle toggles against it. Escape cancels. The rectangle draws at the field's own level — under the windows on a desktop, inside the window in a body — and reaches no further than the field inside its clips.</td></tr>
             </tbody>
           </table>

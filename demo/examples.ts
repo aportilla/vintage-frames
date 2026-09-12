@@ -32,6 +32,8 @@ import type {
   VfDesktop,
   VfIcon,
   VfIconDragDetail,
+  VfIconField,
+  VfIconMove,
   VfProgressBar,
   VfWindow,
 } from '../src/index.js'
@@ -79,7 +81,14 @@ if (params.has('nosnap')) {
  * `movable`. `alt=""` is left alone: there the empty value is the meaning.
  */
 function sourceOf(template: HTMLTemplateElement): string {
-  const lines = template.innerHTML.replace(/\r/g, '').split('\n')
+  return dedent(template.innerHTML).replace(/ ([a-z-]+)=""/g, (match, name: string) =>
+    name === 'alt' ? match : ` ${name}`
+  )
+}
+
+/** Drop the leading and trailing blank lines and the common indent. */
+function dedent(text: string): string {
+  const lines = text.replace(/\r/g, '').split('\n')
   while (lines.length > 0 && lines[0]?.trim() === '') lines.shift()
   while (lines.length > 0 && lines[lines.length - 1]?.trim() === '') lines.pop()
 
@@ -88,12 +97,22 @@ function sourceOf(template: HTMLTemplateElement): string {
     .map((line) => /^ */.exec(line)?.[0].length ?? 0)
   const pad = indents.length > 0 ? Math.min(...indents) : 0
 
-  return lines
-    .map((line) => line.slice(pad))
-    .join('\n')
-    .replace(/ ([a-z-]+)=""/g, (match, name: string) =>
-      name === 'alt' ? match : ` ${name}`
-    )
+  return lines.map((line) => line.slice(pad)).join('\n')
+}
+
+/** A collapsible source block under the stage — "Markup", "Script". */
+function sourceBlock(label: string, code: string, open: boolean): HTMLDetailsElement {
+  const details = document.createElement('details')
+  details.className = 'example__src'
+  details.open = open
+  const summary = document.createElement('summary')
+  summary.textContent = label
+  const pre = document.createElement('pre')
+  const codeEl = document.createElement('code')
+  codeEl.textContent = code
+  pre.append(codeEl)
+  details.append(summary, pre)
+  return details
 }
 
 /**
@@ -104,6 +123,17 @@ function sourceOf(template: HTMLTemplateElement): string {
  *                    `column`, `flush`, `gapless`)
  *   `data-caption` — a line of documentation above the specimen
  *   `data-source`  — `"hidden"` collapses the markup block
+ *
+ * A demo whose behavior needs page script beyond what its markup's own
+ * properties enable carries that script as a `<script type="text/plain"
+ * data-script>` child of the template — the last child, so lifting it out
+ * leaves no blank line in the markup — and it is shown under the markup as
+ * a second block, "Script". Inert twice over (template content, and a
+ * non-script type), never what the page runs: each shows the API surface
+ * the demo rests on, written the way a page would write it — the elements
+ * by name, an `app` object standing for the page's own state — and not the
+ * `data-*` hooks below that actually drive the demo, which are this page's
+ * glue.
  */
 function mountExamples(): void {
   const templates = document.querySelectorAll<HTMLTemplateElement>(
@@ -111,6 +141,9 @@ function mountExamples(): void {
   )
 
   for (const template of templates) {
+    const script = template.content.querySelector('script[data-script]')
+    script?.remove()
+
     const figure = document.createElement('figure')
     figure.className = 'example'
 
@@ -130,17 +163,8 @@ function mountExamples(): void {
     stage.append(template.content.cloneNode(true))
     figure.append(stage)
 
-    const details = document.createElement('details')
-    details.className = 'example__src'
-    details.open = template.dataset.source !== 'hidden'
-    const summary = document.createElement('summary')
-    summary.textContent = 'Markup'
-    const pre = document.createElement('pre')
-    const code = document.createElement('code')
-    code.textContent = sourceOf(template)
-    pre.append(code)
-    details.append(summary, pre)
-    figure.append(details)
+    figure.append(sourceBlock('Markup', sourceOf(template), template.dataset.source !== 'hidden'))
+    if (script) figure.append(sourceBlock('Script', dedent(script.textContent ?? ''), true))
 
     template.replaceWith(figure)
   }
@@ -412,6 +436,143 @@ function wireFiling(): void {
   }
 }
 
+/**
+ * `data-clean-up` on a `vf-desktop`: Special's item names its object — Clean
+ * Up Window while a folder window is active, Clean Up Desktop after a press
+ * on the bare desktop (`clearActive()`, the FINDER rule) — and walks that
+ * container's icons onto the page's own lattice through the kit's walk
+ * (`vf-icon-field.dragIcons`). The split is the one the Finder drag makes:
+ * the kit owns the outline, the cadence and the landing; the page owns the
+ * cells and the order, since the kit ships no lattice. Each icon takes the
+ * nearest free cell to where it sits — an alignment, never a re-flow —
+ * served in the lattice's reading order (row, then column), which is also
+ * the order the walk takes. An icon already on its cell is handed over too:
+ * a move that shows nothing takes no beat. A window's lattice has as many
+ * rows as it takes; a cell below the fold is reached by the rail, since a
+ * scrolling plane holds only the origin.
+ */
+function wireCleanUp(): void {
+  for (const desktop of document.querySelectorAll<VfDesktop>('vf-desktop[data-clean-up]')) {
+    const desktopField = desktop.querySelector<VfIconField>(':scope > vf-icon-field')
+    const item = desktop.querySelector<HTMLElement>('vf-menu-item[value="clean-up"]')
+    if (!desktopField || !item) continue
+    const folder = (): VfWindow | null => {
+      const win = desktop.activeWindow as VfWindow | null
+      return win?.querySelector('vf-icon-field') ? win : null
+    }
+    const label = (): void => {
+      item.textContent = folder() ? 'Clean Up Window' : 'Clean Up Desktop'
+    }
+    desktop.addEventListener('vf-activate', label)
+    // A press on the desktop's own field — its dither or one of its icons —
+    // clicks the Finder: no window is active.
+    desktop.addEventListener('pointerdown', (event) => {
+      if (event.composedPath().includes(desktopField)) desktop.clearActive()
+    })
+    label()
+    desktop.addEventListener('vf-menu-select', (event) => {
+      if ((event as CustomEvent<{ value: string }>).detail.value !== 'clean-up') return
+      const win = folder()
+      const field = win?.querySelector<VfIconField>('vf-icon-field') ?? desktopField
+      const grid = win ? windowLattice(field) : desktopLattice(desktop)
+      const icons = [...field.querySelectorAll<VfIcon>(':scope > vf-icon')]
+      void field.dragIcons(cleanUpMoves(icons, grid))
+    })
+  }
+}
+
+/** The page's lattice: cell (0,0), the pitch, and how many cells fit. */
+interface Lattice {
+  left: number
+  top: number
+  dx: number
+  dy: number
+  cols: number
+  rows: number
+}
+
+/** The desktop's: 16 in from the edges and below the 20px menu bar, on the Finder's 80 × 72 pitch. */
+function desktopLattice(desktop: VfDesktop): Lattice {
+  const edge = 16
+  const cell = { width: 64, height: 44 }
+  const left = edge
+  const top = 20 + edge
+  const dx = 80
+  const dy = 72
+  return {
+    left,
+    top,
+    dx,
+    dy,
+    cols: Math.max(1, Math.floor(((desktop.width ?? 512) - edge - left - cell.width) / dx) + 1),
+    rows: Math.max(1, Math.floor(((desktop.height ?? 342) - edge - top - cell.height) / dy) + 1),
+  }
+}
+
+/**
+ * A window's: from the plane's corner, as many columns as the plane's width
+ * holds (the filled field is exactly that wide) and as many rows as it takes.
+ */
+function windowLattice(field: VfIconField): Lattice {
+  const width = field.getBoundingClientRect().width / effectiveScale(field)
+  return {
+    left: 16,
+    top: 16,
+    dx: 80,
+    dy: 72,
+    cols: Math.max(1, Math.floor((width - 16 - 64) / 80) + 1),
+    rows: Infinity,
+  }
+}
+
+/** Each icon to the nearest free cell, in the lattice's reading order. */
+function cleanUpMoves(icons: readonly VfIcon[], grid: Lattice): VfIconMove[] {
+  const clamp = (v: number, max: number): number => Math.min(Math.max(v, 0), max)
+  const key = (col: number, row: number): string => `${col},${row}`
+  const taken = new Set<string>()
+  const wanted = icons
+    .map((icon) => {
+      const left = icon.left ?? 0
+      const top = icon.top ?? 0
+      return {
+        icon,
+        left,
+        top,
+        col: clamp(Math.round((left - grid.left) / grid.dx), grid.cols - 1),
+        row: clamp(Math.round((top - grid.top) / grid.dy), grid.rows - 1),
+      }
+    })
+    .sort((a, b) => a.row - b.row || a.col - b.col)
+  const moves = wanted.map((want) => {
+    // Rings outward from the ideal cell; within a ring, the cell nearest the
+    // icon's actual position wins. The icons before this one hold at most
+    // that many cells, so a free one lies within that many rings of any
+    // lattice that has one; more icons than cells stack on the ideal.
+    let cell = { col: want.col, row: want.row }
+    search: for (let r = 0; r <= icons.length; r++) {
+      let best: { col: number; row: number; d: number } | null = null
+      for (let col = want.col - r; col <= want.col + r; col++) {
+        for (let row = want.row - r; row <= want.row + r; row++) {
+          if (Math.max(Math.abs(col - want.col), Math.abs(row - want.row)) !== r) continue
+          if (col < 0 || row < 0 || col >= grid.cols || row >= grid.rows) continue
+          if (taken.has(key(col, row))) continue
+          const d = Math.hypot(grid.left + col * grid.dx - want.left, grid.top + row * grid.dy - want.top)
+          if (!best || d < best.d) best = { col, row, d }
+        }
+      }
+      if (best) {
+        cell = best
+        break search
+      }
+    }
+    taken.add(key(cell.col, cell.row))
+    return { icon: want.icon, cell, left: grid.left + cell.col * grid.dx, top: grid.top + cell.row * grid.dy }
+  })
+  return moves
+    .sort((a, b) => a.cell.row - b.cell.row || a.cell.col - b.cell.col)
+    .map(({ icon, left, top }) => ({ icon, left, top }))
+}
+
 /* ------------------------------------------------------------------ *
  * The zoom readout — the one snippet on the page that rewrites itself.
  *
@@ -548,6 +709,7 @@ wireSizeReadouts()
 wireReadouts()
 wireEventLogs()
 wireFiling()
+wireCleanUp()
 wireProgress()
 wireZoomReadout()
 

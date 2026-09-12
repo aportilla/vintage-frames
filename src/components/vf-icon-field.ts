@@ -7,8 +7,28 @@ import { vfBase } from '../styles/base.js'
 import { ScaleController, effectiveScale } from '../scale.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { emit } from '../events.js'
+import { WALK_BEAT_MS } from '../motion.js'
 import { paintSelectionRect, penPhase } from '../open-art.js'
 import type { VfIcon, VfIconSize } from './vf-icon.js'
+
+/** One move of a walk ({@link VfIconField.dragIcons}): the icon and the pair it goes to. */
+export interface VfIconMove {
+  icon: VfIcon
+  left: number
+  top: number
+}
+
+/** A walk in flight, from the call to the last landing. */
+interface Walk {
+  /** The moves not yet landed, the one travelling first. */
+  queue: VfIconMove[]
+  /** Cut the beat short, while one is running. */
+  beat: (() => void) | null
+  /** Set once the walk is over, however it ended. */
+  finished: boolean
+  /** Resolve the promise the call handed back. */
+  settle: () => void
+}
 
 /** A rectangle in system px from the field's box. */
 interface BandRect {
@@ -148,6 +168,21 @@ const clamp = (v: number, min: number, max: number): number =>
  * background pans a scrolling window as it always did; the band is a mouse
  * and pen gesture.
  *
+ * ### The walk
+ *
+ * The Finder's Clean Up moved a container's icons one at a time, each
+ * icon's dotted outline travelling to its cell and the icon landing when
+ * the outline arrived. {@link dragIcons} is that walk: `{ icon, left, top }`
+ * moves in the page's order — which icon goes first is a statement about
+ * the page's lattice, and the kit ships none — each through the icon's own
+ * `dragTo`, with a beat (`WALK_BEAT_MS`, src/motion.ts) after every landing
+ * that showed. It resolves when the last icon has landed. One walk per
+ * field: a second call finishes the first. A press anywhere, or Escape,
+ * finishes it too — every icon still to go lands at its target at once, the
+ * Finder never made you wait — and so does the field leaving the DOM; an
+ * icon gone from the DOM by its turn is skipped. Under
+ * `prefers-reduced-motion` every icon lands at once, no outline, no beat.
+ *
  * ### `size` is the view's
  *
  * `large` or `small`, written onto every icon in the field when set and
@@ -248,6 +283,30 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
     [document, 'keydown', this.#onKeyDown, true],
   ])
 
+  /** The walk in flight — a page's {@link dragIcons} — or null. */
+  #walk: Walk | null = null
+
+  /**
+   * A press anywhere, or Escape, finishes a walk in flight: every icon
+   * still to go lands at once. Scoped to the walk, on the document, capture
+   * phase, the key stopped there — the band's Escape rule.
+   */
+  readonly #interrupt = new DocumentListenersController(this, () => [
+    [document, 'pointerdown', this.#onWalkPress, true],
+    [document, 'keydown', this.#onWalkKeyDown, true],
+  ])
+
+  #onWalkPress = (): void => {
+    this.#finishWalk()
+  }
+
+  #onWalkKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape' || !this.#walk) return
+    event.preventDefault()
+    event.stopPropagation()
+    this.#finishWalk()
+  }
+
   constructor() {
     super()
     this.#internals.role = 'listbox'
@@ -269,6 +328,8 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
     // and the Escape listener with the controller.
     this.#band?.canvas?.remove()
     this.#band = null
+    // Nor a walk: what is still to go lands now.
+    this.#finishWalk()
   }
 
   protected override updated(changed: PropertyValues<this>): void {
@@ -536,6 +597,78 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
       const want = band.anchor.has(icon) !== icon.touches(area)
       if (icon.selected !== want) icon.setSelected(want)
     }
+  }
+
+  /**
+   * Walk the icons to their targets one at a time, in the order given (see
+   * the class doc): each through its own {@link VfIcon.dragTo}, the beat
+   * after every landing that showed. Resolves when the last has landed. A
+   * walk already in flight is finished first.
+   */
+  dragIcons(moves: readonly VfIconMove[]): Promise<void> {
+    this.#finishWalk()
+    const walk: Walk = { queue: [...moves], beat: null, finished: false, settle: () => {} }
+    const settled = new Promise<void>((resolve) => {
+      walk.settle = resolve
+    })
+    this.#walk = walk
+    this.#interrupt.attach()
+    void this.#run(walk)
+    return settled
+  }
+
+  /** The walk itself: a landing, a beat, the next. */
+  async #run(walk: Walk): Promise<void> {
+    while (!walk.finished && walk.queue.length > 0) {
+      const move = walk.queue[0]
+      if (!move) break
+      const { icon, left, top } = move
+      const shown = icon.isConnected ? await icon.dragTo(left, top) : false
+      // Finished from outside while that icon travelled: #finishWalk landed
+      // the rest and settled the promise already.
+      if (walk.finished) return
+      walk.queue.shift()
+      if (!shown || walk.queue.length === 0) continue
+      await new Promise<void>((resolve) => {
+        const timer = window.setTimeout(() => {
+          walk.beat = null
+          resolve()
+        }, WALK_BEAT_MS)
+        walk.beat = () => {
+          window.clearTimeout(timer)
+          walk.beat = null
+          resolve()
+        }
+      })
+    }
+    this.#endWalk(walk)
+  }
+
+  /**
+   * Finish the walk in flight, if any: every icon still to go — the one
+   * travelling included, whose `moveTo` finishes its travel — lands at its
+   * target now, the beat is cut, the promise resolves.
+   */
+  #finishWalk(): void {
+    const walk = this.#walk
+    if (!walk) return
+    walk.beat?.()
+    for (const { icon, left, top } of walk.queue) {
+      if (icon.isConnected) icon.moveTo(left, top)
+    }
+    walk.queue.length = 0
+    this.#endWalk(walk)
+  }
+
+  /** The walk is over: the listeners down, the promise resolved. */
+  #endWalk(walk: Walk): void {
+    if (walk.finished) return
+    walk.finished = true
+    if (this.#walk === walk) {
+      this.#walk = null
+      this.#interrupt.detach()
+    }
+    walk.settle()
   }
 
   protected override render() {

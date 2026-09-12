@@ -704,12 +704,23 @@ export class PlacementController {
    * and a dragged title stays centered on wherever it was dropped.
    */
   moveTo(x: number, y: number): void {
+    const { x: kx, y: ky } = this.resolve(x, y)
+    this.#host.left = kx
+    this.#host.top = ky
+    this.#placed = true
+  }
+
+  /**
+   * The pair {@link moveTo} would write for a requested origin — clamped by
+   * the host's own rule against the box {@link seed} measured and snapped
+   * onto the lattice — without writing it. A move that shows where it is
+   * going before it goes (`vf-icon.dragTo`) reads its landing here first.
+   */
+  resolve(x: number, y: number): { x: number; y: number } {
     const host = this.#host
     const { x: ox, y: oy } = this.offset
     const kept = this.#clamp(x - ox, y - oy, this.#bounds ?? this.#measureBounds())
-    host.left = snapSys(kept.x + ox, host)
-    host.top = snapSys(kept.y + oy, host)
-    this.#placed = true
+    return { x: snapSys(kept.x + ox, host), y: snapSys(kept.y + oy, host) }
   }
 
   /**

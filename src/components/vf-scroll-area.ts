@@ -132,10 +132,10 @@ export class VfScrollArea extends VfPositioned(LitElement) {
    * A viewport point (CSS px) as a placement on the scrolled plane —
    * `{ left, top }` in whole system px on the placement lattice, the pair a
    * child dropped here is written with. The plane travels with the scroll,
-   * so its box already carries the scroll offset and the border-floor
-   * padding; nothing is left for the caller to add. With `child`, the pair
-   * to write to that element: the offset its `origin` adds is folded in, so
-   * its box's corner lands on the point.
+   * so its box already carries the scroll offset; nothing is left for the
+   * caller to add. With `child`, the pair to write to that element: the
+   * offset its `origin` adds is folded in, so its box's corner lands on the
+   * point.
    */
   placementAt(
     clientX: number,
@@ -209,16 +209,12 @@ export class VfScrollArea extends VfPositioned(LitElement) {
            recipe (.vf-scroll) and the reservation is the rail element, not a
            native gutter. The unreserved axis still scrolls, railless.
 
-           No inset of its own — only the border-floor compensation: engines
-           floor the fractional frame border to whole CSS px, and the mod()
-           term is exactly what they floored away, so slotted content (and
-           the (0,0) of placed children) sits exactly one system px from the
-           frame box at every scale (mod is 0 at whole scales). An inset is
-           the content's (a vf-stack pad). */
+           No inset of its own: slotted content (and the (0,0) of placed
+           children) starts at the frame's inner edge, one system px from the
+           frame box. An inset is the content's (a vf-stack pad). */
         overflow: auto;
         min-width: 0;
         min-height: 0;
-        padding: mod(var(--vf-scale, 1) * 1px, 1px);
       }
       /* A single-axis rail with a reserved corner: the viewport spans the
          track the missing rail would have taken, up to the corner cell, so

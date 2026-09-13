@@ -513,8 +513,8 @@ for (const dpr of DENSITIES) {
     const css = axis === 'x' ? child.x - stack.x : child.y - stack.y
     return { sys: css / scale, device: css * dpr }
   }
-  // A scale the engine can't hold exactly (a true 3× device's 4/3) leaves every
-  // length a fraction short — verify:grid discounts the same way.
+  // A scale the engine can't hold exactly under this script's emulated
+  // densities (4/3) leaves every length a fraction short.
   const onGrid = ({ device }) =>
     Math.abs(device - Math.round(device)) < (holdableScale(scale) ? 1e-6 : 0.5)
   const marked = (id) =>

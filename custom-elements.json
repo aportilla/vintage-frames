@@ -13149,7 +13149,7 @@
                   }
                 }
               ],
-              "description": "A viewport point (CSS px) as a placement on the scrolled plane —\n`{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped here is written with. The plane travels with the scroll,\nso its box already carries the scroll offset and the border-floor\npadding; nothing is left for the caller to add. With `child`, the pair\nto write to that element: the offset its `origin` adds is folded in, so\nits box's corner lands on the point."
+              "description": "A viewport point (CSS px) as a placement on the scrolled plane —\n`{ left, top }` in whole system px on the placement lattice, the pair a\nchild dropped here is written with. The plane travels with the scroll,\nso its box already carries the scroll offset; nothing is left for the\ncaller to add. With `child`, the pair to write to that element: the\noffset its `origin` adds is folded in, so its box's corner lands on the\npoint."
             },
             {
               "kind": "method",

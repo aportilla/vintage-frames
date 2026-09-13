@@ -95,7 +95,7 @@ requestGridSnap()
 The correction is applied inside each component's shadow root — the host's `position`, `left`/`top` and `margin` are never touched, so it cannot collide with your layout. Its whole footprint on your DOM is `--vf-snap-dx` / `--vf-snap-dy` on each corrected host, and a corrected component's painted box can sit up to half a device pixel outside its layout box. Corrections re-apply on resize, scroll, webfont load and density change. Opt one element out with `nosnap`.
 
 ```sh
-npm run verify:grid   # every vf-* host, at dpr 1 / 2 / 3 — reports ORIGIN or SIZE
+npm run verify:grid   # every vf-* host, at display density 1 / 1.5 / 2 / 2.5 / 3 — reports ORIGIN or SIZE
 npm run verify:snap   # …and that a page knocked off the grid recovers by itself
 ```
 

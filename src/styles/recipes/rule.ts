@@ -24,11 +24,6 @@ const RULE = unsafeCSS('calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #00
  * One declaration per edge, so the kit cannot grow two rules — the
  * {@link vfHardShadowDecls} principle, applied to the line.
  *
- * Being a border, it shares the kit's border-floor residual
- * (docs/THREE-X-DISPLAYS.md): Chromium floors a fractional border-width to
- * whole CSS px, so above 1× the line paints thinner than a system px (2
- * device px of 3 at 2×) and the padding box begins that much inside — the
- * same as every kit frame, and the same line the menu bar always drew.
  * `npm run verify:rule` asserts a container's rule against the menu bar's.
  */
 export const vfRule = css`

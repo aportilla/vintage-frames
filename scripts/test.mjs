@@ -34,7 +34,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ORIGIN = process.env.VF_ORIGIN ?? 'http://localhost:5173/'
 /** A whole browser per script, so one slow suite can't stall the rest. */
 const DEFAULT_WORKERS = Math.max(1, Math.min(6, Math.floor(cpus().length / 2)))
-/** Generous: verify:grid and verify:snap each drive three device densities. */
+/** Generous: verify:grid drives five device densities and verify:snap three. */
 const TIMEOUT_MS = Number(process.env.VF_TEST_TIMEOUT ?? 10 * 60 * 1000)
 
 const argv = process.argv.slice(2)

@@ -125,7 +125,7 @@ const SURFACES = [
     // The close/zoom widgets overlap the layer's band (≤17 system px from
     // either end, box + patch ring); their own edges are not the tiling's.
     padSysX: 20,
-    // The layer's origin sits inside a floored border (see insetLayer below).
+    // The layer's origin sits inside a border emulation floors (see insetLayer below).
     insetLayer: true,
   },
   {
@@ -182,14 +182,15 @@ const STRIPE_RUN_DPRS = [1, 1.5, 2, 3]
 /**
  * Densities where a surface's consumer-path (placed tile grid) raster is
  * asserted pixel-pure. Whole-origin surfaces hold at the entire ladder. An
- * `insetLayer` surface sits inside a border Chromium floors, which lands the
- * whole grid on a fractional device offset at dpr 1.25/1.5/2.5 — every tile
- * still measures T×n with coincident seams (asserted at all densities), but
- * the engine antialiases each box's fractional painted edge, leaving a
- * per-seam hairline. That is the old "inset residual" reduced from
- * surface-wide smear to a few seam lines; the kit's own raster path has no
- * seams and is asserted zero everywhere. Printed, not failed — same policy
- * the old script applied to the same three surfaces.
+ * `insetLayer` surface sits inside a border, which deviceScaleFactor
+ * emulation floors to a whole CSS px, landing the whole grid on a fractional
+ * device offset at dpr 1.25/1.5/2.5 — every tile still measures T×n with
+ * coincident seams (asserted at all densities), but the engine antialiases
+ * each box's fractional painted edge, leaving a per-seam hairline. The kit's
+ * own raster path has no seams and is asserted zero everywhere. Printed, not
+ * failed. At display density (harness `browserAt`) the border is the full
+ * system px, the layer's origin is whole device px, and the grid measured
+ * pure on all four surfaces at 1.25–3, 1.7 and 2.3 included (2026-09-13).
  */
 const consumerPureDensities = (s) => (s.insetLayer ? [1, 2, 3] : LADDER)
 
@@ -270,13 +271,13 @@ async function build(dpr, { consumerArt = false, reducedMotion = true, bodyStyle
  *
  * The screenshot is of the HOST — every host sits at a whole-CSS-px page
  * origin whose device product is whole at all eight densities, so the capture
- * is never resampled (a clip at a fractional device offset is, and a layer
- * inside a floored border sits at one). The layer's region is then cut out of
- * the host buffer in device space, stepped in from every edge: a box's own
- * edge legitimately covers a partial device pixel at an unholdable scale —
- * the fill's interior is the claim, the box edge is every box's separate
- * story. `padSysX` additionally clears elements that legitimately overlap
- * the band (the windoid's widgets).
+ * is never resampled (a clip at a fractional device offset is, and under
+ * emulation a layer inside a floored border sits at one). The layer's region
+ * is then cut out of the host buffer in device space, stepped in from every
+ * edge: a box's own edge legitimately covers a partial device pixel at an
+ * unholdable scale — the fill's interior is the claim, the box edge is every
+ * box's separate story. `padSysX` additionally clears elements that
+ * legitimately overlap the band (the windoid's widgets).
  */
 async function impureIn(page, s, dpr, n) {
   const r = await page.evaluate(
@@ -507,7 +508,7 @@ for (const dpr of DENSITIES) {
       const { impure, counted } = await impureIn(page, s, dpr, n)
       console.log(
         `  --   ${s.name}: ${impure}/${counted} impure (bounded per-seam hairline — ` +
-          `${onLadder ? 'floored-border layer origin' : 'zoom-minted scale'}; see consumerPureDensities)`
+          `${onLadder ? 'layer origin inside an emulation-floored border' : 'zoom-minted scale'}; see consumerPureDensities)`
       )
     }
   }
@@ -517,14 +518,15 @@ for (const dpr of DENSITIES) {
 // ── the barber's phase: steps() advances the strip one cell per cycle ─────
 //
 // Each step moves the strip 3 whole system px = 3n device px in layout. The
-// PAINTED shift can be 3n ± 1: the track's floored border lands the strip's
-// absolute position on an exact half device pixel, and the engine's
-// round-half-to-even tie-break alternates the residue (measured 10/8/10/8 at
-// dpr 2 — averaging exactly 3n, wrapping exactly per cycle, invisible at
-// 10Hz). So the assertions are: every step is a WHOLE-pixel translation of
-// 1-bit art (a zero-residual match exists — no smear, no resample), each
-// within 1 device px of 3n, three steps sum to 9n ± 1, and the next cycle's
-// first step renders byte-identical to this cycle's (the seamless wrap).
+// PAINTED shift can be 3n ± 1: the track's border, which emulation floors,
+// lands the strip's absolute position on an exact half device pixel, and the
+// engine's round-half-to-even tie-break alternates the residue (measured
+// 10/8/10/8 at dpr 2 — averaging exactly 3n, wrapping exactly per cycle,
+// invisible at 10Hz). So the assertions are: every step is a WHOLE-pixel
+// translation of 1-bit art (a zero-residual match exists — no smear, no
+// resample), each within 1 device px of 3n, three steps sum to 9n ± 1, and
+// the next cycle's first step renders byte-identical to this cycle's (the
+// seamless wrap).
 {
   const dpr = 2
   const n = devicePxPerSystemPxAt(dpr)

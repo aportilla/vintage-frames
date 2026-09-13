@@ -56,6 +56,14 @@
  *    stated top past a short plane still lands (the plane is never shorter
  *    than the viewport); and it paints over a later placed sibling.
  *
+ * 10. CONTENT ORIGIN AT DISPLAY DENSITY (dpr 1.5, 2, 2.5, 3, rendered the way
+ *    a display renders them — harness `browserAt`): content starts at the
+ *    frame's inner edge in a vf-window[scrollbars], flow and placed alike,
+ *    where a window without scrollbars puts it; a bare area's child placed at
+ *    (0,0), a list's first row and a text area's text sit one system px
+ *    inside their frames; and the frame line and a ruled child's own line
+ *    paint as one ink run, with no white seam between them.
+ *
  *   npm run dev               # in another shell (port 5173)
  *   npm run verify:scrollbars
  */
@@ -112,6 +120,18 @@ function rowRuns(png, y, x0, x1) {
   }
   return runs
 }
+/** Run-length pattern of one device column, as {@link rowRuns}. */
+function colRuns(png, x, y0, y1) {
+  const runs = []
+  for (let y = y0; y < y1; y++) {
+    const p = pxAt(png, x, y)
+    const kind = isInk(p) ? 'b' : isPaper(p) ? 'w' : '?'
+    const last = runs[runs.length - 1]
+    if (last && last[0] === kind) last[1]++
+    else runs.push([kind, 1])
+  }
+  return runs
+}
 const sig = (runs) => runs.map(([k, n]) => `${k}${n}`).join(' ')
 const parseSig = (s) =>
   s.split(' ').map((r) => [r[0], parseInt(r.slice(1), 10)])
@@ -120,12 +140,13 @@ const parseSig = (s) =>
  * Whether two run signatures agree within `tol` device px per run — same run
  * count, same colors, no intermediate grays anywhere.
  *
- * tol 0 is exact. tol 1 absorbs the two sub-CSS-px wobbles the kit knowingly
- * carries: Chromium floors the 1-system-px border to a whole CSS px (the
- * open border-floor issue — so a run bounded by a border can sit one device
- * px off its system-px ideal, and the leftover slack lands on a neighboring
- * white run), and paint anchors on half-CSS-px layout positions can snap
- * either way. Both are ≤1 device px by construction; the defect class this
+ * tol 0 is exact. tol 1 absorbs the two sub-CSS-px wobbles of the emulated
+ * densities these sections run at: deviceScaleFactor emulation floors the
+ * 1-system-px border to a whole CSS px (a display does not — harness
+ * `browserAt` — so a run bounded by a border can sit one device px off its
+ * system-px ideal here, and the leftover slack lands on a neighboring white
+ * run), and paint anchors on half-CSS-px layout positions can snap either
+ * way. Both are ≤1 device px by construction; the defect class this
  * script guards (an engine quantizing rail geometry to whole CSS px) is ≥1
  * CSS px = 2–4 device px, which tol 1 still catches.
  */
@@ -196,12 +217,12 @@ for (const dpr of [1, 2, 3]) {
     dpr
   )
 
-  // The engine floors the 1-system-px border to a whole CSS px (the open
-  // border-floor issue, kit-wide) — every line the rail draws as a border is
-  // `bd` device px, and run tolerances below absorb where the leftover slack
-  // lands. tol 0 (exact) at dpr 1; ±1 device per run at dpr 2/3, where
-  // half-CSS-px paint anchors and the unholdable 4/3 scale wobble boundaries
-  // by one device px (the documented hairline class).
+  // Emulation floors the 1-system-px border to a whole CSS px (a display
+  // does not) — every line the rail draws as a border is `bd` device px
+  // here, and run tolerances below absorb where the leftover slack lands.
+  // tol 0 (exact) at dpr 1; ±1 device per run at dpr 2/3, where half-CSS-px
+  // paint anchors and emulation's 1/64-CSS-px layout at 4/3 wobble
+  // boundaries by one device px.
   const bd = Math.round(
     (await page.evaluate(() =>
       parseFloat(
@@ -384,14 +405,14 @@ for (const dpr of [1, 2, 3]) {
   const inwin = await railSig('#inwin')
 
   // What the DOM rail guarantees BY CONSTRUCTION, wherever its box lands:
-  // every ink run identical (±1 device for the floored-border lines), the
-  // channel within the border-floor slack, and zero grays. The old WebKit
-  // defect classes (rail shifted a device px off its frame; rail shrunk a
-  // whole CSS px, channel 40/41dp) all violate these bounds. What is NOT
-  // asserted: the white slack's side — paint distributes the floored
-  // border's half-CSS-px leftovers by snap direction (the open border-floor
-  // wobble, shared with every kit frame).
-  const bd = 2 // the floored 1-system-px border at dpr 2 (asserted above)
+  // every ink run identical (±1 device for the lines emulation floors), the
+  // channel within the floor's slack, and zero grays. The old WebKit defect
+  // classes (rail shifted a device px off its frame; rail shrunk a whole CSS
+  // px, channel 40/41dp) all violate these bounds. What is NOT asserted: the
+  // white slack's side — paint distributes the floored border's half-CSS-px
+  // leftovers by snap direction (an emulation effect; at display density the
+  // border is the full system px).
+  const bd = 2 // the 1-system-px border as emulation floors it at dpr 2 (asserted above)
   const inkRuns = (probe) =>
     parseSig(probe).filter(([k]) => k === 'b').map(([, w]) => w)
   const agreeInk = (a, b) =>
@@ -781,9 +802,9 @@ for (const dpr of [1, 2, 3]) {
     JSON.stringify({ corner: c.corner, grow: c.grow })
   )
 
-  // No inset: the viewport's padding is the border-floor term alone (0 at a
-  // whole scale), so content starts at the frame's inner edge — one system
-  // px from the window's frame box — in every composition.
+  // No inset: the viewport carries no padding, so content starts at the
+  // frame's inner edge — one system px from the window's frame box — in
+  // every composition (at display density above 1×: 3g).
   check(
     'the built-in viewport has no inset: content starts inside the frame',
     h.padding === '0px' && eq(h.content[0], h.area[0] + n),
@@ -1241,6 +1262,149 @@ for (const dpr of [1, 2, 3]) {
       )
       await page.close()
     }
+  }
+}
+
+/* ── 3g. content origin at display density ─────────────────────────────── */
+{
+  console.log('\ncontent origin at display density (dpr 1.5, 2, 2.5, 3)')
+  // A display snaps a border width to whole device px, and the kit's frame
+  // border is a whole count of them by the scale contract, so it is exactly
+  // one system px and content starts directly inside it. deviceScaleFactor
+  // emulation floors the same border to a whole CSS px, so these pages are
+  // built at display density (`real`).
+  const ruled = (attrs = '') =>
+    `<vf-container ${attrs} rule="top right bottom left" width="40" height="40"></vf-container>`
+  const markup = `
+    <vf-window id="flow" variant="utility" heading="Flow" width="120" height="100" resizable scrollbars="vertical"
+      style="position:absolute;top:0;left:0">${ruled()}</vf-window>
+    <vf-window id="placed" variant="utility" heading="Placed" width="120" height="100" resizable scrollbars="vertical"
+      style="position:absolute;top:0;left:240px">${ruled('top="0" left="0"')}</vf-window>
+    <vf-window id="plain" variant="utility" heading="Plain" width="120" height="100"
+      style="position:absolute;top:0;left:480px">${ruled()}</vf-window>
+    <vf-scroll-area id="bare" style="position:absolute;top:200px;left:0;width:calc(var(--vf-scale,1)*120px);height:calc(var(--vf-scale,1)*90px)">
+      ${ruled('top="0" left="0"')}
+    </vf-scroll-area>
+    <vf-list id="list" style="position:absolute;top:200px;left:240px;width:calc(var(--vf-scale,1)*120px)">
+      <vf-list-item value="a">Alpha</vf-list-item><vf-list-item value="b">Beta</vf-list-item>
+    </vf-list>
+    <vf-text-area id="ta" style="position:absolute;top:400px;left:0" value="Text"></vf-text-area>
+    <vf-text-field id="tf" style="position:absolute;top:400px;left:240px" value="Text"></vf-text-field>`
+  const near = (a, b) => Math.abs(a - b) <= 0.05
+  const at = ([x, y], ex, ey) => near(x, ex) && near(y, ey)
+  const fmt = (pair) => pair.map((v) => +v.toFixed(3)).join(', ')
+
+  for (const dpr of [1.5, 2, 2.5, 3]) {
+    const n = devicePxPerSystemPxAt(dpr)
+    const tag = `dpr ${dpr}:`
+    const page = await build(markup, { dpr, real: true })
+    const m = await page.evaluate(() => {
+      const dpr = devicePixelRatio
+      const box = (el) => el.getBoundingClientRect()
+      /** `el`'s corner from `from`'s, in device px. */
+      const offset = (el, from) => [
+        (box(el).left - box(from).left) * dpr,
+        (box(el).top - box(from).top) * dpr,
+      ]
+      const padding = (el) => {
+        const s = getComputedStyle(el)
+        return `${s.paddingTop} ${s.paddingLeft}`
+      }
+      const windowed = (id) => {
+        const win = document.getElementById(id)
+        const child = win.querySelector('vf-container')
+        const area = win.shadowRoot.querySelector('vf-scroll-area')
+        return {
+          offset: offset(child, win),
+          padding: area ? padding(area.shadowRoot.querySelector('.viewport')) : null,
+          left: Math.round(box(win).left * dpr),
+          midY: Math.round((box(child).top + box(child).height / 2) * dpr),
+        }
+      }
+      const bare = document.getElementById('bare')
+      const bareChild = bare.querySelector('vf-container')
+      const list = document.getElementById('list')
+      const ta = document.getElementById('ta')
+      const textarea = ta.shadowRoot.querySelector('textarea')
+      const tas = getComputedStyle(textarea)
+      const tf = document.getElementById('tf')
+      const input = tf.shadowRoot.querySelector('input')
+      const tfs = getComputedStyle(input)
+      return {
+        flow: windowed('flow'),
+        placed: windowed('placed'),
+        plain: windowed('plain'),
+        bare: {
+          offset: offset(bareChild, bare),
+          padding: padding(bare.shadowRoot.querySelector('.viewport')),
+          top: Math.round(box(bare).top * dpr),
+          midX: Math.round((box(bareChild).left + box(bareChild).width / 2) * dpr),
+        },
+        list: {
+          offset: offset(list.querySelector('vf-list-item'), list),
+          padding: padding(list.shadowRoot.querySelector('.list')),
+        },
+        text: [
+          (box(textarea).left - box(ta).left + parseFloat(tas.paddingLeft)) * dpr,
+          (box(textarea).top - box(ta).top + parseFloat(tas.paddingTop)) * dpr,
+        ],
+        fieldX:
+          (box(input).left -
+            box(tf).left +
+            parseFloat(tfs.borderLeftWidth) +
+            parseFloat(tfs.paddingLeft)) *
+          dpr,
+      }
+    })
+
+    for (const id of ['flow', 'placed']) {
+      check(
+        `${tag} ${id} content starts at the content region's corner (${n}, ${13 * n} device px)`,
+        at(m[id].offset, n, 13 * n) && m[id].padding === '0px 0px',
+        `${fmt(m[id].offset)}; viewport padding ${m[id].padding}`
+      )
+      check(
+        `${tag} …where a window without scrollbars puts it`,
+        at(m[id].offset, ...m.plain.offset),
+        `${fmt(m[id].offset)} vs ${fmt(m.plain.offset)}`
+      )
+    }
+    check(
+      `${tag} a bare area's child placed at (0,0) sits one system px inside the frame`,
+      at(m.bare.offset, n, n) && m.bare.padding === '0px 0px',
+      `${fmt(m.bare.offset)}; viewport padding ${m.bare.padding}`
+    )
+    check(
+      `${tag} a list's first row sits one system px inside the frame`,
+      at(m.list.offset, n, n) && m.list.padding === '0px 0px',
+      `${fmt(m.list.offset)}; padding ${m.list.padding}`
+    )
+    check(
+      `${tag} a text area's text sits 7 × 4 system px inside the frame, the text field's inset across`,
+      at(m.text, 7 * n, 4 * n) && near(m.text[0], m.fieldX),
+      `${fmt(m.text)}; text field ${+m.fieldX.toFixed(3)}`
+    )
+
+    // From the frame's outer edge, the frame line and the child's own rule
+    // are one ink run of two system px — no white seam between them.
+    const png = decodePng(
+      await page.screenshot({ clip: { x: 0, y: 0, width: 640, height: 320 } })
+    )
+    for (const id of ['flow', 'placed']) {
+      const runs = rowRuns(png, m[id].midY, m[id].left, m[id].left + 2 * n + 2)
+      check(
+        `${tag} ${id}: the frame and the child's rule are one ${2 * n}-device-px ink run`,
+        runs[0][0] === 'b' && runs[0][1] === 2 * n,
+        sig(runs)
+      )
+    }
+    const down = colRuns(png, m.bare.midX, m.bare.top, m.bare.top + 2 * n + 2)
+    check(
+      `${tag} bare area: the frame and the child's rule are one ${2 * n}-device-px ink run`,
+      down[0][0] === 'b' && down[0][1] === 2 * n,
+      sig(down)
+    )
+    await page.close()
   }
 }
 

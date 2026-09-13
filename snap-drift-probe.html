@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Grid-snap drift probe — dev-only, like pixel-test.html.
+
+    An ordinary settings form: a disclosure panel that animates its height,
+    above a row of kit controls. Every frame of the animation moves the
+    controls by a fraction of a device pixel, and grid snapping re-corrects
+    them on each sweep. docs/SIZING.md promises a corrected control paints at
+    most half a device pixel outside its layout box.
+
+    npm run dev, open /snap-drift-probe.html, and toggle the panel, or drag
+    the window edge (the form is centered, so on a 1× display each pixel of
+    width moves it half a device pixel). The red outlines are the controls'
+    layout boxes. The readout prints each control's correction in device px
+    and marks it past ±0.5. "Re-sweep from zero" clears the corrections so
+    the controller computes them from the hosts again; nothing should move.
+
+    Built 2026-09-13 to reproduce a controller that rounded each correction
+    from the one before it, keeping every move's rounding error: at 2×, ten
+    toggles of the 0.4 s panel left the controls 17.7 device px off their
+    boxes in Chromium, 9.7 in Firefox and 2.7 in WebKit, and at 1× a 20 px
+    drag of the window edge moved them 10.5 px. GridSnapController now
+    derives each correction from the host's position alone, and verify:snap's
+    "a corrected host moves again" group holds it there.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <title>grid-snap drift probe</title>
+    <script type="module" src="/src/index.ts"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        font: 13px/20px ui-monospace, Menlo, monospace;
+        background: #fff;
+        color: #000;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 12px;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 12px 0;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 2px 8px;
+        text-align: right;
+        white-space: nowrap;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      thead th {
+        background: #eee;
+      }
+      td.drift {
+        background: #f33;
+        color: #fff;
+      }
+      button,
+      label {
+        font: inherit;
+        margin-right: 8px;
+      }
+      .note {
+        color: #555;
+        max-width: 72ch;
+      }
+
+      /* The test surface: a settings form, centered the way a page centers
+         its content column. */
+      .form {
+        width: 421px;
+        margin: 24px auto;
+        padding: 16px;
+        border: 1px solid #bbb;
+        font: 15px/1.45 system-ui, sans-serif;
+      }
+      .form h2 {
+        font-size: 17px;
+        margin: 0 0 12px;
+      }
+      .panel {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows var(--duration, 400ms) ease;
+      }
+      .panel.open {
+        grid-template-rows: 1fr;
+      }
+      .panel > div {
+        overflow: hidden;
+      }
+      .panel p {
+        margin: 12px 0 0;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 16px;
+      }
+      .controls > :first-child {
+        margin-right: auto;
+      }
+      /* The layout boxes. The kit paints each control inside its own shadow
+         root, offset by the grid-snap correction; the outline is the page's,
+         on the host, so it marks where the control belongs. */
+      .controls > * {
+        outline: 1px solid rgb(255 0 0 / 0.7);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>grid-snap drift probe</h1>
+
+    <div>
+      <label><input type="radio" name="duration" value="400ms" checked /> 0.4 s panel</label>
+      <label><input type="radio" name="duration" value="1500ms" /> 1.5 s panel</label>
+      <button id="cycle">toggle 10×</button>
+      <button id="resweep">re-sweep from zero</button>
+    </div>
+
+    <form class="form" onsubmit="return false">
+      <h2>Network</h2>
+      <vf-button id="toggle">Show advanced options</vf-button>
+      <div class="panel" id="panel">
+        <div>
+          <p>
+            Cache size and connection timeouts rarely need changing. These
+            settings apply to every window, including ones already open.
+          </p>
+          <p>Restart the application for a new cache size to take effect.</p>
+        </div>
+      </div>
+      <div class="controls">
+        <vf-checkbox id="remember">Remember my choice</vf-checkbox>
+        <vf-button id="cancel">Cancel</vf-button>
+        <vf-button id="ok" variant="default">OK</vf-button>
+      </div>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>control</th>
+          <th>host x, y (device px)</th>
+          <th>--vf-snap-dx (device px)</th>
+          <th>--vf-snap-dy (device px)</th>
+        </tr>
+      </thead>
+      <tbody id="readout"></tbody>
+    </table>
+    <p class="note" id="density"></p>
+    <p class="note">
+      A correction of ±0.5 device px or less is the contract. Beyond it, the
+      control paints that far outside its red outline. Re-sweep from zero
+      recomputes every correction from the hosts alone, and nothing should
+      move.
+    </p>
+
+    <script type="module">
+      import { requestGridSnap, truePixelRatio } from '/src/index.ts'
+
+      const panel = document.getElementById('panel')
+      const CONTROLS = ['toggle', 'remember', 'cancel', 'ok']
+      /** 0.5 plus a 1/64-CSS-px quantization step at dpr 3. */
+      const CONTRACT = 0.55
+
+      document.getElementById('toggle').addEventListener('click', () => {
+        panel.classList.toggle('open')
+      })
+
+      for (const input of document.querySelectorAll('input[name=duration]')) {
+        input.addEventListener('change', () => {
+          panel.style.setProperty('--duration', input.value)
+        })
+      }
+
+      const settled = () =>
+        new Promise((resolve) => {
+          const done = () => {
+            clearTimeout(timer)
+            panel.removeEventListener('transitionend', done)
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+          }
+          const ms = parseFloat(getComputedStyle(panel).getPropertyValue('--duration')) || 400
+          const timer = setTimeout(done, ms + 200)
+          panel.addEventListener('transitionend', done)
+        })
+
+      const cycle = document.getElementById('cycle')
+      cycle.addEventListener('click', async () => {
+        cycle.disabled = true
+        for (let i = 0; i < 10; i++) {
+          panel.classList.toggle('open')
+          await settled()
+        }
+        cycle.disabled = false
+      })
+
+      document.getElementById('resweep').addEventListener('click', () => {
+        for (const el of document.querySelectorAll('*')) {
+          if (!el.tagName.toLowerCase().startsWith('vf-')) continue
+          el.style.removeProperty('--vf-snap-dx')
+          el.style.removeProperty('--vf-snap-dy')
+        }
+        requestGridSnap()
+      })
+
+      const readout = document.getElementById('readout')
+      for (const id of CONTROLS) {
+        const tr = document.createElement('tr')
+        tr.innerHTML = `<th>#${id}</th><td></td><td></td><td></td>`
+        readout.appendChild(tr)
+      }
+
+      function render() {
+        const dpr = truePixelRatio()
+        CONTROLS.forEach((id, i) => {
+          const host = document.getElementById(id)
+          const r = host.getBoundingClientRect()
+          const [pos, dx, dy] = readout.children[i].querySelectorAll('td')
+          const snap = (name) => (parseFloat(host.style.getPropertyValue(name)) || 0) * dpr
+          pos.textContent = `${(r.left * dpr).toFixed(2)}, ${(r.top * dpr).toFixed(2)}`
+          for (const [cell, value] of [
+            [dx, snap('--vf-snap-dx')],
+            [dy, snap('--vf-snap-dy')],
+          ]) {
+            cell.textContent = value.toFixed(2)
+            cell.classList.toggle('drift', Math.abs(value) > CONTRACT)
+          }
+        })
+        document.getElementById('density').textContent =
+          `device px per CSS px: ${dpr} (devicePixelRatio ${window.devicePixelRatio})`
+      }
+      render()
+      setInterval(render, 250)
+    </script>
+  </body>
+</html>

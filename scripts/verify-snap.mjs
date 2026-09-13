@@ -25,10 +25,17 @@
  * reflow (the correction has to be re-applied, and nothing observes position
  * directly), and the `nosnap` opt-out.
  *
+ * And a host that moves again after it was corrected — shifted half a device
+ * pixel at a time, and carried along by an animated panel above it, at display
+ * density (harness `browserAt`) at dpr 1, 2 and 3. Every correction stays
+ * within half a device pixel, and matches what a sweep from zero computes for
+ * the same layout: the correction depends on where the host is, never on the
+ * moves that got it there.
+ *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:snap
  */
-import { ORIGIN, heartbeat, launch } from './harness.mjs'
+import { ORIGIN, browserAt, closeBrowsers, heartbeat, launch } from './harness.mjs'
 
 // (`/` is the component reference since the faux desktop moved to the
 // system7web repo.)
@@ -406,6 +413,169 @@ for (const path of PAGES) {
 
   await page.close()
 }
+
+/*
+ * A host that moves after it was corrected. Nothing in the platform reports a
+ * position change, so the controller re-derives its correction on every sweep
+ * — and it has to derive it from where the host is now. Derived from the
+ * painted position instead (host plus the correction already applied), each
+ * move is rounded from wherever the last correction left the paint, every
+ * move's rounding error is kept, and controls under an animated panel end up
+ * painting whole device pixels outside their boxes. Two movers: a spacer
+ * shifted half a device pixel at a time (the tie always rounds the same way,
+ * so a kept error grows by half a pixel per move), and a disclosure panel
+ * animating its height (one fractional move per frame).
+ */
+for (const dpr of [1, 2, 3]) {
+  const browser = await browserAt(dpr, { width: 900, height: 700 })
+  const page = await browser.newPage({ viewport: null })
+  await page.route(ORIGIN, (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
+  )
+  await page.goto(ORIGIN)
+  await page.unroute(ORIGIN)
+  await page.setContent(
+    `<!doctype html><meta charset="utf-8">
+     <style>
+       #panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 300ms ease; }
+       #panel.open { grid-template-rows: 1fr; }
+       #panel > div { overflow: hidden; }
+     </style>
+     <body style="margin:0;font:15px/1.45 system-ui,sans-serif">
+       <div id="spacer" style="height:10px"></div>
+       <div id="panel">
+         <div><p style="margin:12px 16px 0">Cache size and connection timeouts rarely need changing. These settings apply to every window.</p></div>
+       </div>
+       <div style="display:flex;gap:12px;align-items:center;margin:16px">
+         <vf-checkbox id="remember">Remember my choice</vf-checkbox>
+         <vf-button id="cancel">Cancel</vf-button>
+         <vf-button id="ok" variant="default">OK</vf-button>
+       </div>
+     </body>`
+  )
+  await page.evaluate(() => import('/src/index.ts'))
+  await page.evaluate(() =>
+    Promise.all(
+      ['remember', 'cancel', 'ok'].map((id) => document.getElementById(id).updateComplete)
+    )
+  )
+  await page.evaluate(() => document.fonts.ready)
+  await settle(page)
+
+  console.log(`\na corrected host moves again  dpr ${dpr} (display density)`)
+
+  /** Each host's correction and the one a sweep from zero gives its layout, device px. */
+  const corrections = () =>
+    page.evaluate(async () => {
+      const { truePixelRatio } = await import('/src/index.ts')
+      const dpr = truePixelRatio()
+      return ['remember', 'cancel', 'ok'].flatMap((id) => {
+        const host = document.getElementById(id)
+        const r = host.getBoundingClientRect()
+        return [
+          [r.left, '--vf-snap-dx'],
+          [r.top, '--vf-snap-dy'],
+        ].map(([edge, name]) => {
+          const device = edge * dpr
+          return {
+            at: `${id} ${name.slice(-2)}`,
+            applied: (parseFloat(host.style.getPropertyValue(name)) || 0) * dpr,
+            fresh: Math.round(device) - device,
+          }
+        })
+      })
+    })
+  // A correction is quantized to 1/64 CSS px: half of that step, in device px.
+  const slack = dpr / 128 + 1e-6
+  let worst = { applied: 0, drift: 0, at: '' }
+  const record = (list, { fresh = true } = {}) => {
+    for (const c of list) {
+      if (Math.abs(c.applied) > Math.abs(worst.applied)) worst.applied = c.applied
+      if (!fresh) continue
+      const drift = Math.abs(c.applied - c.fresh)
+      if (drift > worst.drift) worst = { ...worst, drift, at: c.at }
+    }
+  }
+  const verdict = () =>
+    Math.abs(worst.applied) <= 0.5 + slack && worst.drift <= DEADBAND + slack
+  const detail = () =>
+    `largest correction ${worst.applied.toFixed(3)} device px; ` +
+    `furthest from a sweep from zero ${worst.drift.toFixed(3)}${worst.at ? ` (${worst.at})` : ''}`
+
+  /** Clear every correction and sweep: the layout's corrections from zero. */
+  const sweepFromZero = async () => {
+    await page.evaluate(async () => {
+      for (const id of ['remember', 'cancel', 'ok']) {
+        const host = document.getElementById(id)
+        host.style.removeProperty('--vf-snap-dx')
+        host.style.removeProperty('--vf-snap-dy')
+      }
+      const { requestGridSnap } = await import('/src/index.ts')
+      requestGridSnap()
+    })
+    await settle(page)
+  }
+
+  // Half a device pixel, eight times over.
+  for (let i = 1; i <= 8; i++) {
+    await page.evaluate(
+      async ([height]) => {
+        document.getElementById('spacer').style.height = `${height}px`
+        const { requestGridSnap } = await import('/src/index.ts')
+        requestGridSnap()
+      },
+      [10 + (i % 2) * (0.5 / dpr)]
+    )
+    await settle(page)
+    record(await corrections())
+  }
+  check(verdict(), 'shifted half a device px eight times, every correction holds', detail())
+
+  // The panel above opens and closes six times, starting from corrections a
+  // sweep from zero computed, so nothing the shifts left behind counts here.
+  await sweepFromZero()
+  worst = { applied: 0, drift: 0, at: '' }
+  let travel = 0
+  for (let i = 1; i <= 6; i++) {
+    const before = await page.evaluate(() => document.getElementById('ok').getBoundingClientRect().top)
+    await page.evaluate(() => document.getElementById('panel').classList.toggle('open'))
+    // Mid-animation the last sweep can be a frame behind the layout this
+    // reads, so only the half-pixel bound holds there; at rest, the match
+    // with a sweep from zero too.
+    for (let t = 0; t < 3; t++) {
+      await page.waitForTimeout(90)
+      record(await corrections(), { fresh: false })
+    }
+    await page.waitForTimeout(180)
+    await settle(page)
+    record(await corrections())
+    const after = await page.evaluate(() => document.getElementById('ok').getBoundingClientRect().top)
+    travel += Math.abs(after - before)
+  }
+  check(
+    travel > 20 && verdict(),
+    'an animated panel above them, every correction holds',
+    `${detail()}; the row travelled ${travel.toFixed(1)} CSS px`
+  )
+
+  // The same layout from zero: the corrections it held, recomputed.
+  const kept = await corrections()
+  await sweepFromZero()
+  const fromZero = await corrections()
+  const differ = kept
+    .map((c, i) => ({ at: c.at, delta: Math.abs(c.applied - fromZero[i].applied) }))
+    .filter((d) => d.delta > DEADBAND + slack)
+  check(
+    differ.length === 0,
+    'a sweep from zero computes the corrections it already held',
+    differ.length
+      ? differ.map((d) => `${d.at} off by ${d.delta.toFixed(3)}`).join(', ')
+      : `${kept.length} corrections compared`
+  )
+
+  await page.close()
+}
+await closeBrowsers()
 
 await browser.close()
 

@@ -76,23 +76,21 @@ import { truePixelRatio } from './zoom.js'
  */
 
 /**
- * Origin error (in device px) small enough to leave alone.
- *
- * Not just a performance guard — it is what makes the correction terminate.
- * Chromium lays out in 1/64 CSS px, so at dpr 3 a whole device pixel (1/3 CSS
- * px) is not a representable position at all; the best available offset lands
- * within 1/128 CSS px of it. Without a deadband the controller re-measures that
- * irreducible remainder every frame and keeps nudging, and the rendering
- * visibly jitters. 0.05 device px is ~5% coverage on one edge pixel — below
- * what a 1-bit edge can show.
+ * How far a correction may lag the one the host's position calls for, in
+ * device px, before it is rewritten: ~5% coverage on one edge pixel, below
+ * what a 1-bit edge can show. It spares a style write for a host that moved
+ * a hair, and it absorbs the layout grid's own residue: an engine laying out
+ * in 1/64 CSS px (WebKit, and Chromium under emulation) cannot hold a whole
+ * device pixel at dpr 3 (1/3 CSS px), and the best available offset lands
+ * within 1/128 CSS px of it.
  */
 const DEADBAND_DEVICE_PX = 0.05
 
 /**
- * Chromium's layout resolution. Offsets are quantized to it (see above).
- * Gecko lays out in 1/60 CSS px instead — it re-rounds what we write, and the
- * no-progress guard in correct() still ends the loop, at worst a shade short
- * of the deadband.
+ * The resolution corrections are quantized to: Chromium's layout unit. Gecko
+ * lays out in 1/60 CSS px instead and re-rounds what we write, which changes
+ * nothing here — a correction is derived from the host's position, and the
+ * host never moves from its own correction.
  */
 const LAYOUT_UNIT_CSS_PX = 1 / 64
 
@@ -282,10 +280,17 @@ export class GridSnapController implements ReactiveController {
    * roots consuming the variables sit at *authored* offsets inside the host —
    * including deliberate half-pixel ones like a toggle's centered box — and
    * measuring one of them would make the controller "correct" the component's
-   * own design. Because the host never moves from its own correction, the
-   * applied offset is folded into the error arithmetically rather than being
-   * expected in the measured rect; an ancestor's correction, which does move
-   * this host, is picked up the normal way.
+   * own design.
+   *
+   * The correction is a function of the host's position alone: the offset
+   * from its origin to the nearest whole device pixel. The host never moves
+   * from its own correction, so the correction already applied only decides
+   * whether a write is needed. Derived from the painted position instead —
+   * host plus the applied offset — every move would be rounded from wherever
+   * the previous correction left the paint, keeping each move's rounding
+   * error: a host carried along by an animation, or shifted half a pixel a
+   * few times, painted whole device pixels outside its box. An ancestor's
+   * correction, which does move this host, is picked up the normal way.
    */
   correct(dpr: number): void {
     const host = this.host
@@ -314,23 +319,20 @@ export class GridSnapController implements ReactiveController {
       this.written = { x: '', y: '' }
     }
 
-    // Residual error of the *corrected* paint position: host origin plus the
-    // offset the variables currently apply inside it.
-    const errorX = gridError(rect.left + this.applied.x, dpr)
-    const errorY = gridError(rect.top + this.applied.y, dpr)
+    // The offset that puts the host's origin on its nearest whole device
+    // pixel, from where the host is now.
+    const next = {
+      x: quantize(-gridError(rect.left, dpr) / dpr),
+      y: quantize(-gridError(rect.top, dpr) / dpr),
+    }
+    // Compared against that pixel, not against any whole pixel: a paint that
+    // sits a whole pixel away from it measures whole, and is still wrong.
     if (
-      Math.abs(errorX) <= DEADBAND_DEVICE_PX &&
-      Math.abs(errorY) <= DEADBAND_DEVICE_PX
+      Math.abs(next.x - this.applied.x) * dpr <= DEADBAND_DEVICE_PX &&
+      Math.abs(next.y - this.applied.y) * dpr <= DEADBAND_DEVICE_PX
     ) {
       return
     }
-
-    const next = {
-      x: quantize(this.applied.x - errorX / dpr),
-      y: quantize(this.applied.y - errorY / dpr),
-    }
-    // Already as close as the layout engine can be asked to get.
-    if (next.x === this.applied.x && next.y === this.applied.y) return
     this.applied = next
     this.written = { x: `${next.x}px`, y: `${next.y}px` }
     style.setProperty('--vf-snap-dx', this.written.x)

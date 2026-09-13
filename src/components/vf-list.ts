@@ -75,19 +75,8 @@ export class VfList extends VfPositioned(LitElement) {
         max-height: calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px));
         /* Native scrolling; the bar itself is hidden by the recipe
            (.vf-scroll) and the reservation is the rail element, not a native
-           gutter. The rows run to the rail on the right.
-
-           The mod() padding is border-floor compensation: engines floor a
-           fractional border-width to whole CSS px (1.5px renders 1px), which
-           would put the rows a fraction of a system px inside the frame at
-           scale 1.5 or 4/3 — and the rows are LIGHT-DOM components, so their
-           origins are the page's device-pixel-grid contract, not just ours.
-           Padding is stored exactly, so border + mod(border's fraction)
-           restores the exact 1-system-px inset the borderless-scroller
-           construction used to give them, at every scale (mod is 0 at whole
-           ones). */
-        padding: mod(calc(var(--vf-scale, 1) * 1px), 1px);
-        padding-right: 0;
+           gutter. The rows run to the rail on the right and start at the
+           frame's inner edge. */
         overflow-y: auto;
       }
       .vf-rail--vertical {

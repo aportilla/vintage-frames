@@ -2,14 +2,15 @@
  * Verifies the 1px rule — `vfRule` (src/styles/recipes/rule.ts) and
  * `vf-container rule="…"`.
  *
- * The rule is a border, and shares the kit's border-floor residual
- * (docs/THREE-X-DISPLAYS.md): Chromium floors a fractional border-width to
- * whole CSS px, so above 1× the line paints thinner than a system px — 1
- * device px at 1.5×, 2 at 2×, 3 at 3× — exactly as the window frame, the
- * panel border and the menu bar's own rule do. What is asserted here is
- * therefore the kit's actual contract: the line is whole device px with no
- * gray, flush to the box's edge, content begins directly inside it, and a
- * container's rule is the SAME line as the menu bar's at every density.
+ * The rule is a border. This script's densities are deviceScaleFactor
+ * emulation, which floors a fractional border width to whole CSS px, so above
+ * 1× the line paints thinner than a system px here — 1 device px at 1.5×, 2
+ * at 2×, 3 at 3× — as the window frame, the panel border and the menu bar's
+ * own rule do. A display snaps the width to whole device px, and the line is
+ * the full system px (harness `browserAt`). What is asserted holds either
+ * way: the line is whole device px with no gray, flush to the box's edge,
+ * content begins directly inside it, and a container's rule is the SAME line
+ * as the menu bar's at every density.
  *
  * 1. The grammar (`parseRule`): edge names in any order, repeats dropped,
  *    returned in top/right/bottom/left order; blank or unset is no edges;
@@ -18,10 +19,9 @@
  *    still 60×24 system px (the rule is inside it), the rule is a uniform
  *    band of whole device px along the bottom edge — at least one, at most a
  *    system px — with nothing above it, the box's computed border is on that
- *    edge alone, and the band is as thick as `vf-menu-bar`'s rule. At 1.5×
- *    the floored border is 1.5 device px and its rendering depends on where
- *    the box sits (the border-floor wobble), so that rung is printed, not
- *    asserted.
+ *    edge alone, and the band is as thick as `vf-menu-bar`'s rule. At an
+ *    emulated 1.5× the floored border is 1.5 device px and its rendering
+ *    depends on where the box sits, so that rung is printed, not asserted.
  * 3. `rule="top left"`: both edges ink, and a child placed at `top="0"
  *    left="0"` begins directly inside the painted line on both axes. All four
  *    edges frame a box.
@@ -173,11 +173,11 @@ const near = (a, b, tol = 0.01) => Math.abs(a - b) < tol
 }
 
 // ── 2. rule="bottom" on the density ladder, against the menu bar's own rule ─
-// The integer rungs: 1 CSS px is whole device px there, so a floored border
-// is a whole band. At a fractional density (1.5× below) the floored 1 CSS px
-// is 1.5 device px and Chromium distributes the half by snap direction — the
-// border-floor wobble (src/scale.ts) — so that rung is measured and printed,
-// not asserted: the residual is the kit's, documented, and not the rule's.
+// The integer rungs: 1 CSS px is whole device px there, so the border
+// emulation floors is a whole band. At a fractional density (1.5× below) the
+// floored 1 CSS px is 1.5 device px and Chromium distributes the half by snap
+// direction, so that rung is measured and printed, not asserted: the floor is
+// emulation's, not the rule's.
 for (const dpr of [1, 2, 3]) {
   const page = await build(
     '<vf-container id="r" width="60" height="24" rule="bottom"></vf-container>' +
@@ -233,7 +233,7 @@ for (const dpr of [1, 2, 3]) {
     return impure
   }
   console.log(
-    `      dpr 1.5 (border-floor residual, printed not asserted): container band ` +
+    `      dpr 1.5 (emulation's floored border, printed not asserted): container band ` +
       `${inkFromBottom(png, 0)} device px with ${gray(png)} gray px, ` +
       `menu bar band ${inkFromBottom(bar, Math.floor(bar.width / 2))} with ${gray(bar)} gray px`
   )
@@ -483,9 +483,9 @@ for (const dpr of [1, 2, 3]) {
   const x1 = x0 + Math.round(geo.width * dpr)
   const xm = Math.floor((x0 + x1) / 2)
   // The strip's edge is on a half CSS px here (the body flexes to what the
-  // frame leaves), and Blink quantizes sub-CSS-px paint per box — the
-  // border-floor wobble (src/scale.ts) — so the band may sit one device px
-  // off the edge. Find it within that, then hold it to the same shape.
+  // frame leaves), and Blink quantizes sub-CSS-px paint per box, so the band
+  // may sit one device px off the edge. Find it within that, then hold it to
+  // the same shape.
   let ys = y0 - 1
   while (ys < y0 + 2 && !isBlack(win, xm, ys)) ys++
   let ts = 0

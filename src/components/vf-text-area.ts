@@ -101,15 +101,9 @@ export class VfTextArea extends VfPositioned(VfTextControlBase) {
         min-width: 0;
         /* Borderless — the frame is the well's (above). vf-text-field's own
            3px/6px padding plus that border holds the text exactly where the
-           bordered field puts it; the mod() term is border-floor
-           compensation (engines floor the fractional border to whole CSS px;
-           this is exactly what they floored away), keeping the text on the
-           4px/7px system-px inset from the frame box at every scale. */
+           bordered field puts it, 4px/7px from the frame box. */
         border: 0;
-        padding: calc(
-            var(--vf-scale, 1) * 3px + mod(var(--vf-scale, 1) * 1px, 1px)
-          )
-          calc(var(--vf-scale, 1) * 6px + mod(var(--vf-scale, 1) * 1px, 1px));
+        padding: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 6px);
         /* Wrapped entry copy on the display face's native line (editable
            text is display type) — the same face token the static-text
            components read, so a display retheme moves this well too. The

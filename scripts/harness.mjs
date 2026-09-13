@@ -167,12 +167,13 @@ export const within = (promise, ms = 5000) =>
   Promise.race([promise, new Promise((r) => setTimeout(r, ms))])
 
 /**
- * Close the browser, print the tally, exit with the suite's verdict. The
+ * Close the browsers, print the tally, exit with the suite's verdict. The
  * "N/M checks passed" line is the format scripts/test.mjs reads back for its
  * summary column.
  */
 export async function report(browser) {
   if (browser) await browser.close()
+  await closeBrowsers()
   const failed = results.filter((r) => !r).length
   console.log(`\n${results.length - failed}/${results.length} checks passed`)
   process.exit(failed ? 1 : 0)
@@ -204,6 +205,39 @@ export const launch = (options = {}) =>
     args: ['--font-render-hinting=none', '--disable-lcd-text', ...(options.args ?? [])],
   })
 
+/** Display-density browsers, keyed by density and window size. */
+const densityBrowsers = new Map()
+
+/**
+ * A Chromium that renders `dpr` the way a display does — one per density and
+ * window size, launched on first use and closed by {@link closeBrowsers}.
+ *
+ * The `deviceScaleFactor` a page is otherwise built with is emulation: it
+ * reports the density to the page but styles and lays the page out as if at
+ * 1×. A fractional border width floors to a whole CSS px there, and layout
+ * quantizes to 1/64 CSS px. A display does neither: a border width snaps to
+ * whole device px, so the kit's 1-system-px border is exactly one system px,
+ * and layout is finer. A forced device scale factor with no viewport override
+ * is the display's rendering; the window size stands in for the viewport, so
+ * pages come from `newPage({ viewport: null })`.
+ */
+export const browserAt = (dpr, { width = 1200, height = 900 } = {}) => {
+  const key = `${dpr}@${width}x${height}`
+  if (!densityBrowsers.has(key)) {
+    densityBrowsers.set(
+      key,
+      launch({ args: [`--force-device-scale-factor=${dpr}`, `--window-size=${width},${height}`] })
+    )
+  }
+  return densityBrowsers.get(key)
+}
+
+/** Close every browser {@link browserAt} launched. */
+export async function closeBrowsers() {
+  for (const pending of densityBrowsers.values()) await (await pending).close()
+  densityBrowsers.clear()
+}
+
 /**
  * Build the page builder a script uses.
  *
@@ -219,6 +253,10 @@ export const launch = (options = {}) =>
  * Options:
  * - `viewport`     the page box (default 1200×900)
  * - `dpr`          deviceScaleFactor — the grid/scale scripts drive 1, 2 and 3
+ * - `real`         render `dpr` at display density instead of through
+ *                  deviceScaleFactor emulation (see {@link browserAt}) — for
+ *                  a check about where a border puts content, or about the
+ *                  device grid
  * - `bodyStyle`    inline style on `<body>` (default `margin:0`)
  * - `reducedMotion` emulate `prefers-reduced-motion`, which makes the kit's
  *                  selection blink synchronous so a commit lands before the
@@ -242,12 +280,15 @@ export function makeBuild(browser, defaults = {}) {
       settle = false,
       forcedColors,
       origin = ORIGIN,
+      real = false,
     } = { ...defaults, ...overrides }
 
-    const page = await browser.newPage({
-      viewport,
-      ...(dpr === undefined ? {} : { deviceScaleFactor: dpr }),
-    })
+    const page = real
+      ? await (await browserAt(dpr ?? 1, viewport)).newPage({ viewport: null })
+      : await browser.newPage({
+          viewport,
+          ...(dpr === undefined ? {} : { deviceScaleFactor: dpr }),
+        })
     const media = {}
     if (reducedMotion) media.reducedMotion = 'reduce'
     if (forcedColors) media.forcedColors = forcedColors

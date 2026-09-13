@@ -1,6 +1,6 @@
 # Displays the layout grid can't hold
 
-**Short version:** on a native 3× display — and on Windows at 125% and 150%, and at 2.5× — the scale the kit derives is a fraction the browser's layout engine cannot store exactly. Solid art is unaffected, because paint snaps every box to the device grid on its own. Repeating fills were affected, badly — first fixed by spanning a size the grid can express, then converted off CSS repetition entirely (TILE-GRID-PLAN.md), which also closed the zoom rungs the span could never cover. Two residuals remain. This document covers what the limit affects and what it doesn't.
+**Short version:** on a native 3× display — and on Windows at 125% and 150%, and at 2.5× — the scale the kit derives is a fraction the browser's layout engine cannot store exactly. Solid art is unaffected, because paint snaps every box to the device grid on its own. Repeating fills were affected, badly — first fixed by spanning a size the grid can express, then converted off CSS repetition entirely (TILE-GRID-PLAN.md), which also closed the zoom rungs the span could never cover. One residual remains, in text. This document covers what the limit affects and what it doesn't.
 
 ## What the limit is
 
@@ -46,22 +46,17 @@ Desktop dither, measured over the fill's interior (`npm run verify:tile`) — th
 | 2.5× | 55% | **0%** | 0% |
 | 3× | 43% | **0%** | 0% |
 
-## The two residuals
+## The residual
 
 **Text.** At 4/3 the font size and the ascent override it is a fraction of both quantize, so a run can sit one device pixel (¼ system pixel) off its canonical position. The glyphs stay crisp; the whole run shifts. `verify:baseline` asserts that bound explicitly rather than pretending it is exact.
 
-**Borders, which is the bigger one.** Chromium *floors* `border-width` to a whole CSS pixel: `border: calc(var(--vf-scale) * 1px)` computes to `1px` at every fractional scale, and a 1-system-px border paints
+## Borders
 
-| display | 1 system px is | the border paints |
-| --- | --- | --- |
-| 1× | 1 device px | 1 ✓ |
-| 1.25×, 1.5× | 2 device px | **1** |
-| 2×, 2.5× | 3 device px | **2** |
-| 3× | 4 device px | **3** |
+A display snaps a border width to whole device pixels, and a 1-system-px border, `calc(var(--vf-scale) * 1px)`, is a whole number of them by the scale contract. Every kit frame paints its full system pixel, and content starts directly inside it: 2 device px at 1.25× and 1.5×, 3 at 2× and 2.5×, 4 at 3×. Measured in Chromium, Firefox and WebKit.
 
-So the kit's hairlines are thin at every density above 1×, including plain retina. The floored border used to smear the tiled layers inset by one — a correctly sized CSS-repeated tile starting on a half device pixel — but the converted fills retired that: the kit's whole-surface raster overdraws from the layer's origin and measures **zero** gray on all four surfaces at every density, fractional origin or not. What remains of it is confined to the consumer-token path: a *placed tile grid* inside a floored border has every seam on a fractional device pixel at 1.25×/1.5×/2.5×, and the engine antialiases each box's painted edge there — a per-seam hairline (a few dozen pixels, printed by `verify:tile` rather than failed) where the old residual was surface-wide smear.
+Playwright's `deviceScaleFactor` emulation, which most of the verify suite runs at, renders borders differently: in Chromium and Firefox it floors a fractional border width to a whole CSS pixel, so a frame there is 2 device px of 3 at 2× and 3 of 4 at 3×. Checks about where a border puts content, or about the device grid, render at display density instead (`browserAt` in `scripts/harness.mjs`); the checks still on emulation carry tolerances for the floor.
 
-Measured, `box-shadow: inset 0 0 0 calc(var(--vf-scale) * 1px)` over matching padding paints the true thickness at every density — 1, 2, 2, 3, 3, 4 — so a fix exists. It is not a drop-in: forced-colors mode deletes `box-shadow`, and the kit's frames interact with `overflow` and with the stepped-corner clip paths, so changing how every frame is painted is its own piece of work.
+The kit's whole-surface raster measures zero gray on all four converted surfaces at every density, emulated or not. A consumer pattern token's *placed tile grid* measures zero gray at display density too, inset layers included — every surface from 1.25× to 3×, and at 1.7× and 2.3×. Under emulation a layer inside a floored border starts on a fractional device pixel at 1.25×, 1.5× and 2.5×, and `verify:tile` prints the per-seam hairline that leaves rather than failing.
 
 ## Why the kit does not simply pick a different target
 
@@ -86,4 +81,6 @@ cssPxFor(systemPx, scale)   // scripts/harness.mjs — the ideal, snapped to 1/6
 holdableScale(scale)        // whether the engine can store it at all
 ```
 
-`verify:grid` and `verify:snap` keep their strict "on the device grid" check wherever the scale is holdable — which is every scale a 1× or 2× display derives, at every zoom — and elsewhere fall back to asserting nothing is off by half a device pixel, the error that actually smears 1-bit art. `verify:tile` asserts a zero-gray raster on all four converted surfaces at eight densities — the ladder plus the 1.7/2.3 broken-rung proxies — asserts the consumer tile grid's box geometry everywhere and its raster on the whole-origin densities, and keeps the trough's span arithmetic (headless Chromium paints no `::-webkit-scrollbar` skin, so arithmetic is all that can guard it).
+Both model the suite's emulated densities, where Chromium lays out in 1/64 CSS px. At display density Chromium measured exact at 4/3 too; WebKit lays out in 1/64 CSS px either way.
+
+`verify:grid` audits at display density and holds every host of the reference page to 0.05 device px at 1×, 1.5×, 2×, 2.5× and 3× (worst 0.023). `verify:snap` keeps its strict "on the device grid" check wherever the scale is holdable — which is every scale a 1× or 2× display derives, at every zoom — and elsewhere falls back to asserting nothing is off by half a device pixel, the error that actually smears 1-bit art. `verify:tile` asserts a zero-gray raster on all four converted surfaces at eight densities — the ladder plus the 1.7/2.3 broken-rung proxies — asserts the consumer tile grid's box geometry everywhere and its raster on the whole-origin densities, and keeps the trough's span arithmetic (headless Chromium paints no `::-webkit-scrollbar` skin, so arithmetic is all that can guard it).

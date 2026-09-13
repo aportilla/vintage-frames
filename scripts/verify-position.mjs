@@ -400,7 +400,7 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
     </vf-scroll-area>
   `)
   // The viewport's content origin — where the plane's (0,0) is — measured
-  // from the viewport itself, padding (the border-floor mod() term) included.
+  // from the viewport itself, padding included.
   const origin = () =>
     page.evaluate(() => {
       const vp = document.getElementById('sa').shadowRoot.querySelector('.viewport')

@@ -23,10 +23,14 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:grid
  *
+ * Each density is rendered the way a display renders it (harness
+ * `browserAt`). deviceScaleFactor emulation floors border widths to whole CSS
+ * px and lays Chromium out in 1/64 CSS px, which a display does not.
+ *
  * Override the pages with VF_GRID_PAGES (comma-separated paths) and the
  * densities with VF_GRID_DPR.
  */
-import { ORIGIN, heartbeat, launch } from './harness.mjs'
+import { ORIGIN, browserAt, closeBrowsers, heartbeat } from './harness.mjs'
 
 // The audit measures HOST rects, which the components' always-on snapping
 // never moves (the correction lands inside the shadow root) — so snapping
@@ -34,7 +38,7 @@ import { ORIGIN, heartbeat, launch } from './harness.mjs'
 // page is loaded plain. (`/` is the component reference since the faux
 // desktop moved to the system7web repo.)
 const PAGES = (process.env.VF_GRID_PAGES ?? '/').split(',')
-const DENSITIES = (process.env.VF_GRID_DPR ?? '1,2,3').split(',').map(Number)
+const DENSITIES = (process.env.VF_GRID_DPR ?? '1,1.5,2,2.5,3').split(',').map(Number)
 
 const audit = async (page) =>
   page.evaluate(async () => {
@@ -43,32 +47,17 @@ const audit = async (page) =>
     // a zoomed Safari page. Same module instance as the components'.
     const { truePixelRatio } = await import('/src/index.ts')
     const dpr = truePixelRatio()
-    // Sub-device-pixel error we treat as noise rather than a fault: one
-    // 1/64-CSS-px layout unit, the best the engine can represent (under zoom
-    // the scale can be a ratio like 5/3, where exactness is unrepresentable).
-    const eps = Math.max(1e-6, dpr / 128)
-
-    /**
-     * A scale Chromium can hold exactly, i.e. a whole number of its 1/64-CSS-px
-     * layout units. Every scale the kit derives for a 1× or 2× display is one,
-     * at every zoom level — page zoom multiplies computed lengths at style time,
-     * so the layout length stays whole. A true 3× device derives 4/3, which is
-     * not: its lengths land a fraction of a device pixel short, and each box
-     * nested inside another adds another fraction.
-     *
-     * There the audit cannot tell accumulated quantization from a real fault, so
-     * it stops asserting exactness and asserts the thing that still matters —
-     * nothing off by half a device pixel, the error that actually smears 1-bit
-     * art. The residual is printed either way.
-     */
-    const holdable = (scale) => Math.abs(scale * 64 - Math.round(scale * 64)) < 1e-9
+    // Sub-device-pixel error we treat as noise rather than a fault: grid
+    // snapping's deadband (DEADBAND_DEVICE_PX), below what a 1-bit edge can
+    // show. At display density one tolerance holds at every scale, 4/3
+    // included.
+    const eps = 0.05
 
     /** Signed device-pixel error of a CSS-px measurement. */
-    const err = (css, scale) => {
+    const err = (css) => {
       const d = css * dpr
       const e = d - Math.round(d)
-      const tolerance = holdable(scale) ? eps : 0.5
-      return Math.abs(e) < tolerance ? 0 : e
+      return Math.abs(e) <= eps ? 0 : e
     }
 
     const faults = []
@@ -85,8 +74,8 @@ const audit = async (page) =>
       const scale =
         parseFloat(getComputedStyle(host).getPropertyValue('--vf-scale')) || 1
 
-      const origin = { x: err(rect.left, scale), y: err(rect.top, scale) }
-      const size = { w: err(rect.width, scale), h: err(rect.height, scale) }
+      const origin = { x: err(rect.left), y: err(rect.top) }
+      const size = { w: err(rect.width), h: err(rect.height) }
       if (!origin.x && !origin.y && !size.w && !size.h) continue
 
       const label = `${tag}${host.id ? '#' + host.id : ''}`
@@ -106,15 +95,12 @@ const audit = async (page) =>
     return { total, faults, dpr }
   })
 
-const browser = await launch()
 let failed = false
 
 for (const path of PAGES) {
   for (const dpr of DENSITIES) {
-    const page = await browser.newPage({
-      viewport: { width: 1320, height: 950 },
-      deviceScaleFactor: dpr,
-    })
+    const browser = await browserAt(dpr, { width: 1320, height: 950 })
+    const page = await browser.newPage({ viewport: null })
     const url = new URL(path, ORIGIN).href
     await page.goto(url, { waitUntil: 'networkidle' })
     await page.waitForFunction(() => customElements.get('vf-button') !== undefined)
@@ -139,7 +125,7 @@ for (const path of PAGES) {
   }
 }
 
-await browser.close()
+await closeBrowsers()
 
 if (failed) {
   console.log('\nSee the layout contract in README — "Staying on the device-pixel grid".')

@@ -28,6 +28,9 @@
  *    own background (no tile grid), 1-bit; `white` is a white desktop; an
  *    unknown name warns once and keeps the dither; a `--vf-desktop-pattern`
  *    token still wins, rendering the placed tile grid and no background.
+ * 10. `vf-desktop bezel`: on a white screen, all four corners carry the
+ *    SCREEN_CORNER staircase (the bottom pair mirrored), 1-bit, at dpr 1
+ *    and 2.
  *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:pattern
@@ -543,6 +546,63 @@ for (const dpr of DENSITIES) {
     `patterned ${s2.patterned}, image ${s2.image}, ${s2.tiles} tiles`
   )
   await page.close()
+}
+
+// ── 10. the bezel's corner mask ────────────────────────────────────────────
+{
+  const W = 96
+  const H = 64
+  const BEZEL = 5
+  /** A 6×6 system-px block at the screen's top-left, one row per string. */
+  const TOP_LEFT = ['#####.', '###...', '##....', '#.....', '#.....', '......']
+  const mirror = (rows) => rows.map((r) => [...r].reverse().join(''))
+  const expected = {
+    'top-left': TOP_LEFT,
+    'top-right': mirror(TOP_LEFT),
+    'bottom-left': [...TOP_LEFT].reverse(),
+    'bottom-right': mirror(TOP_LEFT).reverse(),
+  }
+  for (const dpr of [1, 2]) {
+    const page = await build(
+      `<vf-desktop id="d" width="${W}" height="${H}" bezel="${BEZEL}" pattern="white"></vf-desktop>`,
+      { dpr }
+    )
+    const n = devicePxPerSystemPxAt(dpr)
+    const png = decodePng(await page.locator('#d').screenshot())
+    /** The 6×6 system-px block at screen (sx, sy), sampled at each pixel's center. */
+    const block = (sx, sy) =>
+      [0, 1, 2, 3, 4, 5].map((y) =>
+        [0, 1, 2, 3, 4, 5]
+          .map((x) => {
+            const px = (BEZEL + sx + x) * n + (n >> 1)
+            const py = (BEZEL + sy + y) * n + (n >> 1)
+            return png.data[(py * png.width + px) * png.bpp] === 0 ? '#' : '.'
+          })
+          .join('')
+      )
+    const origins = {
+      'top-left': [0, 0],
+      'top-right': [W - 6, 0],
+      'bottom-left': [0, H - 6],
+      'bottom-right': [W - 6, H - 6],
+    }
+    const misses = []
+    let impure = 0
+    for (const [corner, [sx, sy]] of Object.entries(origins)) {
+      const got = block(sx, sy)
+      if (got.join('/') !== expected[corner].join('/')) misses.push(`${corner} ${got.join('/')}`)
+      const x0 = (BEZEL + sx) * n
+      const y0 = (BEZEL + sy) * n
+      impure += impureIn(png, x0, y0, x0 + 6 * n, y0 + 6 * n).impure
+    }
+    check(
+      `dpr ${dpr}: a bezeled desktop masks all four screen corners with the staircase`,
+      misses.length === 0,
+      misses.join('; ')
+    )
+    check(`dpr ${dpr}: …and the masked corners are 1-bit`, impure === 0, `${impure} impure`)
+    await page.close()
+  }
 }
 
 await report(browser)

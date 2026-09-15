@@ -76,7 +76,8 @@ export const RING_INSET = 4
 /**
  * The screen-corner mask: per-row width (system px) of the black staircase a
  * compact Mac's ROM painted over the rounded corners of its CRT — what makes
- * the System 7 menu bar's top corners read as rounded. Traced from a 1x
+ * the System 7 menu bar's top corners read as rounded, and what a bezeled
+ * `vf-desktop` paints on all four screen corners. Traced from a 1x
  * screen capture (5×5 corner crop): y0 run 5, y1 3, y2 2, y3–y4 1. The same
  * radius-5 staircase as {@link RING_FRAME}'s corner — QuickDraw had one
  * vocabulary for round corners — but the opposite *object*: this is the ink
@@ -156,26 +157,29 @@ export const steppedRectClip = (p: SteppedProfile): string =>
   `polygon(${rectPoints(p).join(', ')})`
 
 /**
- * Compile a corner-mask run list into the ink polygon for one *top* corner —
- * the corner box minus the rounded silhouette, i.e. the region the screen
- * mask blacked out. Runs are the mask's per-row width, topmost first; `side`
- * mirrors the staircase (via `100% - …`) for the top-right corner. Clip an
- * element `runs[0]` wide × `runs.length` tall (system px), anchored into its
- * corner, and let its `background` supply the ink.
+ * Compile a corner-mask run list into the ink polygon for one corner — the
+ * corner box minus the rounded silhouette, i.e. the region the screen mask
+ * blacked out. Runs are the mask's per-row width, the row on the box's edge
+ * first; `side` mirrors the staircase (via `100% - …`) for a right corner,
+ * `edge` for a bottom one. Clip an element `runs[0]` wide × `runs.length`
+ * tall (system px), anchored into its corner, and let its `background`
+ * supply the ink.
  */
 export const steppedCornerClip = (
   runs: readonly number[],
-  side: 'left' | 'right'
+  side: 'left' | 'right',
+  edge: 'top' | 'bottom' = 'top'
 ): string => {
   const x = side === 'left' ? px : pxFromEnd
+  const row = edge === 'top' ? px : pxFromEnd
   let prev = runs[0] ?? 0
-  const pts: string[] = [`${x(0)} ${px(0)}`, `${x(prev)} ${px(0)}`]
+  const pts: string[] = [`${x(0)} ${row(0)}`, `${x(prev)} ${row(0)}`]
   // Step inward wherever the run shrinks; runs[length] is 0, closing the
-  // staircase at the bottom row, and polygon() closes bottom → top itself.
+  // staircase at its last row, and polygon() closes back to the edge itself.
   for (let y = 1; y <= runs.length; y++) {
     const cur = runs[y] ?? 0
     if (cur !== prev) {
-      pts.push(`${x(prev)} ${px(y)}`, `${x(cur)} ${px(y)}`)
+      pts.push(`${x(prev)} ${row(y)}`, `${x(cur)} ${row(y)}`)
       prev = cur
     }
   }

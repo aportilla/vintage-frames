@@ -118,7 +118,7 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * `resize`/`onScaleChange` for a viewport-filling desktop — and positions
  * the sized box with its own stylesheet, keeping any sub-system-pixel
  * slack on its side. `bezel` (system px) draws the black screen surround —
- * the CRT's unlit margin — around the screen, rounding its top corners
+ * the CRT's unlit margin — around the screen, rounding its four corners
  * with the classic corner mask.
  *
  * **`pattern`** names the desktop pattern — `gray-50` (the dither) by
@@ -289,16 +289,15 @@ export class VfDesktop extends VfPositioned(LitElement) {
       .drag-surface > * {
         z-index: ${DRAG_OUTLINE_Z};
       }
-      /* With a bezel, the screen's top corners wear the SCREEN_CORNER mask,
-         rounding into the surrounding black — the top pair only, because the
-         classic framebuffer masked only those; the raster's bottom corners
-         ran square. Children of .screen, so they anchor to the raster's own
-         corners (over a slotted menu bar's, which sit in the same place). The
-         hardware mask was in front of every pixel — a window dragged into a
-         corner slides under it — hence the maximal z-index. */
+      /* With a bezel, the screen's four corners wear the SCREEN_CORNER mask,
+         rounding into the surrounding black; the bottom pair is the same
+         staircase mirrored vertically. Children of .screen, so they anchor to
+         the raster's own corners (the top pair over a slotted menu bar's,
+         which sit in the same place). The hardware mask was in front of every
+         pixel — a window dragged into a corner slides under it — hence the
+         maximal z-index. */
       .corner {
         position: absolute;
-        top: 0;
         width: calc(var(--vf-scale, 1) * ${SCREEN_CORNER[0]!}px);
         height: calc(var(--vf-scale, 1) * ${SCREEN_CORNER.length}px);
         background: var(--vf-black, #000);
@@ -306,12 +305,24 @@ export class VfDesktop extends VfPositioned(LitElement) {
         z-index: 2147483647;
       }
       .corner.tl {
+        top: 0;
         left: 0;
         clip-path: ${unsafeCSS(steppedCornerClip(SCREEN_CORNER, 'left'))};
       }
       .corner.tr {
+        top: 0;
         right: 0;
         clip-path: ${unsafeCSS(steppedCornerClip(SCREEN_CORNER, 'right'))};
+      }
+      .corner.bl {
+        bottom: 0;
+        left: 0;
+        clip-path: ${unsafeCSS(steppedCornerClip(SCREEN_CORNER, 'left', 'bottom'))};
+      }
+      .corner.br {
+        bottom: 0;
+        right: 0;
+        clip-path: ${unsafeCSS(steppedCornerClip(SCREEN_CORNER, 'right', 'bottom'))};
       }
     `,
   ]
@@ -336,11 +347,10 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * renders a 512-system-px host box. The compact Mac's CRT showed an
    * unlit black margin between the desktop's raster and the case; `bezel`
    * draws it around the screen and puts the classic screen-corner mask on
-   * the screen's two *top* corners — only the top pair was rounded in the
-   * framebuffer. Flow, window coordinates and the drag clip all belong to
-   * the screen, so windows crop at its edge. Inside a bezeled desktop a
-   * menu bar needs no `rounded` of its own — the desktop's mask lands on
-   * the same pixels.
+   * all four of the screen's corners. Flow, window coordinates and the drag
+   * clip all belong to the screen, so windows crop at its edge. Inside a
+   * bezeled desktop a menu bar needs no `rounded` of its own — the desktop's
+   * top pair lands on the same pixels.
    */
   @property({ type: Number }) bezel = 0
 
@@ -919,7 +929,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
           <div class="drag-surface"></div>
           ${this.bezel > 0
             ? html`<div class="corner tl"></div>
-                <div class="corner tr"></div>`
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>`
             : null}
         </div>
       </div>

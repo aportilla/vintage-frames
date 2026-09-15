@@ -146,7 +146,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="bezel — the black screen surround, added around the declared screen: width 502 plus 5px each side is a 512-system-px host box. The screen's top corners take the corner mask, and a dragged window clips at the raster's edge."
+            data-caption="bezel — the black screen surround, added around the declared screen: width 502 plus 5px each side is a 512-system-px host box. The screen's four corners take the corner mask, and a dragged window clips at the raster's edge."
           >
             <vf-desktop width="502" height="214" bezel="5">
               <vf-menu-bar>
@@ -199,7 +199,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td>Property</td><td><code>width</code>, <code>height</code></td><td class="wrap">The screen raster, in system px (defaults 512×342). The host box is the screen plus 2×<code>bezel</code> per axis</td></tr>
-              <tr><td>Property</td><td><code>bezel</code></td><td class="wrap">The black screen surround, in system px (default 0), added on every side. Flow, window coordinates and the drag clip belong to the screen; the corner mask on its top corners means a menu bar inside needs no <code>rounded</code></td></tr>
+              <tr><td>Property</td><td><code>bezel</code></td><td class="wrap">The black screen surround, in system px (default 0), added on every side. Flow, window coordinates and the drag clip belong to the screen; the corner mask sits on all four of its corners, so a menu bar inside needs no <code>rounded</code></td></tr>
               <tr><td>Property</td><td><code>pattern</code></td><td class="wrap">The desktop pattern: a library name (default <code>gray-50</code>, the dither) or sixteen hex digits stating a custom 8×8 pattern — see <a href="#vf-container"><code>vf-container</code></a> for the library. An unrecognized value keeps the dither; <code>--vf-desktop-pattern</code> wins over it</td></tr>
               <tr><td>Property</td><td><code>activeWindow</code></td><td class="wrap">Read-only: the active document-tier window, or <code>null</code> while the tier is deactivated or empty. Utility windows are never the holder</td></tr>
               <tr><td>Method</td><td><code>fitWithin(w,&nbsp;h)</code></td><td class="wrap">Sets and returns the largest whole raster whose host box, bezel included, fits a CSS-px bound. Call on <code>resize</code> and <code>onScaleChange</code> to fill the viewport</td></tr>

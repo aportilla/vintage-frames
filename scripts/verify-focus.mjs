@@ -20,8 +20,9 @@
  *    between itself and the ink above it (glyph, box border, sprite, the well's
  *    bottom edge, the rail — or, for vf-select and a `shadow` vf-swatch, the
  *    hard shadow the box casts, which no box the pseudo-element can size to
- *    contains; the flat swatch is checked too, since that offset is a calc()
- *    over the depth in play rather than a constant), and
+ *    contains; the flat swatch and the `no-shadow` select are checked too,
+ *    since that offset is a calc() over the depth in play rather than a
+ *    constant), and
  *    spans that element's own box — the label, not the button's padded face;
  *    the whole well, not the toggle's row; the number field's well, not the
  *    stepper beside it; the menu's title, not the bar cell around it; the
@@ -176,6 +177,12 @@ function bands(s, ink, { inset = S, slack = 0 } = {}) {
     else groups.push([y])
   }
   return groups
+}
+
+/** Whether the first system px column right of the shot's box is ink, halfway
+ *  down the box — where a hard shadow (1px or 2px) paints. */
+function rightOfBox(s) {
+  return isBlack(s.png, s.x0 + s.w + Math.floor(S / 2), s.y0 + Math.floor(s.h / 2))
 }
 
 // ── the default push button, focused by keyboard ──────────────────────────
@@ -555,10 +562,11 @@ for (const [tag, markup] of [
 // pseudo-element could size itself to. What's checked is the ink profile: the
 // box AND whatever shadow it casts as one band, one blank row, then the rule.
 //
-// vf-swatch runs twice because its shadow is a parameter, not a constant: the
-// offset is a calc() over the depth actually in play, so the flat default (the
-// palette-cell case, no shadow at all) and the raised `shadow` reading have to
-// land the rule one blank row under DIFFERENT amounts of ink.
+// Both boxes run with and without a shadow because the depth is a parameter,
+// not a constant: the offset is a calc() over the depth actually in play, so
+// the flat readings (the swatch's default, the select's `no-shadow`) and the
+// raised ones have to land the rule one blank row under DIFFERENT amounts of
+// ink.
 for (const [tag, markup, frame, shadow] of [
   [
     'vf-select',
@@ -574,6 +582,14 @@ for (const [tag, markup, frame, shadow] of [
       '<vf-option value="b">Backup</vf-option></vf-select>',
     '.control',
     1,
+  ],
+  // no-shadow: the rule rises into the row the shadow gave up.
+  [
+    'vf-select no-shadow',
+    '<vf-select id="x" no-shadow value="a"><vf-option value="a">Macintosh HD</vf-option>' +
+      '<vf-option value="b">Backup</vf-option></vf-select>',
+    '.control',
+    0,
   ],
   ['vf-swatch', '<vf-swatch id="x"></vf-swatch>', 'button', 0],
   ['vf-swatch shadow', '<vf-swatch id="x" shadow></vf-swatch>', 'button', 2],
@@ -604,6 +620,11 @@ for (const [tag, markup, frame, shadow] of [
     `${tag}: the ink above it is the box${shadow ? ` plus its ${shadow}px shadow` : ''}, nothing more`,
     ink.length === s.h + shadow * S,
     `${ink.length / S} system px vs the box's ${s.h / S} + ${shadow}`
+  )
+  // The bands see the shadow's bottom rows; this is its right-hand column.
+  check(
+    `${tag}: the column right of the box is ${shadow ? 'the shadow' : 'page white'}`,
+    rightOfBox(s) === Boolean(shadow)
   )
   check(`${tag}: the rule is 1 system px tall`, rule.length === S, `${rule.length} device px`)
   check(
@@ -693,6 +714,9 @@ for (const [tag, markup, frame, shadow] of [
     check(`${tag}: Space opens the list (guards the check below)`, open)
     const whileOpen = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
     check(`${tag}: …and while open the rule stands down`, !whileOpen.drawn)
+    // The list is as wide as the pill and overlays it, so its shadow column
+    // falls where the pill's would. no-shadow is the pill's alone.
+    check(`${tag}: the open list casts its 1px shadow`, rightOfBox(whileOpen))
     await clickPage.keyboard.press('Escape')
     const reclosed = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
     check(`${tag}: Escape closes it and the rule comes back`, reclosed.drawn)

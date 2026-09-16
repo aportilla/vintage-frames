@@ -79,6 +79,9 @@ export type VfSelectSize = 'regular' | 'small'
  * horizontal insets are the regular pill's. Marks above a capital (É, Å, Ñ)
  * reach past the 8 rows above the baseline and are clipped.
  *
+ * `no-shadow` draws the closed pill without its 1px hard shadow, and the focus
+ * rule moves up the row the shadow took. The open list keeps its shadow.
+ *
  * Keyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the
  * highlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an
  * item plays the classic inversion blink (~250 ms) before closing. Keyboard
@@ -132,6 +135,13 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
            too narrow. Authors opt into filling via flex:1 / width / align-self. */
         display: inline-block;
         width: fit-content;
+        /* How deep a shadow the closed pill casts, resolved once so the shadow
+           and the focus rule below it read the same depth. The panel's shadow
+           is its own (--vf-shadow-offset). */
+        --_shadow-depth: 1px;
+      }
+      :host([no-shadow]) {
+        --_shadow-depth: 0px;
       }
       /* The small pill restates the height token on the host, so the pill, the
          arrow slots and the slotted options (which inherit it) all derive from
@@ -162,8 +172,9 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         background: var(--vf-white, #fff);
         border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
-        box-shadow: calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 1px)
-          0 0 var(--vf-black, #000);
+        /* At depth 0 the shadow is the border box itself, which paints nothing. */
+        box-shadow: calc(var(--vf-scale, 1) * var(--_shadow-depth))
+          calc(var(--vf-scale, 1) * var(--_shadow-depth)) 0 0 var(--vf-black, #000);
         /* The press-drag gesture owns pointer moves while the button is held;
            suppress the browser's own touch panning/scrolling so a touch drag
            tracks the list instead of scrolling the page. */
@@ -177,7 +188,8 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
 
          The offset counts every row of ink below the pseudo-element's padding
          box before the blank row and the rule itself — the 1px border, then
-         the 1px hard shadow: −(1 + 1 + 1 + 1). The ±1px sides widen it from
+         the hard shadow (1px, or none under no-shadow): −(1 + 1 + depth + 1).
+         The ±1px sides widen it from
          that same padding box to the border box, which is the shape the pill
          reads as (the shadow is a depth cue, not part of the silhouette).
 
@@ -194,7 +206,7 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         outline: none;
       }
       .control.vf-focus-rule::after {
-        --vf-focus-underline-offset: -4px;
+        --vf-focus-underline-offset: calc(-3px - var(--_shadow-depth));
         ${vfFocusUnderline}
         left: calc(var(--vf-scale, 1) * -1px);
         right: calc(var(--vf-scale, 1) * -1px);
@@ -376,6 +388,12 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
    * its options.
    */
   @property({ reflect: true }) size: VfSelectSize = 'regular'
+
+  /**
+   * Draws the closed pill without its 1px hard shadow. The open list keeps
+   * its shadow.
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'no-shadow' }) noShadow = false
 
   /**
    * Accessible name for the combobox control (`aria-label`). Left empty, the

@@ -996,6 +996,20 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
+            <code>no-shadow</code> draws the pill without its 1px shadow. The
+            open list keeps its shadow.
+          </p>
+
+          <template data-example data-stage="column" data-caption="A popup menu without the pill shadow.">
+            <vf-label for="ex-select-flat">Format:</vf-label>
+            <vf-select id="ex-select-flat" no-shadow value="mac">
+              <vf-option value="mac">Macintosh</vf-option>
+              <vf-option value="dos">DOS</vf-option>
+              <vf-option value="prodos">ProDOS</vf-option>
+            </vf-select>
+          </template>
+
+          <p>
             A list taller than the screen is clipped, not scrolled. An edge row
             with items beyond it shows a solid arrow; rest the pointer on it and
             the list rolls a row at a time. A clipped panel still opens with its

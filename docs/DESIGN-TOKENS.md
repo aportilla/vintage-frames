@@ -78,6 +78,7 @@ The 38 named patterns are not tokens: `vf-container` and `vf-desktop` take them 
 | `--vf-menu-shortcut-column` | `23px` | The right-anchored ⌘-shortcut slot — ⌘'s 11px advance plus the face's widest letter; widen it to line up longer shortcuts ("⌘⇧S") |
 | `--vf-select-gutter` | `16px` | The ✓ column, shared by select, option and menu item |
 | `--vf-popup-height` | `18px` | `vf-select` pill |
+| `--vf-popup-height-small` | `12px` | `vf-select[size="small"]` pill; its rows are this less the two borders |
 | `--vf-popup-inset-top` / `-bottom` | `4px` | The screen-edge reserve a clipped popup panel keeps clear; declare once on `:root` (`24px` top clears a `vf-menu-bar`) |
 | `--vf-separator-color` / `-style` | `--vf-black` / `solid` | Menus set the dimmed dotted rule |
 

@@ -2,10 +2,11 @@ import { css, html, LitElement } from 'lit'
 import type { PropertyValues } from 'lit'
 import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
-import { vfBase, vfDisplay } from '../styles/base.js'
+import { vfBase, vfBodyDecls, vfDisplay } from '../styles/base.js'
 import { CHECKMARK, glyphSvg } from '../glyphs.js'
 import { VfPositioned } from '../position.js'
 import { ScaleController } from '../scale.js'
+import type { VfSelectSize } from './vf-select.js'
 
 /**
  * `<vf-option>` — a single choice inside a `<vf-select>` popup menu.
@@ -14,8 +15,10 @@ import { ScaleController } from '../scale.js'
  * its slotted label at menu-item metrics (16px row — the pill's content height,
  * so a selected option overlays the closed pill exactly; the left checkmark gutter is
  * `--vf-select-gutter`, shared with the closed control's left inset so the value
- * doesn't shift on open). The parent select manages `selected` and the transient
- * `active` highlight, and slots this element into its popup panel.
+ * doesn't shift on open). The parent select manages `selected`, the transient
+ * `active` highlight and `size`, and slots this element into its popup panel.
+ * Under `size="small"` the row is the small pill's 10px content height, in the
+ * body face, and clips its own box.
  *
  * The host carries `role="option"` with `aria-selected`/`aria-disabled`.
  *
@@ -69,6 +72,18 @@ export class VfOption extends VfPositioned(LitElement) {
         cursor: var(--vf-cursor, default);
         outline: none;
       }
+      /* The small row: the select restates --vf-popup-height on itself, so the
+         height above already follows it. The line box and padding match the
+         small pill's label (see vf-select's .value): 8 rows above the baseline,
+         2 below it for the descenders. The row clips its own box, so a mark
+         above a capital doesn't draw into the row above, and the list clips
+         what the closed pill clips. */
+      :host([size='small']) {
+        ${vfBodyDecls}
+        line-height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 12px) - 4px));
+        padding-bottom: calc(var(--vf-scale, 1) * 2px);
+        overflow: clip;
+      }
       /* Hover/keyboard highlight — classic full-row inversion. The parent
          vf-select drives [active] for both pointer and keyboard so only one
          row is ever highlighted at a time. */
@@ -107,6 +122,11 @@ export class VfOption extends VfPositioned(LitElement) {
         width: calc(var(--vf-scale, 1) * 9px);
         height: calc(var(--vf-scale, 1) * 9px);
       }
+      /* The ✓'s 8 ink rows centered in the 10px row, 1 above and 1 below. Its
+         top is level with the capitals' top, as at row 3 above. */
+      :host([size='small']) .check {
+        top: calc(var(--vf-scale, 1) * 1px);
+      }
       :host([selected]) .check {
         visibility: visible;
       }
@@ -135,6 +155,9 @@ export class VfOption extends VfPositioned(LitElement) {
    * Managed by the parent `<vf-select>`; not part of the authoring API.
    */
   @property({ type: Boolean, reflect: true }) active = false
+
+  /** The parent select's `size`. Managed by the parent. */
+  @property({ reflect: true }) size: VfSelectSize = 'regular'
 
   /**
    * ARIA goes through internals, never `setAttribute` on the host: internals

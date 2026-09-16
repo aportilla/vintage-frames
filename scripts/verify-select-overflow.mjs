@@ -25,6 +25,8 @@
  *    jump to the ends, type-ahead reaches a clipped row — and focus never
  *    native-scrolls the clip.
  *  - INSETS: --vf-popup-inset-top keeps a clamped panel clear of a menu bar.
+ *  - SMALL: the same clamp over `size="small"`'s 10px rows, with the arrow in
+ *    a 10px slot, and a step still exactly one row at dpr 1/2/3.
  *  - NO SCROLLBAR: the panel computes overflow:hidden and carries no rail.
  *
  *   npm run dev        # in another shell (port 5173)
@@ -56,7 +58,15 @@ const options = (n) =>
  * density sweep onto pinned scales instead is worth doing; the clamp assertions
  * hold either way.
  */
-async function build({ count, selected = 0, top = 200, height = 900, dpr = 1, style = '' }) {
+async function build({
+  count,
+  selected = 0,
+  top = 200,
+  height = 900,
+  dpr = 1,
+  style = '',
+  size = 'regular',
+}) {
   const page = await browser.newPage({
     viewport: { width: 600, height },
     deviceScaleFactor: dpr,
@@ -70,7 +80,7 @@ async function build({ count, selected = 0, top = 200, height = 900, dpr = 1, st
     `<!doctype html><meta charset="utf-8">
      <body style="margin:0;--vf-scale:3;${style}">
        <div style="position:absolute;top:${top}px;left:100px">
-         <vf-select id="sel" value="o${selected}">${options(count)}</vf-select>
+         <vf-select id="sel" size="${size}" value="o${selected}">${options(count)}</vf-select>
        </div>`
   )
   await page.evaluate(() => import('/src/index.js'))
@@ -771,6 +781,88 @@ for (const dpr of [1, 2, 3]) {
     'open-time corner: the selected row lands in a pickable slot, not under an arrow',
     s.active === 4 && s.optionTops[4] >= s.panel.top + s.border + (s.up ? s.rowHeight : 0) - 0.01,
     `active ${s.active}, row ${s.optionTops[4]}, panel ${s.panel.top}, up ${s.up}`
+  )
+  await page.close()
+}
+
+/* ── SMALL: the clamp over 10px rows ──────────────────────────────────────── */
+{
+  // Scale 3 → 30px rows, 3px border. 60 rows want 1806px against the 876px
+  // band, so the panel settles at the band's capacity with a down arrow.
+  const page = await build({ count: 60, selected: 0, top: 200, height: 900, size: 'small' })
+  await open(page)
+  const s = await state(page)
+  const slots = (s.panel.height - 2 * s.border) / s.rowHeight
+  const slot = await page.evaluate(() => {
+    const down = document.getElementById('sel').shadowRoot.querySelector('.arrow-slot.down')
+    const r = down.getBoundingClientRect()
+    const g = down.querySelector('svg').getBoundingClientRect()
+    return {
+      height: r.height,
+      glyphTop: g.top - r.top,
+      glyphLeft: g.left - r.left,
+      glyphWidth: g.width,
+      glyphHeight: g.height,
+    }
+  })
+  check('small: the rows are 10 system px', s.rowHeight === 30, `row ${s.rowHeight}`)
+  check('small: the list overflows with a down arrow only', s.down && !s.up)
+  check(
+    'small: the panel is a whole number of 10px slots inside the band',
+    Number.isInteger(slots) && s.panel.top >= 12 - 0.01 && s.panel.bottom <= 888 + 0.01,
+    `${slots} slots, [${s.panel.top}, ${s.panel.bottom}] in [12, 888]`
+  )
+  check(
+    'small: the selected row still overlays the pill',
+    near(s.optionTops[0], s.pill.top + s.border),
+    `${s.optionTops[0]} vs ${s.pill.top + s.border}`
+  )
+  // The 9×5 small caret, 14 in: the regular 11×6 caret's center column (13 + 5.5).
+  check(
+    'small: the arrow fills a 10px slot with the 9×5 caret, 2 rows down and 14 in',
+    slot.height === 30 &&
+      near(slot.glyphWidth, 27) &&
+      near(slot.glyphHeight, 15) &&
+      near(slot.glyphTop, 6) &&
+      near(slot.glyphLeft, 42),
+    `slot ${slot.height}, glyph ${slot.glyphWidth}×${slot.glyphHeight} at ` +
+      `(${slot.glyphLeft}, ${slot.glyphTop})`
+  )
+  await page.close()
+}
+{
+  // Selecting the last of 60 with the pill low pulls the panel up against the
+  // top inset: the clamp still lands on the 10px lattice.
+  const page = await build({ count: 60, selected: 59, top: 800, height: 900, size: 'small' })
+  await open(page)
+  const s = await state(page)
+  check('small, top overflow: up arrow only', s.up && !s.down)
+  check(
+    'small, top overflow: the selected row still overlays the pill',
+    near(s.optionTops[59], s.pill.top + s.border),
+    `row ${s.optionTops[59]} vs pill content ${s.pill.top + s.border}`
+  )
+  await page.close()
+}
+for (const dpr of [1, 2, 3]) {
+  const page = await build({ count: 120, selected: 0, top: 200, height: 900, dpr, size: 'small' })
+  await open(page)
+  const before = await state(page)
+  check(`small, dpr ${dpr}: the list overflows (the premise of the two checks below)`, before.down)
+  const dn = await arrowPoint(page, 'down')
+  await page.mouse.move(dn.x, dn.y)
+  await page.waitForTimeout(20)
+  const after = await state(page)
+  const moved = before.optionTops[3] - after.optionTops[3]
+  check(
+    `small, dpr ${dpr}: one step moves a row by exactly one row height`,
+    near(moved, before.rowHeight, 0.001),
+    `${moved} vs ${before.rowHeight}`
+  )
+  check(
+    `small, dpr ${dpr}: rolled rows stay on the device grid`,
+    near((moved * dpr) % 1, 0, 0.001) || near((moved * dpr) % 1, 1, 0.001),
+    `${moved * dpr} device px`
   )
   await page.close()
 }

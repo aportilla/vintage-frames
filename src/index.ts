@@ -30,6 +30,7 @@ export { VfTextField } from './components/vf-text-field.js'
 export { VfTextArea } from './components/vf-text-area.js'
 export { VfNumberField } from './components/vf-number-field.js'
 export { VfSelect } from './components/vf-select.js'
+export type { VfSelectSize } from './components/vf-select.js'
 export { VfOption } from './components/vf-option.js'
 export { VfProgressBar } from './components/vf-progress-bar.js'
 export { VfSlider } from './components/vf-slider.js'
@@ -227,6 +228,7 @@ export {
   RADIO_DOT,
   CHECKMARK,
   CARET_DOWN,
+  CARET_DOWN_SMALL,
   STEPPER,
   STEPPER_UP_FILL,
   STEPPER_DOWN_FILL,

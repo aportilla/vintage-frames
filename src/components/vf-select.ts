@@ -4,8 +4,14 @@ import { property, query, queryAssignedElements, state } from 'lit/decorators.js
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
-import { CARET_DOWN, CARET_UP, glyphSvg } from '../glyphs.js'
+import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
+import {
+  CARET_DOWN,
+  CARET_DOWN_SMALL,
+  CARET_UP,
+  CARET_UP_SMALL,
+  glyphSvg,
+} from '../glyphs.js'
 import { VfOption } from './vf-option.js'
 import { ScaleController, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -27,6 +33,9 @@ import { VfShadowRoleControl } from '../form-control.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
 import { emit, emitNative } from '../events.js'
+
+/** The two pill sizes: the display face at 18px, or the body face at 12px. */
+export type VfSelectSize = 'regular' | 'small'
 
 /**
  * `<vf-select>` — the classic System 7 popup menu control ("Macintosh HD ▼").
@@ -63,6 +72,13 @@ import { emit, emitNative } from '../events.js'
  * end the list no longer reaches: the exact travel it will roll through, in
  * either direction. See src/popup-overflow.ts.
  *
+ * `size="small"` sets the pill and its rows in the body face: a 12px pill
+ * (`--vf-popup-height-small`) over 10px rows, the baseline 8 rows down so the
+ * face's 2-row descenders end on the last content row. Its ▼ and scroll
+ * arrows are the 9×5 `CARET_DOWN_SMALL` / `CARET_UP_SMALL`; the ✓ and the
+ * horizontal insets are the regular pill's. Marks above a capital (É, Å, Ñ)
+ * reach past the 8 rows above the baseline and are clipped.
+ *
  * Keyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the
  * highlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an
  * item plays the classic inversion blink (~250 ms) before closing. Keyboard
@@ -90,6 +106,8 @@ import { emit, emitNative } from '../events.js'
  *   in its edge row slots.
  * @cssprop [--vf-popup-height=18px] - `vf-select` pill (border box; its 1px
  *   hard shadow makes the sheet's 157×19 ink box)
+ * @cssprop [--vf-popup-height-small=12px] - `vf-select[size="small"]` pill
+ *   (border box; its rows are this less the two borders)
  * @cssprop [--vf-popup-inset-top=4px] - room a clipped popup panel keeps clear
  *   at the TOP screen edge — set it once on `:root` (or the `vf-desktop`) to
  *   clear a `vf-menu-bar`: `24px` is the 20px bar plus the default 4
@@ -101,16 +119,6 @@ import { emit, emitNative } from '../events.js'
  */
 @vfElement('vf-select')
 export class VfSelect extends VfPositioned(VfShadowRoleControl) {
-  /**
-   * Fallback height of one option row — the pill's *content* height
-   * (`--vf-popup-height` 18px minus its two 1px borders). Used to overlay the
-   * selected row's white cell exactly on the closed pill. `positionPanel`
-   * prefers the row's *rendered* height so a re-themed `--vf-popup-height`
-   * keeps the overlay aligned; this is the no-options fallback and must match
-   * `vf-option`'s default row height.
-   */
-  private static readonly ITEM_HEIGHT = 16
-
   static override styles = [
     vfBase,
     vfDisplay,
@@ -124,6 +132,14 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
            too narrow. Authors opt into filling via flex:1 / width / align-self. */
         display: inline-block;
         width: fit-content;
+      }
+      /* The small pill restates the height token on the host, so the pill, the
+         arrow slots and the slotted options (which inherit it) all derive from
+         the one small height. A --vf-popup-height set on the element itself
+         still wins over :host. */
+      :host([size='small']) {
+        --vf-popup-height: var(--vf-popup-height-small, 12px);
+        ${vfBodyDecls}
       }
       .control {
         /* Also the anchor the focus rule below hangs from. */
@@ -204,6 +220,23 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      /* A line box as tall as the small pill's content (10 rows) centers the
+         body face's 16px em with 9 rows above the baseline and 1 below, which
+         puts the second descender row on the border. An 8px line box leaves 8
+         above and 2 below for the descenders.
+
+         The em's 4px descent reaches 2 rows past those 2, and this box is a
+         scroll container (overflow: hidden, for the ellipsis): with the clip
+         ending at the content's last row, that inkless spill is 2px of
+         scrollable overflow a find-in-page could scroll. So the padding covers
+         all 4 rows below the baseline, and the negative margin hands the extra
+         2 back to layout. The clip now ends 2 rows below the content, on the
+         border and the shadow, where the face draws nothing. */
+      :host([size='small']) .value {
+        line-height: calc(var(--vf-scale, 1) * (var(--vf-popup-height, 12px) - 4px));
+        padding-bottom: calc(var(--vf-scale, 1) * 4px);
+        margin-bottom: calc(var(--vf-scale, 1) * -2px);
+      }
       /* Sizer contributes width only: collapsed to zero height and clipped so it
          never adds a row, but its widest line still drives the grid cell width. */
       .sizer {
@@ -225,6 +258,17 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         display: block;
         width: calc(var(--vf-scale, 1) * 11px);
         height: calc(var(--vf-scale, 1) * 6px);
+      }
+      /* The small ▼ is 5 rows tall, which centers on a half row, so it is
+         pinned 3 rows down the 10-row content: 3 blank rows above it, 2 below,
+         its middle row on the middle row of the x-height (rows 3–7). */
+      :host([size='small']) .arrow {
+        align-self: flex-start;
+        padding-top: calc(var(--vf-scale, 1) * 3px);
+      }
+      :host([size='small']) .arrow svg {
+        width: calc(var(--vf-scale, 1) * 9px);
+        height: calc(var(--vf-scale, 1) * 5px);
       }
       /* Disabled: only the value label dims; the box, hard shadow and ▼ arrow
          stay solid black (System 7 dims the label, not the control). */
@@ -309,6 +353,14 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         width: calc(var(--vf-scale, 1) * 11px);
         height: calc(var(--vf-scale, 1) * 6px);
       }
+      /* The small caret in a 10px slot: 2 rows above it, 3 below (5 rows can't
+         center), and 14 in, which keeps the regular caret's center column. */
+      :host([size='small']) .arrow-slot svg {
+        left: calc(var(--vf-scale, 1) * 14px);
+        top: calc(var(--vf-scale, 1) * 2px);
+        width: calc(var(--vf-scale, 1) * 9px);
+        height: calc(var(--vf-scale, 1) * 5px);
+      }
     `,
   ]
 
@@ -317,6 +369,13 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
 
   /** Form field name used when submitting the associated form. */
   @property({ reflect: true }) name = ''
+
+  /**
+   * `regular` (the 18px pill in the display face) or `small` (12px, in the
+   * body face). Any other value renders as `regular`. The select passes it to
+   * its options.
+   */
+  @property({ reflect: true }) size: VfSelectSize = 'regular'
 
   /**
    * Accessible name for the combobox control (`aria-label`). Left empty, the
@@ -495,6 +554,11 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
     if (changed.has('disabled') && this.disabled && this.open) {
       this.closePanel(false)
     }
+    if (changed.has('size')) {
+      this.applySize()
+      // The open panel was measured at the old row height.
+      if (this.open) this.closePanel(false)
+    }
   }
 
   /**
@@ -529,12 +593,19 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
     }
   }
 
+  /** Passes the pill size to every option; anything but `small` is regular. */
+  private applySize(): void {
+    const size: VfSelectSize = this.size === 'small' ? 'small' : 'regular'
+    for (const option of this.optionItems) option.size = size
+  }
+
   private handleSlotChange = (): void => {
     // Cache the assigned options so render() reads reactive @state rather than
     // the live query (empty on first paint). Reassigning the array drives the
     // update — the closed-control label mirrors option content — so no explicit
     // requestUpdate() is needed.
     this.cachedOptions = this.assignedOptions ?? []
+    this.applySize()
     // Adopt the first enabled option when no value was authored, like a
     // native <select>.
     if (this.value === '') {
@@ -577,17 +648,19 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
     // width already hugs the same widest option as the control, so we measure it
     // once and clamp horizontally with the control's own width.
     // getBoundingClientRect is in real (already-scaled) CSS px, so the system-px
-    // constants (item height, borders, viewport margins) are converted with sys().
+    // screen-edge insets are converted with sys().
     const rect = control.getBoundingClientRect()
     // Further reads, still before any write (consecutive reads don't re-reflow):
     // the row's rendered height, so a consumer who re-themes --vf-popup-height
     // keeps the selected-row overlay aligned instead of drifting by index; the
     // panel's own border, which the clamp has to fit around; and the two screen-
     // edge insets, parked on the panel by the stylesheet in authored system px.
-    const rowRect = this.optionItems[0]?.getBoundingClientRect()
-    const rowHeight = rowRect?.height || sys(VfSelect.ITEM_HEIGHT, this)
     const panelStyle = getComputedStyle(panel)
     const border = parseFloat(panelStyle.borderTopWidth) || 0
+    // With no rows to measure, a row is the pill's content height (the panel
+    // and the pill share the 1px border).
+    const rowRect = this.optionItems[0]?.getBoundingClientRect()
+    const rowHeight = rowRect?.height || rect.height - 2 * border
     const inset = (name: string): number =>
       sys(parseFloat(panelStyle.getPropertyValue(name)) || 0, this)
     // Overlay the selected row's white cell directly on the pill's white content,
@@ -1209,6 +1282,9 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
     const selected = this.optionItems.find((o) => this.optionValue(o) === this.value)
     const selectedLabel = selected ? (selected.textContent ?? '').trim() : ''
     const disabled = this.isDisabled
+    const small = this.size === 'small'
+    const caretDown = small ? CARET_DOWN_SMALL : CARET_DOWN
+    const caretUp = small ? CARET_UP_SMALL : CARET_UP
     return html`
       <div
         class=${classMap({
@@ -1241,7 +1317,7 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
           </span>
         </span>
         <span class="arrow" part="arrow" aria-hidden="true"
-          >${glyphSvg(CARET_DOWN, 'caret')}</span
+          >${glyphSvg(caretDown, 'caret')}</span
         >
       </div>
       <div
@@ -1269,7 +1345,7 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
           @pointermove=${this.handleArrowEnter}
           @pointerleave=${this.handleArrowLeave}
         >
-          ${glyphSvg(CARET_UP, 'caret')}
+          ${glyphSvg(caretUp, 'caret')}
         </div>
         <div
           class="arrow-slot down"
@@ -1279,7 +1355,7 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
           @pointermove=${this.handleArrowEnter}
           @pointerleave=${this.handleArrowLeave}
         >
-          ${glyphSvg(CARET_DOWN, 'caret')}
+          ${glyphSvg(caretDown, 'caret')}
         </div>
       </div>
       ${this.renderDescription()}

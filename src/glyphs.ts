@@ -98,6 +98,24 @@ export const CARET_UP: Glyph = {
 }
 
 /**
+ * The small popup's ▼ (`vf-select size="small"`) — {@link CARET_DOWN} without
+ * its widest row: the same staircase, 9×5. Also the small panel's bottom
+ * scroll arrow, as the regular caret is the regular panel's.
+ */
+export const CARET_DOWN_SMALL: Glyph = {
+  w: 9,
+  h: 5,
+  d: 'M0 0h9v1h-9zM1 1h7v1h-7zM2 2h5v1h-5zM3 3h3v1h-3zM4 4h1v1h-1z',
+}
+
+/** {@link CARET_DOWN_SMALL} mirrored vertically: the small panel's top scroll arrow. */
+export const CARET_UP_SMALL: Glyph = {
+  w: 9,
+  h: 5,
+  d: 'M4 0h1v1h-1zM3 1h3v1h-3zM2 2h5v1h-5zM1 3h7v1h-7zM0 4h9v1h-9z',
+}
+
+/**
  * The "little arrows" stepper at rest — a rounded 1-bit frame enclosing hollow
  * up/down arrows (`Little arrows.png`), used by `vf-number-field`.
  */

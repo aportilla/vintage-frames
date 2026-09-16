@@ -981,6 +981,21 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <p>
+            <code>size="small"</code> sets the pill and its list in the body
+            face, on a 12px pill with 10px rows.
+          </p>
+
+          <template data-example data-stage="column" data-caption="The small popup menu.">
+            <vf-label face="body" for="ex-select-small">View:</vf-label>
+            <vf-select id="ex-select-small" size="small" value="type">
+              <vf-option value="name">by Name</vf-option>
+              <vf-option value="type">by Type</vf-option>
+              <vf-option value="size">by Size</vf-option>
+              <vf-option value="date">by Date</vf-option>
+            </vf-select>
+          </template>
+
+          <p>
             A list taller than the screen is clipped, not scrolled. An edge row
             with items beyond it shows a solid arrow; rest the pointer on it and
             the list rolls a row at a time. A clipped panel still opens with its

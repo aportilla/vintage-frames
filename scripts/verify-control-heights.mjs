@@ -17,6 +17,8 @@
  * So the token split: --vf-control-height stays the *field* height, with
  * --vf-button-height (20) and --vf-popup-height (18) alongside it, and the
  * vf-option row derived as the pill's content height (--vf-popup-height - 2px).
+ * The small pill (`size="small"`, --vf-popup-height-small 12) restates that
+ * token on its host, so its 10px rows derive the same way.
  *
  * Also covers the original vf-number-field regression this file was written for:
  * the host used to be `align-items: stretch` with the 15×25 stepper as the only
@@ -296,18 +298,18 @@ check(
 // ── vf-select: the pill is 18, its rows the 16px content height ──
 // The rows must be measured with the panel OPEN: a closed `.panel` is
 // display:none, so its slotted options have zero-size rects.
-const openSelect = async (id) => {
-  const box = await page.evaluate((elId) => {
+const openSelect = async (id, pg = page) => {
+  const box = await pg.evaluate((elId) => {
     const r = document
       .getElementById(elId)
       .shadowRoot.querySelector('.control')
       .getBoundingClientRect()
     return { x: r.x + r.width / 2, y: r.y + r.height / 2, top: r.top }
   }, id)
-  await page.mouse.move(box.x, box.y)
-  await page.mouse.down()
-  await page.mouse.up()
-  await page.waitForFunction(
+  await pg.mouse.move(box.x, box.y)
+  await pg.mouse.down()
+  await pg.mouse.up()
+  await pg.waitForFunction(
     (elId) => {
       const panel = document.getElementById(elId).shadowRoot.querySelector('.panel')
       return getComputedStyle(panel).display !== 'none'
@@ -318,8 +320,8 @@ const openSelect = async (id) => {
   return box
 }
 
-const popup = (id) =>
-  page.evaluate((elId) => {
+const popup = (id, pg = page) =>
+  pg.evaluate((elId) => {
     const host = document.getElementById(elId)
     const control = host.shadowRoot.querySelector('.control')
     const option = host.querySelector('vf-option')
@@ -337,8 +339,8 @@ const popup = (id) =>
   }, id)
 
 /** Where the selected row landed relative to its panel, with the list open. */
-const overlayOf = (id, value) =>
-  page.evaluate(
+const overlayOf = (id, value, pg = page) =>
+  pg.evaluate(
     ({ elId, val }) => {
       const host = document.getElementById(elId)
       const selected = host.querySelector(`vf-option[value="${val}"]`)
@@ -689,5 +691,217 @@ check(
   `row=${rowsPopupScope.rowHeights[0]} expected=${MENU_ROW_H * s} ` +
     `(deriving from the pill would give ${(26 - 2) * s})`
 )
+
+// ── SMALL: the 12px pill in the body face, over 10px rows ──
+// On a page of its own, so the fixture above keeps its layout. The small pill
+// restates --vf-popup-height on its host, so everything the regular pill
+// derives from that token follows the small height.
+/** --vf-popup-height-small: the small pill's border box. */
+const SMALL_H = 12
+const SMALL_ROW_H = SMALL_H - 2
+/** The small row's line box: the content height less the 2 descender rows. */
+const SMALL_LINE_H = SMALL_ROW_H - 2
+
+const smallPage = await browser.newPage()
+await smallPage.route(ORIGIN, (route) =>
+  route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
+)
+await smallPage.goto(ORIGIN)
+await smallPage.unroute(ORIGIN)
+await smallPage.setContent(`
+  <style>:root { --vf-scale: 3 } body { margin: 0 } div { position: absolute; top: 150px }</style>
+  <div style="left: 10px"><vf-select id="small" size="small" value="b">${OPTIONS}</vf-select></div>
+  <div style="left: 330px">
+    <vf-select id="small-themed" size="small" value="c" style="--vf-popup-height-small: 16px">${OPTIONS}</vf-select>
+  </div>
+  <div style="left: 650px; --vf-popup-height: 26px">
+    <vf-select id="small-in-regular-scope" size="small" value="a">${OPTIONS}</vf-select>
+  </div>
+  <div style="left: 970px; --vf-popup-height-small: 16px">
+    <vf-select id="regular-in-small-scope" value="a">${OPTIONS}</vf-select>
+  </div>
+  <div style="left: 10px; top: 450px">
+    <vf-select id="small-late" size="small" value="a"><vf-option value="a">Alpha</vf-option></vf-select>
+  </div>
+  <div style="left: 330px; top: 450px"><vf-select id="odd" size="huge" value="a">${OPTIONS}</vf-select></div>
+`)
+await smallPage.evaluate(() => import('/src/index.js'))
+await smallPage.evaluate(() =>
+  Promise.all(['vf-select', 'vf-option'].map((t) => customElements.whenDefined(t)))
+)
+const settle = () =>
+  smallPage.evaluate(() =>
+    Promise.all([...document.querySelectorAll('vf-select, vf-option')].map((e) => e.updateComplete))
+  )
+await settle()
+
+/** The small-only readings: faces, line boxes, the ✓, and the stamped sizes. */
+const smallDetail = (id, value) =>
+  smallPage.evaluate(
+    ({ elId, val }) => {
+      const host = document.getElementById(elId)
+      const valueEl = host.shadowRoot.querySelector('.value')
+      const option = host.querySelector('vf-option')
+      const selected = host.querySelector(`vf-option[value="${val}"]`)
+      const check = selected.shadowRoot.querySelector('.check')
+      return {
+        pillFace: getComputedStyle(valueEl).fontFamily,
+        rowFace: getComputedStyle(option).fontFamily,
+        pillLine: parseFloat(getComputedStyle(valueEl).lineHeight),
+        rowLine: parseFloat(getComputedStyle(option).lineHeight),
+        rowClip: getComputedStyle(option).overflow,
+        valueScroll: valueEl.scrollHeight - valueEl.clientHeight,
+        checkInset: check.getBoundingClientRect().top - selected.getBoundingClientRect().top,
+        sizes: [...host.querySelectorAll('vf-option')].map((o) => o.getAttribute('size')),
+      }
+    },
+    { elId: id, val: value }
+  )
+
+const smallBox = await openSelect('small', smallPage)
+const small = await popup('small', smallPage)
+const smallOverlay = await overlayOf('small', 'b', smallPage)
+const smallInfo = await smallDetail('small', 'b')
+await smallPage.keyboard.press('Escape')
+const smallThemedBox = await openSelect('small-themed', smallPage)
+const smallThemed = await popup('small-themed', smallPage)
+const smallThemedOverlay = await overlayOf('small-themed', 'c', smallPage)
+await smallPage.keyboard.press('Escape')
+await openSelect('small-in-regular-scope', smallPage)
+const smallInRegular = await popup('small-in-regular-scope', smallPage)
+await smallPage.keyboard.press('Escape')
+await openSelect('regular-in-small-scope', smallPage)
+const regularInSmall = await popup('regular-in-small-scope', smallPage)
+await smallPage.keyboard.press('Escape')
+
+check(
+  'a small pill is --vf-popup-height-small (12)',
+  small.pill === SMALL_H * s,
+  `pill=${small.pill} expected=${SMALL_H * s}`
+)
+check(
+  'a small option row is the small pill CONTENT height (12 - 2 borders = 10)',
+  small.row === SMALL_ROW_H * s,
+  `row=${small.row} expected=${SMALL_ROW_H * s}`
+)
+check(
+  'both small metrics land on whole device pixels',
+  Number.isInteger(small.pill * num.dpr) && Number.isInteger(small.row * num.dpr),
+  `pill=${small.pill * num.dpr}device row=${small.row * num.dpr}device`
+)
+check(
+  'the small pill and its rows are set in the body face',
+  smallInfo.pillFace.startsWith('"VF Body"') && smallInfo.rowFace.startsWith('"VF Body"'),
+  `pill=${smallInfo.pillFace} row=${smallInfo.rowFace}`
+)
+check(
+  'the small pill and its rows share an 8px line box (8 rows above the baseline)',
+  smallInfo.pillLine === SMALL_LINE_H * s && smallInfo.rowLine === SMALL_LINE_H * s,
+  `pill=${smallInfo.pillLine} row=${smallInfo.rowLine} expected=${SMALL_LINE_H * s}`
+)
+// The body face's em reaches 2 rows past the descenders. Unchecked, that is
+// scrollable overflow in the pill's clipping label and in the panel.
+check(
+  'a short small popup does not scroll, and neither does the pill label',
+  small.panelOverflow === 0 && smallInfo.valueScroll === 0,
+  `panelOverflow=${small.panelOverflow} valueScroll=${smallInfo.valueScroll}`
+)
+check(
+  'a small row clips its own box without becoming a scroll container',
+  smallInfo.rowClip === 'clip',
+  `overflow=${smallInfo.rowClip}`
+)
+check(
+  'the small ✓ sits 1 row into its 10px row (centered)',
+  Math.abs(smallInfo.checkInset - s) < 0.5,
+  `inset=${smallInfo.checkInset} expected=${s}`
+)
+check(
+  'the selected small row lays exactly on the pill content top',
+  smallOverlay.index > 0 && Math.abs(smallOverlay.rowTop - (smallBox.top + s)) < 0.5,
+  `index=${smallOverlay.index} row=${smallOverlay.rowTop} pillContent=${smallBox.top + s}`
+)
+check(
+  'the select stamps its size on every option',
+  smallInfo.sizes.every((v) => v === 'small'),
+  JSON.stringify(smallInfo.sizes)
+)
+check(
+  'retheming --vf-popup-height-small resizes the small pill and carries its rows',
+  smallThemed.pill === 16 * s && smallThemed.row === 14 * s,
+  `pill=${smallThemed.pill} row=${smallThemed.row} expected=${16 * s}/${14 * s}`
+)
+check(
+  'a re-themed small popup still does not scroll and still overlays the pill',
+  smallThemed.panelOverflow === 0 &&
+    Math.abs(smallThemedOverlay.rowTop - (smallThemedBox.top + s)) < 0.5,
+  `panelOverflow=${smallThemed.panelOverflow} row=${smallThemedOverlay.rowTop} ` +
+    `pillContent=${smallThemedBox.top + s}`
+)
+check(
+  'an inherited --vf-popup-height does NOT move a small pill',
+  smallInRegular.pill === SMALL_H * s && smallInRegular.row === SMALL_ROW_H * s,
+  `pill=${smallInRegular.pill} row=${smallInRegular.row}`
+)
+check(
+  '--vf-popup-height-small does NOT move a regular pill',
+  regularInSmall.pill === POPUP_H * s && regularInSmall.row === OPTION_H * s,
+  `pill=${regularInSmall.pill} row=${regularInSmall.row}`
+)
+
+// Options that arrive after the select has rendered.
+const lateSizes = await smallPage.evaluate(async () => {
+  const host = document.getElementById('small-late')
+  const option = document.createElement('vf-option')
+  option.value = 'b'
+  option.textContent = 'Bravo'
+  host.append(option)
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  await host.updateComplete
+  return [...host.querySelectorAll('vf-option')].map((o) => o.getAttribute('size'))
+})
+check(
+  'an option added later is stamped small too',
+  lateSizes.length === 2 && lateSizes.every((v) => v === 'small'),
+  JSON.stringify(lateSizes)
+)
+
+// A live size change: the open panel was measured at the old row height.
+await openSelect('small', smallPage)
+const resized = await smallPage.evaluate(async () => {
+  const host = document.getElementById('small')
+  host.size = 'regular'
+  await host.updateComplete
+  const options = [...host.querySelectorAll('vf-option')]
+  await Promise.all(options.map((o) => o.updateComplete))
+  return {
+    open: host.shadowRoot.querySelector('.panel').classList.contains('open'),
+    sizes: options.map((o) => o.getAttribute('size')),
+    pill: host.shadowRoot.querySelector('.control').getBoundingClientRect().height,
+  }
+})
+check(
+  'a live size change closes the open panel',
+  !resized.open,
+  `open=${resized.open}`
+)
+check(
+  'a live size change re-stamps the options and resizes the pill',
+  resized.sizes.every((v) => v === 'regular') && resized.pill === POPUP_H * s,
+  `sizes=${JSON.stringify(resized.sizes)} pill=${resized.pill}`
+)
+
+await openSelect('odd', smallPage)
+const odd = await popup('odd', smallPage)
+const oddSizes = await smallPage.evaluate(() =>
+  [...document.getElementById('odd').querySelectorAll('vf-option')].map((o) => o.getAttribute('size'))
+)
+await smallPage.keyboard.press('Escape')
+check(
+  'an unknown size renders as regular',
+  odd.pill === POPUP_H * s && odd.row === OPTION_H * s && oddSizes.every((v) => v === 'regular'),
+  `pill=${odd.pill} row=${odd.row} sizes=${JSON.stringify(oddSizes)}`
+)
+await smallPage.close()
 
 await report(browser)

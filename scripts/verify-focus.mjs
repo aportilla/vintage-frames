@@ -567,6 +567,14 @@ for (const [tag, markup, frame, shadow] of [
     '.control',
     1,
   ],
+  // The small pill: 12 rows instead of 18, the same border, shadow and rule.
+  [
+    'vf-select small',
+    '<vf-select id="x" size="small" value="a"><vf-option value="a">Macintosh HD</vf-option>' +
+      '<vf-option value="b">Backup</vf-option></vf-select>',
+    '.control',
+    1,
+  ],
   ['vf-swatch', '<vf-swatch id="x"></vf-swatch>', 'button', 0],
   ['vf-swatch shadow', '<vf-swatch id="x" shadow></vf-swatch>', 'button', 2],
 ]) {
@@ -648,7 +656,7 @@ for (const [tag, markup, frame, shadow] of [
   // that ENDS with the control focused, so it's the one worth checking.
   const clickPage = await build(markup)
   await clickPage.locator('#x').click()
-  if (tag === 'vf-select') await clickPage.locator('#x').click()
+  if (tag.startsWith('vf-select')) await clickPage.locator('#x').click()
   const focused = await clickPage.evaluate(
     (sel) => document.getElementById('x').shadowRoot.querySelector(sel).matches(':focus'),
     frame
@@ -656,7 +664,7 @@ for (const [tag, markup, frame, shadow] of [
   check(`${tag}: a mouse click leaves the control focused (guards the check below)`, focused)
   const clicked = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
   check(`${tag}: …and unmarked`, !clicked.drawn)
-  if (tag === 'vf-select') {
+  if (tag.startsWith('vf-select')) {
     // The pill is the second control in the kit that cannot read the modality
     // off :focus-visible, and it gets there the opposite way to a text field:
     // not because the selector is specified to match a clicked field, but
@@ -673,7 +681,7 @@ for (const [tag, markup, frame, shadow] of [
   await clickPage.keyboard.press('Tab')
   const tabbed = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
   check(`${tag}: tabbing to it after that click marks it`, tabbed.drawn)
-  if (tag === 'vf-select') {
+  if (tag.startsWith('vf-select')) {
     // The open list is itself where focus is, so the rule stands down — as a
     // dropped vf-menu's does. It matters most for a ONE-option menu, whose
     // panel overlays the pill exactly and so would leave the rule hanging in

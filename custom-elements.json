@@ -10834,7 +10834,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-option>` — a single choice inside a `<vf-select>` popup menu.\n\nA light-DOM child of `<vf-select>` (slotted into the popup panel). Renders\nits slotted label at menu-item metrics (16px row — the pill's content height,\nso a selected option overlays the closed pill exactly; the left checkmark gutter is\n`--vf-select-gutter`, shared with the closed control's left inset so the value\ndoesn't shift on open). The parent select manages `selected` and the transient\n`active` highlight, and slots this element into its popup panel.\n\nThe host carries `role=\"option\"` with `aria-selected`/`aria-disabled`.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants one somewhere other than a popup row. Inside its parent\n`<vf-select>` it is a row the panel measures and scrolls in flow, so stating\nan origin there takes it out of that measurement: the panel stops counting it\ntoward its own width and its scroll clamp, and the rows below close the gap.\nThat is the placement doing exactly what it says — not a bug — but it is not\nhow a popup is laid out.",
+          "description": "`<vf-option>` — a single choice inside a `<vf-select>` popup menu.\n\nA light-DOM child of `<vf-select>` (slotted into the popup panel). Renders\nits slotted label at menu-item metrics (16px row — the pill's content height,\nso a selected option overlays the closed pill exactly; the left checkmark gutter is\n`--vf-select-gutter`, shared with the closed control's left inset so the value\ndoesn't shift on open). The parent select manages `selected`, the transient\n`active` highlight and `size`, and slots this element into its popup panel.\nUnder `size=\"small\"` the row is the small pill's 10px content height, in the\nbody face, and clips its own box.\n\nThe host carries `role=\"option\"` with `aria-selected`/`aria-disabled`.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants one somewhere other than a popup row. Inside its parent\n`<vf-select>` it is a row the panel measures and scrolls in flow, so stating\nan origin there takes it out of that measurement: the panel stops counting it\ntoward its own width and its scroll clamp, and the rows below close the gap.\nThat is the placement doing exactly what it says — not a bug — but it is not\nhow a popup is laid out.",
           "name": "VfOption",
           "cssProperties": [
             {
@@ -10903,6 +10903,17 @@
               "default": "false",
               "description": "Transient highlight (hover / keyboard cursor) — full-row inversion.\nManaged by the parent `<vf-select>`; not part of the authoring API.",
               "attribute": "active",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "type": {
+                "text": "VfSelectSize"
+              },
+              "default": "'regular'",
+              "description": "The parent select's `size`. Managed by the parent.",
+              "attribute": "size",
               "reflects": true
             },
             {
@@ -11012,6 +11023,15 @@
               "default": "false",
               "description": "Transient highlight (hover / keyboard cursor) — full-row inversion.\nManaged by the parent `<vf-select>`; not part of the authoring API.",
               "fieldName": "active"
+            },
+            {
+              "name": "size",
+              "type": {
+                "text": "VfSelectSize"
+              },
+              "default": "'regular'",
+              "description": "The parent select's `size`. Managed by the parent.",
+              "fieldName": "size"
             },
             {
               "name": "top",
@@ -13364,13 +13384,18 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-select>` — the classic System 7 popup menu control (\"Macintosh HD ▼\").\n\nChildren are `<vf-option>` elements in the default slot. The closed control\nis a white box with a 1px black border, the small 1px hard shadow, the\nselected option's label on the left and a solid black ▼ triangle on the\nright. The open panel uses the shared `.vf-panel` recipe and is positioned\n`position: fixed` (computed from `getBoundingClientRect()`) so it escapes\nclipping containers; when possible the currently-selected item opens\ndirectly over the control, like the real popup menu.\n\nPointer — two interaction styles are supported and disambiguated by the\ngesture itself, resolved at the first pointer release:\n  - System 7 press-drag-release: press the pill (the list appears under the\n    pointer), drag onto an item, release over it to pick — one continuous\n    press. Releasing over the current item or off the list closes with no\n    change.\n  - Modern click-to-open: a quick in-place click (no drag, released within\n    PRESS_HOLD_MS) leaves the list open; a second, independent click\n    then picks an item.\nThe two share one opening trigger (pointerdown) and diverge only on how the\npress ends — whether the pointer travelled to another item, and (for an\nin-place release) whether it was a quick tap or a held press. The pull-down\nmenus drive themselves the same way, on the same threshold; that half lives\nin src/menu-press.ts, because one menu press may travel across a whole bar.\n\nA list too tall for the screen is **clipped**, never scrolled: the edge slot\nwith items beyond it shows a solid arrow instead of a row, which rolls the\nlist one row at a time while the pointer rests on it. The clamp is quantized\nto the pill lattice, so a clipped popup still opens with its selected row\nover the closed pill — and the panel keeps every slot the list asked for, so\na box that had to slide to fit the screen opens with *blank rows* at whichever\nend the list no longer reaches: the exact travel it will roll through, in\neither direction. See src/popup-overflow.ts.\n\nKeyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the\nhighlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an\nitem plays the classic inversion blink (~250 ms) before closing. Keyboard\nfocus is marked with the kit's 1px dashed rule under the closed pill\n(`vfFocusUnderline`) rather than a ring around it — keyboard only, which\nhere means the page's input modality rather than `:focus-visible` (the pill\ndrives its own focus, and Blink reads that as visible either way).\n\nForm-associated: submits `value` under `name`.",
+          "description": "`<vf-select>` — the classic System 7 popup menu control (\"Macintosh HD ▼\").\n\nChildren are `<vf-option>` elements in the default slot. The closed control\nis a white box with a 1px black border, the small 1px hard shadow, the\nselected option's label on the left and a solid black ▼ triangle on the\nright. The open panel uses the shared `.vf-panel` recipe and is positioned\n`position: fixed` (computed from `getBoundingClientRect()`) so it escapes\nclipping containers; when possible the currently-selected item opens\ndirectly over the control, like the real popup menu.\n\nPointer — two interaction styles are supported and disambiguated by the\ngesture itself, resolved at the first pointer release:\n  - System 7 press-drag-release: press the pill (the list appears under the\n    pointer), drag onto an item, release over it to pick — one continuous\n    press. Releasing over the current item or off the list closes with no\n    change.\n  - Modern click-to-open: a quick in-place click (no drag, released within\n    PRESS_HOLD_MS) leaves the list open; a second, independent click\n    then picks an item.\nThe two share one opening trigger (pointerdown) and diverge only on how the\npress ends — whether the pointer travelled to another item, and (for an\nin-place release) whether it was a quick tap or a held press. The pull-down\nmenus drive themselves the same way, on the same threshold; that half lives\nin src/menu-press.ts, because one menu press may travel across a whole bar.\n\nA list too tall for the screen is **clipped**, never scrolled: the edge slot\nwith items beyond it shows a solid arrow instead of a row, which rolls the\nlist one row at a time while the pointer rests on it. The clamp is quantized\nto the pill lattice, so a clipped popup still opens with its selected row\nover the closed pill — and the panel keeps every slot the list asked for, so\na box that had to slide to fit the screen opens with *blank rows* at whichever\nend the list no longer reaches: the exact travel it will roll through, in\neither direction. See src/popup-overflow.ts.\n\n`size=\"small\"` sets the pill and its rows in the body face: a 12px pill\n(`--vf-popup-height-small`) over 10px rows, the baseline 8 rows down so the\nface's 2-row descenders end on the last content row. Its ▼ and scroll\narrows are the 9×5 `CARET_DOWN_SMALL` / `CARET_UP_SMALL`; the ✓ and the\nhorizontal insets are the regular pill's. Marks above a capital (É, Å, Ñ)\nreach past the 8 rows above the baseline and are clipped.\n\nKeyboard: Space/Enter/ArrowDown open; while open ArrowUp/ArrowDown move the\nhighlight, Home/End jump, Enter/Space select, Escape cancels. Selecting an\nitem plays the classic inversion blink (~250 ms) before closing. Keyboard\nfocus is marked with the kit's 1px dashed rule under the closed pill\n(`vfFocusUnderline`) rather than a ring around it — keyboard only, which\nhere means the page's input modality rather than `:focus-visible` (the pill\ndrives its own focus, and Blink reads that as visible either way).\n\nForm-associated: submits `value` under `name`.",
           "name": "VfSelect",
           "cssProperties": [
             {
               "description": "`vf-select` pill (border box; its 1px hard shadow makes the sheet's 157×19 ink box)",
               "name": "--vf-popup-height",
               "default": "18px"
+            },
+            {
+              "description": "`vf-select[size=\"small\"]` pill (border box; its rows are this less the two borders)",
+              "name": "--vf-popup-height-small",
+              "default": "12px"
             },
             {
               "description": "room a clipped popup panel keeps clear at the TOP screen edge — set it once on `:root` (or the `vf-desktop`) to clear a `vf-menu-bar`: `24px` is the 20px bar plus the default 4",
@@ -13419,18 +13444,6 @@
           "members": [
             {
               "kind": "field",
-              "name": "ITEM_HEIGHT",
-              "type": {
-                "text": "number"
-              },
-              "privacy": "private",
-              "static": true,
-              "readonly": true,
-              "default": "16",
-              "description": "Fallback height of one option row — the pill's *content* height\n(`--vf-popup-height` 18px minus its two 1px borders). Used to overlay the\nselected row's white cell exactly on the closed pill. `positionPanel`\nprefers the row's *rendered* height so a re-themed `--vf-popup-height`\nkeeps the overlay aligned; this is the no-options fallback and must match\n`vf-option`'s default row height."
-            },
-            {
-              "kind": "field",
               "name": "value",
               "type": {
                 "text": "string"
@@ -13448,6 +13461,17 @@
               "default": "''",
               "description": "Form field name used when submitting the associated form.",
               "attribute": "name",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "type": {
+                "text": "VfSelectSize"
+              },
+              "default": "'regular'",
+              "description": "`regular` (the 18px pill in the display face) or `small` (12px, in the\nbody face). Any other value renders as `regular`. The select passes it to\nits options.",
+              "attribute": "size",
               "reflects": true
             },
             {
@@ -13868,6 +13892,17 @@
                 }
               },
               "description": "Marks the option matching `value` as selected."
+            },
+            {
+              "kind": "method",
+              "name": "applySize",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Passes the pill size to every option; anything but `small` is regular."
             },
             {
               "kind": "field",
@@ -14931,6 +14966,15 @@
               "default": "''",
               "description": "Form field name used when submitting the associated form.",
               "fieldName": "name"
+            },
+            {
+              "name": "size",
+              "type": {
+                "text": "VfSelectSize"
+              },
+              "default": "'regular'",
+              "description": "`regular` (the 18px pill in the display face) or `small` (12px, in the\nbody face). Any other value renders as `regular`. The select passes it to\nits options.",
+              "fieldName": "size"
             },
             {
               "name": "label",

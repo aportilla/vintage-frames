@@ -16,10 +16,19 @@
  * (⅓ system px, the closest reachable). Both cases are asserted so a change
  * in either the metrics or Chrome's snapping shows up here.
  *
+ * The small pill (`size="small"`) sets the body face in 10 content rows: 1
+ * blank above a 7-row capital, 2 below the baseline, and descenders that fill
+ * those 2 rows exactly; its 9×5 ▼ sits 3 rows down, centered on the x-height.
+ * Its cases run at display density (`browserAt`), where
+ * they are exact at every dpr and host phase: the misses asserted above are
+ * emulation's (a deviceScaleFactor page floors the 1-system-px border to a
+ * whole CSS px — KNOWN-BUGS #3), and at dpr 3 emulation moves the small label
+ * further than the regular pill's 1-device-px tolerance.
+ *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:baseline
  */
-import { ORIGIN, check, decodePng, launch, report } from './harness.mjs'
+import { ORIGIN, browserAt, check, decodePng, launch, report } from './harness.mjs'
 
 const isInk = (png, x, y) => {
   const i = (y * png.width + x) * png.bpp
@@ -31,12 +40,15 @@ const browser = await launch()
 /**
  * Renders one closed pill with its border-box top at `hostTop` (CSS px) and
  * measures the label's ink gaps against the content box, in system px.
+ * `capHeight` is the height of all the label's ink, descenders included.
  */
-async function measure(dpr, hostTop) {
-  const page = await browser.newPage({
-    deviceScaleFactor: dpr,
-    viewport: { width: 800, height: 400 },
-  })
+async function measure(dpr, hostTop, { size = 'regular', label = 'RGB', real = false } = {}) {
+  const page = real
+    ? await (await browserAt(dpr)).newPage({ viewport: null })
+    : await browser.newPage({
+        deviceScaleFactor: dpr,
+        viewport: { width: 800, height: 400 },
+      })
   await page.route(ORIGIN, (route) =>
     route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8">' })
   )
@@ -45,8 +57,8 @@ async function measure(dpr, hostTop) {
   await page.setContent(`
     <div style="position: relative; background: #fff; height: 300px">
       <div style="position: absolute; left: 40px; top: ${hostTop}px">
-        <vf-select id="pop" value="RGB">
-          <vf-option value="RGB">RGB</vf-option>
+        <vf-select id="pop" size="${size}" value="${label}">
+          <vf-option value="${label}">${label}</vf-option>
         </vf-select>
       </div>
     </div>
@@ -65,12 +77,16 @@ async function measure(dpr, hostTop) {
     const host = document.getElementById('pop')
     const control = host.shadowRoot.querySelector('.control')
     const label = host.shadowRoot.querySelector('.label')
+    const arrow = host.shadowRoot.querySelector('.arrow')
     const r = control.getBoundingClientRect()
     const l = label.getBoundingClientRect()
+    const a = arrow.getBoundingClientRect()
     return {
       control: { x: r.x, y: r.y, w: r.width, h: r.height },
       labelX0: l.x - r.x,
       labelX1: l.x + l.width - r.x,
+      arrowX0: a.x - r.x,
+      arrowX1: a.x + a.width - r.x,
       scale: parseFloat(getComputedStyle(host).getPropertyValue('--vf-scale')),
     }
   })
@@ -92,14 +108,36 @@ async function measure(dpr, hostTop) {
     for (let x = x0; x < x1 && !ink; x++) ink = isInk(png, x, y)
     if (ink) rows.push(y)
   }
+  // The ▼'s ink box, the same way, in the arrow's own x-range.
+  const ax0 = Math.round(geo.arrowX0 * dpr)
+  const ax1 = Math.round(geo.arrowX1 * dpr)
+  const arrowRows = []
+  const arrowCols = new Set()
+  for (let y = border; y < png.height - border; y++) {
+    let ink = false
+    for (let x = ax0; x < ax1; x++) {
+      if (!isInk(png, x, y)) continue
+      ink = true
+      arrowCols.add(x)
+    }
+    if (ink) arrowRows.push(y)
+  }
   return {
     above: (rows[0] - border) / sysPx,
     below: (png.height - border - (rows[rows.length - 1] + 1)) / sysPx,
     capHeight: (rows[rows.length - 1] + 1 - rows[0]) / sysPx,
+    arrow: {
+      above: (arrowRows[0] - border) / sysPx,
+      below: (png.height - border - (arrowRows[arrowRows.length - 1] + 1)) / sysPx,
+      height: arrowRows.length / sysPx,
+      width: arrowCols.size / sysPx,
+    },
   }
 }
 
 const fmt = (m) => `above=${m.above} below=${m.below} cap=${m.capHeight} syspx`
+const fmtArrow = ({ arrow: a }) =>
+  `▼ ${a.width}×${a.height}, above=${a.above} below=${a.below} syspx`
 
 // dpr 1: --vf-scale is 1, so a whole CSS px IS a whole system px and the
 // placement must be exactly canonical.
@@ -109,6 +147,11 @@ const fmt = (m) => `above=${m.above} below=${m.below} cap=${m.capHeight} syspx`
     'dpr 1: label ink sits 3 above / 4 below the cap (canonical)',
     m.above === 3 && m.below === 4 && m.capHeight === 9,
     fmt(m)
+  )
+  check(
+    'dpr 1: the ▼ is 11×6, centered: 5 rows above and 5 below',
+    m.arrow.width === 11 && m.arrow.height === 6 && m.arrow.above === 5 && m.arrow.below === 5,
+    fmtArrow(m)
   )
 }
 
@@ -149,5 +192,42 @@ check(
     whole.capHeight === 9,
   fmt(whole)
 )
+
+// ── The small pill, at display density ──
+// Every host phase a density can put the pill on: whole CSS px, and the
+// half (dpr 2) and quarter/half (dpr 3) device-aligned ones.
+const PHASES = [
+  [1, 48],
+  [2, 48],
+  [2, 48.5],
+  [3, 48],
+  [3, 48.25],
+  [3, 48.5],
+]
+for (const [dpr, top] of PHASES) {
+  const m = await measure(dpr, top, { size: 'small', real: true })
+  check(
+    `small, dpr ${dpr}, host at ${top}: label ink sits 1 above / 2 below a 7-row cap`,
+    m.above === 1 && m.below === 2 && m.capHeight === 7,
+    fmt(m)
+  )
+  // 9×5, pinned 3 rows down: its middle row (row 5) is the x-height's (rows 3–7).
+  check(
+    `small, dpr ${dpr}, host at ${top}: the ▼ is 9×5, 3 rows above and 2 below`,
+    m.arrow.width === 9 && m.arrow.height === 5 && m.arrow.above === 3 && m.arrow.below === 2,
+    fmtArrow(m)
+  )
+}
+// Descenders: a capital's top on row 1 and a descender's foot on row 9 is
+// 1 + 9 + 0 — every row of the descender inside the content. A baseline one
+// row lower would read 2 above and 8 rows of ink, its foot on the border.
+for (const [dpr, top] of PHASES) {
+  const m = await measure(dpr, top, { size: 'small', label: 'Type', real: true })
+  check(
+    `small, dpr ${dpr}, host at ${top}: descenders end on the last content row, whole`,
+    m.above === 1 && m.below === 0 && m.capHeight === 9,
+    fmt(m)
+  )
+}
 
 await report(browser)

@@ -21,6 +21,11 @@
  *    included, or its keyboard route, ⌘O / ⌘↓ — never from Return, which
  *    renames (the Finder's Return never opened): it starts the edit on an
  *    editable icon and does nothing on a non-editable one.
+ *  - TAP PAIR: a finger or a pen opens on two taps inside the pair's window
+ *    and slop, classified from pointer events — once per pair, never chained
+ *    into a third tap, never from a tap and a drag, on the name as on the art
+ *    with no rename left behind, not inside an open rename box, and on an
+ *    icon with no attributes at all; the mouse keeps its double-click.
  *  - MOVABLE: that the parameter is `movable` and the platform's `draggable`
  *    is untouched — the trap the component exists to avoid — plus a drag and
  *    an arrow-key nudge landing on whole system px.
@@ -42,9 +47,11 @@ import {
   check,
   cssPxFor,
   decodePng,
+  finger,
   gridTolerance,
   holdableScale,
   launch,
+  pen,
   report,
   rgb,
 } from './harness.mjs'
@@ -1389,6 +1396,181 @@ for (const dpr of [1, 2, 3]) {
     (await page.evaluate(
       () => !!document.getElementById('notes').shadowRoot.querySelector('input')
     )) && (await opens()) === 4
+  )
+  await page.close()
+}
+
+// ── TAP PAIR ────────────────────────────────────────────────────────────────
+// A finger or a pen opens on a tap pair the icon classifies from its own
+// pointer events — a platform may deliver no `dblclick` for a double-tap, and
+// a movable icon's press is preventDefault()ed for the drag. Real touch input
+// through CDP, so the presses are trusted and capture the way a touch
+// screen's do.
+{
+  const page = await build(
+    `<div id="desk" style="position:relative;width:600px;height:400px">
+       <vf-icon id="launcher" label="Launcher" width="64" selectable movable editable
+                left="12" top="12">
+         <vf-img slot="large"><img src="${ART32}" alt=""></vf-img>
+       </vf-icon>
+       <vf-icon id="fixed" label="Fixed" width="64"
+                style="position:absolute;left:300px;top:16px">
+         <vf-img slot="large"><img src="${ART32}" alt=""></vf-img>
+       </vf-icon>
+     </div>`
+  )
+  const { pairMs, pairSlop } = await page.evaluate(() =>
+    import('/src/index.js').then((m) => ({ pairMs: m.TAP_PAIR_MS, pairSlop: m.TAP_PAIR_SLOP_PX }))
+  )
+  await page.evaluate(() => {
+    globalThis.__opens = []
+    globalThis.__drags = 0
+    globalThis.__dblclicks = 0
+    document.addEventListener('vf-open', (e) => globalThis.__opens.push(e.target.id))
+    document.addEventListener('dblclick', () => globalThis.__dblclicks++)
+    for (const type of ['vf-drag-start', 'vf-drop']) {
+      document.addEventListener(type, () => globalThis.__drags++)
+    }
+  })
+  const opens = () => page.evaluate(() => globalThis.__opens.length)
+  const drags = () => page.evaluate(() => globalThis.__drags)
+  /** A point in the icon's art, and the middle of its plate. */
+  const spots = (id) =>
+    page.evaluate((i) => {
+      const root = document.getElementById(i).shadowRoot
+      const a = root.querySelector('.art').getBoundingClientRect()
+      const p = root.querySelector('.label').getBoundingClientRect()
+      return {
+        art: { x: a.x + a.width / 2, y: a.y + a.height / 2 },
+        plate: { x: p.x + p.width / 2, y: p.y + p.height / 2 },
+      }
+    }, id)
+  const placed = () =>
+    page.evaluate(() => {
+      const el = document.getElementById('launcher')
+      return `${el.left},${el.top}`
+    })
+  const touch = await finger(page)
+  const { art, plate } = await spots('launcher')
+
+  await touch.tap(art.x, art.y)
+  check(
+    'TAP PAIR  one tap selects and opens nothing',
+    (await opens()) === 0 &&
+      (await page.evaluate(() => document.getElementById('launcher').selected))
+  )
+  await page.waitForTimeout(PAST_DELAY)
+
+  await touch.tap(art.x, art.y)
+  await touch.tap(art.x + 5, art.y - 4)
+  await page.waitForTimeout(60)
+  // Once, whether or not the platform also delivered a dblclick for the pair.
+  check(
+    'TAP PAIR  two taps open a movable icon, once',
+    (await opens()) === 1,
+    `${await opens()} opens, ${await page.evaluate(() => globalThis.__dblclicks)} platform dblclicks`
+  )
+  check('TAP PAIR  …and leave it where it was', (await placed()) === '12,12', await placed())
+
+  await touch.tap(art.x, art.y)
+  await page.waitForTimeout(60)
+  check(
+    'TAP PAIR  a pair does not chain: the third tap opens nothing',
+    (await opens()) === 1,
+    `${await opens()} opens`
+  )
+  await touch.tap(art.x, art.y)
+  await page.waitForTimeout(60)
+  check('TAP PAIR  …and the fourth completes the next pair', (await opens()) === 2)
+  await page.waitForTimeout(PAST_DELAY)
+
+  await touch.tap(art.x, art.y)
+  await page.waitForTimeout(pairMs + 80)
+  await touch.tap(art.x, art.y)
+  await page.waitForTimeout(60)
+  check('TAP PAIR  two taps further apart than the window are two taps', (await opens()) === 2)
+  await page.waitForTimeout(PAST_DELAY)
+
+  await touch.tap(art.x - pairSlop / 2 - 2, art.y)
+  await touch.tap(art.x + pairSlop / 2 + 2, art.y)
+  await page.waitForTimeout(60)
+  check('TAP PAIR  so are two taps further apart than the slop', (await opens()) === 2)
+  await page.waitForTimeout(PAST_DELAY)
+
+  // A tap, then a press that drags: the drag is a drag, and opens nothing.
+  await touch.tap(art.x, art.y)
+  await touch.down(art.x, art.y)
+  for (let i = 1; i <= 4; i++) await touch.move(art.x + i * 15, art.y + i * 5)
+  await touch.up()
+  await page.waitForTimeout(60)
+  check(
+    'TAP PAIR  a tap and then a drag moves the icon and opens nothing',
+    (await opens()) === 2 && (await drags()) === 2 && (await placed()) !== '12,12',
+    `${await opens()} opens, ${await drags()} drag events, at ${await placed()}`
+  )
+  await page.waitForTimeout(PAST_DELAY)
+
+  // The name is the icon: a pair on the plate of a selected, editable icon
+  // opens it, and the rename the first tap armed never runs.
+  const moved = await spots('launcher')
+  await touch.tap(moved.plate.x, moved.plate.y)
+  await touch.tap(moved.plate.x, moved.plate.y)
+  await page.waitForTimeout(PAST_DELAY)
+  check(
+    'TAP PAIR  two taps on the name open too, with no rename behind them',
+    (await opens()) === 3 &&
+      (await page.evaluate(
+        () => !document.getElementById('launcher').shadowRoot.querySelector('input')
+      )),
+    `${await opens()} opens`
+  )
+
+  // One tap on the name of the selected icon renames, as a click does — and
+  // two taps inside the open box are a word being selected.
+  await touch.tap(moved.plate.x, moved.plate.y)
+  await page.waitForTimeout(PAST_DELAY)
+  const editing = () =>
+    page.evaluate(() => !!document.getElementById('launcher').shadowRoot.querySelector('input'))
+  check('TAP PAIR  one tap on a selected name opens the rename box', await editing())
+  await touch.tap(moved.plate.x, moved.plate.y)
+  await touch.tap(moved.plate.x, moved.plate.y)
+  await page.waitForTimeout(60)
+  check(
+    'TAP PAIR  …and two taps inside the box open nothing',
+    (await opens()) === 3 && (await editing()),
+    `${await opens()} opens`
+  )
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(PAST_DELAY)
+
+  // An icon with no attributes at all still opens, as it does under a mouse.
+  const fixed = await spots('fixed')
+  await touch.tap(fixed.art.x, fixed.art.y)
+  await touch.tap(fixed.art.x, fixed.art.y)
+  await page.waitForTimeout(60)
+  check(
+    'TAP PAIR  an icon that is neither movable nor selectable opens on a pair',
+    (await page.evaluate(() => globalThis.__opens.at(-1))) === 'fixed' && (await opens()) === 4,
+    `${await opens()} opens`
+  )
+  await page.waitForTimeout(PAST_DELAY)
+
+  // The pen takes the finger's route.
+  const stylus = await pen(page)
+  const now = await spots('launcher')
+  await stylus.tap(now.art.x, now.art.y)
+  await stylus.tap(now.art.x + 3, now.art.y + 3)
+  await page.waitForTimeout(60)
+  check('TAP PAIR  a pen opens on a pair as well', (await opens()) === 5, `${await opens()} opens`)
+  await page.waitForTimeout(PAST_DELAY)
+
+  // And the mouse keeps its own, on the same icon, after a finger has been at it.
+  await page.mouse.dblclick(now.art.x, now.art.y)
+  await page.waitForTimeout(60)
+  check(
+    'TAP PAIR  the mouse still opens on its double-click afterwards, once',
+    (await opens()) === 6,
+    `${await opens()} opens`
   )
   await page.close()
 }

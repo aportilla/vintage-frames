@@ -416,6 +416,54 @@ export function impureIn(png, x0, y0, x1, y1, extraPure = []) {
   return { impure, counted }
 }
 
+// ─────────────────────────────────────────────────────── finger and pen
+
+/**
+ * A finger on the page: real touch input through CDP, so the pointer events
+ * are trusted, report `pointerType: 'touch'` and capture implicitly, the way
+ * a touch screen's do — a dispatched `PointerEvent` has none of that, and
+ * `setPointerCapture` refuses its id. Coordinates are viewport CSS px.
+ */
+export async function finger(page) {
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true })
+  const send = (type, touchPoints) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints })
+  return {
+    down: (x, y) => send('touchStart', [{ x, y }]),
+    move: (x, y) => send('touchMove', [{ x, y }]),
+    up: () => send('touchEnd', []),
+    cancel: () => send('touchCancel', []),
+    async tap(x, y) {
+      await send('touchStart', [{ x, y }])
+      await send('touchEnd', [])
+    },
+  }
+}
+
+/** A pen on the page: CDP mouse input reported as `pointerType: 'pen'`. */
+export async function pen(page) {
+  const cdp = await page.context().newCDPSession(page)
+  const send = (type, x, y, buttons) =>
+    cdp.send('Input.dispatchMouseEvent', {
+      type,
+      x,
+      y,
+      button: type === 'mouseMoved' ? 'none' : 'left',
+      buttons,
+      clickCount: type === 'mouseMoved' ? 0 : 1,
+      pointerType: 'pen',
+    })
+  return {
+    down: (x, y) => send('mousePressed', x, y, 1),
+    move: (x, y) => send('mouseMoved', x, y, 1),
+    up: (x, y) => send('mouseReleased', x, y, 0),
+    async tap(x, y) {
+      await send('mousePressed', x, y, 1)
+      await send('mouseReleased', x, y, 0)
+    },
+  }
+}
+
 // ──────────────────────────────────────────────── the accessibility tree
 
 /** Walk the pierced DOM (CDP `DOM.getDocument`), shadow roots included. */

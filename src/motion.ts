@@ -48,6 +48,34 @@ export const PRESS_HOLD_MS = 200
 export const RENAME_DELAY_MS = 800
 
 /**
+ * The tap pair: how far apart two taps of a finger or pen on an icon may
+ * land — milliseconds from press to press, CSS px from point to point — and
+ * still open it. The double-click of an instrument the platform reports no
+ * `dblclick` for; the mouse keeps the platform's own, which follows a
+ * setting the user can move.
+ *
+ * Inside {@link RENAME_DELAY_MS}, so the second tap always lands before a
+ * rename the first one armed can open. The distance is CSS px rather than
+ * system px: it measures the hand, not the art.
+ */
+export const TAP_PAIR_MS = 500
+export const TAP_PAIR_SLOP_PX = 24
+
+/**
+ * The drag slop: how far, in CSS px, a pointer travels from its press before
+ * an icon's drag begins. A press released inside it is a click or a tap, and
+ * the icon stays where it was. Wider for a finger or pen, which never lands
+ * still. CSS px for the same reason as the tap pair's.
+ */
+export const DRAG_SLOP_PX = 4
+export const DRAG_SLOP_COARSE_PX = 10
+
+/** The {@link DRAG_SLOP_PX drag slop} for the instrument a pointer event reports. */
+export function dragSlop(event: PointerEvent): number {
+  return event.pointerType === 'mouse' ? DRAG_SLOP_PX : DRAG_SLOP_COARSE_PX
+}
+
+/**
  * Milliseconds per row while the pointer rests on a menu scroll arrow — the
  * pace a clipped popup rolls its list through the panel at (~15 rows/s).
  *

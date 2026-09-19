@@ -133,7 +133,7 @@ function closeFolder(folder: Item, win: VfWindow): void {
 
 ## Opening
 
-`vf-open` fires on a double-click anywhere on the icon, or ⌘O / ⌘↓ from the keyboard. Open the folder's window and mark the icon:
+`vf-open` fires on a double-click anywhere on the icon, on two taps of a finger or pen, or ⌘O / ⌘↓ from the keyboard. Open the folder's window and mark the icon:
 
 ```ts
 document.addEventListener('vf-open', (e) => {
@@ -392,7 +392,7 @@ The kit's routes, which need nothing from the page: Tab reaches each selectable 
 - **Hold landings at the origin.** A member let go partly past a plane's edge would land under it; `Math.max(0, …)` keeps it on the plane. That is the kit's own rule in a scrolling plane, where the default action holds only the origin and the rails reach the rest; in any other box it clamps the group whole. The page's writes are its own.
 - **Skip the travelling icons in the hit test.** A follower can be under the pointer; it is never a destination.
 - **`open` is the page's to set and clear**, on the icon whose window is on screen.
-- **Touch.** A movable icon sets `touch-action: none`, so a touch drag on an icon is the drag. A touch drag on a field's background pans a scrolling window; the rubber band is a mouse and pen gesture.
+- **Touch.** A movable icon sets `touch-action: none`, so a touch drag on an icon is the drag. A touch drag on a field's background pans a scrolling window; the rubber band is a mouse and pen gesture. Two taps of a finger or pen open an icon — the icon classifies the pair from pointer events, so `vf-open` needs no `dblclick` from the platform and the page adds nothing. A finger's or pen's drag begins 10 CSS px from the press and the mouse's 4, so a tap selects and leaves the icon on its cell.
 - **Positions persist as they are.** Save `left`/`top` off the properties; write them back as they were. Whole system px is whole device px at every density, and nothing re-snaps.
 
 The reference page's filing specimen (`index.html`, the `vf-icon` section) runs this recipe on two fields and one folder window; `demo/examples.ts` is its script.

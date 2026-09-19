@@ -5,8 +5,8 @@
  *
  * Groups:
  *
- *  - EVENTS: a press with no lattice step fires nothing; the first step fires
- *    vf-drag-start then vf-drag; the release fires one cancelable vf-drop
+ *  - EVENTS: a press with no lattice step fires nothing; the first step past
+ *    the drag slop fires vf-drag-start then vf-drag; the release fires one cancelable vf-drop
  *    with the pointer, whole system px on the lattice, and the outline's
  *    origin (the frame's box plus the delta); a drop cancelled with
  *    preventDefault() leaves left/top untouched; uncancelled, the position is
@@ -17,7 +17,12 @@
  *  - REPARENT: an icon filed into another field inside the vf-drop handler
  *    is still selected, and a press outside then deselects it — the
  *    outside-press listener survives the re-parent.
- *  - TOUCH: the frame's computed touch-action is none when movable.
+ *  - TOUCH: the frame's computed touch-action is none when movable, and
+ *    manipulation otherwise.
+ *  - SLOP: a drag begins past the drag slop, CSS px from the press — the
+ *    mouse's the narrower, a finger's and a pen's the wider. Inside it a
+ *    wobbling press fires nothing, moves nothing and leaves an armed rename
+ *    armed; past it the proposal is the whole travel from the press.
  *  - FIELD: through the accessibility tree, a vf-icon-field is a
  *    multiselectable listbox named from `label`, its selectable icons are
  *    options with aria-selected, a consumer role on the tag wins, `size` on
@@ -89,11 +94,13 @@
 import {
   check,
   decodePng,
+  finger,
   gridTolerance,
   isBlack,
   isWhite,
   launch,
   makeBuild,
+  pen,
   report,
   rgb,
 } from './harness.mjs'
@@ -490,7 +497,160 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
     touch[0] === 'none',
     touch[0]
   )
-  check('TOUCH  a frame that cannot be dragged leaves touch scrolling alone', touch[1] === 'auto', touch[1])
+  check(
+    'TOUCH  a frame that cannot be dragged gives up the double-tap zoom and nothing else',
+    touch[1] === 'manipulation',
+    touch[1]
+  )
+  await page.close()
+}
+
+// ── SLOP ────────────────────────────────────────────────────────────────────
+// A drag begins once the pointer has left its press by the drag slop — CSS
+// px, narrow for the mouse and wider for a finger or pen. Inside it the press
+// is a click or a tap: nothing fires, nothing moves, an armed rename stays
+// armed. Past it the delta is still the whole travel from the press.
+{
+  const page = await build(
+    `<div id="desk" style="position:relative;width:600px;height:400px">
+       ${icon('id="ico" width="64" selectable movable editable left="20" top="20"')}
+     </div>`
+  )
+  await record(page)
+  const { fine, coarse, renameDelay } = await page.evaluate(() =>
+    import('/src/index.js').then((m) => ({
+      fine: m.DRAG_SLOP_PX,
+      coarse: m.DRAG_SLOP_COARSE_PX,
+      renameDelay: m.RENAME_DELAY_MS,
+    }))
+  )
+  check('SLOP  the mouse has the narrower slop', fine > 1 && fine < coarse, `${fine} vs ${coarse}`)
+  const s = await state(page, 'ico')
+  const at = { x: s.x + 10, y: s.y + 10 }
+  // A travel the mouse reads as a drag and a finger or pen as a wobble.
+  const between = (fine + coarse) / 2
+  const still = async () => {
+    const now = await state(page, 'ico')
+    return (await log(page)).length === 0 && now.left === 20 && now.top === 20
+  }
+  await page.evaluate(() => {
+    globalThis.__moves = 0
+    document.addEventListener('pointermove', () => globalThis.__moves++, true)
+  })
+  const moves = () => page.evaluate(() => globalThis.__moves)
+
+  // The mouse: more than a system px of travel, less than the slop.
+  await page.mouse.move(at.x, at.y)
+  await page.mouse.down()
+  await page.mouse.move(at.x + fine / 2, at.y + fine / 2)
+  await page.mouse.up()
+  check(
+    'SLOP  a mouse press that wobbles inside the slop fires nothing and moves nothing',
+    await still(),
+    JSON.stringify((await log(page)).map((e) => e.type))
+  )
+  await page.waitForTimeout(renameDelay + 150)
+
+  await page.mouse.move(at.x, at.y)
+  await page.mouse.down()
+  await page.mouse.move(at.x + between, at.y)
+  const started = await log(page)
+  await page.mouse.up()
+  check(
+    'SLOP  past it the drag starts, and the proposal is the whole travel from the press',
+    started[0]?.type === 'vf-drag-start' &&
+      started[1]?.type === 'vf-drag' &&
+      started[1].detail.left === 20 + Math.round(between / s.scale) &&
+      started[1].detail.top === 20,
+    JSON.stringify(started.map((e) => [e.type, e.detail.left, e.detail.top]))
+  )
+  await page.evaluate(() => {
+    const el = document.getElementById('ico')
+    el.left = 20
+    el.top = 20
+  })
+  await settle(page)
+  await clearLog(page)
+  await page.waitForTimeout(renameDelay + 150)
+
+  // A pen, over the same travel the mouse just dragged by: a wobble.
+  const stylus = await pen(page)
+  await stylus.down(at.x, at.y)
+  await stylus.move(at.x + between, at.y)
+  await stylus.up(at.x + between, at.y)
+  check(
+    'SLOP  the same travel under a pen is still a tap',
+    await still(),
+    JSON.stringify((await log(page)).map((e) => e.type))
+  )
+  await stylus.down(at.x, at.y)
+  await stylus.move(at.x + coarse + 2, at.y)
+  const penLog = await log(page)
+  await stylus.up(at.x + coarse + 2, at.y)
+  check(
+    'SLOP  …and past the wider slop the pen drags',
+    penLog[0]?.type === 'vf-drag-start' && (await log(page)).at(-1)?.type === 'vf-drop',
+    JSON.stringify((await log(page)).map((e) => e.type))
+  )
+  await page.evaluate(() => {
+    const el = document.getElementById('ico')
+    el.left = 20
+    el.top = 20
+  })
+  await settle(page)
+  await clearLog(page)
+  await page.waitForTimeout(renameDelay + 150)
+
+  // A finger: real touch input, several moves inside the slop.
+  const touch = await finger(page)
+  const before = await moves()
+  await touch.down(at.x, at.y)
+  for (const [dx, dy] of [[3, 2], [6, 4], [4, -5], [1, 1]]) await touch.move(at.x + dx, at.y + dy)
+  await touch.up()
+  check(
+    'SLOP  a finger tap that wobbles fires nothing and moves nothing',
+    await still(),
+    `${(await moves()) - before} pointermoves, ${JSON.stringify((await log(page)).map((e) => e.type))}`
+  )
+  await touch.down(at.x, at.y)
+  for (let i = 1; i <= 4; i++) await touch.move(at.x + i * 12, at.y + i * 6)
+  await touch.up()
+  const dropped = (await log(page)).at(-1)
+  check(
+    'SLOP  …and a finger that travels drags, the drop the whole travel from the press',
+    (await log(page))[0]?.type === 'vf-drag-start' &&
+      dropped?.type === 'vf-drop' &&
+      dropped.detail.left === 20 + Math.round(48 / s.scale) &&
+      dropped.detail.top === 20 + Math.round(24 / s.scale),
+    JSON.stringify([dropped?.type, dropped?.detail.left, dropped?.detail.top])
+  )
+  await page.evaluate(() => {
+    const el = document.getElementById('ico')
+    el.left = 20
+    el.top = 20
+  })
+  await settle(page)
+  await page.waitForTimeout(renameDelay + 150)
+
+  // The wobble is not a drag, so it calls off nothing: a tap on the name of
+  // the selected icon still renames.
+  const plate = await page.evaluate(() => {
+    const b = document
+      .getElementById('ico')
+      .shadowRoot.querySelector('.label')
+      .getBoundingClientRect()
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+  })
+  await touch.down(plate.x, plate.y)
+  await touch.move(plate.x + 4, plate.y + 3)
+  await touch.up()
+  await page.waitForTimeout(renameDelay + 150)
+  check(
+    'SLOP  a wobbling tap on a selected name still opens the rename box',
+    await page.evaluate(
+      () => !!document.getElementById('ico').shadowRoot.querySelector('input')
+    )
+  )
   await page.close()
 }
 

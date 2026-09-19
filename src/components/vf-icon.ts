@@ -10,7 +10,14 @@ import { DragController } from '../drag.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { emit } from '../events.js'
-import { prefersReducedMotion, RENAME_DELAY_MS, runOutlineTravel } from '../motion.js'
+import {
+  dragSlop,
+  prefersReducedMotion,
+  RENAME_DELAY_MS,
+  runOutlineTravel,
+  TAP_PAIR_MS,
+  TAP_PAIR_SLOP_PX,
+} from '../motion.js'
 import type { TravelHandle } from '../motion.js'
 import { deriveDragOutline, deriveOpenArt, dotOutline, penPhase } from '../open-art.js'
 import type { DragOutlineBox } from '../open-art.js'
@@ -104,9 +111,12 @@ interface DragGesture {
   frame: DOMRect
   /** The last pointer position, so a release with no event can still report. */
   pointer: { clientX: number; clientY: number }
+  /** Where the press landed, and how far from it the drag begins, CSS px. */
+  press: { clientX: number; clientY: number }
+  slop: number
   /**
-   * The last proposal, or null until the first lattice step away from the
-   * press — the jitter test: a stationary press never starts a drag.
+   * The last proposal, or null until the pointer has left the press by the
+   * slop — a press that stays inside it never starts a drag.
    */
   proposal: { left: number; top: number } | null
   /** The outline, from the first step on; null while the drag has not started. */
@@ -292,8 +302,9 @@ const clamp = (v: number, max: number): number =>
  * The kit ships no filing semantics — folders are the page's own catalog —
  * so a drag is a stream of events and a cancelable commit, on the icon:
  *
- * - `vf-drag-start` `{ left, top }` on the first lattice step away from the
- *   press (a plain click never starts one, and never fires a drop);
+ * - `vf-drag-start` `{ left, top }` on the first lattice step past the drag
+ *   slop (a click or a tap never starts one, and never fires a drop — see
+ *   "Mouse, finger and pen" below);
  * - `vf-drag` `{ clientX, clientY, left, top, x, y }` on every step that
  *   changed the snapped proposal;
  * - `vf-drop`, the same shape at the release, **cancelable**: its default
@@ -376,6 +387,38 @@ const clamp = (v: number, max: number): number =>
  * Finder's Return renamed, never opened, so on an editable icon it starts the
  * edit and on a non-editable one it does nothing at all.
  *
+ * ### Mouse, finger and pen
+ *
+ * The instrument never changes what the icon means: a tap is a click, two
+ * taps are a double-click, a drag is a drag. Two things are measured per
+ * instrument so that holds, both added by the kit — System 7 had the mouse
+ * alone.
+ *
+ * **The open gesture.** The mouse opens on the platform's `dblclick`, which
+ * follows the user's own double-click setting. A finger or a pen opens on a
+ * *tap pair* the icon classifies from its own pointer events: two taps on
+ * the icon, the second pressed within `TAP_PAIR_MS` (500) of the first and
+ * no further than `TAP_PAIR_SLOP_PX` (24 CSS px) from it, `vf-open` firing
+ * on the second release. A platform reserves the double-tap for its zoom
+ * and may deliver no `dblclick` for one, and a movable icon's press is
+ * `preventDefault()`ed for the drag, which can suppress it too; the pair
+ * depends on neither. A tap is a press released where it landed — one that
+ * became a drag, or that the platform cancelled, is not half of a pair —
+ * and a pair does not chain: a third tap starts the next one. Each press
+ * takes exactly one of the two routes, so a platform that does deliver a
+ * `dblclick` for a double-tap opens the icon once. The frame sets
+ * `touch-action: manipulation`, which takes the double-tap zoom off the
+ * icon and leaves panning and pinching to the page.
+ *
+ * **The drag slop.** A drag begins once the pointer has travelled from its
+ * press by `DRAG_SLOP_PX` (4 CSS px) for the mouse or `DRAG_SLOP_COARSE_PX`
+ * (10) for a finger or pen, which never lands still. Inside it the press is
+ * a click or a tap: the icon stays on its spot, a rename the press armed
+ * stays armed, and no drag event fires. The delta is measured from the
+ * press all the same, so the outline begins under the pointer. The numbers
+ * are CSS px rather than system px because they measure the hand, not the
+ * art (src/motion.ts).
+ *
  * ### The name and the art are one target, and the second click decides
  *
  * A double-click opens the icon *wherever it lands* — the name is as much the
@@ -385,8 +428,8 @@ const clamp = (v: number, max: number): number =>
  *
  * So the rename waits for it. A press on the plate of an already-selected icon
  * arms the field rather than opening it, and the next press inside
- * {@link RENAME_DELAY_MS} calls it off — leaving the double-click to open, with
- * no rename box flashing up behind it. Nothing needs to *undo* an edit that
+ * {@link RENAME_DELAY_MS} calls it off — leaving the double-click, or a
+ * finger's tap pair, to open, with no rename box flashing up behind it. Nothing needs to *undo* an edit that
  * began: the press that starts one and the press that opens are the same
  * press, so the only thing that can be got right is not committing early.
  *
@@ -489,9 +532,9 @@ const clamp = (v: number, max: number): number =>
  * @fires vf-select - Selection changed by user interaction. `detail: { selected: boolean }`.
  * @fires vf-change - The name was committed. `detail: { label: string, previous: string }`.
  * @fires vf-open - The icon was opened — double-clicked anywhere on it, its
- *   name included, or ⌘O / ⌘↓ from the keyboard (Ctrl off the Mac), the
- *   System 7 shortcuts. Return renames instead, as the Finder's did.
- *   `detail: {}`.
+ *   name included; tapped twice with a finger or pen; or ⌘O / ⌘↓ from the
+ *   keyboard (Ctrl off the Mac), the System 7 shortcuts. Return renames
+ *   instead, as the Finder's did. `detail: {}`.
  * @fires vf-name-too-long - A rename was typed or pasted past `maxlength`, and
  *   the field refused the excess. `detail: { attempted, accepted, limit }` —
  *   enough to raise the alert System 7 raised rather than drop the characters
@@ -501,9 +544,10 @@ const clamp = (v: number, max: number): number =>
  *   edit was dropped and the old name put back.
  *   `detail: { attempted, kept, reason: 'empty' }`. A `vf-change` is *not*
  *   fired alongside it — nothing changed.
- * @fires vf-drag-start - A drag began: the first lattice step away from the
- *   press. `detail: { left, top, icons }` — the origin, whole system px in
- *   the icon's container, and every icon the drag carries (this one first).
+ * @fires vf-drag-start - A drag began: the first lattice step past the drag
+ *   slop, 4 CSS px from the press for the mouse and 10 for a finger or pen.
+ *   `detail: { left, top, icons }` — the origin, whole system px in the
+ *   icon's container, and every icon the drag carries (this one first).
  * @fires vf-drag - A step that changed the proposal. `detail: { clientX,
  *   clientY, left, top, x, y, icons }` — the pointer in viewport CSS px, the
  *   proposed origin in the container (whole system px on the lattice), the
@@ -535,6 +579,9 @@ export class VfIcon extends VfPositioned(LitElement) {
         display: flex;
         flex-direction: column;
         align-items: center;
+        /* Two taps open the icon, so the platform's double-tap zoom is off
+           over it. A pan or a pinch that starts here is still the page's. */
+        touch-action: manipulation;
       }
       /* The frame is the drag handle, so a touch on a movable icon is the
          drag and never the page's pan — the window and dialog title bars
@@ -931,6 +978,23 @@ export class VfIcon extends VfPositioned(LitElement) {
   #lastPressTime = -Infinity
 
   /**
+   * Whether the last press was a finger's or a pen's. Those open on the tap
+   * pair below, so a `dblclick` the platform also delivers for them is not a
+   * second open.
+   */
+  #lastPressByHand = false
+
+  /**
+   * The finger or pen press in flight, while it can still end as a tap:
+   * where and when it landed, and whether it is the second of a pair.
+   */
+  #tap: { pointerId: number; time: number; x: number; y: number; second: boolean } | null =
+    null
+
+  /** The tap a second one may pair with — the first of a tap pair, or null. */
+  #firstTap: { time: number; x: number; y: number } | null = null
+
+  /**
    * Clicking elsewhere deselects, the way it does on a real desktop. Attached
    * only while this icon is both selectable and selected, so an unselected
    * field of icons costs nothing. Capture phase, so a handler that stops the
@@ -1017,6 +1081,8 @@ export class VfIcon extends VfPositioned(LitElement) {
         origin,
         frame: this.#frameRect(),
         pointer: { clientX: event.clientX, clientY: event.clientY },
+        press: { clientX: event.clientX, clientY: event.clientY },
+        slop: dragSlop(event),
         proposal: null,
         outline: null,
         followers: [],
@@ -1141,17 +1207,24 @@ export class VfIcon extends VfPositioned(LitElement) {
   }
 
   /**
-   * A lattice step of the drag. The first step whose snapped origin differs
-   * from the seed is the start — a stationary press reports jitter, and every
-   * one of those steps snaps back onto the same system px, so a plain click
-   * never starts a drag and never fires a drop. Moving an icon is not
-   * renaming it, so the start calls off the rename the press armed.
+   * A lattice step of the drag. The start is the first step past the slop
+   * (`dragSlop`, src/motion.ts — wider for a finger or pen than for the
+   * mouse): a press reports jitter, and a hand never lands still, so a
+   * click or a tap stays inside it, never starts a drag and never fires a
+   * drop. The delta is still measured from the press, so the outline begins
+   * under the pointer. Moving an icon is not renaming it, so the start calls
+   * off the rename the press armed.
    */
   #onDragStep(x: number, y: number, event: PointerEvent): void {
     const gesture = this.#gesture
     if (!gesture) return
     gesture.pointer = { clientX: event.clientX, clientY: event.clientY }
     if (!gesture.proposal) {
+      const travel = Math.hypot(
+        event.clientX - gesture.press.clientX,
+        event.clientY - gesture.press.clientY
+      )
+      if (travel < gesture.slop) return
       if (x === gesture.origin.x && y === gesture.origin.y) return
       this.#disarmRename()
       // The press turned into a drag: the selection it kept travels, and
@@ -1949,6 +2022,27 @@ export class VfIcon extends VfPositioned(LitElement) {
     // rename is still waiting to be sure of.
     this.#disarmRename()
 
+    // A finger or a pen opens on a tap pair (see the class doc). This press is
+    // the second of one when it lands inside the pair's window and slop of the
+    // tap before it; whether it stays a tap, and opens, is the release's to say.
+    const first = this.#firstTap
+    this.#firstTap = null
+    this.#lastPressByHand = event.pointerType !== 'mouse'
+    this.#tap =
+      this.#lastPressByHand && event.isPrimary
+        ? {
+            pointerId: event.pointerId,
+            time: event.timeStamp,
+            x: event.clientX,
+            y: event.clientY,
+            second:
+              first !== null &&
+              event.timeStamp - first.time <= TAP_PAIR_MS &&
+              Math.hypot(event.clientX - first.x, event.clientY - first.y) <=
+                TAP_PAIR_SLOP_PX,
+          }
+        : null
+
     const plain = !event.shiftKey && !event.metaKey
     if (this.selectable) {
       // Shift/⌘ toggles this icon without disturbing the rest; a plain press
@@ -1996,9 +2090,13 @@ export class VfIcon extends VfPositioned(LitElement) {
    *
    * Still guarded on the field: a double-click inside an open rename box is a
    * word being selected, not an icon being opened.
+   *
+   * The mouse's route only. A finger or a pen opens on the tap pair
+   * ({@link #endTap}), so a `dblclick` the platform delivers for one of those
+   * as well is left alone rather than opening the icon twice.
    */
   #onDoubleClick = (): void => {
-    if (this._editing) return
+    if (this._editing || this.#lastPressByHand) return
     emit(this, 'vf-open', {})
   }
 
@@ -2009,26 +2107,55 @@ export class VfIcon extends VfPositioned(LitElement) {
    * collapses it now, if no drag ever began: a click on one of several
    * selected icons selects that one alone, on the release rather than the
    * press, so the same press could have dragged them all. A cancel collapses
-   * nothing.
+   * nothing. Last, the second tap of a pair opens the icon, where a
+   * `dblclick` would have landed in the order of things.
    */
   #onPointerUp = (event: PointerEvent): void => {
+    // Read before the drag controller ends the gesture.
+    const dragged = this.#gesture?.proposal != null
     this.#drag.onPointerUp(event)
-    if (!this.#collapseOnRelease) return
-    this.#collapseOnRelease = false
-    if (event.type !== 'pointerup') return
-    const field = this.#field
-    if (!field) return
-    for (const icon of field.querySelectorAll('vf-icon')) {
-      if (icon !== this && icon.selected) icon.setSelected(false)
+    const opens = this.#endTap(event, dragged)
+    if (this.#collapseOnRelease) {
+      this.#collapseOnRelease = false
+      const field = event.type === 'pointerup' ? this.#field : null
+      for (const icon of field?.querySelectorAll('vf-icon') ?? []) {
+        if (icon !== this && icon.selected) icon.setSelected(false)
+      }
     }
+    if (opens) emit(this, 'vf-open', {})
+  }
+
+  /**
+   * The release of a finger or pen press: whether it completes a tap pair.
+   * A tap is a press released where it landed — no drag begun, no
+   * `pointercancel`, still inside the drag slop. The second tap of a pair
+   * opens the icon; any other tap may be the first of the next pair, so a
+   * pair never chains into a third tap. A release inside an open rename box
+   * opens nothing, as a double-click there does not.
+   */
+  #endTap(event: PointerEvent, dragged: boolean): boolean {
+    const tap = this.#tap
+    if (!tap || tap.pointerId !== event.pointerId) return false
+    this.#tap = null
+    const tapped =
+      event.type === 'pointerup' &&
+      !dragged &&
+      !this._editing &&
+      Math.hypot(event.clientX - tap.x, event.clientY - tap.y) < dragSlop(event)
+    if (!tapped) return false
+    if (tap.second) return true
+    this.#firstTap = { time: tap.time, x: tap.x, y: tap.y }
+    return false
   }
 
   #onOutsidePointerDown = (event: PointerEvent): void => {
     const path = event.composedPath()
     if (path.includes(this)) return
     // Wherever that press went, it wasn't this name: a rename still waiting to
-    // open is called off even where the modifier keeps the selection.
+    // open is called off even where the modifier keeps the selection — and
+    // it wasn't this icon, so a tap here is no longer half of a pair.
     this.#disarmRename()
+    this.#firstTap = null
     if (event.shiftKey || event.metaKey) return
     // A plain press on another icon that is ALREADY selected in this icon's
     // field keeps the selection: that press may be the start of a drag that

@@ -200,3 +200,28 @@ export function runOutlineTravel(
   timer = window.setTimeout(tick, WALK_STEP_MS)
   return { finish }
 }
+
+/**
+ * The zoom rects a window opens with (`vf-window.show({ from })`): how many
+ * rects are drawn, how many are on screen at once, the ratio between the
+ * fractions of the way consecutive rects sit, and the milliseconds a step
+ * lasts. A fixed count rather than the walk's constant speed: every
+ * distance takes the same eighteen steps — one per rect, then four as the
+ * trail drains. Provisional. verify:window computes its expected frames
+ * from the first three; nothing asserts the step's length.
+ */
+export const WINDOW_RECT_STEPS = 14
+export const WINDOW_RECTS_VISIBLE = 4
+export const WINDOW_RECT_RATIO = 0.7
+export const WINDOW_RECT_STEP_MS = 17
+
+/**
+ * How far window rect `k` (0 … {@link WINDOW_RECT_STEPS} − 1) sits from the
+ * small rect toward the big one, as a fraction of the way:
+ * `WINDOW_RECT_RATIO ** (WINDOW_RECT_STEPS − k)`, 0.007 for the first and
+ * 0.7 for the last. The rects bunch at the small rect and open out toward
+ * the big one, and the last stops seven tenths of the way.
+ */
+export function windowRectFraction(k: number): number {
+  return WINDOW_RECT_RATIO ** (WINDOW_RECT_STEPS - k)
+}

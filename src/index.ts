@@ -14,6 +14,11 @@
 // Chrome & shells
 export { VfDesktop } from './components/vf-desktop.js'
 export { VfWindow } from './components/vf-window.js'
+export type {
+  VfViewportBox,
+  VfWindowHideOptions,
+  VfWindowShowOptions,
+} from './components/vf-window.js'
 export { VfDialog } from './components/vf-dialog.js'
 export { VfSeparator } from './components/vf-separator.js'
 
@@ -279,6 +284,11 @@ export {
   WALK_STEP_PX,
   WALK_STEP_MS,
   WALK_BEAT_MS,
+  windowRectFraction,
+  WINDOW_RECT_STEPS,
+  WINDOW_RECTS_VISIBLE,
+  WINDOW_RECT_RATIO,
+  WINDOW_RECT_STEP_MS,
 } from './motion.js'
 export type { BlinkHandle, TravelHandle } from './motion.js'
 

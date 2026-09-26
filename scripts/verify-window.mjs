@@ -34,13 +34,39 @@
  *    title bar and widgets only; a resizable windoid with a status readout
  *    is a legal archetype (a satellite view window), not just the classic
  *    fixed palette.
+ *  - OPEN: `show({ from })` opens the window from a box — the zoom rects on
+ *    the desktop's drag surface, the window laid out, focusable and a hit
+ *    target but painting nothing until they drain. Every frame of the run is
+ *    matched against the eighteen trail states computed here from the rects'
+ *    numbers (each edge its fraction of the way, four up at a time, XOR, dots
+ *    on the screen's odd diagonal), so the geometry, the trail and the drain
+ *    are read off the rects' canvases themselves, the visible ones XORed as
+ *    the screen composites them; a screenshot shows the rings as black lines
+ *    over the dither. Then the ways a run ends: drained, a press (which lands
+ *    on the window), Escape (consumed), a second `show()`, a removal — and a
+ *    move, which is not one. Reduced motion, no desktop and no `from` show at
+ *    once.
+ *  - CLOSE: `hide({ to })` closes the window to a box — hidden in the call's
+ *    task, the same rects running the other way, every frame matched against
+ *    the trail states in closing order. A press finishes them, a removal
+ *    leaves them running, a `show()` finishes them and shows the window, and
+ *    a `hide()` on a window still opening takes the opening down. A hidden
+ *    window, no `to`, reduced motion and no desktop hide at once.
+ *  - DRAG OUTLINE: `outline-drag` moves a dotted outline of the window on the
+ *    desktop's drag surface instead of the window — a one-pixel ring at the
+ *    frame's size, dotted on the screen's odd diagonal, held where the
+ *    window can land — and the release writes the window there once; Escape
+ *    writes nothing. Unset, or with no desktop, the window moves live.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window
  */
 import {
   check,
+  decodePng,
   devicePxPerSystemPxAt,
+  isBlack,
+  isWhite,
   launch,
   makeBuild,
   report,
@@ -587,6 +613,963 @@ const sizeOf = (page, id) =>
     `${resized.width}×${resized.height}, ${resized.events} events`
   )
 
+  await page.close()
+}
+
+/* ── OPEN ─────────────────────────────────────────────────────────────────
+   show({ from }): the window opens from a box, the zoom rects running
+   from it toward the frame on the desktop's drag surface. dpr 1,
+   scale 1: system px, CSS px and device px coincide, and the desktop sits
+   at the page's corner, so screen coordinates are client coordinates. The
+   union of the box and the window lies on bare dither — the window paints
+   nothing while it opens, and the other window stays clear of it. */
+
+const OPEN_DESK = `
+  <vf-desktop id="desk" width="512" height="342">
+    <vf-window id="win" heading="Folder" width="200" height="120" left="100" top="60" hidden>
+      <vf-button id="inside" left="16" top="16">OK</vf-button>
+    </vf-window>
+    <vf-window id="other" heading="Other" width="140" height="80" left="340" top="250"></vf-window>
+  </vf-desktop>
+`
+
+/** Where the rects start: a 32×32 box at (40, 200) on the screen, system px. */
+const FROM = { x: 40, y: 200, w: 32, h: 32 }
+
+/**
+ * The in-page probe. `__screenBox` turns a system-px box on the screen into
+ * a viewport rect. `__expect` computes, from the rects' numbers and
+ * independently of the kit's painter, the union the rects cover and the
+ * eighteen states it can show — each rect's frame, every edge its fraction
+ * of the way, four up at a time, XOR where they share a pixel, ink only on
+ * the screen's odd diagonal.
+ * `__openRun` calls show(), samples every animation frame until it settles,
+ * and matches each frame against those states: the canvases visible on the
+ * surface, XORed together over the union where each sits — what the screen
+ * composites, since each one inverts what is under it. `__closeRun` does the
+ * same for hide(), against the states in closing order.
+ */
+const installRectsProbe = (page) =>
+  page.evaluate(() => {
+    const desk = () => document.getElementById('desk')
+    const surfaceOf = () => desk().shadowRoot.querySelector('.drag-surface')
+    const scaleOf = (el) => parseFloat(getComputedStyle(el).getPropertyValue('--vf-scale'))
+
+    globalThis.__screenBox = ({ x, y, w, h }) => {
+      const s = surfaceOf().getBoundingClientRect()
+      const k = scaleOf(desk())
+      return {
+        left: s.left + x * k,
+        top: s.top + y * k,
+        right: s.left + (x + w) * k,
+        bottom: s.top + (y + h) * k,
+      }
+    }
+
+    globalThis.__expect = (from, winRect, closing = false) => {
+      const STEPS = 14
+      const VISIBLE = 4
+      const s = surfaceOf().getBoundingClientRect()
+      const k = scaleOf(desk())
+      const on = (r) => ({
+        l: Math.round((r.left - s.left) / k),
+        t: Math.round((r.top - s.top) / k),
+        r: Math.round((r.right - s.left) / k),
+        b: Math.round((r.bottom - s.top) / k),
+      })
+      const small = on(from)
+      const big = on(winRect)
+      const L = Math.max(0, Math.min(small.l, big.l))
+      const T = Math.max(0, Math.min(small.t, big.t))
+      const R = Math.min(Math.round(s.width / k), Math.max(small.r, big.r))
+      const B = Math.min(Math.round(s.height / k), Math.max(small.b, big.b))
+      const W = R - L
+      const H = B - T
+      const edge = (a, b, t) => a + Math.trunc((b - a) * t)
+      const ring = (i) => {
+        const t = 0.7 ** (STEPS - i)
+        const l = edge(small.l, big.l, t)
+        const top = edge(small.t, big.t, t)
+        const w = Math.max(1, edge(small.r, big.r, t) - l)
+        const h = Math.max(1, edge(small.b, big.b, t) - top)
+        const px = []
+        for (let x = l; x < l + w; x++) {
+          px.push([x, top])
+          if (h > 1) px.push([x, top + h - 1])
+        }
+        for (let y = top + 1; y < top + h - 1; y++) {
+          px.push([l, y])
+          if (w > 1) px.push([l + w - 1, y])
+        }
+        return px
+      }
+      const rings = Array.from({ length: STEPS }, (_, i) => ring(i))
+      const states = []
+      for (let step = 0; step < STEPS + VISIBLE; step++) {
+        const bits = new Uint8Array(W * H)
+        for (let i = Math.max(0, step - VISIBLE + 1); i <= Math.min(step, STEPS - 1); i++) {
+          // Closing, the order runs from the rect nearest the frame in.
+          for (const [x, y] of rings[closing ? STEPS - 1 - i : i]) {
+            const cx = x - L
+            const cy = y - T
+            if (cx >= 0 && cy >= 0 && cx < W && cy < H) bits[cy * W + cx] ^= 1
+          }
+        }
+        for (let cy = 0; cy < H; cy++) {
+          for (let cx = 0; cx < W; cx++) {
+            if (((L + cx + T + cy) & 1) === 0) bits[cy * W + cx] = 0
+          }
+        }
+        states.push(bits)
+      }
+      return { union: { x: L, y: T, w: W, h: H }, states }
+    }
+
+    /**
+     * What the visible canvases show over the union, XORed together where
+     * each sits, and each one's box in system px on the screen with its
+     * raster size.
+     */
+    const composeOf = (canvases, union) => {
+      const sr = surfaceOf().getBoundingClientRect()
+      const k = scaleOf(desk())
+      const bits = new Uint8Array(union.w * union.h)
+      const boxes = []
+      for (const c of canvases) {
+        if (getComputedStyle(c).visibility !== 'visible') continue
+        const b = c.getBoundingClientRect()
+        const box = { x: (b.x - sr.x) / k, y: (b.y - sr.y) / k, w: b.width / k, h: b.height / k }
+        boxes.push({ ...box, raster: [c.width, c.height] })
+        const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+        const ox = Math.round(box.x) - union.x
+        const oy = Math.round(box.y) - union.y
+        for (let py = 0; py < c.height; py++) {
+          for (let px = 0; px < c.width; px++) {
+            if (data[(py * c.width + px) * 4 + 3] === 0) continue
+            const cx = ox + px
+            const cy = oy + py
+            if (cx >= 0 && cy >= 0 && cx < union.w && cy < union.h) bits[cy * union.w + cx] ^= 1
+          }
+        }
+      }
+      return { bits, boxes }
+    }
+
+    /** Which of the states the bits are, or -1. */
+    const matchOf = (bits, states) =>
+      states.findIndex((s) => {
+        if (s.length !== bits.length) return false
+        for (let i = 0; i < bits.length; i++) if (s[i] !== bits[i]) return false
+        return true
+      })
+
+    /**
+     * Every animation frame until `settled()` holds: the canvases on the
+     * surface, the window's state, and which expected state the visible
+     * canvases show.
+     */
+    const sampleFrames = (settled, expected) =>
+      new Promise((resolve) => {
+        const win = document.getElementById('win')
+        const surface = surfaceOf()
+        const frames = []
+        const sample = () => {
+          const canvases = [...surface.querySelectorAll('canvas')]
+          const r = win.getBoundingClientRect()
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+          const done = settled()
+          const f = {
+            count: canvases.length,
+            hidden: win.hidden,
+            opening: win.matches(':state(opening)'),
+            opacity: getComputedStyle(win).opacity,
+            hit: !!hit?.closest('#win'),
+            settled: done,
+            match: null,
+            boxes: null,
+          }
+          if (canvases.length > 0 && expected) {
+            const { bits, boxes } = composeOf(canvases, expected.union)
+            f.boxes = boxes
+            f.match = matchOf(bits, expected.states)
+          }
+          frames.push(f)
+          if (done) resolve(frames)
+          else requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+      })
+
+    globalThis.__openRun = async ({ from = null, move = null } = {}) => {
+      const win = document.getElementById('win')
+      let settled = false
+      let result
+      const promise = win.show({ from: from && __screenBox(from) }).then((v) => {
+        settled = true
+        result = v
+      })
+      const sync = {
+        hidden: win.hidden,
+        opening: win.matches(':state(opening)'),
+        opacity: getComputedStyle(win).opacity,
+      }
+      if (move) {
+        win.left = move.left
+        win.top = move.top
+      }
+      await win.updateComplete
+      const expected = from ? __expect(__screenBox(from), win.getBoundingClientRect()) : null
+      globalThis.__lastExpected = expected
+      const frames = await sampleFrames(() => settled, expected)
+      await promise
+      return { sync, frames, result, union: expected?.union ?? null }
+    }
+
+    /** hide() from a shown window, sampled the same way against the closing states. */
+    globalThis.__closeRun = async ({ to = null } = {}) => {
+      const win = document.getElementById('win')
+      const frame = win.getBoundingClientRect()
+      let settled = false
+      let result
+      const promise = win.hide({ to: to && __screenBox(to) }).then((v) => {
+        settled = true
+        result = v
+      })
+      const sync = { hidden: win.hidden, canvases: surfaceOf().querySelectorAll('canvas').length }
+      const expected = to ? __expect(__screenBox(to), frame, true) : null
+      globalThis.__lastExpected = expected
+      const frames = await sampleFrames(() => settled, expected)
+      await promise
+      return { sync, frames, result, union: expected?.union ?? null }
+    }
+  })
+
+/** Hide the window again, and let any run it had settle. */
+const resetOpen = (page) =>
+  page.evaluate(async () => {
+    const win = document.getElementById('win')
+    win.hidden = true
+    await win.updateComplete
+  })
+
+const sameBox = (a, b) =>
+  !!a && !!b && near(a.x, b.x) && near(a.y, b.y) && near(a.w, b.w) && near(a.h, b.h)
+
+/** Frames of a run while it ran, and those with the canvas up. */
+const partsOf = (run) => {
+  const live = run.frames.filter((f) => !f.settled)
+  const shown = live.filter((f) => f.count > 0)
+  return { live, shown, matches: shown.map((f) => f.match), last: run.frames.at(-1) }
+}
+
+{
+  const page = await build(OPEN_DESK, { settle: true })
+  await installRectsProbe(page)
+
+  // The run, frame by frame.
+  const run = await page.evaluate((from) => __openRun({ from }), FROM)
+  const { live, shown, matches, last } = partsOf(run)
+  check(
+    'OPEN  show({ from }) clears hidden and conceals the window in the same task',
+    run.sync.hidden === false && run.sync.opening && run.sync.opacity === '0',
+    JSON.stringify(run.sync)
+  )
+  check(
+    'OPEN  while the rects run the window paints nothing, and stays a hit target',
+    live.length > 0 && live.every((f) => f.opening && f.opacity === '0' && f.hit),
+    `${live.length} frames: ${JSON.stringify(live.map((f) => [f.opening, f.opacity, f.hit]))}`
+  )
+  check(
+    "OPEN  a canvas per rect on the desktop's surface, four up at most, one image px per system px",
+    shown.length >= 5 &&
+      sameBox(run.union, { x: 40, y: 60, w: 260, h: 172 }) &&
+      shown.every(
+        (f) =>
+          f.count === 14 &&
+          f.boxes.length <= 4 &&
+          f.boxes.every((b) => b.raster[0] === Math.round(b.w) && b.raster[1] === Math.round(b.h))
+      ),
+    JSON.stringify({ frames: shown.length, union: run.union, counts: shown.map((f) => f.count), boxes: shown[1]?.boxes })
+  )
+  check(
+    'OPEN  every frame shows one of the eighteen trail states: the rects\' frames, four up, XOR, dots on the odd diagonal',
+    shown.length > 0 && matches.every((m) => m >= 0),
+    JSON.stringify(matches)
+  )
+  check(
+    'OPEN  …in order, from the box outward and through the drain',
+    matches.every((m, i) => i === 0 || m >= matches[i - 1]) &&
+      Math.min(...matches) <= 3 &&
+      Math.max(...matches) >= 14,
+    JSON.stringify(matches)
+  )
+  check(
+    'OPEN  …then the canvases are gone, the window drawn, and show() resolved true',
+    last.settled && run.result === true && last.count === 0 && !last.opening && last.opacity === '1',
+    JSON.stringify({ result: run.result, last })
+  )
+
+  // The look: early in a run, the screen over the union is the dither with
+  // one trail state XORed in — each ring's dots land on the pixels the
+  // dither leaves white, so every ring reads as a black line.
+  await resetOpen(page)
+  await page.evaluate((from) => {
+    globalThis.__looked = document.getElementById('win').show({ from: __screenBox(from) })
+  }, FROM)
+  await page.waitForTimeout(40)
+  const png = decodePng(await page.screenshot())
+  const u = { x: 40, y: 60, w: 260, h: 172 }
+  const oddInk = new Array(u.w * u.h).fill(0)
+  let dither = 0
+  let impure = 0
+  for (let cy = 0; cy < u.h; cy++) {
+    for (let cx = 0; cx < u.w; cx++) {
+      const x = u.x + cx
+      const y = u.y + cy
+      const black = isBlack(png, x, y)
+      if (!black && !isWhite(png, x, y)) impure++
+      if (((x + y) & 1) === 0) dither += black ? 0 : 1
+      else if (black) oddInk[cy * u.w + cx] = 1
+    }
+  }
+  const seen = await page.evaluate(
+    (bits) =>
+      globalThis.__lastExpected.states.findIndex(
+        (s) => s.length === bits.length && s.every((v, i) => v === bits[i])
+      ),
+    oddInk
+  )
+  check(
+    'OPEN  over the dither every ring reads as a black line: the screen is the dither with one trail state in it',
+    impure === 0 && dither === 0 && seen >= 0 && seen < 17,
+    `state ${seen}, ${dither} dither pixels lost, ${impure} gray`
+  )
+  await page.evaluate(() => globalThis.__looked)
+
+  // Same-task writes land first: the rects end on the frame the page set.
+  await resetOpen(page)
+  const movedRun = await page.evaluate(
+    (from) => __openRun({ from, move: { left: 240, top: 100 } }),
+    FROM
+  )
+  const moved = partsOf(movedRun)
+  check(
+    'OPEN  a left/top write in the show() task lands first: the rects run to the new frame',
+    sameBox(movedRun.union, { x: 40, y: 100, w: 400, h: 132 }) &&
+      moved.shown.length > 0 &&
+      moved.matches.every((m) => m >= 0) &&
+      movedRun.result === true,
+    JSON.stringify({ union: movedRun.union, matches: moved.matches })
+  )
+  await page.evaluate(() => {
+    const win = document.getElementById('win')
+    win.left = 100
+    win.top = 60
+  })
+
+  // A press finishes the rects and lands on the window.
+  await resetOpen(page)
+  await page.evaluate((from) => {
+    globalThis.__clicks = 0
+    document.getElementById('inside').addEventListener('click', () => globalThis.__clicks++)
+    globalThis.__done = null
+    document
+      .getElementById('win')
+      .show({ from: __screenBox(from) })
+      .then((v) => (globalThis.__done = v))
+  }, FROM)
+  await page.waitForTimeout(40)
+  const button = await page.evaluate(() => {
+    const r = document.getElementById('inside').getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  await page.mouse.click(button.x, button.y)
+  const openState = () =>
+    page.evaluate(() => {
+      const win = document.getElementById('win')
+      return {
+        done: globalThis.__done,
+        canvases: document
+          .getElementById('desk')
+          .shadowRoot.querySelectorAll('.drag-surface canvas').length,
+        opening: win.matches(':state(opening)'),
+        opacity: getComputedStyle(win).opacity,
+      }
+    })
+  const pressed = { ...(await openState()), clicks: await page.evaluate(() => globalThis.__clicks) }
+  check(
+    'OPEN  a press finishes the rects at once and lands on the window: the button in it gets the click',
+    pressed.done === true &&
+      pressed.clicks === 1 &&
+      pressed.canvases === 0 &&
+      !pressed.opening &&
+      pressed.opacity === '1',
+    JSON.stringify(pressed)
+  )
+
+  // Escape finishes them too, and goes no further.
+  await resetOpen(page)
+  await page.evaluate((from) => {
+    globalThis.__escapes = 0
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') globalThis.__escapes++
+    })
+    globalThis.__done = null
+    document
+      .getElementById('win')
+      .show({ from: __screenBox(from) })
+      .then((v) => (globalThis.__done = v))
+  }, FROM)
+  await page.waitForTimeout(40)
+  await page.keyboard.press('Escape')
+  const escaped = { ...(await openState()), escapes: await page.evaluate(() => globalThis.__escapes) }
+  check(
+    'OPEN  Escape finishes the rects and is consumed there',
+    escaped.done === true && escaped.escapes === 0 && escaped.canvases === 0 && !escaped.opening,
+    JSON.stringify(escaped)
+  )
+
+  // A second show() finishes the run in flight, then runs its own.
+  await resetOpen(page)
+  const twice = await page.evaluate(async (from) => {
+    const win = document.getElementById('win')
+    const surface = document.getElementById('desk').shadowRoot.querySelector('.drag-surface')
+    let first = null
+    win.show({ from: __screenBox(from) }).then((v) => (first = v))
+    await new Promise((r) => setTimeout(r, 40))
+    const second = win.show({ from: __screenBox(from) })
+    await new Promise((r) => setTimeout(r, 0))
+    const during = { first, canvases: surface.querySelectorAll('canvas').length }
+    const v = await second
+    return { during, v, after: surface.querySelectorAll('canvas').length }
+  }, FROM)
+  check(
+    'OPEN  a second show() finishes the run in flight — resolved true — and runs its own',
+    twice.during.first === true && twice.during.canvases === 14 && twice.v === true && twice.after === 0,
+    JSON.stringify(twice)
+  )
+
+  // A page can focus into the window while it opens.
+  await resetOpen(page)
+  const focus = await page.evaluate(async (from) => {
+    const win = document.getElementById('win')
+    const inside = document.getElementById('inside')
+    const p = win.show({ from: __screenBox(from) })
+    inside.focus()
+    await win.updateComplete
+    const during = document.activeElement === inside && win.matches(':state(opening)')
+    await p
+    return { during, after: document.activeElement === inside }
+  }, FROM)
+  check(
+    'OPEN  a page can focus into the window while it opens, and the focus stays',
+    focus.during && focus.after,
+    JSON.stringify(focus)
+  )
+
+  // Appended and shown in one task: never painted ahead of the rects.
+  const appended = await page.evaluate(async (from) => {
+    const desk = document.getElementById('desk')
+    const fresh = document.createElement('vf-window')
+    fresh.id = 'fresh'
+    fresh.heading = 'Fresh'
+    fresh.width = 160
+    fresh.height = 100
+    fresh.left = 200
+    fresh.top = 150
+    desk.append(fresh)
+    const p = fresh.show({ from: __screenBox(from) })
+    const first = await new Promise((r) =>
+      requestAnimationFrame(() => r(getComputedStyle(fresh).opacity))
+    )
+    const v = await p
+    const after = getComputedStyle(fresh).opacity
+    fresh.remove()
+    return { first, v, after }
+  }, FROM)
+  check(
+    'OPEN  appended and shown in one task, the window never paints ahead of the rects',
+    appended.first === '0' && appended.v === true && appended.after === '1',
+    JSON.stringify(appended)
+  )
+
+  // A removal takes the rects down.
+  await resetOpen(page)
+  const removed = await page.evaluate(async (from) => {
+    const desk = document.getElementById('desk')
+    const win = document.getElementById('win')
+    const p = win.show({ from: __screenBox(from) })
+    await new Promise((r) => setTimeout(r, 40))
+    win.remove()
+    const v = await p
+    const result = {
+      v,
+      canvases: desk.shadowRoot.querySelectorAll('.drag-surface canvas').length,
+      opening: win.matches(':state(opening)'),
+    }
+    // Back, first in the DOM, for the move below.
+    win.hidden = true
+    desk.prepend(win)
+    return result
+  }, FROM)
+  check(
+    'OPEN  removing the window mid-run takes the rects down, and show() resolves false',
+    removed.v === false && removed.canvases === 0 && !removed.opening,
+    JSON.stringify(removed)
+  )
+
+  // A move is not a removal: the desktop re-inserts a raised window to keep
+  // the DOM in stacking order, and the rects keep running through it — the
+  // press that finishes them still heard afterwards.
+  const move = await page.evaluate(async (from) => {
+    const desk = document.getElementById('desk')
+    const win = document.getElementById('win')
+    const other = document.getElementById('other')
+    await win.updateComplete
+    const before = !!(win.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING)
+    globalThis.__done = null
+    win.show({ from: __screenBox(from) }).then((v) => (globalThis.__done = v))
+    desk.bringToFront(win)
+    await new Promise((r) => setTimeout(r, 40))
+    return {
+      before,
+      after: !!(win.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_PRECEDING),
+      canvases: desk.shadowRoot.querySelectorAll('.drag-surface canvas').length,
+      opening: win.matches(':state(opening)'),
+      done: globalThis.__done,
+    }
+  }, FROM)
+  check(
+    'OPEN  a raise that re-inserts the window mid-run is a move: the rects keep running',
+    move.before && move.after && move.canvases === 14 && move.opening && move.done === null,
+    JSON.stringify(move)
+  )
+  await page.mouse.click(5, 330)
+  const afterMove = await openState()
+  check(
+    '…and a press after the move still finishes them',
+    afterMove.done === true && afterMove.canvases === 0 && !afterMove.opening,
+    JSON.stringify(afterMove)
+  )
+  await page.close()
+}
+
+// The rects on the device grid, at display density.
+for (const dpr of [2, 3]) {
+  const page = await build(OPEN_DESK, { settle: true, dpr, real: true })
+  await installRectsProbe(page)
+  const run = await page.evaluate((from) => __openRun({ from }), FROM)
+  const { shown, matches } = partsOf(run)
+  const whole = (v) => Math.abs(v - Math.round(v)) < 1e-3
+  check(
+    `OPEN dpr${dpr}  the canvases sit on whole system px and show the same trail states`,
+    shown.length > 0 &&
+      shown.every((f) =>
+        f.boxes.every((b) => whole(b.x) && whole(b.y) && whole(b.w) && whole(b.h))
+      ) &&
+      sameBox(run.union, { x: 40, y: 60, w: 260, h: 172 }) &&
+      matches.every((m) => m >= 0) &&
+      run.result === true,
+    JSON.stringify({ boxes: shown[1]?.boxes, matches })
+  )
+  await page.close()
+}
+
+// Reduced motion: the window shows at once, with nothing concealed.
+{
+  const page = await build(OPEN_DESK, { settle: true, reducedMotion: true })
+  await installRectsProbe(page)
+  const run = await page.evaluate((from) => __openRun({ from }), FROM)
+  check(
+    'OPEN  under reduced motion the window shows at once: no rects, nothing concealed, resolved false',
+    run.result === false &&
+      run.sync.hidden === false &&
+      !run.sync.opening &&
+      run.frames.every((f) => f.count === 0 && !f.opening && f.opacity === '1'),
+    JSON.stringify({ sync: run.sync, frames: run.frames })
+  )
+  const closed = await page.evaluate(async (to) => {
+    const win = document.getElementById('win')
+    const v = await win.hide({ to: __screenBox(to) })
+    const surface = document.getElementById('desk').shadowRoot.querySelector('.drag-surface')
+    return { v, hidden: win.hidden, canvases: surface.querySelectorAll('canvas').length }
+  }, FROM)
+  check(
+    'CLOSE  under reduced motion the window hides at once: no rects, resolved false',
+    closed.v === false && closed.hidden && closed.canvases === 0,
+    JSON.stringify(closed)
+  )
+  await page.close()
+}
+
+// No desktop on the path, and no box: shown at once.
+{
+  const page = await build(`
+    <div style="position:relative;width:900px;height:700px">
+      <vf-window id="plain" heading="Plain" width="200" height="120" left="100" top="60" hidden></vf-window>
+    </div>
+  `)
+  const res = await page.evaluate(async () => {
+    const win = document.getElementById('plain')
+    const v = await win.show({ from: { left: 10, top: 10, right: 42, bottom: 42 } })
+    return {
+      v,
+      hidden: win.hidden,
+      opening: win.matches(':state(opening)'),
+      opacity: getComputedStyle(win).opacity,
+      canvases: document.querySelectorAll('canvas').length,
+    }
+  })
+  check(
+    'OPEN  with no desktop on its path the window shows at once and resolves false',
+    res.v === false && !res.hidden && !res.opening && res.opacity === '1' && res.canvases === 0,
+    JSON.stringify(res)
+  )
+  const bare = await page.evaluate(async () => {
+    const win = document.getElementById('plain')
+    win.hidden = true
+    const v = await win.show()
+    return { v, hidden: win.hidden }
+  })
+  check(
+    'OPEN  without from, show() clears hidden and resolves false',
+    bare.v === false && !bare.hidden,
+    JSON.stringify(bare)
+  )
+  const plainClose = await page.evaluate(async () => {
+    const win = document.getElementById('plain')
+    const v = await win.hide({ to: { left: 10, top: 10, right: 42, bottom: 42 } })
+    return { v, hidden: win.hidden, canvases: document.querySelectorAll('canvas').length }
+  })
+  check(
+    'CLOSE  with no desktop on its path the window hides at once and resolves false',
+    plainClose.v === false && plainClose.hidden && plainClose.canvases === 0,
+    JSON.stringify(plainClose)
+  )
+  await page.close()
+}
+
+/* ── CLOSE ────────────────────────────────────────────────────────────────
+   hide({ to }): the window closes to a box — the opening's rects run the
+   other way, from where its frame was in toward the box, the window gone
+   from the first step. The OPEN page and probe; the window shown at once
+   before each run. */
+
+{
+  const page = await build(OPEN_DESK, { settle: true })
+  await installRectsProbe(page)
+  const surfaceCount = () =>
+    page.evaluate(
+      () => document.getElementById('desk').shadowRoot.querySelectorAll('.drag-surface canvas').length
+    )
+  const showAtOnce = () =>
+    page.evaluate(async () => {
+      await document.getElementById('win').show()
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    })
+
+  // The run, frame by frame.
+  await showAtOnce()
+  const run = await page.evaluate((to) => __closeRun({ to }), FROM)
+  const { live, shown, matches, last } = partsOf(run)
+  check(
+    'CLOSE  hide({ to }) sets hidden in the same task, the rects already on the surface',
+    run.sync.hidden === true && run.sync.canvases === 14,
+    JSON.stringify(run.sync)
+  )
+  check(
+    'CLOSE  every frame shows one of the eighteen trail states in closing order, the window hidden throughout',
+    shown.length >= 5 && matches.every((m) => m >= 0) && live.every((f) => f.hidden),
+    JSON.stringify(matches)
+  )
+  check(
+    'CLOSE  …in order, from the frame in toward the box and draining into it',
+    matches.every((m, i) => i === 0 || m >= matches[i - 1]) &&
+      Math.min(...matches) <= 3 &&
+      Math.max(...matches) >= 14,
+    JSON.stringify(matches)
+  )
+  check(
+    'CLOSE  …then the canvases are gone and hide() resolved true',
+    last.settled && run.result === true && last.count === 0 && last.hidden,
+    JSON.stringify({ result: run.result, last })
+  )
+
+  // A press finishes the rects.
+  await showAtOnce()
+  await page.evaluate((to) => {
+    globalThis.__done = null
+    document
+      .getElementById('win')
+      .hide({ to: __screenBox(to) })
+      .then((v) => (globalThis.__done = v))
+  }, FROM)
+  await page.waitForTimeout(40)
+  await page.mouse.click(5, 330)
+  const pressed = {
+    done: await page.evaluate(() => globalThis.__done),
+    canvases: await surfaceCount(),
+  }
+  check(
+    'CLOSE  a press finishes the rects at once: hide() resolves true, the canvases gone',
+    pressed.done === true && pressed.canvases === 0,
+    JSON.stringify(pressed)
+  )
+
+  // A removal leaves them running: they are the desktop's, and the window is gone.
+  await showAtOnce()
+  const removed = await page.evaluate(async (to) => {
+    const desk = document.getElementById('desk')
+    const win = document.getElementById('win')
+    const surface = desk.shadowRoot.querySelector('.drag-surface')
+    const p = win.hide({ to: __screenBox(to) })
+    win.remove()
+    await new Promise((r) => setTimeout(r, 40))
+    const during = surface.querySelectorAll('canvas').length
+    const v = await p
+    const after = surface.querySelectorAll('canvas').length
+    desk.prepend(win)
+    return { during, v, after }
+  }, FROM)
+  check(
+    'CLOSE  removing the window leaves the rects running to the end: hide() resolves true',
+    removed.during === 14 && removed.v === true && removed.after === 0,
+    JSON.stringify(removed)
+  )
+
+  // show() during the rects finishes them and shows the window.
+  await showAtOnce()
+  const reopened = await page.evaluate(async (to) => {
+    const win = document.getElementById('win')
+    let closed = null
+    win.hide({ to: __screenBox(to) }).then((v) => (closed = v))
+    await new Promise((r) => setTimeout(r, 40))
+    const shownAtOnce = await win.show()
+    await new Promise((r) => setTimeout(r, 0))
+    const surface = document.getElementById('desk').shadowRoot.querySelector('.drag-surface')
+    return { closed, shownAtOnce, hidden: win.hidden, canvases: surface.querySelectorAll('canvas').length }
+  }, FROM)
+  check(
+    'CLOSE  a show() during the rects finishes them — hide() resolves true — and shows the window',
+    reopened.closed === true &&
+      reopened.shownAtOnce === false &&
+      !reopened.hidden &&
+      reopened.canvases === 0,
+    JSON.stringify(reopened)
+  )
+
+  // hide() while the window is still opening: nothing drawn to close from.
+  await resetOpen(page)
+  const crossed = await page.evaluate(async (box) => {
+    const win = document.getElementById('win')
+    const opened = win.show({ from: __screenBox(box) })
+    await new Promise((r) => setTimeout(r, 40))
+    const closed = await win.hide({ to: __screenBox(box) })
+    const surface = document.getElementById('desk').shadowRoot.querySelector('.drag-surface')
+    return {
+      opened: await opened,
+      closed,
+      hidden: win.hidden,
+      opening: win.matches(':state(opening)'),
+      canvases: surface.querySelectorAll('canvas').length,
+    }
+  }, FROM)
+  check(
+    'CLOSE  a hide() while the window is still opening takes it down — show() resolves false — and hides at once',
+    crossed.opened === false &&
+      crossed.closed === false &&
+      crossed.hidden &&
+      !crossed.opening &&
+      crossed.canvases === 0,
+    JSON.stringify(crossed)
+  )
+
+  // Nothing to close from, or nowhere to close to.
+  const bare = await page.evaluate(async (to) => {
+    const win = document.getElementById('win')
+    const already = await win.hide({ to: __screenBox(to) })
+    await win.show()
+    const noBox = await win.hide()
+    const surface = document.getElementById('desk').shadowRoot.querySelector('.drag-surface')
+    return { already, noBox, hidden: win.hidden, canvases: surface.querySelectorAll('canvas').length }
+  }, FROM)
+  check(
+    'CLOSE  on a hidden window, or without to, hide() hides at once and resolves false',
+    bare.already === false && bare.noBox === false && bare.hidden && bare.canvases === 0,
+    JSON.stringify(bare)
+  )
+  await page.close()
+}
+
+/* ── DRAG OUTLINE ─────────────────────────────────────────────────────────
+   outline-drag: the title-bar drag moves an outline, and the release moves
+   the window. dpr 1, scale 1, the desktop at the page's corner. */
+
+const OUTLINE_DESK = (attrs) => `
+  <vf-desktop id="desk" width="512" height="342">
+    <vf-window id="win" heading="Outline" width="200" height="120" left="100" top="60" ${attrs}></vf-window>
+  </vf-desktop>
+`
+
+/** The window's pair, placement writes so far, and the outline if there is one. */
+const outlineOf = (page) =>
+  page.evaluate(() => {
+    const win = document.getElementById('win')
+    const surface = document.getElementById('desk')?.shadowRoot.querySelector('.drag-surface')
+    const canvases = surface ? [...surface.querySelectorAll('canvas')] : []
+    const out = { left: win.left, top: win.top, writes: globalThis.__writes, count: canvases.length }
+    const c = canvases[0]
+    if (c) {
+      const b = c.getBoundingClientRect()
+      const sr = surface.getBoundingClientRect()
+      const cs = getComputedStyle(c)
+      out.box = { x: b.x - sr.x, y: b.y - sr.y, w: b.width, h: b.height }
+      out.pen = { filter: cs.filter, blend: cs.mixBlendMode, pointer: cs.pointerEvents, z: cs.zIndex }
+      // Ink exactly on the one-pixel border, and there only where x + y is
+      // odd on the screen.
+      const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+      let wrong = 0
+      let inked = 0
+      for (let y = 0; y < c.height; y++) {
+        for (let x = 0; x < c.width; x++) {
+          const ink = data[(y * c.width + x) * 4 + 3] > 0
+          const ring = x === 0 || y === 0 || x === c.width - 1 || y === c.height - 1
+          const odd = ((Math.round(out.box.x) + x + Math.round(out.box.y) + y) & 1) === 1
+          if (ink !== (ring && odd)) wrong++
+          if (ink) inked++
+        }
+      }
+      out.ring = { raster: [c.width, c.height], wrong, inked }
+    }
+    return out
+  })
+
+const countWrites = (page) =>
+  page.evaluate(() => {
+    globalThis.__writes = 0
+    document.addEventListener('vf-placement-change', (e) => {
+      if (e.target.id === 'win') globalThis.__writes++
+    })
+  })
+
+const titleBarPoint = (page) =>
+  page.evaluate(() => {
+    const r = document
+      .getElementById('win')
+      .shadowRoot.querySelector('[part=title-bar]')
+      .getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+
+{
+  const page = await build(OUTLINE_DESK('movable outline-drag'), { settle: true })
+  await countWrites(page)
+
+  // A drag by (60, 40): the outline goes, the window stays.
+  let bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 60, bar.y + 40, { steps: 6 })
+  const mid = await outlineOf(page)
+  check(
+    'DRAG OUTLINE  the window stays put mid-drag, and nothing is written',
+    mid.left === 100 && mid.top === 60 && mid.writes === 0,
+    JSON.stringify(mid)
+  )
+  check(
+    "DRAG OUTLINE  one canvas on the desktop's surface: the window's box moved by the drag",
+    mid.count === 1 && sameBox(mid.box, { x: 160, y: 100, w: 200, h: 120 }),
+    JSON.stringify(mid.box)
+  )
+  check(
+    'DRAG OUTLINE  the XOR pen, never a hit, one tier above the menu bar',
+    mid.pen?.filter === 'invert(1)' &&
+      mid.pen.blend === 'difference' &&
+      mid.pen.pointer === 'none' &&
+      Number(mid.pen.z) === 2_000_001,
+    JSON.stringify(mid.pen)
+  )
+  check(
+    "DRAG OUTLINE  a one-pixel ring at the frame's size, dotted on the screen's odd diagonal",
+    mid.ring?.raster[0] === 200 && mid.ring.raster[1] === 120 && mid.ring.wrong === 0 && mid.ring.inked > 0,
+    JSON.stringify(mid.ring)
+  )
+  await page.mouse.up()
+  const released = await outlineOf(page)
+  check(
+    'DRAG OUTLINE  the release moves the window to where the outline was, in one write',
+    released.left === 160 && released.top === 100 && released.writes === 1 && released.count === 0,
+    JSON.stringify(released)
+  )
+
+  // Escape cancels: the outline goes, nothing is written, now or at the release.
+  bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x - 40, bar.y + 30, { steps: 4 })
+  const before = await outlineOf(page)
+  await page.keyboard.press('Escape')
+  const escaped = await outlineOf(page)
+  await page.mouse.move(bar.x - 60, bar.y + 50, { steps: 2 })
+  await page.mouse.up()
+  const after = await outlineOf(page)
+  check(
+    'DRAG OUTLINE  Escape takes the outline down and nothing is written',
+    before.count === 1 &&
+      escaped.count === 0 &&
+      after.count === 0 &&
+      after.left === 160 &&
+      after.top === 100 &&
+      after.writes === 1,
+    JSON.stringify({ before: before.count, escaped: escaped.count, after })
+  )
+
+  // Held where the window can land: pushed past the top-left, the outline
+  // stops where the clamp holds the window — a grabbable strip in, the title
+  // bar never above the screen — and the window lands there.
+  bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x - 600, bar.y - 400, { steps: 6 })
+  const pushed = await outlineOf(page)
+  await page.mouse.up()
+  const landed = await outlineOf(page)
+  check(
+    'DRAG OUTLINE  the outline is held where the window can land, and the window lands there',
+    sameBox(pushed.box, { x: 24 - 200, y: 0, w: 200, h: 120 }) &&
+      landed.left === 24 - 200 &&
+      landed.top === 0,
+    JSON.stringify({ outline: pushed.box, landed: [landed.left, landed.top] })
+  )
+  await page.close()
+}
+
+// Unset, and with no desktop to draw on, the window moves live.
+for (const [label, markup] of [
+  ['without outline-drag', OUTLINE_DESK('movable')],
+  [
+    'with no desktop',
+    `<div style="position:relative;width:900px;height:700px">
+       <vf-window id="win" heading="Outline" width="200" height="120" left="100" top="60" movable outline-drag></vf-window>
+     </div>`,
+  ],
+]) {
+  const page = await build(markup, { settle: true })
+  await countWrites(page)
+  const bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 60, bar.y + 40, { steps: 6 })
+  const mid = await outlineOf(page)
+  const canvases = await page.evaluate(() => document.querySelectorAll('canvas').length)
+  await page.mouse.up()
+  const end = await outlineOf(page)
+  check(
+    `DRAG OUTLINE  ${label} the window moves live, with no outline`,
+    mid.left === 160 && mid.top === 100 && mid.writes > 1 && mid.count === 0 && canvases === 0 &&
+      end.left === 160 && end.top === 100,
+    JSON.stringify({ mid, end, canvases })
+  )
   await page.close()
 }
 

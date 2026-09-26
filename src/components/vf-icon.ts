@@ -19,7 +19,13 @@ import {
   TAP_PAIR_SLOP_PX,
 } from '../motion.js'
 import type { TravelHandle } from '../motion.js'
-import { deriveDragOutline, deriveOpenArt, dotOutline, penPhase } from '../open-art.js'
+import {
+  deriveDragOutline,
+  deriveOpenArt,
+  dotOutline,
+  penPhase,
+  xorPenCanvas,
+} from '../open-art.js'
 import type { DragOutlineBox } from '../open-art.js'
 import { sysLength } from '../scale.js'
 
@@ -1388,19 +1394,12 @@ export class VfIcon extends VfPositioned(LitElement) {
     })
     if (!ring) return null
 
-    const canvas = document.createElement('canvas')
-    canvas.className = 'drag-outline'
     // One renderer, two possible parents, so the recipe rides inline: the
-    // cursor's XOR pen (ink flipped white, then difference against the
-    // backdrop), nearest-neighbor at one image px per system px, never a
-    // hit. Sized live, so a scale change mid-gesture cannot smear it.
+    // XOR pen (xorPenCanvas, src/open-art.ts), sized live, so a scale
+    // change mid-gesture cannot smear it.
+    const canvas = xorPenCanvas('drag-outline')
     const style = canvas.style
     style.position = 'absolute'
-    style.display = 'block'
-    style.pointerEvents = 'none'
-    style.filter = 'invert(1)'
-    style.mixBlendMode = 'difference'
-    style.imageRendering = 'pixelated'
     style.width = sysLength(ring.width)
     style.height = sysLength(ring.height)
     // The box's whole-system-px offset from what the canvas is positioned
@@ -1932,6 +1931,24 @@ export class VfIcon extends VfPositioned(LitElement) {
       }
     }
     return false
+  }
+
+  /**
+   * The reserved art cell's box in the viewport, CSS px: 32×32 system px, or
+   * 16×16 under `size="small"`, centered at the top of the frame — the same
+   * box whatever the art, the name, `width`, `open` or `selected`. The
+   * slotted art is no stand-in for it: `open` hides the slot, so the art
+   * measures nothing. The box to hand anything that opens from the icon or
+   * closes to it. Null while the icon is not rendered — out of the
+   * document, or under `display: none`, inside a hidden window say. Before
+   * the first render, the host's box.
+   */
+  cellRect(): DOMRect | null {
+    if (!this.checkVisibility()) return null
+    return (
+      this.renderRoot?.querySelector('.art')?.getBoundingClientRect() ??
+      this.getBoundingClientRect()
+    )
   }
 
   /**

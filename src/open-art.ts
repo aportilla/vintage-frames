@@ -1,7 +1,9 @@
 /**
  * The Finder "open" ghost — an icon's art redrawn as outline plus dither,
  * derived from the art itself in the client — and, on the same terms, the
- * dotted outline an icon drags as ({@link deriveDragOutline}).
+ * dotted outline an icon drags as ({@link deriveDragOutline}), and the XOR pen
+ * that outline, the rubber band and a window's zoom rects and drag outline
+ * draw with ({@link xorPenCanvas}).
  *
  * When a folder or application is open, the Finder redraws its icon as a
  * ghost: the outline stays, and everything inside it becomes pattern. The kit
@@ -197,6 +199,27 @@ const inkBox = (ctx: CanvasRenderingContext2D, box: DragOutlineBox): void => {
 }
 
 /**
+ * A canvas that paints with the XOR pen — the cursor's recipe: its ink is
+ * turned white by `filter: invert(1)`, then differenced against whatever is
+ * beneath it (`mix-blend-mode: difference`), so a black pixel of the raster
+ * inverts the pixel under it and a transparent one leaves it alone.
+ * Nearest-neighbor at one image px per system px, and never a hit. The
+ * caller positions and sizes it: the drag outline, the rubber band, and a
+ * window's zoom rects and drag outline all draw with one.
+ */
+export function xorPenCanvas(className: string): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.className = className
+  const style = canvas.style
+  style.display = 'block'
+  style.pointerEvents = 'none'
+  style.filter = 'invert(1)'
+  style.mixBlendMode = 'difference'
+  style.imageRendering = 'pixelated'
+  return canvas
+}
+
+/**
  * Derive the outline an icon drags as: the boundary of the mask united with
  * the name plate's rectangle — one shape, the one-pixel ring a 3×3 box
  * erosion removes from it, so where the art and the plate abut the outline
@@ -302,9 +325,10 @@ export function penPhase(x: number, y: number): number {
 
 /**
  * Paint a selection rectangle — the rubber band `vf-icon-field` drags on its
- * background — into `into`: a one-pixel outline `width` × `height` system px,
- * dotted at `phase` the way the drag outline is. A degenerate axis paints as
- * a one-pixel line rather than nothing.
+ * background, and each of a window's zoom rects and its drag outline — into
+ * `into`: a one-pixel outline `width` × `height` system px, dotted at `phase`
+ * the way the drag outline is. A degenerate axis paints as a one-pixel line
+ * rather than nothing.
  */
 export function paintSelectionRect(
   into: HTMLCanvasElement,

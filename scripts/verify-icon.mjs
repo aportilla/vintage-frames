@@ -7,6 +7,9 @@
  *    16×16 small, with the name plate on a whole-system-px line box directly
  *    under it — at dpr 1/2/3, where "whole" is the only thing that keeps
  *    the 1-bit art off half device pixels (layout contract rule 1).
+ *  - CELL RECT: `cellRect()` reads that cell back in viewport CSS px, and
+ *    holds it through `open`, `selected` and no art at all; null while the
+ *    icon isn't rendered.
  *  - SELECT: a plain press single-selects with NO container managing the set
  *    (the outside-press listener is what buys that), Shift adds, and a press
  *    outside every icon clears. The selected look is asserted as rendered
@@ -179,6 +182,83 @@ for (const dpr of [1, 2, 3]) {
     `art ${large.art.h * dpr}, plate ${large.label.h * dpr} device px` +
       (holdableScale(large.scale) ? '' : ' (3× device: 4/3 is not holdable, so these are its 1/64-px equivalents)')
   )
+  await page.close()
+}
+
+// ── CELL RECT ───────────────────────────────────────────────────────────────
+// cellRect() is the reserved art cell's box in the viewport, and stays that
+// box whatever the icon wears: open (whose ghost hides the slotted art),
+// selected, or no art at all. An icon that isn't rendered has none.
+for (const dpr of [1, 2, 3]) {
+  const page = await build(
+    `${icon('width="64" selectable')}<hr>${icon('size="small" width="64"')}<hr>` +
+      '<vf-icon label="Bare" width="64"></vf-icon>',
+    { dpr }
+  )
+  const read = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('vf-icon')].map((el) => {
+        const r = (b) => ({ x: b.x, y: b.y, w: b.width, h: b.height })
+        return {
+          scale: parseFloat(getComputedStyle(el).getPropertyValue('--vf-scale')),
+          cell: r(el.cellRect()),
+          art: r(el.shadowRoot.querySelector('.art').getBoundingClientRect()),
+          host: r(el.getBoundingClientRect()),
+          slotted: r(el.querySelector('vf-img')?.getBoundingClientRect() ?? new DOMRect()),
+        }
+      })
+    )
+  const [large, small, bare] = await read()
+  const close = (a, b) => Math.abs(a - b) < 1 / 32
+  const sameBox = (a, b) => close(a.x, b.x) && close(a.y, b.y) && close(a.w, b.w) && close(a.h, b.h)
+  check(
+    `CELL RECT dpr${dpr}  cellRect() is the art cell: 32 system px, centered at the top of a 64 pitch`,
+    sameBox(large.cell, large.art) &&
+      close(large.cell.w, cssPxFor(32, large.scale)) &&
+      close(large.cell.h, cssPxFor(32, large.scale)) &&
+      close(large.cell.x - large.host.x, cssPxFor(16, large.scale)) &&
+      close(large.cell.y, large.host.y),
+    JSON.stringify({ cell: large.cell, host: large.host })
+  )
+  check(
+    `CELL RECT dpr${dpr}  …16 system px under size="small", and the cell still with no art slotted`,
+    sameBox(small.cell, small.art) &&
+      close(small.cell.w, cssPxFor(16, small.scale)) &&
+      close(small.cell.h, cssPxFor(16, small.scale)) &&
+      sameBox(bare.cell, bare.art) &&
+      close(bare.cell.w, cssPxFor(32, bare.scale)),
+    JSON.stringify({ small: small.cell, bare: bare.cell })
+  )
+  await page.evaluate(async () => {
+    const el = document.querySelector('vf-icon')
+    el.open = true
+    el.selected = true
+    await el.updateComplete
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  })
+  const [worn] = await read()
+  check(
+    `CELL RECT dpr${dpr}  …the same box open and selected, where the slotted art measures nothing`,
+    sameBox(worn.cell, large.cell) && worn.slotted.w === 0,
+    JSON.stringify({ cell: worn.cell, slotted: worn.slotted })
+  )
+  if (dpr === 1) {
+    const unrendered = await page.evaluate(() => {
+      const el = document.querySelector('vf-icon')
+      const shell = document.createElement('div')
+      shell.style.display = 'none'
+      el.before(shell)
+      shell.append(el)
+      const underNone = el.cellRect()
+      shell.remove()
+      return { underNone, detached: el.cellRect() }
+    })
+    check(
+      'CELL RECT  null while the icon is not rendered: under display: none, or out of the document',
+      unrendered.underNone === null && unrendered.detached === null,
+      JSON.stringify(unrendered)
+    )
+  }
   await page.close()
 }
 

@@ -26,9 +26,16 @@ import {
   tileGrid,
   vfTileGrid,
 } from '../tile-grid.js'
-import { ScaleController, snapSys, sysLength, toSysExact } from '../scale.js'
+import {
+  ScaleController,
+  effectiveScale,
+  snapSys,
+  sysLength,
+  toSysExact,
+} from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
+import { DocumentListenersController } from '../document-listeners.js'
 import {
   chromeTitleBar,
   TitleCenterController,
@@ -37,8 +44,82 @@ import {
   zoomBox,
 } from '../chrome.js'
 import { emit } from '../events.js'
+import {
+  prefersReducedMotion,
+  windowRectFraction,
+  WINDOW_RECT_STEP_MS,
+  WINDOW_RECT_STEPS,
+  WINDOW_RECTS_VISIBLE,
+} from '../motion.js'
+import { paintSelectionRect, penPhase, xorPenCanvas } from '../open-art.js'
 import './vf-scroll-area.js'
 import type { VfScrollArea } from './vf-scroll-area.js'
+
+/** A box in viewport CSS px. A `DOMRect` is one; a zero-size box is a point. */
+export interface VfViewportBox {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+
+/** The options of {@link VfWindow.show}. */
+export interface VfWindowShowOptions {
+  /**
+   * The box the window opens from, in viewport CSS px — an icon's
+   * `cellRect()`, a button's `getBoundingClientRect()`, any rect. Unset, the
+   * window shows at once.
+   */
+  from?: VfViewportBox | null
+}
+
+/** The options of {@link VfWindow.hide}. */
+export interface VfWindowHideOptions {
+  /**
+   * The box the window closes to, in viewport CSS px — an icon's
+   * `cellRect()`, a button's `getBoundingClientRect()`, any rect. Unset, the
+   * window hides at once.
+   */
+  to?: VfViewportBox | null
+}
+
+/** The outline an outline drag moves, on the desktop's drag surface. */
+interface WindowOutline {
+  canvas: HTMLCanvasElement
+  /** The window's offset from the surface at the press, whole system px. */
+  base: { x: number; y: number }
+  width: number
+  height: number
+  /** The checker phase last painted, so an unchanged parity paints nothing. */
+  phase: number
+}
+
+/** An outline drag (`outline-drag`), from the press to its end. */
+interface OutlineDrag {
+  /** The seeded origin, system px in the container. */
+  origin: { x: number; y: number }
+  /** The outline, drawn around the window on the press. */
+  outline: WindowOutline
+  /**
+   * Where the release writes the window: the last step's clamped landing,
+   * or null while no step has come.
+   */
+  landing: { x: number; y: number } | null
+}
+
+/** A run's rects: their canvases on the drag surface, and their animations. */
+interface Rects {
+  canvases: HTMLCanvasElement[]
+  animations: Animation[]
+}
+
+/** A `show({ from })` or `hide({ to })` in flight, from the call until its rects are done. */
+interface RectsRun {
+  /** A `hide()`: the rects close in on the box, and a removal leaves them running. */
+  closing: boolean
+  /** The rects' animations, once they run — empty until then. */
+  animations: Animation[]
+}
 
 interface ResizeState {
   pointerId: number
@@ -120,6 +201,32 @@ const DOTS_LAYER_HEIGHT = 8
  * Unset, the window still renders — normal block layout, as before — and
  * says so once in the console.
  *
+ * **Opening from a rect.** {@link show} clears `hidden`, and given `from` — a
+ * box in viewport CSS px, an icon's `cellRect()` or a button's rect — opens
+ * the window from it: dotted rectangles grow from that box toward the
+ * window's frame, four on screen at a time, bunched at the box and opening
+ * out toward the window, drawn with the icon drag outline's XOR pen on the
+ * desktop's drag surface; the window draws once they have drained, eighteen
+ * steps later. Until then it matches `:state(opening)` and paints nothing —
+ * still laid out, focusable and a hit target, so a page can place it, raise
+ * it and focus into it at once, and a press finishes the rects and lands on
+ * the window. Under `prefers-reduced-motion`, with no `vf-desktop` on its
+ * path, or without `from`, the window shows at once.
+ *
+ * **Closing to a rect.** {@link hide} sets `hidden`, and given `to` closes
+ * the window to it: the same rectangles run the other way, from where the
+ * frame was in toward the box, the window gone from the first step. A press
+ * finishes them, and removing the window leaves them running. Under
+ * `prefers-reduced-motion`, with no `vf-desktop` on its path, or without
+ * `to`, the window hides at once. The window knows nothing about icons:
+ * `from` and `to` are any rect.
+ *
+ * **Dragging as an outline.** A `movable` window moves live under the
+ * pointer. With `outline-drag` a press on the title bar draws a dotted
+ * outline around the window on the desktop's drag surface instead, with the
+ * same pen; the drag moves the outline, held where the window can land, and
+ * the window moves there on the release. Escape cancels.
+ *
  * @slot - Default slot: window body content.
  * @slot header - Optional header content — a band between the title bar and
  *   the body, the full width of the window (the Finder window's header
@@ -186,6 +293,14 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         display: block;
         position: relative;
         --vf-surface: var(--vf-white, #ffffff);
+      }
+      /* Opening from a rect (show): laid out, focusable and a hit target,
+         painting nothing until the rects have drained. Opacity rather than
+         visibility, which would drop focus and hand a press to whatever is
+         under the window. A rule of its own, never in an :is() list: an
+         engine that cannot parse :state() drops the whole list. */
+      :host(:state(opening)) {
+        opacity: 0;
       }
       /* Skin from vfChromeFrame; the layout is the window's own — a full-size
          flex column so the body takes the slack the title bar and grow box
@@ -473,6 +588,17 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   @property({ type: Boolean, reflect: true }) movable = false
 
   /**
+   * Drag by the title bar as an outline: a press draws a dotted one-pixel
+   * rectangle around the window on the desktop's drag surface, with the
+   * icon drag outline's pen; the drag moves it, held where the window can
+   * land, and the window moves there on the release, in one write. Escape
+   * cancels and writes nothing, as does a release that never moved it.
+   * Unset, the window moves live under the pointer; with no `vf-desktop` on
+   * its path it moves live either way. Only matters with `movable`.
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'outline-drag' }) outlineDrag = false
+
+  /**
    * Show a grow box at the bottom-right corner for resizing. The drag is
    * bounded per axis by the sizeRect below.
    */
@@ -648,9 +774,17 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         return null
       }
       this.#warnIfUnplaced()
-      return this._placement.seed()
+      const origin = this._placement.seed()
+      this.#startOutlineDrag(origin)
+      return origin
     },
-    onDrag: (x: number, y: number): void => this._placement.moveTo(x, y),
+    onDrag: (x: number, y: number): void => {
+      if (this.#outlineDrag) this.#dragOutlineTo(x, y)
+      else this._placement.moveTo(x, y)
+    },
+    onDragEnd: (_event: PointerEvent | undefined, cancelled: boolean): void => {
+      this.#endOutlineDrag(cancelled)
+    },
   })
 
   private _resizeState: ResizeState | null = null
@@ -684,6 +818,333 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    */
   measure(): void {
     this.scrollArea?.measure()
+  }
+
+  /**
+   * Show the window: `hidden` cleared, and with `from` the window opens from
+   * that box — the zoom rects, grown from it toward the frame at the cadence
+   * in src/motion.ts (`WINDOW_RECT_*`), the window drawn once they have
+   * drained (see the class doc). A run in flight, a `show()` or a `hide()`,
+   * is finished first; a press anywhere or Escape finishes this one, and
+   * removing the window or a `hide()` takes it down. Resolves once the
+   * window draws: `true` when the rects ran, `false` when it showed at once
+   * — no `from`, `prefers-reduced-motion`, no `vf-desktop` on its path,
+   * nothing of the rects on the screen, or not in the DOM — or never drew.
+   * It raises and activates nothing: stacking stays the page's
+   * (`vf-desktop.bringToFront`).
+   */
+  async show(options: VfWindowShowOptions = {}): Promise<boolean> {
+    this.#stopRects('finish')
+    this.hidden = false
+    const from = options.from
+    if (!from || prefersReducedMotion()) return false
+    // Concealed in this task, so a window appended or un-hidden in it never
+    // paints ahead of the rects.
+    const run: RectsRun = { closing: false, animations: [] }
+    this.#rectsRun = run
+    this.#internals.states?.add('opening')
+    this.#interrupt.attach()
+    // Same-task writes to the pair or the size land first — made before the
+    // call, or after it in the same task, which is an update still pending
+    // once the first has settled — so the rects end on the frame the page
+    // set. A window made this turn renders its shadow meanwhile.
+    do {
+      await this.updateComplete
+    } while (this.isUpdatePending && this.#rectsRun === run)
+    if (this.#rectsRun !== run) return false
+    const rects = this.isConnected
+      ? this.#animateRects(from, this.getBoundingClientRect(), false)
+      : null
+    if (!rects) {
+      this.#endRects()
+      return false
+    }
+    run.animations = rects.animations
+    return this.#playOut(run, rects)
+  }
+
+  /**
+   * Hide the window: `hidden` set, and with `to` the window closes to that
+   * box — the rects of {@link show} run the other way, from where the frame
+   * is drawn at the call in toward the box, the window gone from their first
+   * step. A `show()` still opening is taken down and says `false`; a second
+   * `hide()` finishes the first; a press anywhere or Escape finishes the
+   * rects; removing the window leaves them running, so a page can remove a
+   * window as it closes it. Resolves once the rects are done: `true` when
+   * they ran, `false` when the window hid at once — no `to`,
+   * `prefers-reduced-motion`, no `vf-desktop` on its path, nothing of the
+   * rects on the screen, not in the DOM, or no frame to close from: already
+   * hidden, or still opening.
+   */
+  async hide(options: VfWindowHideOptions = {}): Promise<boolean> {
+    const opening = this.#rectsRun?.closing === false
+    // Only a drawn window has a frame to close from: shown, and done opening.
+    const drawn = !this.hidden && !opening
+    // An opening never drew, so its show() says false; a closing is finished.
+    this.#stopRects(opening ? 'cancel' : 'finish')
+    const to = options.to
+    const rects =
+      to && drawn && this.isConnected && !prefersReducedMotion()
+        ? this.#animateRects(to, this.getBoundingClientRect(), true)
+        : null
+    this.hidden = true
+    if (!rects) return false
+    const run: RectsRun = { closing: true, animations: rects.animations }
+    this.#rectsRun = run
+    this.#interrupt.attach()
+    return this.#playOut(run, rects)
+  }
+
+  /** Internals, for the `opening` custom state. */
+  readonly #internals = this.attachInternals()
+
+  /** The `show({ from })` or `hide({ to })` in flight, or null. */
+  #rectsRun: RectsRun | null = null
+
+  /**
+   * A press anywhere, or Escape, finishes the rects: an opening window draws
+   * at once, and the press lands on it. Scoped to the run, on the document,
+   * capture phase, Escape stopped there — the walk's rule (`vf-icon.dragTo`),
+   * for the same reasons.
+   */
+  readonly #interrupt = new DocumentListenersController(this, () => [
+    [document, 'pointerdown', this.#onRectsPress, true],
+    [document, 'keydown', this.#onRectsKeyDown, true],
+  ])
+
+  #onRectsPress = (): void => {
+    this.#stopRects('finish')
+  }
+
+  #onRectsKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape' || !this.#rectsRun) return
+    event.preventDefault()
+    event.stopPropagation()
+    this.#stopRects('finish')
+  }
+
+  /**
+   * End the run in flight now: its rects finished — its call says they ran,
+   * and an opening window draws at once — or cancelled, when it says they
+   * did not. A run whose rects have not started says `false`.
+   */
+  #stopRects(how: 'finish' | 'cancel'): void {
+    const run = this.#rectsRun
+    if (!run) return
+    this.#endRects()
+    for (const animation of run.animations) animation[how]()
+  }
+
+  /** The run over, the window drawn if it was opening, the finishers gone. */
+  #endRects(): void {
+    this.#rectsRun = null
+    this.#internals.states?.delete('opening')
+    this.#interrupt.detach()
+  }
+
+  /**
+   * Wait out a run's rects, then take their canvases down: finished —
+   * drained, or a press, Escape or the next call — they ran; cancelled,
+   * they did not.
+   */
+  async #playOut(run: RectsRun, rects: Rects): Promise<boolean> {
+    const ran = await Promise.all(rects.animations.map((a) => a.finished)).then(
+      () => true,
+      () => false
+    )
+    for (const canvas of rects.canvases) canvas.remove()
+    if (this.#rectsRun === run) this.#endRects()
+    return ran
+  }
+
+  /**
+   * The rects between `box` and the window's `frame`, on the desktop's drag
+   * surface — the one the `vf-drag-surface-request` handshake finds, as a
+   * dragged icon's outline does. Both in whole system px from the corner of
+   * its screen; every edge of rect k sits its fraction of the way from the
+   * box to the frame ({@link windowRectFraction}), the delta truncated toward
+   * zero. Each rect is a canvas of its own, framed once with the XOR pen at
+   * its phase on the screen ({@link penPhase}) and hidden, with an animation
+   * that shows it for {@link WINDOW_RECTS_VISIBLE} steps: from step k opening,
+   * out from the box, and from step 13 − k closing, in toward it. Where two
+   * rects share a pixel the later one inverts it back: the surface is no
+   * stacking context, so each canvas blends over the ones before it as well
+   * as the screen. Null with no desktop on the path, or none of the rects on
+   * the screen.
+   */
+  #animateRects(box: VfViewportBox, frame: VfViewportBox, closing: boolean): Rects | null {
+    const surface = this.#requestSurface()
+    if (!surface) return null
+    const scale = effectiveScale(this)
+    const screen = surface.getBoundingClientRect()
+    const onScreen = (r: VfViewportBox): VfViewportBox => ({
+      left: Math.round((r.left - screen.left) / scale),
+      top: Math.round((r.top - screen.top) / scale),
+      right: Math.round((r.right - screen.left) / scale),
+      bottom: Math.round((r.bottom - screen.top) / scale),
+    })
+    const small = onScreen(box)
+    const big = onScreen(frame)
+    // Every rect lies inside the two boxes' union: none shows if it misses the screen.
+    if (
+      Math.max(small.right, big.right) <= 0 ||
+      Math.max(small.bottom, big.bottom) <= 0 ||
+      Math.min(small.left, big.left) >= Math.round(screen.width / scale) ||
+      Math.min(small.top, big.top) >= Math.round(screen.height / scale)
+    ) {
+      return null
+    }
+
+    const step = WINDOW_RECT_STEP_MS
+    const rects: Rects = { canvases: [], animations: [] }
+    for (let k = 0; k < WINDOW_RECT_STEPS; k++) {
+      const t = windowRectFraction(k)
+      const edge = (a: number, b: number): number => a + Math.trunc((b - a) * t)
+      const left = edge(small.left, big.left)
+      const top = edge(small.top, big.top)
+      const width = Math.max(1, edge(small.right, big.right) - left)
+      const height = Math.max(1, edge(small.bottom, big.bottom) - top)
+      const canvas = xorPenCanvas('window-rect')
+      const style = canvas.style
+      style.position = 'absolute'
+      style.left = sysLength(left)
+      style.top = sysLength(top)
+      style.width = sysLength(width)
+      style.height = sysLength(height)
+      style.visibility = 'hidden'
+      paintSelectionRect(canvas, width, height, penPhase(left, top))
+      surface.append(canvas)
+      rects.canvases.push(canvas)
+      // Two equal keyframes hold `visible` over the active interval; the
+      // inline `hidden` rules before and after it. The end delay pads every
+      // rect to the whole run, so all of them finish together.
+      const first = closing ? WINDOW_RECT_STEPS - 1 - k : k
+      rects.animations.push(
+        canvas.animate([{ visibility: 'visible' }, { visibility: 'visible' }], {
+          delay: first * step,
+          duration: WINDOW_RECTS_VISIBLE * step,
+          endDelay: (WINDOW_RECT_STEPS - first) * step,
+        })
+      )
+    }
+    return rects
+  }
+
+  /**
+   * The handshake a dragged icon's outline uses: a desktop on the light-DOM
+   * path hands over its drag surface. Null with no desktop.
+   */
+  #requestSurface(): HTMLElement | null {
+    const request: { surface: HTMLElement | null } = { surface: null }
+    emit(this, 'vf-drag-surface-request', request, { composed: false })
+    return request.surface
+  }
+
+  /* --- Outline drag (outline-drag) ---------------------------------- */
+
+  /** The outline drag in flight, or null — a live drag keeps none. */
+  #outlineDrag: OutlineDrag | null = null
+
+  /**
+   * Escape mid outline-drag cancels it: a document listener scoped to the
+   * gesture, capture phase, the key stopped there — the icon drag's rule, so
+   * an enclosing dialog never reads it as a dismissal.
+   */
+  readonly #dragEscape = new DocumentListenersController(this, () => [
+    [document, 'keydown', this.#onDragKeyDown, true],
+  ])
+
+  #onDragKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape' || !this.#outlineDrag) return
+    event.preventDefault()
+    event.stopPropagation()
+    this._drag.cancel()
+  }
+
+  /**
+   * The press of an outline drag: the outline drawn around the window at
+   * once, and Escape armed. A window without `outline-drag`, or with no
+   * desktop to draw on, keeps no outline drag, and the gesture moves it live.
+   */
+  #startOutlineDrag(origin: { x: number; y: number }): void {
+    this.#endOutlineDrag(true)
+    if (!this.outlineDrag) return
+    const outline = this.#buildOutline(this.getBoundingClientRect())
+    if (!outline) return
+    this.#outlineDrag = { origin, outline, landing: null }
+    this.#placeOutline(outline, 0, 0)
+    this.#dragEscape.attach()
+  }
+
+  /**
+   * A step of an outline drag: the outline to where the release would land
+   * — the step clamped as a live drag is ({@link PlacementController.resolve}).
+   */
+  #dragOutlineTo(x: number, y: number): void {
+    const drag = this.#outlineDrag
+    if (!drag) return
+    const landing = this._placement.resolve(x, y)
+    drag.landing = landing
+    this.#placeOutline(drag.outline, landing.x - drag.origin.x, landing.y - drag.origin.y)
+  }
+
+  /**
+   * Put the outline its delta from where the press drew it, whole system px
+   * from the desktop's screen, re-dotted when its phase on the screen changes.
+   */
+  #placeOutline(outline: WindowOutline, dx: number, dy: number): void {
+    const left = outline.base.x + dx
+    const top = outline.base.y + dy
+    outline.canvas.style.left = sysLength(left)
+    outline.canvas.style.top = sysLength(top)
+    const phase = penPhase(left, top)
+    if (phase === outline.phase) return
+    outline.phase = phase
+    paintSelectionRect(outline.canvas, outline.width, outline.height, phase)
+  }
+
+  /**
+   * The outline an outline drag moves: the window's box at the press — its
+   * frame, border included, shadow not — as a one-pixel ring on the
+   * desktop's drag surface, with the drag outline's pen. Null with no desktop.
+   */
+  #buildOutline(frame: DOMRect): WindowOutline | null {
+    const surface = this.#requestSurface()
+    if (!surface) return null
+    const scale = effectiveScale(this)
+    const screen = surface.getBoundingClientRect()
+    const width = Math.max(1, Math.round(frame.width / scale))
+    const height = Math.max(1, Math.round(frame.height / scale))
+    const canvas = xorPenCanvas('drag-outline')
+    const style = canvas.style
+    style.position = 'absolute'
+    style.width = sysLength(width)
+    style.height = sysLength(height)
+    surface.append(canvas)
+    return {
+      canvas,
+      base: {
+        x: Math.round((frame.left - screen.left) / scale),
+        y: Math.round((frame.top - screen.top) / scale),
+      },
+      width,
+      height,
+      phase: -1,
+    }
+  }
+
+  /**
+   * The end of an outline drag: the outline down and, released rather than
+   * cancelled, the window written where it was — one write, one
+   * `vf-placement-change`. A press released without a step writes nothing.
+   */
+  #endOutlineDrag(cancelled: boolean): void {
+    const drag = this.#outlineDrag
+    this.#outlineDrag = null
+    if (!drag) return
+    this.#dragEscape.detach()
+    drag.outline.canvas.remove()
+    if (!cancelled && drag.landing) this._placement.moveTo(drag.landing.x, drag.landing.y)
   }
 
   /**
@@ -763,12 +1224,34 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     )
   }
 
+  override connectedCallback(): void {
+    super.connectedCallback()
+    // Back from a move with the rects still running — vf-desktop re-inserts
+    // a raised window to keep the DOM in stacking order — so the finishers'
+    // document listeners, which the controller drops on the way out and never
+    // restores, go back on.
+    if (this.#rectsRun) this.#interrupt.attach()
+  }
+
   override disconnectedCallback(): void {
     super.disconnectedCallback()
     // Drop any in-flight resize: the grow box goes away with the shadow tree, so
     // its pointerup/lostpointercapture never arrives. Matches DragController's
     // and vf-slider's teardown.
     this._resizeState = null
+    // Nor an outline drag: its outline is on the desktop's surface, and
+    // nothing is written. (vf-desktop never re-inserts a window mid-gesture.)
+    this.#outlineDrag?.outline.canvas.remove()
+    this.#outlineDrag = null
+    // A move is not a removal: a re-inserted window is back before a
+    // microtask runs, its rects still going. One that stays out takes an
+    // opening down, and `show()` says the rects did not run. A closing runs
+    // on: the window was gone already, and its rects are the desktop's.
+    if (this.#rectsRun && !this.#rectsRun.closing) {
+      queueMicrotask(() => {
+        if (!this.isConnected && this.#rectsRun?.closing === false) this.#stopRects('cancel')
+      })
+    }
   }
 
   /** The `.empty` gate: the strip renders only while the slot is populated. */

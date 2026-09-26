@@ -206,7 +206,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Method</td><td><code>clearActive()</code></td><td class="wrap">Deactivates the document tier. A press or focus in a document window, or a newly slotted one, reactivates; utility windows keep their <code>active</code></td></tr>
               <tr><td>Method</td><td><code>placementAt(x,&nbsp;y)</code></td><td class="wrap">A viewport point (CSS px) as <code>{ left, top }</code> on the screen, whole system px on the placement lattice, bezel excluded — the pair to write onto a child dropped here</td></tr>
               <tr><td>Event</td><td><code>vf-activate</code></td><td class="wrap"><code>{ window }</code> — the new holder, <code>null</code> on deactivation. Once per change of holder; re-asserting the current one is silent</td></tr>
-              <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, an icon field, anything. A dragged <code>vf-icon</code> anywhere inside draws its outline on the screen, above the menu bar and clipped at the raster's edge</td></tr>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, an icon field, anything. A dragged <code>vf-icon</code> anywhere inside draws its outline on the screen, above the menu bar and clipped at the raster's edge; a window opening from or closing to a rect draws its rects there, and an <code>outline-drag</code> window its outline</td></tr>
               <tr><td>Part</td><td><code>desktop</code></td><td class="wrap">The dithered surface</td></tr>
               <tr><td>Token</td><td><code>--vf-desktop</code></td><td class="wrap">Base color under the tile (<code>#808080</code>)</td></tr>
               <tr><td>Token</td><td><code>--vf-desktop-pattern</code></td><td class="wrap">The whole background-image tile</td></tr>
@@ -238,7 +238,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
-            data-caption="Document window, modeless dialog, and the windoid. Click a title bar to switch which is frontmost. vf-close does not remove the window — this page hides it, and the button puts it back."
+            data-caption="Document window, modeless dialog, and the windoid. Click a title bar to switch which is frontmost. vf-close does not remove the window — this page closes it to the button's own box with hide(), and the button puts it back with show(), opening it from there."
           >
             <vf-desktop width="512" height="336">
               <vf-window
@@ -294,9 +294,74 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             </vf-desktop>
             <script type="text/plain" data-script>
               // vf-close is a report, not a removal: what a closed window becomes is the
-              // page's decision. Here it hides, and the button brings it back.
-              readMeWindow.addEventListener('vf-close', () => { readMeWindow.hidden = true })
-              reopenButton.addEventListener('click', () => { readMeWindow.hidden = false })
+              // page's decision. Here it closes to the button's own box, and the button
+              // brings it back, opening it from there.
+              readMeWindow.addEventListener('vf-close', () => {
+                readMeWindow.hide({ to: reopenButton.getBoundingClientRect() })
+              })
+              reopenButton.addEventListener('click', () => {
+                if (readMeWindow.hidden) readMeWindow.show({ from: reopenButton.getBoundingClientRect() })
+              })
+            </script>
+          </template>
+
+          <template
+            data-example
+            data-stage="desktop"
+            data-caption="Opening from an icon: double-click Notes, or select it and press ⌘O. show({ from }) runs the zoom rects from the icon's cell toward the window, and the window draws once they have drained; the icon wears its open ghost while the window is up. The window drags as an outline (outline-drag), and its close box closes it back to the icon with hide({ to })."
+          >
+            <vf-desktop width="512" height="232">
+              <vf-icon-field label="Desktop" fill-width fill-height>
+                <vf-icon
+                  label="Notes"
+                  width="64"
+                  selectable
+                  movable
+                  editable
+                  left="24"
+                  top="164"
+                  data-opens="ex-window-opens"
+                >
+                  <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>
+                  <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
+                </vf-icon>
+              </vf-icon-field>
+              <vf-window
+                id="ex-window-opens"
+                heading="Notes"
+                movable
+                outline-drag
+                scrollbars="vertical"
+                width="256"
+                height="144"
+                left="216"
+                top="24"
+                hidden
+              >
+                <vf-stack fill-width pad="8">
+                  <vf-paragraph fill-width>
+                    Opened from the icon: the rects grew from its cell toward this
+                    frame, and the window drew once they had drained. The close
+                    box sends it back.
+                  </vf-paragraph>
+                </vf-stack>
+              </vf-window>
+            </vf-desktop>
+            <script type="text/plain" data-script>
+              // The window runs the rects from the box it is handed and draws itself when
+              // they end, and closes to a box the same way. The page hands it the icon's.
+              notesIcon.addEventListener('vf-open', () => {
+                if (notesWindow.hidden) {
+                  notesWindow.show({ from: notesIcon.cellRect() })
+                  notesIcon.open = true
+                }
+                desktop.bringToFront(notesWindow)
+              })
+              notesWindow.addEventListener('vf-close', async () => {
+                await notesWindow.hide({ to: notesIcon.cellRect() })
+                // Reopened while the rects ran? Then the icon stays open.
+                if (notesWindow.hidden) notesIcon.open = false
+              })
             </script>
           </template>
 
@@ -382,6 +447,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">The left close box</td></tr>
               <tr><td><code>zoomable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The right zoom box</td></tr>
               <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag the title bar to move; the drag writes <code>top</code>/<code>left</code> in system px</td></tr>
+              <tr><td><code>outline-drag</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">A press on the title bar draws a dotted outline around the window on the desktop's surface; the drag moves it, held where the window can land, and the release moves the window there in one write. Escape cancels. With no <code>vf-desktop</code>, the window moves live. Property is <code>outlineDrag</code></td></tr>
               <tr><td><code>resizable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The 15×15 grow box, bottom right; writes <code>width</code>/<code>height</code> within the size rect below and fires <code>vf-resize</code></td></tr>
               <tr><td><code>min-width</code>, <code>min-height</code></td><td>number</td><td><code>80</code>, <code>54</code></td><td class="wrap">Whole system px. The narrowest and shortest the grow box will make the window. Properties are <code>minWidth</code> / <code>minHeight</code></td></tr>
               <tr><td><code>max-width</code>, <code>max-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. The widest and tallest. Equal to the min, an axis is locked and the grow box changes the other alone. Bounds the gesture only: a size authored outside the rect renders as declared. Properties are <code>maxWidth</code> / <code>maxHeight</code></td></tr>
@@ -390,6 +456,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>header-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px, rule included: the header's height. Unset, the header is as tall as its content plus the rule. Property is <code>headerHeight</code></td></tr>
               <tr><td><code>placementAt(x,&nbsp;y)</code></td><td>method</td><td>—</td><td class="wrap">A viewport point (CSS px) as <code>{ left, top }</code> in the content region, whole system px on the placement lattice — under <code>scrollbars</code> the scrolled plane, offset included. The pair to write onto a child dropped here</td></tr>
               <tr><td><code>measure()</code></td><td>method</td><td>—</td><td class="wrap">Re-measures the built-in scroll area; a no-op without <code>scrollbars</code>. The area tracks its content, its slot and every placed child's <code>top</code>/<code>left</code> write by itself</td></tr>
+              <tr><td><code>show({&nbsp;from&nbsp;})</code></td><td>method</td><td>—</td><td class="wrap">Clears <code>hidden</code>. With <code>from</code> — a box in viewport CSS px, such as an icon's <code>cellRect()</code> — the window opens from it: the zoom rects run from the box toward the frame on the desktop's surface, and the window draws once they have drained, about 300 ms later. Until then it paints nothing but is laid out, focusable and a hit target; a press or Escape finishes the rects. A promise: <code>true</code> when the rects ran, <code>false</code> when the window showed at once — no <code>from</code>, reduced motion, or no <code>vf-desktop</code>. Raises nothing: <code>bringToFront</code> is the page's</td></tr>
+              <tr><td><code>hide({&nbsp;to&nbsp;})</code></td><td>method</td><td>—</td><td class="wrap">Sets <code>hidden</code>. With <code>to</code> — a box like <code>from</code> — the window closes to it: gone at once, the same rects run from where its frame was in toward the box. A press or Escape finishes them; removing the window meanwhile leaves them running. A promise: <code>true</code> when the rects ran, <code>false</code> when the window hid at once — no <code>to</code>, reduced motion, no <code>vf-desktop</code>, already hidden, or still opening (that <code>show()</code> resolves <code>false</code>)</td></tr>
             </tbody>
           </table>
 
@@ -401,6 +469,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Slot</td><td><code>header</code></td><td class="wrap">The header: a band between the title bar and the body across the whole window, a white interior over a 1px rule. No inset, and a placed child's (0,0) is its corner. Under <code>scrollbars</code> the vertical rail begins below it. Takes no space until populated</td></tr>
               <tr><td>Slot</td><td><code>status</code></td><td class="wrap">The bottom status strip: a 1px rule over a 15px white band, body-face text on its native line, the grow box flush in its right end. Takes no space until populated</td></tr>
               <tr><td>Role</td><td><code>group</code></td><td class="wrap">Named by its <code>heading</code></td></tr>
+              <tr><td>State</td><td><code>opening</code></td><td class="wrap">While the rects of <code>show({ from })</code> run: the window paints nothing. <code>vf-window:state(opening)</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap">The close box was clicked. The window does <strong>not</strong> remove itself — the consumer decides</td></tr>
               <tr><td>Event</td><td><code>vf-zoom</code></td><td class="wrap">The zoom box was clicked</td></tr>
               <tr><td>Event</td><td><code>vf-resize</code></td><td class="wrap"><code>{ width, height, commit }</code>, system px — one per size the grow box writes, fired after the box is applied (a handler that measures reads the new layout), then <code>commit: true</code> as the gesture settles. Programmatic size writes fire nothing</td></tr>
@@ -2199,6 +2268,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>maxlength</code></td><td>number</td><td><code>31</code></td><td class="wrap">The HFS filename limit, applied to the rename field. A <code>label</code> set from your own data is never truncated</td></tr>
               <tr><td><code>setSelected(next)</code></td><td>method</td><td>—</td><td class="wrap">Select or deselect as a press would, <code>vf-select</code> included. A <code>selected</code> write from code is silent</td></tr>
               <tr><td><code>touches(box)</code></td><td>method</td><td>—</td><td class="wrap">Whether a viewport box reaches the art cell or the name plate — the selection rectangle's test; the empty cell beside them counts for nothing</td></tr>
+              <tr><td><code>cellRect()</code></td><td>method</td><td>—</td><td class="wrap">The reserved art cell's box in viewport CSS px — 32×32 system px, 16×16 when small — the same box whatever the art, name, <code>open</code> or <code>selected</code>; <code>null</code> while the icon isn't rendered (a hidden window, say). The box to hand a window opening from the icon or closing to it: <code>win.show({ from: icon.cellRect() })</code>, <code>win.hide({ to: icon.cellRect() })</code></td></tr>
               <tr><td><code>moveTo(left, top)</code></td><td>method</td><td>—</td><td class="wrap">Place as a drop would: clamped whole in the container (held at the origin only in a scrolling plane, whose rails reach the rest), snapped to the lattice, one <code>vf-placement-change</code>. A <code>left</code>/<code>top</code> write is the authored pair, unclamped</td></tr>
               <tr><td><code>dragTo(left, top)</code></td><td>method</td><td>—</td><td class="wrap">Move the way a drag moves: the dotted outline travels from where the icon sits to where it will land, and the icon lands when the outline arrives, written as <code>moveTo</code> writes. A promise, resolved once it has landed — <code>true</code> when the outline travelled, <code>false</code> when the icon landed at once (already there, or reduced motion). Fires no drag event and needs no <code>movable</code>. A press anywhere, or Escape, lands it at once</td></tr>
               <tr><td><code>vf-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ selected }</code></td></tr>

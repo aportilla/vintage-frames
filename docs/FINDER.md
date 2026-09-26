@@ -7,7 +7,7 @@ How a page assembles a Finder-style experience — a desktop of icons, folder wi
 | The kit | The page |
 | --- | --- |
 | `vf-desktop`: the raster, window stacking, the single active window, the drag surface | Which presses mean "the Finder" (`clearActive()`), the menu bar's commands |
-| `vf-window`: the shell, the header and status strips, edge scroll rails, `placementAt()` | What a folder window is, when it opens and closes, what it shows |
+| `vf-window`: the shell, the header and status strips, edge scroll rails, `placementAt()`, opening from and closing to a rect (`show({ from })`, `hide({ to })`) | What a folder window is, when it opens and closes, what it opens from and closes to, what it shows |
 | `vf-icon-field`: the listbox, `size`, the rubber band | Which icons are in which field, where each one sits |
 | `vf-icon`: selection, the outline drag and its events, renaming, opening | What a drop means, filing, the names and positions in the model |
 
@@ -90,10 +90,10 @@ The desktop field is filled, not placed: it stays static, so its icons anchor to
 A folder window is a `vf-window` holding a field. The header strip carries the item count; the field takes the folder's extent so the window scrolls over it:
 
 ```ts
-function openFolder(folder: Item): VfWindow {
+function openFolder(folder: Item, from?: DOMRect | null): VfWindow {
   let win = document.getElementById(`win-${folder.id}`) as VfWindow | null
   if (win) {
-    win.hidden = false
+    if (win.hidden) void win.show({ from })
     desktop.bringToFront(win)
     return win
   }
@@ -114,8 +114,9 @@ function openFolder(folder: Item): VfWindow {
   const field = win.querySelector('vf-icon-field')!
   for (const item of children(folder.id)) field.append(renderIcon(item))
   updateCount(win)
-  win.addEventListener('vf-close', () => closeFolder(folder, win!))
+  win.addEventListener('vf-close', () => void closeFolder(folder, win!))
   desktop.append(win)
+  void win.show({ from })
   return win
 }
 ```
@@ -125,25 +126,31 @@ Placed at `top="0" left="0"`, the folder's field is the anchor its icons place a
 Closing hides the window rather than removing it, so its state and positions survive; the icon's `open` ghost tracks it:
 
 ```ts
-function closeFolder(folder: Item, win: VfWindow): void {
-  win.hidden = true
-  iconFor(folder.id)?.removeAttribute('open')
+async function closeFolder(folder: Item, win: VfWindow): Promise<void> {
+  const icon = iconFor(folder.id)
+  await win.hide({ to: icon?.cellRect() })
+  // Reopened while the rects ran? Then the icon stays open.
+  if (win.hidden) icon?.removeAttribute('open')
 }
 ```
 
+`hide({ to })` runs the opening's rects the other way: the window goes at once, and the rects close from where its frame was in toward the icon's cell, about 300 ms; a press or Escape finishes them. An icon inside a window that is itself closed isn't rendered, so its `cellRect()` is `null` and the window hides at once. A page that removes a closed window can do it straight after `hide()`: the rects are the desktop's, and they run on.
+
 ## Opening
 
-`vf-open` fires on a double-click anywhere on the icon, on two taps of a finger or pen, or ⌘O / ⌘↓ from the keyboard. Open the folder's window and mark the icon:
+`vf-open` fires on a double-click anywhere on the icon, on two taps of a finger or pen, or ⌘O / ⌘↓ from the keyboard. Open the folder's window from the icon and mark the icon:
 
 ```ts
 document.addEventListener('vf-open', (e) => {
   const icon = e.target as VfIcon
   const item = itemFor(icon)
   if (item.kind === 'document') return openDocument(item)
-  openFolder(item)
+  openFolder(item, icon.cellRect())
   icon.open = true
 })
 ```
+
+`show({ from })` runs the zoom rects: dotted rectangles grow from the icon's art cell toward the window's frame on the desktop's surface, and the window draws once they have drained, about 300 ms later. Meanwhile it is laid out, focusable and a hit target but paints nothing: place, raise and focus it at once, and a click during the rects finishes them and lands on the window. `cellRect()` is the cell whatever the icon wears; the slotted art measures nothing while the icon is `open`. It is `null` while the icon isn't rendered, which `show()` takes as no box. `from` is any box in viewport CSS px. Without one, or under `prefers-reduced-motion`, the window shows at once. Bring a window that is already on screen forward instead of showing it again: `show({ from })` on it blanks it for the length of the rects.
 
 The File menu's Open command does the same for the current selection:
 

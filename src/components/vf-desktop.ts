@@ -24,8 +24,9 @@ import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
  * `.screen` isolates: a consumer tile grid (`z-index: -1`), document windows
  * (the counter), utility windows (`counter + UTILITY_Z_BAND`), the menu tier
  * (`MENU_BAR_Z` — a slotted bar or free-standing menu, its dropped panel with
- * it), the drag outline (`DRAG_OUTLINE_Z`, one above the menu tier), the
- * corner mask (the maximal z-index — hardware, in front of every pixel).
+ * it), the drag outline and a window's opening rects (`DRAG_OUTLINE_Z`, one
+ * above the menu tier), the corner mask (the maximal z-index — hardware, in
+ * front of every pixel).
  *
  * Both window tiers share the one monotonic counter, so a utility window
  * assigned `counter + BAND` stays above every document window until the
@@ -39,7 +40,10 @@ import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
  */
 const UTILITY_Z_BAND = 1_000_000
 const MENU_BAR_Z = 2 * UTILITY_Z_BAND
-/** The outline an icon drags as: over windows, palettes and the menu bar alike. */
+/**
+ * The outline an icon or an `outline-drag` window drags as, and the rects a
+ * window opens with: over windows, palettes and the menu bar alike.
+ */
 const DRAG_OUTLINE_Z = MENU_BAR_Z + 1
 
 /**
@@ -138,7 +142,10 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * icon reaches it without an import, the menu-handshake idiom: on a drag's
  * first step it dispatches `vf-drag-surface-request` (bubbles, non-composed,
  * `detail.surface` null), and the nearest desktop on its light-DOM path
- * fills the detail with the layer. Not the top layer: stable Safari cannot
+ * fills the detail with the layer. A window asks the same way and draws
+ * there with the same pen: its zoom rects when it opens from a rect
+ * (`vf-window.show({ from })`), its outline under an `outline-drag`. Not the
+ * top layer: stable Safari cannot
  * blend an element there against the page (src/cursor.ts), and a second
  * kit entry in the top layer would need a re-promotion handshake.
  *
@@ -646,10 +653,11 @@ export class VfDesktop extends VfPositioned(LitElement) {
   }
 
   /**
-   * A dragged icon asking for the screen's drag surface (see the class
-   * doc). Non-composed, so it reaches here only through the light-DOM path
-   * the icon is slotted on — a window body included. The nearest desktop
-   * answers; an outer one leaves a filled detail alone.
+   * A dragged icon, or a window opening from a rect, asking for the screen's
+   * drag surface (see the class doc). Non-composed, so it reaches here only
+   * through the light-DOM path the asker is slotted on — a window body
+   * included. The nearest desktop answers; an outer one leaves a filled
+   * detail alone.
    */
   private _onDragSurfaceRequest = (event: Event): void => {
     const detail = (event as CustomEvent<{ surface: HTMLElement | null }>).detail

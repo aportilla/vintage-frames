@@ -8,7 +8,7 @@ import { ScaleController, effectiveScale } from '../scale.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { emit } from '../events.js'
 import { WALK_BEAT_MS } from '../motion.js'
-import { paintSelectionRect, penPhase } from '../open-art.js'
+import { paintSelectionRect, penPhase, xorPenCanvas } from '../open-art.js'
 import type { VfIcon, VfIconSize } from './vf-icon.js'
 
 /** One move of a walk ({@link VfIconField.dragIcons}): the icon and the pair it goes to. */
@@ -542,15 +542,8 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
    * positioned box of its own for it to anchor to — and never a hit.
    */
   #makeCanvas(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
-    canvas.className = 'selection-rect'
-    const style = canvas.style
-    style.position = 'fixed'
-    style.display = 'block'
-    style.pointerEvents = 'none'
-    style.filter = 'invert(1)'
-    style.mixBlendMode = 'difference'
-    style.imageRendering = 'pixelated'
+    const canvas = xorPenCanvas('selection-rect')
+    canvas.style.position = 'fixed'
     return canvas
   }
 

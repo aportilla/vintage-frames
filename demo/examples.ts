@@ -221,19 +221,51 @@ function wireModalTriggers(): void {
 /**
  * `data-hide-on-close` on a `vf-window`: the close box hides it, since the
  * component deliberately does not remove itself (the consumer decides — see
- * the `vf-close` row in its events table). `data-reopen` puts it back.
+ * the `vf-close` row in its events table). `data-reopen` puts it back with
+ * `show()`, opening it from the button's own box, and the close box closes
+ * it to that box with `hide()`: `from` and `to` are any rect.
  */
 function wireWindowClosing(): void {
-  for (const win of document.querySelectorAll<HTMLElement>(
-    '[data-hide-on-close]'
-  )) {
+  const reopeners = [...document.querySelectorAll<HTMLElement>('[data-reopen]')]
+  for (const win of document.querySelectorAll<VfWindow>('[data-hide-on-close]')) {
+    const reopen = reopeners.find((b) => document.querySelector(b.dataset.reopen ?? '') === win)
     win.addEventListener('vf-close', () => {
-      win.hidden = true
+      void win.hide({ to: reopen?.getBoundingClientRect() })
     })
   }
-  for (const button of document.querySelectorAll<HTMLElement>('[data-reopen]')) {
+  for (const button of reopeners) {
     button.addEventListener('click', () => {
-      $<HTMLElement>(button.dataset.reopen ?? '').hidden = false
+      const win = $<VfWindow>(button.dataset.reopen ?? '')
+      if (win.hidden) void win.show({ from: button.getBoundingClientRect() })
+    })
+  }
+}
+
+/**
+ * `data-opens="<id>"` on a `vf-icon`: the icon opens that window. On
+ * `vf-open` the window's `show({ from })` runs the zoom rects from the
+ * icon's cell, and the icon wears its open ghost while the window is up; an
+ * open window is only brought forward. The close box closes the window to
+ * the icon with `hide({ to })`, and the ghost goes once the rects land —
+ * unless the icon reopened it meanwhile. The kit never joins the two — the
+ * page hands one's box to the other.
+ */
+function wireOpening(): void {
+  for (const icon of document.querySelectorAll<VfIcon>('vf-icon[data-opens]')) {
+    const win = document.getElementById(icon.dataset.opens ?? '') as VfWindow | null
+    if (!win) continue
+    const desktop = win.closest<VfDesktop>('vf-desktop')
+    icon.open = !win.hidden
+    icon.addEventListener('vf-open', () => {
+      if (win.hidden) {
+        void win.show({ from: icon.cellRect() })
+        icon.open = true
+      }
+      desktop?.bringToFront(win)
+    })
+    win.addEventListener('vf-close', async () => {
+      await win.hide({ to: icon.cellRect() })
+      if (win.hidden) icon.open = false
     })
   }
 }
@@ -705,6 +737,7 @@ mountExamples()
 buildToc()
 wireModalTriggers()
 wireWindowClosing()
+wireOpening()
 wireSizeReadouts()
 wireReadouts()
 wireEventLogs()

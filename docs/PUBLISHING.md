@@ -5,7 +5,7 @@ Guide to publishing this library on npm, keeping GitHub in sync, and versioning.
 ## Where things stand (published 2026-08-11)
 
 - **`vintage-frames@0.1.0` is live** — [npmjs.com/package/vintage-frames](https://www.npmjs.com/package/vintage-frames), published 2026-08-11 by `aportilla`, dist-tag `latest`. The shipped tarball matched the dry-run rehearsal exactly (163 files, ~530 KB packed), and a cold `npm i vintage-frames` in a scratch project resolves the root export, `vintage-frames/vf-button.js`, and `lit`.
-- **The GitHub repo is public and `main` is in sync with it**; the Pages demo site is live at [aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/).
+- **The GitHub repo is public and `main` is in sync with it**; the demo site is live at [vintage-frames.portill.io](https://vintage-frames.portill.io/).
 - **The publish gate is in place and passing**: `prepack` rebuilds `dist/` and runs `verify:manifest` before any tarball is cut; it ran as part of the 0.1.0 publish.
 - **This machine is logged into npm** (`aportilla`) but not the `gh` CLI. SSH push to GitHub works regardless (the remote is `git@github.com:…`).
 
@@ -107,7 +107,7 @@ npm publish
 Skip all of this for 0.1.0:
 
 - **Trusted publishing (CI publishes, no tokens).** npm supports OIDC "trusted publisher" config: you register the GitHub Actions workflow on the package's npm settings page, and that workflow can then publish with no long-lived token anywhere — plus a provenance badge on the npm page proving the tarball came from a public build of your repo. Worth setting up once releases are frequent.
-- ~~**GitHub Pages for the demos.**~~ **Done 2026-08-08:** `vite.pages.config.ts` builds the demo pages with the project-site base path, and `.github/workflows/pages.yml` deploys them on every push to `main`. That is one page now — the component reference at the site root — and what it publishes is the System 7 icon crops plus the kit's own re-drawn faces. The 80-strike Apple collection it used to serve went to the system7web repo with the Character Set window that browsed it, so `scripts/copy-strikes.mjs` is gone and the deploy has no Apple artwork left to carry.
+- ~~**GitHub Pages for the demos.**~~ **Done 2026-08-08:** `vite.pages.config.ts` builds the demo pages with the project-site base path, and `.github/workflows/pages.yml` deploys them on every push to `main`. That is one page now — the component reference at the site root — and what it publishes is the System 7 icon crops plus the kit's own re-drawn faces. The 80-strike Apple collection it used to serve went to the system7web repo with the Character Set window that browsed it, so `scripts/copy-strikes.mjs` is gone and the deploy has no Apple artwork left to carry. **Moved 2026-09-27:** Cloudflare builds every push to `main` and serves it at [vintage-frames.portill.io](https://vintage-frames.portill.io/); `pages.yml` and the project-site base path are gone.
 - **Branch protection on `main`** — matters when a second contributor shows up, noise before then.
 - **`npm dist-tags`** — `npm publish --tag next` publishes without moving `latest`, for release candidates. Irrelevant until you have users who'd be hurt by a bad `latest`.
 

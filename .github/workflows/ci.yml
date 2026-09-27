@@ -19,9 +19,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The development version, the one the Cloudflare build also reads.
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci

@@ -2,7 +2,7 @@
 
 A web component kit that rebuilds the classic Apple System 7 interface elements.
 
-View the [Examples Page](https://aportilla.github.io/vintage-frames/) to see every element live, with its full API.
+View the [Examples Page](https://vintage-frames.portill.io/) to see every element live, with its full API.
 
 ```sh
 npm install vintage-frames

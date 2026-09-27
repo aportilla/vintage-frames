@@ -70,5 +70,6 @@ regenerated files with the change.
 - `fonts/README.md` — the font pipeline and design lineage
 - `scripts/*.mjs` — the verify suite; shared harness in `scripts/harness.mjs`
 - `index.html` is the **component reference** (`demo/examples.ts`), and the
-  root of the published Pages site. The faux System 7 desktop is not here — it
+  root of the site at vintage-frames.portill.io (Cloudflare builds it from
+  `main` with `npm run build:pages`). The faux System 7 desktop is not here — it
   lives in the sibling **system7web** repo and consumes this package from npm.

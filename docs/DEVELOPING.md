@@ -5,13 +5,14 @@ Working on the kit itself: the demo pages, the verify suite, and the generated e
 ## Demo pages
 
 ```sh
+nvm use            # Node 24, from .nvmrc
 npm run dev        # http://localhost:5173
 npm run build      # library build to dist/
 npm run typecheck
 npm test           # the whole verify suite (starts its own dev server)
 ```
 
-Both pages are published at **[aportilla.github.io/vintage-frames](https://aportilla.github.io/vintage-frames/)**, deployed by `.github/workflows/pages.yml` on every push to `main`. `npm run build:pages` builds that site locally (`vite.pages.config.ts`, a separate config because `vite.config.ts` is lib mode) and `npm run preview:pages` serves the built copy under the same base path the deploy uses.
+The reference page is published at **[vintage-frames.portill.io](https://vintage-frames.portill.io/)**. Cloudflare builds every push to `main` with `npm run build:pages` and serves `dist-pages/`; its build settings live in the Cloudflare dashboard, and it reads the Node version from `.nvmrc`. The deploy does not wait on CI. `npm run build:pages` builds that site locally (`vite.pages.config.ts`, a separate config because `vite.config.ts` is lib mode) and `npm run preview:pages` serves the built copy.
 
 | Page | What it is |
 | --- | --- |

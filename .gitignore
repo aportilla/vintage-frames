@@ -1,7 +1,7 @@
 node_modules/
 dist/
 
-# npm run build:pages — the demo site the Pages workflow builds and uploads
+# npm run build:pages — the demo site Cloudflare builds and serves
 dist-pages/
 *.local
 .DS_Store

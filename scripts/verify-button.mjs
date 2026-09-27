@@ -37,11 +37,18 @@
  *    attribute.
  *  - THE METRICS. Pinned because nothing else pins them, which is how the
  *    small button's padding and SPEC drifted apart.
+ *  - THE LINK. With `href` the inner control is an `<a>`, so everything a
+ *    link does — role, Enter, a modified click into a new tab — is the
+ *    platform's, and pixel parity with the button is the art's. What the
+ *    component adds is the part `<a>` has no native form of: a disabled link
+ *    (no href, no focus, no click by pointer or `click()`), and a link that
+ *    is never a form button, whatever its `type` — except as a dialog's
+ *    default, where Return follows it.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:button
  */
-import { attr, ax, axFor, check, launch, makeBuild, report, walk } from './harness.mjs'
+import { ax, axFor, axName, axRole, check, decodePng, launch, makeBuild, report } from './harness.mjs'
 
 const browser = await launch()
 
@@ -470,6 +477,292 @@ const build = makeBuild(browser, {
   })
   check('a focused button carries no UA outline, on the host or the inner button',
     outlines.host === 'none' && outlines.inner === 'none', JSON.stringify(outlines))
+  await page.close()
+}
+
+/* ══════════════════════════════ 11. href: a real link ═══════════════════ */
+{
+  const page = await build(`
+    <vf-button id="plain">Save</vf-button>
+    <vf-button id="l" href="#followed" target="_self" rel="help" download="notes.txt">Visit</vf-button>
+    <vf-button id="al" href="#x" aria-label="Open the manual">?</vf-button>
+  `)
+  const inner = await page.evaluate(() => {
+    const read = (id) => {
+      const host = document.getElementById(id)
+      const el = host.shadowRoot.querySelector('[part="button"]')
+      const a = (n) => el.getAttribute(n)
+      return { tag: el.localName, href: a('href'), target: a('target'), rel: a('rel'), download: a('download'), hostHref: host.hasAttribute('href') }
+    }
+    return { plain: read('plain'), link: read('l') }
+  })
+  check('without href the part is still a <button>, and no href is stamped on the host',
+    inner.plain.tag === 'button' && inner.plain.hostHref === false, JSON.stringify(inner.plain))
+  check('with href the part is an <a> carrying href, target, rel and download',
+    inner.link.tag === 'a' && inner.link.href === '#followed' && inner.link.target === '_self' &&
+      inner.link.rel === 'help' && inner.link.download === 'notes.txt',
+    JSON.stringify(inner.link))
+
+  const cdp = await ax(page)
+  const link = await axFor(cdp, 'l', 'button')
+  check('the accessibility tree sees a link named by its label',
+    axRole(link) === 'link' && axName(link) === 'Visit', `${axRole(link)} "${axName(link)}"`)
+  const named = await axFor(cdp, 'al', 'button')
+  check('a host aria-label names the link through the same bridge',
+    axName(named) === 'Open the manual', axName(named))
+
+  // `download` would turn the follow below into a download; this one is a
+  // navigation check.
+  await page.evaluate(async () => {
+    const l = document.getElementById('l')
+    l.download = undefined
+    await l.updateComplete
+  })
+  await page.click('#l')
+  check('a click follows it', (await page.evaluate(() => location.hash)) === '#followed',
+    await page.evaluate(() => location.hash))
+
+  await page.evaluate(() => { location.hash = '' })
+  await page.focus('#l')
+  await page.keyboard.press('Enter')
+  check('Enter on the focused link follows it',
+    (await page.evaluate(() => location.hash)) === '#followed',
+    await page.evaluate(() => location.hash))
+
+  await page.evaluate(() => { location.hash = '' })
+  await page.evaluate(() => document.getElementById('l').click())
+  check('click() follows it too — the route a dialog\'s Return takes',
+    (await page.evaluate(() => location.hash)) === '#followed',
+    await page.evaluate(() => location.hash))
+
+  const swapped = await page.evaluate(async () => {
+    const b = document.getElementById('plain')
+    const tag = () => b.shadowRoot.querySelector('[part="button"]').localName
+    b.href = '#late'
+    await b.updateComplete
+    const asLink = tag()
+    b.href = ''
+    await b.updateComplete
+    return { asLink, emptied: tag() }
+  })
+  check('href set after upgrade makes it a link; emptied, it is a button again',
+    swapped.asLink === 'a' && swapped.emptied === 'button', JSON.stringify(swapped))
+  await page.close()
+}
+{
+  const page = await build(`<vf-button id="l" href="/landed">Visit</vf-button>`)
+  await page.context().route('**/landed', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>landed</title>' })
+  )
+  const [tab] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.click('#l', { modifiers: ['ControlOrMeta'] }),
+  ])
+  await tab.waitForLoadState()
+  check('a modified click opens the link in a new tab, and this page stays',
+    new URL(tab.url()).pathname === '/landed' && new URL(page.url()).pathname !== '/landed',
+    `${tab.url()} / ${page.url()}`)
+  await tab.close()
+  await page.close()
+}
+
+/* ══════════════════════════════ 12. the disabled link ═══════════════════ */
+{
+  const page = await build(`
+    <vf-button id="before">Before</vf-button>
+    <vf-button id="d" href="#followed" variant="default" disabled>Visit</vf-button>
+    <fieldset id="fs" disabled><vf-button id="f" href="#followed">Visit</vf-button></fieldset>
+    <vf-button id="after">After</vf-button>
+  `)
+  // Both routes into disabled settle through the fieldset's microtask.
+  await page.evaluate(async () => {
+    const f = document.getElementById('f')
+    await f.updateComplete
+    await new Promise((r) => queueMicrotask(r))
+    await f.updateComplete
+  })
+  const shape = await page.evaluate(() => {
+    const read = (id) => {
+      const host = document.getElementById(id)
+      const el = host.shadowRoot.querySelector('[part="button"]')
+      return {
+        tag: el.localName,
+        href: el.hasAttribute('href'),
+        role: el.getAttribute('role'),
+        ariaDisabled: el.getAttribute('aria-disabled'),
+        label: getComputedStyle(el).color,
+        ring: getComputedStyle(host, '::before').backgroundColor,
+      }
+    }
+    return { attr: read('d'), fieldset: read('f') }
+  })
+  const DIM = 'rgb(192, 192, 192)'
+  for (const [key, s] of Object.entries(shape)) {
+    check(`disabled by ${key}: an <a> with no href, role=link, aria-disabled, the label dimmed`,
+      s.tag === 'a' && s.href === false && s.role === 'link' && s.ariaDisabled === 'true' &&
+        s.label === DIM, JSON.stringify(s))
+  }
+  check('a disabled default link dims its ring with its label', shape.attr.ring === DIM,
+    shape.attr.ring)
+
+  const cdp = await ax(page)
+  const node = await axFor(cdp, 'd', 'button')
+  const disabled = node?.properties?.find((p) => p.name === 'disabled')?.value?.value
+  check('the accessibility tree sees a disabled link', axRole(node) === 'link' && disabled === true,
+    `${axRole(node)} disabled=${disabled}`)
+
+  await page.focus('#before')
+  await page.keyboard.press('Tab')
+  const next = await page.evaluate(() => document.activeElement?.id)
+  check('Tab passes over it', next === 'after', next)
+
+  // The pointer, straight at the face: Playwright's own click would wait for
+  // an enabled target and never land.
+  const box = await page.locator('#d').boundingBox()
+  await page.evaluate(() => {
+    const log = []
+    window.__heard = log
+    for (const phase of [true, false]) {
+      document.addEventListener('click', (e) => log.push(`${phase ? 'capture' : 'bubble'}:${e.target.id}`), phase)
+    }
+  })
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  const pressed = await page.evaluate(() => {
+    const el = document.getElementById('d').shadowRoot.querySelector('[part="button"]')
+    return getComputedStyle(el, '::after').backgroundColor
+  })
+  await page.mouse.up()
+  const byPointer = await page.evaluate(() => ({ hash: location.hash, heard: window.__heard.slice() }))
+  check('a press does not invert its face', pressed === 'rgb(255, 255, 255)', pressed)
+  check('a pointer click neither follows it nor reaches a listener, as on a disabled <button>',
+    byPointer.hash === '' && byPointer.heard.length === 0, JSON.stringify(byPointer))
+
+  const byCall = await page.evaluate(() => {
+    window.__heard.length = 0
+    document.getElementById('d').click()
+    document.getElementById('f').click()
+    return { hash: location.hash, heard: window.__heard.slice() }
+  })
+  check('click() does nothing — no follow, no event, either route',
+    byCall.hash === '' && byCall.heard.length === 0, JSON.stringify(byCall))
+  await page.close()
+}
+
+/* ══════════════════════════════ 13. never a form button ═════════════════ */
+{
+  const page = await build(`
+    <form id="f">
+      <vf-text-field id="t" name="q" value="typed"></vf-text-field>
+      <vf-button id="lnk" href="#help" type="submit" name="link" value="1">Help</vf-button>
+      <vf-button id="b" type="submit" name="go" value="1">Save</vf-button>
+    </form>
+  `)
+  const r = await page.evaluate(async () => {
+    const f = document.getElementById('f')
+    const payloads = []
+    f.addEventListener('submit', (e) => {
+      e.preventDefault()
+      payloads.push([...new FormData(f, e.submitter)].map(([k, v]) => `${k}=${v}`).join('&'))
+    })
+    document.getElementById('lnk').click()
+    await new Promise((r) => setTimeout(r, 0))
+    const clicked = { payloads: payloads.splice(0), hash: location.hash }
+    location.hash = ''
+    const input = document.getElementById('t').shadowRoot.querySelector('input')
+    input.focus()
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true, cancelable: true })
+    )
+    await new Promise((r) => setTimeout(r, 0))
+    return { clicked, entered: { payloads: payloads.splice(0), hash: location.hash } }
+  })
+  check('a type="submit" link follows its href and submits nothing',
+    r.clicked.hash === '#help' && r.clicked.payloads.length === 0, JSON.stringify(r.clicked))
+  check('a field\'s Enter passes over the link to the real submit button',
+    r.entered.hash === '' && r.entered.payloads.join() === 'q=typed&go=1',
+    JSON.stringify(r.entered))
+  await page.close()
+}
+
+/* ══════════════════════════════ 14. a dialog's default link ═════════════ */
+{
+  const page = await build(`
+    <vf-dialog id="dlg" heading="Help" width="240" height="80">
+      <vf-button-group>
+        <vf-button id="cancel">Cancel</vf-button>
+        <vf-button id="go" variant="default" href="#manual">Open Manual</vf-button>
+      </vf-button-group>
+    </vf-dialog>
+  `)
+  const opened = await page.evaluate(async () => {
+    const dlg = document.getElementById('dlg')
+    dlg.show()
+    await dlg.updateComplete
+    return document.activeElement?.id
+  })
+  check('the dialog opens with focus on its default link', opened === 'go', opened)
+  await page.focus('#cancel')
+  await page.keyboard.press('Enter')
+  check('Return from a focused Cancel follows the default link',
+    (await page.evaluate(() => location.hash)) === '#manual',
+    await page.evaluate(() => location.hash))
+  await page.close()
+}
+
+/* ══════════════════════════════ 15. the same pixels ═════════════════════ */
+{
+  // Two rows the same distance apart in whole px, so both hosts land on the
+  // grid the same way and any difference is the element's own.
+  const page = await build(`
+    <div style="height:40px"><vf-button id="pb">Visit</vf-button></div>
+    <div style="height:40px"><vf-button id="pl" href="#p">Visit</vf-button></div>
+  `, { settle: true })
+  const shot = async (sel) => decodePng(await page.locator(sel).screenshot())
+  const same = (state, a, b) =>
+    check(`the link renders pixel-identical to the button — ${state}`,
+      a.width === b.width && a.height === b.height && Buffer.compare(a.data, b.data) === 0,
+      `${a.width}×${a.height} vs ${b.width}×${b.height}`)
+  const rest = [await shot('#pb'), await shot('#pl')]
+  same('at rest', ...rest)
+
+  const metrics = await page.evaluate(() => {
+    const host = document.getElementById('pl')
+    const cs = getComputedStyle(host.shadowRoot.querySelector('[part="button"]'))
+    const scale = parseFloat(getComputedStyle(host).getPropertyValue('--vf-scale'))
+    return {
+      height: parseFloat(cs.height) / scale,
+      minWidth: parseFloat(cs.minWidth) / scale,
+      padding: parseFloat(cs.paddingLeft) / scale,
+      underline: cs.textDecorationLine,
+      cursor: cs.cursor,
+    }
+  })
+  check('the link keeps the pinned metrics, no underline and the host\'s cursor',
+    metrics.height === 20 && metrics.minWidth === 64 && metrics.padding === 14 &&
+      metrics.underline === 'none' && metrics.cursor === 'default',
+    JSON.stringify(metrics))
+
+  // Tab onto each in turn: the dashed rule is what's compared, and it has to
+  // have drawn for the comparison to mean anything.
+  const focused = []
+  for (const sel of ['#pb', '#pl']) {
+    await page.keyboard.press('Tab')
+    focused.push(await shot(sel))
+  }
+  check('Tab draws the focus rule on the link',
+    Buffer.compare(focused[1].data, rest[1].data) !== 0)
+  same('focused', ...focused)
+
+  const pressed = []
+  for (const sel of ['#pb', '#pl']) {
+    const box = await page.locator(sel).boundingBox()
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    pressed.push(await shot(sel))
+    await page.mouse.up()
+  }
+  same('pressed', ...pressed)
   await page.close()
 }
 

@@ -710,6 +710,10 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <vf-button variant="default" disabled>Install</vf-button>
           </template>
 
+          <template data-example data-caption="A link to the next section. Modified and middle clicks open it in a new tab.">
+            <vf-button href="#vf-button-group">Next</vf-button>
+          </template>
+
           <table class="api">
             <caption>Properties</caption>
             <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
@@ -718,6 +722,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the <em>label</em> only; the 1px border stays black (the default ring dims, its inner border does not)</td></tr>
               <tr><td><code>type</code></td><td class="wrap"><code>'button' | 'submit' | 'reset'</code></td><td><code>'button'</code></td><td class="wrap">Form-associated: <code>submit</code> calls <code>requestSubmit()</code>, <code>reset</code> calls <code>reset()</code></td></tr>
               <tr><td><code>name</code>, <code>value</code></td><td>string</td><td><code>''</code></td><td class="wrap">Standard — the submitting button's pair in the form data. A form-associated custom element can never be a form's <code>event.submitter</code>, so read the control as <code>event.submitter.closest('vf-button')</code></td></tr>
+              <tr><td><code>href</code></td><td>string</td><td>—</td><td class="wrap">Renders the button as a link: an <code>&lt;a href&gt;</code> under the same art. While set, <code>type</code>, <code>name</code>, <code>value</code> and the <code>form*</code> overrides do nothing and a field's Enter never activates it; as a dialog's <code>variant="default"</code> button, Return follows it. Disabled, it loses its <code>href</code> and takes <code>role="link"</code> and <code>aria-disabled="true"</code></td></tr>
+              <tr><td><code>target</code>, <code>rel</code>, <code>download</code></td><td>string</td><td>—</td><td class="wrap">With <code>href</code>, as on <code>&lt;a&gt;</code></td></tr>
             </tbody>
           </table>
 
@@ -726,9 +732,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td>Slot</td><td>(default)</td><td class="wrap">The label</td></tr>
-              <tr><td>Part</td><td><code>button</code></td><td class="wrap">The inner <code>&lt;button&gt;</code> — put a <code>min-width</code> here</td></tr>
+              <tr><td>Part</td><td><code>button</code></td><td class="wrap">The inner <code>&lt;button&gt;</code>, or <code>&lt;a&gt;</code> with <code>href</code> — put a <code>min-width</code> here</td></tr>
               <tr><td>Events</td><td>—</td><td class="wrap">None custom; native <code>click</code> suffices</td></tr>
-              <tr><td>Role</td><td class="wrap">native <code>&lt;button&gt;</code></td><td class="wrap">Enter and Space activate</td></tr>
+              <tr><td>Role</td><td class="wrap">native <code>&lt;button&gt;</code></td><td class="wrap">Enter and Space activate. With <code>href</code>, a native link: Enter follows it</td></tr>
               <tr><td>Tokens</td><td class="wrap"><code>--vf-button-height</code> (20px), <code>--vf-button-ring-margin</code>, <code>--vf-button-flex</code></td><td class="wrap">The last two are the hooks <code>vf-button-group</code> sets; standalone they are inert</td></tr>
             </tbody>
           </table>

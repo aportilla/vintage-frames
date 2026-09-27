@@ -1,4 +1,4 @@
-import { css, html, nothing, unsafeCSS } from 'lit'
+import { css, html, nothing, unsafeCSS, type TemplateResult } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
@@ -55,6 +55,13 @@ const SUBMITTER_SLOT = 'vf-submitter'
  * `event.submitter.closest('vf-button')`, and its identity from
  * `submitter.name`/`.value` rather than by comparing element references.
  *
+ * With an `href` it is a link instead: the same art over an `<a href>` in
+ * place of the `<button>`, so it is followed the way any link is — a click,
+ * Enter, a modified or middle click into a new tab, the context menu's link
+ * items — and `target`, `rel` and `download` mean what they mean on `<a>`.
+ * A link is not a form button: `type`, `name`, `value` and the `form*`
+ * overrides do nothing while `href` is set.
+ *
  * A host-level `aria-label` / `aria-labelledby` names the inner button, and
  * `description` (or a host-level `aria-describedby`) describes it — the same
  * bridge the fields use, since the role lives on a shadow-internal node the
@@ -62,7 +69,8 @@ const SUBMITTER_SLOT = 'vf-submitter'
  * name it: a `<button>` is not a labelable element.
  *
  * @slot - The button label.
- * @csspart button - The inner native `<button>` element.
+ * @csspart button - The inner native `<button>` element — an `<a>` with
+ *   `href`.
  * @cssprop [--vf-button-height=20px] - `vf-button` face (the default ring's
  *   inner box is 80×20)
  */
@@ -138,8 +146,9 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
          the stepped pseudo-element silhouettes below. Keeping the clip-paths
          off the button itself leaves the hit area a plain rectangle, and
          anything painted outside the silhouette (a ring a consumer restores
-         on ::part(button)) unclipped. */
-      button {
+         on ::part(button)) unclipped. .control is that button, or the <a>
+         that stands in for it under href: the art is the same either way. */
+      .control {
         position: relative;
         /* Own stacking context so the negative-z silhouettes stay inside the
            button: above everything behind it, below the label. */
@@ -166,31 +175,40 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
         line-height: inherit;
         white-space: nowrap;
         cursor: inherit;
+        /* What the UA sheet gives a <button> and an <a> does not: no
+           underline, and none of the page's text styling inherited through
+           the host — so the link reads exactly as the button does. */
+        text-decoration: none;
+        text-transform: none;
+        text-indent: 0;
+        text-shadow: none;
+        letter-spacing: normal;
+        word-spacing: normal;
       }
       /* Frame: the outer silhouette in solid black. The face below covers all
          but the outline, leaving the reference's exact border pixels — the
          QuickDraw difference-of-silhouettes, not a stroked border. */
-      button::before,
-      button::after {
+      .control::before,
+      .control::after {
         content: '';
         position: absolute;
         inset: 0;
         z-index: -1;
       }
-      button::before {
+      .control::before {
         background: var(--vf-black, #000);
         clip-path: ${unsafeCSS(steppedRectClip(BUTTON_FRAME))};
       }
       /* Face: white fill inset one pixel, with its own traced corner steps. */
-      button::after {
+      .control::after {
         background: var(--vf-white, #fff);
         clip-path: ${unsafeCSS(steppedRectClip(BUTTON_FACE))};
       }
       /* Pressed: instant white-on-black inversion. */
-      button:active:not(:disabled) {
+      .control:active:not(:disabled) {
         color: var(--vf-white, #fff);
       }
-      button:active:not(:disabled)::after {
+      .control:active:not(:disabled)::after {
         background: var(--vf-black, #000);
       }
       /* The label rides in its own box so the focus underline can span the
@@ -202,7 +220,7 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
       }
       /* Keyboard focus is the dashed rule under the label, not a ring around
          the control — so the UA's own outline goes. */
-      button:focus-visible {
+      .control:focus-visible {
         outline: none;
       }
       /* …and off the host too. Blink doesn't currently propagate
@@ -214,12 +232,22 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
       :host(:focus-visible) {
         outline: none;
       }
-      button:focus-visible .label::after {
+      .control:focus-visible .label::after {
         ${vfFocusUnderline}
       }
       /* Disabled: only the label dims to gray; the solid black border stays. */
-      button:disabled {
+      .control:disabled {
         color: var(--vf-disabled, #c0c0c0);
+      }
+      /* A disabled link has no disabled state of its own, so it is spelled
+         out: the same dimmed label, and no press. Letting the pointer through
+         to the host keeps the face from inverting (:active never reaches the
+         link) and makes the press's target the host itself — a disabled form
+         control, which the platform dispatches no click to, as it dispatches
+         none to a disabled <button>. */
+      a.control[aria-disabled='true'] {
+        color: var(--vf-disabled, #c0c0c0);
+        pointer-events: none;
       }
     `,
   ]
@@ -280,13 +308,54 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
   /** See {@link formAction}. Overrides the form's `target`. */
   @property({ attribute: 'formtarget', reflect: true }) formTarget = ''
 
+  // `href` and its three companions are optional rather than `''`-defaulted
+  // like the `form*` strings: a reflected default would stamp `href=""` on
+  // every button, and `vf-button[href]` would stop meaning "a link".
+
+  /**
+   * A URL, and the button becomes a link to it: an `<a href>` renders in
+   * place of the inner `<button>` under the same art, and the platform
+   * follows it — a click, Enter, a modified or middle click, the context
+   * menu's link items. An empty value is no link.
+   *
+   * A link is not a form button. While `href` is set, {@link type},
+   * {@link name}, {@link value} and the `form*` overrides do nothing, and the
+   * button is never a form's default button for a field's Enter. Inside a
+   * `vf-dialog`, `variant="default"` still makes it the dialog's default
+   * button, so Return follows the link.
+   *
+   * Disabled — by attribute or an ancestor `<fieldset disabled>` — the `<a>`
+   * keeps rendering but loses its `href`, taking `role="link"` and
+   * `aria-disabled="true"` instead: out of the tab order, and inert to the
+   * pointer and to {@link click}, as a disabled `<button>` is.
+   */
+  @property({ reflect: true }) href?: string
+
+  /** With {@link href}: where the link opens, as `<a target>`. */
+  @property({ reflect: true }) target?: string
+
+  /** With {@link href}: the link's relationship to this page, as `<a rel>`. */
+  @property({ reflect: true }) rel?: string
+
+  /**
+   * With {@link href}: download the resource instead of navigating to it, as
+   * `<a download>` — the value, when there is one, names the saved file.
+   */
+  @property({ reflect: true }) download?: string
+
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
   private readonly scale = new ScaleController(this)
 
   /** Device-pixel grid snapping; see src/grid-snap.ts. */
   private readonly gridSnap = new GridSnapController(this)
 
-  @query('button') private buttonEl!: HTMLButtonElement | null
+  /** The inner `<button>` — or `<a>`, under {@link href}. */
+  @query('.control') private control!: HTMLElement | null
+
+  /** Whether {@link href} makes this a link. */
+  private get isLink(): boolean {
+    return Boolean(this.href)
+  }
 
   /** True while {@link activate} runs — see the re-entrancy note there. */
   #activating = false
@@ -316,7 +385,10 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
    * actual activation surface, is handed the call instead. Its click then
    * bubbles back out composed, exactly as a pointer's does. This is what the
    * fields' implicit submission (Enter) activates as the form's default
-   * button; a disabled button swallows it natively, as it should.
+   * button; a disabled button swallows it natively, as it should. Under
+   * {@link href} the `<a>` is handed the call and follows itself — which is
+   * how a dialog's Return reaches a default button that is a link. A
+   * disabled link has no native state to swallow it, so it is withheld here.
    *
    * Before the first render there is no inner button to forward to. A native
    * `click()` always fires, so rather than doing nothing this falls back to
@@ -324,25 +396,57 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
    * event a caller asked for.
    */
   override click(): void {
-    const button = this.buttonEl
-    if (button) button.click()
-    else super.click()
+    const control = this.control
+    if (!control) super.click()
+    else if (!(this.isLink && this.isDisabled)) control.click()
   }
 
   override render() {
+    const label = html`<span class="label"><slot></slot></span>`
+    return html`
+      ${this.isLink ? this.renderLink(label) : this.renderButton(label)}
+      ${this.renderDescription()}
+    `
+  }
+
+  private renderButton(label: TemplateResult) {
     return html`
       <button
         part="button"
-        class="vf-snap"
+        class="control vf-snap"
         type="button"
         aria-label=${this.hostAriaLabel || nothing}
         aria-describedby=${this.describedBy}
         ?disabled=${this.isDisabled}
         @click=${this.handleClick}
       >
-        <span class="label"><slot></slot></span>
+        ${label}
       </button>
-      ${this.renderDescription()}
+    `
+  }
+
+  /**
+   * The link. No click listener: following it is the platform's activation
+   * behavior. A disabled one is an `<a>` without an `href`, which has no
+   * link role unless it is given one.
+   */
+  private renderLink(label: TemplateResult) {
+    const disabled = this.isDisabled
+    return html`
+      <a
+        part="button"
+        class="control vf-snap"
+        href=${disabled ? nothing : this.href!}
+        target=${this.target || nothing}
+        rel=${this.rel || nothing}
+        download=${this.download ?? nothing}
+        role=${disabled ? 'link' : nothing}
+        aria-disabled=${disabled ? 'true' : nothing}
+        aria-label=${this.hostAriaLabel || nothing}
+        aria-describedby=${this.describedBy}
+      >
+        ${label}
+      </a>
     `
   }
 

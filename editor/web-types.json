@@ -85,7 +85,7 @@
         },
         {
           "name": "vf-button",
-          "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` and any `form*` override to the\nsubmission), `type=\"reset\"` resets it. Enter and Space activate it via the\ninner native button, and the submission runs at the end of the click's\npropagation, so `preventDefault()` on the button cancels it the way it\ncancels a native one.\n\nOne thing the platform will not allow: `event.submitter` cannot BE a\nform-associated custom element. It is the transient native proxy this\nbutton submits through — so read the submitting button as\n`event.submitter.closest('vf-button')`, and its identity from\n`submitter.name`/`.value` rather than by comparing element references.\n\nA host-level `aria-label` / `aria-labelledby` names the inner button, and\n`description` (or a host-level `aria-describedby`) describes it — the same\nbridge the fields use, since the role lives on a shadow-internal node the\nplatform can't deliver those to. A `<label for>` deliberately does not\nname it: a `<button>` is not a labelable element.\n---\n\n\n### **Slots:**\n - _default_ - The button label.\n\n### **CSS Properties:**\n - **--vf-button-height** - `vf-button` face (the default ring's inner box is 80×20) _(default: 20px)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` element.",
+          "description": "The classic System 7 push button (\"OK\", \"Cancel\", \"Install\", …).\n\nA rounded-rectangle control with a 1px black border and white face that\ninverts to white-on-black while pressed. `variant=\"default\"` draws the\nclassic bold double ring around the button, marking it as the default\naction of a dialog.\n\nThe rounded corners are not `border-radius` arcs: frame, face, and ring are\nstepped `clip-path` silhouettes traced pixel-for-pixel from the kit's button\nreference sheet (see `src/pixel-frame.ts`), so every corner renders as the\nexact 1-bit staircase with no antialiasing.\n\nKeyboard focus — an affordance System 7 didn't have, drawn in its idiom\nanyway — is a 1px dashed rule under the label text (`vfFocusUnderline`)\nrather than a ring around the control.\n\nForm-associated: place it inside a `<form>` and `type=\"submit\"` submits the\nform (contributing its `name`/`value` and any `form*` override to the\nsubmission), `type=\"reset\"` resets it. Enter and Space activate it via the\ninner native button, and the submission runs at the end of the click's\npropagation, so `preventDefault()` on the button cancels it the way it\ncancels a native one.\n\nOne thing the platform will not allow: `event.submitter` cannot BE a\nform-associated custom element. It is the transient native proxy this\nbutton submits through — so read the submitting button as\n`event.submitter.closest('vf-button')`, and its identity from\n`submitter.name`/`.value` rather than by comparing element references.\n\nWith an `href` it is a link instead: the same art over an `<a href>` in\nplace of the `<button>`, so it is followed the way any link is — a click,\nEnter, a modified or middle click into a new tab, the context menu's link\nitems — and `target`, `rel` and `download` mean what they mean on `<a>`.\nA link is not a form button: `type`, `name`, `value` and the `form*`\noverrides do nothing while `href` is set.\n\nA host-level `aria-label` / `aria-labelledby` names the inner button, and\n`description` (or a host-level `aria-describedby`) describes it — the same\nbridge the fields use, since the role lives on a shadow-internal node the\nplatform can't deliver those to. A `<label for>` deliberately does not\nname it: a `<button>` is not a labelable element.\n---\n\n\n### **Slots:**\n - _default_ - The button label.\n\n### **CSS Properties:**\n - **--vf-button-height** - `vf-button` face (the default ring's inner box is 80×20) _(default: 20px)_\n\n### **CSS Parts:**\n - **button** - The inner native `<button>` element — an `<a>` with `href`.",
           "doc-url": "",
           "attributes": [
             {
@@ -135,6 +135,26 @@
               "name": "formtarget",
               "description": "See formAction. Overrides the form's `target`.",
               "value": { "type": "string", "default": "''" }
+            },
+            {
+              "name": "href",
+              "description": "A URL, and the button becomes a link to it: an `<a href>` renders in\nplace of the inner `<button>` under the same art, and the platform\nfollows it — a click, Enter, a modified or middle click, the context\nmenu's link items. An empty value is no link.\n\nA link is not a form button. While `href` is set, type,\nname, value and the `form*` overrides do nothing, and the\nbutton is never a form's default button for a field's Enter. Inside a\n`vf-dialog`, `variant=\"default\"` still makes it the dialog's default\nbutton, so Return follows the link.\n\nDisabled — by attribute or an ancestor `<fieldset disabled>` — the `<a>`\nkeeps rendering but loses its `href`, taking `role=\"link\"` and\n`aria-disabled=\"true\"` instead: out of the tab order, and inert to the\npointer and to click, as a disabled `<button>` is.",
+              "value": { "type": "string | undefined" }
+            },
+            {
+              "name": "target",
+              "description": "With href: where the link opens, as `<a target>`.",
+              "value": { "type": "string | undefined" }
+            },
+            {
+              "name": "rel",
+              "description": "With href: the link's relationship to this page, as `<a rel>`.",
+              "value": { "type": "string | undefined" }
+            },
+            {
+              "name": "download",
+              "description": "With href: download the resource instead of navigating to it, as\n`<a download>` — the value, when there is one, names the saved file.",
+              "value": { "type": "string | undefined" }
             },
             {
               "name": "top",
@@ -220,6 +240,26 @@
                 "name": "formTarget",
                 "description": "See formAction. Overrides the form's `target`.",
                 "type": "string"
+              },
+              {
+                "name": "href",
+                "description": "A URL, and the button becomes a link to it: an `<a href>` renders in\nplace of the inner `<button>` under the same art, and the platform\nfollows it — a click, Enter, a modified or middle click, the context\nmenu's link items. An empty value is no link.\n\nA link is not a form button. While `href` is set, type,\nname, value and the `form*` overrides do nothing, and the\nbutton is never a form's default button for a field's Enter. Inside a\n`vf-dialog`, `variant=\"default\"` still makes it the dialog's default\nbutton, so Return follows the link.\n\nDisabled — by attribute or an ancestor `<fieldset disabled>` — the `<a>`\nkeeps rendering but loses its `href`, taking `role=\"link\"` and\n`aria-disabled=\"true\"` instead: out of the tab order, and inert to the\npointer and to click, as a disabled `<button>` is.",
+                "type": "string | undefined"
+              },
+              {
+                "name": "target",
+                "description": "With href: where the link opens, as `<a target>`.",
+                "type": "string | undefined"
+              },
+              {
+                "name": "rel",
+                "description": "With href: the link's relationship to this page, as `<a rel>`.",
+                "type": "string | undefined"
+              },
+              {
+                "name": "download",
+                "description": "With href: download the resource instead of navigating to it, as\n`<a download>` — the value, when there is one, names the saved file.",
+                "type": "string | undefined"
               },
               {
                 "name": "top",

@@ -204,8 +204,10 @@ export class VfTextControlBase extends VfShadowRoleControl {
         // submit button. A native element's IDL getter normalizes it for
         // free; a custom element's plain property hands back what was
         // written, so the comparison does it here (vf-button.ts resolves its
-        // own the same way).
+        // own the same way). An `href` makes it a link, which no form counts
+        // as a button whatever its `type` says.
         (el.localName === 'vf-button' &&
+          !(el as { href?: string }).href &&
           (el as { type?: string }).type?.toLowerCase() === 'submit')
     )
     if (defaultButton) {

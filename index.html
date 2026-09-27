@@ -14,10 +14,10 @@
       stage and prints the same template underneath, so the sample cannot
       drift from the thing above it.
 
-      Order: install, then every component, then the two sections whose
-      subject is the page rather than one element — sizing and focus — and
-      the reference tables. There is no cross-cutting "conventions" chapter:
-      what a component does is stated in that component's own section.
+      Order: install, then every component, then Focus, the one section whose
+      subject is the page rather than one element. There is no cross-cutting
+      "conventions" chapter: what a component does is stated in that
+      component's own section.
 
       The page pins no --vf-scale, so every specimen self-scales. Grid
       snapping is always on; load with ?nosnap to opt every element out.
@@ -201,7 +201,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Property</td><td><code>pattern</code></td><td class="wrap">A pattern name (default <code>gray-50</code>) or 16 hex digits for a custom 8×8 pattern. The names are listed under <a href="#vf-container"><code>vf-container</code></a>. An unknown value keeps the default. <code>--vf-desktop-pattern</code> overrides it</td></tr>
               <tr><td>Property</td><td><code>activeWindow</code></td><td class="wrap">Read-only. The active document window, or <code>null</code>. Never a utility window</td></tr>
               <tr><td>Method</td><td><code>fitWithin(w,&nbsp;h)</code></td><td class="wrap">Sets and returns the largest size that fits in <code>w</code> × <code>h</code> CSS px, bezel included. Call it on <code>resize</code> and <code>onScaleChange</code> to fill the viewport</td></tr>
-              <tr><td>Method</td><td><code>clearActive()</code></td><td class="wrap">Deactivates every document window until the next press, focus or added window. Utility windows stay active</td></tr>
+              <tr><td>Method</td><td><code>bringToFront(win)</code></td><td class="wrap">Brings a window to the front, as a press would. A document window also becomes the active one; a utility window keeps its own <code>active</code>. DOM order follows once any press in progress ends</td></tr>
+              <tr><td>Method</td><td><code>clearActive()</code></td><td class="wrap">Deactivates every document window until the next press, focus, added window or <code>bringToFront()</code>. Utility windows stay active</td></tr>
               <tr><td>Method</td><td><code>placementAt(x,&nbsp;y)</code></td><td class="wrap">Converts a viewport point (CSS px) to <code>{ left, top }</code> on the screen, in system px. Write the result to a child dropped there</td></tr>
               <tr><td>Event</td><td><code>vf-activate</code></td><td class="wrap"><code>{ window }</code>: the new active window, or <code>null</code>. Fires only when it changes</td></tr>
               <tr><td>Slot</td><td>(default)</td><td class="wrap">Menu bar, windows, icon fields, anything. Drag outlines and window zoom animations inside draw on the screen, above the menu bar, clipped at its edge</td></tr>

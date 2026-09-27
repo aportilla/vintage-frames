@@ -12,7 +12,7 @@
  *   2. prints the template's own markup underneath as the code sample, so the
  *      sample cannot drift from the thing above it — they are one source;
  *   3. wires the few generic hooks a demo can ask for by attribute
- *      (`data-show`, `data-close`, `data-value-of`, `data-log`, …).
+ *      (`data-show`, `data-close`, `data-value-src`, `data-log`, …).
  *
  * Page CSS is NOT imported here — index.html loads it with a `<link>`, so
  * anything it declared in `:root` would be in scope before the components
@@ -20,14 +20,7 @@
  * nothing (see the note at the top of examples.css): the specimens are shown
  * in their default state, self-scaled to true size.
  */
-import {
-  effectiveScale,
-  getZoom,
-  onScaleChange,
-  prefersReducedMotion,
-  requestGridSnap,
-  truePixelRatio,
-} from '../src/index.js'
+import { effectiveScale, prefersReducedMotion, requestGridSnap } from '../src/index.js'
 import type {
   VfDesktop,
   VfIcon,
@@ -606,44 +599,6 @@ function cleanUpMoves(icons: readonly VfIcon[], grid: Lattice): VfIconMove[] {
 }
 
 /* ------------------------------------------------------------------ *
- * The zoom readout — the one snippet on the page that rewrites itself.
- *
- * The Zoom part of "Sizing and the device-pixel grid" invites the reader to
- * zoom the page and watch the target move, so this line has to report the
- * numbers the kit is actually rendering with: the resolved
- * --vf-scale off a live component, the tracked zoom, and trueDpr (device px
- * per CSS px INCLUDING zoom — what devicePixelRatio stops being in Safari
- * under zoom). onScaleChange is the one subscription that covers every way
- * these can move: a zoom in either engine's dialect, and a monitor move,
- * which changes the grid without changing the scale.
- * ------------------------------------------------------------------ */
-
-function wireZoomReadout(): void {
-  const readout = document.getElementById('zoom-readout')
-  if (!readout) return
-  // Any component serves as the probe — scaling is per component, and the
-  // masthead label is the first one on the page.
-  const probe = document.querySelector('vf-label')
-  const refresh = (): void => {
-    if (!probe) return
-    const zoom = getZoom()
-    const trueDpr = truePixelRatio()
-    const scale = effectiveScale(probe)
-    const density = Math.round((trueDpr / zoom) * 100) / 100
-    readout.textContent =
-      `--vf-scale ${Math.round(scale * 10000) / 10000} · ` +
-      `${Math.round(zoom * 100)}% zoom on a ${density}× display · ` +
-      `1 system px = ${Math.round(scale * trueDpr)} device px`
-  }
-  // A frame after the change, not during it: this module subscribed before
-  // the components upgraded, so its listener runs before their controllers
-  // have rewritten --vf-scale, and an immediate read reports the old scale.
-  // Page-lifetime glue; nothing to clean up.
-  onScaleChange(() => requestAnimationFrame(refresh))
-  requestAnimationFrame(refresh)
-}
-
-/* ------------------------------------------------------------------ *
  * Table of contents + scroll spy.
  * ------------------------------------------------------------------ */
 
@@ -744,7 +699,6 @@ wireEventLogs()
 wireFiling()
 wireCleanUp()
 wireProgress()
-wireZoomReadout()
 
 // The examples were inserted after the page's own load-time snap pass.
 requestGridSnap()

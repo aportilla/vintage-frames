@@ -207,16 +207,19 @@ const nextTask = (page) => page.evaluate(() => new Promise((r) => setTimeout(r, 
     `border ${after.border}, stripes ${after.stripes}`)
 
   // Close it: Enter on the focused (native button) close box fires vf-close.
-  // Bounded: the listener resolves only if the event arrives, so an Enter that
-  // lands on the wrong element has to fail this check rather than wait forever.
-  const closed = page.evaluate(() =>
-    new Promise((resolve) => {
+  // Attach the listener first (and let the evaluate return), THEN press Enter
+  // — an evaluate left in flight races the key, and a loaded runner delivers
+  // the Enter before the listener exists. Bounded: the promise resolves only
+  // if the event arrives, so an Enter that lands on the wrong element has to
+  // fail this check rather than wait forever.
+  await page.evaluate(() => {
+    window.__closed = new Promise((resolve) => {
       document.getElementById('w1').addEventListener(
         'vf-close', (e) => resolve(e.detail), { once: true })
     })
-  )
+  })
   await page.keyboard.press('Enter')
-  const detail = await within(closed)
+  const detail = await within(page.evaluate(() => window.__closed))
   check('Enter on it fires vf-close — a static-body window is closable by keyboard',
     detail?.reason === 'close', detail ? JSON.stringify(detail) : 'no vf-close within 5s')
   await page.close()

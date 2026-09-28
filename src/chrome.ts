@@ -8,15 +8,16 @@ import { truePixelRatio } from './zoom.js'
  * The title-bar element shared by `vf-window` and `vf-dialog`: the
  * `.vf-title-bar` row (skinned by `vfTitleBar` in styles/base.ts), the texture
  * layer behind it (racing stripes by default; `vf-window`'s utility variant
- * passes `'vf-dots'` for the windoid dither), and the four pointer bindings
+ * passes `'vf-dots'` for the windoid dither), and the five pointer bindings
  * that hand the bar to a {@link DragController}.
  *
  * Both components render a byte-identical bar with byte-identical wiring;
  * only what sits in the bar differs — vf-window interleaves its close/zoom
  * widgets around the title, vf-dialog carries just the title (with the id its
- * `aria-labelledby` points at). That goes in as `content`, so the four bindings
+ * `aria-labelledby` points at). That goes in as `content`, so the five bindings
  * — which have to stay in lockstep with DragController's three handlers, and
- * where a dropped `pointercancel` would strand a drag — live in one place.
+ * where a dropped `pointercancel` or `lostpointercapture` would strand a
+ * drag — live in one place.
  *
  * The standard bar's racing stripes render here unconditionally, BOTH
  * engine renderings side by side — placed rows for Gecko/WebKit, the
@@ -83,6 +84,7 @@ export const chromeTitleBar = (
     @pointermove=${drag.onPointerMove}
     @pointerup=${drag.onPointerUp}
     @pointercancel=${drag.onPointerUp}
+    @lostpointercapture=${drag.onPointerUp}
   >
     <div class=${texture ? `${textureClass} vf-tile-grid` : textureClass}>
       ${texture ?? (textureClass === 'vf-stripes' ? RACING_STRIPES : null)}

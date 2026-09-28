@@ -6289,7 +6289,7 @@
               "kind": "field",
               "name": "#onPointerUp",
               "privacy": "private",
-              "description": "The release of a press on this icon. The drag controller hears it first\n(a started drag ends there); then a press that was kept from collapsing\nthe selection — a plain press on an already-selected member of a field —\ncollapses it now, if no drag ever began: a click on one of several\nselected icons selects that one alone, on the release rather than the\npress, so the same press could have dragged them all. A cancel collapses\nnothing. Last, the second tap of a pair opens the icon, where a\n`dblclick` would have landed in the order of things."
+              "description": "The release of a press on this icon. The drag controller hears it first\n(a started drag ends there); then a press that was kept from collapsing\nthe selection — a plain press on an already-selected member of a field —\ncollapses it now, if no drag ever began: a click on one of several\nselected icons selects that one alone, on the release rather than the\npress, so the same press could have dragged them all. A cancel collapses\nnothing. Last, the second tap of a pair opens the icon, where a\n`dblclick` would have landed in the order of things. A capture lost\nbefore the release is the release (see `DragController.onPointerUp`);\none lost after it finds all three already done."
             },
             {
               "kind": "method",

@@ -464,6 +464,18 @@ export async function pen(page) {
   }
 }
 
+/**
+ * A mouse move that reports no button down while Playwright's mouse still
+ * holds one — the move a trackpad can send just before its release. Chrome
+ * drops any pointer capture on it, so the release that follows lands
+ * wherever the pointer is. Coordinates are viewport CSS px.
+ */
+export async function buttonlessMove(page, x, y) {
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, button: 'none', buttons: 0 })
+  await cdp.detach()
+}
+
 // ──────────────────────────────────────────────── the accessibility tree
 
 /** Walk the pierced DOM (CDP `DOM.getDocument`), shadow roots included. */

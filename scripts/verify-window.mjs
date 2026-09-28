@@ -56,12 +56,14 @@
  *    desktop's drag surface instead of the window — a one-pixel ring at the
  *    frame's size, dotted on the screen's odd diagonal, held where the
  *    window can land — and the release writes the window there once; Escape
- *    writes nothing. Unset, or with no desktop, the window moves live.
+ *    writes nothing; a capture lost before the release lands it the same
+ *    way. Unset, or with no desktop, the window moves live.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window
  */
 import {
+  buttonlessMove,
   check,
   decodePng,
   devicePxPerSystemPxAt,
@@ -1522,6 +1524,22 @@ const titleBarPoint = (page) =>
       after.top === 100 &&
       after.writes === 1,
     JSON.stringify({ before: before.count, escaped: escaped.count, after })
+  )
+
+  // A mouse move with no button down just before the release drops the
+  // capture, and the release lands on the window's body, not the bar. The
+  // lost capture is the release: the window lands, the outline goes.
+  bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 60, bar.y + 40, { steps: 6 })
+  await buttonlessMove(page, bar.x + 60, bar.y + 40)
+  await page.mouse.up()
+  const lost = await outlineOf(page)
+  check(
+    'DRAG OUTLINE  a capture lost before the release lands the window there, and the outline goes',
+    lost.left === 220 && lost.top === 140 && lost.writes === 2 && lost.count === 0,
+    JSON.stringify(lost)
   )
 
   // Held where the window can land: pushed past the top-left, the outline

@@ -1796,6 +1796,7 @@ export class VfIcon extends VfPositioned(LitElement) {
       @pointermove=${this.#drag.onPointerMove}
       @pointerup=${this.#onPointerUp}
       @pointercancel=${this.#onPointerUp}
+      @lostpointercapture=${this.#onPointerUp}
       @dblclick=${this.#onDoubleClick}
     >
       <div class=${artClasses} part="icon">
@@ -2125,7 +2126,9 @@ export class VfIcon extends VfPositioned(LitElement) {
    * selected icons selects that one alone, on the release rather than the
    * press, so the same press could have dragged them all. A cancel collapses
    * nothing. Last, the second tap of a pair opens the icon, where a
-   * `dblclick` would have landed in the order of things.
+   * `dblclick` would have landed in the order of things. A capture lost
+   * before the release is the release (see `DragController.onPointerUp`);
+   * one lost after it finds all three already done.
    */
   #onPointerUp = (event: PointerEvent): void => {
     // Read before the drag controller ends the gesture.
@@ -2134,7 +2137,7 @@ export class VfIcon extends VfPositioned(LitElement) {
     const opens = this.#endTap(event, dragged)
     if (this.#collapseOnRelease) {
       this.#collapseOnRelease = false
-      const field = event.type === 'pointerup' ? this.#field : null
+      const field = event.type !== 'pointercancel' ? this.#field : null
       for (const icon of field?.querySelectorAll('vf-icon') ?? []) {
         if (icon !== this && icon.selected) icon.setSelected(false)
       }
@@ -2155,7 +2158,7 @@ export class VfIcon extends VfPositioned(LitElement) {
     if (!tap || tap.pointerId !== event.pointerId) return false
     this.#tap = null
     const tapped =
-      event.type === 'pointerup' &&
+      event.type !== 'pointercancel' &&
       !dragged &&
       !this._editing &&
       Math.hypot(event.clientX - tap.x, event.clientY - tap.y) < dragSlop(event)

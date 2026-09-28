@@ -320,6 +320,9 @@ export class VfIconField extends VfSized(VfPositioned(LitElement)) {
     this.addEventListener('pointermove', this.#onPointerMove)
     this.addEventListener('pointerup', this.#onPointerUp)
     this.addEventListener('pointercancel', this.#onPointerUp)
+    // A capture lost before the release ends the band as the release would
+    // (see DragController.onPointerUp); the pointerup lands elsewhere.
+    this.addEventListener('lostpointercapture', this.#onPointerUp)
   }
 
   override disconnectedCallback(): void {

@@ -61,6 +61,10 @@
  *    white window body is a dotted line, and over the dither a black line
  *    whatever the field's own offset on the screen; an unfilled field draws
  *    none.
+ *  - LOST CAPTURE: a mouse move with no button down just before the release
+ *    drops the capture; the icon's drag then drops once where it was, the
+ *    outline gone, and a band released over a window ends with its selection
+ *    kept.
  *  - GROUP: the selection travels — a drag beginning on a selected icon
  *    carries every other selected, movable icon of its field: one outline
  *    each on the surface, `icons` in every event with the leader first, the
@@ -92,6 +96,7 @@
  *   npm run verify:icon-drag
  */
 import {
+  buttonlessMove,
   check,
   decodePng,
   finger,
@@ -1809,6 +1814,74 @@ const clearSelects = (page) => page.evaluate(() => void (globalThis.__selects = 
     'BAND  an unfilled field of placed icons has no surface, so no band',
     !none.has && none.selected.e === false,
     JSON.stringify(none)
+  )
+  await page.close()
+}
+
+// ── LOST CAPTURE ────────────────────────────────────────────────────────────
+// A mouse move with no button down just before the release drops the capture,
+// and the release lands wherever the pointer is. The lost capture is the
+// release, for the icon's drag and the field's band alike.
+{
+  const page = await build(BAND_DESK, { settle: true })
+  await record(page)
+  await page.evaluate(() => {
+    globalThis.__order = []
+    const field = document.getElementById('field')
+    for (const type of ['lostpointercapture', 'pointerup']) {
+      document.addEventListener(
+        type,
+        (e) => globalThis.__order.push({ type, inField: e.composedPath().includes(field) }),
+        true
+      )
+    }
+  })
+  const order = () => page.evaluate(() => globalThis.__order.splice(0))
+
+  // A dragged by (60, 40), the capture lost with the pointer past A's frame.
+  const s0 = await state(page, 'a')
+  await pressAndMove(page, 'a', 60, 40)
+  await buttonlessMove(page, s0.x + 70, s0.y + 50)
+  await page.mouse.up()
+  const dropped = await state(page, 'a')
+  const events = (await log(page)).map((e) => e.type)
+  const outlines = await page.evaluate(
+    () => document.getElementById('desk').shadowRoot.querySelectorAll('.drag-surface canvas').length
+  )
+  const iconOrder = (await order()).map((e) => e.type)
+  check(
+    'LOST CAPTURE  a capture lost before the release drops the icon once, and the outline goes',
+    iconOrder[0] === 'lostpointercapture' &&
+      events.filter((t) => t === 'vf-drop').length === 1 &&
+      !events.includes('vf-drag-cancel') &&
+      dropped.left === s0.left + 60 / s0.scale &&
+      dropped.top === s0.top + 40 / s0.scale &&
+      outlines === 0,
+    `${iconOrder.join(',')}; ${events.join(',')}; at ${dropped.left},${dropped.top}; ${outlines} outlines left`
+  )
+
+  // The band, released over the window: the pointerup never reaches the
+  // field, and the band still ends as a release, keeping what it selected.
+  const S = await page.evaluate(() => {
+    const r = document.getElementById('desk').shadowRoot.querySelector('.screen').getBoundingClientRect()
+    return { x: r.x, y: r.y }
+  })
+  await page.mouse.move(S.x + 10, S.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(S.x + 330, S.y + 220, { steps: 4 })
+  const mid = await band(page)
+  await buttonlessMove(page, S.x + 330, S.y + 220)
+  await page.mouse.up()
+  const after = await band(page)
+  const bandOrder = await order()
+  check(
+    'LOST CAPTURE  a band released off the field ends at the lost capture and keeps its selection',
+    bandOrder[0]?.type === 'lostpointercapture' &&
+      bandOrder.some((e) => e.type === 'pointerup' && !e.inField) &&
+      mid.has &&
+      !after.has &&
+      JSON.stringify(after.selected) === JSON.stringify(mid.selected),
+    JSON.stringify({ order: bandOrder, mid: mid.selected, after: after.selected })
   )
   await page.close()
 }

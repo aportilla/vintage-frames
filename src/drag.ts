@@ -42,7 +42,8 @@ export interface DragTarget {
 /**
  * Drag-to-move for 1-bit chrome. Bind {@link onPointerDown} / {@link onPointerMove}
  * / {@link onPointerUp} to a handle element (`vf-window`'s title bar,
- * `vf-dialog`'s title bar); the controller captures the pointer on that handle,
+ * `vf-dialog`'s title bar) — the last to `pointerup`, `pointercancel` and
+ * `lostpointercapture` alike; the controller captures the pointer on that handle,
  * tracks the delta from the press point, and hands the {@link DragTarget} a new
  * origin in system px, snapped onto the placement lattice — whole art pixels,
  * the way QuickDraw moved windows, which is also what keeps the pixel art
@@ -106,7 +107,11 @@ export class DragController implements ReactiveController {
   /**
    * The release — or, bound to `pointercancel` as every handle binds it, the
    * platform abandoning the gesture (a touch the browser took for a scroll),
-   * which the target hears as a cancel.
+   * which the target hears as a cancel. Bound to `lostpointercapture` too: a
+   * capture lost first ends the gesture as a release. Chrome drops it on a
+   * mouse move that reports no button down, which a trackpad can send just
+   * before its release, and the `pointerup` then lands wherever the pointer
+   * is. Idempotent: the capture released here re-enters with no gesture left.
    */
   onPointerUp = (event: PointerEvent): void => {
     if (event.pointerId !== this.#pointerId) return

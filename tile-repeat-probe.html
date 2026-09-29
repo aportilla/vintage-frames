@@ -3,12 +3,13 @@
   <!--
     Tile-repeat probe — dev-only, like pixel-test.html.
 
-    The pattern fill (src/pattern-fill.ts) is a CSS repeat of a 120-system-px
-    tile drawn at device resolution. It replaced a whole-surface raster —
-    one PNG the size of the box, re-encoded as the box was resized — which
-    this page recreates as the reference. The repeat is judged in real
-    browsers, not under emulated density: headless runs don't reproduce
-    Safari's smoothing (docs/TILE-REPEAT-PLAN.md has the findings).
+    The kit's tiled fills (src/tile-grid.ts) are a CSS repeat of a
+    120-system-px tile drawn at device resolution. They replaced a
+    whole-surface raster — one PNG the size of the box, re-encoded as the box
+    was resized — which this page recreates as the reference. The repeat is
+    judged in real browsers, not under emulated density: headless runs don't
+    reproduce Safari's smoothing (TILE-REPEAT-PLAN.md, in git history at
+    commit 5bc45c2, has the findings).
 
     One viewport-filling vf-desktop, fitted the way a page fits one
     (fitWithin on the stage's size and onScaleChange). Three modes:

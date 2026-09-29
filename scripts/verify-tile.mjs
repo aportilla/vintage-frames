@@ -6,8 +6,8 @@
  * each placed at `k × tileSize` where the tile size is a single stored length
  * the engine quantizes to its layout grid. When that length isn't exact the
  * error compounds with `k` until the art smears gray or a column doubles.
- * docs/TILE-REPEAT-PLAN.md carries the analysis and the real-browser
- * measurements behind the answer below.
+ * TILE-REPEAT-PLAN.md (in git history, commit 5bc45c2) carries the analysis
+ * and the real-browser measurements behind the answer below.
  *
  * - KIT ART (desktop dither, windoid dots, swatch checker, barber stripes)
  *   is a CSS repeat of one tile 120 system px square, drawn at n image px

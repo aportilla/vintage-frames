@@ -26,8 +26,9 @@ import { tileRaster, type TileRect } from './styles/recipes/tile.js'
  * when zoom or the display changes n, and never on a resize.
  * {@link RepeatTileController} keeps a box's tile current.
  *
- * Why 120, and why pre-scaled (docs/TILE-REPEAT-PLAN.md has the
- * measurements): Safari smooths a repeated image it has to magnify, whatever
+ * Why 120, and why pre-scaled (TILE-REPEAT-PLAN.md, in git history at
+ * commit 5bc45c2, has the measurements): Safari smooths a repeated image it
+ * has to magnify, whatever
  * `image-rendering` says, so the image must already be at device
  * resolution; and WebKit on a 3× display now and then draws one small tile a
  * device px narrow and resamples it, which tiles of 192 device px and up

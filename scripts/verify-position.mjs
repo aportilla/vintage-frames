@@ -302,17 +302,20 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
     `${instack.x - stack.x} × ${instack.y - stack.y}px CSS`
   )
 
-  // Fieldset: the .fieldset box (positioned, 1px border) anchors children just
-  // inside its border.
+  // Fieldset: children anchor just inside the .fieldset box's 1px rule — a
+  // stroke, so the box's padding (or its border, under forced colors).
   const fsBox = await page.evaluate(() => {
     const el = document.getElementById('fs').shadowRoot.querySelector('.fieldset')
     const r = el.getBoundingClientRect()
     const s = getComputedStyle(el)
-    return { x: r.left + parseFloat(s.borderLeftWidth), y: r.top + parseFloat(s.borderTopWidth) }
+    return {
+      x: r.left + parseFloat(s.borderLeftWidth) + parseFloat(s.paddingLeft),
+      y: r.top + parseFloat(s.borderTopWidth) + parseFloat(s.paddingTop),
+    }
   })
   const infs = await rect(page, 'infs')
   check(
-    'anchors: a fieldset anchors just inside its border',
+    'anchors: a fieldset anchors just inside its rule',
     near(infs.x - fsBox.x, 20 * DEVICE_PX_PER_SYSTEM_PX) &&
       near(infs.y - fsBox.y, 30 * DEVICE_PX_PER_SYSTEM_PX),
     `${infs.x - fsBox.x} × ${infs.y - fsBox.y}px CSS`
@@ -356,6 +359,8 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
       <vf-button id="dlgflow">F</vf-button>
     </vf-dialog>
   `)
+  // The band is a stroke: its inner edge is past the box's padding (or its
+  // border, under forced colors).
   const inner = await page.evaluate(() => {
     const band = document
       .getElementById('dlg')
@@ -363,8 +368,8 @@ DEVICE_PX_PER_SYSTEM_PX = devicePxPerSystemPxAt(1)
     const r = band.getBoundingClientRect()
     const s = getComputedStyle(band)
     return {
-      x: r.left + parseFloat(s.borderLeftWidth),
-      y: r.top + parseFloat(s.borderTopWidth),
+      x: r.left + parseFloat(s.borderLeftWidth) + parseFloat(s.paddingLeft),
+      y: r.top + parseFloat(s.borderTopWidth) + parseFloat(s.paddingTop),
     }
   })
   const [indlg, dlgflow] = await Promise.all([rect(page, 'indlg'), rect(page, 'dlgflow')])

@@ -3,7 +3,13 @@ import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { live } from 'lit/directives/live.js'
-import { vfBase, vfField, vfScrollRail } from '../styles/base.js'
+import {
+  vfBase,
+  vfField,
+  vfScrollRail,
+  vfStrokeDecls,
+  vfStrokeInset,
+} from '../styles/base.js'
 import { VfTextControlBase } from '../text-control.js'
 import { ScrollStateController } from '../scroll-state.js'
 import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
@@ -78,31 +84,32 @@ export class VfTextArea extends VfPositioned(VfTextControlBase) {
          out [textarea | rail] — the rail sizes itself to the 15px inside the
          frame. */
       .vf-field-well {
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         background: var(--vf-white, #fff);
         display: grid;
         grid-template-columns: 1fr auto;
+        ${vfStrokeDecls()}
       }
-      /* The focus rule anchors to the well's PADDING box, and this well —
-         unlike the single-line field's borderless wrapper — carries the 1px
-         frame: −3 is the documented bordered-carrier offset (see
-         vfFocusUnderline), keeping the rule one blank row under the frame,
-         and the −1px insets span it across the border box edge to edge. */
+      /* The focus rule anchors to the well's padding box, which runs under
+         the frame's stroke: the same −2 as the borderless single-line well
+         puts the rule one blank row under the frame, edge to edge. Under
+         forced colors the frame is a border again and the padding box sits
+         inside it, so the offsets grow by it there. */
       .vf-field-well.vf-focus-rule::after {
-        --vf-focus-underline-offset: -3px;
-        left: calc(var(--vf-scale, 1) * -1px);
-        right: calc(var(--vf-scale, 1) * -1px);
+        bottom: ${vfStrokeInset(-3)};
+        left: ${vfStrokeInset(-1)};
+        right: ${vfStrokeInset(-1)};
       }
-      /* textarea.vf-field so the border override out-ranks the vf-field skin's
-         own border (a bare element selector would lose to the class). */
+      /* textarea.vf-field so the overrides out-rank the vf-field skin's own
+         stroke (a bare element selector would lose to the class). */
       textarea.vf-field {
         display: block;
         width: 100%;
         min-width: 0;
-        /* Borderless — the frame is the well's (above). vf-text-field's own
-           3px/6px padding plus that border holds the text exactly where the
-           bordered field puts it, 4px/7px from the frame box. */
+        /* No frame of its own — the frame is the well's (above). The 3px/6px
+           padding inside it holds the text exactly where the framed field
+           puts it, 4px/7px from the frame box. */
         border: 0;
+        box-shadow: none;
         padding: calc(var(--vf-scale, 1) * 3px) calc(var(--vf-scale, 1) * 6px);
         /* Wrapped entry copy on the display face's native line (editable
            text is display type) — the same face token the static-text

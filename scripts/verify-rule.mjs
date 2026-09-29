@@ -2,26 +2,21 @@
  * Verifies the 1px rule — `vfRule` (src/styles/recipes/rule.ts) and
  * `vf-container rule="…"`.
  *
- * The rule is a border. This script's densities are deviceScaleFactor
- * emulation, which floors a fractional border width to whole CSS px, so above
- * 1× the line paints thinner than a system px here — 1 device px at 1.5×, 2
- * at 2×, 3 at 3× — as the window frame, the panel border and the menu bar's
- * own rule do. A display snaps the width to whole device px, and the line is
- * the full system px (harness `browserAt`). What is asserted holds either
- * way: the line is whole device px with no gray, flush to the box's edge,
- * content begins directly inside it, and a container's rule is the SAME line
- * as the menu bar's at every density.
+ * The rule is a stroke (vfStrokeDecls): its row is padding and an inset
+ * shadow paints it, so it is one system px at every density — emulated here,
+ * where a border would floor to whole CSS px, or on a display. What is
+ * asserted: the line is whole device px with no gray, flush to the box's
+ * edge, content begins directly inside it, and a container's rule is the
+ * SAME line as the menu bar's at every density.
  *
  * 1. The grammar (`parseRule`): edge names in any order, repeats dropped,
  *    returned in top/right/bottom/left order; blank or unset is no edges;
  *    anything else refuses the whole value. `ruleClasses` names the classes.
  * 2. `rule="bottom"` on a declared 60×24 box at dpr 1/2/3: the host box is
  *    still 60×24 system px (the rule is inside it), the rule is a uniform
- *    band of whole device px along the bottom edge — at least one, at most a
- *    system px — with nothing above it, the box's computed border is on that
- *    edge alone, and the band is as thick as `vf-menu-bar`'s rule. At an
- *    emulated 1.5× the floored border is 1.5 device px and its rendering
- *    depends on where the box sits, so that rung is printed, not asserted.
+ *    band of one system px along the bottom edge with nothing above it, the
+ *    box's stroke is on that edge alone, and the band is as thick as
+ *    `vf-menu-bar`'s rule. The 1.5× rung is printed, not asserted.
  * 3. `rule="top left"`: both edges ink, and a child placed at `top="0"
  *    left="0"` begins directly inside the painted line on both axes. All four
  *    edges frame a box.
@@ -32,8 +27,8 @@
  * 6. An unrecognized value warns once and draws nothing; a later valid value
  *    draws; unsetting unwinds the classes and the paint.
  * 7. The kit's own bands are the recipe: `vf-menu-bar`'s bar wears
- *    `vf-rule-bottom`, `vf-window`'s status strip `vf-rule-top`, each with a
- *    border on that edge alone, and each paints its band of ink.
+ *    `vf-rule-bottom`, `vf-window`'s status strip `vf-rule-top`, each with its
+ *    stroke on that edge, and each paints its band of ink.
  * 8. Forced colors: the rule survives as the second of exactly two colors.
  *
  *   npm run dev          # in another shell (port 5173)
@@ -68,19 +63,24 @@ async function setRule(page, id, value) {
   await frames(page)
 }
 
-/** The container's shadow box: its rule classes and computed border widths. */
+/**
+ * The container's shadow box: its rule classes, and each edge's stroke — the
+ * padding it holds (the box has none of its own) plus any border, in CSS px.
+ */
 const boxInfo = (page, id) =>
   page.evaluate((id) => {
     const host = document.querySelector(id)
     const box = host.shadowRoot.querySelector('.box')
     const cs = getComputedStyle(box)
     const r = host.getBoundingClientRect()
+    const edge = (side) =>
+      parseFloat(cs.getPropertyValue(`padding-${side}`)) +
+      parseFloat(cs.getPropertyValue(`border-${side}-width`))
     return {
       classes: [...box.classList].filter((c) => c.startsWith('vf-rule-')),
-      borders: [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth].map(
-        parseFloat
-      ),
+      strokes: ['top', 'right', 'bottom', 'left'].map(edge),
       host: { width: r.width, height: r.height },
+      scale: parseFloat(getComputedStyle(host).getPropertyValue('--vf-scale')),
     }
   }, id)
 
@@ -173,11 +173,7 @@ const near = (a, b, tol = 0.01) => Math.abs(a - b) < tol
 }
 
 // ── 2. rule="bottom" on the density ladder, against the menu bar's own rule ─
-// The integer rungs: 1 CSS px is whole device px there, so the border
-// emulation floors is a whole band. At a fractional density (1.5× below) the
-// floored 1 CSS px is 1.5 device px and Chromium distributes the half by snap
-// direction, so that rung is measured and printed, not asserted: the floor is
-// emulation's, not the rule's.
+// The integer rungs, asserted; the 1.5× rung below is measured and printed.
 for (const dpr of [1, 2, 3]) {
   const page = await build(
     '<vf-container id="r" width="60" height="24" rule="bottom"></vf-container>' +
@@ -192,13 +188,13 @@ for (const dpr of [1, 2, 3]) {
     `${(info.host.width * dpr).toFixed(3)}×${(info.host.height * dpr).toFixed(3)} device px`
   )
   check(
-    `dpr ${dpr}: the box's border is on the bottom edge alone, at least 1 CSS px`,
+    `dpr ${dpr}: the box's stroke is on the bottom edge alone, one system px`,
     info.classes.join(' ') === 'vf-rule-bottom' &&
-      info.borders[2] >= 1 &&
-      info.borders[0] === 0 &&
-      info.borders[1] === 0 &&
-      info.borders[3] === 0,
-    `${info.classes.join(' ')}; ${info.borders.join('/')} CSS px`
+      near(info.strokes[2], info.scale) &&
+      info.strokes[0] === 0 &&
+      info.strokes[1] === 0 &&
+      info.strokes[3] === 0,
+    `${info.classes.join(' ')}; ${info.strokes.join('/')} CSS px`
   )
   const png = decodePng(await page.locator('#r').screenshot())
   const H = 24 * n
@@ -206,8 +202,8 @@ for (const dpr of [1, 2, 3]) {
   const t = inkFromBottom(png, 0)
   const uniform = every(png, 0, H - t, W, H, isBlack) && every(png, 0, 0, W, H - t, isMagenta)
   check(
-    `dpr ${dpr}: the rule is a uniform band of ${t} whole device px on the bottom edge (1 ≤ ${t} ≤ ${n}), no gray, nothing above it`,
-    png.width === W && png.height === H && t >= 1 && t <= n && uniform,
+    `dpr ${dpr}: the rule is a uniform band of ${n} device px on the bottom edge, no gray, nothing above it`,
+    png.width === W && png.height === H && t === n && uniform,
     `${png.width}×${png.height}, ${t} rows`
   )
   const bar = decodePng(await page.locator('#mb').screenshot())
@@ -233,7 +229,7 @@ for (const dpr of [1, 2, 3]) {
     return impure
   }
   console.log(
-    `      dpr 1.5 (emulation's floored border, printed not asserted): container band ` +
+    `      dpr 1.5 (printed, not asserted): container band ` +
       `${inkFromBottom(png, 0)} device px with ${gray(png)} gray px, ` +
       `menu bar band ${inkFromBottom(bar, Math.floor(bar.width / 2))} with ${gray(bar)} gray px`
   )
@@ -241,6 +237,8 @@ for (const dpr of [1, 2, 3]) {
 }
 
 // ── 3. top left, all four, and the placed-child origin ─────────────────────
+// At display density: the child sits a system px in, 1.5 CSS px here, and
+// emulation paints a box on a half CSS px one device px off.
 {
   const dpr = 2
   const n = devicePxPerSystemPxAt(dpr)
@@ -249,7 +247,7 @@ for (const dpr of [1, 2, 3]) {
       '<vf-container id="k" width="8" height="8" top="0" left="0" pattern="black"></vf-container>' +
       '</vf-container>' +
       '<vf-container id="q" width="30" height="24" rule="top right bottom left"></vf-container>',
-    { dpr, bodyStyle: `margin:0;background:${MAGENTA}` }
+    { dpr, real: true, bodyStyle: `margin:0;background:${MAGENTA}` }
   )
   const f = decodePng(await page.locator('#f').screenshot())
   // The rule's thickness, read where the child cannot reach: the far column
@@ -267,29 +265,26 @@ for (const dpr of [1, 2, 3]) {
     `top ${t}, left ${tl}, ${f.width}×${f.height}`
   )
   const origin = await page.evaluate(() => {
-    const host = document.querySelector('#f')
-    const box = host.shadowRoot.querySelector('.box')
-    const cs = getComputedStyle(box)
-    const f = host.getBoundingClientRect()
+    const f = document.querySelector('#f')
     const k = document.querySelector('#k').getBoundingClientRect()
+    const r = f.getBoundingClientRect()
     return {
-      dx: k.left - f.left,
-      dy: k.top - f.top,
-      borderLeft: parseFloat(cs.borderLeftWidth),
-      borderTop: parseFloat(cs.borderTopWidth),
+      dx: k.left - r.left,
+      dy: k.top - r.top,
+      scale: parseFloat(getComputedStyle(f).getPropertyValue('--vf-scale')),
     }
   })
   // The child's black begins on the first row/column after the rule's band —
-  // no gap, no overlap — and its box origin is the box's border width in.
+  // no gap, no overlap — and its box origin is one system px in.
   check(
     'a child placed at top="0" left="0" begins directly inside the rule on both axes',
-    near(origin.dx, origin.borderLeft) &&
-      near(origin.dy, origin.borderTop) &&
+    near(origin.dx, origin.scale) &&
+      near(origin.dy, origin.scale) &&
       every(f, t, t, t + 8 * n, t + 8 * n, isBlack) &&
       isMagenta(f, t + 8 * n, t + 8 * n) &&
       isMagenta(f, t, t + 8 * n) &&
       isMagenta(f, t + 8 * n, t),
-    `child at (${origin.dx}, ${origin.dy}) CSS px, border ${origin.borderLeft}/${origin.borderTop}`
+    `child at (${origin.dx}, ${origin.dy}) CSS px, rule ${origin.scale}`
   )
   const q = decodePng(await page.locator('#q').screenshot())
   const W = 30 * n
@@ -407,30 +402,35 @@ for (const dpr of [1, 2, 3]) {
   await setRule(page, '#b', null)
   const s4 = await boxInfo(page, '#b')
   check(
-    'unsetting the rule unwinds the classes, the border and the paint',
-    s4.classes.length === 0 && s4.borders.every((b) => b === 0) && (await allMagenta()),
-    `[${s4.classes}] ${s4.borders.join('/')}`
+    'unsetting the rule unwinds the classes, the stroke and the paint',
+    s4.classes.length === 0 && s4.strokes.every((b) => b === 0) && (await allMagenta()),
+    `[${s4.classes}] ${s4.strokes.join('/')}`
   )
   await page.close()
 }
 
 // ── 7. the kit's own bands ─────────────────────────────────────────────────
+// At display density, for the strip: it sits inside the window's frame, a
+// half CSS px in, where emulation paints a box one device px off.
 {
   const dpr = 2
   const n = devicePxPerSystemPxAt(dpr)
   const page = await build(
     '<vf-menu-bar id="mb" label="Menus"></vf-menu-bar>' +
       '<vf-window id="w" width="120" height="80" style="position:absolute;top:40px;left:0"><span slot="status">ok</span></vf-window>',
-    { dpr }
+    { dpr, real: true }
   )
+  // Each band's stroke, read as the padding it holds across the rule's axis:
+  // one system px on the rule's edge, none on the other (the inline padding
+  // is each band's own).
   const bands = await page.evaluate(() => {
     const read = (el) => {
       const cs = getComputedStyle(el)
       return {
         classes: [...el.classList].filter((c) => c.startsWith('vf-rule-')).join(' '),
-        borders: [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth].map(
-          parseFloat
-        ),
+        top: parseFloat(cs.paddingTop) + parseFloat(cs.borderTopWidth),
+        bottom: parseFloat(cs.paddingBottom) + parseFloat(cs.borderBottomWidth),
+        scale: parseFloat(cs.getPropertyValue('--vf-scale')),
       }
     }
     return {
@@ -439,22 +439,18 @@ for (const dpr of [1, 2, 3]) {
     }
   })
   check(
-    "vf-menu-bar's bar is vf-rule-bottom — a border on that edge alone",
+    "vf-menu-bar's bar is vf-rule-bottom — a stroke on that edge alone",
     bands.bar.classes === 'vf-rule-bottom' &&
-      bands.bar.borders[2] >= 1 &&
-      bands.bar.borders[0] === 0 &&
-      bands.bar.borders[1] === 0 &&
-      bands.bar.borders[3] === 0,
-    `${bands.bar.classes}; ${bands.bar.borders.join('/')} CSS px`
+      near(bands.bar.bottom, bands.bar.scale) &&
+      bands.bar.top === 0,
+    `${bands.bar.classes}; ${bands.bar.top}/${bands.bar.bottom} CSS px`
   )
   check(
-    "vf-window's status strip is vf-rule-top — a border on that edge alone",
+    "vf-window's status strip is vf-rule-top — a stroke on that edge alone",
     bands.status.classes === 'vf-rule-top' &&
-      bands.status.borders[0] >= 1 &&
-      bands.status.borders[1] === 0 &&
-      bands.status.borders[2] === 0 &&
-      bands.status.borders[3] === 0,
-    `${bands.status.classes}; ${bands.status.borders.join('/')} CSS px`
+      near(bands.status.top, bands.status.scale) &&
+      bands.status.bottom === 0,
+    `${bands.status.classes}; ${bands.status.top}/${bands.status.bottom} CSS px`
   )
   const bar = decodePng(await page.locator('#mb').screenshot())
   const bH = 20 * n
@@ -469,7 +465,7 @@ for (const dpr of [1, 2, 3]) {
     `${bar.width}×${bar.height}, band ${tb}`
   )
   // The strip out of the window's own screenshot, by geometry: its box sits on
-  // a half CSS px inside the flexed frame, and an element screenshot rounds a
+  // a half CSS px inside the frame, and an element screenshot rounds a
   // fractional clip outward to whole CSS px, adding a row that isn't the strip.
   const win = decodePng(await page.locator('#w').screenshot())
   const geo = await page.evaluate(() => {
@@ -482,23 +478,15 @@ for (const dpr of [1, 2, 3]) {
   const x0 = Math.round(geo.left * dpr)
   const x1 = x0 + Math.round(geo.width * dpr)
   const xm = Math.floor((x0 + x1) / 2)
-  // The strip's edge is on a half CSS px here (the body flexes to what the
-  // frame leaves), and Blink quantizes sub-CSS-px paint per box, so the band
-  // may sit one device px off the edge. Find it within that, then hold it to
-  // the same shape.
-  let ys = y0 - 1
-  while (ys < y0 + 2 && !isBlack(win, xm, ys)) ys++
   let ts = 0
-  while (ts < win.height - ys && isBlack(win, xm, ys + ts)) ts++
+  while (ts < win.height - y0 && isBlack(win, xm, y0 + ts)) ts++
   check(
     'the status strip paints its rule: a band of ink along the top, white directly below it',
     near(geo.height * dpr, 15 * n) &&
-      Math.abs(ys - y0) <= 1 &&
-      ts >= 1 &&
-      ts <= n &&
-      every(win, x0, ys, x1, ys + ts, isBlack) &&
-      every(win, x0 + n, ys + ts, x1 - n, ys + ts + n, isWhite),
-    `strip ${Math.round(geo.width * dpr)}×${Math.round(geo.height * dpr)} at (${x0}, ${y0}), band ${ts} from row ${ys}`
+      ts === n &&
+      every(win, x0, y0, x1, y0 + ts, isBlack) &&
+      every(win, x0 + n, y0 + ts, x1 - n, y0 + ts + n, isWhite),
+    `strip ${Math.round(geo.width * dpr)}×${Math.round(geo.height * dpr)} at (${x0}, ${y0}), band ${ts}`
   )
   await page.close()
 }

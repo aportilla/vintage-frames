@@ -56,11 +56,10 @@ import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
  *
  * **`rule` draws the 1px rule on the edges it names** — `rule="bottom"` is
  * the menu bar's anatomy (the box's rows over one row of ink), `rule="top"`
- * a status strip's, all four a framed box. The rule is the box's own border
- * ({@link vfRule}), inside the declared size, so a 24px `rule="bottom"`
- * strip is 23 rows of box over the line; content, `fill-width` children and
- * placed children begin inside it, as a rectangle's interior begins inside
- * FrameRect's line.
+ * a status strip's, all four a framed box. The rule is drawn inside the
+ * declared size ({@link vfRule}), so a 24px `rule="bottom"` strip is 23 rows
+ * of box over the line; content, `fill-width` children and placed children
+ * begin inside it, as a rectangle's interior begins inside FrameRect's line.
  *
  * **`pattern` fills the box with a 1-bit pattern**: one of the 38 standard
  * MacPaint patterns by name (`pattern="bricks"`, `pattern="gray-50"` —
@@ -75,10 +74,10 @@ import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
  * **It holds its box on the device-pixel grid** — with a `GridSnapController`.
  * A container's box is itself the consumer's coordinate system, including for
  * non-`vf` content that cannot correct itself, so the box is the thing to
- * hold on the grid. The shadow box below owns the `position: relative` anchor
- * and the `vf-snap` class together, so the correction
- * moves the whole coordinate system — everything placed against it rides
- * along instead of being re-corrected child by child. (`vf-stack` shipped
+ * hold on the grid. The correction lands on the shadow box below, and the
+ * coordinate system sits inside it, so the correction moves the whole
+ * coordinate system — everything placed against it rides along instead of
+ * being re-corrected child by child. (`vf-stack` shipped
  * without a controller on the theory that slotted `vf-*` children correct
  * their own origins; this component is where that theory's gap — consumer
  * content — became visible, and the stack has since adopted the same
@@ -125,21 +124,33 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
         text-align: inherit;
       }
 
-      /* The coordinate system, as one shadow box coinciding with the host box.
-         vf-snap (vfBase) gives it position: relative plus the controller's
-         --vf-snap-dx/-dy offset — so it is BOTH the positioning anchor for
-         children placed with top/left (src/position.ts) AND the element the
-         grid-snap correction lands on. One element owning both is the point:
-         corrected, it takes every placed child with it, kit or not. */
+      /* The painted box, coinciding with the host box: the pattern, the rule
+         and the grid-snap correction (vf-snap, vfBase — position: relative
+         plus the controller's --vf-snap-dx/-dy offset). The coordinate system
+         rides inside it (the slot, below), so the correction takes every
+         placed child with it, kit or not. */
       .box {
-        /* flow-root: contain slotted margins, so the box's top edge — the
-           origin placed children measure from — stays glued to the host's
-           corner instead of being pushed down by a first child's margin
-           collapsing through. */
-        display: flow-root;
         /* Coincide with a declared height (100% of a definite host height;
            against an undeclared one it computes to auto and wraps content),
-           so slotted percentage fills resolve against the stated box. */
+           so the slot inside can take the stated box. */
+        height: 100%;
+        /* The pattern starts inside the rule, as it did when the rule was a
+           border. */
+        background-origin: content-box;
+      }
+      /* The coordinate system: the slot, as a box inside the rule — the
+         rule's row is the painted box's padding (vfRule) — so content,
+         percentage fills and children placed with top/left (src/position.ts)
+         all begin inside it. */
+      .box > slot {
+        position: relative;
+        /* flow-root: contain slotted margins, so the top edge — the origin
+           placed children measure from — stays glued to the box's corner
+           instead of being pushed down by a first child's margin collapsing
+           through. */
+        display: flow-root;
+        /* The stated box less its rules, so slotted percentage fills resolve
+           against it; auto against an undeclared height. */
         height: 100%;
       }
 
@@ -192,10 +203,9 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
 
   /**
    * The 1px rule on the box's edges: edge names separated by spaces —
-   * `"bottom"`, `"top bottom"`, up to all four in any order. Drawn as the
-   * box's own border inside the declared size, in `--vf-black`, scaled with
-   * the display like every kit frame's border; content and placed children
-   * begin inside it.
+   * `"bottom"`, `"top bottom"`, up to all four in any order. Drawn inside
+   * the declared size, in `--vf-black`, scaled with the display like every
+   * kit frame; content and placed children begin inside it.
    * Unset, no rule; a value naming anything but an edge draws none and
    * warns once.
    */

@@ -3,7 +3,7 @@ import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { live } from 'lit/directives/live.js'
-import { vfBase, vfField } from '../styles/base.js'
+import { vfBase, vfField, vfStrokeInset } from '../styles/base.js'
 import { VfTextControlBase } from '../text-control.js'
 
 /**
@@ -50,7 +50,7 @@ export class VfTextField extends VfPositioned(VfTextControlBase) {
            on the host or the --vf-field-width token. */
         width: calc(var(--vf-scale, 1) * var(--vf-field-width, 180px));
       }
-      input {
+      input.vf-field {
         display: block;
         width: 100%;
         /* min-, not height: the default line box exactly fills the 22px well,
@@ -58,7 +58,8 @@ export class VfTextField extends VfPositioned(VfTextControlBase) {
            WCAG 1.4.12 text-spacing condition) grows the well instead of
            clipping the text inside a pinned one. */
         min-height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
-        padding: 0 calc(var(--vf-scale, 1) * 6px);
+        /* The 6px text inset, inside the well's stroke (vfField). */
+        padding: ${vfStrokeInset(0)} ${vfStrokeInset(6)};
       }
     `,
   ]

@@ -10,20 +10,15 @@
  * PIXEL_GRID_METRICS overrides in register-embedded-font.ts pin the em to the
  * grid-clean OS/2 typo values (12/4/0). This asserts the rendered pixels.
  *
- * Chrome snaps aliased text baselines to whole ABSOLUTE CSS px, so at scale
- * 1.5 (dpr 2) the result depends on the host's half-CSS-px phase: a host at a
- * half-px position renders canonically, a whole-px one misses by 1 device px
- * (⅓ system px, the closest reachable). Both cases are asserted so a change
- * in either the metrics or Chrome's snapping shows up here.
+ * Every pill above dpr 1 is measured at display density (`browserAt`), at
+ * each host phase a density can put it on — whole CSS px, and the half (dpr
+ * 2) and quarter/half (dpr 3) device-aligned ones — where both pills are
+ * exact. Emulation is not: a deviceScaleFactor page lays out at 1× and paints
+ * boxes on half CSS px one device px off (KNOWN-BUGS #3).
  *
  * The small pill (`size="small"`) sets the body face in 10 content rows: 1
  * blank above a 7-row capital, 2 below the baseline, and descenders that fill
  * those 2 rows exactly; its 9×5 ▼ sits 3 rows down, centered on the x-height.
- * Its cases run at display density (`browserAt`), where
- * they are exact at every dpr and host phase: the misses asserted above are
- * emulation's (a deviceScaleFactor page floors the 1-system-px border to a
- * whole CSS px — KNOWN-BUGS #3), and at dpr 3 emulation moves the small label
- * further than the regular pill's 1-device-px tolerance.
  *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:baseline
@@ -144,58 +139,15 @@ const fmtArrow = ({ arrow: a }) =>
 {
   const m = await measure(1, 48)
   check(
-    'dpr 1: label ink sits 3 above / 4 below the cap (canonical)',
-    m.above === 3 && m.below === 4 && m.capHeight === 9,
-    fmt(m)
-  )
-  check(
     'dpr 1: the ▼ is 11×6, centered: 5 rows above and 5 below',
     m.arrow.width === 11 && m.arrow.height === 6 && m.arrow.above === 5 && m.arrow.below === 5,
     fmtArrow(m)
   )
 }
 
-// dpr 3: a true 3× device derives --vf-scale 4/3, which Chromium's 1/64-CSS-px
-// layout grid cannot hold, so the font size and the ascent it is a fraction of
-// both quantize and the run lands one device px (¼ system px) off canonical —
-// the same class of miss as the dpr-2 whole-px host below, and the same
-// reasoning: the cap is intact, the ink is crisp, and this is the closest the
-// engine can place it. It was exact under the old fixed target only because
-// that made this display's scale exactly 1.
-{
-  const m = await measure(3, 48)
-  const devicePx = 1 / 4 // one system px is 4 device px here, so one device px is ¼
-  check(
-    'dpr 3: within 1 device px of canonical (4/3 is not a holdable scale)',
-    Math.abs(m.above - 3) <= devicePx + 1e-9 &&
-      Math.abs(m.below - 4) <= devicePx + 1e-9 &&
-      m.capHeight === 9,
-    fmt(m)
-  )
-}
-
-// dpr 2: a half-CSS-px host (device-aligned) is canonical…
-const half = await measure(2, 48.5)
-check(
-  'dpr 2, half-px host: label ink sits 3 above / 4 below (canonical)',
-  half.above === 3 && half.below === 4 && half.capHeight === 9,
-  fmt(half)
-)
-// …a whole-CSS-px host misses by exactly 1 device px (⅓ system px), the
-// closest Chrome's whole-CSS-px baseline snapping can reach. If this starts
-// reading 3/4, the snapping changed — celebrate and tighten the check.
-const whole = await measure(2, 48)
-check(
-  'dpr 2, whole-px host: within 1 device px of canonical (known Chrome limit)',
-  Math.abs(whole.above - 3) <= 1 / 3 + 1e-9 &&
-    Math.abs(whole.below - 4) <= 1 / 3 + 1e-9 &&
-    whole.capHeight === 9,
-  fmt(whole)
-)
-
-// ── The small pill, at display density ──
-// Every host phase a density can put the pill on: whole CSS px, and the
-// half (dpr 2) and quarter/half (dpr 3) device-aligned ones.
+// ── Every density and host phase, at display density ──
+// Whole CSS px, and the half (dpr 2) and quarter/half (dpr 3) device-aligned
+// phases.
 const PHASES = [
   [1, 48],
   [2, 48],
@@ -204,6 +156,16 @@ const PHASES = [
   [3, 48.25],
   [3, 48.5],
 ]
+for (const [dpr, top] of PHASES) {
+  const m = await measure(dpr, top, { real: true })
+  check(
+    `dpr ${dpr}, host at ${top}: label ink sits 3 above / 4 below the cap (canonical)`,
+    m.above === 3 && m.below === 4 && m.capHeight === 9,
+    fmt(m)
+  )
+}
+
+// ── The small pill ──
 for (const [dpr, top] of PHASES) {
   const m = await measure(dpr, top, { size: 'small', real: true })
   check(

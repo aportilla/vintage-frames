@@ -3,7 +3,7 @@ import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { PlacementController, VfPositioned, warnMovableContract } from '../position.js'
 import type { PlacementBounds } from '../position.js'
-import { vfBase, vfBodyDecls, vfFocusUnderline } from '../styles/base.js'
+import { vfBase, vfBodyDecls, vfFocusUnderline, vfStrokeDecls } from '../styles/base.js'
 import { effectiveScale, ScaleController, toSysExact } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DragController } from '../drag.js'
@@ -734,8 +734,7 @@ export class VfIcon extends VfPositioned(LitElement) {
         position: absolute;
         inset: calc(var(--vf-scale, 1) * -2px) calc(var(--vf-scale, 1) * -1px);
         background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-        padding: calc(var(--vf-scale, 1) * 1px);
+        ${vfStrokeDecls({ padding: 1 })}
       }
       .rename {
         display: block;

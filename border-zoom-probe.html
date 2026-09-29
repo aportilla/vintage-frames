@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Border-zoom probe — dev-only, like tile-repeat-probe.html.
+
+    Safari at a non-100% page zoom draws a border too thin: on a 2× display a
+    1-system-px border is 2 device px at 115% (want 3) and 1 at 85% (want 2).
+    Measured in Safari 27 (2026-09-29): WebKit floors a line width to whole
+    device px of the UNZOOMED length at the hardware density, then multiplies
+    by the zoom and floors again —
+
+      115%: 1.304 CSS px × 2 = 2.6 → 2 → 1.0 CSS px → × 2.3 = 2.3 → 2 dp
+       85%: 1.176 CSS px × 2 = 2.35 → 2 → 1.0 CSS px → × 1.7 = 1.7 → 1 dp
+
+    — layout takes the floored width too, so everything inside the box moves
+    off the lattice. Safari 27 reports the zoom in devicePixelRatio (2.3 at
+    115%), but the floor ignores it. Chrome and Firefox floor on the zoomed
+    grid and hold. A scale nudged a millionth high changes nothing: this is
+    not float rounding. Padding plus an inset box-shadow (no line width) is
+    exact, so every kit line is drawn that way now (vfStrokeDecls).
+
+    Load it at 100%, then ⌘+ / ⌘−. The table is measured, not styled:
+    "width" is the computed width × device px per CSS px (the padding, for
+    the strokes); "inset" is how far layout put the content box from the
+    border box, in device px. Both should equal the target (n), or 2n for the
+    2-system-px lines.
+
+      border         the kit's old shape: calc(var(--vf-scale) * 1px) solid
+      border +1e-6   the same with the scale a millionth high. If this row
+                     is right where the first is wrong, it was float
+                     rounding after all, not flooring before zoom
+      border 2px     the old 2-system-px frame
+      outline        another line width; paints only, no layout
+      shadow+pad     no line width at all: padding holds the space, an inset
+                     box-shadow paints the stroke
+      stroke         the shipped helper, vfStrokeDecls() — shadow+pad, as the
+                     kit now draws every frame
+      stroke 2px     vfStrokeDecls({ width: 2 }), the modal frame's band
+      stroke top     vfStrokeDecls({ edges: ['top'] }), a one-edge rule;
+                     measured down from the top
+
+    Layout holds lengths in 1/64 px, so a reading may sit up to two of those
+    off n and still paint whole: the table allows that much.
+
+    The strip below the table paints the same boxes (11×11 system px, a
+    1-system-px gap, then a 3×3 black square at the content origin); under it
+    are real components drawn with the helper. Screenshot them (⌘⇧4) at each
+    zoom: every line should be a run of n device px, and nothing gray.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>border zoom probe</title>
+    <script type="module" src="/src/index.ts"></script>
+    <style>
+      body {
+        margin: 16px;
+        font: 13px/1.4 -apple-system, system-ui, sans-serif;
+        background: #fff;
+        color: #000;
+      }
+      table {
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 2px 12px 2px 0;
+      }
+      .bad {
+        color: #c00;
+        font-weight: 600;
+      }
+      pre {
+        margin: 12px 0;
+      }
+      /* Probe boxes: every length in system px through --vf-scale, the way
+         the kit writes them. */
+      .probe {
+        position: absolute;
+        top: calc(var(--vf-scale, 1) * 4px);
+        box-sizing: border-box;
+        width: calc(var(--vf-scale, 1) * 11px);
+        height: calc(var(--vf-scale, 1) * 11px);
+        background: #fff;
+      }
+      .probe > i {
+        display: block;
+        margin: calc(var(--vf-scale, 1) * 1px);
+        width: calc(var(--vf-scale, 1) * 3px);
+        height: calc(var(--vf-scale, 1) * 3px);
+        background: #000;
+      }
+      #border {
+        left: calc(var(--vf-scale, 1) * 4px);
+        border: calc(var(--vf-scale, 1) * 1px) solid #000;
+      }
+      #nudged {
+        left: calc(var(--vf-scale, 1) * 20px);
+        border: calc(var(--vf-scale, 1) * 1.000001px) solid #000;
+      }
+      #border2 {
+        left: calc(var(--vf-scale, 1) * 36px);
+        width: calc(var(--vf-scale, 1) * 13px);
+        height: calc(var(--vf-scale, 1) * 13px);
+        border: calc(var(--vf-scale, 1) * 2px) solid #000;
+      }
+      #outline {
+        left: calc(var(--vf-scale, 1) * 56px);
+        outline: calc(var(--vf-scale, 1) * 1px) solid #000;
+        outline-offset: calc(var(--vf-scale, 1) * -1px);
+        padding: calc(var(--vf-scale, 1) * 1px);
+      }
+      #shadow {
+        left: calc(var(--vf-scale, 1) * 72px);
+        padding: calc(var(--vf-scale, 1) * 1px);
+        box-shadow: inset 0 0 0 calc(var(--vf-scale, 1) * 1px) #000;
+      }
+      #stroke {
+        left: calc(var(--vf-scale, 1) * 88px);
+      }
+      #stroke2 {
+        left: calc(var(--vf-scale, 1) * 104px);
+        width: calc(var(--vf-scale, 1) * 13px);
+        height: calc(var(--vf-scale, 1) * 13px);
+      }
+      #strokeTop {
+        left: calc(var(--vf-scale, 1) * 124px);
+      }
+      .stage {
+        margin-top: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-start;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      Load at 100%, then ⌘+ / ⌘−. Screenshot the strip and the components at
+      each step.
+    </p>
+    <pre id="state"></pre>
+    <table>
+      <thead>
+        <tr>
+          <th>probe</th>
+          <th>computed</th>
+          <th>width (dp)</th>
+          <th>inset (dp)</th>
+          <th>want</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p><button id="copy" type="button">Copy readout</button></p>
+
+    <div class="stage">
+      <vf-container width="140" height="21">
+        <div class="probe" id="border"><i></i></div>
+        <div class="probe" id="nudged"><i></i></div>
+        <div class="probe" id="border2"><i></i></div>
+        <div class="probe" id="outline"><i></i></div>
+        <div class="probe" id="shadow"><i></i></div>
+        <div class="probe" id="stroke"><i></i></div>
+        <div class="probe" id="stroke2"><i></i></div>
+        <div class="probe" id="strokeTop"><i></i></div>
+      </vf-container>
+    </div>
+
+    <div class="stage">
+      <vf-window heading="Probe" width="200" height="110" closable zoomable resizable scrollbars="both">
+        <div slot="header">Header line</div>
+        <div style="width: 300px">
+          The quick brown fox jumps over the lazy dog. Pack my box with five dozen
+          liquor jugs. How vexingly quick daft zebras jump. Sphinx of black quartz,
+          judge my vow.
+        </div>
+        <span slot="status">Status strip</span>
+      </vf-window>
+      <vf-window id="inactive" heading="Inactive" width="120" height="60" closable zoomable resizable></vf-window>
+      <vf-window variant="utility" heading="Tools" width="90" height="50" closable zoomable></vf-window>
+    </div>
+
+    <div class="stage">
+      <vf-container width="80" height="40" rule="top right bottom left">
+        <vf-button top="6" left="6">OK</vf-button>
+      </vf-container>
+      <vf-fieldset legend="Group" style="width: 120px">Inside</vf-fieldset>
+      <vf-select>
+        <vf-option>Macintosh HD</vf-option>
+        <vf-option>Desktop</vf-option>
+      </vf-select>
+      <vf-checkbox checked>Box</vf-checkbox>
+      <vf-text-field value="Text" style="width: 100px"></vf-text-field>
+      <vf-progress-bar value="40" style="width: 100px"></vf-progress-bar>
+      <vf-menu label="Menu" open>
+        <vf-menu-item>Open</vf-menu-item>
+        <vf-separator></vf-separator>
+        <vf-menu-item>Quit</vf-menu-item>
+      </vf-menu>
+    </div>
+
+    <script type="module">
+      import {
+        applyScale,
+        getScale,
+        getZoom,
+        onScaleChange,
+        truePixelRatio,
+        vfStrokeDecls,
+      } from '/src/index.ts'
+
+      applyScale()
+
+      // The shipped helper's own declarations, not a copy of them.
+      const strokes = document.createElement('style')
+      strokes.textContent = `
+        #stroke { ${vfStrokeDecls()} }
+        #stroke2 { ${vfStrokeDecls({ width: 2 })} }
+        #strokeTop { ${vfStrokeDecls({ edges: ['top'] })} }
+      `
+      document.head.append(strokes)
+
+      // [id, the width to read, system px, the axis the inset is read on]
+      const PROBES = [
+        ['border', 'borderLeftWidth', 1, 'left'],
+        ['nudged', 'borderLeftWidth', 1, 'left'],
+        ['border2', 'borderLeftWidth', 2, 'left'],
+        ['outline', 'outlineWidth', 1, 'left'],
+        ['shadow', 'paddingLeft', 1, 'left'],
+        ['stroke', 'paddingLeft', 1, 'left'],
+        ['stroke2', 'paddingLeft', 2, 'left'],
+        ['strokeTop', 'paddingTop', 1, 'top'],
+      ]
+      const fixed = (v) => (Math.round(v * 1000) / 1000).toString()
+
+      const measure = () => {
+        const tdpr = truePixelRatio()
+        const n = Math.round(getScale() * tdpr)
+        document.getElementById('state').textContent =
+          `devicePixelRatio ${devicePixelRatio} · tracked zoom ${getZoom()} · ` +
+          `trueDpr ${fixed(tdpr)} · --vf-scale ${getScale()} · n = ${n} dp per system px\n` +
+          `innerWidth ${innerWidth} · outerWidth ${outerWidth} · ${navigator.userAgent}`
+        // Layout holds each length in 1/64 px — of the unzoomed px under
+        // Safari's page zoom — so a reading two lengths deep may sit two of
+        // those off n and still paint whole.
+        const tol = (2 / 64) * Math.max(tdpr, tdpr / getZoom()) + 1e-3
+        const lines = []
+        const rows = PROBES.map(([id, prop, sysPx, axis]) => {
+          const el = document.getElementById(id)
+          const computed = getComputedStyle(el)[prop]
+          const width = parseFloat(computed) * tdpr
+          const inset =
+            (el.firstElementChild.getBoundingClientRect()[axis] -
+              el.getBoundingClientRect()[axis]) *
+              tdpr -
+            n // the square's own 1-system-px margin
+          const want = n * sysPx
+          lines.push(
+            `${id}\tcomputed ${computed}\twidth ${fixed(width)} dp\t` +
+              `inset ${fixed(inset)} dp\twant ${want}`
+          )
+          const cls = (v) => (Math.abs(v - want) > tol ? ' class="bad"' : '')
+          return (
+            `<tr><td>${id}</td><td>${computed}</td>` +
+            `<td${cls(width)}>${fixed(width)}</td>` +
+            `<td${id === 'outline' ? '' : cls(inset)}>${fixed(inset)}</td>` +
+            `<td>${want}</td></tr>`
+          )
+        })
+        document.getElementById('rows').innerHTML = rows.join('')
+        document.getElementById('copy').dataset.text =
+          document.getElementById('state').textContent + '\n' + lines.join('\n')
+      }
+
+      document.getElementById('copy').addEventListener('click', (e) => {
+        navigator.clipboard.writeText(e.currentTarget.dataset.text)
+      })
+      await customElements.whenDefined('vf-container')
+      await customElements.whenDefined('vf-window')
+      // No desktop manages these windows, so the background one is set by hand.
+      document.getElementById('inactive').active = false
+      requestAnimationFrame(measure)
+      // Scale writers run before this reader, so the new --vf-scale is in
+      // place; one frame lets layout catch up before measuring.
+      onScaleChange(() => requestAnimationFrame(measure))
+    </script>
+  </body>
+</html>

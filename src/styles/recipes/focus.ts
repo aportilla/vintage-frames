@@ -75,12 +75,16 @@ export const vfFocus = css`
  *   the box continues 6px past it (2px half-leading from vfBase's 1.25 line box
  *   over the 16px em, plus the face's 4px descent): 6 − 2 = 4.
  * - `-2px` is a well whose ink runs to its own bottom edge — the radio's circle,
- *   a field's wrapper — putting the rule in the second row below it.
- * - `-3px` adds a 1px border the pseudo-element sits inside of (vf-checkbox).
+ *   a field's wrapper, a box framed by a stroke (vf-checkbox), whose line is
+ *   inside the padding box — putting the rule in the second row below it.
  * - past that, the rule also clears a hard shadow, which is ink no box the
- *   pseudo-element can size to contains: `-4px` for vf-select's 1px one, and
+ *   pseudo-element can size to contains: `-3px` for vf-select's 1px one, and
  *   for vf-swatch an offset that composes `--vf-shadow-offset` rather than
  *   hard-coding a depth its consumer can retheme.
+ *
+ * Under forced colors a stroke is a border again and the padding box sits
+ * inside it, so a stroked carrier states its offset and sides with
+ * `vfStrokeInset`, which adds the stroke back there.
  *
  * Drawn in `currentColor`, so it inverts with the label on a pressed face.
  */

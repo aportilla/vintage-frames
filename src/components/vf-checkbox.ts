@@ -3,7 +3,15 @@ import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplay, vfFocusUnderline, vfToggle } from '../styles/base.js'
+import {
+  vfBase,
+  vfDisplay,
+  vfFocusUnderline,
+  vfStrokeDecls,
+  vfStrokeInset,
+  vfStrokeShadow,
+  vfToggle,
+} from '../styles/base.js'
 import { CHECKBOX_X, glyphSvg } from '../glyphs.js'
 import { VfFormControl } from '../form-control.js'
 import { VfToggleControl } from '../toggle-control.js'
@@ -39,16 +47,16 @@ export class VfCheckbox extends VfPositioned(VfToggleControl(VfFormControl)) {
     vfToggle,
     css`
       /* Keyboard focus underlines the box itself — not the label, and not a
-         ring around either (see vfFocusUnderline). Both adjustments below are
-         the 1px border: an absolutely positioned pseudo sizes to the PADDING
-         box, which the border sits outside of. So the rule grows 1px each side
-         to span the whole well, and its offset counts the border before the
-         blank row and the rule itself: −(1 + 1 + 1). */
+         ring around either (see vfFocusUnderline). An absolutely positioned
+         pseudo sizes to the padding box, which runs under the box's stroke,
+         so the rule spans the whole well and −2 puts it one blank row under
+         it. Under forced colors the stroke is a border and the padding box
+         sits inside it, so the insets grow by it there. */
       :host(:focus-visible) .box::after {
-        --vf-focus-underline-offset: -3px;
         ${vfFocusUnderline}
-        left: calc(var(--vf-scale, 1) * -1px);
-        right: calc(var(--vf-scale, 1) * -1px);
+        bottom: ${vfStrokeInset(-3)};
+        left: ${vfStrokeInset(-1)};
+        right: ${vfStrokeInset(-1)};
       }
       .box {
         position: relative;
@@ -59,24 +67,25 @@ export class VfCheckbox extends VfPositioned(VfToggleControl(VfFormControl)) {
         width: calc(var(--vf-scale, 1) * 13px);
         height: calc(var(--vf-scale, 1) * 13px);
         background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         color: var(--vf-black, #000);
+        ${vfStrokeDecls()}
       }
-      /* Pressed: border thickens to 2px (classic press feedback). */
+      /* Pressed: the line thickens to 2px (classic press feedback), inward,
+         over the padding the 1px stroke leaves the glyph. */
       :host(:active) .box:not(.dim) {
-        box-shadow: inset 0 0 0 calc(var(--vf-scale, 1) * 1px) var(--vf-black, #000);
+        box-shadow: ${vfStrokeShadow(2)};
       }
       /* Forced colors never paints box-shadow, so the press feedback above
          goes silent. The same thickening as a real border-width change: with
          box-sizing: border-box the 13×13 box holds and the extra pixel grows
-         inward, exactly where the inset shadow painted. */
+         inward, exactly where the inset shadow paints. */
       @media (forced-colors: active) {
         :host(:active) .box:not(.dim) {
           border-width: calc(var(--vf-scale, 1) * 2px);
         }
       }
       /* Native 12×12 sprite — centered in the 13×13 box; the glyph's own 1px
-         transparent margin lets it overhang onto the border harmlessly. Scales
+         transparent margin lets it overhang onto the stroke harmlessly. Scales
          with the box; crispEdges keeps it whole-device-pixel at any dpr. */
       .check {
         flex: none;

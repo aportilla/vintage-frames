@@ -27,7 +27,12 @@
  *  - INSETS: --vf-popup-inset-top keeps a clamped panel clear of a menu bar.
  *  - SMALL: the same clamp over `size="small"`'s 10px rows, with the arrow in
  *    a 10px slot, and a step still exactly one row at dpr 1/2/3.
- *  - NO SCROLLBAR: the panel computes overflow:hidden and carries no rail.
+ *  - NO SCROLLBAR: the panel's clip computes overflow:hidden and carries no
+ *    rail.
+ *
+ * The panel's frame is a stroke (vfStrokeDecls) — padding, or a border under
+ * forced colors — so `border` below is everything between the panel's border
+ * box and its content, and the clip is an element inside the frame.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:select-overflow
@@ -109,6 +114,7 @@ const state = (page) =>
     const sel = document.getElementById('sel')
     const sr = sel.shadowRoot
     const panel = sr.querySelector('.panel')
+    const clip = sr.querySelector('.clip')
     const rows = sr.querySelector('.rows')
     const up = sr.querySelector('.arrow-slot.up')
     const down = sr.querySelector('.arrow-slot.down')
@@ -116,13 +122,14 @@ const state = (page) =>
     const r = panel.getBoundingClientRect()
     const pill = sr.querySelector('.control').getBoundingClientRect()
     const opts = [...sel.querySelectorAll('vf-option')]
+    const frame = parseFloat(cs.borderTopWidth) + parseFloat(cs.paddingTop)
     return {
       open: panel.classList.contains('open'),
       panel: { top: r.top, left: r.left, width: r.width, height: r.height, bottom: r.bottom },
       pill: { top: pill.top, left: pill.left, width: pill.width, height: pill.height },
-      border: parseFloat(cs.borderTopWidth),
-      overflow: cs.overflow,
-      scrollTop: panel.scrollTop,
+      border: frame,
+      overflow: getComputedStyle(clip).overflow,
+      scrollTop: clip.scrollTop + panel.scrollTop,
       transform: getComputedStyle(rows).transform,
       up: getComputedStyle(up).display !== 'none',
       down: getComputedStyle(down).display !== 'none',
@@ -133,7 +140,7 @@ const state = (page) =>
       // row scroll + i, so a NEGATIVE value is blank rows above the first item.
       scroll: opts[0]
         ? Math.round(
-            (r.top + parseFloat(cs.borderTopWidth) - opts[0].getBoundingClientRect().top) /
+            (r.top + frame - opts[0].getBoundingClientRect().top) /
               opts[0].getBoundingClientRect().height
           )
         : 0,

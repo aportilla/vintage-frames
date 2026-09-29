@@ -189,13 +189,13 @@ const lastKey = (page) => page.evaluate(() => window.__keys.at(-1) ?? null)
 
   await page.keyboard.press('Meta+s')
   // The flash inverts the label on the blink cadence (~250ms, on-phases from
-  // +42ms); poll for one inverted frame.
+  // +42ms); poll for one inverted frame. The plate is the label's ::before.
   const flashed = await page
     .waitForFunction(() => {
       const label = document
         .getElementById('file')
         .shadowRoot.querySelector('.label')
-      return getComputedStyle(label).backgroundColor === 'rgb(0, 0, 0)'
+      return getComputedStyle(label, '::before').backgroundColor === 'rgb(0, 0, 0)'
     }, null, { timeout: 2000 })
     .then(() => true, () => false)
   check('the closed menu flashes its title (MenuKey acknowledgment)', flashed === true)
@@ -207,7 +207,8 @@ const lastKey = (page) => page.evaluate(() => window.__keys.at(-1) ?? null)
     open: document.getElementById('file').hasAttribute('open'),
     inverted:
       getComputedStyle(
-        document.getElementById('file').shadowRoot.querySelector('.label')
+        document.getElementById('file').shadowRoot.querySelector('.label'),
+        '::before'
       ).backgroundColor === 'rgb(0, 0, 0)',
   }))
   check('…the flash ends un-inverted with the menu still closed',

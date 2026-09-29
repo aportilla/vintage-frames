@@ -140,15 +140,10 @@ const parseSig = (s) =>
  * Whether two run signatures agree within `tol` device px per run — same run
  * count, same colors, no intermediate grays anywhere.
  *
- * tol 0 is exact. tol 1 absorbs the two sub-CSS-px wobbles of the emulated
- * densities these sections run at: deviceScaleFactor emulation floors the
- * 1-system-px border to a whole CSS px (a display does not — harness
- * `browserAt` — so a run bounded by a border can sit one device px off its
- * system-px ideal here, and the leftover slack lands on a neighboring white
- * run), and paint anchors on half-CSS-px layout positions can snap either
- * way. Both are ≤1 device px by construction; the defect class this
- * script guards (an engine quantizing rail geometry to whole CSS px) is ≥1
- * CSS px = 2–4 device px, which tol 1 still catches.
+ * tol 0 is exact. tol 1 absorbs a paint anchor on a half-CSS-px layout
+ * position snapping either way, ≤1 device px by construction; the defect
+ * class this script guards (an engine quantizing rail geometry to whole CSS
+ * px) is ≥1 CSS px = 2–4 device px, which tol 1 still catches.
  */
 function runsAgree(a, b, tol) {
   const ra = parseSig(a)
@@ -208,31 +203,22 @@ async function railRects(page, hostSel, axis = 'vertical') {
 
 /* ── 1. anatomy + states, dpr 1 / 2 / 3 ─────────────────────────────────── */
 
+// At display density (harness `browserAt`), where every line the rail draws
+// — a stroke — is exactly one system px and every run lands exactly.
+// deviceScaleFactor emulation lays out at 1× and paints a box edge on a half
+// CSS px one device px off.
 for (const dpr of [1, 2, 3]) {
   const n = devicePxPerSystemPxAt(dpr)
   console.log(`\ndpr ${dpr}  (1 system px = ${n} device px)`)
   const page = await build(
     `<vf-scroll-area id="sa" style="position:absolute;top:0;left:0;${sysSize}">${TALL}</vf-scroll-area>
      <vf-scroll-area id="idle" style="position:absolute;top:0;left:600px;${sysSize}">${SHORT}</vf-scroll-area>`,
-    dpr
+    { dpr, real: true }
   )
 
-  // Emulation floors the 1-system-px border to a whole CSS px (a display
-  // does not) — every line the rail draws as a border is `bd` device px
-  // here, and run tolerances below absorb where the leftover slack lands.
-  // tol 0 (exact) at dpr 1; ±1 device per run at dpr 2/3, where half-CSS-px
-  // paint anchors and emulation's 1/64-CSS-px layout at 4/3 wobble
-  // boundaries by one device px.
-  const bd = Math.round(
-    (await page.evaluate(() =>
-      parseFloat(
-        getComputedStyle(
-          document.querySelector('#sa').shadowRoot.querySelector('.vf-rail')
-        ).borderLeftWidth
-      )
-    )) * dpr
-  )
-  const tol = dpr === 1 ? 0 : 1
+  // Every line is one system px.
+  const bd = n
+  const tol = 0
 
   const r = await railRects(page, '#sa')
   check(
@@ -243,7 +229,7 @@ for (const dpr of [1, 2, 3]) {
   check(
     'track spans the rail minus two 15px arrow cells',
     Math.round(r.track.height * dpr) === H * n - 2 * bd - 30 * n,
-    `${(r.track.height * dpr).toFixed(2)} device px (border ${bd})`
+    `${(r.track.height * dpr).toFixed(2)} device px (frame ${bd})`
   )
   check(
     'thumb is the fixed 16px box across the channel',
@@ -291,10 +277,10 @@ for (const dpr of [1, 2, 3]) {
     row(8)
   )
   // Thumb row (scrollTop 0 → thumb spans sys rows 16–32; row 24): the
-  // divider and thumb border merge on the left, the thumb border and frame
+  // divider and thumb stroke merge on the left, the thumb stroke and frame
   // on the right, with the 12px face between.
   check(
-    'thumb crosses the channel with 1px inset borders',
+    'thumb crosses the channel with 1px inset strokes',
     runsAgree(row(24), `b${2 * bd} w${14 * n - 2 * bd} b${2 * bd}`, tol),
     row(24)
   )
@@ -377,7 +363,7 @@ for (const dpr of [1, 2, 3]) {
      <vf-window id="win" heading="Odd" width="240" height="200" style="position:absolute;top:200px;left:0">
        <vf-scroll-area id="inwin" top="12" left="12" style="${sysSize}">${TALL}</vf-scroll-area>
      </vf-window>`,
-    dpr
+    { dpr, real: true }
   )
   const shot = decodePng(await page.screenshot())
 
@@ -405,14 +391,11 @@ for (const dpr of [1, 2, 3]) {
   const inwin = await railSig('#inwin')
 
   // What the DOM rail guarantees BY CONSTRUCTION, wherever its box lands:
-  // every ink run identical (±1 device for the lines emulation floors), the
-  // channel within the floor's slack, and zero grays. The old WebKit defect
-  // classes (rail shifted a device px off its frame; rail shrunk a whole CSS
-  // px, channel 40/41dp) all violate these bounds. What is NOT asserted: the
-  // white slack's side — paint distributes the floored border's half-CSS-px
-  // leftovers by snap direction (an emulation effect; at display density the
-  // border is the full system px).
-  const bd = 2 // the 1-system-px border as emulation floors it at dpr 2 (asserted above)
+  // every ink run identical (±1 device for a paint anchor on a half CSS px),
+  // the channel in bounds, and zero grays. The old WebKit defect classes
+  // (rail shifted a device px off its frame; rail shrunk a whole CSS px,
+  // channel 40/41dp) all violate these bounds.
+  const bd = n // every line is one system px (asserted above)
   const inkRuns = (probe) =>
     parseSig(probe).filter(([k]) => k === 'b').map(([, w]) => w)
   const agreeInk = (a, b) =>

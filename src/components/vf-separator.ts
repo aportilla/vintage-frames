@@ -16,13 +16,13 @@ import { GridSnapController } from '../grid-snap.js'
  *
  * Containers may restyle it via custom properties:
  * - `--vf-separator-color` — line color (default `var(--vf-black, #000)`).
- * - `--vf-separator-style` — line style, e.g. `dotted` (default `solid`).
- *   `vf-menu` sets these so slotted separators render as the classic dimmed
- *   dotted menu rule (see Menus.png).
+ * - `--vf-separator-style` — `solid` (the default) or `dotted`, one system px
+ *   on and one off. `vf-menu` sets these so slotted separators render as the
+ *   classic dimmed dotted menu rule (see Menus.png).
  * @cssprop --vf-separator-color - `vf-separator` rule color — `vf-menu` sets it
  *   to `--vf-disabled` for the dimmed menu rule
- * @cssprop [--vf-separator-style=solid] - `vf-separator` rule style — `vf-menu`
- *   sets `dotted` (see `Menus.png`)
+ * @cssprop [--vf-separator-style=solid] - `vf-separator` rule style: `solid`
+ *   or `dotted` — `vf-menu` sets `dotted` (see `Menus.png`)
  */
 @vfElement('vf-separator')
 export class VfSeparator extends VfPositioned(LitElement) {
@@ -38,20 +38,46 @@ export class VfSeparator extends VfPositioned(LitElement) {
         height: auto;
         align-self: stretch;
       }
-      /* The rule ink lives on an inner element rather than a host border so it
-         can ride the snap offset (see .vf-snap in base.ts). */
+      /* The rule ink lives on an inner element rather than the host so it can
+         ride the snap offset (see .vf-snap in base.ts). The element is the
+         line — the host is one system px across — so it paints its own
+         background rather than a border, whose width Safari rounds before
+         page zoom (see vfStrokeDecls). */
       .rule {
         width: 100%;
         height: 100%;
-        border-top: calc(var(--vf-scale, 1) * 1px)
-          var(--vf-separator-style, solid)
-          var(--vf-separator-color, var(--vf-black, #000));
+        background: var(--vf-separator-color, var(--vf-black, #000));
       }
-      :host([vertical]) .rule {
-        border-top: none;
-        border-left: calc(var(--vf-scale, 1) * 1px)
-          var(--vf-separator-style, solid)
-          var(--vf-separator-color, var(--vf-black, #000));
+      /* Dotted: one system px of ink, one off, from the start of the rule. */
+      @container style(--vf-separator-style: dotted) {
+        .rule {
+          background: repeating-linear-gradient(
+            to right,
+            var(--vf-separator-color, var(--vf-black, #000)) 0 calc(var(--vf-scale, 1) * 1px),
+            transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
+          );
+        }
+        :host([vertical]) .rule {
+          background: repeating-linear-gradient(
+            to bottom,
+            var(--vf-separator-color, var(--vf-black, #000)) 0 calc(var(--vf-scale, 1) * 1px),
+            transparent calc(var(--vf-scale, 1) * 1px) calc(var(--vf-scale, 1) * 2px)
+          );
+        }
+      }
+      /* Forced colors repaints backgrounds and deletes gradients, so the line
+         is a border there, as every kit stroke is (vfStrokeDecls). */
+      @media (forced-colors: active) {
+        .rule {
+          background: none;
+          border-top: calc(var(--vf-scale, 1) * 1px) var(--vf-separator-style, solid)
+            var(--vf-separator-color, var(--vf-black, #000));
+        }
+        :host([vertical]) .rule {
+          border-top: none;
+          border-left: calc(var(--vf-scale, 1) * 1px) var(--vf-separator-style, solid)
+            var(--vf-separator-color, var(--vf-black, #000));
+        }
       }
     `,
   ]

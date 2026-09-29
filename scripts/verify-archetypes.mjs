@@ -132,8 +132,8 @@ function decodePng(buf) {
     </div>
   `)
 
-  const BOX = ['width', 'height', 'top', 'left', 'border-top-width',
-    'border-top-color', 'background-color', 'box-shadow', 'z-index']
+  const BOX = ['width', 'height', 'top', 'left', 'padding-top',
+    'background-color', 'box-shadow', 'z-index']
   const winBox = await partMetrics(page, 'win', 'close-box', BOX)
   const dlgBox = await partMetrics(page, 'dlg', 'close-box', BOX)
   check('closable dialog renders a close box', dlgBox !== null)
@@ -215,24 +215,27 @@ function decodePng(buf) {
     <vf-dialog id="unnamed" frame="plain" width="200" height="120"><p>Body</p></vf-dialog>
   `)
 
+  // Both lines are strokes (vfStrokeDecls): the width is the padding each
+  // holds, the ink its shadow list's one inset layer.
   const frame = await partMetrics(page, 'plain', 'frame',
-    ['border-top-width', 'border-top-color', 'box-shadow', 'background-color'])
+    ['padding-top', 'box-shadow', 'background-color'])
   check(`plain frame outer rule is 1px x${S} black`,
-    frame['border-top-width'] === `${1 * S}px` &&
-    frame['border-top-color'] === 'rgb(0, 0, 0)', frame['border-top-width'])
+    frame['padding-top'] === `${1 * S}px` &&
+    frame['box-shadow'] === `rgb(0, 0, 0) 0px 0px 0px ${1 * S}px inset`, frame['padding-top'])
   check('plain frame has NO drop shadow (unlike the alert)',
-    frame['box-shadow'] === 'none', frame['box-shadow'])
+    !frame['box-shadow'].split(/,(?![^(]*\))/).some((l) => !l.trim().endsWith('inset')),
+    frame['box-shadow'])
 
   const inner = await page.evaluate(() => {
     const el = document.getElementById('plain').shadowRoot
       .querySelector('.vf-modal-frame-inner')
     if (!el) return null
     const cs = getComputedStyle(el)
-    return { margin: cs.marginTop, border: cs.borderTopWidth, color: cs.borderTopColor }
+    return { margin: cs.marginTop, stroke: cs.paddingTop, shadow: cs.boxShadow }
   })
   check(`plain frame inner band: 2px x${S} gap then 2px x${S} black band`,
-    inner !== null && inner.margin === `${2 * S}px` && inner.border === `${2 * S}px` &&
-    inner.color === 'rgb(0, 0, 0)', JSON.stringify(inner))
+    inner !== null && inner.margin === `${2 * S}px` && inner.stroke === `${2 * S}px` &&
+    inner.shadow === `rgb(0, 0, 0) 0px 0px 0px ${2 * S}px inset`, JSON.stringify(inner))
 
   check('plain frame renders no title bar',
     (await partMetrics(page, 'plain', 'title-bar', ['height'])) === null)
@@ -279,7 +282,7 @@ function decodePng(buf) {
       style="width:196px;height:92px"><p>Body</p></vf-window>
   `)
 
-  const bar = await partMetrics(page, 'uw', 'title-bar', ['height', 'border-bottom-width'])
+  const bar = await partMetrics(page, 'uw', 'title-bar', ['height'])
   check(`utility bar is --vf-titlebar-height-utility (12px) x${S}`,
     bar.height === `${12 * S}px`, bar.height)
 
@@ -365,12 +368,13 @@ function decodePng(buf) {
   const pressed = await page.evaluate(() => {
     const cs = getComputedStyle(document.getElementById('uw').shadowRoot
       .querySelector('[part=close-box]'))
-    return { bg: cs.backgroundColor, img: cs.backgroundImage, border: cs.borderTopColor }
+    return { bg: cs.backgroundColor, img: cs.backgroundImage, shadow: cs.boxShadow }
   })
   await page.mouse.up()
   check('pressed utility widget inverts whole: black fill under a white borderline',
     pressed.bg === 'rgb(0, 0, 0)' && pressed.img === 'none' &&
-    pressed.border === 'rgb(255, 255, 255)', JSON.stringify(pressed))
+    pressed.shadow.startsWith(`rgb(255, 255, 255) 0px 0px 0px ${1 * S}px inset`),
+    JSON.stringify(pressed))
 
   // Raster: at scale 1 the rendered bar must probe like the reference sheet.
   await page.evaluate(() => {

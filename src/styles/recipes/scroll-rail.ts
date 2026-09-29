@@ -1,5 +1,6 @@
 import { css, unsafeCSS } from 'lit'
 import { tileImage, tileRects, vfTileMaskSize } from './tile.js'
+import { vfStrokeDecls } from './stroke.js'
 import { vfRepeatTileSize } from '../../tile-grid.js'
 import { PATTERNS, patternMotif } from '../../patterns.js'
 
@@ -35,16 +36,17 @@ const TROUGH_TILE = tileImage(TROUGH.width, TROUGH.height, tileRects(TROUGH.rect
  *
  * Geometry (system px) — the classic 16px cell, of which the outermost line
  * is the component's own 1px frame: the rail element is the 15 inside it —
- * a 1px divider on the content side (the rail's own border) plus the 14px
+ * a 1px divider on the content side (the rail's own stroke) plus the 14px
  * channel. Arrow cells are 15 long (14 interior + the 1px divider facing the
  * track); their glyphs are the 16-unit sprites windowed to the 14×14
  * interior (`viewBox="1 1 14 14"`), since the sprite's outer ring is exactly
- * the frame/divider lines the borders draw. The thumb is a fixed 16px white
- * box spanning the channel, its border reading as inset 1px from each
+ * the frame/divider lines the strokes draw. The thumb is a fixed 16px white
+ * box spanning the channel, its stroke reading as inset 1px from each
  * channel rail over its extent. The component supplies the outer frame as a
- * real border and lays the rail out as a sibling of the scroller — AFTER it,
- * so the state selectors below can reach the rail from the scroller's
- * attributes.
+ * stroke of its own and lays the rail out as a sibling of the scroller —
+ * AFTER it, so the state selectors below can reach the rail from the
+ * scroller's attributes. Every line here is a stroke (vfStrokeDecls):
+ * padding holds it and an inset shadow paints it.
  *
  * States, keyed off the attributes `ScrollStateController` writes on the
  * scroller (now styling real elements, so there is no scrollbar-pseudo
@@ -105,7 +107,7 @@ export const vfScrollRail = css`
       calc(var(--vf-scale, 1) * 15px)
       1fr
       calc(var(--vf-scale, 1) * 15px);
-    border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls({ edges: ['left'] })}
   }
   .vf-rail--horizontal {
     height: calc(var(--vf-scale, 1) * 15px);
@@ -113,7 +115,7 @@ export const vfScrollRail = css`
       calc(var(--vf-scale, 1) * 15px)
       1fr
       calc(var(--vf-scale, 1) * 15px);
-    border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls({ edges: ['top'] })}
   }
   /* Explicit placement, so hiding the arrows (inactive-window/degenerate
      states) never reflows the track into an arrow cell — its box holds still
@@ -138,11 +140,11 @@ export const vfScrollRail = css`
   }
 
   /* Arrow cells: white boxes carrying only the 1px divider that faces the
-     track — the frame edges are the component's border, the content edge the
-     rail's own divider — so no line ever doubles to 2px. Each cell's padding
+     track — the frame edges are the component's stroke, the content edge the
+     rail's own divider — so no line ever doubles to 2px. Each cell's content
      box is by construction the sprite's 14×14 interior, wherever the cell
      sits (flush to the frame, or against the corner cell), so the glyph
-     lands at the padding origin with no per-variant offsets. */
+     lands at the content origin with no per-variant offsets. */
   .vf-rail-button {
     display: grid;
     place-items: start;
@@ -150,16 +152,16 @@ export const vfScrollRail = css`
     overflow: hidden;
   }
   .vf-rail--vertical .vf-rail-button--decrement {
-    border-bottom: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls({ edges: ['bottom'] })}
   }
   .vf-rail--vertical .vf-rail-button--increment {
-    border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls({ edges: ['top'] })}
   }
   .vf-rail--horizontal .vf-rail-button--decrement {
-    border-right: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls({ edges: ['right'] })}
   }
   .vf-rail--horizontal .vf-rail-button--increment {
-    border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls({ edges: ['left'] })}
   }
   .vf-rail-arrow {
     display: block;
@@ -198,7 +200,7 @@ export const vfScrollRail = css`
     pointer-events: none;
   }
   /* The fixed System 7 thumb (never proportional): a white 16px box spanning
-     the channel. Its border reads as inset 1px from each channel rail — the
+     the channel. Its stroke reads as inset 1px from each channel rail — the
      divider and the frame — over its extent; the controller writes its
      travel as a whole-system-px translate. */
   .vf-rail-thumb {
@@ -206,7 +208,7 @@ export const vfScrollRail = css`
     top: 0;
     left: 0;
     background: var(--vf-scrollbar-thumb, #ffffff);
-    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls()}
   }
   .vf-rail--vertical .vf-rail-thumb {
     width: 100%;
@@ -229,8 +231,7 @@ export const vfScrollRail = css`
     width: calc(var(--vf-scale, 1) * 15px);
     height: calc(var(--vf-scale, 1) * 15px);
     background: var(--vf-white, #fff);
-    border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
-    border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls({ edges: ['top', 'left'] })}
   }
 
   /* ── Always-a-rail (driven by ScrollStateController) ─────────────────────

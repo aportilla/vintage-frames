@@ -52,11 +52,13 @@ Desktop dither, measured over the fill's interior (`npm run verify:tile`) — th
 
 ## Borders
 
-A display snaps a border width to whole device pixels, and a 1-system-px border, `calc(var(--vf-scale) * 1px)`, is a whole number of them by the scale contract. Every kit frame paints its full system pixel, and content starts directly inside it: 2 device px at 1.25× and 1.5×, 3 at 2× and 2.5×, 4 at 3×. Measured in Chromium, Firefox and WebKit.
+Every line the kit draws is a stroke, not a CSS border: padding holds its space and an inset `box-shadow` paints it (`vfStrokeDecls`, docs/SPEC.md §4). A 1-system-px stroke is a whole number of device px by the scale contract, and neither length is rounded before page zoom, so every kit frame paints its full system pixel and content starts directly inside it: 2 device px at 1.25× and 1.5×, 3 at 2× and 2.5×, 4 at 3×, at every zoom.
 
-Playwright's `deviceScaleFactor` emulation, which most of the verify suite runs at, renders borders differently: in Chromium and Firefox it floors a fractional border width to a whole CSS pixel, so a frame there is 2 device px of 3 at 2× and 3 of 4 at 3×. Checks about where a border puts content, or about the device grid, render at display density instead (`browserAt` in `scripts/harness.mjs`); the checks still on emulation carry tolerances for the floor.
+A border doesn't hold that in Safari. Safari rounds a border width to device px of its unzoomed length, then applies page zoom and rounds again: on a 2× display a 1-system-px border is 2 device px at 115% where 3 are due, and 1 at 85% where 2 are due, and layout takes the thin width, so everything inside the box moves off the grid. Chrome and Firefox round on the zoomed grid. Forced colors paints no box-shadow, so there each stroke is a border again; only Chromium and Firefox have forced colors.
 
-The kit's repeated tile measures zero gray on every kit surface at every density, emulated or not. A consumer pattern token's *placed tile grid* measures zero gray at display density too, inset layers included — every surface from 1.25× to 3×, and at 1.7× and 2.3×. Under emulation a layer inside a floored border starts on a fractional device pixel at 1.25×, 1.5× and 2.5×, and `verify:tile` prints the per-seam hairline that leaves rather than failing.
+Playwright's `deviceScaleFactor` emulation, which most of the verify suite runs at, lays out at 1× and can paint a box edge on a half CSS pixel one device pixel off. Checks about where a line puts content, or about the device grid, render at display density instead (`browserAt` in `scripts/harness.mjs`).
+
+The kit's repeated tile measures zero gray on every kit surface at every density, emulated or not. A consumer pattern token's *placed tile grid* measures zero gray at display density too, inset layers included — every surface from 1.25× to 3×, and at 1.7× and 2.3×. Under emulation a layer inside a frame can start on a fractional device pixel at 1.25×, 1.5× and 2.5×, and `verify:tile` prints the per-seam hairline that leaves rather than failing.
 
 ## Why the kit does not simply pick a different target
 

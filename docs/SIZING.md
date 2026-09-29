@@ -29,7 +29,7 @@ applyScale() // → returns a cleanup function
 
 ## Zoom
 
-Zoom needs no separate rule: zooming multiplies device pixels per CSS pixel, so it arrives as a denser display and follows the same table. Chrome and Firefox report it through `devicePixelRatio`; Safari pins its dpr to the hardware and moves `innerWidth` instead; the kit tracks both and `truePixelRatio()` is the number that folds them together (`src/zoom.ts`).
+Zoom needs no separate rule: zooming multiplies device pixels per CSS pixel, so it arrives as a denser display and follows the same table. Chrome, Firefox and Safari 27 report it through `devicePixelRatio` (Safari: 2.3 at 115% on a 2× display); older Safari pins its dpr to the hardware and moves `innerWidth` instead. The kit tracks both, and `truePixelRatio()` is the number that folds them together (`src/zoom.ts`).
 
 A 2× display, through the ladder:
 
@@ -78,6 +78,17 @@ Three rules. One call covers the second:
 ```css
 /* ✗ */ .toolbar__label { /* width from its text */ }
 /* ✓ */ .toolbar__label { width: 84px; }
+```
+
+A 1px line of your own belongs in `vfStrokeDecls()`, not a `border` of `calc(var(--vf-scale, 1) * 1px)`. Safari rounds a border's width before page zoom, so it draws thin at most zoom levels and moves what's inside the box off the grid. The helper holds the line's space in padding and paints it with an inset shadow, which hold at every zoom ([SPEC.md](./SPEC.md) §4).
+
+```ts
+import { css } from 'lit'
+import { vfStrokeDecls } from 'vintage-frames'
+
+const styles = css`
+  .card { ${vfStrokeDecls({ padding: [4, 8] })} }
+`
 ```
 
 `vf-paragraph`, `vf-label` and `vf-stack` state their line box and their size in whole system px themselves, so text and containers set in the kit's own components satisfy rules 2 and 3 by construction.

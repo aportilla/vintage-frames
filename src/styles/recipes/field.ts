@@ -1,17 +1,22 @@
 import { css } from 'lit'
 import { vfDisplayDecls } from './display-face.js'
 import { vfFocusUnderline } from './focus.js'
+import { vfStrokeDecls } from './stroke.js'
 
 /**
  * The System 7 editable-field skin (SPEC §1/§5): a white well with a 1px black
- * border, no corner radius, Chicago-style display type, and the kit's dashed
+ * frame, no corner radius, Chicago-style display type, and the kit's dashed
  * keyboard-focus rule under the well (no dotted ring). Add the `vf-field`
  * class to the inner native `<input>`/`<textarea>` and wrap it in a
- * `.vf-field-well` element; the host supplies layout (width, height, padding)
- * around it, and `VfTextControlBase` supplies the `.vf-focus-rule` class that
- * turns the rule on. Shared by vf-text-field, vf-text-area and
- * vf-number-field so the well, focus and disabled treatment stay identical
- * across all three.
+ * `.vf-field-well` element; the host supplies layout (width, height) around
+ * it, and `VfTextControlBase` supplies the `.vf-focus-rule` class that turns
+ * the rule on. Shared by vf-text-field, vf-text-area and vf-number-field so
+ * the well, focus and disabled treatment stay identical across all three.
+ *
+ * The frame is a stroke ({@link vfStrokeDecls}), so the recipe owns the
+ * input's padding and box-shadow: a host that insets the text restates the
+ * padding with `vfStrokeInset` (`padding: ${vfStrokeInset(0)}
+ * ${vfStrokeInset(6)}`) in a rule that outranks `.vf-field`.
  *
  * Why the wrapper: the rule is a pseudo-element, and a replaced element
  * generates none — neither `<input>` nor `<textarea>` can draw its own
@@ -24,7 +29,7 @@ import { vfFocusUnderline } from './focus.js'
 export const vfField = css`
   .vf-field {
     background: var(--vf-white, #fff);
-    border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+    ${vfStrokeDecls()}
     border-radius: 0;
     /* Editable text is set in the Chicago-style display face. */
     ${vfDisplayDecls}
@@ -69,7 +74,7 @@ export const vfField = css`
     font-weight: inherit;
     opacity: 1;
   }
-  /* Disabled: the text dims to gray; the solid black box border stays. The
+  /* Disabled: the text dims to gray; the solid black frame stays. The
      cursor returns to the arrow — a well that can't take input isn't text. */
   .vf-field:disabled {
     color: var(--vf-disabled, #c0c0c0);

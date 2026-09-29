@@ -7,7 +7,7 @@ import {
 } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
-import { vfBase, vfFocusRing, vfScrollRail } from '../styles/base.js'
+import { vfBase, vfFocusRing, vfScrollRail, vfStrokeDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { ScrollStateController } from '../scroll-state.js'
@@ -57,21 +57,21 @@ export class VfList extends VfPositioned(LitElement) {
       :host([disabled]) {
         color: var(--vf-disabled, #c0c0c0);
       }
-      /* The snapped wrapper: a real 1px frame (the rail's outer line), the
+      /* The snapped wrapper: the 1px frame (the rail's outer line), the
          [rows | rail] grid — the rail sizes itself to the 15px inside the
          frame — and everything riding the grid-snap offset as one. */
       .box {
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         background: var(--vf-white, #fff);
         display: grid;
         grid-template-columns: 1fr auto;
+        ${vfStrokeDecls()}
       }
       .list {
         grid-area: 1 / 1;
         min-width: 0;
         background: var(--vf-white, #fff);
-        /* The clamp is the content box's — the .box border adds the 2px frame
-           on top, keeping the clamped total where it always was. */
+        /* The clamp is the content box's — the .box frame adds its 2px on
+           top, keeping the clamped total where it always was. */
         max-height: calc(var(--vf-scale, 1) * var(--vf-list-max-height, 200px));
         /* Native scrolling; the bar itself is hidden by the recipe
            (.vf-scroll) and the reservation is the rail element, not a native

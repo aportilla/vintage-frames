@@ -390,7 +390,9 @@ const sizeOf = (page, id) =>
         display: style.display,
         stripHeight: stripBox.height,
         stripToFrameBottom: frame.bottom - stripBox.bottom,
-        rule: style.borderTopWidth,
+        // The rule is a stroke: the padding it holds, or a border under
+        // forced colors.
+        rule: parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth),
         background: style.backgroundColor,
         lineHeight: style.lineHeight,
       }
@@ -410,10 +412,10 @@ const sizeOf = (page, id) =>
   )
   check(
     '…1px rule, white interior, body-face 12px line',
-    geo.doc.rule === '1px' &&
+    geo.doc.rule === 1 &&
       geo.doc.background === 'rgb(255, 255, 255)' &&
       geo.doc.lineHeight === '12px',
-    `rule ${geo.doc.rule}, bg ${geo.doc.background}, line ${geo.doc.lineHeight}`
+    `rule ${geo.doc.rule}px, bg ${geo.doc.background}, line ${geo.doc.lineHeight}`
   )
 
   const grow = await page.evaluate(() => {
@@ -481,13 +483,14 @@ const sizeOf = (page, id) =>
         stripWidth: box.width,
         frameInnerWidth: frame.width - 2,
         stripBottomToBody: body.top - box.bottom,
-        ruleBottom: parseFloat(style.borderBottomWidth),
-        ruleTop: parseFloat(style.borderTopWidth),
-        padding: style.padding,
-        position: style.position,
+        // The rule is a stroke: the padding it holds, or a border under
+        // forced colors.
+        ruleBottom: parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth),
+        ruleTop: parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth),
       }
     }
     const placed = document.getElementById('placed').getBoundingClientRect()
+    const flowed = document.getElementById('strip-content').getBoundingClientRect()
     const strip = document
       .getElementById('auto')
       .shadowRoot.querySelector('[part=header]')
@@ -497,6 +500,7 @@ const sizeOf = (page, id) =>
       auto: measure('auto'),
       stated: measure('stated'),
       placed: { dx: placed.left - strip.left, dy: placed.top - strip.top },
+      flowed: { dx: flowed.left - strip.left, dy: flowed.top - strip.top },
     }
   })
 
@@ -524,12 +528,12 @@ const sizeOf = (page, id) =>
     `${geo.stated.stripHeight}px`
   )
   check(
-    'no inset, and a positioning anchor: a placed child measures from the strip corner',
-    geo.auto.padding === '0px' &&
-      geo.auto.position === 'relative' &&
+    'no inset, and a positioning anchor: flow content and a placed child measure from the strip corner',
+    near(geo.flowed.dx, 0) &&
+      near(geo.flowed.dy, 0) &&
       near(geo.placed.dx, 8) &&
       near(geo.placed.dy, 2),
-    `padding ${geo.auto.padding}, ${geo.auto.position}, placed at ${geo.placed.dx} × ${geo.placed.dy}`
+    `flow at ${geo.flowed.dx} × ${geo.flowed.dy}, placed at ${geo.placed.dx} × ${geo.placed.dy}`
   )
 
   const emptied = await page.evaluate(async () => {

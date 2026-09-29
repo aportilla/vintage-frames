@@ -3,7 +3,7 @@ import type { PropertyValues } from 'lit'
 import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
-import { vfBase } from '../styles/base.js'
+import { vfBase, vfStrokeDecls } from '../styles/base.js'
 import {
   tileImage,
   tileRects,
@@ -92,22 +92,20 @@ export class VfProgressBar extends VfPositioned(LitElement) {
         position: relative;
         height: 100%;
         background: var(--vf-progress-track, #ffffff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
         overflow: hidden;
+        ${vfStrokeDecls()}
       }
       .fill {
         height: 100%;
         background: var(--vf-progress-fill, #000000);
-        /* The classic 1px black leading edge. */
-        border-right: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
       }
-      .fill.empty {
-        border-right: none;
+      /* The classic 1px black leading edge, on a fill with any width. */
+      .fill:not(.empty):not(.stripes) {
+        ${vfStrokeDecls({ edges: ['right'] })}
       }
       .fill.stripes {
         width: 100%;
-        border-right: none;
         /* Chunky 45° barber stripes: a 12×12 system-px cell whose two black
            \ bands are a staircase of axis-aligned 1px rects (genuine pixel
            art — a *diagonal* edge would blur where these stay pixel-exact)

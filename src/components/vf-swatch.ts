@@ -3,7 +3,7 @@ import { property } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { styleMap } from 'lit/directives/style-map.js'
-import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
+import { vfBase, vfFocusUnderline, vfStrokeDecls, vfStrokeInset } from '../styles/base.js'
 import { tileImage, tileRects, tileSpan, type TileRect } from '../styles/recipes/tile.js'
 import {
   RepeatTileController,
@@ -104,24 +104,25 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
       :host([shadow]) {
         --_shadow-depth: var(--vf-shadow-offset, 2px);
       }
-      /* The 1px black frame, and — as the button's own background showing
-         through its 1px padding — the white inset ring around the fill. */
+      /* The 1px black frame, a stroke, and — as the button's own background
+         showing through its 1px padding inside the stroke — the white inset
+         ring around the fill. After the stroke, the opt-in depth: the kit's
+         one hard shadow, painted outside the border box like every raised
+         surface's, and nothing at depth 0. */
       button {
         display: block;
         /* Also the anchor the focus rule below hangs from. */
         position: relative;
-        padding: calc(var(--vf-scale, 1) * 1px);
         margin: 0;
         background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         cursor: inherit;
         -webkit-appearance: none;
         appearance: none;
-      }
-      /* Opt-in depth: the kit's one hard shadow, painted outside the border
-         box like every raised surface's. */
-      :host([shadow]) button {
-        ${vfHardShadowDecls}
+        ${vfStrokeDecls({
+          padding: 1,
+          shadows:
+            'calc(var(--vf-scale, 1) * var(--_shadow-depth)) calc(var(--vf-scale, 1) * var(--_shadow-depth)) 0 0 var(--vf-black, #000)',
+        })}
       }
       /* Pressed: the white inset inverts to black — instant 1-bit feedback. */
       button:active:not(:disabled) {
@@ -134,20 +135,22 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
          to show, and a rule drawn over the fill would read as part of it.
 
          The offset counts every row of ink below the pseudo-element's padding
-         box before the blank row and the rule itself — the 1px border, then
-         whatever shadow this swatch is casting — none by default, a rethemeable
-         token under the shadow attribute — so it composes --_shadow-depth
-         rather than assuming a depth. The ±1px sides widen the rule from that
-         same padding box to the border box, the shape the swatch reads as (the
-         shadow is a depth cue, not part of the silhouette). */
+         box, which runs under the frame's stroke, before the blank row and
+         the rule itself — whatever shadow this swatch is casting — none by
+         default, a rethemeable token under the shadow attribute — so it
+         composes --_shadow-depth rather than assuming a depth. The rule spans
+         that same box, the shape the swatch reads as (the shadow is a depth
+         cue, not part of the silhouette). Under forced colors the stroke is a
+         border and the padding box sits inside it, so the insets grow by it
+         there. */
       button:focus-visible {
         outline: none;
       }
       button:focus-visible::after {
-        --vf-focus-underline-offset: calc(-3px - var(--_shadow-depth));
         ${vfFocusUnderline}
-        left: calc(var(--vf-scale, 1) * -1px);
-        right: calc(var(--vf-scale, 1) * -1px);
+        bottom: ${vfStrokeInset('(-3px - var(--_shadow-depth))')};
+        left: ${vfStrokeInset(-1)};
+        right: ${vfStrokeInset(-1)};
       }
       .fill {
         display: block;

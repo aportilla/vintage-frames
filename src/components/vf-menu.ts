@@ -101,22 +101,23 @@ export class VfMenu extends VfPositioned(LitElement) {
         @media (forced-colors: active) {
           forced-color-adjust: none;
         }
-        background: var(--vf-highlight, #000);
         color: var(--vf-highlight-text, #fff);
-        /* The hilite leaves the bar's top row white: System 7's plate is rows
-           1..18 of the 20px bar (the Label specimen in Menus.png is 18px of
-           plate, and InfiniteMac shows the white row above it). Transparent
-           borders + padding-box clip inset the paint without moving the box:
-           the top row shows the bar's white through, the bottom row the bar's
-           own black rule, and the hit rect stays the full bar height so a
-           click slammed against the screen top still opens the menu. The
-           18px content box centers the 16px em on the same rows as the
-           closed state, so the title never shifts. Declared only while open
-           because forced-colors mode repaints transparent borders CanvasText
-           on closed labels; here forced-color-adjust above already exempts
-           them. */
-        border-block: calc(var(--vf-scale, 1) * 1px) solid transparent;
-        background-clip: padding-box;
+      }
+      /* The hilite leaves the bar's top row white: System 7's plate is rows
+         1..18 of the 20px bar (the Label specimen in Menus.png is 18px of
+         plate, and InfiniteMac shows the white row above it). So the plate is
+         a layer inset a row top and bottom rather than the label's own
+         background: the top row shows the bar's white through, the bottom row
+         the bar's own black rule, and the hit rect stays the full bar height
+         so a click slammed against the screen top still opens the menu. The
+         title doesn't move. The label is positioned (vf-snap), and the title
+         is too, so the plate paints under it in tree order. */
+      :host([open]) .label::before,
+      .label.flash-on::before {
+        content: '';
+        position: absolute;
+        inset: calc(var(--vf-scale, 1) * 1px) 0;
+        background: var(--vf-highlight, #000);
       }
       /* The title rides in its own box so the focus rule spans the title and
          not the bar cell's 10px padding — the same reason vf-button wraps its
@@ -174,13 +175,14 @@ export class VfMenu extends VfPositioned(LitElement) {
            from. (The nowrap rows make min-content the widest row, so the
            shrink-to-fit abspos width IS the MDEF width.) */
         min-width: 100%;
-        /* No vertical inset: every panel in Menus.png — both pulldowns, the
-           open popup and the closed pill — puts its first row's ink at +4 from
-           the border box, which is the 1px border plus the row's own 3px ✓
-           bias. The bottom border likewise sits immediately after the last row.
-           A 2px inset here displaced every row by 2px against the art; it was
-           invisible while the rows themselves were 6px too tall. */
-        padding: 0;
+        /* No inset of its own beyond the frame, whose 1px stroke is the
+           panel's padding (vfPanel): every panel in Menus.png — both
+           pulldowns, the open popup and the closed pill — puts its first
+           row's ink at +4 from the border box, which is the 1px frame plus
+           the row's own 3px ✓ bias. The bottom line likewise sits
+           immediately after the last row. A 2px inset here displaced every
+           row by 2px against the art; it was invisible while the rows
+           themselves were 6px too tall. */
         z-index: 1000;
         /* As on the title: the held press, not the browser, owns touch moves
            over the dropped panel. */

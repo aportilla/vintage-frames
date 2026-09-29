@@ -16,6 +16,8 @@ import {
   vfFocus,
   vfChromeFrame,
   vfRule,
+  vfStrokeDecls,
+  vfStrokeInset,
   vfTitleBar,
   vfWindowWidgets,
 } from '../styles/base.js'
@@ -164,8 +166,8 @@ function clampAxis(
  */
 const KEEP_GRABBABLE = 24
 
-/** The chrome frame's border on each side of the title bar, in system px. */
-const FRAME_BORDER = 1
+/** The chrome frame's stroke on each side of the title bar, in system px. */
+const FRAME_STROKE = 1
 
 /**
  * `<vf-window>` — the System 7 desktop-window shell.
@@ -344,12 +346,12 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
          a focused widget out of the tree, so focus can't be dropped to
          <body> by a click on another window. */
       :host(:not([active])) .box {
-        border-color: transparent;
+        --_vf-stroke-ink: transparent;
         background-color: transparent;
         box-shadow: none;
       }
       :host(:not([active])) .zoom::after {
-        border-color: transparent;
+        --_vf-stroke-ink: transparent;
       }
 
       /* --- Utility (windoid) variant --------------------------------- */
@@ -392,7 +394,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
          a white (invisible, over the patch ring) borderline — rather than the
          big bar's 9×9 sunburst, which cannot land whole on a 5×5 interior. */
       :host([variant='utility']) .box:active {
-        border-color: var(--vf-white, #ffffff);
+        --_vf-stroke-ink: var(--vf-white, #ffffff);
         background-color: var(--vf-black, #000000);
         background-image: none;
       }
@@ -469,11 +471,19 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
          vertical rail's arrows begin under it. Takes no space until the slot
          is populated. Clipped like the body; a drop-open panel still escapes
          (see the body's note). A div with a class, never a <header>: that
-         element maps to a banner landmark (see render()). */
+         element maps to a banner landmark (see render()).
+
+         The rule is a stroke, so the header's own box runs under it: the
+         slot is the box content lays out, places and clips in, above the
+         rule. */
       .header {
-        position: relative;
         flex: none;
         background: var(--vf-white, #ffffff);
+      }
+      .header > slot {
+        display: block;
+        position: relative;
+        height: 100%;
         overflow: hidden;
       }
       .header.empty {
@@ -493,7 +503,6 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       .status {
         flex: none;
         display: flex;
-        align-items: center;
         height: calc(var(--vf-scale, 1) * var(--vf-status-bar-height, 15px));
         /* The rule is vfRule's vf-rule-top on the element. */
         background: var(--vf-white, #ffffff);
@@ -501,6 +510,16 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         line-height: calc(var(--vf-scale, 1) * var(--vf-line-height, 12px));
         white-space: nowrap;
         overflow: hidden;
+      }
+      /* The rule is a stroke, so the strip's own box runs under it: the slot
+         centers the content in the 14px below the rule and clips it there.
+         Sideways it still runs to the strip's edges, as before. */
+      .status > slot {
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-y: clip;
       }
       /* Clear the grow box: its 15px cell plus the strip's own 6px inset. */
       :host([resizable]) .status {
@@ -511,18 +530,20 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       }
 
       /* --- Grow box --------------------------------------------------- */
+      /* Flush inside the frame's stroke, which is padding (vfChromeFrame);
+         the two nested squares place against the box the same way, the
+         lower-right one clear of its top/left stroke. */
       .grow {
         position: absolute;
-        right: 0;
-        bottom: 0;
+        right: ${vfStrokeInset(0)};
+        bottom: ${vfStrokeInset(0)};
         z-index: 1;
         width: calc(var(--vf-scale, 1) * 15px);
         height: calc(var(--vf-scale, 1) * 15px);
-        border-top: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
-        border-left: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         background: var(--vf-white, #ffffff);
         touch-action: none;
         cursor: var(--vf-cursor, default);
+        ${vfStrokeDecls({ edges: ['top', 'left'] })}
       }
       .grow::before {
         content: '';
@@ -531,17 +552,17 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         bottom: calc(var(--vf-scale, 1) * 1px);
         width: calc(var(--vf-scale, 1) * 9px);
         height: calc(var(--vf-scale, 1) * 9px);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
+        ${vfStrokeDecls()}
       }
       .grow::after {
         content: '';
         position: absolute;
-        top: calc(var(--vf-scale, 1) * 2px);
-        left: calc(var(--vf-scale, 1) * 2px);
+        top: ${vfStrokeInset(2)};
+        left: ${vfStrokeInset(2)};
         width: calc(var(--vf-scale, 1) * 7px);
         height: calc(var(--vf-scale, 1) * 7px);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000000);
         background: var(--vf-white, #ffffff);
+        ${vfStrokeDecls()}
       }
       /* Inactive window: the size box empties with the scroll rails (the same
          HIG no-interactive-UX treatment ScrollStateController drives for the
@@ -704,7 +725,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    */
   private _dotsTexture(): unknown {
     if (!this._dotsPattern || this.width == null) return undefined
-    const barW = Math.max(1, this.width - 2 * FRAME_BORDER)
+    const barW = Math.max(1, this.width - 2 * FRAME_STROKE)
     return tileGrid({ cols: Math.ceil(barW / DOT_SPAN), rows: 1, tile: DOT_SPAN })
   }
 

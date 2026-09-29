@@ -4,7 +4,15 @@ import { property, query, queryAssignedElements, state } from 'lit/decorators.js
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfBodyDecls, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
+import {
+  vfBase,
+  vfBodyDecls,
+  vfDisplay,
+  vfFocusUnderline,
+  vfPanel,
+  vfStrokeDecls,
+  vfStrokeInset,
+} from '../styles/base.js'
 import {
   CARET_DOWN,
   CARET_DOWN_SMALL,
@@ -164,22 +172,24 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         /* 18px, not the 22px fields: the reference pill measures 156×18 plus
            its 1px hard shadow (the 157×19 ink box on the sheet). */
         height: calc(var(--vf-scale, 1) * var(--vf-popup-height, 18px));
-        /* Left inset = the checkmark gutter (--vf-select-gutter), so the selected
-           label sits at the SAME x it will occupy in the open list (where the ✓
-           fills that gutter). The right inset stays the small 8px. */
-        padding: 0 calc(var(--vf-scale, 1) * 8px) 0
-          calc(var(--vf-scale, 1) * var(--vf-select-gutter, 16px));
         background: var(--vf-white, #fff);
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         border-radius: 0;
-        /* At depth 0 the shadow is the border box itself, which paints nothing. */
-        box-shadow: calc(var(--vf-scale, 1) * var(--_shadow-depth))
-          calc(var(--vf-scale, 1) * var(--_shadow-depth)) 0 0 var(--vf-black, #000);
         /* The press-drag gesture owns pointer moves while the button is held;
            suppress the browser's own touch panning/scrolling so a touch drag
            tracks the list instead of scrolling the page. */
         touch-action: none;
         cursor: var(--vf-cursor, default);
+        /* The 1px frame is a stroke, the hard shadow after it in the list —
+           at depth 0 the shadow is the border box itself, which paints
+           nothing. Left inset = the checkmark gutter (--vf-select-gutter), so
+           the selected label sits at the SAME x it will occupy in the open
+           list (where the ✓ fills that gutter). The right inset stays the
+           small 8px. */
+        ${vfStrokeDecls({
+          padding: [0, 8, 0, 'var(--vf-select-gutter, 16px)'],
+          shadows:
+            'calc(var(--vf-scale, 1) * var(--_shadow-depth)) calc(var(--vf-scale, 1) * var(--_shadow-depth)) 0 0 var(--vf-black, #000)',
+        })}
       }
       /* Keyboard focus is the kit's dashed rule under the pill, not a ring
          around it (see vfFocusUnderline). It goes BELOW the whole box rather
@@ -187,11 +197,12 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
          has one line and the label already shares it with the ▼.
 
          The offset counts every row of ink below the pseudo-element's padding
-         box before the blank row and the rule itself — the 1px border, then
-         the hard shadow (1px, or none under no-shadow): −(1 + 1 + depth + 1).
-         The ±1px sides widen it from
-         that same padding box to the border box, which is the shape the pill
-         reads as (the shadow is a depth cue, not part of the silhouette).
+         box, which runs under the pill's stroke, before the blank row and the
+         rule itself — the hard shadow (1px, or none under no-shadow):
+         −(depth + 1 + 1). The rule spans that same box, which is the shape
+         the pill reads as (the shadow is a depth cue, not part of the
+         silhouette). Under forced colors the stroke is a border and the
+         padding box sits inside it, so the insets grow by it there.
 
          Gated on a class, not :focus-visible — the same problem the editable
          fields have, arrived at from the other direction. The pill suppresses
@@ -206,10 +217,10 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         outline: none;
       }
       .control.vf-focus-rule::after {
-        --vf-focus-underline-offset: calc(-3px - var(--_shadow-depth));
         ${vfFocusUnderline}
-        left: calc(var(--vf-scale, 1) * -1px);
-        right: calc(var(--vf-scale, 1) * -1px);
+        bottom: ${vfStrokeInset('(-3px - var(--_shadow-depth))')};
+        left: ${vfStrokeInset(-1)};
+        right: ${vfStrokeInset(-1)};
       }
       /* The label is a 1×1 grid: the visible value and an invisible stack of
          every option's text share the one cell, so the cell — and thus the
@@ -293,16 +304,10 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         position: fixed;
         z-index: 10000;
         margin: 0;
-        padding: 0;
         /* Match the closed pill's 1px hard shadow — the shared .vf-panel recipe
            defaults to the 2px menu shadow, which would overhang the pill's shadow
            by 1px on the right and bottom. */
         --vf-shadow-offset: 1px;
-        /* A CLIP, never a scroll surface: positionPanel gives the panel a whole
-           number of row slots and the rows are rolled by transform inside it.
-           System 7 put no scrollbar on a menu, and an un-quantized native scroll
-           would break the row lattice the pill overlay is built on. */
-        overflow: hidden;
         /* The screen-edge reserve, resolved here and read back by
            positionPanel: the clamp is JS geometry, so the tokens can't be spent
            in a declaration, but their defaults and the cascade still belong in
@@ -314,6 +319,18 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
       }
       .panel.open {
         display: block;
+      }
+      /* A CLIP, never a scroll surface: positionPanel gives the panel a whole
+         number of row slots and the rows are rolled by transform inside it.
+         System 7 put no scrollbar on a menu, and an un-quantized native scroll
+         would break the row lattice the pill overlay is built on. An element
+         inside the panel rather than the panel itself, whose frame is a
+         stroke: the panel would clip at its outer edge and let rolled rows
+         paint over the frame. The arrow slots place against it. */
+      .clip {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
       }
       /* The rolling strip — a box for the options to ride, whose translateY
          positionPanel and the arrow timer write. Transform rather than
@@ -671,12 +688,15 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
     // Further reads, still before any write (consecutive reads don't re-reflow):
     // the row's rendered height, so a consumer who re-themes --vf-popup-height
     // keeps the selected-row overlay aligned instead of drifting by index; the
-    // panel's own border, which the clamp has to fit around; and the two screen-
+    // panel's own frame, which the clamp has to fit around; and the two screen-
     // edge insets, parked on the panel by the stylesheet in authored system px.
+    // The frame is a stroke — padding, or a border under forced colors — so
+    // it is whatever lies between the border box and the content box.
     const panelStyle = getComputedStyle(panel)
-    const border = parseFloat(panelStyle.borderTopWidth) || 0
+    const border =
+      (parseFloat(panelStyle.borderTopWidth) || 0) + (parseFloat(panelStyle.paddingTop) || 0)
     // With no rows to measure, a row is the pill's content height (the panel
-    // and the pill share the 1px border).
+    // and the pill share the 1px frame).
     const rowRect = this.optionItems[0]?.getBoundingClientRect()
     const rowHeight = rowRect?.height || rect.height - 2 * border
     const inset = (name: string): number =>
@@ -1346,34 +1366,38 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         aria-label=${this.label || this.hostLabel || nothing}
         aria-hidden=${this.open ? 'false' : 'true'}
       >
-        <!-- role="presentation" so the strip that carries the roll doesn't
-             stand between the listbox and the options it owns. -->
-        <div class="rows" role="presentation">
-          <slot @slotchange=${this.handleSlotChange}></slot>
-        </div>
-        <!-- Pointer affordances only, hence aria-hidden: the clipped options
-             stay in the accessibility tree un-hidden (clipping is presentation,
-             and a native <select> exposes its whole list too), and keyboard and
-             AT users reach every row with the arrows, Home/End and type-ahead. -->
-        <div
-          class="arrow-slot up"
-          part="scroll-arrow"
-          aria-hidden="true"
-          @pointerenter=${this.handleArrowEnter}
-          @pointermove=${this.handleArrowEnter}
-          @pointerleave=${this.handleArrowLeave}
-        >
-          ${glyphSvg(caretUp, 'caret')}
-        </div>
-        <div
-          class="arrow-slot down"
-          part="scroll-arrow"
-          aria-hidden="true"
-          @pointerenter=${this.handleArrowEnter}
-          @pointermove=${this.handleArrowEnter}
-          @pointerleave=${this.handleArrowLeave}
-        >
-          ${glyphSvg(caretDown, 'caret')}
+        <!-- role="presentation" on the clip and the strip that carries the
+             roll, so neither stands between the listbox and the options it
+             owns. -->
+        <div class="clip" role="presentation">
+          <div class="rows" role="presentation">
+            <slot @slotchange=${this.handleSlotChange}></slot>
+          </div>
+          <!-- Pointer affordances only, hence aria-hidden: the clipped options
+               stay in the accessibility tree un-hidden (clipping is
+               presentation, and a native <select> exposes its whole list too),
+               and keyboard and AT users reach every row with the arrows,
+               Home/End and type-ahead. -->
+          <div
+            class="arrow-slot up"
+            part="scroll-arrow"
+            aria-hidden="true"
+            @pointerenter=${this.handleArrowEnter}
+            @pointermove=${this.handleArrowEnter}
+            @pointerleave=${this.handleArrowLeave}
+          >
+            ${glyphSvg(caretUp, 'caret')}
+          </div>
+          <div
+            class="arrow-slot down"
+            part="scroll-arrow"
+            aria-hidden="true"
+            @pointerenter=${this.handleArrowEnter}
+            @pointermove=${this.handleArrowEnter}
+            @pointerleave=${this.handleArrowLeave}
+          >
+            ${glyphSvg(caretDown, 'caret')}
+          </div>
         </div>
       </div>
       ${this.renderDescription()}

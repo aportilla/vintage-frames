@@ -2,7 +2,7 @@ import { css, html, LitElement, nothing } from 'lit'
 import { property, query, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned, placementIn } from '../position.js'
-import { vfBase, vfFocusRing, vfScrollRail } from '../styles/base.js'
+import { vfBase, vfFocusRing, vfScrollRail, vfStrokeDecls } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { ScrollStateController } from '../scroll-state.js'
@@ -178,8 +178,8 @@ export class VfScrollArea extends VfPositioned(LitElement) {
       :host {
         display: block;
       }
-      /* The snapped wrapper: a real 1px frame (the rails' outer line is this
-         border), a grid that reserves each rail as its own edge column/row —
+      /* The snapped wrapper: the 1px frame (the rails' outer line is this
+         stroke), a grid that reserves each rail as its own edge column/row —
          the rails size themselves to the 15px inside the frame — and the
          scroller and rails riding the grid-snap offset as one. */
       .box {
@@ -188,8 +188,8 @@ export class VfScrollArea extends VfPositioned(LitElement) {
         display: grid;
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
         background: var(--vf-white, #fff);
+        ${vfStrokeDecls()}
       }
       :host(:not([axis])) .box,
       :host([axis='vertical']) .box,

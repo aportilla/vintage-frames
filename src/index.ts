@@ -161,6 +161,7 @@ export {
   vfRule,
   vfTitleBar,
   vfWindowWidgets,
+  vfHardShadow,
   vfHardShadowDecls,
   vfStripes,
   vfDots,
@@ -187,6 +188,16 @@ export type { TileRect } from './styles/base.js'
  */
 export { RULE_EDGES, parseRule, ruleClasses } from './styles/base.js'
 export type { RuleEdge } from './styles/base.js'
+
+/**
+ * A 1-bit stroke for a box of your own: `vfStrokeDecls()` draws the line as
+ * padding plus an inset shadow, the way every kit frame is drawn, because a
+ * CSS `border` of `calc(var(--vf-scale, 1) * 1px)` renders thin under Safari's
+ * page zoom. `vfStrokeInset()` offsets a child placed against the box, and
+ * `vfStrokeShadow()` restates the painted width alone.
+ */
+export { vfStrokeDecls, vfStrokeInset, vfStrokeShadow } from './styles/base.js'
+export type { VfStrokeOptions } from './styles/base.js'
 
 /**
  * The exact tiled fill (src/tile-grid.ts): a surface's own art as a CSS

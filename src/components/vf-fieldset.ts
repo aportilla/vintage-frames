@@ -3,7 +3,7 @@ import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
-import { vfBase, vfDisplayDecls } from '../styles/base.js'
+import { vfBase, vfDisplayDecls, vfStrokeDecls, vfStrokeInset } from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 
@@ -31,24 +31,31 @@ export class VfFieldset extends VfPositioned(LitElement) {
       }
       .fieldset {
         position: relative;
-        border: calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000);
+        margin-top: calc(var(--vf-scale, 1) * 8px);
+        ${vfStrokeDecls()}
+      }
+      /* The rule is a stroke, so the box's own padding box runs under it: the
+         slot is the box inside it, where the content sits 14/12/10px in and
+         children placed with top/left measure from the rule's inner edge. */
+      .fieldset > slot {
+        display: block;
+        position: relative;
         padding: calc(var(--vf-scale, 1) * 14px) calc(var(--vf-scale, 1) * 12px)
           calc(var(--vf-scale, 1) * 10px);
-        margin-top: calc(var(--vf-scale, 1) * 8px);
       }
       .legend {
         /* Chicago-style legend (chrome); grouped content keeps the body face. */
         ${vfDisplayDecls}
         position: absolute;
-        /* Whole system px like every other length here. Authored as -0.7em
-           this was 11.2px against the 16px display face — off the device grid
-           at every scale, and it took a slotted legend with it (verify:grid).
-           11 keeps the legend straddling the border, a fifth of a system px
-           lower. */
-        top: calc(var(--vf-scale, 1) * -11px);
-        left: calc(var(--vf-scale, 1) * 8px);
+        /* Whole system px like every other length here, measured from the
+           rule's inner edge. Authored as -0.7em this was 11.2px against the
+           16px display face — off the device grid at every scale, and it took
+           a slotted legend with it (verify:grid). 11 keeps the legend
+           straddling the rule, a fifth of a system px lower. */
+        top: ${vfStrokeInset(-11)};
+        left: ${vfStrokeInset(8)};
         padding: 0 calc(var(--vf-scale, 1) * 5px);
-        /* Punches through the border, matching the surface behind it. */
+        /* Punches through the rule, matching the surface behind it. */
         background: var(--vf-surface, var(--vf-white, #fff));
         white-space: nowrap;
       }

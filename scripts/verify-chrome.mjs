@@ -40,6 +40,15 @@ const S = SCALE
 
 const near = (a, b, eps = 0.01) => Math.abs(a - b) <= eps
 
+/**
+ * A computed `box-shadow` as its layers. A frame's line is a stroke
+ * (vfStrokeDecls): an inset layer, with the drop shadow, if any, after it.
+ */
+const layers = (shadow) =>
+  shadow === 'none' ? [] : shadow.split(/,(?![^(]*\))/).map((s) => s.trim())
+const strokeLayers = (shadow) => layers(shadow).filter((l) => l.endsWith('inset'))
+const dropLayers = (shadow) => layers(shadow).filter((l) => !l.endsWith('inset'))
+
 const browser = await launch()
 
 const build = makeBuild(browser)
@@ -75,9 +84,10 @@ const partMetrics = (page, hostId, part, props) =>
     </div>
   `, { settle: true })
 
-  const FRAME = ['background-color', 'border-top-width', 'border-right-width',
-    'border-bottom-width', 'border-left-width', 'border-top-style',
-    'border-top-color', 'box-shadow']
+  // The frame's line is a stroke: its width is the padding it holds, its ink
+  // the inset layer of the shadow list.
+  const FRAME = ['background-color', 'padding-top', 'padding-right',
+    'padding-bottom', 'padding-left', 'border-top-width', 'box-shadow']
   const winFrame = await partMetrics(page, 'win', 'frame', FRAME)
   const dlgFrame = await partMetrics(page, 'dlg', 'frame', FRAME)
 
@@ -86,22 +96,28 @@ const partMetrics = (page, hostId, part, props) =>
     check(`frame ${p} identical across window/dialog`, winFrame[p] === dlgFrame[p],
       `${winFrame[p]} vs ${dlgFrame[p]}`)
   }
+  check('frame stroke identical across window/dialog',
+    strokeLayers(winFrame['box-shadow']).join() === strokeLayers(dlgFrame['box-shadow']).join(),
+    `${winFrame['box-shadow']} vs ${dlgFrame['box-shadow']}`)
   // …and each is what the art says, not merely equal to each other.
   check('frame face is white', winFrame['background-color'] === 'rgb(255, 255, 255)',
     winFrame['background-color'])
-  check(`frame border is 1px x${S}`, winFrame['border-top-width'] === `${1 * S}px`,
-    winFrame['border-top-width'])
-  check('frame border is solid black', winFrame['border-top-style'] === 'solid' &&
-    winFrame['border-top-color'] === 'rgb(0, 0, 0)')
+  check(`frame stroke is 1px x${S}`,
+    ['top', 'right', 'bottom', 'left'].every((e) => winFrame[`padding-${e}`] === `${1 * S}px`) &&
+      winFrame['border-top-width'] === '0px',
+    `padding ${winFrame['padding-top']}, border ${winFrame['border-top-width']}`)
+  check('frame stroke is solid black',
+    strokeLayers(winFrame['box-shadow']).join() === `rgb(0, 0, 0) 0px 0px 0px ${1 * S}px inset`,
+    winFrame['box-shadow'])
   check(`window frame shadow is the hard ${2 * S}px offset, no blur/spread`,
-    winFrame['box-shadow'] === `rgb(0, 0, 0) ${2 * S}px ${2 * S}px 0px 0px`,
+    dropLayers(winFrame['box-shadow']).join() === `rgb(0, 0, 0) ${2 * S}px ${2 * S}px 0px 0px`,
     winFrame['box-shadow'])
   // The movable modal is the dBoxProc double frame with the bar set into it
   // (traced from a 2× System 7 capture): no shadow, and under the bar the
-  // inner box's 2px band — 1px of its own top border over the bar's 1px rule,
+  // inner box's 2px band — 1px of its own top stroke over the bar's 1px rule,
   // no gap row — then 2px gap + 2px band down the sides and along the bottom.
   check('dialog frame casts NO shadow (the modal double frame)',
-    dlgFrame['box-shadow'] === 'none', dlgFrame['box-shadow'])
+    dropLayers(dlgFrame['box-shadow']).length === 0, dlgFrame['box-shadow'])
   const dlgInner = await page.evaluate(() => {
     const el = document.getElementById('dlg').shadowRoot
       .querySelector('.vf-title-bar + .vf-modal-frame-inner')
@@ -109,21 +125,22 @@ const partMetrics = (page, hostId, part, props) =>
     const cs = getComputedStyle(el)
     return {
       marginTop: cs.marginTop, marginLeft: cs.marginLeft, marginBottom: cs.marginBottom,
-      borderTop: cs.borderTopWidth, borderLeft: cs.borderLeftWidth,
-      borderBottom: cs.borderBottomWidth, color: cs.borderTopColor,
+      strokeTop: cs.paddingTop, strokeLeft: cs.paddingLeft,
+      strokeBottom: cs.paddingBottom, shadow: cs.boxShadow,
     }
   })
   check('dialog inner band sits directly under the bar (no gap row)',
     dlgInner !== null && dlgInner.marginTop === '0px', JSON.stringify(dlgInner))
-  check(`dialog band under the bar: bar rule + 1px x${S} inner top border`,
-    dlgInner !== null && dlgInner.borderTop === `${1 * S}px` &&
-      dlgInner.color === 'rgb(0, 0, 0)', JSON.stringify(dlgInner))
+  check(`dialog band under the bar: bar rule + 1px x${S} inner top stroke`,
+    dlgInner !== null && dlgInner.strokeTop === `${1 * S}px` &&
+      dlgInner.shadow.includes(`rgb(0, 0, 0) 0px ${1 * S}px 0px 0px inset`),
+    JSON.stringify(dlgInner))
   check(`dialog sides/bottom: 2px x${S} gap then 2px x${S} band`,
     dlgInner !== null && dlgInner.marginLeft === `${2 * S}px` &&
-      dlgInner.marginBottom === `${2 * S}px` && dlgInner.borderLeft === `${2 * S}px` &&
-      dlgInner.borderBottom === `${2 * S}px`, JSON.stringify(dlgInner))
+      dlgInner.marginBottom === `${2 * S}px` && dlgInner.strokeLeft === `${2 * S}px` &&
+      dlgInner.strokeBottom === `${2 * S}px`, JSON.stringify(dlgInner))
 
-  const BAR = ['position', 'height', 'border-bottom-width', 'border-bottom-color',
+  const BAR = ['position', 'height', 'padding-bottom', 'box-shadow',
     'display', 'align-items', 'justify-content', 'overflow-x', 'overflow-y']
   const winBar = await partMetrics(page, 'win', 'title-bar', BAR)
   const dlgBar = await partMetrics(page, 'dlg', 'title-bar', BAR)
@@ -139,7 +156,7 @@ const partMetrics = (page, hostId, part, props) =>
     winBar['align-items'] === 'flex-start' && winBar['justify-content'] === 'center',
     `${winBar['align-items']}/${winBar['justify-content']}`)
   check('title-bar clips an over-long title', winBar['overflow-x'] === 'hidden')
-  check('window title-bar sits at the frame origin, inside the border',
+  check('window title-bar sits at the frame origin, inside the stroke',
     near(winBar._rect.x, 1 * S) && near(winBar._rect.y, 1 * S),
     `win ${winBar._rect.x},${winBar._rect.y}`)
   // The dialog's bar is set into the double frame: directly under the outer
@@ -358,10 +375,10 @@ const partMetrics = (page, hostId, part, props) =>
 
   const shadow = async (id) => (await partMetrics(page, id, 'frame', ['box-shadow']))['box-shadow']
   const want = `rgb(0, 0, 0) ${4 * S}px ${4 * S}px 0px 0px`
-  check('re-themed shadow offset carries the window', (await shadow('win')) === want,
-    await shadow('win'))
+  check('re-themed shadow offset carries the window',
+    dropLayers(await shadow('win')).join() === want, await shadow('win'))
   check('…and leaves the dialog shadowless (the modal frame never casts one)',
-    (await shadow('dlg')) === 'none', await shadow('dlg'))
+    dropLayers(await shadow('dlg')).length === 0, await shadow('dlg'))
 
   await page.close()
 }
@@ -661,15 +678,16 @@ const partMetrics = (page, hostId, part, props) =>
     </div>
   `)
   const bar = async (id) =>
-    await partMetrics(page, id, 'title-bar', ['height', 'border-bottom-width'])
+    await partMetrics(page, id, 'title-bar', ['height', 'padding-bottom'])
   const w = await bar('win')
   const d = await bar('dlg')
   check('at --vf-scale:1 the bar is the authored 18px, both components',
     w.height === '18px' && d.height === '18px', `${w.height}/${d.height}`)
-  check('…and the rules are 1px, not 3', w['border-bottom-width'] === '1px' &&
-    d['border-bottom-width'] === '1px')
+  check('…and the rules are 1px, not 3', w['padding-bottom'] === '1px' &&
+    d['padding-bottom'] === '1px', `${w['padding-bottom']}/${d['padding-bottom']}`)
   const frame = await partMetrics(page, 'win', 'frame', ['box-shadow'])
-  check('…and the shadow is the authored 2px', frame['box-shadow'] === 'rgb(0, 0, 0) 2px 2px 0px 0px',
+  check('…and the shadow is the authored 2px',
+    dropLayers(frame['box-shadow']).join() === 'rgb(0, 0, 0) 2px 2px 0px 0px',
     frame['box-shadow'])
   await page.close()
 }

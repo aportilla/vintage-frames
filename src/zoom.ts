@@ -17,9 +17,9 @@
  *
  * The work is knowing the zoom at all. Zoom multiplies device-px-per-CSS-px in
  * every engine — that is what zoom is — but the engines differ in whether they
- * report it: Chrome and Firefox fold it into `devicePixelRatio`, Safari pins
- * `devicePixelRatio` to the hardware and moves `innerWidth` instead. So the
- * tracker watches two signals:
+ * report it: Chrome, Firefox and Safari 27 fold it into `devicePixelRatio`;
+ * older Safari pins `devicePixelRatio` to the hardware and moves `innerWidth`
+ * instead. So the tracker watches two signals:
  *
  *   1. `devicePixelRatio`, via a resolution media query re-armed at each new
  *      value. A dpr change is *either* zoom or the window moving to a
@@ -31,7 +31,7 @@
  *      report those members in zoom-affected CSS px) means zoom; anything else
  *      means a display change, which rebases the baseline and reports nothing.
  *   2. `innerWidth`/`innerHeight` against `outerWidth`/`outerHeight`, for
- *      Safari: zoom rescales the inner (CSS-px) viewport on both axes by the
+ *      older Safari: zoom rescales the inner (CSS-px) viewport on both axes by the
  *      same factor while the outer (screen-px) window holds still. A change in
  *      the outer size is a real window resize and rebases; a one-axis inner
  *      change (an edge drag, devtools docking, a sidebar) is never zoom and
@@ -267,9 +267,9 @@ let signature = readSignature()
 let zoom = 1
 /**
  * Latched the first time path 1 classifies a dpr change as zoom: this engine
- * folds zoom into `devicePixelRatio` (Chrome/Firefox), so path 2 is switched
- * off for the rest of the session, killing its false positives (devtools,
- * sidebars). Safari never sets it and keeps path 2.
+ * folds zoom into `devicePixelRatio` (Chrome, Firefox, Safari 27), so path 2
+ * is switched off for the rest of the session, killing its false positives
+ * (devtools, sidebars). Older Safari never sets it and keeps path 2.
  */
 let dprTracksZoom = false
 
@@ -290,12 +290,12 @@ export function getZoom(): number {
 /**
  * Device px per CSS px *right now* — the number every "snap to the device
  * grid" computation must divide by. `window.devicePixelRatio` is that number
- * only in engines that fold zoom into it; Safari's is simply wrong about the
- * current rasterization density at any non-100% zoom. Reading the live dpr and
- * folding the tracked zoom back in is correct in both:
+ * only in engines that fold zoom into it; older Safari's is simply wrong about
+ * the current rasterization density at any non-100% zoom. Reading the live dpr
+ * and folding the tracked zoom back in is correct in both:
  *
- *   Chrome/Firefox (latched)   dpr already includes zoom  →  dpr
- *   Safari (never latches)     dpr is the hardware        →  dpr × zoom
+ *   Chrome/Firefox/Safari 27 (latched)   dpr already includes zoom  →  dpr
+ *   older Safari (never latches)         dpr is the hardware        →  dpr × zoom
  *
  * The live read matters: a monitor move changes the true density whether or
  * not the tracker is running, and this stays exactly as correct as the old
@@ -377,7 +377,7 @@ const disarm = (): void => {
 }
 
 /**
- * Path 2 — Safari-shaped zoom, where the dpr holds still and the CSS viewport
+ * Path 2 — older-Safari-shaped zoom, where the dpr holds still and the CSS viewport
  * rescales instead. Everything that is not zoom-shaped is classified away and
  * *rebased*, never reported: a dpr move belongs to path 1; an outer-size
  * change is the user resizing the window; a one-axis inner change is never

@@ -457,7 +457,6 @@ const gutterOf = (id) =>
       labelLeft: label.getBoundingClientRect().left,
       optionLeft: option.getBoundingClientRect().left,
       optionPad: parseFloat(cs.paddingLeft),
-      borderLeft: parseFloat(getComputedStyle(control).borderLeftWidth),
       panelLeft: panel.getBoundingClientRect().left,
       panelBorder: parseFloat(getComputedStyle(panel).borderLeftWidth),
       panelPad: parseFloat(getComputedStyle(panel).paddingLeft),
@@ -500,11 +499,13 @@ const gut = await gutterOf('pop')
 await reopenMenu('menu')
 const menu = await menuOf('menu', 'mi')
 
+// The pill's 1px frame is a stroke, inside its padding: the label begins one
+// system px in, plus the gutter.
 check(
   'the closed pill insets its label by the gutter (16), not the old 22',
-  Math.abs(gut.labelLeft - (gut.controlLeft + gut.borderLeft + GUTTER * s)) < 0.5,
-  `label=${gut.labelLeft} expected=${gut.controlLeft + gut.borderLeft + GUTTER * s} ` +
-    `(the old 22 would be ${gut.controlLeft + gut.borderLeft + 22 * s})`
+  Math.abs(gut.labelLeft - (gut.controlLeft + s + GUTTER * s)) < 0.5,
+  `label=${gut.labelLeft} expected=${gut.controlLeft + s + GUTTER * s} ` +
+    `(the old 22 would be ${gut.controlLeft + s + 22 * s})`
 )
 check(
   'the open option row uses the same gutter as the closed pill',
@@ -554,8 +555,8 @@ const menuThemed = await menuOf('menu-gutter', 'mi-gutter')
 
 check(
   'retheming --vf-select-gutter moves the closed pill label',
-  Math.abs(gutThemed.labelLeft - (gutThemed.controlLeft + gutThemed.borderLeft + 30 * s)) < 0.5,
-  `label=${gutThemed.labelLeft} expected=${gutThemed.controlLeft + gutThemed.borderLeft + 30 * s}`
+  Math.abs(gutThemed.labelLeft - (gutThemed.controlLeft + s + 30 * s)) < 0.5,
+  `label=${gutThemed.labelLeft} expected=${gutThemed.controlLeft + s + 30 * s}`
 )
 check(
   'retheming --vf-select-gutter carries the option rows with it',
@@ -589,12 +590,13 @@ const menuRowsOf = (id, itemIds) =>
       const rowOf = (i) => document.getElementById(i).shadowRoot.querySelector('.item')
       const first = rowOf(ids[0])
       const check = document.getElementById(ids[0]).shadowRoot.querySelector('.check')
+      // The panel's frame is a stroke — padding, or a border under forced
+      // colors — so it is everything between the border box and the content.
       return {
         panelTop: panel.getBoundingClientRect().top,
         panelHeight: panel.getBoundingClientRect().height,
-        panelBorderTop: parseFloat(pcs.borderTopWidth),
-        panelBorderBottom: parseFloat(pcs.borderBottomWidth),
-        panelPadTop: parseFloat(pcs.paddingTop),
+        panelFrameTop: parseFloat(pcs.borderTopWidth) + parseFloat(pcs.paddingTop),
+        panelFrameBottom: parseFloat(pcs.borderBottomWidth) + parseFloat(pcs.paddingBottom),
         rowTops: ids.map((i) => rowOf(i).getBoundingClientRect().top),
         rowHeights: ids.map((i) => rowOf(i).getBoundingClientRect().height),
         lineHeight: parseFloat(getComputedStyle(first).lineHeight),
@@ -618,12 +620,13 @@ check(
   Math.abs(rows.rowTops[1] - rows.rowTops[0] - MENU_ROW_H * s) < 0.5,
   `pitch=${rows.rowTops[1] - rows.rowTops[0]} expected=${MENU_ROW_H * s}`
 )
-// The art has the panel's border sit directly on the first row.
+// The art has the panel's 1px frame sit directly on the first row: nothing
+// between the border box and the content but the stroke.
 check(
   'the panel adds no vertical inset above the first row',
-  rows.panelPadTop === 0 &&
-    Math.abs(rows.rowTops[0] - (rows.panelTop + rows.panelBorderTop)) < 0.5,
-  `rowTop=${rows.rowTops[0]} panelContentTop=${rows.panelTop + rows.panelBorderTop} pad=${rows.panelPadTop}`
+  Math.abs(rows.panelFrameTop - s) < 0.01 &&
+    Math.abs(rows.rowTops[0] - (rows.panelTop + rows.panelFrameTop)) < 0.5,
+  `rowTop=${rows.rowTops[0]} panelContentTop=${rows.panelTop + rows.panelFrameTop} frame=${rows.panelFrameTop}`
 )
 // Reference ✓ ink at +4 from the border box = 1px border + 3px into the row.
 check(
@@ -646,13 +649,13 @@ check(
   `lineHeight=${rows.lineHeight} row=${rows.rowHeights[0]}`
 )
 check(
-  'the panel is exactly its rows plus its borders (nothing overflows)',
+  'the panel is exactly its rows plus its frame (nothing overflows)',
   Math.abs(
     rows.panelHeight -
-      (rows.panelBorderTop + rows.panelBorderBottom + 2 * MENU_ROW_H * s)
+      (rows.panelFrameTop + rows.panelFrameBottom + 2 * MENU_ROW_H * s)
   ) < 0.5,
   `panel=${rows.panelHeight} expected=${
-    rows.panelBorderTop + rows.panelBorderBottom + 2 * MENU_ROW_H * s
+    rows.panelFrameTop + rows.panelFrameBottom + 2 * MENU_ROW_H * s
   }`
 )
 check(

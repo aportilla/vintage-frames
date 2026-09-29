@@ -4,7 +4,7 @@ import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { live } from 'lit/directives/live.js'
-import { vfBase, vfField } from '../styles/base.js'
+import { vfBase, vfField, vfStrokeInset } from '../styles/base.js'
 import { STEPPER, STEPPER_DOWN_FILL, STEPPER_UP_FILL } from '../glyphs.js'
 import { VfTextControlBase } from '../text-control.js'
 import { decimalsOf } from '../number.js'
@@ -79,7 +79,7 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
            (1 above / 2 below) — optically centered, still on the device grid. */
         margin-top: calc(var(--vf-scale, 1) * 1px);
       }
-      input {
+      input.vf-field {
         flex: 1 1 auto;
         width: var(--vf-number-field-width, 4em);
         min-width: 2em;
@@ -91,7 +91,8 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
            fills it, and a user stylesheet raising line-height grows the well
            instead of clipping the digits. */
         min-height: calc(var(--vf-scale, 1) * var(--vf-control-height, 22px));
-        padding: 0 calc(var(--vf-scale, 1) * 6px);
+        /* The 6px text inset, inside the well's stroke (vfField). */
+        padding: ${vfStrokeInset(0)} ${vfStrokeInset(6)};
         text-align: right;
       }
 

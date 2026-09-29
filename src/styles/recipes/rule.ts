@@ -1,4 +1,10 @@
 import { css, unsafeCSS } from 'lit'
+import {
+  STROKE_FORCED_COLORS,
+  strokeBorder,
+  strokeEdgeShadow,
+  strokePadding,
+} from './stroke.js'
 
 /**
  * The four edges a rule can sit on, in CSS shorthand order.
@@ -6,7 +12,13 @@ import { css, unsafeCSS } from 'lit'
 export const RULE_EDGES = ['top', 'right', 'bottom', 'left'] as const
 export type RuleEdge = (typeof RULE_EDGES)[number]
 
-const RULE = unsafeCSS('calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #000)')
+/** One edge's rule: its padding, its forced-colors border, its shadow. */
+const ruleEdge = (edge: RuleEdge) =>
+  unsafeCSS(`
+    --_vf-rule-${edge}: ${strokeEdgeShadow(edge, 1)};
+    padding-${edge}: ${strokePadding(0, 1)};
+    border-${edge}: ${strokeBorder(1)};
+  `)
 
 /**
  * The 1px rule — the single black line that is the 1-bit art's only edge —
@@ -14,30 +26,46 @@ const RULE = unsafeCSS('calc(var(--vf-scale, 1) * 1px) solid var(--vf-black, #00
  * floor is `.vf-rule-bottom`, a window's status strip's ceiling is
  * `.vf-rule-top`, and `vf-container rule="…"` takes the edges by name.
  *
- * A border, not a pseudo-element or a painted line, so it lives inside the
- * box's own `border-box` size (vfBase) and insets the padding box the way
- * FrameRect insets a rectangle's interior: content, percentage fills and
- * children placed against the box all begin inside the rule. Scales with
- * `--vf-scale`, so it is one system px at every density, and paints in
- * `--vf-black`, so it remaps under forced colors with the rest of the ink.
+ * A stroke (see {@link vfStrokeDecls}), inside the box's own `border-box`
+ * size (vfBase): the rule's row is padding and an inset shadow paints it
+ * black, so it is one system px at every density and zoom, and in-flow
+ * content begins inside it. Children placed against the box, and percentage
+ * fills, measure from the box's outer edge; a component whose contract puts
+ * them inside the rule gives them an inner box to lay out in (vf-container
+ * uses its slot). Paints in `--vf-black`, and under forced colors turns back
+ * into a border, so it remaps with the rest of the ink.
  *
- * One declaration per edge, so the kit cannot grow two rules — the
- * {@link vfHardShadowDecls} principle, applied to the line.
+ * The classes compose on one element: each edge's shadow goes through its
+ * own private property and one rule paints all four, so the classes own the
+ * element's `box-shadow`, and its padding on their edges.
  *
  * `npm run verify:rule` asserts a container's rule against the menu bar's.
  */
 export const vfRule = css`
+  .vf-rule-top,
+  .vf-rule-right,
+  .vf-rule-bottom,
+  .vf-rule-left {
+    --_vf-stroke-ink: var(--vf-black, #000);
+    --_vf-rule-top: 0 0 transparent;
+    --_vf-rule-right: 0 0 transparent;
+    --_vf-rule-bottom: 0 0 transparent;
+    --_vf-rule-left: 0 0 transparent;
+    box-shadow: var(--_vf-rule-top), var(--_vf-rule-right), var(--_vf-rule-bottom),
+      var(--_vf-rule-left);
+    ${unsafeCSS(STROKE_FORCED_COLORS)}
+  }
   .vf-rule-top {
-    border-top: ${RULE};
+    ${ruleEdge('top')}
   }
   .vf-rule-right {
-    border-right: ${RULE};
+    ${ruleEdge('right')}
   }
   .vf-rule-bottom {
-    border-bottom: ${RULE};
+    ${ruleEdge('bottom')}
   }
   .vf-rule-left {
-    border-left: ${RULE};
+    ${ruleEdge('left')}
   }
 `
 

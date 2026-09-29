@@ -107,7 +107,7 @@ interface OutlineDrag {
   landing: { x: number; y: number } | null
 }
 
-/** A run's rects: their canvases on the drag surface, and their animations. */
+/** A run's rects: their canvases on the drag surface, their animations and the run's clock. */
 interface Rects {
   canvases: HTMLCanvasElement[]
   animations: Animation[]
@@ -1016,17 +1016,24 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
       surface.append(canvas)
       rects.canvases.push(canvas)
       // Two equal keyframes hold `visible` over the active interval; the
-      // inline `hidden` rules before and after it. The end delay pads every
-      // rect to the whole run, so all of them finish together.
+      // inline `hidden` rules before and after it.
       const first = closing ? WINDOW_RECT_STEPS - 1 - k : k
       rects.animations.push(
         canvas.animate([{ visibility: 'visible' }, { visibility: 'visible' }], {
           delay: first * step,
           duration: WINDOW_RECTS_VISIBLE * step,
-          endDelay: (WINDOW_RECT_STEPS - first) * step,
         })
       )
     }
+    // The run's own clock, with no target: the last rect is gone after
+    // seventeen steps, and the window draws on the eighteenth. No end delay
+    // pads the rects instead: WebKit settles `finished` only while some
+    // animation is still running, so one that ends in an end delay never does.
+    const clock = new Animation(
+      new KeyframeEffect(null, null, (WINDOW_RECT_STEPS + WINDOW_RECTS_VISIBLE) * step)
+    )
+    clock.play()
+    rects.animations.push(clock)
     return rects
   }
 

@@ -32,8 +32,16 @@ Firefox, one iOS Simulator zoom, Chrome forced-colors emulation), then steps
   chosen by a container style query on the token: Chromium and WebKit
   support it; **Firefox is unverified** (Playwright's Firefox would not
   launch here) — without support, dotted falls back to solid there.
+- vf-checkbox is now 12×12, the reference sprite's size (Adam's call). The
+  13×13 box centered the 12px ✕ half a system px off in every engine since
+  the glyph trace (3ed88fb); Safari's thin zoomed border happened to hide it,
+  so the corrected frame exposed it. The ✕ now fills the 10×10 interior
+  corner to corner; the box centers on row 4 without vfToggle's half-pixel
+  step (the radio keeps its 13px well and the step), and both wells still end
+  on row 15, so their focus rules share a row.
 - Headless: 10 scripts changed (the 8 expected plus `verify-baseline` and
-  `verify-menu-keys`). Emulation paints a box edge on a half CSS px one
+  `verify-menu-keys`), then `verify-toggle` and `verify-focus` for the 12px
+  checkbox. Emulation paints a box edge on a half CSS px one
   device px off, which a border hid by flooring to whole CSS px, so the
   pixel checks that crossed stroked edges moved to display density
   (`real: true`) and tightened: verify-scrollbars' rail runs are exact

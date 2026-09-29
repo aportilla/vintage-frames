@@ -322,7 +322,7 @@
         },
         {
           "name": "vf-checkbox",
-          "description": "The classic System 7 checkbox: a 13×13 white square with a 1px black\nborder whose checked state is the corner-to-corner ✕ glyph — the pixel-exact\ncross traced from the Classic Macintosh UI Kit sprite. The border \"thickens\"\nwhile pressed, exactly like the original control.\n\nForm-associated: submits `value` under `name` when checked (like a native\ncheckbox) and restores its initial checked state on form reset. Toggles on\nclick and Space.\n---\n\n\n### **Events:**\n - **vf-change** - When toggled by user interaction. `detail: { checked: boolean }`.\n- **input** - Native event, dispatched from the host per user toggle (with `change`, the pair a native checkbox fires). A programmatic `checked` set fires nothing, as on a native checkbox.\n- **change** - Native event, dispatched from the host per user toggle so form delegation and framework bindings hear it.\n\n### **Slots:**\n - _default_ - The label, rendered to the right of the box with a 6px gap. Left empty, the label and its gap collapse: the control is the bare 13×13 box.\n\n### **CSS Parts:**\n - **box** - The 13×13 checkbox square.\n- **label** - The label wrapper around the slot.",
+          "description": "The classic System 7 checkbox: a 12×12 white square with a 1px black\nborder whose checked state is the corner-to-corner ✕ glyph — the pixel-exact\ncross traced from the Classic Macintosh UI Kit sprite, filling the 10×10\ninterior. The border \"thickens\" while pressed, exactly like the original\ncontrol.\n\nForm-associated: submits `value` under `name` when checked (like a native\ncheckbox) and restores its initial checked state on form reset. Toggles on\nclick and Space.\n---\n\n\n### **Events:**\n - **vf-change** - When toggled by user interaction. `detail: { checked: boolean }`.\n- **input** - Native event, dispatched from the host per user toggle (with `change`, the pair a native checkbox fires). A programmatic `checked` set fires nothing, as on a native checkbox.\n- **change** - Native event, dispatched from the host per user toggle so form delegation and framework bindings hear it.\n\n### **Slots:**\n - _default_ - The label, rendered to the right of the box with a 6px gap. Left empty, the label and its gap collapse: the control is the bare 12×12 box.\n\n### **CSS Parts:**\n - **box** - The 12×12 checkbox square.\n- **label** - The label wrapper around the slot.",
           "doc-url": "",
           "attributes": [
             {
@@ -374,7 +374,7 @@
           "slots": [
             {
               "name": "",
-              "description": "The label, rendered to the right of the box with a 6px gap. Left empty, the label and its gap collapse: the control is the bare 13×13 box."
+              "description": "The label, rendered to the right of the box with a 6px gap. Left empty, the label and its gap collapse: the control is the bare 12×12 box."
             }
           ],
           "events": [

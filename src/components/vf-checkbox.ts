@@ -18,10 +18,11 @@ import { VfToggleControl } from '../toggle-control.js'
 import { emit, emitNative } from '../events.js'
 
 /**
- * The classic System 7 checkbox: a 13×13 white square with a 1px black
+ * The classic System 7 checkbox: a 12×12 white square with a 1px black
  * border whose checked state is the corner-to-corner ✕ glyph — the pixel-exact
- * cross traced from the Classic Macintosh UI Kit sprite. The border "thickens"
- * while pressed, exactly like the original control.
+ * cross traced from the Classic Macintosh UI Kit sprite, filling the 10×10
+ * interior. The border "thickens" while pressed, exactly like the original
+ * control.
  *
  * Form-associated: submits `value` under `name` when checked (like a native
  * checkbox) and restores its initial checked state on form reset. Toggles on
@@ -29,8 +30,8 @@ import { emit, emitNative } from '../events.js'
  *
  * @slot - The label, rendered to the right of the box with a 6px gap.
  *   Left empty, the label and its gap collapse: the control is the bare
- *   13×13 box.
- * @csspart box - The 13×13 checkbox square.
+ *   12×12 box.
+ * @csspart box - The 12×12 checkbox square.
  * @csspart label - The label wrapper around the slot.
  * @fires vf-change - When toggled by user interaction. `detail: { checked: boolean }`.
  * @fires input - Native event, dispatched from the host per user toggle (with
@@ -64,8 +65,8 @@ export class VfCheckbox extends VfPositioned(VfToggleControl(VfFormControl)) {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: calc(var(--vf-scale, 1) * 13px);
-        height: calc(var(--vf-scale, 1) * 13px);
+        width: calc(var(--vf-scale, 1) * 12px);
+        height: calc(var(--vf-scale, 1) * 12px);
         background: var(--vf-white, #fff);
         color: var(--vf-black, #000);
         ${vfStrokeDecls()}
@@ -77,16 +78,18 @@ export class VfCheckbox extends VfPositioned(VfToggleControl(VfFormControl)) {
       }
       /* Forced colors never paints box-shadow, so the press feedback above
          goes silent. The same thickening as a real border-width change: with
-         box-sizing: border-box the 13×13 box holds and the extra pixel grows
+         box-sizing: border-box the 12×12 box holds and the extra pixel grows
          inward, exactly where the inset shadow paints. */
       @media (forced-colors: active) {
         :host(:active) .box:not(.dim) {
           border-width: calc(var(--vf-scale, 1) * 2px);
         }
       }
-      /* Native 12×12 sprite — centered in the 13×13 box; the glyph's own 1px
-         transparent margin lets it overhang onto the stroke harmlessly. Scales
-         with the box; crispEdges keeps it whole-device-pixel at any dpr. */
+      /* Native 12×12 sprite, the box's own size: centered on the 10×10
+         interior it covers the box exactly, its 1px transparent margin over
+         the frame, so the ✕ fills the interior corner to corner on whole
+         system px — the sprite's own registration. Scales with the box;
+         crispEdges keeps it whole-device-pixel at any dpr. */
       .check {
         flex: none;
         width: calc(var(--vf-scale, 1) * 12px);

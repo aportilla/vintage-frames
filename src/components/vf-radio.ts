@@ -41,10 +41,9 @@ export class VfRadio extends VfPositioned(VfToggleControl(LitElement)) {
     css`
       /* Keyboard focus underlines the circle itself — not the label, and not a
          ring around either (see vfFocusUnderline). One blank row below the
-         well, which is where vf-checkbox puts its own: −2 rather than that
-         control's −3 only because this well is unbordered, so the two rules
-         land on the same row of a mixed list. The 12px sprite sits half a
-         pixel proud of the 13px well, so the gap reads as one row or two
+         well, which ends on the same row as vf-checkbox's box, so the two
+         rules land on the same row of a mixed list. The 12px sprite sits half
+         a pixel proud of the 13px well, so the gap reads as one row or two
          depending on which way that rounds — the well is the anchor, not the
          sprite. */
       :host(:focus-visible) .circle::after {

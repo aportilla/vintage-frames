@@ -16,7 +16,7 @@ export const vfToggle = css`
     gap: calc(var(--vf-scale, 1) * 6px);
     cursor: var(--vf-cursor, default);
   }
-  /* The well PAINTS 3 system px below the row top. Centering the 13px well
+  /* The radio's 13px well PAINTS 3 system px below the row top. Centering it
      in the 20px row is the layout — kept, because the host's height and its
      exported baseline are consumer-visible (moving them off the well's
      centered bottom reflowed every line holding a toggle) — but centering
@@ -27,8 +27,8 @@ export const vfToggle = css`
      compose the variable), landing the ink on row 3: ties resolve toward the
      start, as QuickDraw's "div 2" did — the title-bar and vf-stack
      convention. The half-pixel gap between layout box and painted box is the
-     documented snap idiom, not a fault. */
-  .box,
+     documented snap idiom, not a fault. The checkbox's 12px box centers on
+     row 4 exactly and needs no step; both wells end on row 15. */
   .circle {
     top: calc(var(--vf-snap-dy, 0px) - var(--vf-scale, 1) * 0.5px);
   }

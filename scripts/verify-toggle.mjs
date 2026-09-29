@@ -9,7 +9,9 @@
  * check a future one-sided edit trips, which is the entire point of hoisting
  * the skeleton. Five groups:
  *
- *  - SHARED: the vfToggle layout metrics are equal BETWEEN the two controls.
+ *  - SHARED: the vfToggle layout metrics are equal BETWEEN the two controls;
+ *    each well's size and painted row, and the checkbox's ✕ on whole
+ *    system px.
  *  - SKELETON: click, Space, and *held* Space activate exactly once on both;
  *    a disabled control never activates, via the mixin's single gate.
  *  - CANCELLATION: `preventDefault()` in either phase stops the state change,
@@ -31,7 +33,18 @@
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:toggle
  */
-import { SCALE, check, cssPxFor, launch, makeBuild, report, scaleAt } from './harness.mjs'
+import {
+  SCALE,
+  check,
+  cssPxFor,
+  decodePng,
+  devicePxPerSystemPxAt,
+  gridTolerance,
+  launch,
+  makeBuild,
+  report,
+  scaleAt,
+} from './harness.mjs'
 
 /** Headless Chromium runs at dpr 1, where the kit derives 1 device px per system px. */
 const S = SCALE
@@ -106,29 +119,29 @@ async function axNode(page, id) {
   check(`host gap is 6px x${S}`, cbHost.gap === `${6 * S}px`, cbHost.gap)
   check('host is inline-flex', cbHost.display === 'inline-flex', cbHost.display)
 
-  // The well: 13x13 on both, the focus ring's target rather than the host.
+  // The well, the focus rule's target rather than the host: the checkbox's
+  // box is the sprite's own 12x12, the radio's well 13x13.
   const cbBox = await partProps(page, 'cb', 'box', ['width', 'height'])
   const rdCircle = await partProps(page, 'rd', 'circle', ['width', 'height'])
-  check(`checkbox box is 13x13 x${S}`, cbBox._w === 13 * S && cbBox._h === 13 * S,
+  check(`checkbox box is 12x12 x${S}`, cbBox._w === 12 * S && cbBox._h === 12 * S,
     `${cbBox._w}x${cbBox._h}`)
-  check('radio circle matches the checkbox box',
-    rdCircle._w === cbBox._w && rdCircle._h === cbBox._h,
+  check(`radio circle is 13x13 x${S}`, rdCircle._w === 13 * S && rdCircle._h === 13 * S,
     `${rdCircle._w}x${rdCircle._h}`)
 
-  // The well's PAINTED registration: 3 whole system px below the row top.
-  // The layout still centers the 13px well in the 20px row (host height and
-  // exported baseline unchanged), but that lands on the 3.5 tie, so vfToggle
-  // steps the paint back half a pixel (ties toward the start, QuickDraw
-  // div 2, the title-bar and vf-stack convention). Swept at three densities
-  // because 3.5 only misregistered where 3.5 system px wasn't whole device
-  // px (it was clean at dpr 3, where 3.5 × 4 device px per system px is 14).
+  // The wells' PAINTED registration, both ending on row 15 of the 20px row.
+  // The layout centers each well in the row (host height and exported
+  // baseline unchanged): the checkbox's 12px box lands on row 4 exactly; the
+  // radio's 13px well lands on the 3.5 tie, so vfToggle steps its paint back
+  // half a pixel (ties toward the start, QuickDraw div 2, the title-bar and
+  // vf-stack convention). Swept at three densities because 3.5 only
+  // misregistered where 3.5 system px wasn't whole device px (it was clean
+  // at dpr 3, where 3.5 × 4 device px per system px is 14).
   for (const dpr of [1, 2, 3]) {
     const p = await build(
       `<vf-checkbox id="cb">Label</vf-checkbox>
        <vf-radio id="rd" value="a">Label</vf-radio>`,
       dpr
     )
-    const expected = cssPxFor(3, scaleAt(dpr))
     const offsets = await p.evaluate(() => {
       // The AUTHORED offset: the well's position inside the host, minus the
       // snap correction the host's own controller may have applied (the wells
@@ -138,18 +151,65 @@ async function axNode(page, id) {
         const host = document.getElementById(id)
         const well = host.shadowRoot.querySelector(`[part=${sel}]`)
         const dy = parseFloat(host.style.getPropertyValue('--vf-snap-dy')) || 0
-        return well.getBoundingClientRect().top - host.getBoundingClientRect().top - dy
+        const r = well.getBoundingClientRect()
+        const top = host.getBoundingClientRect().top + dy
+        return { top: r.top - top, bottom: r.bottom - top }
       }
       return { cb: measure('cb', 'box'), rd: measure('rd', 'circle') }
     })
-    check(`dpr ${dpr}: checkbox well sits 3 system px below the row top`,
-      Math.abs(offsets.cb - expected) < 1e-6, `${offsets.cb} CSS px, expected ${expected}`)
-    check(`dpr ${dpr}: radio well matches`,
-      Math.abs(offsets.rd - expected) < 1e-6, `${offsets.rd} CSS px`)
-    check(`dpr ${dpr}: the offset is whole device px`,
-      Math.abs(offsets.cb * dpr - Math.round(offsets.cb * dpr)) < 1e-6,
-      `${(offsets.cb * dpr).toFixed(4)} device px`)
+    const cbTop = cssPxFor(4, scaleAt(dpr))
+    const rdTop = cssPxFor(3, scaleAt(dpr))
+    check(`dpr ${dpr}: checkbox box sits 4 system px below the row top`,
+      Math.abs(offsets.cb.top - cbTop) < 1e-6, `${offsets.cb.top} CSS px, expected ${cbTop}`)
+    check(`dpr ${dpr}: radio well sits 3 system px below it`,
+      Math.abs(offsets.rd.top - rdTop) < 1e-6, `${offsets.rd.top} CSS px, expected ${rdTop}`)
+    // Whole device px within what the layout grid can hold (a 3× device's 4/3
+    // scale is not holdable: 4 system px lands 1/64 CSS px short).
+    const tol = gridTolerance(scaleAt(dpr), dpr)
+    check(`dpr ${dpr}: both wells end on the same row, on the device grid`,
+      Math.abs(offsets.cb.bottom - offsets.rd.bottom) < 1e-6 &&
+        Math.abs(offsets.cb.top * dpr - Math.round(offsets.cb.top * dpr)) <= tol,
+      `bottoms ${offsets.cb.bottom} / ${offsets.rd.bottom} CSS px, ` +
+        `box top ${(offsets.cb.top * dpr).toFixed(4)} device px`)
     await p.close()
+  }
+
+  // The ✕ fills the 10x10 interior corner to corner on whole system px, the
+  // sprite's registration: its top row has ink in the interior's first and
+  // last columns, each exactly one system px, touching the frame. At display
+  // density on a 2× screen, where a half-pixel ✕ rounds to 2 device px of
+  // white on one side and 1 on the other.
+  {
+    const dpr = 2
+    const n = devicePxPerSystemPxAt(dpr)
+    const p = await build('<vf-checkbox id="cb" checked top="10" left="10">Label</vf-checkbox>', {
+      dpr,
+      real: true,
+    })
+    const box = await p.evaluate(() => {
+      const r = document.getElementById('cb').shadowRoot.querySelector('[part=box]').getBoundingClientRect()
+      return { x: r.left * devicePixelRatio, y: r.top * devicePixelRatio, w: r.width * devicePixelRatio }
+    })
+    const png = decodePng(await p.screenshot())
+    await p.close()
+    const x0 = Math.round(box.x)
+    const y0 = Math.round(box.y)
+    const row = (sysY) => {
+      const runs = []
+      for (let x = x0; x < x0 + 12 * n; x++) {
+        const i = ((y0 + sysY * n) * png.width + x) * png.bpp
+        const ink = png.data[i] < 128
+        const last = runs[runs.length - 1]
+        if (last && last[0] === ink) last[1]++
+        else runs.push([ink, 1])
+      }
+      return runs.map(([ink, w]) => `${ink ? 'b' : 'w'}${w}`).join(' ')
+    }
+    // Row 1: frame, ✕ ink at column 1, white to column 10, ✕ ink, frame —
+    // the frame and the ✕ merge into two-pixel runs at either end.
+    check('the ✕ sits on whole system px, corner to corner',
+      Math.abs(box.w - 12 * n) < 1e-6 && row(1) === `b${2 * n} w${8 * n} b${2 * n}`,
+      `box at (${box.x}, ${box.y}) device px, ${box.w} wide; row 1: ${row(1)}`)
   }
 
   // Disabled dims the LABEL on both; the 1-bit chrome stays black (SPEC §1).

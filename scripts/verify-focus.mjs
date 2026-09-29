@@ -341,14 +341,15 @@ function rightOfBox(s) {
 
 // ── the two toggles: the rule goes under the WELL, not the label ──────────
 const ruleRow = {}
-// `inset` is how far the rule is pulled in from each side of the 13px well, in
-// system px: the checkbox's spans it, the radio's is narrowed to 9 because the
-// shape above it is round.
-for (const [tag, id, well, inset] of [
-  ['vf-checkbox', 'c', '.box', 0],
-  ['vf-radio', 'r', '.circle', 2],
+// `size` is the well — the checkbox's 12px box, the radio's 13px well — and
+// `inset` how far the rule is pulled in from each side of it, in system px:
+// the checkbox's spans it, the radio's is narrowed to 9 because the shape
+// above it is round.
+for (const [tag, id, well, size, inset] of [
+  ['vf-checkbox', 'c', '.box', 12, 0],
+  ['vf-radio', 'r', '.circle', 13, 2],
 ]) {
-  const width = 13 - 2 * inset
+  const width = size - 2 * inset
   const page = await build(`<${tag} id="${id}" checked>Label</${tag}>`)
   await page.keyboard.press('Tab')
   const s = await shoot(page, id, 'host', well)
@@ -391,14 +392,17 @@ for (const [tag, id, well, inset] of [
       dashes.every(([a], i) => i === 0 || a - dashes[i - 1][1] === S),
     `${dashes.length} dashes, widths=${[...new Set(dashes.map(([a, b]) => b - a))]}`
   )
+  // The pattern starts on ink at the rule's left edge. Over an odd width it
+  // ends on ink too, so the last dash's far edge IS the rule's; over an even
+  // one (the checkbox's 12) it ends on a gap, one system px short.
+  const tail = width % 2 ? 0 : S
   check(
     inset
       ? `${tag}: it sits ${inset} system px inside the well on each side`
       : `${tag}: it spans the well's own box, edge to edge`,
     dashes.length > 0 &&
       Math.abs(dashes[0][0] - (s.ruleX0 + inset * S)) <= 1 &&
-      // The pattern ends on ink, so the last dash's far edge IS the rule's.
-      Math.abs(s.ruleX1 - inset * S - dashes[dashes.length - 1][1]) <= 1,
+      Math.abs(s.ruleX1 - inset * S - tail - dashes[dashes.length - 1][1]) <= 1,
     dashes.length
       ? `well=${s.ruleX0}..${s.ruleX1} rule=${dashes[0][0]}..${dashes[dashes.length - 1][1]}`
       : ''
@@ -421,9 +425,9 @@ for (const [tag, id, well, inset] of [
   await clickPage.close()
 }
 
-// Both wells are the same 13px box in the same 20px row, so a mixed list must
-// put the two rules on one line — the reason the radio's offset is −2 to the
-// checkbox's −3 rather than both being "one row under the ink".
+// Both wells end on the same row of the 20px row — the checkbox's 12px box
+// centered on row 4, the radio's 13px well painted from row 3 — so a mixed
+// list must put the two rules on one line.
 check(
   'the checkbox and radio rules land on the same row of their host',
   ruleRow['vf-checkbox'] !== null && ruleRow['vf-checkbox'] === ruleRow['vf-radio'],

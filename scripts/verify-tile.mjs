@@ -4,27 +4,20 @@
  *
  * A CSS repeating fill is ONE paint-snapped box holding N unsnapped repeats,
  * each placed at `k × tileSize` where the tile size is a single stored length
- * the engine quantizes to its layout grid. The error compounds with `k` until
- * the art smears gray. The span construction (src/styles/recipes/tile.ts)
- * makes the stored length exact for every *density-ladder* scale — but zoom
- * mints scales with arbitrary prime denominators (20/17 at Safari's 85%,
- * 30/23 at its 115%) that no finite lattice can hold. TILE-GRID-PLAN.md /
- * ZOOM-TILE-DRIFT.md carry the full analysis.
+ * the engine quantizes to its layout grid. When that length isn't exact the
+ * error compounds with `k` until the art smears gray or a column doubles.
+ * docs/TILE-REPEAT-PLAN.md carries the analysis and the real-browser
+ * measurements behind the answer below.
  *
- * The five converted surfaces (desktop dither, windoid dots, swatch
- * checker, barber stripes, title-bar racing stripes) therefore no longer
- * repeat in CSS (src/tile-grid.ts):
- *
- * - KIT ART renders as one whole-surface raster at one image px per system
- *   px, stretched 100%/100% under image-rendering: pixelated. Nearest-
- *   neighbor sampling can only produce source colors, and one box has no
- *   interior seams — measured here as ZERO impure pixels at every density,
+ * - KIT ART (desktop dither, windoid dots, swatch checker, barber stripes)
+ *   is a CSS repeat of one tile 120 system px square, drawn at n image px
+ *   per system px (src/tile-grid.ts): a length every engine holds exactly
+ *   and an image copied 1:1. Asserted here: the tile is 120n device px, its
+ *   image 120n px, repeated — and ZERO impure pixels at every density,
  *   including 1.7 and 2.3 (scales 20/17 and 30/23, the emulated proxy for
- *   Safari's broken zoom rungs; real ⌘± cannot be driven headlessly). The
- *   desktop is the exception: its screen's own background is the pattern
- *   fill (src/pattern-fill.ts, `background: true` below), a repeating tile
- *   drawn at device resolution; the others remain `.vf-tile-raster`
- *   children.
+ *   Safari's broken zoom rungs; real ⌘± cannot be driven headlessly, and no
+ *   headless engine reproduces Safari's smoothing — tile-repeat-probe.html
+ *   is that check).
  *
  * - CONSUMER pattern tokens render as a flat grid of absolutely placed tiles
  *   at the token's documented 30/60-px tile geometry. Each tile's box is one
@@ -69,9 +62,10 @@
  * No consumer pattern token (token: null — the active-window signal is not
  * a themeable texture).
  *
- * The scroll trough cannot convert (a pseudo-element hosts no children) and
- * keeps the span arithmetic, checked here; headless Chromium paints no
- * ::-webkit-scrollbar skin, so arithmetic is all that can guard it.
+ * The scroll trough repeats the same kind of tile (src/scroll-rail.ts);
+ * `npm run verify:scrollbars` asserts it. The span arithmetic checked here
+ * still sizes the consumer tokens' documented tiles and the forced-colors
+ * masks, the trough's included.
  *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:tile
@@ -96,8 +90,9 @@ const DENSITIES = [1, 1.25, 1.5, 1.7, 2, 2.3, 2.5, 3]
 
 /**
  * Every converted surface: the motif (restated as data, the way the source
- * states it), the documented tile span, its pattern token, and where its fill
- * layer and exact-fill elements live in the shadow tree.
+ * states it), the documented tile span, its pattern token, where its fill
+ * layer lives in the shadow tree, and the element whose background is the
+ * kit's repeating tile (`tileEl`, the layer itself unless stated).
  */
 const SURFACES = [
   {
@@ -109,10 +104,6 @@ const SURFACES = [
     motif: { w: 2, h: 2, rects: [[0, 0, 2, 2, '#ffffff'], [0, 0, 1, 1, '#000000'], [1, 1, 1, 1, '#000000']] },
     tile: 30,
     tiles: 48, // ceil(240/30) × ceil(160/30)
-    // The kit path paints the pattern fill's repeating tile as the screen's
-    // own background (src/pattern-fill.ts): its box is the stated
-    // background-size.
-    background: true,
   },
   {
     name: 'windoid dots  ',
@@ -145,6 +136,8 @@ const SURFACES = [
     markup: '<vf-progress-bar id="pb" indeterminate style="width:240px"></vf-progress-bar>',
     host: '#pb',
     layer: '.fill',
+    // The animated strip inside the layer carries the kit's tile.
+    tileEl: '.vf-tile-strip',
     token: '--vf-progress-stripes',
     motif: {
       w: 12,
@@ -189,8 +182,7 @@ const STRIPE_RUN_DPRS = [1, 1.5, 2, 3]
  * device offset at dpr 1.25/1.5/2.5 — every tile still measures T×n with
  * coincident seams (asserted at all densities), but the engine antialiases
  * each box's fractional painted edge, leaving a per-seam hairline. The kit's
- * own raster path has no seams and is asserted zero everywhere. Printed, not
- * failed. At display density (harness `browserAt`) the border is the full
+ * own repeating tile is asserted zero everywhere. Printed, not failed. At display density (harness `browserAt`) the border is the full
  * system px, the layer's origin is whole device px, and the grid measured
  * pure on all four surfaces at 1.25–3, 1.7 and 2.3 included (2026-09-13).
  */
@@ -318,12 +310,11 @@ for (const motif of [1, 2, 3, 4, 12]) {
   )
 }
 check(
-  'the scroll trough states the same spans (4×2 motif → 60×30)',
-  spanOf(4) === 60 && spanOf(2) === 30,
-  'not rendered: headless Chromium paints no ::-webkit-scrollbar skin'
+  "the scroll trough's forced-colors mask spans its 4×2 motif at 60×30",
+  spanOf(4) === 60 && spanOf(2) === 30
 )
 
-// ── kit art: the whole-surface raster, zero gray at EVERY density ─────────
+// ── kit art: the repeating tile, zero gray at EVERY density ───────────────
 for (const dpr of DENSITIES) {
   const page = await build(dpr)
   const n = devicePxPerSystemPxAt(dpr)
@@ -417,33 +408,37 @@ for (const dpr of DENSITIES) {
       check(`${s.name}: rasterizes 1-bit`, impure === 0, `${impure}/${counted} impure`)
       continue
     }
-    const raster = await page.evaluate(
-      ([host, layer, background]) => {
-        const el = document.querySelector(host).shadowRoot.querySelector(layer)
+    const tile = await page.evaluate(
+      async ([host, sel]) => {
+        const el = document.querySelector(host).shadowRoot.querySelector(sel)
         if (!el) return null
-        if (background) {
-          const [w, h] = getComputedStyle(el).backgroundSize.split(' ').map(parseFloat)
-          return Number.isFinite(w) && Number.isFinite(h) ? { w, h } : null
-        }
-        const r = el.querySelector('.vf-tile-raster')
-        if (!r) return null
-        const box = r.getBoundingClientRect()
-        return { w: box.width, h: box.height }
+        const cs = getComputedStyle(el)
+        const [w, h] = cs.backgroundSize.split(' ').map(parseFloat)
+        const url = /^url\("(.*)"\)$/.exec(cs.backgroundImage)?.[1]
+        if (!url) return null
+        const img = new Image()
+        img.src = url
+        await img.decode()
+        return { w, h, repeat: cs.backgroundRepeat, natural: img.naturalWidth }
       },
-      [s.host, s.layer, s.background ?? false]
+      [s.host, s.tileEl ?? s.layer]
     )
-    if (!raster) {
-      check(`${s.name}: whole-surface raster rendered`, false, `${s.host} ${s.layer}`)
+    if (!tile) {
+      check(`${s.name}: repeating tile rendered`, false, `${s.host} ${s.tileEl ?? s.layer}`)
       continue
     }
-    // The raster box (ceiled to whole tiles where the surface overdraws), or
-    // the repeating tile, must land on whole device pixels: width in system
-    // px times n.
-    const devW = Math.round(raster.w * dpr)
+    // 120 system px square, drawn at n image px per system px and repeated;
+    // the stored length may be off by the layout grid's quantum at an
+    // unholdable scale.
+    const quantum = dpr * LAYOUT_UNIT + 1e-6
     check(
-      `${s.name}: ${s.background ? 'tile' : 'raster box'} is whole device px (${devW} = sys × ${n})`,
-      devW % n === 0 && Math.abs(raster.w * dpr - devW) < dpr * LAYOUT_UNIT + 1e-6,
-      `${(raster.w * dpr).toFixed(3)} device px`
+      `${s.name}: a 120-system-px tile (${120 * n} device px, a ${120 * n}-px image), repeated`,
+      Math.abs(tile.w * dpr - 120 * n) < quantum &&
+        Math.abs(tile.h * dpr - 120 * n) < quantum &&
+        tile.natural === 120 * n &&
+        tile.repeat === 'repeat',
+      `${(tile.w * dpr).toFixed(3)}×${(tile.h * dpr).toFixed(3)} device px, ` +
+        `image ${tile.natural} px, ${tile.repeat}`
     )
     const { impure, counted } = await impureIn(page, s, dpr, n)
     check(`${s.name}: rasterizes 1-bit`, impure === 0, `${impure}/${counted} impure`)

@@ -1,25 +1,19 @@
 import { css, unsafeCSS } from 'lit'
 import { tileImage, tileRects, vfTileMaskSize } from './tile.js'
+import { vfRepeatTileSize } from '../../tile-grid.js'
 import { PATTERNS, patternMotif } from '../../patterns.js'
 
 /**
  * The trough's 25% lattice is the library's `gray-25` — QuickDraw's
  * `ltGray`, and the UI kit's "Scroll bg" sprite — on its minimal cell: a
- * 4×2-system-px motif with a dot at (0,0) and (2,1). The DOM trough renders
- * it as a whole-surface raster (`tileRaster`, written by
- * `ScrollRailController` — 1-bit at every scale, zoom-minted ones included);
- * the SVG span tile below is the forced-colors mask, which repaints the same
- * art in the remapped ink token.
+ * 4×2-system-px motif with a dot at (0,0) and (2,1). The DOM trough repeats
+ * it as a tile drawn at the display's resolution (`--_vf-trough-tile`,
+ * written by `ScrollRailController` — 1-bit at every scale, zoom-minted ones
+ * included); the SVG span tile below is the forced-colors mask, which
+ * repaints the same art in the remapped ink token.
  */
-const TROUGH = patternMotif(PATTERNS['gray-25'])
-export const TROUGH_MOTIF_X = TROUGH.width
-export const TROUGH_MOTIF_Y = TROUGH.height
-export const TROUGH_RECTS = TROUGH.rects
-const TROUGH_TILE = tileImage(
-  TROUGH_MOTIF_X,
-  TROUGH_MOTIF_Y,
-  tileRects(TROUGH_RECTS)
-)
+export const TROUGH = patternMotif(PATTERNS['gray-25'])
+const TROUGH_TILE = tileImage(TROUGH.width, TROUGH.height, tileRects(TROUGH.rects))
 
 /**
  * System 7 scroll rails, drawn by the kit as ordinary shadow DOM — the skin
@@ -37,7 +31,7 @@ const TROUGH_TILE = tileImage(
  * is kit art: subpixel layout device-snaps at paint like every other element,
  * and the whole defect class is unrepresentable. It also renders identically
  * in every engine (Firefox included), is assertable headless, and lets the
- * trough adopt the exact tile raster the other dithers use.
+ * trough adopt the repeating tile the other dithers use.
  *
  * Geometry (system px) — the classic 16px cell, of which the outermost line
  * is the component's own 1px frame: the rail element is the 15 inside it —
@@ -72,9 +66,9 @@ const TROUGH_TILE = tileImage(
  * through the vfBase token remap like every other element. The arrows are
  * inline `currentColor` SVG now, so they re-ink with the palette (the old
  * `::-webkit-scrollbar` skin's one genuine residual — mask-image is ignored
- * on scrollbar pseudos — dies here). The trough raster keeps literal ink, so
- * it is hidden and the trough repaints as the ink token masked by the same
- * art (the vfDots idiom; the span mask keeps the zoom caveat every masked
+ * on scrollbar pseudos — dies here). The trough's tile keeps literal ink, so
+ * it goes and the trough repaints as the ink token masked by the same art
+ * (the vfDots idiom; the span mask keeps the zoom caveat every masked
  * surface has, an accepted residual).
  */
 export const vfScrollRail = css`
@@ -192,25 +186,16 @@ export const vfScrollRail = css`
     min-width: 0;
     min-height: 0;
   }
-  /* The trough: the token base color under the dither, clipping the raster's
-     overdraw (the art is ceiled up to whole motifs of the measured track). */
+  /* The trough: the dither over the token base color — the repeating tile
+     ScrollRailController writes (src/tile-grid.ts), 1-bit at every scale. */
   .vf-rail-trough {
     position: absolute;
     inset: 0;
-    overflow: hidden;
     background-color: var(--vf-scrollbar-track, var(--vf-white, #fff));
-    pointer-events: none;
-  }
-  /* The dither raster ScrollRailController sizes and writes — one image px
-     per system px, magnified nearest-neighbor (the vf-img idiom), so the
-     lattice is 1-bit at every scale. */
-  .vf-rail-trough-art {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+    background-image: var(--_vf-trough-tile, none);
+    ${vfRepeatTileSize}
     image-rendering: pixelated;
+    pointer-events: none;
   }
   /* The fixed System 7 thumb (never proportional): a white 16px box spanning
      the channel. Its border reads as inset 1px from each channel rail — the
@@ -282,19 +267,17 @@ export const vfScrollRail = css`
     display: none;
   }
 
-  /* Forced colors: the raster keeps literal ink, so it hides and the trough
+  /* Forced colors: the tile keeps literal ink, so it goes and the trough
      repaints as the remapped ink token masked by the same art (the vfDots
      idiom — and like every masked tile, the span mask keeps the zoom
      caveat). Everything else re-inks through the vfBase token remap; the
      arrows are currentColor SVG and follow the palette by themselves. */
   @media (forced-colors: active) {
     .vf-rail-trough {
+      background-image: none;
       background-color: var(--vf-black, #000);
       mask-image: ${unsafeCSS(TROUGH_TILE)};
-      ${vfTileMaskSize(TROUGH_MOTIF_X, TROUGH_MOTIF_Y)}
-    }
-    .vf-rail-trough-art {
-      display: none;
+      ${vfTileMaskSize(TROUGH.width, TROUGH.height)}
     }
   }
 `

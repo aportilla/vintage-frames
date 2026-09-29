@@ -1,8 +1,6 @@
-import { css, type CSSResult, type ReactiveController, type ReactiveControllerHost } from 'lit'
-import { effectiveScale, onScaleChange } from './scale.js'
-import { truePixelRatio } from './zoom.js'
-import { tileRaster } from './styles/recipes/tile.js'
-import { patternHex, patternMotif, type Pattern } from './patterns.js'
+import { css, type CSSResult, type ReactiveControllerHost } from 'lit'
+import { RepeatTileController, vfRepeatTileSize } from './tile-grid.js'
+import { patternMotif, type Pattern, type PatternMotif } from './patterns.js'
 
 /** What a component hands the controller. */
 export interface PatternFillOptions {
@@ -14,48 +12,25 @@ export interface PatternFillOptions {
   getPattern: () => Pattern | null | undefined
 }
 
-/**
- * The repeating tile's side in system px. A whole number of every pattern's
- * motif (8 × 15), and a whole number of layout px in every engine at every
- * density and zoom: 120 × n device px over the engine's own ratio — 40n at
- * 3×, 60n at 2×. Small tiles fail on iOS even at exact lengths (WebKit on a
- * 3× display now and then draws one tile a device px narrow and resamples
- * it); at 120 that was never seen (docs/TILE-REPEAT-PLAN.md).
- */
-const TILE = 120
+/** Each pattern's motif, derived once per resolved pattern. */
+const motifs = new WeakMap<Pattern, PatternMotif>()
 
-/** Encoded tiles, one per pattern and density, shared by the whole page. */
-const tiles = new Map<string, string>()
-
-/** The pattern's tile drawn at `n` device px per system px, cached. */
-function tileFor(pattern: Pattern, n: number): string {
-  const key = `${patternHex(pattern)}|${n}`
-  let image = tiles.get(key)
-  if (!image) {
-    const motif = patternMotif(pattern)
-    image = tileRaster(motif.width, motif.height, motif.rects, TILE, TILE, n)
-    tiles.set(key, image)
+const motifOf = (pattern: Pattern): PatternMotif => {
+  let motif = motifs.get(pattern)
+  if (!motif) {
+    motif = patternMotif(pattern)
+    motifs.set(pattern, motif)
   }
-  return image
+  return motif
 }
 
 /**
  * Paints a {@link Pattern} as a box's own background — the fill behind
- * `vf-container pattern="…"` and `vf-desktop pattern="…"`.
- *
- * The pattern is a CSS repeat of one tile, 120 system px square, drawn at
- * the device resolution it is shown at: each system px of the pattern is an
- * n × n block of image px, n = `--vf-scale × trueDpr` (whole by the scale
- * contract). The engine then copies the tile 1:1 and has no filtering to
- * choose, which is what keeps Safari's repeat 1-bit — it smooths a tile it
- * has to magnify whatever `image-rendering` says. `pixelated` stays on for
- * the frame after a zoom change, before the tile for the new n arrives.
- *
- * The tile depends on n and the pattern, never on the box's size: it is
- * encoded once per (pattern, n) for the whole page, and a resize re-encodes
- * nothing. A zoom or display change re-draws it ({@link onScaleChange}), and
- * each host update re-reads n, so a `--vf-scale` override set on an ancestor
- * after the fact is picked up on the next update.
+ * `vf-container pattern="…"` and `vf-desktop pattern="…"`: the pattern's
+ * motif as a repeating tile drawn at the display's resolution
+ * ({@link RepeatTileController}, src/tile-grid.ts), 1-bit at every density
+ * and zoom, and the same cost for a box of any size — a resize encodes
+ * nothing.
  *
  * A background rather than a child element, on purpose: it paints below all
  * content by definition — no `isolation: isolate` + `z-index: -1`, so a
@@ -68,70 +43,25 @@ function tileFor(pattern: Pattern, n: number): string {
  * slotted content renders as it did.
  *
  * What it writes, on the box's inline style and removed the moment there is
- * nothing to paint: `--_vf-pattern-image`, the tile. A custom-property
- * channel, not `background-image` itself, so the recipe's forced-colors rule
- * can out-cascade it without `!important`. The paper is the recipe's, a
- * token: `var(--vf-white)` behind ink that is literal black, like every kit
- * raster.
+ * nothing to paint: `--_vf-pattern-image`, the tile. The paper is the
+ * recipe's, a token: `var(--vf-white)` behind ink that is literal black,
+ * like every kit raster.
  *
  * Phase is anchored at the box's top-left — where the desktop, trough and
  * swatch anchor theirs. Two same-pattern boxes meeting at an offset that is
  * not a multiple of 8 show a phase seam; a port-anchored phase would be a
  * contained follow-up, not a change here.
  */
-export class PatternFillController implements ReactiveController {
-  readonly #opts: PatternFillOptions
-  #stopScale?: () => void
-
-  /** The box last written to, and what was written, so an unchanged update
-   *  costs nothing and an unrelated render never re-asserts anything. */
-  #box: HTMLElement | null = null
-  #image = ''
-
+export class PatternFillController extends RepeatTileController {
   constructor(host: ReactiveControllerHost & HTMLElement, opts: PatternFillOptions) {
-    this.#opts = opts
-    host.addController(this)
-  }
-
-  hostConnected(): void {
-    // Reader tier: the kit's own --vf-scale writers have run by the time
-    // this reads the new scale back.
-    this.#stopScale = onScaleChange(() => this.#apply())
-  }
-
-  hostDisconnected(): void {
-    this.#stopScale?.()
-    this.#stopScale = undefined
-  }
-
-  hostUpdated(): void {
-    this.#apply()
-  }
-
-  #apply(): void {
-    const box = this.#opts.getBox() ?? null
-    if (box !== this.#box) {
-      // A different box (a re-rendered template) — never leave the old one
-      // painted.
-      this.#clear()
-      this.#box = box
-    }
-    const pattern = this.#opts.getPattern() ?? null
-    if (!box || !pattern) {
-      this.#clear()
-      return
-    }
-    const n = Math.max(1, Math.round(effectiveScale(box) * truePixelRatio()))
-    const image = tileFor(pattern, n)
-    if (image === this.#image) return
-    this.#image = image
-    box.style.setProperty('--_vf-pattern-image', image)
-  }
-
-  #clear(): void {
-    if (!this.#image) return
-    this.#image = ''
-    this.#box?.style.removeProperty('--_vf-pattern-image')
+    super(host, {
+      getBox: opts.getBox,
+      getArt: () => {
+        const pattern = opts.getPattern()
+        return pattern ? motifOf(pattern) : null
+      },
+      property: '--_vf-pattern-image',
+    })
   }
 }
 
@@ -141,15 +71,14 @@ export class PatternFillController implements ReactiveController {
  * a pattern is resolved (the component's template knows).
  *
  * Painting: the tile the controller wrote, repeated from the padding box's
- * corner at 120 system px — a length every engine holds exactly (see the
- * controller) — nearest-neighbor. The paper and the pixelation ride the
- * `vf-patterned` state so an unpatterned box paints exactly nothing and
- * inherits nothing new. `image-rendering` inherits, so the slot hands `auto`
- * back to slotted content: a consumer's own `<img>` renders as it would
- * anywhere else, and a kit element that wants nearest-neighbor (`vf-img`, a
- * `vf-icon`) says so itself. A page that set `pixelated` on an ancestor gets
- * `auto` inside a patterned box — its own declaration on the child still
- * wins, as everywhere.
+ * corner at {@link vfRepeatTileSize}, nearest-neighbor. The paper and the
+ * pixelation ride the `vf-patterned` state so an unpatterned box paints
+ * exactly nothing and inherits nothing new. `image-rendering` inherits, so
+ * the slot hands `auto` back to slotted content: a consumer's own `<img>`
+ * renders as it would anywhere else, and a kit element that wants
+ * nearest-neighbor (`vf-img`, a `vf-icon`) says so itself. A page that set
+ * `pixelated` on an ancestor gets `auto` inside a patterned box — its own
+ * declaration on the child still wins, as everywhere.
  *
  * Forced colors: the image goes, the paper is the remapped Canvas — the
  * desktop's posture, a backdrop being decoration.
@@ -157,7 +86,7 @@ export class PatternFillController implements ReactiveController {
 export const vfPatternFill: CSSResult = css`
   .vf-pattern-fill {
     background-image: var(--_vf-pattern-image, none);
-    background-size: calc(var(--vf-scale, 1) * ${TILE}px) calc(var(--vf-scale, 1) * ${TILE}px);
+    ${vfRepeatTileSize}
     background-repeat: repeat;
   }
   .vf-pattern-fill.vf-patterned {

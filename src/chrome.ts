@@ -22,11 +22,11 @@ import { truePixelRatio } from './zoom.js'
  * The standard bar's racing stripes render here unconditionally, BOTH
  * engine renderings side by side — placed rows for Gecko/WebKit, the
  * 12-unit SVG for Blink — and the {@link vfStripes} recipe displays exactly
- * one (it has the per-engine split and its measurements). `texture` is the dots' different story: the exact fill
- * a width-declaring utility window renders INTO the dots layer — the
- * whole-surface raster or a consumer token's tile grid (src/tile-grid.ts).
- * Passing it marks the layer `vf-tile-grid`, which is what switches the
- * layer's own CSS-repeated tile off (see `vfDots`).
+ * one (it has the per-engine split and its measurements). `texture` is the
+ * dots' different story: a consumer token's placed tile grid, which a
+ * width-declaring utility window renders INTO the dots layer
+ * (src/tile-grid.ts). Passing it marks the layer `vf-tile-grid`, which is
+ * what switches the layer's own background off (see `vfDots`).
  *
  * A `<div>`, deliberately not a `<header>`: per HTML-AAM a `<header>` maps to
  * the `banner` landmark unless a sectioning ancestor demotes it, and inside a
@@ -74,7 +74,7 @@ const RACING_STRIPES: TemplateResult = html`${[0, 2, 4, 6, 8, 10].map(
 export const chromeTitleBar = (
   drag: DragController,
   content: unknown,
-  textureClass: 'vf-stripes' | 'vf-dots' = 'vf-stripes',
+  textureClass = 'vf-stripes',
   texture?: unknown
 ): TemplateResult => html`
   <div

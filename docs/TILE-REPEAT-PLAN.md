@@ -135,13 +135,30 @@ One tile everywhere is simpler than a per-engine choice.
    PATTERNS, SIZING (the one pattern sentence) and TOOLKIT are updated, and
    the manifest regenerated. Adam checked Chrome, Firefox and Safari on
    the Mac: good.
-3. **The other four surfaces** in one follow-up: utility window dots,
-   swatch, progress bar stripes (animated; check how the stripe animation
-   moves), scrollbar tracks. Then remove `TileRasterCache` and the
-   `.vf-tile-raster` rules, and decide whether `tileRaster` stays exported.
-   Also look at whether the consumer-token placed tile grids
-   (`--vf-desktop-pattern` etc.) can become repeats; consumer art may be
-   SVG, which can't be pre-scaled.
+3. ~~**The other four surfaces**~~ — BUILT and committed 2026-09-29.
+   `src/tile-grid.ts` now holds the shared pieces: `REPEAT_TILE` (120),
+   `repeatTile(motif, n)` (page-wide cache), `devicePxAt(el)`,
+   `vfRepeatTileSize`, and `RepeatTileController` (one box, one custom
+   property, redrawn on `onScaleChange`). `PatternFillController` is a thin
+   subclass of it. Each surface paints the tile as its own background:
+   `.vf-dots` (`--_vf-dots-tile`), the swatch `.fill` (`--_vf-checker-tile`),
+   the barber `.vf-tile-strip` (`--_vf-barber-tile`, now
+   `width: calc(100% + 12 sys px)`, same `left` animation, no measuring),
+   and `.vf-rail-trough` (`--_vf-trough-tile`, written in
+   `ScrollRailController.sync()`, which also re-syncs on scale change; the
+   `.vf-rail-trough-art` child is gone). Removed: `TileRasterCache`, the
+   `.vf-tile-raster` rules, the swatch's SVG underlay. `tileRaster` stays
+   exported (it's the encoder, with `density`). Consumer tokens keep the
+   placed tile grid, since token art may be SVG. A dots token on a window
+   with no declared width is marked `vf-dots-token` and repeats in CSS on
+   its 30-px span, as before. Tests: `verify:tile` asserts each surface's
+   tile; `verify:forced-colors` and `verify:archetypes` were updated, with
+   the no-width token case added; 40/40 and 2334 checks. In the iOS
+   Simulator a temporary page compared every device pixel of all five
+   surfaces to their motifs at six sizes and offsets, fractional boxes
+   included: 0 off. SPEC, SIZING (now § Tiled fills), THREE-X-DISPLAYS,
+   TOOLKIT and DEVELOPING are updated, and the manifest regenerated. Adam
+   checked Chrome, Firefox and Safari on the Mac: good.
 4. **Headless tests**, adapted to match what real browsers showed:
    - Check that every run of black and white is exactly n device px, not
      just that there's no gray. A doubled column is pure black and white,

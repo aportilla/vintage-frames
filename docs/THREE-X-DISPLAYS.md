@@ -34,11 +34,11 @@ A **tiled** background is the exception: it is *one* snapped box holding N unsna
 
 **The first fix was the span** (`vfTileSize` / `tileImage`, `src/styles/recipes/tile.ts`). A repeating fill is authored as its motif and tiled at `lcm(motif, 15)` system px: a whole number of motifs, so the art is unchanged, and holdable at every scale in the table above, so every repeat lands exactly. 15 covers them all because every derived scale's denominator has an odd part of 1, 3 or 5. The art carries the span through an SVG `<pattern>`, so the source stays the two or three rects that are the artwork.
 
-**The fills no longer repeat in CSS at all** — the span construction is exact for every scale in the table above but cannot cover the scales *zoom* mints (20/17, 30/23 — arbitrary primes; ZOOM-TILE-DRIFT.md), so the four convertible surfaces (desktop dither, windoid dots, swatch checker, barber stripes) now render their art as one whole-surface raster, or a consumer pattern token as a flat grid of placed tiles (`src/tile-grid.ts`, TILE-GRID-PLAN.md). The span stays load-bearing for the scroll trough (a pseudo-element can host no children), the backup underlays, and the forced-colors masks.
+**The kit's fills now repeat one tile drawn at the display's resolution.** The span construction is exact for every scale in the table above but cannot cover the scales *zoom* mints (20/17, 30/23 — arbitrary primes). Each kit surface — the desktop and container patterns, windoid dots, swatch checker, barber stripes and scroll trough — repeats one tile 120 system px square, each system px drawn as an n × n block of image px: 120n device px is a whole number of layout px at every density and zoom, and the image is copied 1:1. In the iOS Simulator at 3×, WebKit drew a small tile a device px narrow now and then even at an exact length; at 120 it never did (docs/SPEC.md *Tiled fills*). A consumer pattern token renders as a flat grid of placed tiles (`src/tile-grid.ts`). The span stays load-bearing for the tokens' documented tiles and the forced-colors masks.
 
-Desktop dither, measured over the fill's interior (`npm run verify:tile`) — the span's numbers, before the conversion took even the residual cases to zero:
+Desktop dither, measured over the fill's interior (`npm run verify:tile`) — the span's numbers, before the tile took even the residual cases to zero:
 
-| display | before | with the span | now (converted) |
+| display | before | with the span | now (the tile) |
 | --- | --- | --- | --- |
 | 1×, 2× | 0% | 0% — nothing to fix | 0% |
 | 1.25× | 75% | **0%** | 0% |
@@ -56,7 +56,7 @@ A display snaps a border width to whole device pixels, and a 1-system-px border,
 
 Playwright's `deviceScaleFactor` emulation, which most of the verify suite runs at, renders borders differently: in Chromium and Firefox it floors a fractional border width to a whole CSS pixel, so a frame there is 2 device px of 3 at 2× and 3 of 4 at 3×. Checks about where a border puts content, or about the device grid, render at display density instead (`browserAt` in `scripts/harness.mjs`); the checks still on emulation carry tolerances for the floor.
 
-The kit's whole-surface raster measures zero gray on all four converted surfaces at every density, emulated or not. A consumer pattern token's *placed tile grid* measures zero gray at display density too, inset layers included — every surface from 1.25× to 3×, and at 1.7× and 2.3×. Under emulation a layer inside a floored border starts on a fractional device pixel at 1.25×, 1.5× and 2.5×, and `verify:tile` prints the per-seam hairline that leaves rather than failing.
+The kit's repeated tile measures zero gray on every kit surface at every density, emulated or not. A consumer pattern token's *placed tile grid* measures zero gray at display density too, inset layers included — every surface from 1.25× to 3×, and at 1.7× and 2.3×. Under emulation a layer inside a floored border starts on a fractional device pixel at 1.25×, 1.5× and 2.5×, and `verify:tile` prints the per-seam hairline that leaves rather than failing.
 
 ## Why the kit does not simply pick a different target
 
@@ -83,4 +83,4 @@ holdableScale(scale)        // whether the engine can store it at all
 
 Both model the suite's emulated densities, where Chromium lays out in 1/64 CSS px. At display density Chromium measured exact at 4/3 too; WebKit lays out in 1/64 CSS px either way.
 
-`verify:grid` audits at display density and holds every host of the reference page to 0.05 device px at 1×, 1.5×, 2×, 2.5× and 3× (worst 0.023). `verify:snap` keeps its strict "on the device grid" check wherever the scale is holdable — which is every scale a 1× or 2× display derives, at every zoom — and elsewhere falls back to asserting nothing is off by half a device pixel, the error that actually smears 1-bit art. `verify:tile` asserts a zero-gray raster on all four converted surfaces at eight densities — the ladder plus the 1.7/2.3 broken-rung proxies — asserts the consumer tile grid's box geometry everywhere and its raster on the whole-origin densities, and keeps the trough's span arithmetic (headless Chromium paints no `::-webkit-scrollbar` skin, so arithmetic is all that can guard it).
+`verify:grid` audits at display density and holds every host of the reference page to 0.05 device px at 1×, 1.5×, 2×, 2.5× and 3× (worst 0.023). `verify:snap` keeps its strict "on the device grid" check wherever the scale is holdable — which is every scale a 1× or 2× display derives, at every zoom — and elsewhere falls back to asserting nothing is off by half a device pixel, the error that actually smears 1-bit art. `verify:tile` asserts each kit surface's tile and zero gray at eight densities — the ladder plus the 1.7/2.3 broken-rung proxies — and the consumer tile grid's box geometry everywhere and its raster on the whole-origin densities; `verify:scrollbars` checks the trough's lattice pixel by pixel.

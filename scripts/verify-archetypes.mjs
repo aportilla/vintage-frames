@@ -295,12 +295,46 @@ function decodePng(buf) {
       titleDisplay: getComputedStyle(root.querySelector('[part=title]')).display,
     }
   })
-  check('utility bar carries the vf-dots layer, not stripes',
-    layers.dots !== null && layers.dots.includes('svg') && !layers.stripes)
+  check('utility bar carries the vf-dots layer and its tile, not stripes',
+    layers.dots !== null && layers.dots.startsWith('url("data:image/png') && !layers.stripes)
   check(`dots layer is inset 2px x${S} vertically and flush horizontally`,
     layers.dotTop === `${2 * S}px` && layers.dotLeft === '0px',
     `${layers.dotTop} / ${layers.dotLeft}`)
   check('utility bar renders no title patch', layers.titleDisplay === 'none')
+
+  // A consumer token on a window with no declared width: the token itself,
+  // CSS-repeated on its documented 30-px span, and no kit tile; unset, the
+  // kit tile comes back.
+  const TOKEN =
+    `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E` +
+    `%3Crect width='1' height='1'/%3E%3C/svg%3E")`
+  const dotsWith = async (token) => {
+    await page.evaluate(async (token) => {
+      const w = document.getElementById('uw')
+      if (token) w.style.setProperty('--vf-dots-pattern', token)
+      else w.style.removeProperty('--vf-dots-pattern')
+      w.requestUpdate()
+      await w.updateComplete
+    }, token)
+    return page.evaluate(() => {
+      const dots = document.getElementById('uw').shadowRoot.querySelector('.vf-dots')
+      const cs = getComputedStyle(dots)
+      return {
+        token: dots.classList.contains('vf-dots-token'),
+        image: cs.backgroundImage,
+        size: cs.backgroundSize,
+        kitTile: dots.style.getPropertyValue('--_vf-dots-tile') !== '',
+      }
+    })
+  }
+  const withToken = await dotsWith(TOKEN)
+  check(`a dots token with no declared width repeats on its 30px x${S} span, no kit tile`,
+    withToken.token && withToken.image.includes('svg+xml') && !withToken.kitTile &&
+      withToken.size === `${30 * S}px ${30 * S}px`,
+    `${withToken.size}, kit tile ${withToken.kitTile}`)
+  const without = await dotsWith(null)
+  check('…and unset, the kit tile comes back',
+    !without.token && without.image.startsWith('url("data:image/png') && without.kitTile)
 
   const BOX = ['width', 'height', 'top', 'left', 'right', 'box-shadow']
   const close = await partMetrics(page, 'uw', 'close-box', BOX)

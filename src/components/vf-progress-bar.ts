@@ -12,12 +12,14 @@ import {
   type TileRect,
 } from '../styles/recipes/tile.js'
 import {
-  TileRasterCache,
+  RepeatTileController,
   patternOverride,
   tileGrid,
+  vfRepeatTileSize,
   vfTileGrid,
+  type TileMotif,
 } from '../tile-grid.js'
-import { ScaleController, sys, sysLength, toSys } from '../scale.js'
+import { ScaleController, sys, toSys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { TrackWidthController } from '../track-width.js'
 
@@ -26,9 +28,8 @@ import { TrackWidthController } from '../track-width.js'
  * staircase of axis-aligned 1px rects (genuine pixel art), stated once as
  * rect data over a transparent ground. The SVG tile derived from it is the
  * forced-colors mask; the strip the bar animates carries the same data as a
- * whole-surface raster or a consumer token's placed tile grid
- * (src/tile-grid.ts). Above the class, since `@vfElement` upgrades at module
- * evaluation.
+ * repeating tile, or a consumer token's placed tile grid (src/tile-grid.ts).
+ * Above the class, since `@vfElement` upgrades at module evaluation.
  */
 const BARBER_MOTIF = 12
 const BARBER_RECTS: readonly TileRect[] = [
@@ -50,11 +51,9 @@ const BARBER_RECTS: readonly TileRect[] = [
   [0, 11, 5, 1],
   [11, 11, 1, 1],
 ]
+const BARBER: TileMotif = { width: BARBER_MOTIF, height: BARBER_MOTIF, rects: BARBER_RECTS }
 const BARBER_TILE = tileImage(BARBER_MOTIF, BARBER_MOTIF, tileRects(BARBER_RECTS))
 const BARBER_SPAN = tileSpan(BARBER_MOTIF)
-
-/** The fill's interior height in system px: the 14px track minus its borders. */
-const FILL_HEIGHT = 12
 
 /**
  * `<vf-progress-bar>` — the System 7 progress indicator.
@@ -113,25 +112,30 @@ export class VfProgressBar extends VfPositioned(LitElement) {
            \ bands are a staircase of axis-aligned 1px rects (genuine pixel
            art — a *diagonal* edge would blur where these stay pixel-exact)
            over this themeable white ground. The art itself rides the
-           .vf-tile-strip child (src/tile-grid.ts): the kit's whole-surface
-           raster, or a consumer --vf-progress-stripes token's placed tile
-           grid at the token's documented 60-px tile geometry. This layer is
-           the strip's containing block and its clip. */
+           .vf-tile-strip child (src/tile-grid.ts): the kit's repeating
+           tile, or a consumer --vf-progress-stripes token's placed tile grid
+           at the token's documented 60-px tile geometry. This layer is the
+           strip's containing block and its clip. */
         position: relative;
         background-color: var(--vf-white, #fff);
         --_vf-tile-image: var(--vf-progress-stripes, ${unsafeCSS(BARBER_TILE)});
       }
-      /* The animated strip: rests one 12px cell to the left (fully covering
-         the fill), and each cycle advances one whole cell in 4 chunky steps —
-         steppy, not smooth, wrapping with zero phase jump because the art's
-           period is the cell. The animated value is a layout property, so
-         every step is one quantized length paint-snapped like any placed
-         box — no CSS length ever accumulates a phase. */
+      /* The animated strip: the fill's width plus one 12px cell, resting
+         that cell to the left (fully covering the fill), and each cycle
+         advances one whole cell in 4 chunky steps — steppy, not smooth,
+         wrapping with zero phase jump because the art's period is the cell.
+         The animated value is a layout property, so every step is one
+         quantized length paint-snapped like any placed box — no CSS length
+         ever accumulates a phase. */
       .vf-tile-strip {
         position: absolute;
         top: 0;
         height: 100%;
+        width: calc(100% + var(--vf-scale, 1) * 12px);
         left: calc(var(--vf-scale, 1) * -12px);
+        background-image: var(--_vf-barber-tile, none);
+        ${vfRepeatTileSize}
+        image-rendering: pixelated;
         animation: vf-barber 0.4s steps(4, end) infinite;
       }
       @keyframes vf-barber {
@@ -145,8 +149,8 @@ export class VfProgressBar extends VfPositioned(LitElement) {
       /* Forced colors: the fill and track are the bar's whole reading, and
          both have their own tokens with literal fallbacks the override
          flattens to Canvas — remapped here like the palette tokens in vfBase.
-         The strip's raster art would keep its literal black ink (invisible on
-         a dark theme), so the strip hides and the layer repaints as a mask
+         The strip's tile would keep its literal black ink (invisible on a
+         dark theme), so the strip hides and the layer repaints as a mask
          over the ink token — same tile, same token a consumer overrides —
          with the animation on the mask's position. The span-tiled mask keeps
          the zoom caveat (no mask pipeline rasterizes exactly at a zoom-minted
@@ -212,13 +216,18 @@ export class VfProgressBar extends VfPositioned(LitElement) {
 
   /**
    * The consumer's `--vf-progress-stripes` override, or `''` for the kit
-   * barber — which exact-fill path the strip takes (src/tile-grid.ts).
-   * Re-read every update; a runtime token swap wants a `requestUpdate()`.
+   * barber — which path the strip takes (src/tile-grid.ts). Re-read every
+   * update; a runtime token swap wants a `requestUpdate()`.
    */
   private _pattern = ''
 
-  /** The whole-strip barber raster, cached against its ceiled width. */
-  readonly #raster = new TileRasterCache()
+  /** The kit barber: the strip carries the repeating tile as
+   *  `--_vf-barber-tile`. */
+  readonly #barberTile = new RepeatTileController(this, {
+    getBox: () => this.renderRoot?.querySelector<HTMLElement>('.vf-tile-strip'),
+    getArt: () => (this.indeterminate && !this._pattern ? BARBER : null),
+    property: '--_vf-barber-tile',
+  })
 
   /**
    * ARIA goes through internals, never `setAttribute` on the host: internals
@@ -270,35 +279,17 @@ export class VfProgressBar extends VfPositioned(LitElement) {
 
   protected override render() {
     if (this.indeterminate) {
-      // The strip covers the measured fill width plus the 12px cell it rests
-      // shifted by, ceiled to whole 60-px tiles so a resize only re-encodes
-      // the raster when it crosses a tile boundary (the layer clips the
-      // overdraw). Until the track is measured the single-tile strip still
-      // covers a 48px bar — the first measurement re-renders.
-      const sysW = toSys(this.trackSize.width, this)
-      const stripW = Math.max(
-        BARBER_SPAN,
-        Math.ceil((sysW + BARBER_MOTIF) / BARBER_SPAN) * BARBER_SPAN
-      )
-      // The raster overdraws the fill height by one motif: a floored track
-      // border can leave the interior a fraction of a system px taller than
-      // its stated 12, and the raster must overshoot rather than stretch —
-      // the layer's clip crops it (the art's period is the motif, so the
-      // overdraw continues the pattern).
-      const art = this._pattern
-        ? tileGrid({ cols: stripW / BARBER_SPAN, rows: 1, tile: BARBER_SPAN })
-        : html`<div
-            class="vf-tile-raster"
-            style="width:${sysLength(stripW)};height:${sysLength(
-              FILL_HEIGHT + BARBER_MOTIF
-            )};background-image:${this.#raster.for(
-              BARBER_MOTIF,
-              BARBER_MOTIF,
-              BARBER_RECTS,
-              stripW,
-              FILL_HEIGHT + BARBER_MOTIF
-            )}"
-          ></div>`
+      // The kit barber is the strip's own repeating tile. A consumer token's
+      // placed tiles cover the measured fill width plus the 12px cell the
+      // strip rests shifted by, in whole 60-px tiles (the layer clips the
+      // overdraw); until the track is measured, one tile still covers a
+      // 48px bar — the first measurement re-renders.
+      let art: unknown = null
+      if (this._pattern) {
+        const sysW = toSys(this.trackSize.width, this)
+        const cols = Math.max(1, Math.ceil((sysW + BARBER_MOTIF) / BARBER_SPAN))
+        art = tileGrid({ cols, rows: 1, tile: BARBER_SPAN })
+      }
       return html`
         <div class="track vf-snap" part="track">
           <div class="fill stripes vf-tile-grid" part="fill">

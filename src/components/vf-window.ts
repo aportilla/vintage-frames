@@ -19,9 +19,9 @@ import {
   vfTitleBar,
   vfWindowWidgets,
 } from '../styles/base.js'
-import { DOT_MOTIF, DOT_RECTS, DOT_SPAN } from '../styles/recipes/pattern.js'
+import { DOTS, DOT_SPAN } from '../styles/recipes/pattern.js'
 import {
-  TileRasterCache,
+  RepeatTileController,
   patternOverride,
   tileGrid,
   vfTileGrid,
@@ -166,12 +166,6 @@ const KEEP_GRABBABLE = 24
 
 /** The chrome frame's border on each side of the title bar, in system px. */
 const FRAME_BORDER = 1
-
-/**
- * The windoid dots layer's height in system px: the 12px utility bar minus
- * its 2px inset top and bottom (`vfDots`).
- */
-const DOTS_LAYER_HEIGHT = 8
 
 /**
  * `<vf-window>` — the System 7 desktop-window shell.
@@ -679,13 +673,20 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
 
   /**
    * The consumer's `--vf-dots-pattern` override, or `''` for the kit dots —
-   * which exact-fill path the utility bar takes (src/tile-grid.ts). Re-read
-   * every update; a runtime token swap wants a `requestUpdate()`.
+   * which path the utility bar takes (src/tile-grid.ts). Re-read every
+   * update; a runtime token swap wants a `requestUpdate()`.
    */
   private _dotsPattern = ''
 
-  /** The whole-surface dots raster, cached against its ceiled size. */
-  readonly #dotsRaster = new TileRasterCache()
+  /**
+   * The kit dots: the utility bar's `.vf-dots` layer carries the repeating
+   * tile as `--_vf-dots-tile` (`vfDots`), whatever the window's width.
+   */
+  readonly #dotsTile = new RepeatTileController(this, {
+    getBox: () => this.renderRoot?.querySelector<HTMLElement>('.vf-dots'),
+    getArt: () => (this.variant === 'utility' && !this._dotsPattern ? DOTS : null),
+    property: '--_vf-dots-tile',
+  })
 
   protected override willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed)
@@ -695,32 +696,16 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   }
 
   /**
-   * The exact dots fill rendered into the utility bar's `.vf-dots` layer
+   * A consumer `--vf-dots-pattern`'s placed tile grid, rendered into the
+   * utility bar's `.vf-dots` layer at the token's documented 30-px geometry
    * (src/tile-grid.ts): the bar interior is the declared width minus the
-   * frame borders. The kit raster is ceiled to whole 30-px tiles so a
-   * grow-box resize only re-encodes the image when it crosses a tile
-   * boundary — the layer's clip crops the overdraw; a consumer
-   * `--vf-dots-pattern` renders the placed tile grid at the token's
-   * documented 30-px geometry instead. A window with no declared width
-   * renders neither and the layer keeps its CSS-repeated tile.
+   * frame borders. A window with no declared width renders none, and the
+   * layer repeats the token in CSS instead (`vf-dots-token`).
    */
   private _dotsTexture(): unknown {
-    if (this.width == null) return undefined
+    if (!this._dotsPattern || this.width == null) return undefined
     const barW = Math.max(1, this.width - 2 * FRAME_BORDER)
-    if (this._dotsPattern) {
-      return tileGrid({ cols: Math.ceil(barW / DOT_SPAN), rows: 1, tile: DOT_SPAN })
-    }
-    // One motif of overdraw each way: floored bar geometry can leave the
-    // layer a fraction of a system px larger than its stated box, and the
-    // raster must overshoot rather than stretch. The layer's clip crops it.
-    const w = Math.ceil((barW + DOT_MOTIF) / DOT_SPAN) * DOT_SPAN
-    const h = DOTS_LAYER_HEIGHT + DOT_MOTIF
-    return html`<div
-      class="vf-tile-raster"
-      style="width:${sysLength(w)};height:${sysLength(
-        h
-      )};background-image:${this.#dotsRaster.for(DOT_MOTIF, DOT_MOTIF, DOT_RECTS, w, h)}"
-    ></div>`
+    return tileGrid({ cols: Math.ceil(barW / DOT_SPAN), rows: 1, tile: DOT_SPAN })
   }
 
   /**
@@ -1395,7 +1380,11 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
               ? zoomBox(widgetLabel('Zoom', this.heading), this._onZoomClick)
               : nothing}
           `,
-          this.variant === 'utility' ? 'vf-dots' : 'vf-stripes',
+          this.variant !== 'utility'
+            ? 'vf-stripes'
+            : this._dotsPattern
+              ? 'vf-dots vf-dots-token'
+              : 'vf-dots',
           this.variant === 'utility' ? this._dotsTexture() : undefined
         )}
         <div

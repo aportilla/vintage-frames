@@ -11689,15 +11689,15 @@
               },
               "privacy": "private",
               "default": "''",
-              "description": "The consumer's `--vf-progress-stripes` override, or `''` for the kit\nbarber — which exact-fill path the strip takes (src/tile-grid.ts).\nRe-read every update; a runtime token swap wants a `requestUpdate()`."
+              "description": "The consumer's `--vf-progress-stripes` override, or `''` for the kit\nbarber — which path the strip takes (src/tile-grid.ts). Re-read every\nupdate; a runtime token swap wants a `requestUpdate()`."
             },
             {
               "kind": "field",
-              "name": "#raster",
+              "name": "#barberTile",
               "privacy": "private",
               "readonly": true,
-              "default": "new TileRasterCache()",
-              "description": "The whole-strip barber raster, cached against its ceiled width."
+              "default": "new RepeatTileController(this, { getBox: () => this.renderRoot?.querySelector<HTMLElement>('.vf-tile-strip'), getArt: () => (this.indeterminate && !this._pattern ? BARBER : null), property: '--_vf-barber-tile', })",
+              "description": "The kit barber: the strip carries the repeating tile as\n`--_vf-barber-tile`."
             },
             {
               "kind": "field",
@@ -16965,15 +16965,15 @@
               },
               "privacy": "private",
               "default": "''",
-              "description": "The consumer's `--vf-swatch-checker` override, or `''` for the kit\nchecker — which exact-fill path render() takes (src/tile-grid.ts).\nRe-read every update; a runtime token swap wants a `requestUpdate()`."
+              "description": "The consumer's `--vf-swatch-checker` override, or `''` for the kit\nchecker — which path render() takes (src/tile-grid.ts). Re-read every\nupdate; a runtime token swap wants a `requestUpdate()`."
             },
             {
               "kind": "field",
-              "name": "#raster",
+              "name": "#checkerTile",
               "privacy": "private",
               "readonly": true,
-              "default": "new TileRasterCache()",
-              "description": "The whole-surface checker raster, cached against the fill's size."
+              "default": "new RepeatTileController(this, { getBox: () => this.renderRoot?.querySelector<HTMLElement>('.fill'), getArt: () => (this._pattern ? null : CHECKER), property: '--_vf-checker-tile', })",
+              "description": "The kit checker: `.fill` carries the repeating tile as\n`--_vf-checker-tile`."
             },
             {
               "kind": "field",
@@ -20388,15 +20388,15 @@
               },
               "privacy": "private",
               "default": "''",
-              "description": "The consumer's `--vf-dots-pattern` override, or `''` for the kit dots —\nwhich exact-fill path the utility bar takes (src/tile-grid.ts). Re-read\nevery update; a runtime token swap wants a `requestUpdate()`."
+              "description": "The consumer's `--vf-dots-pattern` override, or `''` for the kit dots —\nwhich path the utility bar takes (src/tile-grid.ts). Re-read every\nupdate; a runtime token swap wants a `requestUpdate()`."
             },
             {
               "kind": "field",
-              "name": "#dotsRaster",
+              "name": "#dotsTile",
               "privacy": "private",
               "readonly": true,
-              "default": "new TileRasterCache()",
-              "description": "The whole-surface dots raster, cached against its ceiled size."
+              "default": "new RepeatTileController(this, { getBox: () => this.renderRoot?.querySelector<HTMLElement>('.vf-dots'), getArt: () => (this.variant === 'utility' && !this._dotsPattern ? DOTS : null), property: '--_vf-dots-tile', })",
+              "description": "The kit dots: the utility bar's `.vf-dots` layer carries the repeating\ntile as `--_vf-dots-tile` (`vfDots`), whatever the window's width."
             },
             {
               "kind": "method",
@@ -20407,7 +20407,7 @@
                   "text": "unknown"
                 }
               },
-              "description": "The exact dots fill rendered into the utility bar's `.vf-dots` layer\n(src/tile-grid.ts): the bar interior is the declared width minus the\nframe borders. The kit raster is ceiled to whole 30-px tiles so a\ngrow-box resize only re-encodes the image when it crosses a tile\nboundary — the layer's clip crops the overdraw; a consumer\n`--vf-dots-pattern` renders the placed tile grid at the token's\ndocumented 30-px geometry instead. A window with no declared width\nrenders neither and the layer keeps its CSS-repeated tile."
+              "description": "A consumer `--vf-dots-pattern`'s placed tile grid, rendered into the\nutility bar's `.vf-dots` layer at the token's documented 30-px geometry\n(src/tile-grid.ts): the bar interior is the declared width minus the\nframe borders. A window with no declared width renders none, and the\nlayer repeats the token in CSS instead (`vf-dots-token`)."
             },
             {
               "kind": "field",

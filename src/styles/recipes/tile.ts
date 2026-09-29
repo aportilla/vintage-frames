@@ -95,9 +95,9 @@ export function tileRects(rects: readonly TileRect[]): string {
 
 /**
  * The motif tiled over `spanWidth × spanHeight` system px as a RASTER image —
- * a PNG data URI at `density` image px per system px (one by default) — for
- * the whole-surface fill a converted tiled surface paints (src/tile-grid.ts),
- * and for the pre-scaled tile a pattern fill repeats (src/pattern-fill.ts).
+ * a PNG data URI at `density` image px per system px (one by default) — the
+ * encoder behind the tile every kit surface repeats (`repeatTile`,
+ * src/tile-grid.ts).
  *
  * A raster because of how engines rasterize a fill's art, not how they place
  * its box. Chromium rasterizes an SVG image at the box's *stored* (layout)

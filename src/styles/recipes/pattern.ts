@@ -1,5 +1,6 @@
 import { css, unsafeCSS } from 'lit'
 import { tileImage, tileRects, tileSpan, vfTileMaskSize, vfTileSize } from './tile.js'
+import { vfRepeatTileSize } from '../../tile-grid.js'
 import { PATTERNS, patternMotif } from '../../patterns.js'
 
 /**
@@ -7,15 +8,13 @@ import { PATTERNS, patternMotif } from '../../patterns.js'
  * 2-system-px motif with a single black pixel at its origin. Transparent
  * ground, because the layer floats over the bar and the same art doubles as
  * the forced-colors mask, where the ground would be opacity rather than
- * paint. The SVG tile below is the CSS-repeated form (the no-declared-width
- * fallback and the forced-colors mask); `vf-window` renders the exact fill
- * — the whole-surface raster or a consumer token's placed tile grid — from
- * the same data (src/tile-grid.ts).
+ * paint. `vf-window` keeps the layer's repeating tile drawn from this motif
+ * (src/tile-grid.ts); the SVG tile below is the forced-colors mask and the
+ * consumer token's documented geometry.
  */
-const DOTS = patternMotif(PATTERNS['dots'])
-export const DOT_MOTIF = DOTS.width
-export const DOT_RECTS = DOTS.rects
-const DOT_TILE = tileImage(DOT_MOTIF, DOT_MOTIF, tileRects(DOT_RECTS))
+export const DOTS = patternMotif(PATTERNS['dots'])
+const DOT_MOTIF = DOTS.width
+const DOT_TILE = tileImage(DOT_MOTIF, DOT_MOTIF, tileRects(DOTS.rects))
 
 /** The dots' tile size in system px (30) — the consumer token's documented box. */
 export const DOT_SPAN = tileSpan(DOT_MOTIF)
@@ -115,24 +114,31 @@ export const vfStripes = css`
  * runs the dots all the way into the side borders (the Windows/ sheet hand-
  * insets them 2px, which the close-up shows is not the bar's own geometry).
  *
- * The layer's own CSS-repeated tile (a crisp 1-bit SVG on the 30-system-px
- * span, overridable via `--vf-dots-pattern`) is the fallback for a window
- * with no declared width. A `vf-window` that knows its width renders the
- * exact fill INTO the layer instead — the whole-surface raster, or a consumer
- * token's placed tile grid (src/tile-grid.ts) — and marks the layer
- * `vf-tile-grid`, which switches the repeat off: the dot art is transparent-
- * grounded, so a drifting CSS-repeated copy underneath would show through
- * between the exactly-placed dots.
+ * The kit dots are the layer's own background: the repeating tile
+ * `vf-window` writes as `--_vf-dots-tile` (src/tile-grid.ts), at any window
+ * width. A consumer `--vf-dots-pattern` takes over in one of two ways. A
+ * window that knows its width renders the token's placed tile grid INTO the
+ * layer and marks it `vf-tile-grid`, which switches the layer's background
+ * off: the dot art is transparent-grounded, so a drifting CSS-repeated copy
+ * underneath would show through between the exactly placed dots. A window
+ * with no declared width marks the layer `vf-dots-token`, and the token
+ * repeats in CSS on its documented 30-system-px span.
  */
 export const vfDots = css`
   .vf-dots {
     position: absolute;
     inset: calc(var(--vf-scale, 1) * 2px) 0;
-    background-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
-    ${vfTileSize(DOT_MOTIF)}
+    background-image: var(--_vf-dots-tile, none);
+    ${vfRepeatTileSize}
+    image-rendering: pixelated;
     pointer-events: none;
     /* The consumer-token art channel for the placed tile grid. */
     --_vf-tile-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
+  }
+  .vf-dots.vf-dots-token {
+    background-image: var(--vf-dots-pattern);
+    ${vfTileSize(DOT_MOTIF)}
+    image-rendering: auto;
   }
   .vf-dots.vf-tile-grid {
     background-image: none;
@@ -140,20 +146,22 @@ export const vfDots = css`
   /* Forced colors preserves url() tiles verbatim, so the dots would stay
      literal black — invisible on a dark high-contrast theme. Repainted as the
      ink token through the same tile as a mask (the vf-grid rules idiom), so
-     the windoid bar's signature follows the user's palette. The exact-fill
-     children hide here and the span mask takes over — no mask pipeline
-     rasterizes exactly at a zoom-minted scale anyway (image-rendering does
-     not reach masks), so forced-colors keeps the span approach and its zoom
-     caveat, unchanged. */
+     the windoid bar's signature follows the user's palette. The tile and the
+     token's placed tiles hide here and the span mask takes over — no mask
+     pipeline rasterizes exactly at a zoom-minted scale anyway
+     (image-rendering does not reach masks), so forced colors keeps the span
+     approach and its zoom caveat. */
   @media (forced-colors: active) {
-    .vf-dots {
+    .vf-dots,
+    .vf-dots.vf-dots-token {
       background-image: none;
+    }
+    .vf-dots {
       background-color: var(--vf-black, #000);
       mask-image: var(--vf-dots-pattern, ${unsafeCSS(DOT_TILE)});
       ${vfTileMaskSize(DOT_MOTIF)}
     }
-    .vf-dots .vf-tile,
-    .vf-dots .vf-tile-raster {
+    .vf-dots .vf-tile {
       display: none;
     }
   }

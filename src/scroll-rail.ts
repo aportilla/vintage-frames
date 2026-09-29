@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from 'lit'
 import type { ReactiveController, ReactiveControllerHost } from 'lit'
-import { effectiveScale, sysLength } from './scale.js'
+import { effectiveScale, onScaleChange, sysLength } from './scale.js'
 import { PRESS_HOLD_MS } from './motion.js'
 import {
   SCROLL_ARROW_DOWN,
@@ -13,12 +13,8 @@ import {
   SCROLL_ARROW_UP_FILL,
   type Glyph,
 } from './glyphs.js'
-import {
-  TROUGH_MOTIF_X,
-  TROUGH_MOTIF_Y,
-  TROUGH_RECTS,
-} from './styles/recipes/scroll-rail.js'
-import { TileRasterCache } from './tile-grid.js'
+import { TROUGH } from './styles/recipes/scroll-rail.js'
+import { devicePxAt, repeatTile } from './tile-grid.js'
 
 /** Which way a rail runs. A component renders one rail per reserved axis. */
 export type RailAxis = 'vertical' | 'horizontal'
@@ -28,9 +24,6 @@ const LINE_SYS = 16
 
 /** The fixed System 7 thumb, in system px (never proportional). */
 const THUMB_SYS = 16
-
-/** The channel between the divider and the component frame, in system px. */
-const CHANNEL_SYS = 14
 
 /**
  * Milliseconds between auto-repeat steps while an arrow or the trough is
@@ -88,9 +81,10 @@ interface RailPress {
  *   whole-system-px translate, so the art is crisp mid-scroll; accepts the
  *   ≤1-frame lag behind compositor wheel scrolling every scripted scrollbar
  *   has (at 1-bit there is no smooth motion to betray it — no rAF loop, no
- *   polling). The same pass sizes the trough's whole-surface dither raster
- *   (the exact-tile idiom, `tileRaster`) and writes the degenerate-track
- *   state the recipe's decision table styles.
+ *   polling). The same pass writes the trough's repeating dither tile for
+ *   the density at the rail (`repeatTile`, src/tile-grid.ts — again on a
+ *   zoom or display change) and the degenerate-track state the recipe's
+ *   decision table styles.
  * - **Thumb drag** — pointer-captured and axis-locked, live scrolling (the
  *   modern expectation; System 7's dotted-outline drag is a possible later
  *   opt-in). The thumb's paint position always snaps to whole system px.
@@ -115,12 +109,7 @@ export class ScrollRailController implements ReactiveController {
   private press: RailPress | null = null
   private holdTimer: number | undefined
   private repeatTimer: number | undefined
-
-  /** One raster per axis, re-encoded only when the track's size changes. */
-  private readonly troughCache = {
-    vertical: new TileRasterCache(),
-    horizontal: new TileRasterCache(),
-  }
+  private stopScale?: () => void
 
   constructor(
     private readonly host: ReactiveControllerHost &
@@ -142,6 +131,9 @@ export class ScrollRailController implements ReactiveController {
   hostConnected(): void {
     this.wire()
     this.sync()
+    // A zoom can change the trough tile's density without resizing anything
+    // the observers see.
+    this.stopScale = onScaleChange(() => this.sync())
   }
 
   hostUpdated(): void {
@@ -153,6 +145,8 @@ export class ScrollRailController implements ReactiveController {
     this.clearRepeat()
     this.press = null
     this.unwire()
+    this.stopScale?.()
+    this.stopScale = undefined
   }
 
   /** (Re-)attach the scroll listener and observers to the current scroller. */
@@ -181,7 +175,7 @@ export class ScrollRailController implements ReactiveController {
   private readonly onScroll = (): void => this.sync()
 
   /**
-   * Re-derive every measured output: thumb position, trough raster,
+   * Re-derive every measured output: thumb position, trough tile,
    * degenerate state. Safe to call any time; components hit it imperatively
    * when content changes without a box resize (a `<textarea>` on input —
    * the same moments they call `ScrollStateController.measure()`).
@@ -234,28 +228,14 @@ export class ScrollRailController implements ReactiveController {
         ? `0 ${sysLength(offsetSys)}`
         : `${sysLength(offsetSys)} 0`
 
-    // The trough's whole-surface raster (the exact-tile idiom): one image px
-    // per system px, ceiled up to whole motifs of the measured track so a
-    // fractional box overshoots rather than stretches — the trough's clip
-    // crops the overdraw. The cache re-encodes only when the size changes.
-    const art = rail.querySelector<HTMLElement>('.vf-rail-trough-art')
-    if (art) {
-      const main =
-        Math.ceil(
-          (trackSys + (axis === 'vertical' ? TROUGH_MOTIF_Y : TROUGH_MOTIF_X)) /
-            (axis === 'vertical' ? TROUGH_MOTIF_Y : TROUGH_MOTIF_X)
-        ) * (axis === 'vertical' ? TROUGH_MOTIF_Y : TROUGH_MOTIF_X)
-      const w = axis === 'vertical' ? CHANNEL_SYS : main
-      const h = axis === 'vertical' ? main : CHANNEL_SYS
-      art.style.width = sysLength(w)
-      art.style.height = sysLength(h)
-      art.style.backgroundImage = this.troughCache[axis].for(
-        TROUGH_MOTIF_X,
-        TROUGH_MOTIF_Y,
-        TROUGH_RECTS,
-        w,
-        h
-      )
+    // The trough's repeating tile, for the density at the rail: the same
+    // string until zoom or the display changes it, whatever the track's size.
+    const trough = rail.querySelector<HTMLElement>('.vf-rail-trough')
+    if (trough) {
+      const tile = repeatTile(TROUGH, devicePxAt(trough))
+      if (trough.style.getPropertyValue('--_vf-trough-tile') !== tile) {
+        trough.style.setProperty('--_vf-trough-tile', tile)
+      }
     }
   }
 
@@ -517,9 +497,7 @@ export function renderScrollRail(
         ${railArrow(decRest, 'rest')}${railArrow(decFill, 'fill')}
       </div>
       <div class="vf-rail-track">
-        <div class="vf-rail-trough">
-          <div class="vf-rail-trough-art"></div>
-        </div>
+        <div class="vf-rail-trough"></div>
         <div class="vf-rail-thumb"></div>
       </div>
       <div class="vf-rail-button vf-rail-button--increment">

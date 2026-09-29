@@ -4,18 +4,14 @@ import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { vfBase, vfFocusUnderline, vfHardShadowDecls } from '../styles/base.js'
+import { tileImage, tileRects, tileSpan, type TileRect } from '../styles/recipes/tile.js'
 import {
-  tileImage,
-  tileRects,
-  tileSpan,
-  vfTileSize,
-  type TileRect,
-} from '../styles/recipes/tile.js'
-import {
-  TileRasterCache,
+  RepeatTileController,
   patternOverride,
   tileGrid,
+  vfRepeatTileSize,
   vfTileGrid,
+  type TileMotif,
 } from '../tile-grid.js'
 import { ScaleController, sysLength } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
@@ -23,20 +19,20 @@ import { VfShadowRoleControl } from '../form-control.js'
 
 /**
  * The transparency checker: a 4-system-px motif of 2×2 checks, stated once as
- * rect data and derived into the SVG tile (the CSS-repeated underlay and the
- * `--vf-swatch-checker` documentation geometry) and the raster whole-surface
- * fill the swatch actually shows (src/tile-grid.ts). Above the class for the
- * same reason as vf-desktop's dither — `@vfElement` upgrades at module
+ * rect data and derived into the repeating tile the swatch shows
+ * (src/tile-grid.ts) and the SVG tile that states the
+ * `--vf-swatch-checker` documentation geometry. Above the class for the same
+ * reason as vf-desktop's dither — `@vfElement` upgrades at module
  * evaluation, before a module-tail const is initialized.
  */
-const CHECKER_MOTIF = 4
 const CHECKER_RECTS: readonly TileRect[] = [
   [0, 0, 4, 4, '#ffffff'],
   [0, 0, 2, 2, '#c0c0c0'],
   [2, 2, 2, 2, '#c0c0c0'],
 ]
-const CHECKER_TILE = tileImage(CHECKER_MOTIF, CHECKER_MOTIF, tileRects(CHECKER_RECTS))
-const CHECKER_SPAN = tileSpan(CHECKER_MOTIF)
+const CHECKER: TileMotif = { width: 4, height: 4, rects: CHECKER_RECTS }
+const CHECKER_TILE = tileImage(CHECKER.width, CHECKER.height, tileRects(CHECKER_RECTS))
+const CHECKER_SPAN = tileSpan(CHECKER.width)
 
 /**
  * `<vf-swatch>` — a color-swatch button: the color well of a palette cell.
@@ -94,14 +90,10 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
       :host {
         display: inline-flex;
         cursor: var(--vf-cursor, default);
-        /* The transparency checker: 2×2-system-px white/#c0c0c0 checks on a
-           4×4 motif. Resolved into a private property once so the underlay
-           rule and the tile grid's art channel below share one definition;
-           override the public token to retheme the whole tile. What actually
-           shows is the exact fill rendered into .fill (see src/tile-grid.ts):
-           the whole-surface raster for the kit checker, or the placed tile
-           grid at the token's documented 60-px tile geometry for a consumer
-           override. */
+        /* The consumer's checker token, as the art channel of the placed
+           tile grid .fill renders for it at the token's documented 60-px
+           tile geometry (src/tile-grid.ts). The kit checker is .fill's own
+           repeating tile instead. */
         --_checker: var(--vf-swatch-checker, ${unsafeCSS(CHECKER_TILE)});
         /* How deep a shadow this swatch actually casts — nothing unless the
            shadow attribute is set. Resolved here once so the focus rule below
@@ -159,31 +151,29 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
       }
       .fill {
         display: block;
-        /* The containing block for the exact fill and the tint. */
+        /* The containing block for the token's tile grid and the tint. */
         position: relative;
         width: 100%;
         height: 100%;
-        /* The CSS-repeated underlay, occluded by the (opaque) kit raster —
-           belt-and-braces paint only, like vf-desktop's. */
-        background-image: var(--_checker);
-        ${vfTileSize(CHECKER_MOTIF)}
+        /* The kit checker: the repeating tile the swatch writes
+           (src/tile-grid.ts). */
+        background-image: var(--_vf-checker-tile, none);
+        ${vfRepeatTileSize}
+        image-rendering: pixelated;
         /* Forced colors would delete the color layer and keep the checker,
            showing "transparent" for every color. The fill is CONTENT, not
            chrome — the color is the one thing the control exists to show,
            the case forced-color-adjust's own spec exempts (its example is a
-           color picker). It inherits to the raster, tiles and tint. Frame,
-           inset and press feedback stay on the forced palette like every
-           other control's. */
+           color picker). It inherits to the tiles and tint. Frame, inset
+           and press feedback stay on the forced palette like every other
+           control's. */
         @media (forced-colors: active) {
           forced-color-adjust: none;
         }
       }
-      /* A consumer checker token switches the fill to the placed tile grid;
-         the underlay must not paint beneath it — a translucent consumer tile
-         would show the underlay's drifting copy of itself. The grid's tiles
-         resolve the token through the shared private property. */
+      /* A consumer checker token switches the fill to the placed tile grid,
+         whose tiles resolve the token through the shared private property. */
       .fill.patterned {
-        background-image: none;
         --_vf-tile-image: var(--_checker);
       }
       /* The color, painted over the checker so a translucent value reads as
@@ -239,13 +229,18 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
 
   /**
    * The consumer's `--vf-swatch-checker` override, or `''` for the kit
-   * checker — which exact-fill path render() takes (src/tile-grid.ts).
-   * Re-read every update; a runtime token swap wants a `requestUpdate()`.
+   * checker — which path render() takes (src/tile-grid.ts). Re-read every
+   * update; a runtime token swap wants a `requestUpdate()`.
    */
   private _pattern = ''
 
-  /** The whole-surface checker raster, cached against the fill's size. */
-  readonly #raster = new TileRasterCache()
+  /** The kit checker: `.fill` carries the repeating tile as
+   *  `--_vf-checker-tile`. */
+  readonly #checkerTile = new RepeatTileController(this, {
+    getBox: () => this.renderRoot?.querySelector<HTMLElement>('.fill'),
+    getArt: () => (this._pattern ? null : CHECKER),
+    property: '--_vf-checker-tile',
+  })
 
   protected override willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed)
@@ -253,34 +248,19 @@ export class VfSwatch extends VfPositioned(VfShadowRoleControl) {
   }
 
   protected override render() {
-    // The fill box inside the 1px border and 1px inset, in system px. The
-    // raster overdraws it by one motif each way, sized explicitly in system
-    // px rather than stretched to the fill: the button's floored border can
-    // leave the fill box a fraction of a system px larger than its stated
-    // size, and a stretched image would render irregular checker cells. The
-    // fill's clip crops the overdraw; a placed tile overdraws the fill by
-    // construction (its 60-px span exceeds any real swatch).
+    // A consumer token's placed tile grid over the fill box inside the 1px
+    // border and 1px inset, in system px; a placed tile overdraws the fill
+    // by construction (its 60-px span exceeds any real swatch), and the
+    // fill's clip crops it.
     const fillW = Math.max(1, (this.width ?? 24) - 4)
     const fillH = Math.max(1, (this.height ?? 18) - 4)
-    const ceilTo = (v: number) => Math.ceil((v + CHECKER_MOTIF) / CHECKER_MOTIF) * CHECKER_MOTIF
     const fill = this._pattern
       ? tileGrid({
           cols: Math.ceil(fillW / CHECKER_SPAN),
           rows: Math.ceil(fillH / CHECKER_SPAN),
           tile: CHECKER_SPAN,
         })
-      : html`<span
-          class="vf-tile-raster"
-          style="width:${sysLength(ceilTo(fillW))};height:${sysLength(
-            ceilTo(fillH)
-          )};background-image:${this.#raster.for(
-            CHECKER_MOTIF,
-            CHECKER_MOTIF,
-            CHECKER_RECTS,
-            ceilTo(fillW),
-            ceilTo(fillH)
-          )}"
-        ></span>`
+      : null
     // styleMap writes the color through CSSOM setProperty, which takes one
     // declaration and rejects a malformed value outright — a color string can
     // neither smuggle extra declarations onto the tint nor half-apply.

@@ -149,38 +149,39 @@ const page = await build(
     const sr = (id, sel) => document.getElementById(id).shadowRoot.querySelector(sel)
     const stripes = getComputedStyle(sr('pbi', '.fill.stripes'))
     const strip = getComputedStyle(sr('pbi', '.vf-tile-strip'))
-    const stripRaster = getComputedStyle(sr('pbi', '.vf-tile-strip .vf-tile-raster'))
-    const dotsRaster = getComputedStyle(sr('pal', '.vf-dots .vf-tile-raster'))
+    const dots = getComputedStyle(sr('pal', '.vf-dots'))
     const close = getComputedStyle(sr('doc', '.close'))
     const fill = getComputedStyle(sr('sw', '.fill'))
+    const png = (cs) => cs.backgroundImage.startsWith('url("data:image/png')
     return {
-      // The art rides the exact-fill raster (src/tile-grid.ts), painted as a
-      // raster data URI, visible, with the layer unmasked and the animation
-      // on the strip — the forced-colors branches must not leak into any of
-      // that in normal mode.
-      stripRasterImage: stripRaster.backgroundImage.startsWith('url("data:image/png'),
-      stripRasterShown: stripRaster.display !== 'none',
+      // The art is each surface's repeating tile (src/tile-grid.ts), a PNG
+      // data URI, visible, with the layer unmasked and the animation on the
+      // strip — the forced-colors branches must not leak into any of that
+      // in normal mode.
+      stripImage: png(strip),
+      stripShown: strip.display !== 'none',
       stripesMask: stripes.maskImage,
       stripAnim: strip.animationName,
-      dotsImage: dotsRaster.backgroundImage.startsWith('url("data:image/png'),
-      dotsShown: dotsRaster.display !== 'none',
+      dotsImage: png(dots),
+      dotsMask: dots.maskImage,
       closeShadow: close.boxShadow !== 'none',
       closeAdjust: close.forcedColorAdjust,
       fillAdjust: fill.forcedColorAdjust,
-      fillChecker: fill.backgroundImage.includes('url("data:image/svg+xml'),
+      fillChecker: png(fill),
     }
   })
   check(
-    'normal mode: the barber strip paints its raster art, unmasked, animated by vf-barber',
-    leak.stripRasterImage &&
-      leak.stripRasterShown &&
+    'normal mode: the barber strip paints its tile, unmasked, animated by vf-barber',
+    leak.stripImage &&
+      leak.stripShown &&
       leak.stripesMask === 'none' &&
       leak.stripAnim === 'vf-barber',
     `mask=${leak.stripesMask} anim=${leak.stripAnim}`
   )
   check(
-    'normal mode: the windoid dots paint their raster art',
-    leak.dotsImage && leak.dotsShown
+    'normal mode: the windoid dots paint their tile, unmasked',
+    leak.dotsImage && leak.dotsMask === 'none',
+    `mask=${leak.dotsMask}`
   )
   check(
     'normal mode: the close box keeps its box-shadow patch and default color adjust',

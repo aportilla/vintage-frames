@@ -189,16 +189,26 @@ export { RULE_EDGES, parseRule, ruleClasses } from './styles/base.js'
 export type { RuleEdge } from './styles/base.js'
 
 /**
- * The exact tiled fill (TILE-GRID-PLAN.md): a surface's own art as one
- * whole-surface raster (`tileRaster` + the `vf-tile-raster` rules), and a
- * consumer pattern token as a flat grid of absolutely placed tiles
- * (`tileGrid()`), each box paint-snapped to the device grid on its own — so
- * the fill stays 1-bit at the zoom-minted scales a CSS `background-repeat`
- * length cannot hold. `vfTileGrid` carries the container and tile rules;
- * `patternOverride` reads whether a token is in play; `TileRasterCache`
- * memoizes the encoded raster against its size.
+ * The exact tiled fill (src/tile-grid.ts): a surface's own art as a CSS
+ * repeat of one tile drawn at the display's resolution — `repeatTile()` for
+ * the image at `devicePxAt()` a box, `vfRepeatTileSize` for its
+ * `background-size`, `RepeatTileController` to keep a box's tile current —
+ * and a consumer pattern token as a flat grid of absolutely placed tiles
+ * (`tileGrid()`, with `vfTileGrid`'s container and tile rules), each box
+ * paint-snapped to the device grid on its own. `patternOverride` reads
+ * whether a token is in play.
  */
-export { vfTileGrid, tileGrid, patternOverride, TileRasterCache } from './tile-grid.js'
+export {
+  vfTileGrid,
+  tileGrid,
+  patternOverride,
+  REPEAT_TILE,
+  vfRepeatTileSize,
+  repeatTile,
+  devicePxAt,
+  RepeatTileController,
+} from './tile-grid.js'
+export type { TileMotif, RepeatTileOptions } from './tile-grid.js'
 
 /**
  * The standard pattern set — the 38 MacPaint fills as 8-byte QuickDraw

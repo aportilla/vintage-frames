@@ -67,11 +67,10 @@ import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
  * docs/PATTERNS.md has the table), or sixteen hex digits stating a custom
  * 8×8 pattern row by row, the way a PAT resource did. It is painted as the
  * box's own background — black ink on a `--vf-white` ground, anchored at
- * the box's top-left corner, under the content — by the same whole-surface
- * raster mechanism as the desktop dither, so it is 1-bit at every density
- * and zoom (src/pattern-fill.ts). A declared `width`/`height` sizes the
- * raster exactly; an undeclared axis (`fill-width`, a shrink-wrapped
- * height) is measured. Under forced colors the pattern goes flat Canvas.
+ * the box's top-left corner, under the content — by the same repeating tile
+ * as the desktop dither, so it is 1-bit at every density and zoom and a box
+ * of any size, declared or not, costs nothing more (src/pattern-fill.ts).
+ * Under forced colors the pattern goes flat Canvas.
  *
  * **It holds its box on the device-pixel grid** — with a `GridSnapController`.
  * A container's box is itself the consumer's coordinate system, including for
@@ -228,13 +227,11 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
 
   /**
    * The pattern fill, painted on `.box` so it rides the snap correction with
-   * the coordinate system. A declared axis sizes the raster exactly; an
-   * undeclared one is measured (src/pattern-fill.ts).
+   * the coordinate system (src/pattern-fill.ts).
    */
   private readonly patternFill = new PatternFillController(this, {
     getBox: () => this.box,
     getPattern: () => this._pattern,
-    getSize: () => ({ width: this.width, height: this.height }),
   })
 
   protected override willUpdate(changed: PropertyValues<this>): void {

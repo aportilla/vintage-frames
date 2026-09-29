@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Tile-repeat probe — dev-only, like pixel-test.html.
+
+    The pattern fill (src/pattern-fill.ts) is a CSS repeat of a 120-system-px
+    tile drawn at device resolution. It replaced a whole-surface raster —
+    one PNG the size of the box, re-encoded as the box was resized — which
+    this page recreates as the reference. The repeat is judged in real
+    browsers, not under emulated density: headless runs don't reproduce
+    Safari's smoothing (docs/TILE-REPEAT-PLAN.md has the findings).
+
+    One viewport-filling vf-desktop, fitted the way a page fits one
+    (fitWithin on the stage's size and onScaleChange). Three modes:
+
+      raster   the reference: the old whole-surface raster at one image px
+               per system px, stretched once under image-rendering: pixelated
+      shipped  the component as it is
+      repeat   a candidate: a tile of T system px, CSS-repeated, painted over
+               ::part(desktop)
+
+    "diff" stacks the chosen mode on the raster with mix-blend-mode:
+    difference: black wherever the two paint the same device pixel, white
+    where they disagree. Agreement with the raster, not correctness: where
+    both are wrong the same way it stays black.
+
+    The candidate's tile: the pattern's own motif (2 system px for gray-50),
+    the smallest run of motifs that is a whole number of layout px, 8, 120,
+    or any size from the query string. The tile image is the same
+    system-px art either way; what differs is who scales it to device px. At
+    one image px per system px the engine magnifies it under
+    image-rendering. Pre-scaled, each system px is drawn as an n×n block
+    (n = device px per system px), so the engine copies it 1:1.
+
+    The analyzer is the ground truth. Take a screenshot of a region INSIDE
+    the gray-50 dither (⌘⌃⇧4 copies it; ⌘⇧4 saves one) and paste it (⌘V —
+    in Safari, click the paste box first), drop it on the page, or choose
+    the file. A screenshot holds the browser's device pixels, before any
+    display scaling. The analyzer binarizes it and checks every run of
+    black and white along every row and column: in a clean gray-50 dither
+    every interior run is exactly n device px. It reports impure (gray)
+    pixels and each column and row where a run is off, with a map. A diff
+    screenshot (nearly all black) is counted as disagreeing pixels instead.
+
+    Judge by screenshot, not by eye, on a scaled display mode (a 4K panel at
+    "looks like 2560×1440"): macOS renders at 2× and resamples to the panel,
+    which blurs 1-bit art on its own. The iOS Simulator's window is scaled
+    too; export its framebuffer (xcrun simctl io booted screenshot). Load
+    the page at 100% zoom — Safari's zoom is inferred relative to load —
+    then ⌘±.
+
+    Every control can also be set from the query string, for a device or
+    simulator with no one at the keyboard:
+    ?mode=repeat&diff=1&tile=motif&texels=device&rendering=pixelated&pattern=gray-50
+    and three more for diagnosis: readout=wrap (the whole readout, on a
+    phone), fit=lattice (the screen rounded down to whole CSS px) and
+    nudge=x,y (the desktop at the stage's corner plus x, y system px).
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <!-- Without it iOS lays the page out 980 px wide and shrinks it to fit,
+         which resamples everything. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>tile repeat probe</title>
+    <script type="module" src="/src/index.ts"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        font: 12px/18px ui-monospace, Menlo, monospace;
+        color: #000;
+      }
+      .bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 16px;
+        padding: 6px 10px;
+        background: #fff;
+      }
+      .bar label,
+      .bar button,
+      .bar select,
+      .bar input,
+      dialog button,
+      dialog input {
+        font: inherit;
+      }
+      .paste {
+        padding: 0 6px;
+        border: 1px dashed #000;
+        color: #555;
+        outline: none;
+      }
+      .paste:focus {
+        border-style: solid;
+        color: #000;
+      }
+      /* One line each, never wrapping: the readout changes on every fit,
+         and a bar that grew a line would shrink the stage and refit. */
+      #readout {
+        flex-basis: 100%;
+        min-width: 0;
+        color: #333;
+      }
+      #readout div {
+        white-space: pre;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* ?readout=wrap, for a phone screenshot that has to show all of it. */
+      #readout.wrap div {
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      #stage {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        isolation: isolate;
+      }
+      #stage > vf-desktop {
+        grid-area: 1 / 1;
+      }
+      #stage > vf-desktop[hidden] {
+        display: none;
+      }
+      #b {
+        mix-blend-mode: difference;
+      }
+      /* The reference and the candidate, both over the component's own
+         background. Their sizes are written on the host, where the
+         component's --vf-scale is in scope, as the kit writes lengths:
+         calc(var(--vf-scale, 1) * Npx). */
+      vf-desktop.raster::part(desktop) {
+        background-image: var(--probe-raster);
+        background-size: var(--probe-raster-size);
+        background-repeat: no-repeat;
+        image-rendering: pixelated;
+      }
+      vf-desktop.repeat::part(desktop) {
+        background-image: var(--probe-tile);
+        background-size: var(--probe-size);
+        background-repeat: repeat;
+        image-rendering: var(--probe-rendering, pixelated);
+      }
+
+      dialog {
+        max-width: 95vw;
+        max-height: 90vh;
+        padding: 12px 16px;
+        border: 1px solid #000;
+        font: 12px/18px ui-monospace, Menlo, monospace;
+      }
+      dialog::backdrop {
+        background: rgb(0 0 0 / 0.5);
+      }
+      dialog .top {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      dialog .top form {
+        margin-left: auto;
+      }
+      #summary {
+        margin: 8px 0;
+        white-space: pre-wrap;
+      }
+      .shot {
+        max-height: 45vh;
+        overflow: auto;
+        border: 1px solid #000;
+        background: #000;
+      }
+      .shot canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+      .key span {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin: 0 4px 0 12px;
+        vertical-align: -1px;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 12px 0 8px;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 2px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      thead th {
+        background: #eee;
+      }
+      td[contenteditable] {
+        min-width: 24ch;
+      }
+      .note {
+        color: #555;
+        max-width: 90ch;
+        margin: 6px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <span>
+        <label><input type="radio" name="mode" value="raster" /> raster</label>
+        <label><input type="radio" name="mode" value="shipped" checked /> shipped</label>
+        <label><input type="radio" name="mode" value="repeat" /> repeat</label>
+        <label><input type="checkbox" id="diff" /> diff over raster</label>
+      </span>
+      <label
+        >tile
+        <select id="tile">
+          <option value="motif">motif</option>
+          <option value="whole">motifs to a whole layout px</option>
+          <option value="8">8 sys px</option>
+          <option value="120" selected>120 sys px</option>
+        </select>
+      </label>
+      <label
+        >tile image
+        <select id="texels">
+          <option value="system">1 px per system px — browser scales it</option>
+          <option value="device" selected>n px per system px — pre-scaled</option>
+        </select>
+      </label>
+      <label
+        >image-rendering
+        <select id="rendering">
+          <option value="pixelated" selected>pixelated</option>
+          <option value="crisp-edges">crisp-edges</option>
+          <option value="-webkit-optimize-contrast">-webkit-optimize-contrast</option>
+          <option value="auto">auto</option>
+        </select>
+      </label>
+      <label>pattern <select id="pattern"></select></label>
+      <span class="paste" id="paste" contenteditable="true" spellcheck="false"
+        >⌘V a screenshot</span
+      >
+      <label>or <input type="file" id="file" accept="image/*" /></label>
+      <button id="open">results</button>
+      <div id="readout"><div></div><div></div></div>
+    </div>
+    <div id="stage">
+      <vf-desktop id="a"></vf-desktop>
+      <vf-desktop id="b" hidden></vf-desktop>
+    </div>
+
+    <dialog id="results">
+      <div class="top">
+        <label>label <input id="label" size="44" /></label>
+        <form method="dialog"><button>close</button></form>
+      </div>
+      <div id="summary">No screenshot analyzed yet.</div>
+      <div class="key" id="key" hidden>
+        key:<span style="background: #f00"></span>gray pixel<span
+          style="background: #fa0"
+        ></span
+        >run off-length along a row<span style="background: #0bf"></span>along a
+        column<span style="background: #f0f"></span>both
+      </div>
+      <div class="shot"><canvas id="shot" width="0" height="0"></canvas></div>
+      <table>
+        <thead>
+          <tr>
+            <th>label</th>
+            <th>image px</th>
+            <th>n</th>
+            <th>gray px</th>
+            <th>bad columns</th>
+            <th>bad rows</th>
+            <th>verdict</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <button id="copy">copy as markdown</button>
+      <button id="clear">clear</button>
+      <p class="note">
+        Labels are editable. A bad column is an x where some row's run is off
+        length — a doubled or dropped column of the dither, or a run one
+        device px long or short — listed with how many rows it spans.
+      </p>
+    </dialog>
+
+    <script type="module">
+      import {
+        PATTERNS,
+        PATTERN_NAMES,
+        PATTERN_SIZE,
+        devicePxPerSystemPx,
+        getZoom,
+        onScaleChange,
+        patternMotif,
+        sysLength,
+        tileRaster,
+        truePixelRatio,
+      } from '/src/index.ts'
+
+      const $ = (id) => document.getElementById(id)
+      const stage = $('stage')
+      const a = $('a')
+      const b = $('b')
+      const desktops = [a, b]
+      const query = new URLSearchParams(location.search)
+
+      const ua = navigator.userAgent
+      const ENGINE = /Firefox\//.test(ua)
+        ? 'Firefox'
+        : /Chrome\//.test(ua)
+          ? 'Chrome'
+          : /Safari\//.test(ua)
+            ? 'Safari'
+            : 'unknown'
+
+      await customElements.whenDefined('vf-desktop')
+      await Promise.all(desktops.map((d) => d.updateComplete))
+      const partOf = (d) => d.shadowRoot.querySelector('[part~="desktop"]')
+      const scaleOf = (d) => Number(getComputedStyle(d).getPropertyValue('--vf-scale')) || 1
+
+      // ── state, from the menus and the query string ──
+      const state = {
+        mode: 'shipped',
+        diff: false,
+        tile: '120',
+        texels: 'device',
+        rendering: 'pixelated',
+        pattern: 'gray-50',
+        tx: 0,
+        ty: 0,
+        // Device px per system px the candidate was encoded at; 1 for system texels.
+        encodedAt: 1,
+      }
+
+      for (const name of PATTERN_NAMES) {
+        $('pattern').add(new Option(name, name, false, name === state.pattern))
+      }
+      // Any whole tile size can come from the query, menu or not.
+      const asked = query.get('tile')
+      if (/^\d+$/.test(asked ?? '') && ![...$('tile').options].some((o) => o.value === asked)) {
+        $('tile').add(new Option(`${asked} sys px`, asked))
+      }
+      for (const key of ['tile', 'texels', 'rendering', 'pattern']) {
+        const value = query.get(key)
+        if (value && [...$(key).options].some((o) => o.value === value)) {
+          state[key] = value
+          $(key).value = value
+        }
+      }
+      const modeInput = document.querySelector(`input[name=mode][value="${query.get('mode')}"]`)
+      if (modeInput) {
+        state.mode = modeInput.value
+        modeInput.checked = true
+      }
+      state.diff = query.get('diff') === '1'
+      $('diff').checked = state.diff
+      $('readout').classList.toggle('wrap', query.get('readout') === 'wrap')
+
+      // ── fitting: the page's half of the sizing contract ──
+      // ?fit=lattice rounds the fitted screen down to whole CSS px (a
+      // multiple of 3 system px at scale 4/3), so the box has no fractional
+      // edge; the default is fitWithin's own whole-system-px answer.
+      const onLattice = query.get('fit') === 'lattice'
+      // ?nudge=x,y places both desktops at the stage's top-left corner plus
+      // x, y system px (instead of centered), to walk the box's position
+      // against the device grid.
+      const nudge = query.get('nudge')
+      if (nudge) {
+        const [nx, ny] = nudge.split(',').map(Number)
+        stage.style.placeItems = 'start'
+        stage.style.padding = `${sysLength(ny || 0)} 0 0 ${sysLength(nx || 0)}`
+      }
+      const fit = () => {
+        const { width, height } = stage.getBoundingClientRect()
+        for (const d of desktops) {
+          d.fitWithin(width, height)
+          if (!onLattice) continue
+          const scale = scaleOf(d)
+          let q = 1
+          while (q < 64 && Math.abs(q * scale - Math.round(q * scale)) > 1e-6) q++
+          d.width -= d.width % q
+          d.height -= d.height % q
+        }
+        applyRaster()
+      }
+
+      // ── the reference: the old whole-surface raster ──
+      // Sized to the screen ceiled to whole cells plus one of overdraw, one
+      // image px per system px, re-encoded whenever that size changes —
+      // what PatternFillController did before the repeat.
+      let rasterImage = ''
+      let rasterSize = [0, 0]
+      let rasterEncodes = 0
+      function applyRaster() {
+        const cells = (v) => Math.ceil((v + PATTERN_SIZE) / PATTERN_SIZE) * PATTERN_SIZE
+        const [rw, rh] = [cells(a.width), cells(a.height)]
+        const motif = patternMotif(PATTERNS[state.pattern])
+        const image = tileRaster(motif.width, motif.height, motif.rects, rw, rh)
+        if (image === rasterImage) return
+        rasterImage = image
+        rasterSize = [rw, rh]
+        rasterEncodes++
+        for (const d of desktops) {
+          d.style.setProperty('--probe-raster', image)
+          d.style.setProperty('--probe-raster-size', `${sysLength(rw)} ${sysLength(rh)}`)
+        }
+      }
+
+      // ── the candidate ──
+      /**
+       * The smallest run of motifs that is a whole number of layout px:
+       * device px over devicePixelRatio, which in Safari is the hardware
+       * ratio (its zoom is inside the layout px) and elsewhere includes zoom.
+       */
+      function wholeRun(motif) {
+        const n = devicePxPerSystemPx(truePixelRatio())
+        const dpr = window.devicePixelRatio || 1
+        for (let k = 1; k <= 64; k++) {
+          const length = (k * motif * n) / dpr
+          if (Math.abs(length - Math.round(length)) < 1e-6) return k * motif
+        }
+        return motif
+      }
+
+      function applyTile() {
+        const motif = patternMotif(PATTERNS[state.pattern])
+        const pick = (m) =>
+          state.tile === 'motif' ? m : state.tile === 'whole' ? wholeRun(m) : Number(state.tile)
+        state.tx = pick(motif.width)
+        state.ty = pick(motif.height)
+        state.encodedAt =
+          state.texels === 'device' ? devicePxPerSystemPx(truePixelRatio()) : 1
+        const image = tileRaster(
+          motif.width,
+          motif.height,
+          motif.rects,
+          state.tx,
+          state.ty,
+          state.encodedAt
+        )
+        for (const d of desktops) {
+          d.pattern = state.pattern
+          d.style.setProperty('--probe-tile', image)
+          d.style.setProperty('--probe-size', `${sysLength(state.tx)} ${sysLength(state.ty)}`)
+          d.style.setProperty('--probe-rendering', state.rendering)
+        }
+      }
+
+      // ── which desktop shows what ──
+      function applyMode() {
+        // Diff: the raster underneath, the chosen mode on top.
+        const under = state.diff ? a : null
+        const shown = state.diff ? b : a
+        for (const d of desktops) {
+          d.classList.remove('raster', 'repeat')
+          if (d === under) d.classList.add('raster')
+          else if (d === shown && state.mode !== 'shipped') d.classList.add(state.mode)
+        }
+        b.hidden = !state.diff
+        render()
+      }
+
+      for (const input of document.querySelectorAll('input[name=mode]')) {
+        input.addEventListener('change', () => {
+          state.mode = input.value
+          applyMode()
+        })
+      }
+      $('diff').addEventListener('change', (e) => {
+        state.diff = e.target.checked
+        applyMode()
+      })
+      for (const key of ['tile', 'pattern', 'texels', 'rendering']) {
+        $(key).addEventListener('change', (e) => {
+          state[key] = e.target.value
+          applyTile()
+          applyRaster()
+          render()
+        })
+      }
+
+      // A device-resolution candidate is only 1:1 at the density it was
+      // drawn for, so a zoom or display change re-draws it — never a resize.
+      onScaleChange(() => {
+        fit()
+        if (state.texels === 'device' || state.tile === 'whole') applyTile()
+        render()
+      })
+      new ResizeObserver(fit).observe(stage)
+
+      // ── what the shipped fill costs: every change is a new data URL ──
+      let shippedImage = partOf(a).style.getPropertyValue('--_vf-pattern-image')
+      let shippedChanges = 0
+      new MutationObserver(() => {
+        const image = partOf(a).style.getPropertyValue('--_vf-pattern-image')
+        if (image && image !== shippedImage) shippedChanges++
+        shippedImage = image
+        render()
+      }).observe(partOf(a), { attributes: true, attributeFilter: ['style'] })
+
+      // ── readout ──
+      const px = (value) => [...value.matchAll(/(-?[\d.]+)px/g)].map((m) => Number(m[1]))
+      const fixed = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(4))
+      const kb = (s) => (s.length / 1024).toFixed(1)
+
+      function render() {
+        const dpr = window.devicePixelRatio
+        const tdpr = truePixelRatio()
+        const n = devicePxPerSystemPx(tdpr)
+        const part = partOf(state.diff ? b : a)
+        const box = part.getBoundingClientRect()
+        const lines = [
+          `${ENGINE} · devicePixelRatio ${dpr} · zoom ${getZoom()} · true dpr ` +
+            `${fixed(tdpr)} · --vf-scale ${fixed(scaleOf(a))} · ${n} device px per system px · ` +
+            `screen ${a.width}×${a.height} sys px · box at ${fixed(box.left * tdpr)}, ` +
+            `${fixed(box.top * tdpr)} dp, ${fixed(box.width * tdpr)}×${fixed(box.height * tdpr)} dp`,
+        ]
+        const computed = getComputedStyle(part).backgroundSize
+        const inDevice = px(computed).map((v) => fixed(v * tdpr) + ' dp').join(' × ')
+        const diff = state.diff ? ' · diff: black = same device pixel as the raster' : ''
+        if (state.mode === 'raster') {
+          lines.push(
+            `raster ${rasterSize[0]}×${rasterSize[1]} sys px · data URL ${kb(rasterImage)} KB · ` +
+              `encodes since load ${rasterEncodes} · background-size ${computed} (${inDevice})`
+          )
+        } else if (state.mode === 'shipped') {
+          lines.push(
+            `shipped tile · data URL ${kb(shippedImage)} KB · changes since load ` +
+              `${shippedChanges} · background-size ${computed} (${inDevice})` +
+              ` · the raster would have encoded ${rasterEncodes} times${diff}`
+          )
+        } else {
+          const texels =
+            state.texels === 'device'
+              ? `${state.encodedAt} texels per sys px` +
+                (state.encodedAt === n ? '' : ` — STALE, expected ${n}`)
+              : '1 texel per sys px'
+          lines.push(
+            `tile ${state.tx}×${state.ty} sys px, ${texels}, ${state.rendering} · ` +
+              `asks ${fixed(state.tx * scaleOf(a))} CSS px = ` +
+              `${fixed(state.tx * scaleOf(a) * tdpr)} dp · engine computes ${computed} ` +
+              `(${inDevice})${diff}`
+          )
+        }
+        const [first, second] = $('readout').children
+        first.textContent = lines[0]
+        second.textContent = lines[1]
+      }
+
+      applyTile()
+      fit()
+      applyMode()
+      // Safari's zoom arrives through the kit's tracker, not an event this
+      // page hears; a dev page can afford 2 Hz.
+      setInterval(render, 500)
+
+      // ── the analyzer ──
+      const BLACK = 0
+      const WHITE = 1
+      const GRAY = 2
+
+      /** Runs of equal class along one line: [start, length, class]. */
+      function runsOf(get, length) {
+        const runs = []
+        let start = 0
+        for (let i = 1; i <= length; i++) {
+          if (i === length || get(i) !== get(start)) {
+            runs.push([start, i - start, get(start)])
+            start = i
+          }
+        }
+        return runs
+      }
+
+      /** Where anomalies sit along an axis, most-affected first. */
+      function positions(map, limit = 10) {
+        const list = [...map].sort((p, q) => q[1] - p[1] || p[0] - q[0])
+        const shown = list.slice(0, limit).map(([at, count]) => `${at} (${count})`)
+        return list.length > limit ? `${shown.join(', ')} … ${list.length} in all` : shown.join(', ')
+      }
+
+      function analyze(image) {
+        const { width: W, height: H, data } = image
+        const cls = new Uint8Array(W * H)
+        const counts = [0, 0, 0]
+        for (let i = 0, p = 0; i < cls.length; i++, p += 4) {
+          const hi = Math.max(data[p], data[p + 1], data[p + 2])
+          const lo = Math.min(data[p], data[p + 1], data[p + 2])
+          const c = hi <= 24 ? BLACK : lo >= 231 ? WHITE : GRAY
+          cls[i] = c
+          counts[c]++
+        }
+        const out = new ImageData(W, H)
+        const paint = (i, r, g, bl) => {
+          out.data[i * 4] = r
+          out.data[i * 4 + 1] = g
+          out.data[i * 4 + 2] = bl
+          out.data[i * 4 + 3] = 255
+        }
+
+        // A diff screenshot: nearly all black, and every other pixel is a
+        // disagreement.
+        if (counts[BLACK] / cls.length > 0.9) {
+          const columns = new Map()
+          const rows = new Map()
+          for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+              const i = y * W + x
+              if (cls[i] === BLACK) {
+                paint(i, 0, 0, 0)
+                continue
+              }
+              paint(i, 255, 0, 0)
+              columns.set(x, (columns.get(x) ?? 0) + 1)
+              rows.set(y, (rows.get(y) ?? 0) + 1)
+            }
+          }
+          const differ = cls.length - counts[BLACK]
+          return {
+            out,
+            W,
+            H,
+            n: '—',
+            gray: differ,
+            columns: positions(columns) || 'none',
+            rows: positions(rows) || 'none',
+            verdict: differ ? `diff: ${differ} px disagree` : 'diff: identical',
+            kind: 'diff',
+          }
+        }
+
+        // A dither: every interior run along a row or column is n device px.
+        // The first and last run of each line are cut by the selection.
+        const hist = new Map()
+        const tally = (runs) => {
+          for (let k = 1; k < runs.length - 1; k++) {
+            const [, length, c] = runs[k]
+            if (c !== GRAY) hist.set(length, (hist.get(length) ?? 0) + 1)
+          }
+        }
+        for (let y = 0; y < H; y++) tally(runsOf((x) => cls[y * W + x], W))
+        for (let x = 0; x < W; x++) tally(runsOf((y) => cls[y * W + x], H))
+        if (!hist.size) return { error: 'Too small to find a run length — take a bigger region.' }
+        const n = [...hist].sort((p, q) => q[1] - p[1])[0][0]
+
+        const mark = new Uint8Array(W * H) // bit 1: row anomaly, bit 2: column anomaly
+        const columns = new Map()
+        const rows = new Map()
+        for (let y = 0; y < H; y++) {
+          const runs = runsOf((x) => cls[y * W + x], W)
+          for (let k = 1; k < runs.length - 1; k++) {
+            const [start, length, c] = runs[k]
+            if (c !== GRAY && length === n) continue
+            columns.set(start, (columns.get(start) ?? 0) + 1)
+            for (let x = start; x < start + length; x++) mark[y * W + x] |= 1
+          }
+        }
+        for (let x = 0; x < W; x++) {
+          const runs = runsOf((y) => cls[y * W + x], H)
+          for (let k = 1; k < runs.length - 1; k++) {
+            const [start, length, c] = runs[k]
+            if (c !== GRAY && length === n) continue
+            rows.set(start, (rows.get(start) ?? 0) + 1)
+            for (let y = start; y < start + length; y++) mark[y * W + x] |= 2
+          }
+        }
+        for (let i = 0; i < cls.length; i++) {
+          if (cls[i] === GRAY) paint(i, 255, 0, 0)
+          else if (mark[i] === 3) paint(i, 255, 0, 255)
+          else if (mark[i] === 1) paint(i, 255, 170, 0)
+          else if (mark[i] === 2) paint(i, 0, 187, 255)
+          else if (cls[i] === WHITE) paint(i, 80, 80, 80)
+          else paint(i, 0, 0, 0)
+        }
+        const clean = counts[GRAY] === 0 && columns.size === 0 && rows.size === 0
+        return {
+          out,
+          W,
+          H,
+          n,
+          gray: counts[GRAY],
+          columns: positions(columns) || 'none',
+          rows: positions(rows) || 'none',
+          verdict: clean ? 'clean' : 'NOT clean',
+          kind: 'dither',
+        }
+      }
+
+      function defaultLabel() {
+        const zoom = Math.round(getZoom() * 100)
+        const tile =
+          state.mode === 'repeat'
+            ? ` T=${state.tx} ${state.texels === 'device' ? `${state.encodedAt}x-texels` : '1x-texels'}` +
+              (state.rendering === 'pixelated' ? '' : ` ${state.rendering}`)
+            : ''
+        const diff = state.diff ? ' diff' : ''
+        return `${ENGINE} ${zoom}% dpr ${window.devicePixelRatio} ${state.mode}${diff}${tile} ${state.pattern}`
+      }
+
+      async function analyzeFile(file) {
+        if (!file || !file.type.startsWith('image/')) return
+        const bitmap = await createImageBitmap(file)
+        const scratch = document.createElement('canvas')
+        scratch.width = bitmap.width
+        scratch.height = bitmap.height
+        const ctx = scratch.getContext('2d', { willReadFrequently: true })
+        ctx.drawImage(bitmap, 0, 0)
+        const result = analyze(ctx.getImageData(0, 0, bitmap.width, bitmap.height))
+        const dialog = $('results')
+        if (!dialog.open) dialog.showModal()
+        if (result.error) {
+          $('summary').textContent = result.error
+          return
+        }
+        const label = defaultLabel()
+        $('label').value = label
+        const shot = $('shot')
+        shot.width = result.W
+        shot.height = result.H
+        shot.style.width = `${result.W / window.devicePixelRatio}px`
+        shot.getContext('2d').putImageData(result.out, 0, 0)
+        $('key').hidden = result.kind !== 'dither'
+        const expected = devicePxPerSystemPx(truePixelRatio())
+        $('summary').textContent =
+          result.kind === 'diff'
+            ? `${result.W}×${result.H} image px, a diff: ${result.verdict}\n` +
+              `columns (x, rows): ${result.columns}\nrows (y, columns): ${result.rows}`
+            : `${result.W}×${result.H} image px · runs of ${result.n} device px ` +
+              `(this page expects ${expected}) · ${result.gray} gray px → ${result.verdict}\n` +
+              `bad columns (x, rows spanned): ${result.columns}\n` +
+              `bad rows (y, columns spanned): ${result.rows}`
+        const tr = document.createElement('tr')
+        for (const text of [
+          label,
+          `${result.W}×${result.H}`,
+          result.n,
+          result.gray,
+          result.columns,
+          result.rows,
+          result.verdict,
+        ]) {
+          const td = document.createElement('td')
+          td.textContent = String(text)
+          tr.appendChild(td)
+        }
+        tr.firstElementChild.contentEditable = 'true'
+        $('rows').appendChild(tr)
+        $('label').oninput = () => (tr.firstElementChild.textContent = $('label').value)
+      }
+
+      document.addEventListener('paste', (e) => {
+        const isImage = (x) => x.type.startsWith('image/')
+        const file =
+          [...(e.clipboardData?.files ?? [])].find(isImage) ??
+          [...(e.clipboardData?.items ?? [])].find(isImage)?.getAsFile()
+        if (!file) return
+        e.preventDefault()
+        analyzeFile(file)
+      })
+      window.addEventListener('dragover', (e) => e.preventDefault())
+      window.addEventListener('drop', (e) => {
+        e.preventDefault()
+        analyzeFile(e.dataTransfer?.files?.[0])
+      })
+      $('file').addEventListener('change', (e) => {
+        analyzeFile(e.target.files?.[0])
+        e.target.value = ''
+      })
+      $('open').addEventListener('click', () => $('results').showModal())
+      $('clear').addEventListener('click', () => ($('rows').innerHTML = ''))
+      $('copy').addEventListener('click', () => {
+        const cells = (tr) => [...tr.children].map((c) => c.textContent.trim())
+        const line = (xs) => `| ${xs.join(' | ')} |`
+        const head = cells(document.querySelector('#results thead tr'))
+        const md = [
+          line(head),
+          line(head.map(() => '---')),
+          ...[...$('rows').children].map((tr) => line(cells(tr))),
+        ].join('\n')
+        navigator.clipboard.writeText(md)
+      })
+    </script>
+  </body>
+</html>

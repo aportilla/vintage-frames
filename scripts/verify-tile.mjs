@@ -21,9 +21,10 @@
  *   interior seams — measured here as ZERO impure pixels at every density,
  *   including 1.7 and 2.3 (scales 20/17 and 30/23, the emulated proxy for
  *   Safari's broken zoom rungs; real ⌘± cannot be driven headlessly). The
- *   desktop's raster is its screen's own background since the pattern fill
- *   (src/pattern-fill.ts, `background: true` below); the others remain
- *   `.vf-tile-raster` children.
+ *   desktop is the exception: its screen's own background is the pattern
+ *   fill (src/pattern-fill.ts, `background: true` below), a repeating tile
+ *   drawn at device resolution; the others remain `.vf-tile-raster`
+ *   children.
  *
  * - CONSUMER pattern tokens render as a flat grid of absolutely placed tiles
  *   at the token's documented 30/60-px tile geometry. Each tile's box is one
@@ -108,8 +109,9 @@ const SURFACES = [
     motif: { w: 2, h: 2, rects: [[0, 0, 2, 2, '#ffffff'], [0, 0, 1, 1, '#000000'], [1, 1, 1, 1, '#000000']] },
     tile: 30,
     tiles: 48, // ceil(240/30) × ceil(160/30)
-    // The kit path paints the raster as the screen's own background
-    // (src/pattern-fill.ts): its box is the stated background-size.
+    // The kit path paints the pattern fill's repeating tile as the screen's
+    // own background (src/pattern-fill.ts): its box is the stated
+    // background-size.
     background: true,
   },
   {
@@ -434,11 +436,12 @@ for (const dpr of DENSITIES) {
       check(`${s.name}: whole-surface raster rendered`, false, `${s.host} ${s.layer}`)
       continue
     }
-    // The raster box (ceiled to whole tiles where the surface overdraws) must
-    // land on whole device pixels: width in system px times n.
+    // The raster box (ceiled to whole tiles where the surface overdraws), or
+    // the repeating tile, must land on whole device pixels: width in system
+    // px times n.
     const devW = Math.round(raster.w * dpr)
     check(
-      `${s.name}: raster box is whole device px (${devW} = sys × ${n})`,
+      `${s.name}: ${s.background ? 'tile' : 'raster box'} is whole device px (${devW} = sys × ${n})`,
       devW % n === 0 && Math.abs(raster.w * dpr - devW) < dpr * LAYOUT_UNIT + 1e-6,
       `${(raster.w * dpr).toFixed(3)} device px`
     )

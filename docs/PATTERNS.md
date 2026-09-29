@@ -14,7 +14,7 @@ The 38 standard Macintosh patterns — MacPaint's pattern bar, the System file's
 
 A custom value is two hex digits per row, top row first; bit 7 is the leftmost pixel and a set bit is ink — the QuickDraw `Pattern` layout, as ResEdit showed it. Whitespace between bytes and either case are accepted.
 
-The pattern is painted as the box's own background: black ink on a `--vf-white` ground, one whole-surface raster at one image pixel per system pixel, magnified nearest-neighbor — the desktop dither's mechanism, 1-bit at every density and zoom. A declared `width`/`height` sizes the raster; an undeclared axis (`fill-width`, a shrink-wrapped height) is measured. Phase is anchored at the box's top-left corner, so two boxes with the same pattern meeting at an offset that is not a multiple of 8 show a seam.
+The pattern is painted as the box's own background: black ink on a `--vf-white` ground, a CSS repeat of one tile 120 system px square. The tile is drawn at the display's resolution, so the browser copies it 1:1, and it is 1-bit at every density and zoom. It depends only on the pattern and the display, so a box of any size, declared or not, costs the same, and a resize encodes nothing. Phase is anchored at the box's top-left corner, so two boxes with the same pattern meeting at an offset that is not a multiple of 8 show a seam.
 
 - `vf-container`: unset, the container paints nothing. An unrecognized value paints nothing and warns once.
 - `vf-desktop`: `gray-50` by default. An unrecognized value warns once and keeps the dither. A `--vf-desktop-pattern` token override wins over the attribute and renders its tile as a placed grid.

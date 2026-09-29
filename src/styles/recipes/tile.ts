@@ -95,8 +95,9 @@ export function tileRects(rects: readonly TileRect[]): string {
 
 /**
  * The motif tiled over `spanWidth × spanHeight` system px as a RASTER image —
- * a PNG data URI at one image px per system px — for the whole-surface fill a
- * converted tiled surface paints (src/tile-grid.ts).
+ * a PNG data URI at `density` image px per system px (one by default) — for
+ * the whole-surface fill a converted tiled surface paints (src/tile-grid.ts),
+ * and for the pre-scaled tile a pattern fill repeats (src/pattern-fill.ts).
  *
  * A raster because of how engines rasterize a fill's art, not how they place
  * its box. Chromium rasterizes an SVG image at the box's *stored* (layout)
@@ -113,33 +114,41 @@ export function tileRects(rects: readonly TileRect[]): string {
  * out as a data URI and released — kit art only, so there is nothing
  * cross-origin to taint). Where canvas is unavailable the SVG tile is
  * returned instead, so the declaration still paints.
+ *
+ * `density` draws each system px as a `density × density` block of whole
+ * image px. An image drawn at the device px per system px it will be shown
+ * at is copied 1:1 onto the device grid, so no engine's image filter has
+ * anything to decide — Safari smooths a magnified image on its repeating
+ * path whatever `image-rendering` says. It is still one pattern bit per
+ * system px; only who scales it changes.
  */
 export function tileRaster(
   motifWidth: number,
   motifHeight: number,
   rects: readonly TileRect[],
   spanWidth = tileSpan(motifWidth),
-  spanHeight = tileSpan(motifHeight)
+  spanHeight = tileSpan(motifHeight),
+  density = 1
 ): string {
   const svg = () => tileImage(motifWidth, motifHeight, tileRects(rects), spanWidth, spanHeight)
   if (typeof document === 'undefined') return svg()
   const cell = document.createElement('canvas')
-  cell.width = motifWidth
-  cell.height = motifHeight
+  cell.width = motifWidth * density
+  cell.height = motifHeight * density
   const cellCtx = cell.getContext('2d')
   if (!cellCtx) return svg()
   for (const [x, y, w, h, fill] of rects) {
     cellCtx.fillStyle = fill ?? '#000000'
-    cellCtx.fillRect(x, y, w, h)
+    cellCtx.fillRect(x * density, y * density, w * density, h * density)
   }
   const canvas = document.createElement('canvas')
-  canvas.width = spanWidth
-  canvas.height = spanHeight
+  canvas.width = spanWidth * density
+  canvas.height = spanHeight * density
   const ctx = canvas.getContext('2d')
   const pattern = ctx?.createPattern(cell, 'repeat')
   if (!ctx || !pattern) return svg()
   ctx.fillStyle = pattern
-  ctx.fillRect(0, 0, spanWidth, spanHeight)
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
   return `url("${canvas.toDataURL('image/png')}")`
 }
 

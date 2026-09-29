@@ -23,8 +23,7 @@ import type { ReactiveController, ReactiveControllerHost } from 'lit'
  * runs on every update.
  *
  * The height comes along from the same observation, for a box measured on
- * both axes: `PatternFillController` (src/pattern-fill.ts) sizes a pattern
- * raster to a box whose extent nobody declared.
+ * both axes.
  */
 export class TrackWidthController implements ReactiveController {
   private resizeObserver?: ResizeObserver

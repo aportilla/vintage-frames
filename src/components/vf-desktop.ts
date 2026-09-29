@@ -129,8 +129,8 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * default, any of the 38 standard patterns (docs/PATTERNS.md), or sixteen
  * hex digits stating a custom 8×8 pattern, as on `vf-container`. It is
  * painted as the screen's own background: black ink on an opaque white
- * paper, one whole-surface raster at one image px per system px, 1-bit at
- * every density and zoom (src/pattern-fill.ts).
+ * paper, a repeating tile drawn at the display's resolution, 1-bit at every
+ * density and zoom (src/pattern-fill.ts).
  *
  * **The drag surface.** The Finder dragged an icon as a dotted outline drawn
  * on the *screen*, clipped at its edge and phase-locked to its raster, so
@@ -220,10 +220,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
            dither — and shows only through a consumer token's translucent
            tile (see the --vf-desktop note in the class doc). The pattern
            itself is this element's own background, written by the
-           PatternFillController: one whole-surface raster at one image px
-           per system px, magnified nearest-neighbor, which is what keeps it
-           1-bit at the zoom-minted scales a repeating fill cannot hold
-           (src/tile-grid.ts, src/pattern-fill.ts). */
+           PatternFillController: a 120-system-px tile drawn at the device
+           resolution it is shown at and repeated, so every engine copies it
+           1:1 (src/pattern-fill.ts). */
         background-color: var(--vf-desktop, #808080);
         /* Forced colors: the pattern is literal black ink on white, which
            ignores a dark theme entirely. A backdrop is decoration, and
@@ -441,17 +440,12 @@ export class VfDesktop extends VfPositioned(LitElement) {
 
   /**
    * The desktop pattern, painted as the screen's own background
-   * (src/pattern-fill.ts) from the declared raster — scale-independent, so
-   * density and zoom re-encode nothing — and silent while a consumer token
-   * owns the fill.
+   * (src/pattern-fill.ts) — a repeating tile, so resizing the screen
+   * re-encodes nothing — and silent while a consumer token owns the fill.
    */
   private readonly patternFill = new PatternFillController(this, {
     getBox: () => this.screen,
     getPattern: () => (this._token ? null : this._desktopPattern),
-    getSize: () => ({
-      width: this.width ?? DEFAULT_SCREEN_WIDTH,
-      height: this.height ?? DEFAULT_SCREEN_HEIGHT,
-    }),
   })
 
   /** Monotonic z-index counter for window stacking. */
@@ -909,12 +903,12 @@ export class VfDesktop extends VfPositioned(LitElement) {
 
   protected override render(): unknown {
     // The kit pattern is the screen's own background, painted by the
-    // PatternFillController from the declared raster. A consumer token's
-    // fill is the placed tile grid at the token's documented 30-px tile
-    // geometry, its count from that same declared raster (the ?? fallbacks
-    // updated() applies) — scale-independent, so density and zoom changes
-    // re-render nothing; every length is live against --vf-scale. See
-    // src/tile-grid.ts and src/pattern-fill.ts for why each path is exact.
+    // PatternFillController. A consumer token's fill is the placed tile grid
+    // at the token's documented 30-px tile geometry, its count from the
+    // declared raster (the ?? fallbacks updated() applies) —
+    // scale-independent, so density and zoom changes re-render nothing;
+    // every length is live against --vf-scale. See src/tile-grid.ts and
+    // src/pattern-fill.ts for why each path is exact.
     const w = this.width ?? DEFAULT_SCREEN_WIDTH
     const h = this.height ?? DEFAULT_SCREEN_HEIGHT
     const fill = this._token

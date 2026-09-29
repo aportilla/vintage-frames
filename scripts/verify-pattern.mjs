@@ -13,11 +13,14 @@
  *    restated here as data, so the equivalence outlives the constants.
  * 3. A declared container is 1-bit at all eight densities — the ladder plus
  *    1.7 and 2.3, the emulated stand-ins for Safari's zoom-minted scales —
- *    its raster a whole count of device px, its ink the pattern's density;
- *    a hex literal paints byte-identically to the name it spells; a slotted
- *    image is NOT pixelated by the box's own nearest-neighbor setting.
- * 4. A measured container (fill-width, shrink-wrapped height) covers its
- *    box, re-encodes when the box grows, and stays 1-bit.
+ *    its fill a repeating 120-system-px tile drawn at n image px per system
+ *    px (120n device px, copied 1:1), its ink the pattern's density; a hex
+ *    literal paints byte-identically to the name it spells; a slotted image
+ *    is NOT pixelated by the box's own nearest-neighbor setting; boxes with
+ *    the same pattern share one tile; a `--vf-scale` override gets the tile
+ *    for its own n, and a changed one is picked up on the next update.
+ * 4. A container nobody sized (fill-width, shrink-wrapped height) is
+ *    covered, and growing it re-encodes nothing.
  * 5. An unpatterned container paints nothing; unsetting the attribute
  *    unwinds everything the fill wrote.
  * 6. An unrecognized value warns once per element and paints nothing.
@@ -66,18 +69,32 @@ async function setPattern(page, id, value) {
   await frames(page)
 }
 
-/** The container's shadow box: its computed background and the fill's footprint. */
+/**
+ * The container's shadow box: its computed background, the tile the fill
+ * wrote (`tile`, the raw property value) and that image's pixel width.
+ */
 const boxStyle = (page, id) =>
-  page.evaluate((id) => {
+  page.evaluate(async (id) => {
     const box = document.querySelector(id).shadowRoot.querySelector('.box')
     const cs = getComputedStyle(box)
+    const tile = box.style.getPropertyValue('--_vf-pattern-image')
+    let natural = 0
+    const url = /^url\("(.*)"\)$/.exec(tile)?.[1]
+    if (url) {
+      const img = new Image()
+      img.src = url
+      await img.decode()
+      natural = img.naturalWidth
+    }
     return {
       size: cs.backgroundSize.split(' ').map(parseFloat),
+      repeat: cs.backgroundRepeat,
       image: cs.backgroundImage.startsWith('url("data:image/png'),
       rendering: cs.imageRendering,
       patterned: box.classList.contains('vf-patterned'),
-      inlineImage: box.style.getPropertyValue('--_vf-pattern-image') !== '',
-      inlineSize: box.style.getPropertyValue('--_vf-pattern-size'),
+      inlineImage: tile !== '',
+      tile,
+      natural,
     }
   }, id)
 
@@ -270,16 +287,22 @@ for (const dpr of DENSITIES) {
   const page = await build(DECLARED, { dpr })
   const n = devicePxPerSystemPxAt(dpr)
   const s = await boxStyle(page, '#c')
-  // 120×72 declared → ceiled to whole cells plus one of overdraw: 128×80.
+  // Whatever the box: a 120-system-px tile, repeated, its image drawn at the
+  // n device px per system px it is shown at. The stored length may be off
+  // by the layout grid's quantum (1/64 CSS px) at an unholdable scale.
   const [bw, bh] = s.size
+  const quantum = dpr / 64 + 1e-6
   check(
-    `dpr ${dpr}: the raster is 128×80 system px = ${128 * n}×${80 * n} device px, pixelated`,
+    `dpr ${dpr}: the tile is 120 system px = ${120 * n} device px, a ${120 * n}-px image, repeated, pixelated`,
     s.patterned &&
       s.image &&
+      s.repeat === 'repeat' &&
       s.rendering === 'pixelated' &&
-      Math.abs(bw * dpr - 128 * n) < 0.01 &&
-      Math.abs(bh * dpr - 80 * n) < 0.01,
-    `${(bw * dpr).toFixed(3)}×${(bh * dpr).toFixed(3)} device px, ${s.rendering}`
+      s.natural === 120 * n &&
+      Math.abs(bw * dpr - 120 * n) < quantum &&
+      Math.abs(bh * dpr - 120 * n) < quantum,
+    `${(bw * dpr).toFixed(3)}×${(bh * dpr).toFixed(3)} device px, image ${s.natural} px, ` +
+      `${s.repeat}, ${s.rendering}`
   )
   const png = decodePng(await page.locator('#c').screenshot())
   const { impure, counted, ink } = interior(png)
@@ -317,34 +340,58 @@ for (const dpr of DENSITIES) {
     rendering.box === 'pixelated' && rendering.img === 'auto',
     `box ${rendering.box}, img ${rendering.img}`
   )
+  const [sa, sb] = [await boxStyle(page, '#a'), await boxStyle(page, '#b')]
+  const sp = await boxStyle(page, '#p')
+  check(
+    'boxes with the same pattern share one tile; another pattern gets its own',
+    sa.tile !== '' && sa.tile === sb.tile && sp.tile !== sa.tile
+  )
   await page.close()
 }
 
-// ── 4. a measured container ────────────────────────────────────────────────
+// ── 3b. a --vf-scale override ──────────────────────────────────────────────
+{
+  const page = await build(
+    '<div id="w" style="--vf-scale:1"><vf-container id="o" width="64" height="40" ' +
+      'pattern="gray-50"></vf-container></div>',
+    { dpr: 2 }
+  )
+  const s1 = await boxStyle(page, '#o')
+  const i1 = interior(decodePng(await page.locator('#o').screenshot()))
+  check(
+    '--vf-scale 1 at dpr 2 gets the tile for n = 2 (a 240-px image over 240 device px), 1-bit',
+    s1.natural === 240 && Math.abs(s1.size[0] * 2 - 240) < 1e-6 && i1.impure === 0,
+    `image ${s1.natural} px over ${s1.size[0] * 2} device px, ${i1.impure}/${i1.counted} impure`
+  )
+  await page.evaluate(() => {
+    document.querySelector('#w').style.setProperty('--vf-scale', '1.5')
+    document.querySelector('#o').requestUpdate()
+  })
+  await page.evaluate(() => document.querySelector('#o').updateComplete)
+  await frames(page)
+  const s2 = await boxStyle(page, '#o')
+  check(
+    'a changed override is picked up on the next update (n = 3, a 360-px image)',
+    s2.natural === 360 && Math.abs(s2.size[0] * 2 - 360) < 1e-6,
+    `image ${s2.natural} px over ${s2.size[0] * 2} device px`
+  )
+  await page.close()
+}
+
+// ── 4. a container nobody sized ────────────────────────────────────────────
 {
   const page = await build(
     '<div id="wrap" style="width:200px"><vf-container id="m" fill-width pattern="gray-50">' +
       '<div style="height:40px"></div></vf-container></div>',
     { dpr: 2 }
   )
-  // The observer's first measurement lands in a second update.
-  await page.evaluate(() => document.querySelector('#m').updateComplete)
-  await frames(page)
   const s1 = await boxStyle(page, '#m')
-  const host = await page.evaluate(() => {
-    const r = document.querySelector('#m').getBoundingClientRect()
-    return { w: r.width, h: r.height }
-  })
+  const png1 = decodePng(await page.locator('#m').screenshot())
+  const i1 = interior(png1)
   check(
-    'a measured fill covers the box it was given (fill-width in 200 CSS px, 40 tall)',
-    s1.patterned && s1.size[0] >= host.w && s1.size[1] >= host.h,
-    `raster ${s1.size[0]}×${s1.size[1]} CSS px over ${host.w}×${host.h}`
-  )
-  const i1 = interior(decodePng(await page.locator('#m').screenshot()))
-  check(
-    '…and rasterizes 1-bit at 50% ink',
-    i1.impure === 0 && Math.abs(i1.ink - 0.5) < 0.02,
-    `${i1.impure}/${i1.counted} impure, ${(i1.ink * 100).toFixed(1)}% ink`
+    'a fill-width container 200 CSS px wide is covered, 1-bit at 50% ink',
+    s1.patterned && png1.width === 400 && i1.impure === 0 && Math.abs(i1.ink - 0.5) < 0.02,
+    `shot ${png1.width} wide, ${i1.impure}/${i1.counted} impure, ${(i1.ink * 100).toFixed(1)}% ink`
   )
   await page.evaluate(() => {
     document.querySelector('#wrap').style.width = '300px'
@@ -356,9 +403,13 @@ for (const dpr of DENSITIES) {
   const png2 = decodePng(await page.locator('#m').screenshot())
   const i2 = interior(png2)
   check(
-    'a grown box re-encodes to cover the new width, still 1-bit',
-    s2.size[0] >= 300 && s2.size[0] > s1.size[0] && i2.impure === 0 && png2.width === 600,
-    `raster ${s2.size[0]}×${s2.size[1]} CSS px, shot ${png2.width} wide, ${i2.impure} impure`
+    'growing it re-encodes nothing (the same tile) and the new width is covered, 1-bit',
+    s2.tile === s1.tile &&
+      png2.width === 600 &&
+      i2.impure === 0 &&
+      Math.abs(i2.ink - 0.5) < 0.02,
+    `same tile ${s2.tile === s1.tile}, shot ${png2.width} wide, ${i2.impure} impure, ` +
+      `${(i2.ink * 100).toFixed(1)}% ink`
   )
   await page.close()
 }
@@ -387,12 +438,11 @@ for (const dpr of DENSITIES) {
   await setPattern(page, '#u', null)
   const s2 = await boxStyle(page, '#u')
   check(
-    'unsetting the pattern unwinds the fill — class, inline properties and paint',
+    'unsetting the pattern unwinds the fill — class, inline property and paint',
     !s2.patterned &&
       !s2.inlineImage &&
-      s2.inlineSize === '' &&
       allPixels(decodePng(await page.locator('#u').screenshot()), MAGENTA),
-    `patterned ${s2.patterned}, inline image ${s2.inlineImage}, size "${s2.inlineSize}"`
+    `patterned ${s2.patterned}, inline image ${s2.inlineImage}`
   )
   await page.close()
 }

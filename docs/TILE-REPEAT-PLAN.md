@@ -1,9 +1,9 @@
 # Tile repeat plan
 
-**Status (2026-09-29):** investigated in real browsers, iPhone included
-(the iOS Simulator, below): the tile is a pre-scaled 120-system-px square,
-not the motif. The probe page `tile-repeat-probe.html` is new and
-uncommitted. Delete this doc when the work ships, as with the earlier plans.
+**Status (2026-09-29):** built and committed (steps 1–4 below); only the
+release is left. Every kit surface repeats a pre-scaled 120-system-px tile,
+checked in Chrome, Firefox and Safari on the Mac and in the iOS Simulator.
+Delete this doc when the work ships, as with the earlier plans.
 
 ## The problem
 
@@ -159,24 +159,23 @@ One tile everywhere is simpler than a per-engine choice.
    included: 0 off. SPEC, SIZING (now § Tiled fills), THREE-X-DISPLAYS,
    TOOLKIT and DEVELOPING are updated, and the manifest regenerated. Adam
    checked Chrome, Firefox and Safari on the Mac: good.
-4. **Headless tests**, adapted to match what real browsers showed:
-   - Check that every run of black and white is exactly n device px, not
-     just that there's no gray. A doubled column is pure black and white,
-     so `impureIn` can't see it.
-   - Run Chromium and Firefox at display density (`browserAt` /
-     `real: true`), and WebKit.
-   - Headless can't reproduce Safari's smoothing, so no test would have
-     caught it and none will catch a regression to it. Commit the probe
-     page as the manual Safari check and add a line for it in
-     `docs/DEVELOPING.md`.
-   - `verify:pattern` and `verify:tile` currently assert zero gray at
-     emulated densities, 1.7 and 2.3 included. Rework them rather than
-     adding a third script.
-5. **Docs and release:** SIZING (the tile grid section), PATTERNS, TOOLKIT
-   rows for the tile exports, the comments in `src/tile-grid.ts`,
-   `src/pattern-fill.ts`, `src/styles/recipes/tile.ts` and `vf-desktop.ts`.
-   Run `npm run analyze` and commit the regenerated manifest and editor
-   files. Publishing is Adam's.
+4. ~~**Headless tests**~~ — settled 2026-09-29 without expanding them
+   (Adam: don't over-index on headless testing). `verify:pattern` and
+   `verify:tile` assert each surface's tile geometry (120n device px, a
+   120n-px image, repeated) and zero gray; the probe is committed as the
+   real-browser check, with a line in `docs/DEVELOPING.md`. A trial of a
+   pixel-by-pixel art comparison (which would also catch a doubled column)
+   found Chromium at display density exact on every surface at 1–3×.
+   Playwright WebKit on macOS was off in one column at the first 120n seam
+   at 1.25, 1.5, 2.5 and 3×, where iOS Safari drew those seams exactly, so
+   it isn't evidence for Safari either way; Playwright Firefox would not
+   launch in the agent's sandbox. Neither was added to the suite.
+5. **Release:** the docs, comments and manifest are done. The removals
+   (`TileRasterCache`, `.vf-tile-raster`, `PatternFillOptions.getSize`,
+   `PatternFillController.size`) are breaking, so the next version is
+   0.13.0. Publishing is Adam's. Delete this doc when the work ships,
+   and point its references (SPEC *Tiled fills*, `src/tile-grid.ts`,
+   `scripts/verify-tile.mjs`) at git history.
 
 ## Decided
 

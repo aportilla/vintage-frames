@@ -29,7 +29,7 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
   strikes**, built from the plaintext manifests `fonts/VF-*.glyphs.txt` by
   `fonts/manifest-to-font.py`. Credit Susan Kare and Apple as the original
   designers; never describe them as Apple's files. **No Apple artwork lives in
-  this repo** — the imported strike collection moved to the system7web repo
+  this repo** — the imported strike collection moved to the SystemOnline repo
   on 2026-08-11, so `fonts/` is now the kit's own work end to end. The 38
   standard patterns (`src/patterns.ts`) are 8-byte bitmaps transcribed from
   a screen capture that stays out of the repo, credited to Apple and MacPaint
@@ -72,4 +72,4 @@ regenerated files with the change.
 - `index.html` is the **component reference** (`demo/examples.ts`), and the
   root of the site at vintage-frames.portill.io (Cloudflare builds it from
   `main` with `npm run build:pages`). The faux System 7 desktop is not here — it
-  lives in the sibling **system7web** repo and consumes this package from npm.
+  lives in the sibling **system-online** repo and consumes this package from npm.

@@ -36,7 +36,7 @@ import { ORIGIN, browserAt, closeBrowsers, heartbeat } from './harness.mjs'
 // never moves (the correction lands inside the shadow root) — so snapping
 // cannot paper over the ORIGIN faults this script exists to catch, and the
 // page is loaded plain. (`/` is the component reference since the faux
-// desktop moved to the system7web repo.)
+// desktop moved to the SystemOnline repo.)
 const PAGES = (process.env.VF_GRID_PAGES ?? '/').split(',')
 const DENSITIES = (process.env.VF_GRID_DPR ?? '1,1.5,2,2.5,3').split(',').map(Number)
 

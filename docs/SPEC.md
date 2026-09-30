@@ -512,7 +512,7 @@ The container a field of `vf-icon`s sits in — a desktop's icons, a folder wind
 
 ## 7. The faux desktop (moved out)
 
-The full-viewport System 7 desktop that used to close this spec — menu bar, nine windows, the composed alert, the utility palette, the Finder icons — is no longer part of this repo. It lives in **[aportilla/system7web](https://github.com/aportilla/system7web)** and consumes `vintage-frames` from npm, so it exercises the same published API a consumer gets rather than reaching into `src/`. Its clause-by-clause spec moved with it, to that repo's `docs/SPEC.md`.
+The full-viewport System 7 desktop that used to close this spec — menu bar, nine windows, the composed alert, the utility palette, the Finder icons — is no longer part of this repo. It lives in **[aportilla/system-online](https://github.com/aportilla/system-online)** and consumes `vintage-frames` from npm, so it exercises the same published API a consumer gets rather than reaching into `src/`. Its clause-by-clause spec moved with it, to that repo's `docs/SPEC.md`.
 
 What the kit keeps as its own demo surface is `index.html`, the component reference (every element, its API, a live specimen of each state). See [DEVELOPING.md](DEVELOPING.md).
 

@@ -19,7 +19,7 @@ before anything is written.
 
 Byte-reproducible: the builder replays the exact construction that made the
 shipped binaries — the strike importer's FontBuilder recipe (same table set,
-constants and call order; import-bdf.py moved to the system7web repo with
+constants and call order; import-bdf.py moved to the SystemOnline repo with
 the imported collection) and the same rect-run glyph rasterisation (bmp(),
 inherited from the retired add-glyphs.py). What earlier builds computed
 over the glyph set (x_avg_char_width,

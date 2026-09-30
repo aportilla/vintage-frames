@@ -38,7 +38,7 @@
 import { ORIGIN, browserAt, closeBrowsers, heartbeat, launch } from './harness.mjs'
 
 // (`/` is the component reference since the faux desktop moved to the
-// system7web repo.)
+// SystemOnline repo.)
 const PAGES = (process.env.VF_SNAP_PAGES ?? '/').split(',')
 const DENSITIES = (process.env.VF_SNAP_DPR ?? '1,2,3').split(',').map(Number)
 

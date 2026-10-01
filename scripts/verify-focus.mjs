@@ -50,6 +50,9 @@
  *    no focus event to read the modality at, and the control has to drop the
  *    mark from its own pointerdown.
  *  - PRESSED: currentColor inverts the rule to white on the black face.
+ *  - A PAGE'S OWN BOX: a vf-container the page makes focusable (a pattern
+ *    cell as a radio, a ruled box) wears the rule below it on Tab, with no
+ *    ring, and nothing on a mouse click.
  *  - The controls with no face to carry the mark keep the dotted ring, so
  *    vf-scroll-area is checked as the canary.
  *
@@ -725,6 +728,53 @@ for (const [tag, markup, frame, shadow] of [
     const reclosed = await shoot(clickPage, 'x', frame, frame, BELOW_PAD)
     check(`${tag}: Escape closes it and the rule comes back`, reclosed.drawn)
   }
+  await clickPage.close()
+}
+
+// ── a page's own focusable box: the rule goes UNDER it ────────────────────
+// A vf-container the page makes focusable — a pattern chooser's cells as
+// radios — wears the kit's mark rather than the browser's ring, below the
+// box as vf-swatch's does: the box is nothing but fill. A patterned cell and
+// a ruled box, whose stroke is the ink right above the blank row.
+for (const [tag, markup] of [
+  [
+    'vf-container (a pattern cell)',
+    '<vf-container id="x" pattern="black" width="16" height="16" tabindex="0" role="radio" aria-label="black"></vf-container>',
+  ],
+  ['vf-container (a ruled box)', '<vf-container id="x" rule="top right bottom left" width="40" height="20" tabindex="0"></vf-container>'],
+]) {
+  const page = await build(markup)
+  await page.keyboard.press('Tab')
+  const s = await shoot(page, 'x', '.box', '.box', BELOW_PAD)
+  check(`${tag}: Tab draws the rule`, s.drawn)
+  check(`${tag}: no outline left on the host`, s.hostOutline === 'none', `host=${s.hostOutline}`)
+  const groups = bands(s, isBlack, { inset: 0 })
+  const [ink, rule] = groups.length === 2 ? groups : [[], []]
+  check(`${tag}: two ink bands — the box, then the rule`, groups.length === 2, `found ${groups.length}`)
+  check(`${tag}: the rule is 1 system px tall`, rule.length === S, `${rule.length} device px`)
+  check(
+    `${tag}: one blank system px row separates it from the box, below the box's bottom edge`,
+    rule.length ? rule[0] - (ink[ink.length - 1] + 1) === S && rule[0] - (s.y0 + s.h) === S : false,
+    rule.length ? `gap=${(rule[0] - (ink[ink.length - 1] + 1)) / S}, below=${(rule[0] - (s.y0 + s.h)) / S}` : ''
+  )
+  const dashes = rule.length ? runs(s.png, rule[0], s.ruleX0, s.ruleX1, isBlack) : []
+  check(
+    `${tag}: 1 system px on, 1 off, across the box`,
+    dashes.length >= 4 &&
+      dashes.every(([a, b]) => b - a === S) &&
+      dashes.every(([a], i) => i === 0 || a - dashes[i - 1][1] === S) &&
+      Math.abs(dashes[0][0] - s.ruleX0) <= 1 &&
+      s.ruleX1 - dashes[dashes.length - 1][1] <= S + 1,
+    `${dashes.length} dashes, box=${s.ruleX0}..${s.ruleX1}`
+  )
+  await page.close()
+
+  // A mouse click focuses it and draws nothing.
+  const clickPage = await build(markup)
+  await clickPage.locator('#x').click()
+  const focused = await clickPage.evaluate(() => document.activeElement?.id === 'x')
+  const clicked = await shoot(clickPage, 'x', '.box', '.box', BELOW_PAD)
+  check(`${tag}: a mouse click focuses it and leaves it unmarked`, focused && !clicked.drawn)
   await clickPage.close()
 }
 

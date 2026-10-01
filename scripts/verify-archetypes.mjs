@@ -26,6 +26,8 @@
  *    dropped menu hit-tests over a palette it overlaps — before and after
  *    the palette restacks — as it does over a document window; a
  *    free-standing vf-menu slotted into the desktop rides the same tier.
+ *  - END SLOT: a label in the bar's `end` slot sits, pixel for pixel, where
+ *    the page recipe the sites wrote for their clocks put it.
  *  - EDGE RAILS: scrollbars="both" reproduces the TeachText composition —
  *    the built-in scroll area sits flush on the frame with the grow box in
  *    the rail corner.
@@ -588,6 +590,38 @@ function decodePng(buf) {
   await page.evaluate(() => document.getElementById('lone').updateComplete)
   check('closed, the same point hits the second palette',
     q !== null && (await hit(q)) === 'pal2', q && (await hit(q)))
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   4c. END SLOT — the bar's right end, where a clock goes
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  // The page recipe every site wrote for its clock, beside the slot that
+  // replaces it: the two bars must render the same pixels.
+  const menu = '<vf-menu label="File"><vf-menu-item value="x">X</vf-menu-item></vf-menu>'
+  const page = await build(`
+    <div style="width:600px">
+      <vf-menu-bar id="recipe">${menu}<vf-label id="clockA" style="margin-inline-start:auto;margin-inline-end:calc(var(--vf-scale, 1) * 9px);--vf-label-line-height:20px">12:00 PM</vf-label></vf-menu-bar>
+      <vf-menu-bar id="slotted">${menu}<vf-label id="clockB" slot="end">12:00 PM</vf-label></vf-menu-bar>
+    </div>
+  `, { settle: true })
+  const geom = await page.evaluate(() => {
+    const at = (bar, label) => {
+      const b = document.getElementById(bar).getBoundingClientRect()
+      const l = document.getElementById(label).getBoundingClientRect()
+      return { x: l.left - b.left, y: l.top - b.top, w: l.width, h: l.height, inset: b.right - l.right }
+    }
+    return { recipe: at('recipe', 'clockA'), slotted: at('slotted', 'clockB') }
+  })
+  check('a label in the end slot sits where the page recipe put the clock, 9px in from the end',
+    JSON.stringify(geom.recipe) === JSON.stringify(geom.slotted) && near(geom.slotted.inset, 9 * S),
+    JSON.stringify(geom))
+  const [a, b] = await Promise.all([
+    page.locator('#recipe').screenshot(),
+    page.locator('#slotted').screenshot(),
+  ])
+  check('…and the two bars render the same pixels', a.equals(b), `${a.length} / ${b.length} bytes`)
   await page.close()
 }
 

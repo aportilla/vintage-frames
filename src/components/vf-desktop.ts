@@ -3,6 +3,7 @@ import { property, query, queryAssignedElements } from 'lit/decorators.js'
 import { emit } from '../events.js'
 import { vfElement } from '../define.js'
 import { VfPositioned, placementIn } from '../position.js'
+import type { PlacementBoundsRequest } from '../position.js'
 import { vfBase } from '../styles/base.js'
 import { tileImage, tileRects, tileSpan } from '../styles/recipes/tile.js'
 import { patternOverride, tileGrid, vfTileGrid } from '../tile-grid.js'
@@ -14,7 +15,7 @@ import {
   type PatternName,
 } from '../patterns.js'
 import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
-import { ScaleController, effectiveScale, sysLength } from '../scale.js'
+import { ScaleController, effectiveScale, sysLength, systemPxQuantum } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
@@ -77,6 +78,9 @@ const DITHER_TILE = tileImage(DITHER.width, DITHER.height, tileRects(DITHER.rect
 /** The dither's tile size in system px (30) — the box each placed tile spans. */
 const DITHER_SPAN = tileSpan(DITHER.width)
 
+/** A slotted window's place in the stack: the z-index the desktop gave it. */
+const zOf = (win: HTMLElement): number => Number(win.style.zIndex) || 0
+
 /**
  * `<vf-desktop>` — the full-bleed classic desktop container.
  *
@@ -112,6 +116,25 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * the classic always-one-active behavior is unchanged. {@link activeWindow}
  * reads the current holder, and every change of holder — including to and
  * from none — fires `vf-activate`.
+ *
+ * **Hidden windows.** A window with `hidden` — closed by a page that hides
+ * its windows rather than removing them, through `vf-window.hide()` or the
+ * attribute itself — never holds the active state. One slotted hidden waits
+ * to be shown; `bringToFront()` on one gives it its place in the stack and
+ * activates nothing; the holder hiding hands the state to the topmost shown
+ * document window, or to none. A window shown into a tier where none is
+ * active, unless the tier was deliberately deactivated, takes it.
+ * {@link stackingOrder} lists the windows as they stand, bottom-most first.
+ *
+ * **The work area.** A slotted `vf-menu-bar` along the top takes its band
+ * off the screen: {@link workArea} is what is left, and the gestures on the
+ * screen stay in it — a window dragged up stops with its title bar under the
+ * bar, where it can still be grabbed, and an icon dropped, nudged or walked
+ * on the desktop lands below the bar. `window-top` deepens the area for
+ * windows alone ({@link windowArea}), for a page with a strip of its own
+ * under the bar. A gesture asks for the box it is clamped into with
+ * `vf-placement-bounds-request` (bubbles, non-composed), the drag surface's
+ * handshake, and the desktop answers for the hosts placed on its screen.
  *
  * The desktop is a raster with an explicit size, always: **`width` and
  * `height`**, in system px, the way a WIND resource declared a window's —
@@ -165,8 +188,8 @@ const DITHER_SPAN = tileSpan(DITHER.width)
  * @fires vf-activate - The active document-tier window changed. Detail
  *   `{ window: HTMLElement | null }` — the new holder, or `null` when the
  *   document tier deactivated (a {@link clearActive} call, or the active
- *   window leaving the DOM with none behind it). Fired once per change of
- *   holder, never for a re-assertion of the same one.
+ *   window leaving the DOM or hiding with no shown window behind it). Fired
+ *   once per change of holder, never for a re-assertion of the same one.
  * @csspart desktop - The patterned screen surface — the whole-system-px
  *   raster (inset by `bezel` when one is set).
  * @cssprop [--vf-desktop=#808080] - base color under the desktop pattern —
@@ -373,6 +396,40 @@ export class VfDesktop extends VfPositioned(LitElement) {
   @property() pattern: string | null | undefined = DEFAULT_PATTERN
 
   /**
+   * The least `top` a window may take, in system px from the screen's top —
+   * for a page that keeps a strip of its own under the menu bar, over the
+   * windows. A window dragged on this desktop stops there, and
+   * {@link windowArea} starts there; icons still stop at the menu bar. Below
+   * the bar's bottom it changes nothing. Unset, windows stop at the bar.
+   */
+  @property({ type: Number, attribute: 'window-top' }) windowTop?: number | null
+
+  /**
+   * The screen less a slotted `vf-menu-bar` along its top edge, in system
+   * px from the screen's corner (the bezel excluded, as for
+   * {@link placementAt}): `{ left, top, width, height }`. The desktop clamps
+   * the gestures on its screen into it — an icon dropped, nudged or walked
+   * on the desktop lands below the menu bar, where it can be grabbed again.
+   * Without a bar it is the whole screen. Measured at the call.
+   */
+  get workArea(): { left: number; top: number; width: number; height: number } {
+    const width = this.width ?? DEFAULT_SCREEN_WIDTH
+    const height = this.height ?? DEFAULT_SCREEN_HEIGHT
+    const top = Math.min(height, this._menuBarFloor())
+    return { left: 0, top, width, height: height - top }
+  }
+
+  /**
+   * {@link workArea}, deepened to {@link windowTop} where that is lower: the
+   * area windows are dragged in. A window's title bar never goes above it.
+   */
+  get windowArea(): { left: number; top: number; width: number; height: number } {
+    const area = this.workArea
+    const top = Math.min(area.top + area.height, Math.max(area.top, this.windowTop ?? 0))
+    return { ...area, top, height: area.top + area.height - top }
+  }
+
+  /**
    * Size the screen to the largest whole-system-px raster whose host box —
    * bezel included — fits a CSS-px bound, and return what was set. The
    * page's half of the sizing contract: it owns the viewport, so it
@@ -470,6 +527,14 @@ export class VfDesktop extends VfPositioned(LitElement) {
   /** Whether a one-shot post-upgrade re-normalization is already pending. */
   private _awaitingUpgrade = false
 
+  /**
+   * Watches each slotted window's `hidden`, which a page may set directly as
+   * well as through `vf-window.hide()`: a hidden window never holds the
+   * active state, so the holder hiding hands it on (see {@link _resolveActive}).
+   * Re-pointed at the windows on every slot change.
+   */
+  readonly #visibility = new MutationObserver(() => this._resolveActive())
+
   /** Whether a pointer gesture that began on the desktop is still in flight. */
   private _pointerGesture = false
 
@@ -494,12 +559,18 @@ export class VfDesktop extends VfPositioned(LitElement) {
     this.addEventListener('pointerdown', this._onPointerDown)
     this.addEventListener('focusin', this._onFocusIn)
     this.addEventListener('vf-drag-surface-request', this._onDragSurfaceRequest)
+    this.addEventListener('vf-placement-bounds-request', this._onBoundsRequest)
+    // Back in the document: the slot fires no slotchange for windows it
+    // already holds, so they are watched again here.
+    if (this.hasUpdated) this._observeWindows()
   }
 
   override disconnectedCallback(): void {
     this.removeEventListener('pointerdown', this._onPointerDown)
     this.removeEventListener('focusin', this._onFocusIn)
     this.removeEventListener('vf-drag-surface-request', this._onDragSurfaceRequest)
+    this.removeEventListener('vf-placement-bounds-request', this._onBoundsRequest)
+    this.#visibility.disconnect()
     // The controller detaches the document listeners; drop the flag with
     // them so a reconnected desktop doesn't sit on a stale deferral.
     this._pointerGesture = false
@@ -510,12 +581,16 @@ export class VfDesktop extends VfPositioned(LitElement) {
     super.disconnectedCallback()
   }
 
-  /** Whether a slotted window belongs to the floating (utility) tier. The
-   *  attribute is the source of truth here so a not-yet-upgraded element
-   *  still lands in the right tier (variant reflects, so an upgraded
-   *  property-set window agrees). */
+  /** Whether a slotted window belongs to the floating (utility) tier: the
+   *  `variant` property where the window has one, else the attribute, so a
+   *  not-yet-upgraded element still lands in the right tier. Not the
+   *  attribute alone — it reflects in the window's next update, after a
+   *  window made by script and appended in the same task has been slotted,
+   *  and that palette would land in the document tier and lose its
+   *  `active`. */
   private _isUtility(win: HTMLElement): boolean {
-    return win.getAttribute('variant') === 'utility'
+    const variant = 'variant' in win ? (win as HTMLElement & { variant?: string | null }).variant : win.getAttribute('variant')
+    return variant === 'utility'
   }
 
   /**
@@ -541,9 +616,22 @@ export class VfDesktop extends VfPositioned(LitElement) {
   }
 
   /** The active document-tier window, or null while the tier is deactivated
-   *  (or has no windows). Utility windows are never the holder. */
+   *  (or has no shown windows). Utility windows and hidden windows are never
+   *  the holder. */
   get activeWindow(): HTMLElement | null {
     return this._activeWindow
+  }
+
+  /**
+   * The slotted windows in stacking order, bottom-most first: the document
+   * tier, then the floating tier above it, each in the order its windows
+   * were last raised. Hidden windows are included where they stand. This is
+   * the order the eye sees; the windows' light-DOM order catches up with it
+   * only once a gesture ends, and a raise by keyboard focus moves no node.
+   */
+  get stackingOrder(): HTMLElement[] {
+    // A stable sort: windows not yet given a z keep their DOM order.
+    return [...this._windows].sort((a, b) => zOf(a) - zOf(b))
   }
 
   /**
@@ -559,11 +647,15 @@ export class VfDesktop extends VfPositioned(LitElement) {
     this._setActive(null)
   }
 
-  /** The z/active half of a raise, shared by every path. */
+  /**
+   * The z/active half of a raise, shared by every path. A hidden window
+   * takes its place in the stack and nothing else: it activates when it is
+   * shown and raised.
+   */
   private _restack(win: HTMLElement): void {
     const utility = this._isUtility(win)
     win.style.zIndex = String(++this._zCounter + (utility ? UTILITY_Z_BAND : 0))
-    if (!utility) this._setActive(win)
+    if (!utility && !win.hidden) this._setActive(win)
   }
 
   /**
@@ -608,7 +700,7 @@ export class VfDesktop extends VfPositioned(LitElement) {
    */
   private _raise(win: HTMLElement): void {
     const utility = this._isUtility(win)
-    const tier = this._windows.filter((w) => this._isUtility(w) === utility)
+    const tier = this._windows.filter((w) => this._isUtility(w) === utility && !w.hidden)
     if (
       this._topmost(tier) === win &&
       (utility || win.hasAttribute('active'))
@@ -660,6 +752,48 @@ export class VfDesktop extends VfPositioned(LitElement) {
   }
 
   /**
+   * A gesture measuring the box it is clamped into (src/position.ts): for a
+   * host placed on this screen — a slotted window, an icon in an unplaced
+   * field — the screen, bezel excluded, and the work area's top as the
+   * floor: {@link windowArea}'s for a window, {@link workArea}'s for
+   * anything else. The floor is rounded up to the host's placement lattice,
+   * so a snapped landing never rounds above it. A host placed in a box of its
+   * own (a window body, a placed field) is that box's; an outer desktop
+   * leaves a filled detail alone.
+   */
+  private _onBoundsRequest = (event: Event): void => {
+    const detail = (event as CustomEvent<PlacementBoundsRequest>).detail
+    const host = event.target
+    if (!detail || detail.bounds || !(host instanceof HTMLElement)) return
+    if (host.offsetParent !== this) return
+    const area = host.localName === 'vf-window' ? this.windowArea : this.workArea
+    const k = systemPxQuantum(host)
+    detail.bounds = {
+      width: area.left + area.width,
+      height: area.top + area.height,
+      top: Math.ceil(area.top / k) * k,
+    }
+  }
+
+  /** The bottom of a slotted, shown menu bar along the screen's top edge, system px; else 0. */
+  private _menuBarFloor(): number {
+    const screen = this.screen
+    if (!screen) return 0
+    const bar = [...this.children].find(
+      (el): el is HTMLElement => el.localName === 'vf-menu-bar' && !(el as HTMLElement).hidden
+    )
+    if (!bar) return 0
+    const b = bar.getBoundingClientRect()
+    if (b.height <= 0) return 0
+    const s = screen.getBoundingClientRect()
+    const scale = effectiveScale(this)
+    // A bar placed below the top edge reserves nothing: the band is the strip
+    // a bar along the top takes off the screen.
+    if (Math.round((b.top - s.top) / scale) > 0) return 0
+    return Math.max(0, Math.round((b.bottom - s.top) / scale))
+  }
+
+  /**
    * Delegated focusin: raise the window keyboard focus entered, so tabbing
    * into a background window brings it to front (and reveals its close/zoom
    * widgets) just like a pointerdown would. Ignored while `_syncDomOrder` is
@@ -687,6 +821,7 @@ export class VfDesktop extends VfPositioned(LitElement) {
   /** Wire up newly slotted windows: seed z-indices, normalize `active`. */
   private _onSlotChange(): void {
     const windows = this._windows
+    this._observeWindows()
     let newest: HTMLElement | null = null
     for (const win of windows) {
       if (!win.style.zIndex) {
@@ -694,33 +829,50 @@ export class VfDesktop extends VfPositioned(LitElement) {
         win.style.zIndex = String(
           ++this._zCounter + (utility ? UTILITY_Z_BAND : 0)
         )
-        // Only a document-tier window can become the active one; a newly
-        // slotted palette floats up without touching active states.
-        if (!utility) newest = win
+        // Only a shown document-tier window can become the active one; a
+        // newly slotted palette floats up without touching active states, and
+        // a window slotted hidden waits to be shown.
+        if (!utility && !win.hidden) newest = win
       }
     }
-    // Resolve who should hold `active` after the mutation. A newly slotted
-    // document window takes it (opening a window brings its application
-    // forward — this also ends a deliberate deactivation); otherwise a
-    // still-present holder keeps it, a deliberate deactivation is preserved
-    // (never promote a survivor over the user's "clicked the Finder"), and
-    // only then does the topmost survivor inherit — the active window left
-    // the DOM. Applied even when null, so a stray `active` attribute on
-    // slotted markup is normalized in the deactivated state too.
-    const docTier = windows.filter((w) => !this._isUtility(w))
-    const kept =
-      this._activeWindow && docTier.includes(this._activeWindow)
-        ? this._activeWindow
-        : null
-    this._setActive(
-      newest ?? kept ?? (this._deactivated ? null : this._topmost(docTier))
-    )
+    // A newly slotted document window takes the active state (opening a
+    // window brings its application forward — this also ends a deliberate
+    // deactivation); otherwise the usual resolution.
+    if (newest) this._setActive(newest)
+    else this._resolveActive()
     // Windows slotted before vf-window is defined are plain unknown elements,
     // so _setWindowActive can only *clear their attribute* — and on upgrade
     // vf-window's reflected `active = true` default puts it straight back,
     // flipping every background window active at once. Upgrading a slotted
     // node doesn't re-fire slotchange, so re-assert once the definition lands.
     if (!customElements.get('vf-window')) this._normalizeAfterUpgrade()
+  }
+
+  /**
+   * Resolve who should hold `active` after the window set or a window's
+   * visibility changed: a holder still slotted and shown keeps it, a
+   * deliberate deactivation is preserved (never promote a survivor over the
+   * user's "clicked the Finder"), and only then does the topmost shown
+   * window inherit — the active window left the DOM or was hidden, or a
+   * window was shown into a tier with none active. Applied even when null,
+   * so a stray `active` attribute on slotted markup, or on a hidden window,
+   * is normalized in the deactivated state too.
+   */
+  private _resolveActive(): void {
+    const shown = this._windows.filter((w) => !this._isUtility(w) && !w.hidden)
+    const kept =
+      this._activeWindow && shown.includes(this._activeWindow) ? this._activeWindow : null
+    this._setActive(kept ?? (this._deactivated ? null : this._topmost(shown)))
+  }
+
+  /** Watch the `hidden` attribute of every slotted window, and no other. */
+  private _observeWindows(): void {
+    // Whatever is pending is about to be resolved against the live set.
+    this.#visibility.takeRecords()
+    this.#visibility.disconnect()
+    for (const win of this._windows) {
+      this.#visibility.observe(win, { attributes: true, attributeFilter: ['hidden'] })
+    }
   }
 
   /**
@@ -741,15 +893,8 @@ export class VfDesktop extends VfPositioned(LitElement) {
       // the holder is whoever slotchange resolved — re-asserted through the
       // same funnel (silent when unchanged), which also re-clears the tier
       // if the resolution was "none" (a deliberate deactivation, or no
-      // document windows at all).
-      const docTier = this._windows.filter((w) => !this._isUtility(w))
-      const kept =
-        this._activeWindow && docTier.includes(this._activeWindow)
-          ? this._activeWindow
-          : null
-      this._setActive(
-        kept ?? (this._deactivated ? null : this._topmost(docTier))
-      )
+      // shown document windows at all).
+      this._resolveActive()
     })
   }
 
@@ -792,7 +937,7 @@ export class VfDesktop extends VfPositioned(LitElement) {
     let top: HTMLElement | null = null
     let topZ = -Infinity
     for (const win of windows) {
-      const z = Number(win.style.zIndex) || 0
+      const z = zOf(win)
       if (z >= topZ) {
         topZ = z
         top = win
@@ -817,10 +962,12 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * Minimal-move: windows already in relative order are never touched (the
    * common case — after one raise, one window moves). Non-window siblings
    * (a menu bar, page content) keep their positions; only a window that must
-   * cross the stack moves past them. Moving a node containing the focused
-   * element drops focus to `<body>`, so it is restored afterwards — behind
-   * `_restoringFocus`, because the restore re-fires focusin (see
-   * {@link _onFocusIn}) on an element that may sit in a background window.
+   * cross the stack moves past them. `moveBefore()` keeps the focus inside a
+   * moved window where the browser has it ({@link _move}); re-inserting a
+   * node containing the focused element drops focus to `<body>`, so it is
+   * restored afterwards — behind `_restoringFocus`, because the restore
+   * re-fires focusin (see {@link _onFocusIn}) on an element that may sit in a
+   * background window.
    * Reached only through {@link _requestDomSync}'s task — after a pointer
    * gesture or a programmatic raise, never from a focus-driven one (see
    * {@link _raise} for why).
@@ -829,9 +976,7 @@ export class VfDesktop extends VfPositioned(LitElement) {
     if (!this.isConnected) return
     const windows = this._windows
     if (windows.length < 2) return
-    const sorted = [...windows].sort(
-      (a, b) => (Number(a.style.zIndex) || 0) - (Number(b.style.zIndex) || 0)
-    )
+    const sorted = [...windows].sort((a, b) => zOf(a) - zOf(b))
     const focused = this._deepActiveElement()
     let moved = false
     let prev: HTMLElement | null = null
@@ -841,7 +986,7 @@ export class VfDesktop extends VfPositioned(LitElement) {
         prev.compareDocumentPosition(win) & Node.DOCUMENT_POSITION_PRECEDING
       ) {
         // `win` stacks above `prev` but sits before it in the DOM.
-        this.insertBefore(win, prev.nextSibling)
+        this._move(win, prev.nextSibling)
         moved = true
       }
       prev = win
@@ -856,6 +1001,25 @@ export class VfDesktop extends VfPositioned(LitElement) {
       focused.focus({ preventScroll: true })
       this._restoringFocus = false
     }
+  }
+
+  /**
+   * Move a slotted window before `before`: with `Element.moveBefore()` where
+   * the browser has it, which keeps the focus inside the window — a rename
+   * field, a text field's caret — through the move; else by re-inserting it,
+   * and {@link _syncDomOrder} puts the focus back.
+   */
+  private _move(win: HTMLElement, before: Node | null): void {
+    const host = this as unknown as { moveBefore?: (node: Node, child: Node | null) => void }
+    if (typeof host.moveBefore === 'function') {
+      try {
+        host.moveBefore(win, before)
+        return
+      } catch {
+        // Not movable atomically here; re-insert instead.
+      }
+    }
+    this.insertBefore(win, before)
   }
 
   protected override willUpdate(changed: PropertyValues<this>): void {

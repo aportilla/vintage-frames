@@ -54,6 +54,7 @@ import {
   WINDOW_RECTS_VISIBLE,
 } from '../motion.js'
 import { paintSelectionRect, penPhase, xorPenCanvas } from '../open-art.js'
+import { WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from '../window-chrome.js'
 import './vf-scroll-area.js'
 import type { VfScrollArea } from './vf-scroll-area.js'
 
@@ -144,8 +145,8 @@ interface ResizeState {
  * The sizeRect's default floors, in system px: a window smaller than this
  * can't be worked. `min-width`/`min-height` replace them per axis.
  */
-const MIN_WIDTH = 80
-const MIN_HEIGHT = 54
+const MIN_WIDTH = WINDOW_MIN_WIDTH
+const MIN_HEIGHT = WINDOW_MIN_HEIGHT
 
 /**
  * One axis of the sizeRect clamp. The max is applied last, so where the two
@@ -647,6 +648,22 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
   @property({ type: Number, attribute: 'max-height' }) maxHeight?: number | null
 
   /**
+   * The sizeRect as it applies, in whole system px: `min-width` and
+   * `min-height`, or the 80×54 floor where unset, and `max-width` and
+   * `max-height`, `Infinity` where unbounded — the range the grow box drags
+   * the window in. A page that sizes the window itself, re-fitting it to a
+   * smaller screen say, reads it to stay inside the same range.
+   */
+  get sizeLimits(): { minWidth: number; minHeight: number; maxWidth: number; maxHeight: number } {
+    return {
+      minWidth: this.minWidth ?? MIN_WIDTH,
+      minHeight: this.minHeight ?? MIN_HEIGHT,
+      maxWidth: this.maxWidth ?? Infinity,
+      maxHeight: this.maxHeight ?? Infinity,
+    }
+  }
+
+  /**
    * Put System 7 scroll rails on the window edge — the classic document
    * window. The body slot renders inside a built-in `vf-scroll-area` pulled
    * one system pixel under the frame on every side, so the rails repaint the
@@ -733,7 +750,9 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * Where a dragged window is allowed to end up, in system px: clamped against
    * the positioning parent (the desktop, usually) so it can't be pushed fully
    * past an edge and lost. Only a grabbable strip has to stay in — a window
-   * pushed mostly off-screen is a thing System 7 let you do.
+   * pushed mostly off-screen is a thing System 7 let you do — and the title
+   * bar never goes above the bounds' top: on a desktop, the bottom of its
+   * menu bar (or `window-top`), where it would be out of reach.
    *
    * The box comes from the placement controller, measured once when the drag
    * began — see {@link PlacementController.moveTo} for why a fresh measurement
@@ -747,7 +766,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     const width = toSysExact(this.offsetWidth, this)
     return {
       x: Math.min(Math.max(x, KEEP_GRABBABLE - width), bounds.width - KEEP_GRABBABLE),
-      y: Math.min(Math.max(y, 0), Math.max(0, bounds.height - KEEP_GRABBABLE)),
+      y: Math.min(Math.max(y, bounds.top), Math.max(bounds.top, bounds.height - KEEP_GRABBABLE)),
     }
   }
 

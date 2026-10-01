@@ -19,6 +19,8 @@ export type {
   VfWindowHideOptions,
   VfWindowShowOptions,
 } from './components/vf-window.js'
+export { windowChrome, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT } from './window-chrome.js'
+export type { VfInsets, VfWindowChromeOptions } from './window-chrome.js'
 export { VfDialog } from './components/vf-dialog.js'
 export { VfSeparator } from './components/vf-separator.js'
 

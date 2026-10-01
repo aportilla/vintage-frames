@@ -22,7 +22,8 @@
  * 4. A container nobody sized (fill-width, shrink-wrapped height) is
  *    covered, and growing it re-encodes nothing.
  * 5. An unpatterned container paints nothing; unsetting the attribute
- *    unwinds everything the fill wrote.
+ *    unwinds everything the fill wrote. Inside a patterned box or a
+ *    desktop's window, it paints nothing of the tile it inherits.
  * 6. An unrecognized value warns once per element and paints nothing.
  * 7. Forced colors flatten the fill to one color.
  * 8. A patterned container knocked off the device grid recovers to 1-bit by
@@ -443,6 +444,45 @@ for (const dpr of DENSITIES) {
       !s2.inlineImage &&
       allPixels(decodePng(await page.locator('#u').screenshot()), MAGENTA),
     `patterned ${s2.patterned}, inline image ${s2.inlineImage}`
+  )
+  await page.close()
+}
+
+// An unpatterned box inside a patterned one paints nothing of its own: the
+// tile's custom property inherits, and a box that read it unpatterned painted
+// its ancestor's tile at its own corner — a desktop's dither in a window, or
+// gray-50 one pixel out of phase here, where the inner box sits at left 1.
+{
+  const page = await build(
+    `<vf-container id="outer" pattern="gray-50" width="40" height="20">
+       <vf-container id="inner" left="1" top="0" width="20" height="20"></vf-container>
+     </vf-container>
+     <vf-desktop id="d" width="200" height="120">
+       <vf-window id="w" left="10" top="10" width="120" height="80">
+         <vf-container id="bare" width="40" height="30"></vf-container>
+       </vf-window>
+     </vf-desktop>`,
+    { dpr: 1 }
+  )
+  const inner = await boxStyle(page, '#inner')
+  const bare = await boxStyle(page, '#bare')
+  // The inner box's pixels are the outer's: column x of the outer is ink at
+  // row y exactly when x + y has the outer's parity, read at the inner's
+  // own columns.
+  const png = decodePng(await page.locator('#outer').screenshot())
+  const isInk = (x, y) => {
+    const i = (y * png.width + x) * png.bpp
+    return png.data[i] === 0
+  }
+  const parity = (isInk(0, 0) ? 0 : 1)
+  let off = 0
+  for (let y = 0; y < 20; y++) {
+    for (let x = 1; x < 21; x++) if (isInk(x, y) !== ((x + y) % 2 === parity)) off++
+  }
+  check(
+    'an unpatterned container inside a patterned one paints nothing of its own',
+    !inner.patterned && !inner.image && !bare.patterned && !bare.image && off === 0,
+    `inner image ${inner.image}, window child image ${bare.image}, ${off} px off the outer's phase`
   )
   await page.close()
 }

@@ -71,25 +71,26 @@ export class PatternFillController extends RepeatTileController {
  * a pattern is resolved (the component's template knows).
  *
  * Painting: the tile the controller wrote, repeated from the padding box's
- * corner at {@link vfRepeatTileSize}, nearest-neighbor. The paper and the
- * pixelation ride the `vf-patterned` state so an unpatterned box paints
- * exactly nothing and inherits nothing new. `image-rendering` inherits, so
- * the slot hands `auto` back to slotted content: a consumer's own `<img>`
- * renders as it would anywhere else, and a kit element that wants
- * nearest-neighbor (`vf-img`, a `vf-icon`) says so itself. A page that set
- * `pixelated` on an ancestor gets `auto` inside a patterned box — its own
- * declaration on the child still wins, as everywhere.
+ * corner at {@link vfRepeatTileSize}, nearest-neighbor. All of it rides the
+ * `vf-patterned` state, the image included, so an unpatterned box paints
+ * exactly nothing. The tile's custom property inherits like any other: a
+ * box that read it unpatterned would paint the tile of the nearest
+ * patterned box around it — a desktop's dither inside a window.
+ * `image-rendering` inherits too, so the slot hands `auto` back to slotted
+ * content: a consumer's own `<img>` renders as it would anywhere else, and a
+ * kit element that wants nearest-neighbor (`vf-img`, a `vf-icon`) says so
+ * itself. A page that set `pixelated` on an ancestor gets `auto` inside a
+ * patterned box — its own declaration on the child still wins, as
+ * everywhere.
  *
  * Forced colors: the image goes, the paper is the remapped Canvas — the
  * desktop's posture, a backdrop being decoration.
  */
 export const vfPatternFill: CSSResult = css`
-  .vf-pattern-fill {
+  .vf-pattern-fill.vf-patterned {
     background-image: var(--_vf-pattern-image, none);
     ${vfRepeatTileSize}
     background-repeat: repeat;
-  }
-  .vf-pattern-fill.vf-patterned {
     background-color: var(--vf-white, #fff);
     image-rendering: pixelated;
   }
@@ -97,7 +98,7 @@ export const vfPatternFill: CSSResult = css`
     image-rendering: auto;
   }
   @media (forced-colors: active) {
-    .vf-pattern-fill {
+    .vf-pattern-fill.vf-patterned {
       background-image: none;
     }
   }

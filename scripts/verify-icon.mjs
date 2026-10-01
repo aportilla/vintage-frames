@@ -14,12 +14,18 @@
  *    (the outside-press listener is what buys that), Shift adds, and a press
  *    outside every icon clears. The selected look is asserted as rendered
  *    style: the art inverts, the plate takes the --vf-highlight pair.
+ *  - FIELD SELECT: in a field only a press on an icon or a field changes the
+ *    selection; the menu bar, a button or the rest of the page leave it, and
+ *    still call off a waiting rename and a half-finished tap pair.
  *  - RENAME: the Finder gesture — a press on the plate of an ALREADY-selected
  *    icon opens the field with the whole name selected; the first press never
  *    does. Return commits and fires vf-change, Escape puts the old name back,
  *    and the plate widens as you type. The field opens on a DELAY, and a second
  *    press (or a drag) inside it calls the rename off — which is what leaves
  *    the name double-clickable.
+ *  - RENAME MOVE: a rename keeps its edit when the desktop re-sorts its
+ *    windows and moves the one holding it — with moveBefore(), and without,
+ *    where the blur the move causes is undone in the same task.
  *  - OPENING: vf-open comes from a double-click anywhere on the icon, the name
  *    included, or its keyboard route, ⌘O / ⌘↓ — never from Return, which
  *    renames (the Finder's Return never opened): it starts the edit on an
@@ -1163,6 +1169,95 @@ for (const dpr of [1, 2, 3]) {
   await page.close()
 }
 
+// ── FIELD SELECT ────────────────────────────────────────────────────────────
+/* In a field, only a press on an icon or on a field changes the selection: a
+   press on the menu bar, a menu, a button or any other part of the page
+   leaves it, so a command picked from the bar still has its icons. The press
+   still calls off a rename waiting to open and a half-finished tap pair. */
+{
+  const page = await build(
+    `<vf-menu-bar id="bar"><vf-menu label="File"><vf-menu-item value="open">Open</vf-menu-item></vf-menu></vf-menu-bar>
+     <vf-icon-field id="a" label="A" width="320" height="110">
+       ${icon('id="one" selectable editable', 'One')}${icon('id="two" selectable', 'Two')}
+     </vf-icon-field>
+     <vf-icon-field id="b" label="B" width="320" height="110">
+       ${icon('id="three" selectable', 'Three')}
+     </vf-icon-field>
+     <vf-button id="btn">Button</vf-button>
+     <div id="elsewhere" style="height:40px">outside</div>`
+  )
+  const flags = () =>
+    page.evaluate(() =>
+      ['one', 'two', 'three'].map((id) => (document.getElementById(id).selected ? 1 : 0)).join('')
+    )
+  /** A press on a field's own background: its far corner, clear of the icons. */
+  const pressField = async (id) => {
+    const r = await page.locator(`#${id}`).boundingBox()
+    await page.mouse.click(r.x + r.width - 6, r.y + r.height - 6)
+  }
+  const one = page.locator('#one')
+
+  await one.click()
+  await page.locator('#bar vf-menu').click()
+  await page.keyboard.press('Escape')
+  check('FIELD SELECT  a press on the menu bar keeps the selection', (await flags()) === '100', await flags())
+  await page.locator('#btn').click()
+  check('FIELD SELECT  …so does a press on a button', (await flags()) === '100', await flags())
+  await page.locator('#elsewhere').click()
+  check('FIELD SELECT  …and on the rest of the page', (await flags()) === '100', await flags())
+  await pressField('a')
+  check("FIELD SELECT  a press on the field's background clears it", (await flags()) === '000', await flags())
+
+  await one.click()
+  await pressField('b')
+  check('FIELD SELECT  …so does a press on another field', (await flags()) === '000', await flags())
+  await one.click()
+  await page.locator('#three').click()
+  check('FIELD SELECT  a press on an icon in another field selects that one alone', (await flags()) === '001', await flags())
+
+  // A rename armed by a press on the plate is called off by a press that
+  // keeps the selection.
+  await one.click()
+  await page.waitForTimeout(PAST_DELAY)
+  const plate = await page.evaluate(() => {
+    const r = document.getElementById('one').shadowRoot.querySelector('.label').getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  await page.mouse.click(plate.x, plate.y)
+  await page.locator('#elsewhere').click()
+  await page.waitForTimeout(PAST_DELAY)
+  const renaming = await page.evaluate(
+    () => !!document.getElementById('one').shadowRoot.querySelector('input')
+  )
+  check(
+    'FIELD SELECT  a press that keeps the selection still calls off a waiting rename',
+    !renaming && (await flags()) === '100',
+    `renaming ${renaming}, ${await flags()}`
+  )
+
+  // …and a half-finished tap pair: tap, a tap elsewhere, tap again — no open.
+  await page.evaluate(() => {
+    globalThis.__opens = 0
+    document.addEventListener('vf-open', () => globalThis.__opens++)
+  })
+  const touch = await finger(page)
+  const art = await page.evaluate(() => {
+    const r = document.getElementById('one').shadowRoot.querySelector('.art').getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  const out = await page.locator('#elsewhere').boundingBox()
+  await touch.tap(art.x, art.y)
+  await touch.tap(out.x + 20, out.y + 10)
+  await touch.tap(art.x, art.y)
+  await page.waitForTimeout(60)
+  check(
+    'FIELD SELECT  …and a half-finished tap pair',
+    (await page.evaluate(() => globalThis.__opens)) === 0 && (await flags()) === '100',
+    `${await page.evaluate(() => globalThis.__opens)} opens, ${await flags()}`
+  )
+  await page.close()
+}
+
 // ── COLOR ───────────────────────────────────────────────────────────────────
 /* A `color` icon's selection darkens — ttSelected, colors blended halfway
    toward black — instead of inverting into a photographic negative. The
@@ -1385,6 +1480,62 @@ for (const dpr of [1, 2, 3]) {
     (await page.evaluate(
       () => !document.querySelector('vf-icon').shadowRoot.querySelector('input')
     ))
+  )
+  await page.close()
+}
+
+// ── RENAME MOVE ─────────────────────────────────────────────────────────────
+/* A rename survives the desktop moving its window. Tabbing into a background
+   window raises it without moving a node, so the DOM order goes stale; a
+   click in the rename box then ends a gesture, and the desktop re-sorts its
+   windows, moving the one holding the rename. The field keeps its edit: the
+   desktop moves with moveBefore() where the browser has it, and where it
+   doesn't, the blur the move causes is undone in the same task and commits
+   nothing. */
+for (const [label, keepMoveBefore] of [
+  ['with moveBefore()', true],
+  ['re-inserting, without moveBefore()', false],
+]) {
+  const page = await build(
+    `<vf-desktop id="desk" width="600" height="400">
+       <vf-window id="wa" heading="A" left="20" top="40" width="240" height="160">
+         <vf-icon-field label="A" top="0" left="0" width="238" height="120">
+           ${icon('id="ren" width="64" selectable movable editable left="16" top="16"', 'Notes')}
+         </vf-icon-field>
+       </vf-window>
+       <vf-window id="wb" heading="B" left="300" top="40" width="200" height="150"></vf-window>
+     </vf-desktop>`
+  )
+  if (!keepMoveBefore) await page.evaluate(() => delete Element.prototype.moveBefore)
+  const state = () =>
+    page.evaluate(() => ({
+      editing: !!document.getElementById('ren').shadowRoot.querySelector('input'),
+      label: document.getElementById('ren').label,
+      dom: [...document.getElementById('desk').querySelectorAll(':scope > vf-window')].map((w) => w.id).join(),
+    }))
+  for (let i = 0; i < 6 && (await page.evaluate(() => document.activeElement?.id)) !== 'ren'; i++) {
+    await page.keyboard.press('Tab')
+  }
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Letters')
+  const box = await page.evaluate(() => {
+    const r = document.getElementById('ren').shadowRoot.querySelector('input').getBoundingClientRect()
+    return { x: r.x + 4, y: r.y + r.height / 2 }
+  })
+  await page.mouse.click(box.x, box.y)
+  await page.evaluate(() => new Promise((r) => setTimeout(() => requestAnimationFrame(() => r()), 0)))
+  const after = await state()
+  check(
+    `RENAME MOVE  ${label}: the desktop moves the window, and the rename keeps its edit`,
+    after.dom === 'wb,wa' && after.editing && after.label === 'Notes',
+    JSON.stringify(after)
+  )
+  await page.keyboard.press('Enter')
+  const done = await state()
+  check(
+    `RENAME MOVE  ${label}: …which Return then commits`,
+    !done.editing && done.label === 'Letters',
+    JSON.stringify(done)
   )
   await page.close()
 }

@@ -1,5 +1,5 @@
 import { css, html, LitElement, unsafeCSS } from 'lit'
-import { property, queryAssignedElements } from 'lit/decorators.js'
+import { property, queryAssignedElements, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { vfBase, vfRule } from '../styles/base.js'
@@ -30,6 +30,9 @@ import type { VfMenuItem } from './vf-menu-item.js'
  * same mechanic.
  *
  * @slot - `vf-menu` elements.
+ * @slot end - The bar's right end: a clock, say. Held 9px in from the end,
+ *   and a `vf-label` there rides the bar's line, so its baseline is the
+ *   menu titles'.
  * @csspart bar - The horizontal layout container.
  * @cssprop [--vf-menubar-height=20px] - `vf-menu-bar`
  */
@@ -73,6 +76,22 @@ export class VfMenuBar extends VfPositioned(LitElement) {
          pulled 5px into its left neighbor. */
       ::slotted(vf-menu) {
         margin-inline-start: calc(var(--vf-scale, 1) * -5px);
+      }
+      /* The bar's right end (slot="end"): a clock, say. A row of its own,
+         pushed to the end and held 9px in, mirroring the first title's
+         inset. A caption in it rides the bar's line, so its baseline is the
+         titles'. */
+      slot[name='end'] {
+        display: flex;
+        align-items: stretch;
+        margin-inline-start: auto;
+        padding-inline-end: calc(var(--vf-scale, 1) * 9px);
+        --vf-label-line-height: var(--vf-menubar-height, 20px);
+      }
+      /* Empty, it takes no part in the row: a page that pushes its own item
+         to the end with an auto margin keeps the whole of the slack. */
+      slot[name='end'].empty {
+        display: none;
       }
       /* rounded: the screen-corner mask. The corners aren't a shape of the
          bar's own — they're the black staircase the ROM painted over the
@@ -138,6 +157,9 @@ export class VfMenuBar extends VfPositioned(LitElement) {
 
   @queryAssignedElements({ selector: 'vf-menu', flatten: true })
   private _menus!: VfMenu[]
+
+  /** Whether the `end` slot has assigned content (drives its `.empty` gate). */
+  @state() private _hasEnd = false
 
   /** The currently-open slotted menu, if any. */
   #openMenu: VfMenu | null = null
@@ -244,8 +266,18 @@ export class VfMenuBar extends VfPositioned(LitElement) {
     return html`
       <div class="bar vf-snap vf-rule-bottom" part="bar" role="presentation">
         <slot @slotchange=${this.#onSlotChange}></slot>
+        <slot
+          name="end"
+          class=${this._hasEnd ? '' : 'empty'}
+          @slotchange=${this.#onEndSlotChange}
+        ></slot>
       </div>
     `
+  }
+
+  /** The `.empty` gate: the end slot takes part in the row only while populated. */
+  #onEndSlotChange(event: Event): void {
+    this._hasEnd = (event.target as HTMLSlotElement).assignedElements().length > 0
   }
 
   #onSlotChange(): void {

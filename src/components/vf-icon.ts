@@ -138,7 +138,7 @@ interface DragGesture {
 }
 
 /**
- * Hold a drag origin in `[0, max]`. A `max` at or below zero means the
+ * Hold a drag origin in `[min, max]`. A `max` at or below `min` means the
  * container is genuinely smaller than the icon and has no range to clamp into,
  * so the origin is only held off the near edge.
  *
@@ -148,8 +148,14 @@ interface DragGesture {
  * left flow on its first move and collapsed the parent it is measured against)
  * rather than a container that is really zero-sized.
  */
-const clamp = (v: number, max: number): number =>
-  max <= 0 ? Math.max(v, 0) : Math.min(Math.max(v, 0), max)
+const clamp = (v: number, min: number, max: number): number =>
+  max <= min ? Math.max(v, min) : Math.min(Math.max(v, min), max)
+
+/** The containers an icon's selection belongs to: a field, or a listbox of the page's own. */
+const FIELD = 'vf-icon-field, [role="listbox"]'
+
+/** Whether a node on an event's path is a field. */
+const isField = (node: EventTarget): boolean => node instanceof Element && node.matches(FIELD)
 
 /**
  * `<vf-icon>` — a Finder icon: pixel art in a reserved cell with its name on a
@@ -955,7 +961,7 @@ export class VfIcon extends VfPositioned(LitElement) {
 
   /** The field this icon is one item of — its selection's boundary — or null. */
   get #field(): Element | null {
-    return this.closest('vf-icon-field, [role="listbox"]')
+    return this.closest(FIELD)
   }
 
   /**
@@ -1000,7 +1006,10 @@ export class VfIcon extends VfPositioned(LitElement) {
   #firstTap: { time: number; x: number; y: number } | null = null
 
   /**
-   * Clicking elsewhere deselects, the way it does on a real desktop. Attached
+   * Clicking elsewhere deselects, the way it does on a real desktop: anywhere
+   * outside an icon alone, and on another icon or a field's background for an
+   * icon in a field, whose selection outlives a press on the menu bar, a
+   * dialog or another window (see {@link #onOutsidePointerDown}). Attached
    * only while this icon is both selectable and selected, so an unselected
    * field of icons costs nothing. Capture phase, so a handler that stops the
    * press still deselects — and so the icon being clicked *into* selects after
@@ -1016,7 +1025,8 @@ export class VfIcon extends VfPositioned(LitElement) {
    * Where a moved icon is allowed to end up, in system px. Unlike `vf-window`,
    * which only keeps a grabbable strip on screen, an icon is small enough to
    * hold whole — losing half of one to an edge reads as a bug rather than as a
-   * window pushed aside. Except in a box that scrolls ({@link #anchorScrolls}):
+   * window pushed aside. On a desktop's screen it holds below the menu bar
+   * (the bounds' `top`). Except in a box that scrolls ({@link #anchorScrolls}):
    * the rails reach anything placed past such a box, so only its origin holds
    * — the Finder put an icon below a window's fold and scrolled to it.
    */
@@ -1025,10 +1035,10 @@ export class VfIcon extends VfPositioned(LitElement) {
     y: number,
     bounds: PlacementBounds
   ): { x: number; y: number } => {
-    if (this.#anchorScrolls()) return { x: Math.max(x, 0), y: Math.max(y, 0) }
+    if (this.#anchorScrolls()) return { x: Math.max(x, 0), y: Math.max(y, bounds.top) }
     return {
-      x: clamp(x, bounds.width - toSysExact(this.offsetWidth, this)),
-      y: clamp(y, bounds.height - toSysExact(this.offsetHeight, this)),
+      x: clamp(x, 0, bounds.width - toSysExact(this.offsetWidth, this)),
+      y: clamp(y, bounds.top, bounds.height - toSysExact(this.offsetHeight, this)),
     }
   }
 
@@ -1316,19 +1326,26 @@ export class VfIcon extends VfPositioned(LitElement) {
       delta: number,
       start: (m: (typeof members)[number]) => number,
       extent: (m: (typeof members)[number]) => number,
+      floor: number,
       room: number
     ): number => {
       let lo = -Infinity
       let hi = Infinity
       for (const m of members) {
-        lo = Math.max(lo, -start(m))
+        lo = Math.max(lo, floor - start(m))
         if (!open) hi = Math.min(hi, room - extent(m) - start(m))
       }
       if (hi < lo) hi = Infinity
       return Math.min(Math.max(delta, lo), hi)
     }
-    const dx = axis(detail.left - gesture.origin.x, (m) => m.corner.x, (m) => m.size.width, bounds.width)
-    const dy = axis(detail.top - gesture.origin.y, (m) => m.corner.y, (m) => m.size.height, bounds.height)
+    const dx = axis(detail.left - gesture.origin.x, (m) => m.corner.x, (m) => m.size.width, 0, bounds.width)
+    const dy = axis(
+      detail.top - gesture.origin.y,
+      (m) => m.corner.y,
+      (m) => m.size.height,
+      bounds.top,
+      bounds.height
+    )
     this.#placement.moveTo(gesture.origin.x + dx, gesture.origin.y + dy)
     for (const follower of gesture.followers) follower.drop(dx, dy)
   }
@@ -1761,6 +1778,23 @@ export class VfIcon extends VfPositioned(LitElement) {
     emit(this, 'vf-change', { label: next, previous })
   }
 
+  /**
+   * The rename field lost focus, which commits the name — unless the focus
+   * is back on the field before the task is out. That is a node move, not
+   * the user leaving: a desktop re-inserting the window this icon sits in, to
+   * keep the DOM in stacking order, takes the focus off the field and puts it
+   * straight back. A microtask, so the check runs after that task's own
+   * code and before anything else.
+   */
+  #onRenameBlur = (): void => {
+    queueMicrotask(() => {
+      if (!this._editing) return
+      const input = this.renderRoot.querySelector('input')
+      if (input && (this.renderRoot as ShadowRoot).activeElement === input) return
+      this.commitEditing()
+    })
+  }
+
   /** Put the previous name back and close the field. */
   cancelEditing(): void {
     if (!this._editing) return
@@ -1825,7 +1859,7 @@ export class VfIcon extends VfPositioned(LitElement) {
                     @beforeinput=${this.#onBeforeInput}
                     @input=${this.#onInput}
                     @keydown=${this.#onInputKeyDown}
-                    @blur=${this.commitEditing}
+                    @blur=${this.#onRenameBlur}
                   />
                 </div>`
               : nothing}
@@ -2171,21 +2205,26 @@ export class VfIcon extends VfPositioned(LitElement) {
     const path = event.composedPath()
     if (path.includes(this)) return
     // Wherever that press went, it wasn't this name: a rename still waiting to
-    // open is called off even where the modifier keeps the selection — and
-    // it wasn't this icon, so a tap here is no longer half of a pair.
+    // open is called off even where the selection stays — and it wasn't this
+    // icon, so a tap here is no longer half of a pair.
     this.#disarmRename()
     this.#firstTap = null
     if (event.shiftKey || event.metaKey) return
-    // A plain press on another icon that is ALREADY selected in this icon's
-    // field keeps the selection: that press may be the start of a drag that
-    // carries the whole selection, and the Finder never collapsed a
-    // selection under a press on one of its members. The pressed icon's own
-    // handler has not run yet (this is document capture), so `selected`
-    // still reads as the press found it; a click released with no drag
-    // collapses the selection then (#onPointerUp).
     const field = this.#field
     if (field !== null) {
       const pressed = path.find((n): n is VfIcon => n instanceof VfIcon)
+      // In a field, only a press on an icon or on a field changes the
+      // selection. A press anywhere else — the menu bar, a menu, a dialog,
+      // a window's title bar, another application's window — leaves it, so
+      // a command picked from the bar still has its icons to act on.
+      if (!pressed && !path.some(isField)) return
+      // A plain press on another icon that is ALREADY selected in this
+      // icon's field keeps the selection: that press may be the start of a
+      // drag that carries the whole selection, and the Finder never
+      // collapsed a selection under a press on one of its members. The
+      // pressed icon's own handler has not run yet (this is document
+      // capture), so `selected` still reads as the press found it; a click
+      // released with no drag collapses the selection then (#onPointerUp).
       if (pressed?.selected && pressed.#field === field) return
     }
     this.#setSelected(false)

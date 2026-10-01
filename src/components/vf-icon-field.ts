@@ -134,7 +134,7 @@ const clamp = (v: number, min: number, max: number): number =>
  * the pointer, and the selection follows it live by the Finder's one rule:
  * **an icon is selected exactly when it was selected at the press XOR the
  * rectangle touches it.** The press fixes that anchor: a plain press has
- * already cleared everything (the way any press outside an icon does), so
+ * already cleared everything (a press on a field's background does), so
  * the rectangle simply selects what it touches and releases what it leaves;
  * with Shift or ⌘ held the selection survives the press and the rectangle
  * *toggles* against it — an icon already selected deselects while the

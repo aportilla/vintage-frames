@@ -185,7 +185,7 @@ With `shortcuts` on the bar, ⌘N, ⌘O, ⌘W and ⌘A activate the items from a
 The kit's model, per icon, is enough for a Finder:
 
 - A click selects an icon and clears every other selected icon. Shift or ⌘ toggles the clicked icon and leaves the rest.
-- A press anywhere outside an icon clears the selection. The desktop field's background and a window body's background are outside every icon.
+- A press on a field's background clears the selection: the desktop field's, or a folder window's. A press anywhere else leaves it — the menu bar, a menu, a dialog, a window's title bar or scroll rails, another application's window — so File → Open still has the icons to open, and a selection outlives an application switch. Such a press still calls off a rename waiting to open and a half-finished tap pair. An icon outside any field clears on a press anywhere outside it.
 - Inside a field, a press on an icon that is already selected keeps the whole selection, so a drag from it carries the set. A click on it released with no drag collapses the selection to that icon.
 - A drag on a field's background is the rubber band: an icon is selected exactly when it was selected at the press XOR the rectangle touches its art or its name. Shift toggles what the rectangle covers.
 
@@ -352,7 +352,7 @@ async function cleanUp(field: VfIconField, cells: Map<VfIcon, { left: number; to
 }
 ```
 
-`dragIcons` walks the array in the order given, so sort it in the container's own fill order first. Each icon lands through the drop's write — clamped whole in its container, or held at the origin only in a scrolling plane, snapped to the lattice, one `vf-placement-change` — so a folder window's lattice may run as many rows as it takes, and its scroll range re-measures per icon. A floor of the page's own, such as the desktop's menu bar, is the page's clamp: apply it to the cells before handing them over. The promise resolves when the last icon has landed; refit a folder window's field and persist positions after it, since a snapshot taken mid-walk reads half-moved positions. A press anywhere, or Escape, finishes the walk at once with every remaining icon at its cell. Under `prefers-reduced-motion` every icon lands at once.
+`dragIcons` walks the array in the order given, so sort it in the container's own fill order first. Each icon lands through the drop's write — clamped whole in its container, or held at the origin only in a scrolling plane, snapped to the lattice, one `vf-placement-change` — so a folder window's lattice may run as many rows as it takes, and its scroll range re-measures per icon. On the desktop the container is its work area: a landing stops below the menu bar, as a drop does (`desktop.workArea` is the box, in system px). The promise resolves when the last icon has landed; refit a folder window's field and persist positions after it, since a snapshot taken mid-walk reads half-moved positions. A press anywhere, or Escape, finishes the walk at once with every remaining icon at its cell. Under `prefers-reduced-motion` every icon lands at once.
 
 One icon alone is `icon.dragTo(left, top)`. `icon.moveTo(left, top)` is the same landing with no outline — the write a drop makes — where `icon.left = …` is the authored pair, unclamped.
 

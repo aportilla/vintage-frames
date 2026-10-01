@@ -163,14 +163,17 @@ const BLOCKIFIED: Record<string, string> = {
  * re-asserts a coordinate and costs nothing.
  *
  * **Every write it makes is announced** as `vf-placement-change` (bubbles,
- * `composed: false`, detail `{ left, top }` — nulls on a return to flow). It
- * is an internal coordination event on the terms of the menu handshakes:
- * parent and child share one light tree, and a kit protocol must not leak out
- * of a consumer's shadow boundary. `vf-scroll-area` listens for it and
+ * `composed: false`, detail `{ left, top }` — nulls on a return to flow), so
+ * a page hears every move the one way: a title-bar drag's steps and its
+ * release (an outline drag's single write), an arrow nudge, a drop, a walk's
+ * landing, an `origin` re-measure, and its own property writes. Non-composed,
+ * because parent and child share one light tree and the event has no reason
+ * to leave a consumer's shadow root. It is dispatched from the host's update,
+ * with the new pair already on its style: a handler that writes the pair
+ * again takes effect on the next update. `vf-scroll-area` listens for it and
  * re-measures, because a placed child moved through `top`/`left` changes the
  * scroll range with no box changing anywhere a ResizeObserver can see — the
- * plane's box is never grown by an absolutely positioned child. One funnel
- * covers a drop, an arrow nudge and a page's own `icon.left = …` alike.
+ * plane's box is never grown by an absolutely positioned child.
  *
  * **`origin`** names which point of the host's own box the pair places —
  * nine keywords, vertical then horizontal (`top center`, `bottom right`,
@@ -570,8 +573,23 @@ export function placementIn(
   }
 }
 
-/** The box a gesture is clamped into, in system px — see {@link PlacementClamp}. */
-export type PlacementBounds = { width: number; height: number }
+/**
+ * The box a gesture is clamped into, in system px — see {@link PlacementClamp}.
+ * `width` and `height` are the positioning parent's box; `top` is the least
+ * `top` a placement may take there: 0, or on a desktop's screen the bottom of
+ * its menu bar (`vf-desktop.workArea`).
+ */
+export type PlacementBounds = { width: number; height: number; top: number }
+
+/**
+ * The detail of `vf-placement-bounds-request`: the handshake a moved host
+ * makes when its gesture measures the box it is clamped into. A
+ * `vf-desktop` on its light-DOM path fills `bounds` for a host placed on its
+ * screen. Internal to the kit's placement.
+ */
+export interface PlacementBoundsRequest {
+  bounds: PlacementBounds | null
+}
 
 /**
  * A moved host's own containment rule, in system px, against the box measured
@@ -726,6 +744,11 @@ export class PlacementController {
   /**
    * The positioning parent's content box, in system px.
    *
+   * A desktop answers for a host placed on its screen
+   * (`vf-placement-bounds-request`, the drag surface's handshake idiom): the
+   * screen, bezel excluded, with the menu bar's floor as `top`. Any other
+   * parent is measured.
+   *
    * A parent with no box at all falls back to the viewport, the same as no
    * parent — that is the *other* contract failure (a `position: relative`
    * container nobody gave a size), and clamping into nothing would leave the
@@ -734,11 +757,15 @@ export class PlacementController {
    */
   #measureBounds(): PlacementBounds {
     const host = this.#host
+    const request: PlacementBoundsRequest = { bounds: null }
+    emit(host, 'vf-placement-bounds-request', request, { composed: false })
+    if (request.bounds) return request.bounds
     const parent = host.offsetParent as HTMLElement | null
     const box = parent && parent.clientWidth > 0 && parent.clientHeight > 0 ? parent : null
     return {
       width: toSysExact(box?.clientWidth ?? window.innerWidth, host),
       height: toSysExact(box?.clientHeight ?? window.innerHeight, host),
+      top: 0,
     }
   }
 }

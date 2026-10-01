@@ -15,7 +15,7 @@
  *    nothing; pointercancel the same; the Escape never reaches an enclosing
  *    dialog.
  *  - REPARENT: an icon filed into another field inside the vf-drop handler
- *    is still selected, and a press outside then deselects it — the
+ *    is still selected, and a press on a field then deselects it — the
  *    outside-press listener survives the re-parent.
  *  - TOUCH: the frame's computed touch-action is none when movable, and
  *    manipulation otherwise.
@@ -91,6 +91,10 @@
  *    reports the overflow, a negative pair lands at the origin, a hand drag
  *    of a two-icon group past the bottom lands past it, and `dragTo` walks
  *    there; in a plain window body the icon still lands whole.
+ *  - WORK AREA: `workArea` is the screen less a menu bar and `windowArea`
+ *    deepens it to `window-top`; an icon dropped, nudged, moved or carried
+ *    in a group on the desktop lands under the bar (not under `window-top`),
+ *    while an icon in a window keeps the body's own floor.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:icon-drag
@@ -434,7 +438,7 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
 // ── REPARENT ────────────────────────────────────────────────────────────────
 // Filing at the drop: the handler cancels the default action, moves the icon
 // into another field and places it there. The icon stays selected, and —
-// the fault this fixes — a press elsewhere still clears it afterwards.
+// the fault this fixes — a press on a field still clears it afterwards.
 {
   const page = await build(
     `<div id="desk" style="position:relative;width:600px;height:400px">
@@ -442,7 +446,7 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
          ${icon('id="ico" width="64" selectable movable left="20" top="20"')}
        </vf-icon-field>
        <vf-icon-field id="b" label="B"></vf-icon-field>
-       <div id="elsewhere" style="position:absolute;left:400px;top:300px;width:120px;height:60px">outside</div>
+       <vf-icon-field id="elsewhere" label="Elsewhere" style="position:absolute;left:400px;top:300px;width:120px;height:60px"></vf-icon-field>
      </div>`
   )
   await record(page)
@@ -476,10 +480,10 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
     JSON.stringify(filed)
   )
   // No click was lost to the re-insert: the icon is not double-selected or
-  // stuck — a press elsewhere clears it, through the re-attached listener.
+  // stuck — a press on a field clears it, through the re-attached listener.
   await page.locator('#elsewhere').click()
   check(
-    'REPARENT  …and a press outside then deselects it (the listener survived the move)',
+    'REPARENT  …and a press on a field then deselects it (the listener survived the move)',
     (await page.evaluate(() => document.getElementById('ico').selected)) === false
   )
   await page.close()
@@ -671,7 +675,7 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
        <vf-icon-field id="boxed" label="Boxed" left="200" top="100" width="200" height="120">
          ${icon('id="inbox" width="64" selectable left="10" top="10"', 'Boxed')}
        </vf-icon-field>
-       <div id="elsewhere" style="position:absolute;left:400px;top:280px;width:100px;height:40px">outside</div>
+       <vf-icon-field id="elsewhere" label="Elsewhere" style="position:absolute;left:400px;top:280px;width:100px;height:40px"></vf-icon-field>
      </vf-desktop>`
   )
   // Computed, not attribute-read: the field writes ARIA through internals,
@@ -809,7 +813,7 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
   )
 
   // Moved between two fields: still an option, and still cleared by a press
-  // outside once selected.
+  // on a field once selected.
   await page.locator('#owned').click()
   await page.evaluate(async () => {
     document.getElementById('boxed').append(document.getElementById('owned'))
@@ -823,7 +827,7 @@ async function pressAndMove(page, id, dx, dy, steps = 4) {
   )
   await page.locator('#elsewhere').click()
   check(
-    'FIELD  …and a press outside still clears it after the move',
+    'FIELD  …and a press on a field still clears it after the move',
     (await page.evaluate(() => document.getElementById('owned').selected)) === false
   )
   await page.close()
@@ -2652,6 +2656,70 @@ const WALK_WIN = `
     walked.shown === true && walked.left === 16 && walked.top === 260,
     JSON.stringify(walked)
   )
+  await page.close()
+}
+
+// ── WORK AREA ───────────────────────────────────────────────────────────────
+// A desktop with a menu bar clamps the gestures on its screen into its work
+// area: an icon dropped, nudged, moved or carried in a group on the desktop
+// lands below the bar — `window-top` deepens the area for windows alone —
+// while an icon in a window keeps its own box's floor. dpr 1: scale 1.
+{
+  const page = await build(
+    `<vf-desktop id="desk" width="512" height="342" window-top="56">
+       <vf-menu-bar><vf-menu label="File"><vf-menu-item value="x">X</vf-menu-item></vf-menu></vf-menu-bar>
+       <vf-icon-field id="field" label="Desktop" fill-width fill-height>
+         ${icon('id="a" width="64" selectable movable left="100" top="100"', 'A')}
+         ${icon('id="b" width="64" selectable movable left="200" top="140"', 'B')}
+       </vf-icon-field>
+       <vf-window id="win" heading="W" left="300" top="120" width="180" height="140">
+         <vf-icon-field label="In" top="0" left="0" width="178" height="100">
+           ${icon('id="w" width="64" selectable movable left="20" top="10"', 'W')}
+         </vf-icon-field>
+       </vf-window>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  const areas = await page.evaluate(() => {
+    const d = document.getElementById('desk')
+    return { work: d.workArea, win: d.windowArea }
+  })
+  check(
+    'WORK AREA  workArea is the screen less the menu bar; windowArea deepens it to window-top',
+    JSON.stringify(areas.work) === '{"left":0,"top":20,"width":512,"height":322}' &&
+      JSON.stringify(areas.win) === '{"left":0,"top":56,"width":512,"height":286}',
+    JSON.stringify(areas)
+  )
+  const pair = (id) => page.evaluate((i) => `${document.getElementById(i).left},${document.getElementById(i).top}`, id)
+
+  await pressAndMove(page, 'a', 0, -200)
+  await page.mouse.up()
+  check('WORK AREA  an icon dropped above the bar lands under it, not under window-top', (await pair('a')) === '100,20', await pair('a'))
+  await page.keyboard.press('ArrowUp')
+  check('WORK AREA  …an arrow nudge up holds it there', (await pair('a')) === '100,20', await pair('a'))
+  await page.evaluate(() => document.getElementById('a').moveTo(100, 0))
+  check('WORK AREA  …and so does moveTo', (await pair('a')) === '100,20', await pair('a'))
+
+  // A group: the member nearest the bar stops at it, the arrangement kept.
+  await page.evaluate(() => {
+    const a = document.getElementById('a')
+    a.top = 100
+  })
+  await settle(page)
+  await page.locator('#a').click()
+  await page.locator('#b').click({ modifiers: ['Shift'] })
+  await pressAndMove(page, 'a', 0, -200)
+  await page.mouse.up()
+  check(
+    'WORK AREA  a group carried up stops with its top member under the bar, the arrangement kept',
+    (await pair('a')) === '100,20' && (await pair('b')) === '200,60',
+    `${await pair('a')} ${await pair('b')}`
+  )
+
+  // In a window, the window's own box: no bar to clear.
+  await pressAndMove(page, 'w', 0, -100)
+  await page.mouse.up()
+  check('WORK AREA  an icon in a window keeps the window body’s floor', (await pair('w')) === '20,0', await pair('w'))
   await page.close()
 }
 

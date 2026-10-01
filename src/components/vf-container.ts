@@ -3,7 +3,15 @@ import { property, query } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { VfPositioned } from '../position.js'
 import { VfSized } from '../size.js'
-import { parseRule, ruleClasses, vfBase, vfRule, type RuleEdge } from '../styles/base.js'
+import {
+  parseRule,
+  ruleClasses,
+  vfBase,
+  vfFocusUnderline,
+  vfRule,
+  vfStrokeInset,
+  type RuleEdge,
+} from '../styles/base.js'
 import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { parsePattern, type Pattern } from '../patterns.js'
@@ -52,7 +60,9 @@ import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
  *
  * **It paints nothing and means nothing** — unless `pattern` or `rule` say
  * what to paint. No role, keyboard behavior or selection; what it holds
- * decides what it is.
+ * decides what it is. A page that gives it a role and a `tabindex` — a
+ * pattern chooser's cells as radios — gets the kit's keyboard focus mark
+ * rather than the browser's ring: the dashed rule below the box.
  *
  * **`rule` draws the 1px rule on the edges it names** — `rule="bottom"` is
  * the menu bar's anatomy (the box's rows over one row of ink), `rule="top"`
@@ -152,6 +162,22 @@ export class VfContainer extends VfSized(VfPositioned(LitElement)) {
         /* The stated box less its rules, so slotted percentage fills resolve
            against it; auto against an undeclared height. */
         height: 100%;
+      }
+
+      /* A box the page makes focusable — a pattern chooser's cells as
+         radios, say — wears the kit's focus mark, not the browser's ring: the
+         dashed rule below the box, one blank row under it, since a box like
+         that is nothing but fill (vf-swatch's placement). The rule spans the
+         box; under forced colors a ruled box's stroke is a border outside the
+         padding box the rule measures from, so the insets grow by it there. */
+      :host(:focus-visible) {
+        outline: none;
+      }
+      :host(:focus-visible) .box::after {
+        ${vfFocusUnderline}
+        bottom: ${vfStrokeInset(-3)};
+        left: ${vfStrokeInset(-1)};
+        right: ${vfStrokeInset(-1)};
       }
 
       /* The same two words a child uses, read about the host itself — for the

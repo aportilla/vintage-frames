@@ -31,6 +31,9 @@
  *    it; `placementAt(x, y, child)` folds the child's offset in; unset and
  *    `top left` write exactly the plain inline style; an unknown value warns
  *    once and places as `top left`.
+ *  - EVENT: every placement write fires one `vf-placement-change` on the
+ *    host — `{ left, top }`, nulls on a return to flow — bubbling and not
+ *    composed; an unrelated update fires none.
  *  - LIVE: the offsets are calc()s against --vf-scale, not resolved numbers,
  *    so a pinned scale in scope repositions without any property write.
  *  - INTERPLAY: placement seeds vf-window drag / vf-icon moves; a drag then
@@ -839,6 +842,50 @@ for (const dpr of DENSITIES) {
     'origin: …and warns once per element, not per update',
     warned.length === 1,
     warned[0] ?? `${warned.length} warnings`
+  )
+  await page.close()
+}
+
+/* ── EVENT ────────────────────────────────────────────────────────────────
+   vf-placement-change is public: every placement write is announced on the
+   host, once per write — bubbling, not composed, detail { left, top } — and
+   a return to flow says so with nulls. An unrelated update says nothing. */
+
+{
+  const page = await build(`
+    <div id="p" style="position:relative;width:900px;height:600px">
+      <vf-button id="b">OK</vf-button>
+    </div>
+  `)
+  const log = await page.evaluate(async () => {
+    const out = []
+    document.addEventListener('vf-placement-change', (e) =>
+      out.push({ id: e.target.id, ...e.detail, bubbles: e.bubbles, composed: e.composed })
+    )
+    const b = document.getElementById('b')
+    b.left = 40
+    b.top = 25
+    await b.updateComplete
+    b.top = 30
+    await b.updateComplete
+    b.textContent = 'Cancel'
+    b.requestUpdate()
+    await b.updateComplete
+    b.left = null
+    b.top = null
+    await b.updateComplete
+    return out
+  })
+  const pairs = log.map((e) => `${e.left},${e.top}`).join(' ')
+  check(
+    'event: one vf-placement-change per placement write, an unrelated update silent',
+    pairs === '40,25 40,30 null,null' && log.every((e) => e.id === 'b'),
+    pairs
+  )
+  check(
+    'event: it bubbles to the document and is not composed',
+    log.every((e) => e.bubbles && !e.composed),
+    JSON.stringify(log[0])
   )
   await page.close()
 }

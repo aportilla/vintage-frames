@@ -58,6 +58,16 @@
  *    window can land — and the release writes the window there once; Escape
  *    writes nothing; a capture lost before the release lands it the same
  *    way. Unset, or with no desktop, the window moves live.
+ *  - PLACEMENT EVENT: a listener on the desktop hears a title-bar drag's
+ *    release as `vf-placement-change` carrying the window's new pair.
+ *  - CHROME: `windowChrome()` matches the insets measured between a rendered
+ *    window's outer box and its body or scrolled viewport, for seven option
+ *    sets at dpr 1 and 2; `sizeLimits` is the 80×54 floor by default and a
+ *    window's own min and max where stated.
+ *  - WORK AREA: on a desktop with a menu bar a window dragged up stops with
+ *    its title bar under the bar, outline or live, or at `window-top`; the
+ *    floor rounds up to the placement lattice; on a bezeled desktop the
+ *    clamp's box is the screen, bezel excluded.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:window
@@ -1562,6 +1572,182 @@ const titleBarPoint = (page) =>
       landed.left === 24 - 200 &&
       landed.top === 0,
     JSON.stringify({ outline: pushed.box, landed: [landed.left, landed.top] })
+  )
+  await page.close()
+}
+
+// The release is announced: a listener on the desktop hears the drag's end
+// as vf-placement-change with the window's new pair — one write for an
+// outline drag, the last of the steps' writes for a live one.
+for (const [label, attrs] of [
+  ['an outline drag', 'movable outline-drag'],
+  ['a live drag', 'movable'],
+]) {
+  const page = await build(OUTLINE_DESK(attrs), { settle: true })
+  await page.evaluate(() => {
+    globalThis.__heard = []
+    document.getElementById('desk').addEventListener('vf-placement-change', (e) => {
+      if (e.target.id === 'win') globalThis.__heard.push(`${e.detail.left},${e.detail.top}`)
+    })
+  })
+  const bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 60, bar.y + 40, { steps: 6 })
+  await page.mouse.up()
+  const heard = await page.evaluate(() => globalThis.__heard)
+  check(
+    `PLACEMENT EVENT  the desktop hears ${label}'s release as vf-placement-change, with the new pair`,
+    heard.at(-1) === '160,100' && (attrs.includes('outline') ? heard.length === 1 : heard.length > 1),
+    heard.join(' ')
+  )
+  await page.close()
+}
+
+/* ── WORK AREA ────────────────────────────────────────────────────────────
+   A window dragged up on a desktop with a menu bar stops with its title bar
+   under the bar, outline or live; `window-top` holds it deeper. The clamp's
+   box is the screen, bezel excluded, and its floor rounds up to the
+   placement lattice (21 on a lattice of 3, at dpr 3). */
+
+const BAR = `<vf-menu-bar><vf-menu label="File"><vf-menu-item value="x">X</vf-menu-item></vf-menu></vf-menu-bar>`
+for (const [label, desk, attrs, dpr, want] of [
+  ['an outline drag', 'width="512" height="342"', 'movable outline-drag', 1, '100,20'],
+  ['a live drag', 'width="512" height="342"', 'movable', 1, '100,20'],
+  ['window-top="56"', 'width="512" height="342" window-top="56"', 'movable outline-drag', 1, '100,56'],
+  ['on a lattice of 3 (dpr 3)', 'width="512" height="342"', 'movable outline-drag', 3, '99,21'],
+]) {
+  const page = await build(
+    `<vf-desktop id="desk" ${desk}>${BAR}
+       <vf-window id="win" heading="Up" width="200" height="120" left="100" top="150" ${attrs}></vf-window>
+     </vf-desktop>`,
+    { settle: true, dpr }
+  )
+  const bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x, bar.y - 400, { steps: 6 })
+  await page.mouse.up()
+  const at = await page.evaluate(() => {
+    const w = document.getElementById('win')
+    return `${w.left},${w.top}`
+  })
+  check(`WORK AREA  ${label}: a window dragged up stops under the menu bar`, at === want, at)
+  await page.close()
+}
+{
+  // A bezeled screen: the clamp's box is the screen, so a window pushed right
+  // keeps its grabbable strip on the screen, not under the bezel.
+  const page = await build(
+    `<vf-desktop id="desk" width="502" height="332" bezel="5">${BAR}
+       <vf-window id="win" heading="Right" width="200" height="120" left="100" top="150" movable></vf-window>
+     </vf-desktop>`,
+    { settle: true }
+  )
+  const bar = await titleBarPoint(page)
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 600, bar.y, { steps: 6 })
+  await page.mouse.up()
+  const left = await page.evaluate(() => document.getElementById('win').left)
+  check('WORK AREA  on a bezeled desktop the clamp is the screen’s, bezel excluded', left === 502 - 24, String(left))
+  await page.close()
+}
+
+/* ── CHROME ───────────────────────────────────────────────────────────────
+   windowChrome() states the insets between a window's outer box and its
+   content region — the body, or the scrolled plane's viewport under
+   `scrollbars` — for its declared options; each case is measured off a
+   rendered window at dpr 1 and 2 and compared, in system px. sizeLimits
+   reads the sizeRect as it applies. */
+
+{
+  const CASES = [
+    ['a document window', '', {}],
+    ['a utility window', 'variant="utility"', { variant: 'utility' }],
+    [
+      'a folder window (both rails, a 20px header)',
+      'scrollbars="both" header-height="20"',
+      { scrollbars: 'both', headerHeight: 20 },
+      '<vf-label slot="header">3 items</vf-label>',
+    ],
+    [
+      'a palette (utility, vertical rail, status strip)',
+      'variant="utility" scrollbars="vertical" resizable',
+      { variant: 'utility', scrollbars: 'vertical', status: true },
+      '<vf-label slot="status">2 colors</vf-label>',
+    ],
+    [
+      'a horizontal rail over a status strip',
+      'scrollbars="horizontal" resizable',
+      { scrollbars: 'horizontal', status: true },
+      '<vf-label slot="status">ready</vf-label>',
+    ],
+    ['a resizable window with one rail (the corner cell kept)', 'scrollbars="vertical" resizable', { scrollbars: 'vertical' }],
+    [
+      'a header and a status strip, no rails',
+      'header-height="24"',
+      { headerHeight: 24, status: true },
+      '<vf-label slot="header">head</vf-label><vf-label slot="status">foot</vf-label>',
+    ],
+  ]
+  for (const dpr of [1, 2]) {
+    const markup = CASES.map(
+      ([, attrs, , slots = ''], i) =>
+        `<vf-window id="c${i}" heading="C" width="240" height="160" left="${8 + (i % 3) * 250}" top="${8 + Math.floor(i / 3) * 170}" ${attrs}>${slots}</vf-window>`
+    ).join('')
+    const page = await build(`<div style="position:relative;width:1100px;height:600px">${markup}</div>`, {
+      dpr,
+      settle: true,
+    })
+    const got = await page.evaluate((cases) => {
+      return import('/src/index.js').then((m) =>
+        cases.map(([, , options], i) => {
+          const win = document.getElementById(`c${i}`)
+          const scale = parseFloat(getComputedStyle(win).getPropertyValue('--vf-scale'))
+          const area = win.shadowRoot.querySelector('vf-scroll-area')
+          const content = area
+            ? area.shadowRoot.querySelector('[part="viewport"]')
+            : win.shadowRoot.querySelector('.body')
+          const o = win.getBoundingClientRect()
+          const c = content.getBoundingClientRect()
+          const sys = (v) => Math.round((v / scale) * 1000) / 1000
+          return {
+            measured: {
+              top: sys(c.top - o.top),
+              right: sys(o.right - c.right),
+              bottom: sys(o.bottom - c.bottom),
+              left: sys(c.left - o.left),
+            },
+            stated: m.windowChrome(options),
+          }
+        })
+      )
+    }, CASES)
+    got.forEach(({ measured, stated }, i) => {
+      check(
+        `CHROME  dpr ${dpr}: windowChrome() is ${CASES[i][0]}'s insets, as rendered`,
+        JSON.stringify(measured) === JSON.stringify(stated),
+        `measured ${JSON.stringify(measured)}, stated ${JSON.stringify(stated)}`
+      )
+    })
+    await page.close()
+  }
+
+  const page = await build(
+    `<div style="position:relative;width:900px;height:600px">
+       <vf-window id="d" heading="D" width="240" height="160" resizable></vf-window>
+       <vf-window id="e" heading="E" width="240" height="160" resizable min-width="185" min-height="160" max-height="300"></vf-window>
+     </div>`
+  )
+  const limits = await page.evaluate(() =>
+    ['d', 'e'].map((id) => JSON.stringify(document.getElementById(id).sizeLimits))
+  )
+  check(
+    'CHROME  sizeLimits: the 80×54 floor and no max by default, a window’s own min and max where stated',
+    limits[0] === '{"minWidth":80,"minHeight":54,"maxWidth":null,"maxHeight":null}' &&
+      limits[1] === '{"minWidth":185,"minHeight":160,"maxWidth":null,"maxHeight":300}',
+    limits.join(' ')
   )
   await page.close()
 }

@@ -2,12 +2,14 @@
 
 How a page assembles a Finder-style experience — a desktop of icons, folder windows, filing by drag and drop, selection, renaming and opening — from the kit's elements. The kit draws and reports; the page owns the catalog and decides what every gesture means.
 
+The shell ([SHELL.md](./SHELL.md)) runs this recipe as a stock Finder, over a catalog with storage, alongside other applications. This guide is the path from scratch, with the elements alone. The shell's pieces also work on their own here: filing by drag (`fileByDrag`), the catalog and the geometry.
+
 ## The division of labor
 
 | The kit | The page |
 | --- | --- |
 | `vf-desktop`: the raster, window stacking, the single active window, the drag surface | Which presses mean "the Finder" (`clearActive()`), the menu bar's commands |
-| `vf-window`: the shell, the header and status strips, edge scroll rails, `placementAt()`, opening from and closing to a rect (`show({ from })`, `hide({ to })`) | What a folder window is, when it opens and closes, what it opens from and closes to, what it shows |
+| `vf-window`: the frame, the header and status strips, edge scroll rails, `placementAt()`, opening from and closing to a rect (`show({ from })`, `hide({ to })`) | What a folder window is, when it opens and closes, what it opens from and closes to, what it shows |
 | `vf-icon-field`: the listbox, `size`, the rubber band | Which icons are in which field, where each one sits |
 | `vf-icon`: selection, the outline drag and its events, renaming, opening | What a drop means, filing, the names and positions in the model |
 
@@ -59,9 +61,9 @@ One desktop filling the viewport, a menu bar, a field for the desktop's icons, a
 <vf-desktop id="desktop">
   <vf-menu-bar shortcuts>
     <vf-menu label="File">
-      <vf-menu-item value="new-folder" shortcut="⌘N">New Folder</vf-menu-item>
+      <vf-menu-item value="new-folder" shortcut="⌃N">New Folder</vf-menu-item>
       <vf-menu-item value="open" shortcut="⌘O">Open</vf-menu-item>
-      <vf-menu-item value="close" shortcut="⌘W">Close</vf-menu-item>
+      <vf-menu-item value="close" shortcut="⌃W">Close</vf-menu-item>
     </vf-menu>
     <vf-menu label="Edit">
       <vf-menu-item value="select-all" shortcut="⌘A">Select All</vf-menu-item>
@@ -178,7 +180,7 @@ document.addEventListener('vf-menu-select', (e) => {
 })
 ```
 
-With `shortcuts` on the bar, ⌘N, ⌘O, ⌘W and ⌘A activate the items from anywhere on the page, menu closed or open, and a closed menu flashes its title. A disabled item claims nothing, so a grayed Undo leaves ⌘Z to a field's native undo.
+With `shortcuts` on the bar, ⌃N, ⌘O, ⌃W and ⌘A activate the items from anywhere on the page, menu closed or open, and a closed menu flashes its title. Browsers keep ⌘N, ⌘W and ⌘Q for themselves, so those commands take ⌃. A disabled item claims nothing, so a grayed Undo leaves ⌘Z to a field's native undo. A focused icon takes ⌘O and ⌘↓ before the menu does, and opens itself.
 
 ## Selection
 
@@ -204,15 +206,10 @@ The page's own writes go through `icon.setSelected(next)` when they should fire 
 
 ## The Finder's deactivation
 
-On a real System 7 machine a press on the desktop clicked the Finder, and the frontmost application's windows lost their stripes. The desktop never takes that decision; the page routes the presses it considers "the Finder" through `clearActive()`. With a filled desktop field, those presses have the field as their target:
+On a real System 7 machine a press on the desktop clicked the Finder, and the frontmost application's windows lost their stripes. The desktop never takes that decision; the page routes the presses it considers "the Finder" through `clearActive()`. With a filled desktop field, a press on the bare desktop or on one of its icons lands in the field:
 
 ```ts
-desktop.addEventListener('pointerdown', (e) => {
-  const path = e.composedPath()
-  if (path.includes(desktopField) && !path.some((n) => n instanceof HTMLElement && n.localName === 'vf-icon')) {
-    desktop.clearActive()
-  }
-})
+desktopField.addEventListener('pointerdown', () => desktop.clearActive())
 ```
 
 Zero active windows is a legal state. A press in a document window, keyboard focus entering one, or a newly slotted window reactivates. `vf-activate` reports every change of holder.

@@ -35,11 +35,12 @@
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:snap
  */
-import { ORIGIN, browserAt, closeBrowsers, heartbeat, launch } from './harness.mjs'
+import { ORIGIN, SHELL_PAGE, browserAt, closeBrowsers, heartbeat, launch } from './harness.mjs'
 
-// (`/` is the component reference since the faux desktop moved to the
-// SystemOnline repo.)
-const PAGES = (process.env.VF_SNAP_PAGES ?? '/').split(',')
+// `/` is the component reference; the shell's reference page is a
+// full-viewport desktop, here with folder windows, a document and a palette
+// open, which the reflow below resizes.
+const PAGES = (process.env.VF_SNAP_PAGES ?? `/,${SHELL_PAGE}`).split(',')
 const DENSITIES = (process.env.VF_SNAP_DPR ?? '1,2,3').split(',').map(Number)
 
 /** Must match DEADBAND_DEVICE_PX in src/grid-snap.ts, plus float slack. */

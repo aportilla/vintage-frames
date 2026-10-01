@@ -36,6 +36,10 @@
       "types": "./dist/components/vf-*.d.ts",
       "import": "./dist/components/vf-*.js"
     },
+    "./shell": {
+      "types": "./dist/shell/index.d.ts",
+      "import": "./dist/shell/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -108,7 +112,11 @@
     "verify:snap": "node scripts/verify-snap.mjs",
     "verify:contract": "node scripts/verify-contract.mjs",
     "verify:names": "node scripts/verify-names.mjs",
-    "verify:forced-colors": "node scripts/verify-forced-colors.mjs"
+    "verify:forced-colors": "node scripts/verify-forced-colors.mjs",
+    "verify:shell-unit": "tsc -p tsconfig.unit.json && node --test --test-reporter=tap \"test/*.test.mjs\"",
+    "verify:shell-front": "node scripts/verify-shell-front.mjs",
+    "verify:shell-windows": "node scripts/verify-shell-windows.mjs",
+    "verify:shell-finder": "node scripts/verify-shell-finder.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"

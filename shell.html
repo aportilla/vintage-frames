@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    The shell's reference page (vintage-frames/shell, docs/SHELL.md): one
+    desktop filling the viewport, with the Finder over a catalog seeded from
+    this markup — the vf-icon[data-app] and template[data-folder] in the
+    desktop's field — and Note Pad, a small application with documents of its
+    own kind, an Info palette, and a close that asks about unsaved changes
+    (demo/shell.ts). The verify:shell-* scripts drive it, and verify:grid and
+    verify:snap walk it.
+
+    ?save=1 keeps the catalog in IndexedDB and the session in localStorage,
+    so a reload comes back where it was; without it a reload resets.
+    ?cleanup=1 turns on Clean Up after a resize. ?open=Projects&open=Archive
+    opens the items it names once the boot is done.
+
+    The art is the page's own: the kit ships none.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shell reference</title>
+    <style>
+      /* The desktop sits at the page's origin, and the shell sizes it to the
+         viewport, bezel included, so nothing scrolls. */
+      html,
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+      /* Note Pad's text area fills its window's 258px body, 8 in. */
+      vf-text-area {
+        --vf-field-width: 242px;
+      }
+    </style>
+    <script type="module" src="/demo/shell.ts"></script>
+  </head>
+  <body>
+    <!-- bezel: the black surround, which puts the screen's rounded corners
+         on all four corners, the menu bar's included. -->
+    <vf-desktop bezel="10">
+      <vf-menu-bar label="Finder">
+        <!-- The system menu: the page's own first menu. Applications install
+             their items in it. -->
+        <vf-menu label="Apple">
+          <vf-img slot="label" width="16" height="16"><img src="/demo/icons/apple.png" alt="" /></vf-img>
+        </vf-menu>
+      </vf-menu-bar>
+      <!-- The markup seed: stored once per storage, then the catalog's. -->
+      <vf-icon-field label="Desktop" fill-width fill-height>
+        <vf-icon data-app="note-pad"></vf-icon>
+        <template data-folder="Documents"></template>
+        <template data-folder="Projects">
+          <template data-folder="Archive"></template>
+        </template>
+      </vf-icon-field>
+    </vf-desktop>
+  </body>
+</html>

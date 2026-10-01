@@ -30,14 +30,15 @@
  * Override the pages with VF_GRID_PAGES (comma-separated paths) and the
  * densities with VF_GRID_DPR.
  */
-import { ORIGIN, browserAt, closeBrowsers, heartbeat } from './harness.mjs'
+import { ORIGIN, SHELL_PAGE, browserAt, closeBrowsers, heartbeat } from './harness.mjs'
 
 // The audit measures HOST rects, which the components' always-on snapping
 // never moves (the correction lands inside the shadow root) — so snapping
 // cannot paper over the ORIGIN faults this script exists to catch, and the
-// page is loaded plain. (`/` is the component reference since the faux
-// desktop moved to the SystemOnline repo.)
-const PAGES = (process.env.VF_GRID_PAGES ?? '/').split(',')
+// page is loaded plain. `/` is the component reference; the shell's reference
+// page is a full-viewport desktop, here with folder windows, a document and a
+// palette open.
+const PAGES = (process.env.VF_GRID_PAGES ?? `/,${SHELL_PAGE}`).split(',')
 const DENSITIES = (process.env.VF_GRID_DPR ?? '1,1.5,2,2.5,3').split(',').map(Number)
 
 const audit = async (page) =>

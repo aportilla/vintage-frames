@@ -17,6 +17,7 @@ The reference page is published at **[vintage-frames.portill.io](https://vintage
 | Page | What it is |
 | --- | --- |
 | [`/`](http://localhost:5173/) | **Component reference** — every element, its API, and a live specimen of each state. Each markup sample is the demo's own source, so it can't drift. A demo whose behavior needs page script beyond its markup shows that too, as a "Script" block: the API surface the demo rests on, written the way a page would write it — the elements by name, an `app` object standing for the page's own state — not the `data-*` hooks in `demo/examples.ts` that actually drive it. Authored as a `<script type="text/plain" data-script>` last child of the demo's template |
+| [`/shell.html`](http://localhost:5173/shell.html) | **The shell's reference page** ([SHELL.md](./SHELL.md)): a desktop filling the viewport with the Finder over a catalog seeded from the page's markup, and Note Pad, a small application with documents, a palette and a close that asks about unsaved changes (`demo/shell.ts`). `?save=1` keeps the catalog and the session across reloads; `?cleanup=1` turns on Clean Up after a resize; `?open=Projects&open=Archive` opens those items at load. The art is the page's own |
 | [`/tile-repeat-probe.html`](http://localhost:5173/tile-repeat-probe.html) | **The tiled-fill check for real browsers.** A full-window `vf-desktop`, shown as shipped, as a candidate tile, or as the old whole-surface raster for reference, with a diff switch (`mix-blend-mode: difference`: black where two paint the same pixel). Paste or drop a screenshot of the dither and it checks that every run of black and white is exactly n device px. No headless engine reproduces Safari's image smoothing, so after changing a tiled fill, check Safari, Chrome and Firefox at a few zoom levels, and the iOS Simulator: `xcrun simctl openurl booted '<url>'` loads a configuration (every control reads the query string), and `xcrun simctl io booted screenshot <file>` exports the framebuffer — the Simulator's window is scaled, so judge the export |
 | [`/border-zoom-probe.html`](http://localhost:5173/border-zoom-probe.html) | **The stroke check for real browsers.** Probe boxes drawn as a `border`, an `outline` and the shipped stroke (`vfStrokeDecls`), each measured in device px against n, then real components with every kit line in them to screenshot. Safari rounds a border width before page zoom, and no headless engine reproduces its page zoom, so after changing how a line is drawn, load it at 100% in Safari and step ⌘+ / ⌘− through the zoom levels (the readout's **Copy readout** copies the table), then check Chrome and Firefox |
 
@@ -27,13 +28,15 @@ Grid snapping is the components' own always-on behavior. Load the reference with
 ## Tests
 
 ```sh
-npm test                   # all 37 verify scripts, in parallel
+npm test                   # all 44 verify scripts, in parallel
 npm test -- focus button   # only the ones whose name matches
 npm test -- --bail         # stop at the first failing script
 npm run verify:focus       # one script, against a dev server you started
 ```
 
 The `verify:*` scripts are the test suite: Playwright drivers where Node reaches into a real page and asserts what the browser computed — rendered pixels, resolved `calc()`, the accessibility tree, the device-pixel grid at three densities. jsdom can resolve none of that, and an in-page runner can't produce the **trusted** input `:focus-visible` and the focus-modality rule require.
+
+The shell's pure modules (the geometry, the catalog, the saved session) also have unit tests, in `test/*.test.mjs`. `verify:shell-unit` compiles those modules with `tsconfig.unit.json` into `scripts/.tmp/unit` and runs the tests with Node's own runner; it also checks the shell's ground rules from its sources, that it imports nothing but the kit's root exports, registers no elements and writes no styles. `verify:shell-front`, `verify:shell-windows` and `verify:shell-finder` drive `shell.html`, and `verify:grid` and `verify:snap` walk it beside `/`, with windows open.
 
 `npm test` starts a dev server on the port it will poll, runs every script in parallel, prints one table and exits nonzero if any fail. A server already listening is reused and left running. Shared code (the page builder, `check()`, the tally, a PNG decoder, the accessibility-tree walker) lives in [`scripts/harness.mjs`](../scripts/harness.mjs); each script keeps its own header explaining what it covers.
 

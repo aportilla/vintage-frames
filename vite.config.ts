@@ -3,7 +3,13 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   build: {
     lib: {
-      entry: 'src/index.ts',
+      // Two entries: the kit at the package root, and the shell at
+      // `vintage-frames/shell` (src/shell/), which reaches the kit only
+      // through the root's exports.
+      entry: {
+        index: 'src/index.ts',
+        'shell/index': 'src/shell/index.ts',
+      },
       formats: ['es'],
     },
     rollupOptions: {

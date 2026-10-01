@@ -23,6 +23,22 @@ import 'vintage-frames/vf-checkbox.js'
 
 There is no need to import a stylesheet. The components carry their styles with them.
 
+## The shell
+
+`vintage-frames/shell` is an experimental second entry point that runs applications over one desktop: a window manager, a menu bar that shows the front application's menus, and a Finder with folders, filing, Clean Up and the Trash.
+
+```ts
+import 'vintage-frames'
+import { createShell, finder, memoryStorage } from 'vintage-frames/shell'
+
+createShell(document.querySelector('vf-desktop'), {
+  apps: [finder({ storage: memoryStorage(), seed: 'markup', art })],
+  fit: 'viewport',
+})
+```
+
+See [docs/SHELL.md](https://github.com/aportilla/vintage-frames/blob/main/docs/SHELL.md). Its API may change in any minor release while it is experimental.
+
 
 ## Sizing
 

@@ -6,6 +6,8 @@ The toolkit the components are built from is exported from the package root, so 
 import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 ```
 
+The shell, which runs applications over a desktop, is a second entry point, `vintage-frames/shell` ([SHELL.md](./SHELL.md)). It is built on these exports alone.
+
 | Export | What it's for |
 | --- | --- |
 | `applyScale`, `ScaleController`, `onScaleChange` | Opt a subtree, or your own component, into true-size rendering |

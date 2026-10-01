@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "scripts/.tmp/unit"
+  },
+  "include": [],
+  "files": ["src/shell/geometry.ts", "src/shell/catalog.ts", "src/shell/state.ts"]
+}

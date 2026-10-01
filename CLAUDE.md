@@ -6,7 +6,8 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
 ## Commands
 
 - `npm run dev` — Vite dev server on :5173 (the verify scripts expect one)
-- `npm test` — the whole verify suite: 37 Playwright driver scripts, run in
+- `npm test` — the whole verify suite: 44 scripts (Playwright drivers, and
+  `verify:shell-unit`, the shell's Node unit tests in `test/`), run in
   parallel against a server it starts itself. Filter by name
   (`npm test -- focus button`); `npm test -- --bail` stops at the first failure.
 - `npm run verify:<name>` — one script against a dev server you started
@@ -39,6 +40,10 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
   never write comments or docs implying the classic Mac drew them.
 - `dist/`, `custom-elements.json` and `editor/*` are build outputs
   (`npm run build` / `npm run analyze`) — regenerate, don't hand-edit.
+- **The shell is a layer over the elements.** `src/shell/` imports the kit
+  only through `../index.js`, registers no elements, writes no styles and
+  ships no art (`verify:shell-unit` checks). It is experimental until
+  sprite-machine runs on all of it.
 
 ## Commits
 
@@ -55,11 +60,16 @@ regenerated files with the change.
   1-bit CSS recipes; mixins and controllers sit directly in `src/`;
   `src/patterns.ts` — the 38 standard patterns as data (the manifest for the
   `pattern` attribute), `src/pattern-fill.ts` the fill that paints one
+- `src/shell/` — the shell, the second entry point `vintage-frames/shell`
+  (applications, window manager, catalog, Finder, saved state);
+  `test/*.test.mjs` its unit tests; `shell.html` its reference page
+  (`demo/shell.ts`)
 - `docs/` — all documentation beyond the README: SPEC (the full design spec;
   ships to npm), DESIGN-TOKENS (every `--vf-*` token), SIZING (grid/zoom/tile),
   LAYOUT (stack, placement, archetypes), PATTERNS (the pattern library and
   the `pattern` attribute), FONTS, ICONS, FINDER (assembling a Finder-style
-  page: fields, folder windows, filing by drag and drop), CURSOR,
+  page: fields, folder windows, filing by drag and drop), SHELL (the shell's
+  guide), CURSOR,
   ACCESSIBILITY, TOOLKIT (root exports), DEVELOPING (demo pages, verify
   suite), PUBLISHING (the npm release guide), THREE-X-DISPLAYS
 - `README.md` — the consumer storefront, shared by GitHub and npm; deep

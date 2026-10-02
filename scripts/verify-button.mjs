@@ -32,6 +32,9 @@
  *    is the proxy — parented to the host and unslotted, so
  *    `submitter.closest('vf-button')` gets back to the component, which is as
  *    close as the platform allows.
+ *  - IMPLICIT SUBMISSION. Enter in a field submits through the form's default
+ *    button: the ringed `variant="default"` one when there is one, else the
+ *    first, so a Cancel/OK row answers OK.
  *  - THE DISABLED RING. A default button dims its outer ring with its label.
  *    Both routes into disabled have to do it, and only one of them is an
  *    attribute.
@@ -417,6 +420,21 @@ const build = makeBuild(browser, {
   check('…and after it', early.after === 2, `${early.after} events`)
   await page.close()
 }
+/** Press Enter in the field #t and read what form #f submitted. */
+const ENTER_PAYLOAD = async () => {
+  let payload = 'no submit'
+  document.getElementById('f').addEventListener('submit', (e) => {
+    e.preventDefault()
+    payload = [...new FormData(e.target, e.submitter)].map(([k, v]) => `${k}=${v}`).join('&')
+  })
+  const input = document.getElementById('t').shadowRoot.querySelector('input')
+  input.focus()
+  input.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true, cancelable: true })
+  )
+  await new Promise((r) => setTimeout(r, 30))
+  return payload
+}
 {
   const page = await build(`
     <form id="f">
@@ -424,22 +442,22 @@ const build = makeBuild(browser, {
       <vf-button id="b" type="submit" name="go" value="1">Save</vf-button>
     </form>
   `)
-  const r = await page.evaluate(async () => {
-    let payload = 'no submit'
-    document.getElementById('f').addEventListener('submit', (e) => {
-      e.preventDefault()
-      payload = [...new FormData(e.target, e.submitter)].map(([k, v]) => `${k}=${v}`).join('&')
-    })
-    const input = document.getElementById('t').shadowRoot.querySelector('input')
-    input.focus()
-    input.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true, cancelable: true })
-    )
-    await new Promise((r) => setTimeout(r, 30))
-    return payload
-  })
+  const r = await page.evaluate(ENTER_PAYLOAD)
   check('Enter in a field still submits through the default vf-button',
     r === 'q=typed&go=1', r)
+  await page.close()
+}
+{
+  const page = await build(`
+    <form id="f">
+      <vf-text-field id="t" name="q" value="typed"></vf-text-field>
+      <vf-button type="submit" name="go" value="cancel">Cancel</vf-button>
+      <vf-button type="submit" name="go" value="ok" variant="default">OK</vf-button>
+    </form>
+  `)
+  const r = await page.evaluate(ENTER_PAYLOAD)
+  check('Enter in a field submits through the ringed button, though Cancel comes first',
+    r === 'q=typed&go=ok', r)
   await page.close()
 }
 

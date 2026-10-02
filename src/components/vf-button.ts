@@ -276,7 +276,11 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
   /** Form field name; submitted as `name=value` when `type="submit"`. */
   @property({ reflect: true }) name = ''
 
-  /** Value submitted under `name` when `type="submit"`. */
+  /**
+   * Value submitted under `name` when `type="submit"`. In a
+   * `<form method="dialog">` inside a `vf-dialog`, the dialog's answer
+   * (`returnValue`), with or without a `name`.
+   */
   @property({ reflect: true }) value = ''
 
   /**
@@ -506,10 +510,10 @@ export class VfButton extends VfPositioned(VfShadowRoleControl) {
     // preventDefault().
     proxy.addEventListener('click', (event) => event.stopPropagation())
     if (type === 'submit') {
-      if (this.name) {
-        proxy.name = this.name
-        proxy.value = this.value
-      }
+      if (this.name) proxy.name = this.name
+      // The value even without a name: it adds nothing to the form data then,
+      // but a `method="dialog"` form answers with it.
+      proxy.value = this.value
       // HTML honors these on a submit button only.
       if (this.formAction) proxy.formAction = this.formAction
       if (this.formEnctype) proxy.formEnctype = this.formEnctype

@@ -1,7 +1,9 @@
 /**
- * The shell's alert: a plain-framed `vf-dialog` with the site's caution art,
+ * The Finder's alert: a plain-framed `vf-dialog` with the site's caution art,
  * a message and a row of buttons, sized to the message — composed from kit
- * elements, as every alert in the kit is.
+ * elements, as every alert in the kit is. Its buttons submit a
+ * `<form method="dialog">`, so it answers with the pressed button's `value`
+ * like any dialog an application holds.
  *
  * The layout follows the plain frame's body, its width and height less 10:
  * the art and the message 16 in from the body's top-left, the buttons'
@@ -14,7 +16,7 @@ import type { VfButton, VfDialog, VfParagraph } from '../index.js'
 /** One button of an alert. */
 export interface AlertButton {
   label: string
-  /** What the alert resolves to when it is pressed. */
+  /** What the alert answers when it is pressed. */
   value: string
   /** The default button, which Return presses. */
   default?: boolean
@@ -25,10 +27,19 @@ export interface AlertOptions {
   buttons?: AlertButton[]
   /** The dialog's width, system px. Default 400. */
   width?: number
-  /** The 32×32 art beside the message; default the shell's caution art. */
+  /** The 32×32 art beside the message, or null for none. */
   art?: string | null
   /** The dialog's accessible name. Default "Alert". */
   label?: string
+}
+
+/** An alert, made but not yet shown. */
+export interface ComposedAlert {
+  dialog: VfDialog
+  /** Resolves once its parts have rendered, so `show()` opens it at once. Call it once the dialog is in the page. */
+  rendered(): Promise<unknown>
+  /** Size the box to the message. Call it right after `show()`: a closed dialog lays out nothing. */
+  fit(): void
 }
 
 const FRAME = 10
@@ -36,11 +47,8 @@ const INSET = 16
 const ART = 32
 const BUTTONS = 28
 
-/**
- * Show an alert inside `host` (the desktop), and resolve the value of the
- * button pressed — or null when it closed any other way, Escape say.
- */
-export async function showAlert(host: Element, message: string, options: AlertOptions = {}): Promise<string | null> {
+/** Make an alert for `message`. */
+export function composeAlert(message: string, options: AlertOptions = {}): ComposedAlert {
   const {
     buttons = [{ label: 'OK', value: 'ok', default: true }],
     width = 400,
@@ -52,6 +60,9 @@ export async function showAlert(host: Element, message: string, options: AlertOp
   dialog.label = label
   dialog.width = width
   dialog.height = 120
+  const form = document.createElement('form')
+  form.method = 'dialog'
+  form.noValidate = true
   const textLeft = art ? INSET + ART + INSET : INSET
   if (art) {
     const img = document.createElement('vf-img')
@@ -63,7 +74,7 @@ export async function showAlert(host: Element, message: string, options: AlertOp
     raster.src = art
     raster.alt = ''
     img.append(raster)
-    dialog.append(img)
+    form.append(img)
   }
   const text = document.createElement('vf-paragraph') as VfParagraph
   text.face = 'display'
@@ -71,51 +82,32 @@ export async function showAlert(host: Element, message: string, options: AlertOp
   text.left = textLeft
   text.top = INSET
   text.textContent = message
-  dialog.append(text)
+  form.append(text)
   const group = document.createElement('vf-button-group')
   group.origin = 'bottom right'
-  const made: VfButton[] = buttons.map((b) => {
-    const button = document.createElement('vf-button') as VfButton
-    button.textContent = b.label
-    button.dataset.value = b.value
-    if (b.default) button.variant = 'default'
-    return button
-  })
-  group.append(...made)
-  dialog.append(group)
-  host.append(dialog)
-  await Promise.all([dialog.updateComplete, text.updateComplete, group.updateComplete])
+  group.append(
+    ...buttons.map((b) => {
+      const button = document.createElement('vf-button') as VfButton
+      button.textContent = b.label
+      button.type = 'submit'
+      button.value = b.value
+      if (b.default) button.variant = 'default'
+      return button
+    })
+  )
+  form.append(group)
+  dialog.append(form)
 
-  /**
-   * Size the box to the message. A closed dialog lays out nothing, so this
-   * runs once it is shown: the read forces layout, and the new size and the
-   * re-centering land before the first paint.
-   */
-  const fit = () => {
-    const tall = Math.ceil(text.getBoundingClientRect().height / effectiveScale(text))
-    const body = Math.max(art ? INSET + ART : 0, INSET + tall) + INSET + BUTTONS + INSET
-    dialog.height = body + FRAME
-    group.left = width - FRAME - INSET
-    group.top = body - INSET
+  return {
+    dialog,
+    rendered: () => Promise.all([dialog.updateComplete, text.updateComplete, group.updateComplete]),
+    // The read forces layout, and the new size and the re-centering land before the first paint.
+    fit() {
+      const tall = Math.ceil(text.getBoundingClientRect().height / effectiveScale(text))
+      const body = Math.max(art ? INSET + ART : 0, INSET + tall) + INSET + BUTTONS + INSET
+      dialog.height = body + FRAME
+      group.left = width - FRAME - INSET
+      group.top = body - INSET
+    },
   }
-
-  return new Promise((resolve) => {
-    let value: string | null = null
-    for (const button of made) {
-      button.addEventListener('click', () => {
-        value = button.dataset.value ?? null
-        dialog.close()
-      })
-    }
-    dialog.addEventListener(
-      'vf-close',
-      () => {
-        dialog.remove()
-        resolve(value)
-      },
-      { once: true }
-    )
-    dialog.show()
-    fit()
-  })
 }

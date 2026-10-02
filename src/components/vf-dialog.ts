@@ -50,6 +50,11 @@ import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
  * closes it too, with `{ reason: 'outside' }` — for the About box; off by
  * default, since the classic modal ignored an outside click.
  *
+ * Answers: a `<form method="dialog">` inside it closes it with the
+ * submitting button's `value` as `returnValue`, and `close(value)` does the
+ * same. `vf-close` carries it as `detail.returnValue`, null when the close
+ * carried none (Escape, a click outside, the close box).
+ *
  * Keyboard, the classic Dialog Manager's two rules ({@link VfModalDialog}):
  * on open, focus goes to the first text-entry control — a slotted control
  * with `autofocus` first — or, with none, to the default button
@@ -74,7 +79,8 @@ import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
  *   content). Inert while the content fits; over-stuffed, it scrolls under a
  *   System 7 rail and becomes a keyboard stop.
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' |
- *   'outside' }` — `'outside'` only under `light-dismiss`.
+ *   'outside', returnValue: string | null }` — `'outside'` only under
+ *   `light-dismiss`.
  * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,
  *   one black pixel at the origin (`vfDots`; override the whole pattern like
  *   `--vf-desktop-pattern`)

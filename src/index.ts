@@ -337,7 +337,7 @@ export type {
 export { VfSized } from './size.js'
 export type { VfSizedInterface } from './size.js'
 export { VfModalDialog, modalDialogStyles } from './modal-dialog.js'
-export type { VfCloseReason } from './modal-dialog.js'
+export type { VfCloseDetail, VfCloseReason } from './modal-dialog.js'
 
 /** The embedded System 7 bitmap faces and the registration helper. */
 export { registerEmbeddedFont, PIXEL_GRID_METRICS } from './styles/register-embedded-font.js'

@@ -8,7 +8,7 @@ import {
   sysLength,
   toSysExact,
 } from './scale.js'
-import { emit } from './events.js'
+import { deferActivation, emit } from './events.js'
 import { DocumentListenersController } from './document-listeners.js'
 
 /**
@@ -17,6 +17,17 @@ import { DocumentListenersController } from './document-listeners.js'
  * — a click outside the frame.
  */
 export type VfCloseReason = 'escape' | 'close' | 'outside'
+
+/** The `vf-close` event's detail. */
+export interface VfCloseDetail {
+  reason: VfCloseReason
+  /**
+   * The value this close carried — the submitting button's `value`, or
+   * `close(value)`'s — or null when it carried none: Escape, a click
+   * outside, `close()` alone, or removal from the DOM.
+   */
+  returnValue: string | null
+}
 
 /**
  * The width an undeclared modal falls back to, in system px — a classic
@@ -128,12 +139,18 @@ export const modalDialogStyles = css`
  * closed and re-centered, and focus returns to the element that was focused
  * when the modal opened.
  *
+ * A `<form method="dialog">` inside the modal closes it with the submitting
+ * button's `value` as {@link returnValue}, as a form inside a native
+ * `<dialog>` does. The platform's own rule looks for a `<dialog>` around the
+ * form, and this one is in the shadow root, so the modal listens for the
+ * submit itself.
+ *
  * Subclasses supply only the frame chrome: a `render()` returning
  * `<dialog @cancel=${this._onNativeCancel} @close=${this._onNativeClose}>` with
  * their role/ARIA and body, and {@link modalDialogStyles} in `static styles`.
  *
  * @fires vf-close - The modal closed. `detail: { reason: 'escape' | 'close' |
- *   'outside' }`.
+ *   'outside', returnValue: string | null }`.
  */
 export class VfModalDialog extends LitElement {
   /** Default-on display scaling (true 72dpi size); see src/scale.ts. */
@@ -141,6 +158,14 @@ export class VfModalDialog extends LitElement {
 
   /** Whether the modal is open. Kept in sync with the native `<dialog>`. */
   @property({ type: Boolean, reflect: true }) open = false
+
+  /**
+   * The modal's answer, as on `<dialog>`: set by `close(value)` and by a
+   * submit from a `<form method="dialog">` inside it (the submitting
+   * button's `value`). Cleared on each open, so a dialog asked again doesn't
+   * start with its last answer.
+   */
+  returnValue = ''
 
   /**
    * Modal width in whole system px — the art's own unit, so the box holds its
@@ -259,6 +284,35 @@ export class VfModalDialog extends LitElement {
 
   /** Close reason pending for the next native `close` event. */
   #closeReason: VfCloseReason | null = null
+
+  /** The value `close(value)` gave, pending for the next native `close` event. */
+  #closeValue: string | null = null
+
+  constructor() {
+    super()
+    this.addEventListener('submit', this.#onSubmit)
+  }
+
+  /**
+   * A submit from a form whose nearest modal is this one, by `method="dialog"`
+   * or the submitter's `formmethod="dialog"`, closes it with the submitter's
+   * `value` — at the end of the submit's path, and not if anything cancelled
+   * it, as the platform runs a form's submission.
+   */
+  #onSubmit = (event: Event): void => {
+    const form = event.target
+    if (!(form instanceof HTMLFormElement) || modalOf(form) !== this) return
+    const submitter = (event as SubmitEvent).submitter
+    const method = submitter?.hasAttribute('formmethod')
+      ? submitter.getAttribute('formmethod')
+      : form.getAttribute('method')
+    if (method?.toLowerCase() !== 'dialog') return
+    const value =
+      submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement
+        ? submitter.value
+        : undefined
+    deferActivation(this, event, () => this.close(value))
+  }
 
   /**
    * The `pointerId` of a press that landed on the backdrop, held until its
@@ -424,8 +478,12 @@ export class VfModalDialog extends LitElement {
     if (this.hasUpdated) this.#syncDialog()
   }
 
-  /** Close the modal. Fires `vf-close` with `{ reason: 'close' }`. */
-  close(): void {
+  /**
+   * Close the modal, with `returnValue` as its answer when one is given.
+   * Fires `vf-close` with `{ reason: 'close', returnValue }`.
+   */
+  close(returnValue?: string): void {
+    if (this.open && returnValue !== undefined) this.#closeValue = returnValue
     this.open = false
     if (this.hasUpdated) this.#syncDialog()
   }
@@ -538,6 +596,7 @@ export class VfModalDialog extends LitElement {
     if (!dialog) return
     if (this.open && !dialog.open) {
       this.#invoker = document.activeElement
+      this.returnValue = ''
       dialog.showModal()
       this.#focusInitial()
       this.settle()
@@ -628,17 +687,28 @@ export class VfModalDialog extends LitElement {
    * the written origin so the next open re-derives it from the box it will
    * actually have (a stated `top`/`left` is the author's or the user's and
    * survives, and is re-applied by that open), syncs `open`, and fires
-   * `vf-close` with the reason.
+   * `vf-close` with the reason and the value the close carried.
    */
   protected _onNativeClose(): void {
     const reason = this.#closeReason ?? 'close'
+    const returnValue = this.#closeValue
     this.#closeReason = null
+    this.#closeValue = null
+    if (returnValue !== null) this.returnValue = returnValue
     this.#invoker = null
     this.#outsidePress = null
     this.#openListeners.detach()
     this.#unwatchGeometry()
     this.open = false
     this.#clearPlacement()
-    emit(this, 'vf-close', { reason })
+    emit<VfCloseDetail>(this, 'vf-close', { reason, returnValue })
   }
+}
+
+/** The modal a form sits in: its nearest `VfModalDialog` ancestor, or null. */
+function modalOf(el: Element): VfModalDialog | null {
+  for (let at = el.parentElement; at; at = at.parentElement) {
+    if (at instanceof VfModalDialog) return at
+  }
+  return null
 }

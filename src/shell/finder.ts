@@ -23,6 +23,9 @@
  *   View (Arrange Windows), Special (Clean Up, Empty Trash…), each disabled
  *   while it has nothing to act on. A site switches commands off and adds
  *   its own.
+ * - Alerts are the Finder's own, composed with the site's caution art and
+ *   held by it while they are up. A site answers any of them with its own
+ *   dialog through `alertWith`.
  */
 
 import {
@@ -65,6 +68,8 @@ import {
 } from './geometry.js'
 import type { Lattice, LatticeOptions, Pin, Point, Size } from './geometry.js'
 import { fileByDrag } from './filing.js'
+import { composeAlert } from './alert.js'
+import type { AlertOptions } from './alert.js'
 import { APP_KIND, appIdOf, defineApp } from './shell.js'
 import type { AppContext, AppDefinition } from './shell.js'
 import type { FocusHome, HomeBox } from './windows.js'
@@ -85,7 +90,36 @@ export interface FinderArt {
   disk?: string
   /** 12×12: the mark before the item count in the Trash's window and trashed folders. */
   trashMark?: string
+  /** 32×32: beside the message in the Finder's alerts. Without it they have no art. */
+  caution?: string
 }
+
+/** What a failed command was, in the `failed` alert. */
+export type FinderFailedAction = 'new-folder' | 'empty-trash' | 'paste' | 'add-file'
+
+/** The Finder's alerts, by id, with the details each one's handler gets. */
+export interface FinderAlerts {
+  /** Special → Empty Trash…: an answer of `'ok'` empties the Trash. */
+  'empty-trash': { count: number; bytes: number }
+  /** New Folder, Paste or a dropped file, without storage. */
+  'storage-unavailable': Record<string, never>
+  /** A rename past the limit. */
+  'name-too-long': { limit: number }
+  /** A rename to nothing. */
+  'name-rejected': Record<string, never>
+  /** A filing storage refused. */
+  'move-failed': { error: Error }
+  /** New Folder, Empty Trash, Paste or a dropped file failed. */
+  failed: { action: FinderFailedAction; error: Error }
+}
+
+/** One of the Finder's alerts. */
+export type FinderAlert = keyof FinderAlerts
+
+/** Answers one of the Finder's alerts: resolves the answer, or null. */
+export type FinderAlertHandler<K extends FinderAlert> = (
+  details: FinderAlerts[K]
+) => string | null | Promise<string | null>
 
 /** The Finder's own commands, each of which a site can switch off. */
 export type FinderCommand =
@@ -141,6 +175,8 @@ export interface FinderApi {
   iconFor(id: string): VfIcon | null
   /** Add a command to the Finder's menus. Call it from `extend`, before the menus first reach the bar. */
   addCommand(spec: FinderCommandSpec): VfMenuItem
+  /** Answer one of the Finder's alerts with the site's own dialog. Call it from `extend`. */
+  alertWith<K extends FinderAlert>(id: K, handler: FinderAlertHandler<K>): void
 }
 
 export interface FinderOptions {
@@ -161,7 +197,9 @@ export interface FinderOptions {
   cleanUpAfterResize?: boolean
   /** Switch commands off: `{ 'empty-trash': false }`. */
   commands?: Partial<Record<FinderCommand, boolean>>
-  /** Add the site's own commands. */
+  /** The site's dialogs for the Finder, each with a `data-dialog` name, held by it: `ctx.dialog(name)` in `extend`. */
+  dialogs?: string
+  /** Add the site's own commands, and answer the Finder's alerts. */
   extend?(finder: FinderApi, ctx: AppContext): void
   /** A folder window's size, system px. Default 320 × 223: three columns and two rows of icons. */
   window?: Size
@@ -172,6 +210,14 @@ const OPEN_BEAT_MS = (WINDOW_RECT_STEPS + WINDOW_RECTS_VISIBLE) * WINDOW_RECT_ST
 
 /** How long the raster holds still after a resize before Clean Up looks. */
 const SETTLE_MS = 300
+
+/** The `failed` alert's words for what failed. */
+const FAILED: Record<FinderFailedAction, string> = {
+  'new-folder': 'New Folder',
+  'empty-trash': 'Empty Trash',
+  paste: 'Paste',
+  'add-file': 'Adding the file',
+}
 
 /** A folder window's header: its count line, a white row and the header's rule. */
 const HEADER_HEIGHT = 20
@@ -304,6 +350,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
     id: FINDER,
     name: 'Finder',
     menus: menusFor(on),
+    dialogs: options.dialogs,
     catalog: { storage: options.storage, volumes: options.volumes, seed },
     init(ctx) {
       const { desktop, windows } = ctx
@@ -314,7 +361,37 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
       const folderCell = options.lattice?.folder?.cell ?? ICON_CELL
       const windowSize = options.window ?? { width: 320, height: 223 }
       const chrome = windowChrome({ scrollbars: 'both', headerHeight: HEADER_HEIGHT })
-      const failed = (what: string) => (err: unknown) => void ctx.alert(`${what} failed: ${(err as Error).message}.`)
+
+      /* ── Alerts ────────────────────────────────────────────────────── */
+
+      const handlers = new Map<FinderAlert, FinderAlertHandler<any>>()
+      /**
+       * One of the Finder's alerts: the site's handler where it set one, else
+       * the Finder's own, held while it is up. Resolves the answer, or null.
+       */
+      async function alert<K extends FinderAlert>(
+        id: K,
+        details: FinderAlerts[K],
+        message: string,
+        opts: AlertOptions = {}
+      ): Promise<string | null> {
+        const handler = handlers.get(id) as FinderAlertHandler<K> | undefined
+        if (handler) return handler(details)
+        const own = composeAlert(message, { art: art.caution ?? null, ...opts })
+        ctx.hold(own.dialog)
+        try {
+          await own.rendered()
+          const answer = ctx.ask(own.dialog)
+          own.fit()
+          return await answer
+        } finally {
+          ctx.release(own.dialog)
+        }
+      }
+      const failed = (action: FinderFailedAction) => (err: unknown) => {
+        const error = err as Error
+        void alert('failed', { action, error }, `${FAILED[action]} failed: ${error.message}.`)
+      }
 
       // The desktop's field: the page's, or one made for it. The page's
       // declarations become the seed, and the field is the catalog's from
@@ -691,12 +768,12 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         if (!isFinders(e) || warning) return
         warning = true
         const { limit } = (e as CustomEvent<{ limit: number }>).detail
-        void ctx.alert(`That name is too long. A name can have up to ${limit} characters.`).finally(() => {
+        void alert('name-too-long', { limit }, `That name is too long. A name can have up to ${limit} characters.`).finally(() => {
           warning = false
         })
       })
       ctx.on(desktop, 'vf-name-rejected', (e) => {
-        if (isFinders(e)) void ctx.alert('An item needs a name.')
+        if (isFinders(e)) void alert('name-rejected', {}, 'An item needs a name.')
       })
 
       /* ── Filing ────────────────────────────────────────────────────── */
@@ -718,8 +795,8 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
           },
           file: (icons, folder, landings) => {
             const at = new Map([...landings].map(([icon, p]) => [idOf(icon), p]))
-            catalog.move(icons.map(idOf), folder, at).catch((err: Error) => {
-              void ctx.alert(`The items couldn’t be moved: ${err.message}.`)
+            catalog.move(icons.map(idOf), folder, at).catch((error: Error) => {
+              void alert('move-failed', { error }, `The items couldn’t be moved: ${error.message}.`)
             })
           },
         })
@@ -808,7 +885,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
       /** Whether storage answers; an alert says when it doesn't. */
       const storageReady = (): boolean => {
         if (catalog.get().available) return true
-        void ctx.alert('Files can’t be saved in this browser session. A private window, perhaps.', {
+        void alert('storage-unavailable', {}, 'Files can’t be saved in this browser session. A private window, perhaps.', {
           label: 'Storage Unavailable',
         })
         return false
@@ -817,26 +894,27 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
       async function newFolder(): Promise<void> {
         if (!storageReady()) return
         // create() also refuses a parent in the Trash.
-        const made = await catalog.create({ parent: activeFolder() }).catch(failed('New Folder'))
+        const made = await catalog.create({ parent: activeFolder() }).catch(failed('new-folder'))
         if (made) await rename(made.id)
       }
 
       async function emptyTrash(): Promise<void> {
         const n = itemCount(catalog.get(), TRASH)
         if (!hasTrash || !n) return
-        const k = Math.ceil(catalog.trashSize() / 1024)
+        const bytes = catalog.trashSize()
+        const k = Math.ceil(bytes / 1024)
         const message =
           n === 1
             ? `The Trash contains 1 item, which uses ${k}K of disk space. Are you sure you want to permanently remove it?`
             : `The Trash contains ${n} items, which use ${k}K of disk space. Are you sure you want to permanently remove these items?`
-        const answer = await ctx.alert(message, {
+        const answer = await alert('empty-trash', { count: n, bytes }, message, {
           label: 'Empty Trash',
           buttons: [
             { label: 'Cancel', value: 'cancel' },
             { label: 'OK', value: 'ok', default: true },
           ],
         })
-        if (answer === 'ok') await catalog.emptyTrash().catch(failed('Empty Trash'))
+        if (answer === 'ok') await catalog.emptyTrash().catch(failed('empty-trash'))
       }
 
       /* ── Copy and Paste ────────────────────────────────────────────── */
@@ -922,7 +1000,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
             for (const file of read?.files ?? []) await claim(file, target)
           }
         } catch (err) {
-          failed('Paste')(err)
+          failed('paste')(err)
         }
       }
 
@@ -957,7 +1035,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         if (isTrashed(catalog.get(), folder)) return
         void (async () => {
           for (const file of files) await claim(file, folder)
-        })().catch(failed('Adding the file'))
+        })().catch(failed('add-file'))
       })
 
       /* ── Menus ─────────────────────────────────────────────────────── */
@@ -1046,6 +1124,9 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
           run[spec.value] = spec.run
           if (spec.enabled) ctx.gate(item, spec.enabled)
           return item
+        },
+        alertWith(id, handler) {
+          handlers.set(id, handler)
         },
       }
       options.extend?.(api, ctx)

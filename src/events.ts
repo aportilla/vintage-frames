@@ -63,7 +63,8 @@ export function emitNative(host: EventTarget, type: 'input' | 'change'): void {
 /**
  * Run a control's **activation behavior** the way HTML runs a native one's: at
  * the *end* of the click's propagation, and not at all if anything on the path
- * called `preventDefault()`.
+ * called `preventDefault()`. A form's `submit` defers the same way: the
+ * listener waits on the event's own type.
  *
  * This is what makes `preventDefault()` on a native checkbox — or on any
  * ancestor — actually stop it from checking. A handler that acts where it sits
@@ -90,7 +91,7 @@ export function emitNative(host: EventTarget, type: 'input' | 'change'): void {
  * submit proxy's re-entrancy guard woven through it.
  *
  * @param host    the element whose ownerDocument supplies the window to defer on
- * @param event   the click being deferred; its `defaultPrevented` is the verdict
+ * @param event   the click (or submit) being deferred; its `defaultPrevented` is the verdict
  * @param action  run once, at the end of the path, unless cancelled
  */
 export function deferActivation(
@@ -101,13 +102,14 @@ export function deferActivation(
   const view = host.ownerDocument.defaultView
   if (!view) return
 
+  const type = event.type
   let timer = 0
   const act = (): void => {
-    view.removeEventListener('click', act)
+    view.removeEventListener(type, act)
     view.clearTimeout(timer)
     if (event.defaultPrevented) return
     action()
   }
-  view.addEventListener('click', act)
+  view.addEventListener(type, act)
   timer = view.setTimeout(act, 0)
 }

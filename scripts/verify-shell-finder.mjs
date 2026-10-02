@@ -15,7 +15,10 @@
  *    when the site turns it on, once a resize settles with icons overlapping.
  *  - GHOST: an icon is drawn open while its window is.
  *  - TRASH: a full Trash wears the full art and its window the trash mark;
- *    Empty Trash asks, then removes.
+ *    Empty Trash asks, in an alert the Finder holds while it is up, then
+ *    removes.
+ *  - ALERTS: a site's `alertWith` answers one of the Finder's alerts in its
+ *    place, with the alert's details, and the Finder acts on its answer.
  *  - COPY: Copy then Paste makes copies, a folder with what it holds, and
  *    selects them; Select All selects the active container's icons.
  *  - DROP: a file dropped on the desktop brings the Finder forward, and a
@@ -301,6 +304,7 @@ const overlapping = (icons) =>
   await s.pick('Special', 'empty-trash')
   await page.waitForFunction(() => !!document.querySelector('vf-dialog[open] vf-paragraph'))
   const asked = await page.evaluate(() => document.querySelector('vf-dialog[open] vf-paragraph').textContent)
+  const holder = await page.evaluate(() => window.shell.windows.asking)
   await answer(s, 'OK')
   const gone = await page.evaluate(() => window.shell.catalog.get().items.map((i) => i.name))
   check(
@@ -308,7 +312,38 @@ const overlapping = (icons) =>
     asked.startsWith('The Trash contains 1 item') && !gone.includes('Projects') && !gone.includes('Archive'),
     `${asked} → [${gone}]`
   )
+  check(
+    'TRASH  …in the Finder’s own alert, held by it while it is up',
+    holder === 'finder' && (await page.evaluate(() => window.shell.windows.dialogsOf('finder').length)) === 0,
+    `asking ${holder}`
+  )
   check('TRASH  …and the Trash is empty again', /\/trash\.png$/.test((await s.iconState('Trash')).art))
+
+  // The site answers Empty Trash itself.
+  await page.evaluate(() => {
+    window.__asked = []
+    window.__answer = 'cancel'
+    window.shell.apps.finder.alertWith('empty-trash', (details) => {
+      window.__asked.push(details)
+      return window.__answer
+    })
+  })
+  await carry(s, 'Documents', await s.icon('Trash'))
+  await s.settle()
+  await s.pick('Special', 'empty-trash')
+  await s.settle()
+  const kept = await s.item('Documents')
+  const shown = await page.evaluate(() => !!document.querySelector('vf-dialog[open]'))
+  await page.evaluate(() => (window.__answer = 'ok'))
+  await s.pick('Special', 'empty-trash')
+  await page.waitForFunction(() => !window.shell.catalog.get().items.some((i) => i.name === 'Documents'))
+  const details = await page.evaluate(() => window.__asked)
+  check(
+    'ALERTS  alertWith answers Empty Trash in the Finder’s place, with its details',
+    !shown && details.length === 2 && details[0].count === 1 && typeof details[0].bytes === 'number',
+    JSON.stringify(details)
+  )
+  check('ALERTS  …its answer acts: cancel keeps the Trash, ok empties it', kept?.parent === 'trash', JSON.stringify(kept))
   await page.close()
 }
 

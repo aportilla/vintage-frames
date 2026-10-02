@@ -141,17 +141,19 @@ There is no alert component. An alert is the plain frame plus your own icon art:
 
 ```html
 <vf-dialog id="alert" frame="plain" label="Caution" width="340" height="126">
-  <vf-stack left="16" top="16" width="298" direction="row" gap="16">
-    <vf-img width="32" height="32"><img src="alert-32.png" alt="" /></vf-img>
-    <vf-paragraph fill-width face="display"
-      >Completely erase the disk named “Macintosh HD”?</vf-paragraph
-    >
-  </vf-stack>
-  <vf-button-group left="152" top="64">
-    <vf-button>Cancel</vf-button>
-    <vf-button variant="default">Erase</vf-button>
-  </vf-button-group>
+  <form method="dialog">
+    <vf-stack left="16" top="16" width="298" direction="row" gap="16">
+      <vf-img width="32" height="32"><img src="alert-32.png" alt="" /></vf-img>
+      <vf-paragraph fill-width face="display"
+        >Completely erase the disk named “Macintosh HD”?</vf-paragraph
+      >
+    </vf-stack>
+    <vf-button-group left="152" top="64">
+      <vf-button type="submit" value="cancel">Cancel</vf-button>
+      <vf-button type="submit" value="erase" variant="default">Erase</vf-button>
+    </vf-button-group>
+  </form>
 </vf-dialog>
 ```
 
-`label` is set because the plain frame has no title bar to take a name from; the copy uses the chrome face, as System 7 alerts did.
+`label` is set because the plain frame has no title bar to take a name from; the copy uses the chrome face, as System 7 alerts did. The form closes the alert with the pressed button's `value`, which `vf-close` carries as `detail.returnValue` (null for Escape). The `<form>` is a plain block, so the placed children still measure from the dialog's body.

@@ -2,7 +2,7 @@
  * shell.html's script: the shell over the page's desktop. The Finder shows a
  * catalog seeded from the page's markup; Note Pad is a small application with
  * documents of its own kind, an Info palette shown while it is front, and a
- * close that asks about unsaved changes.
+ * close that asks about unsaved changes in an alert of its own.
  *
  * `?save=1` keeps the catalog in IndexedDB and the session in localStorage;
  * `?cleanup=1` turns on the Finder's Clean Up after a resize; `?open=` opens
@@ -39,6 +39,20 @@ const NOTE_PAD_MENUS = `
     <vf-menu-item value="info">Hide Info</vf-menu-item>
   </vf-menu>`
 
+/** Note Pad's own alert: its buttons answer through the form. */
+const NOTE_PAD_DIALOGS = `
+  <vf-dialog data-dialog="save-changes" frame="plain" label="Save Changes" width="360" height="118">
+    <form method="dialog" novalidate>
+      <vf-img width="32" height="32" left="16" top="16"><img src="${ICONS}/alert.png" alt="" /></vf-img>
+      <vf-paragraph face="display" width="270" left="64" top="16" data-message></vf-paragraph>
+      <vf-button-group origin="bottom right" left="334" top="92">
+        <vf-button type="submit" value="discard">Don’t Save</vf-button>
+        <vf-button type="submit" value="cancel">Cancel</vf-button>
+        <vf-button type="submit" value="save" variant="default">Save</vf-button>
+      </vf-button-group>
+    </form>
+  </vf-dialog>`
+
 interface NotePadActions {
   /** Open a note; with none named, bring the front document up or start a new one. */
   open(options?: { item?: string | null; from?: VfViewportBox | null }): void
@@ -55,6 +69,7 @@ function notePad(): AppDefinition<NotePadActions> {
     name: 'Note Pad',
     icon: `${ICONS}/app-icon.png`,
     menus: NOTE_PAD_MENUS,
+    dialogs: NOTE_PAD_DIALOGS,
     kinds: {
       [NOTE]: {
         art: `${ICONS}/doc-icon.png`,
@@ -117,20 +132,17 @@ function notePad(): AppDefinition<NotePadActions> {
         unsaved.delete(win)
       }
 
+      const saveChanges = ctx.dialog('save-changes')
+      const saveMessage = saveChanges.querySelector('[data-message]')!
+
       /** The close box: a document with unsaved changes asks first. */
       async function askToClose(win: VfWindow): Promise<void> {
         if (!unsaved.has(win)) {
           void windows.close(win)
           return
         }
-        const answer = await ctx.alert(`Save changes to “${win.heading}” before closing?`, {
-          label: 'Save Changes',
-          buttons: [
-            { label: 'Don’t Save', value: 'discard' },
-            { label: 'Cancel', value: 'cancel' },
-            { label: 'Save', value: 'save', default: true },
-          ],
-        })
+        saveMessage.textContent = `Save changes to “${win.heading}” before closing?`
+        const answer = await ctx.ask(saveChanges) // 'save', 'discard', 'cancel', or null for Escape
         if (answer !== 'save' && answer !== 'discard') return
         if (answer === 'save') await save(win)
         void windows.close(win)
@@ -246,6 +258,7 @@ const shell = createShell(desktop, {
         trashFull: `${ICONS}/trash-full.png`,
         document: `${ICONS}/doc-icon.png`,
         trashMark: `${ICONS}/trash-indicator.png`,
+        caution: `${ICONS}/alert.png`,
       },
       cleanUpAfterResize: params.get('cleanup') === '1',
     }),
@@ -253,7 +266,6 @@ const shell = createShell(desktop, {
   ],
   fit: 'viewport',
   state: keep ? localStorageState('vf-shell-reference') : null,
-  caution: `${ICONS}/alert.png`,
 })
 
 // `?open=Projects&open=Archive` opens those items once the boot is done, as

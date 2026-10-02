@@ -609,6 +609,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>closable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows a close box. Ignored with <code>frame="plain"</code></td></tr>
               <tr><td><code>light-dismiss</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">A click outside closes the dialog, with <code>reason: 'outside'</code>. Both the press and the release must be outside, so a drag that ends outside doesn't close it. The click doesn't reach the page. Can be set while open. Property: <code>lightDismiss</code>, reflected</td></tr>
               <tr><td><code>frame</code></td><td class="wrap"><code>'plain'</code></td><td>—</td><td class="wrap">No title bar, and it can't be dragged. Use it for alerts (see the last example). Content starts 5px inside the frame, or 20px from the top below a title bar</td></tr>
+              <tr><td><code>returnValue</code></td><td>string</td><td><code>''</code></td><td class="wrap">The answer, as on <code>&lt;dialog&gt;</code>. A <code>&lt;form method="dialog"&gt;</code> inside it closes it with the submitting button's <code>value</code>. Cleared on each open. Property only</td></tr>
             </tbody>
           </table>
 
@@ -617,8 +618,8 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Kind</th><th>Name</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td>Method</td><td><code>show()</code></td><td class="wrap">Opens it with the native <code>showModal()</code></td></tr>
-              <tr><td>Method</td><td><code>close()</code></td><td class="wrap">Closes it and fires <code>vf-close</code> with <code>reason: 'close'</code></td></tr>
-              <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' | 'outside' }</code>, however it closed. <code>'outside'</code> only with <code>light-dismiss</code></td></tr>
+              <tr><td>Method</td><td><code>close(value?)</code></td><td class="wrap">Closes it and fires <code>vf-close</code> with <code>reason: 'close'</code>. A <code>value</code> becomes its <code>returnValue</code></td></tr>
+              <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' | 'outside', returnValue: string | null }</code>, however it closed. <code>'outside'</code> only with <code>light-dismiss</code>. <code>returnValue</code> is null when the close carried no value</td></tr>
               <tr><td>Keyboard</td><td class="wrap">Initial focus</td><td class="wrap">A control with <code>autofocus</code>, else the first text field (<code>vf-text-field</code>, <code>vf-number-field</code>, <code>vf-text-area</code>, or a native one), else the default button</td></tr>
               <tr><td>Keyboard</td><td class="wrap">Return / Enter</td><td class="wrap">Presses the default button from anywhere in the dialog, even when Cancel has focus. Space presses the focused button. Links keep Enter. In a text area, Return adds a newline and keypad Enter presses the button. Escape closes</td></tr>
               <tr><td>Slots</td><td class="wrap">(default)</td><td class="wrap">The content. <code>top</code> and <code>left</code> measure from the inside of the frame</td></tr>
@@ -631,27 +632,32 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <a href="#vf-stack"><code>vf-stack</code></a> holding a 32×32 icon and
             the message in the display face, then a <code>vf-button-group</code>,
             each placed with <code>top</code> and <code>left</code>. Set
-            <code>label</code>, since there's no title bar to name it.
+            <code>label</code>, since there's no title bar to name it. Wrap them in
+            a <code>&lt;form method="dialog"&gt;</code> with submit buttons, and the
+            alert answers with the pressed button's <code>value</code>.
           </p>
 
           <template data-example data-caption="An alert: the plain frame plus your own 32×32 icon.">
             <vf-button data-show="#ex-alert">Erase Disk…</vf-button>
 
             <vf-dialog id="ex-alert" frame="plain" label="Erase disk" width="340" height="126">
-              <vf-stack left="16" top="16" width="298" direction="row" gap="16">
-                <vf-img width="32" height="32"><img src="/demo/icons/alert.png" alt="" /></vf-img>
-                <vf-paragraph fill-width face="display">Completely erase the disk named “Macintosh HD”?</vf-paragraph>
-              </vf-stack>
-              <vf-button-group left="152" top="64">
-                <vf-button data-close="#ex-alert">Cancel</vf-button>
-                <vf-button variant="default" data-close="#ex-alert">Erase</vf-button>
-              </vf-button-group>
+              <form method="dialog">
+                <vf-stack left="16" top="16" width="298" direction="row" gap="16">
+                  <vf-img width="32" height="32"><img src="/demo/icons/alert.png" alt="" /></vf-img>
+                  <vf-paragraph fill-width face="display">Completely erase the disk named “Macintosh HD”?</vf-paragraph>
+                </vf-stack>
+                <vf-button-group left="152" top="64">
+                  <vf-button type="submit" value="cancel">Cancel</vf-button>
+                  <vf-button type="submit" value="erase" variant="default">Erase</vf-button>
+                </vf-button-group>
+              </form>
             </vf-dialog>
             <script type="text/plain" data-script>
-              // An alert is a dialog: show() opens it and close() closes it.
+              // An alert is a dialog: show() opens it. The form closes it with the pressed button's value.
               eraseButton.addEventListener('click', () => eraseAlert.show())
-              cancelButton.addEventListener('click', () => eraseAlert.close())
-              confirmButton.addEventListener('click', () => { app.eraseDisk(); eraseAlert.close() })
+              eraseAlert.addEventListener('vf-close', ({ detail: { returnValue } }) => {
+                if (returnValue === 'erase') app.eraseDisk()   // 'cancel', or null for Escape
+              })
             </script>
           </template>
         </section>

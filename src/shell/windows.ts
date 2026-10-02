@@ -29,6 +29,9 @@
  *   resizable window's pin when its size changed, floors it at the window's
  *   own size limits and caps it to the window area, so growing back restores
  *   every place.
+ * - Dialogs: `holdDialog()` holds an application's dialog under it, in the
+ *   desktop. The manager follows each held dialog's `open` attribute, and
+ *   `asking` is the application of the one opened last and still open.
  */
 
 import { snapSys, systemPxQuantum, VfWindow } from '../index.js'
@@ -228,6 +231,33 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
   const rasterListeners = new Set<(before: Size, after: Size) => void>()
   const beforeFrontListeners = new Set<(win: HTMLElement | null) => void>()
   const frontListeners = new Set<(app: string) => void>()
+  const dialogListeners = new Set<() => void>()
+
+  // Dialogs.
+
+  /** Each held dialog's application, and the observer that follows its `open`. */
+  const held = new Map<Element, { app: string; observer: MutationObserver }>()
+  /** The held dialogs open now, in the order they opened. */
+  let openDialogs: Element[] = []
+
+  /** The held dialog `el` is, or sits in, or null. */
+  const heldOf = (el: Element | null): Element | null => {
+    for (let at = el; at; at = at.parentElement) if (held.has(at)) return at
+    return null
+  }
+
+  /** Whether a held dialog is open: it, or the `vf-dialog` it renders inside itself. */
+  const dialogIsOpen = (el: Element): boolean =>
+    el.isConnected && (el.matches('vf-dialog[open]') || !!el.querySelector('vf-dialog[open]'))
+
+  /** Re-read which held dialogs are open, keeping the order they opened in. */
+  const syncDialogs = () => {
+    const next = openDialogs.filter((el) => held.has(el) && dialogIsOpen(el))
+    for (const el of held.keys()) if (!next.includes(el) && dialogIsOpen(el)) next.push(el)
+    if (next.length === openDialogs.length && next.every((el, i) => el === openDialogs[i])) return
+    openDialogs = next
+    for (const fn of [...dialogListeners]) fn()
+  }
 
   /** Where a window closes into, and where the focus goes after it: the Finder's. */
   let homeBox: HomeBox = () => null
@@ -557,9 +587,49 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       return win instanceof VfWindow ? (adopted.get(win)?.item ?? null) : null
     },
 
-    /** A window's application, or null when the manager doesn't hold it. */
-    appOf(win: Element | null): string | null {
-      return win instanceof VfWindow ? (adopted.get(win)?.app ?? null) : null
+    /** A window's or a held dialog's application, or null when the manager doesn't hold it. */
+    appOf(el: Element | null): string | null {
+      if (el instanceof VfWindow) return adopted.get(el)?.app ?? null
+      const dialog = heldOf(el)
+      return dialog ? held.get(dialog)!.app : null
+    },
+
+    /**
+     * Hold an application's dialog: a `vf-dialog`, or an element that renders
+     * one inside itself. It is appended to the desktop unless it is already
+     * in it, and its `open` is followed from then on.
+     */
+    holdDialog(dialog: Element, { app }: { app: string }): void {
+      const was = held.get(dialog)
+      if (was) {
+        was.app = app
+      } else {
+        const observer = new MutationObserver(syncDialogs)
+        observer.observe(dialog, { attributes: true, attributeFilter: ['open'], subtree: true })
+        held.set(dialog, { app, observer })
+      }
+      if (!desktop.contains(dialog)) desktop.append(dialog)
+      syncDialogs()
+    },
+
+    /** Let a held dialog go. It stays where it is; the caller removes it. */
+    releaseDialog(dialog: Element): void {
+      const was = held.get(dialog)
+      if (!was) return
+      was.observer.disconnect()
+      held.delete(dialog)
+      syncDialogs()
+    },
+
+    /** An application's held dialogs. */
+    dialogsOf(app: string): Element[] {
+      return [...held].filter(([, h]) => h.app === app).map(([dialog]) => dialog)
+    },
+
+    /** The application of the held dialog opened last and still open, or null. */
+    get asking(): string | null {
+      const top = openDialogs[openDialogs.length - 1]
+      return top ? held.get(top)!.app : null
     },
 
     /** Whether `win` is a palette. */
@@ -738,6 +808,11 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       frontListeners.add(fn)
       return () => void frontListeners.delete(fn)
     },
+    /** A held dialog opened or closed, so `asking` may have changed. */
+    onDialogs(fn: () => void): () => void {
+      dialogListeners.add(fn)
+      return () => void dialogListeners.delete(fn)
+    },
 
     dispose(): void {
       clearTimeout(layoutSoon)
@@ -747,6 +822,10 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       rasterListeners.clear()
       beforeFrontListeners.clear()
       frontListeners.clear()
+      dialogListeners.clear()
+      for (const { observer } of held.values()) observer.disconnect()
+      held.clear()
+      openDialogs = []
       groups.clear()
       adopted.clear()
     },

@@ -7,11 +7,14 @@
  *   nodes come back each time it is front, so items keep their state. A menu
  *   off the bar has no key equivalents, so only the front application's fire.
  *   The bar's label is the front application's name.
+ * - While an application's held dialog is open, the bar shows that
+ *   application's name and menus instead; nothing else changes.
  * - Each application's `init(ctx)` gets the desktop, the window manager, its
- *   own menus, the system menu, the other applications' actions (read at the
- *   call), the catalog when a Finder runs, the site's services, `alert()`,
- *   `gate()`, `onFront()` and `onDispose()`. Everything it sets up comes down
- *   through `onDispose()`, so a hot reload starts clean.
+ *   own menus and dialogs, the system menu, the other applications' actions
+ *   (read at the call), the catalog when a Finder runs, the site's services,
+ *   `ask()`, `gate()`, `onFront()` and `onDispose()`. Everything it sets up
+ *   comes down through `onDispose()`, and its dialogs with it, so a hot
+ *   reload starts clean. The shell composes no UI of its own.
  * - A window showing a catalog item follows it: its title follows a rename,
  *   and it closes when the item is removed.
  * - The boot reads the catalog, seeds it once, reopens the last session's
@@ -19,7 +22,16 @@
  */
 
 import { onScaleChange, VfWindow } from '../index.js'
-import type { VfDesktop, VfMenu, VfMenuBar, VfMenuItem, VfViewportBox } from '../index.js'
+import type {
+  VfCloseDetail,
+  VfDesktop,
+  VfDialog,
+  VfMenu,
+  VfMenuBar,
+  VfMenuItem,
+  VfModalDialog,
+  VfViewportBox,
+} from '../index.js'
 import { createCatalog } from './catalog.js'
 import type { Catalog, CatalogStorage, Item, Volumes } from './catalog.js'
 import { createWindowManager, deepActiveElement } from './windows.js'
@@ -27,8 +39,6 @@ import type { WindowManager } from './windows.js'
 import { openWindowsOf } from './state.js'
 import type { ShellState } from './state.js'
 import { startClock } from './clock.js'
-import { showAlert } from './alert.js'
-import type { AlertOptions } from './alert.js'
 
 /** A kind of catalog item an application registers: how it looks and opens. */
 export interface KindDefinition {
@@ -67,6 +77,11 @@ export interface AppDefinition<Actions = unknown> {
   icon?: string
   /** A fragment of `vf-menu` elements, each with a `data-menu` name. */
   menus?: string
+  /**
+   * A fragment of dialogs, each with a `data-dialog` name: a `vf-dialog`, or
+   * an element that renders one inside itself. Held under the application.
+   */
+  dialogs?: string
   /** The catalog kinds it opens. */
   kinds?: Record<string, KindDefinition>
   /** The Finder's: the catalog every application shares. */
@@ -109,8 +124,18 @@ export interface AppContext {
   onMenu(fn: (value: string, item: VfMenuItem) => void): void
   /** Put an item in the system menu, which runs `fn` when picked. */
   systemItem(value: string, label: string, fn: () => void): VfMenuItem
-  /** Show an alert with the site's caution art; resolves the button's value. */
-  alert(message: string, options?: AlertOptions): Promise<string | null>
+  /** One of its dialogs by `data-dialog`; throws when the markup drifts. */
+  dialog<T extends HTMLElement = VfDialog>(name: string): T
+  /** Hold a dialog it made in code: appended to the desktop, held under it, removed with it. Returns it. */
+  hold<T extends Element>(dialog: T): T
+  /** Let a dialog it holds go, and remove it. */
+  release(dialog: Element): void
+  /**
+   * Show a dialog it holds, and resolve its `returnValue`: the value of the
+   * button that submitted it, or null when it closed without one. Throws for
+   * a dialog it doesn't hold.
+   */
+  ask(dialog: VfModalDialog): Promise<string | null>
   /** Keep `item` disabled while `test` is false: re-run on every press, key, selection change and activation. */
   gate(item: VfMenuItem, test: () => boolean): void
   /** Whether a text field has keyboard focus, read through shadow roots at the call. */
@@ -143,8 +168,6 @@ export interface ShellOptions {
   services?: Record<string, unknown>
   /** The clock in the menu bar's `end` slot. Default true. */
   clock?: boolean
-  /** The 32×32 caution art the alerts carry. */
-  caution?: string | null
 }
 
 /** A running shell. */
@@ -155,7 +178,6 @@ export interface Shell {
   readonly apps: Record<string, any>
   /** Settles once the boot has read the catalog and reopened the session. */
   readonly ready: Promise<void>
-  alert(message: string, options?: AlertOptions): Promise<string | null>
   dispose(): void
 }
 
@@ -257,26 +279,40 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
   )
   if (catalog) teardown.push(catalog.subscribe(syncGates))
 
-  const alert = (message: string, opts: AlertOptions = {}) =>
-    showAlert(desktop, message, { art: options.caution ?? null, ...opts })
-
-  // Menus: each application's parsed once into detached nodes of this document.
-  const parseMenus = (html: string | undefined): VfMenu[] => {
+  // Menus and dialogs: each application's parsed once into detached nodes of this document.
+  const parse = (html: string | undefined): HTMLElement[] => {
     if (!html) return []
     const host = document.createElement('div')
     host.innerHTML = html
     customElements.upgrade(host)
-    const menus = [...host.children].filter((el): el is VfMenu => el.localName === 'vf-menu')
-    for (const menu of menus) menu.remove()
-    return menus
+    const nodes = [...host.children].filter((el): el is HTMLElement => el instanceof HTMLElement)
+    for (const node of nodes) node.remove()
+    return nodes
   }
-  const entries = definitions.map((def) => ({ def, menus: parseMenus(def.menus) }))
+  const entries = definitions.map((def) => ({
+    def,
+    menus: parse(def.menus).filter((el): el is VfMenu => el.localName === 'vf-menu'),
+    dialogs: parse(def.dialogs).filter((el) => el.dataset.dialog != null),
+  }))
 
   // Applications.
   const disposers: (() => void)[] = []
-  for (const { def, menus } of entries) {
+  for (const { def, menus, dialogs } of entries) {
     const own: (() => void)[] = []
     const where = `vintage-frames/shell (${def.id})`
+    // Its dialogs, held under it from the start and removed with it last.
+    const held = new Set<Element>()
+    for (const dialog of dialogs) {
+      wm.holdDialog(dialog, { app: def.id })
+      held.add(dialog)
+    }
+    own.push(() => {
+      for (const dialog of held) {
+        wm.releaseDialog(dialog)
+        dialog.remove()
+      }
+      held.clear()
+    })
     const ctx: AppContext = {
       desktop,
       windows: wm,
@@ -321,7 +357,33 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
         own.push(() => item.remove())
         return item
       },
-      alert,
+      dialog<T extends HTMLElement = VfDialog>(name: string): T {
+        const dialog = dialogs.find((d) => d.dataset.dialog === name)
+        if (!dialog) throw new Error(`${where}: missing dialog ${name}`)
+        return dialog as T
+      },
+      hold(dialog) {
+        wm.holdDialog(dialog, { app: def.id })
+        held.add(dialog)
+        return dialog
+      },
+      release(dialog) {
+        if (!held.delete(dialog)) return
+        wm.releaseDialog(dialog)
+        dialog.remove()
+      },
+      ask(dialog) {
+        if (wm.appOf(dialog) !== def.id) throw new Error(`${where}: ask() takes a dialog the application holds`)
+        return new Promise((resolve) => {
+          const closed = (e: Event) => {
+            if (e.target !== dialog) return
+            dialog.removeEventListener('vf-close', closed)
+            resolve((e as CustomEvent<VfCloseDetail>).detail.returnValue)
+          }
+          dialog.addEventListener('vf-close', closed)
+          dialog.show()
+        })
+      },
       gate(item, test) {
         gates.set(item, test)
         own.push(() => gates.delete(item))
@@ -349,10 +411,12 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
     })
   }
 
-  // The menu swap: the front application's menus after the system menu.
+  // The menu swap: the front application's menus after the system menu, or,
+  // while one of its held dialogs is open, the asking application's.
   let slotted: (typeof entries)[number] | null = null
   const sync = () => {
-    const entry = entries.find((e) => e.def.id === wm.front) ?? entries.find((e) => e.def.id === defaultApp) ?? null
+    const app = wm.asking ?? wm.front
+    const entry = entries.find((e) => e.def.id === app) ?? entries.find((e) => e.def.id === defaultApp) ?? null
     if (!entry || entry === slotted) return
     if (slotted) for (const menu of slotted.menus) menu.remove()
     systemMenu.after(...entry.menus)
@@ -360,7 +424,7 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
     slotted = entry
     syncGates()
   }
-  teardown.push(wm.onFront(sync))
+  teardown.push(wm.onFront(sync), wm.onDialogs(sync))
   sync()
 
   // The clock, in the bar's end slot.
@@ -444,7 +508,6 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
     catalog,
     apps: actions,
     ready,
-    alert,
     dispose(): void {
       for (const dispose of disposers.splice(0).reverse()) dispose()
       if (slotted) for (const menu of slotted.menus) menu.remove()

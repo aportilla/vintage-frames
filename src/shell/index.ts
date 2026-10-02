@@ -29,10 +29,14 @@ export type {
 
 export { finder, FINDER } from './finder.js'
 export type {
+  FinderAlert,
+  FinderAlertHandler,
+  FinderAlerts,
   FinderApi,
   FinderArt,
   FinderCommand,
   FinderCommandSpec,
+  FinderFailedAction,
   FinderMenu,
   FinderOpen,
   FinderOptions,
@@ -123,5 +127,3 @@ export type {
 } from './geometry.js'
 
 export { startClock, formatDate, formatTime, DATE_HOLD_MS } from './clock.js'
-export { showAlert } from './alert.js'
-export type { AlertButton, AlertOptions } from './alert.js'

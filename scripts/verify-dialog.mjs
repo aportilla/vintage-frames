@@ -36,6 +36,12 @@
  *    on the keypad's Enter only (Return inserts the newline there). A link
  *    keeps its own Enter; `autofocus` names the initial control; a form's
  *    implicit submission runs once, not twice.
+ *  - ANSWERS: a `<form method="dialog">` (or a button's `formmethod="dialog"`)
+ *    closes the dialog with the submitting button's value as `returnValue`,
+ *    and `vf-close` carries it; a cancelled submit, a plain button and a form
+ *    of another method don't close it; Enter in a field answers with the
+ *    ringed button; Escape, `close()` and removal carry none; `close(value)`
+ *    does; each open clears it.
  *
  *   npm run dev            # in another shell (port 5173)
  *   npm run verify:dialog
@@ -407,6 +413,116 @@ async function keys(page, key) {
   const open = await page.evaluate(() => document.getElementById('dlg').open)
   check('keys: with no default button, Enter presses nothing and the dialog stays open', clicks.length === 0 && open, `${clicks.join()} open=${open}`)
   await page.evaluate(CLOSE)
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   6. ANSWERS — returnValue, a dialog-method form, close(value)
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  const page = await build(`
+    <button id="opener">Open</button>
+    <iframe name="sink" style="display:none"></iframe>
+    <vf-dialog id="dlg" heading="Ask" width="360" height="220">
+      <form id="form" method="dialog" novalidate>
+        <vf-text-field id="field" label="Name" value="x"></vf-text-field>
+        <vf-button id="cancel" type="submit" value="cancel">Cancel</vf-button>
+        <vf-button id="ok" type="submit" value="ok" variant="default">OK</vf-button>
+        <vf-button id="more" value="more">More…</vf-button>
+      </form>
+      <form id="other" action="about:blank" target="sink">
+        <vf-button id="get" type="submit" value="get">Get</vf-button>
+        <vf-button id="alt" type="submit" value="alt" formmethod="dialog">Alt</vf-button>
+      </form>
+    </vf-dialog>
+  `)
+  /** Open, and resolve the returnValue the open left. */
+  const open = () =>
+    page.evaluate(async () => {
+      const dlg = document.getElementById('dlg')
+      if (!window.__closes) {
+        window.__closes = []
+        dlg.addEventListener('vf-close', (e) => window.__closes.push(e.detail))
+      }
+      window.__closes.length = 0
+      document.getElementById('opener').focus()
+      dlg.show()
+      await dlg.updateComplete
+      return dlg.returnValue
+    })
+  /** The dialog after the queued native close has had its turn. */
+  const after = () =>
+    page.evaluate(async () => {
+      await new Promise((r) => setTimeout(r, 50))
+      const dlg = document.getElementById('dlg')
+      return { open: dlg.open, returnValue: dlg.returnValue, closes: [...window.__closes] }
+    })
+  const press = async (id) => {
+    const at = await page.evaluate((i) => {
+      const r = document.getElementById(i).getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+    }, id)
+    await page.mouse.click(at.x, at.y)
+  }
+  const closedWithValue = (s, value) =>
+    !s.open && s.closes.length === 1 && s.closes[0].reason === 'close' && s.closes[0].returnValue === value
+
+  await open()
+  await press('cancel')
+  let s = await after()
+  check('answers: a dialog-method submit closes with the button’s value', closedWithValue(s, 'cancel') && s.returnValue === 'cancel', JSON.stringify(s))
+
+  const cleared = await open()
+  check('answers: returnValue clears on open', cleared === '', JSON.stringify(cleared))
+  await press('more')
+  s = await after()
+  check('answers: a button that isn’t a submit button doesn’t close', s.open && s.closes.length === 0, JSON.stringify(s))
+
+  await page.evaluate(() => document.getElementById('field').focus())
+  await page.keyboard.press('Enter')
+  s = await after()
+  check('answers: Enter in a field answers with the ringed button, though Cancel comes first', closedWithValue(s, 'ok'), JSON.stringify(s))
+
+  await open()
+  await page.evaluate(() =>
+    document.getElementById('form').addEventListener('submit', (e) => e.preventDefault(), { once: true })
+  )
+  await press('ok')
+  s = await after()
+  check('answers: a cancelled submit leaves the dialog open', s.open && s.closes.length === 0, JSON.stringify(s))
+  await press('ok')
+  s = await after()
+  check('answers: …and the next one closes it', closedWithValue(s, 'ok'), JSON.stringify(s))
+
+  await open()
+  await press('get')
+  s = await after()
+  check('answers: a form of another method doesn’t close the dialog', s.open && s.closes.length === 0, JSON.stringify(s))
+  await press('alt')
+  s = await after()
+  check('answers: formmethod="dialog" on the button does', closedWithValue(s, 'alt'), JSON.stringify(s))
+
+  await open()
+  await page.keyboard.press('Escape')
+  s = await after()
+  check('answers: Escape carries no value', !s.open && s.closes[0]?.reason === 'escape' && s.closes[0]?.returnValue === null && s.returnValue === '', JSON.stringify(s))
+
+  await open()
+  await page.evaluate(() => document.getElementById('dlg').close('later'))
+  s = await after()
+  check('answers: close(value) carries the value', closedWithValue(s, 'later') && s.returnValue === 'later', JSON.stringify(s))
+  await open()
+  await page.evaluate(() => document.getElementById('dlg').close())
+  s = await after()
+  check('answers: close() alone carries none', closedWithValue(s, null), JSON.stringify(s))
+
+  await open()
+  const removed = await page.evaluate(async () => {
+    document.getElementById('dlg').remove()
+    await new Promise((r) => setTimeout(r, 50))
+    return [...window.__closes]
+  })
+  check('answers: removal closes with none', removed.length === 1 && removed[0].returnValue === null, JSON.stringify(removed))
   await page.close()
 }
 

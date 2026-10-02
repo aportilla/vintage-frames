@@ -11,8 +11,11 @@
  *  - RESIZE: a raster resize re-pins every window and desktop icon, floors a
  *    resizable window at its size limits, and growing back restores every
  *    place exactly.
- *  - CLOSE: a document with unsaved changes asks before it closes; Cancel
- *    keeps it, Don’t Save and Save close it, and Save files it.
+ *  - CLOSE: a document with unsaved changes asks before it closes, in Note
+ *    Pad's own dialog; Cancel and Escape keep it, Don’t Save and Save close
+ *    it, and Save files it. The dialog stays held, closed, for the next ask.
+ *  - DISPOSE: disposing the shell takes an open held dialog down with its
+ *    application.
  *  - FOCUS: opening a window moves the focus into it; closing the active one
  *    moves it to the window that becomes active, else to the window's icon.
  *  - SESSION: with saving on, a reload reopens the windows where they were,
@@ -274,8 +277,30 @@ const layout = (page) =>
   await page.waitForFunction(() => !!document.querySelector('vf-dialog[open]'))
   const asked = await alertText()
   check('CLOSE  a document with unsaved changes asks before it closes', asked === 'Save changes to “Untitled” before closing?', asked)
+  check(
+    'CLOSE  …in Note Pad’s own dialog, held by it',
+    await page.evaluate(() => {
+      const dialog = document.querySelector('vf-dialog[open]')
+      return dialog?.dataset.dialog === 'save-changes' && window.shell.windows.appOf(dialog) === 'note-pad'
+    })
+  )
   await answer('Cancel')
   check('CLOSE  Cancel keeps it open', (await s.window('Untitled')) !== null)
+  check(
+    'CLOSE  …and the dialog stays held, closed',
+    await page.evaluate(() => {
+      const dialog = document.querySelector('vf-dialog[data-dialog="save-changes"]')
+      return !!dialog && !dialog.open && window.shell.windows.dialogsOf('note-pad').includes(dialog)
+    })
+  )
+
+  box = await closeBox(page, 'Untitled')
+  await page.mouse.click(box.x, box.y)
+  await page.waitForFunction(() => !!document.querySelector('vf-dialog[open]'))
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => !document.querySelector('vf-dialog[open]'))
+  await s.settle()
+  check('CLOSE  Escape keeps it open too', (await s.window('Untitled')) !== null)
 
   box = await closeBox(page, 'Untitled')
   await page.mouse.click(box.x, box.y)
@@ -295,6 +320,26 @@ const layout = (page) =>
     JSON.stringify(note)
   )
   check('CLOSE  …and its icon is on the desktop', (await s.iconState('Untitled 2'))?.in === null)
+  await page.close()
+}
+
+// ── DISPOSE ─────────────────────────────────────────────────────────────────
+{
+  const page = await openShell(browser)
+  const s = shellOn(page)
+  const errors = []
+  page.on('pageerror', (err) => errors.push(err.message))
+  await s.pick('Apple', 'note-pad')
+  await s.settle()
+  await page.keyboard.type('Draft')
+  const box = await closeBox(page, 'Untitled')
+  await page.mouse.click(box.x, box.y)
+  await page.waitForFunction(() => !!document.querySelector('vf-dialog[open]'))
+  await page.evaluate(() => window.shell.dispose())
+  await s.settle()
+  const left = await page.evaluate(() => document.querySelectorAll('vf-dialog').length)
+  check('DISPOSE  an open held dialog comes down with its application', left === 0 && errors.length === 0, `${left} dialogs, ${errors.join('; ')}`)
+  check('DISPOSE  …its question unanswered: the window is not closed', (await s.window('Untitled')) !== null)
   await page.close()
 }
 

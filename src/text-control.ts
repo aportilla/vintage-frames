@@ -184,6 +184,12 @@ export class VfTextControlBase extends VfShadowRoleControl {
    * disabled default button means no submission at all, as in HTML; a form
    * with no submit button falls back to the bare call, also as in HTML.
    *
+   * One departure: a submit `vf-button variant="default"`, the button with
+   * the ring, is the default button when the form has one, ahead of the
+   * first in tree order. A Cancel/OK row puts Cancel first, and Return
+   * should press the button the ring marks — the one a modal's own Return
+   * rule presses (`VfModalDialog`).
+   *
    * Returns whether a form owner took the press — true even when a disabled
    * default button meant no submission, since HTML gave the press to the form
    * either way. The callers cancel the keydown on true, so a modal shell
@@ -194,7 +200,7 @@ export class VfTextControlBase extends VfShadowRoleControl {
   protected requestImplicitSubmit(): boolean {
     const form = this.internals.form
     if (!form) return false
-    const defaultButton = [...form.elements].find(
+    const submits = [...form.elements].filter(
       (el) =>
         (el instanceof HTMLButtonElement && el.type === 'submit') ||
         (el instanceof HTMLInputElement &&
@@ -210,6 +216,9 @@ export class VfTextControlBase extends VfShadowRoleControl {
           !(el as { href?: string }).href &&
           (el as { type?: string }).type?.toLowerCase() === 'submit')
     )
+    const defaultButton =
+      submits.find((el) => el.localName === 'vf-button' && (el as { variant?: string }).variant === 'default') ??
+      submits[0]
     if (defaultButton) {
       if (!defaultButton.matches(':disabled')) (defaultButton as HTMLElement).click()
       return true

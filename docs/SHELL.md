@@ -1,6 +1,6 @@
 # The shell
 
-`vintage-frames/shell` runs applications over one desktop: a window manager, a menu bar that shows the front application's menus, a catalog of what is where, and a stock Finder that shows the catalog as icons. It is plain modules over the kit's elements. It registers no elements, writes no styles and ships no art, and it reaches the kit only through the package's root exports, so the page imports `vintage-frames` first.
+`vintage-frames/shell` runs applications over one desktop: a window manager, a menu bar that shows the front application's menus, a catalog of what is where, and a stock Finder that shows the catalog as icons. It is plain modules over the kit's elements. It registers no elements, writes no styles, ships no art and composes no UI: every window and dialog on screen is an application's or the page's. It reaches the kit only through the package's root exports, so the page imports `vintage-frames` first.
 
 The shell is experimental. Its API may change in any minor release until sprite-machine runs on all of it.
 
@@ -36,12 +36,12 @@ const shell = createShell(document.querySelector('vf-desktop')!, {
         trash: '/art/trash.png',
         trashFull: '/art/trash-full.png',
         document: '/art/document.png',
+        caution: '/art/caution.png',
       },
     }),
     notePad,
   ],
   fit: 'viewport',
-  caution: '/art/caution.png',
 })
 await shell.ready
 ```
@@ -56,9 +56,8 @@ The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system m
 | `state` | Where the session is saved (§ Saved state). Default `null`: a reload resets. |
 | `services` | The site's own objects, passed to every application. |
 | `clock` | The time in the bar's `end` slot. Default `true`. |
-| `caution` | The 32×32 art the alerts show. |
 
-`createShell()` returns `{ desktop, windows, catalog, apps, ready, alert(), dispose() }`. `ready` settles once the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup included, so a hot reload starts clean.
+`createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup included, so a hot reload starts clean.
 
 ## Applications
 
@@ -89,6 +88,7 @@ export const notePad = defineApp({
 | `id`, `name` | `name` is the bar's accessible name while the application is in front. |
 | `icon` | Its 32×32 art, for its icon in the Finder. |
 | `menus` | `vf-menu` elements, each with a `data-menu` name. |
+| `dialogs` | Its dialogs, each with a `data-dialog` name (§ Dialogs). |
 | `kinds` | The catalog kinds it opens (§ The catalog). |
 | `init(ctx)` | Sets the application up and returns its actions, which other applications call. An application whose windows reopen after a reload, or that opens from an icon, returns `open({ item, from })`. |
 
@@ -104,12 +104,53 @@ What `init` gets:
 | `systemMenu`, `systemItem(value, label, fn)` | The system menu, and an item added to it. |
 | `gate(item, test)` | Keeps an item disabled while `test()` is false. Tests run again on every press, key, selection change and activation. |
 | `typing()`, `modalOpen()` | Whether a text field has focus, read through shadow roots, and whether a modal dialog is open. |
-| `alert(message, options)` | An alert with the caution art. Resolves the pressed button's `value`, or `null`. |
+| `dialog(name)` | One of its dialogs. Throws when the markup doesn't have it. |
+| `hold(dialog)`, `release(dialog)` | Hold a dialog it made in code, and let one go. `hold()` appends it to the desktop and returns it; `release()` removes it. |
+| `ask(dialog)` | Shows one of its held dialogs and resolves its `returnValue`, or `null` when it closed without one. Throws for a dialog it doesn't hold. |
 | `onFront(fn)` | Whether the application is in front, now and on every change. For keys and page furniture that belong to one application. |
 | `apps`, `app(id)` | Every application's actions, read at the call, and the definitions. |
 | `catalog`, `kinds`, `kind(name)` | The catalog, when a Finder runs, and the registered kinds. |
 | `services`, `state` | The site's objects and the saved session. |
 | `on(target, type, fn)`, `onDispose(fn)` | A listener and a teardown, both undone by `dispose()`. |
+
+## Dialogs
+
+An application's dialogs are its own, like its windows. It authors them, the window manager holds them under it, and they are removed with it.
+
+```ts
+export const notePad = defineApp({
+  id: 'note-pad',
+  name: 'Note Pad',
+  dialogs: `
+    <vf-dialog data-dialog="save-changes" frame="plain" label="Save Changes" width="360" height="118">
+      <form method="dialog" novalidate>
+        <vf-img width="32" height="32" left="16" top="16"><img src="/art/caution.png" alt="" /></vf-img>
+        <vf-paragraph face="display" width="270" left="64" top="16" data-message></vf-paragraph>
+        <vf-button-group origin="bottom right" left="334" top="92">
+          <vf-button type="submit" value="discard">Don’t Save</vf-button>
+          <vf-button type="submit" value="cancel">Cancel</vf-button>
+          <vf-button type="submit" value="save" variant="default">Save</vf-button>
+        </vf-button-group>
+      </form>
+    </vf-dialog>`,
+  init(ctx) {
+    const saveChanges = ctx.dialog('save-changes')
+    async function askToClose(win) {
+      saveChanges.querySelector('[data-message]').textContent = `Save changes to “${win.heading}” before closing?`
+      const answer = await ctx.ask(saveChanges) // 'save', 'discard', 'cancel', or null for Escape
+      // …
+    }
+  },
+})
+```
+
+- `dialogs` are parsed once, appended to the desktop and held under the application. Hold a dialog made in code with `ctx.hold()`, and let it go with `ctx.release()`.
+- A `<form method="dialog">` closes the dialog with the pressed submit button's `value`, its `returnValue`, and `ask()` resolves it. A dialog with fields answers the same way, and the application reads its fields after. Keep OK disabled until the dialog can answer. `novalidate` keeps the browser's own validation message from showing.
+- A dialog declares its whole box. Size copy that varies for its longest, or measure it after `show()` and set `height` then: a closed dialog lays out nothing. A message of unknown length goes in flow, and the dialog's body scrolls it.
+- A held dialog can be an element that renders a `vf-dialog` inside itself. `ask()` takes the `vf-dialog`; show a wrapper through its own API.
+- While a held dialog is open, the bar shows its application's name and menus, even when another application is in front. With several open, it shows the one opened last. Nothing else changes: the front application, the active window and the palettes stay as they were. An application that wants to come forward raises a window before it asks.
+- `dispose()` removes every application's dialogs. An open one closes, and its `ask()` resolves `null`.
+- A dialog of the page's own, an About box say, stays the page's.
 
 ## Windows
 
@@ -139,9 +180,11 @@ windows.open({
 | Read | |
 | --- | --- |
 | `front` | The front application's id. |
-| `windowFor(item)`, `itemOf(win)`, `appOf(win)`, `windowsOf(app)` | Lookups. `windowsOf()` lists back to front. |
+| `asking` | The application whose held dialog opened last and is still open, or `null`. The bar shows it while it is set. |
+| `windowFor(item)`, `itemOf(win)`, `appOf(el)`, `windowsOf(app)`, `dialogsOf(app)` | Lookups. `appOf()` takes a window or a held dialog. `windowsOf()` lists back to front. |
 | `isOpen(item)`, `hasWindows(app)` | Whether a window is open, or still closing into its icon. |
-| `onWindows(fn)`, `onLayout(fn)`, `onRaster(fn)`, `onFront(fn)`, `beforeFront(fn)` | A window opened or closed; any move, resize or arrangement; a screen resize; the front application changed, and just before it does. Each returns its unsubscribe. |
+| `holdDialog(dialog, { app })`, `releaseDialog(dialog)` | What `ctx.hold()` and `ctx.release()` call. |
+| `onWindows(fn)`, `onLayout(fn)`, `onRaster(fn)`, `onFront(fn)`, `beforeFront(fn)`, `onDialogs(fn)` | A window opened or closed; any move, resize or arrangement; a screen resize; the front application changed, and just before it does; a held dialog opened or closed. Each returns its unsubscribe. |
 
 ## The catalog
 
@@ -202,13 +245,14 @@ finder({
 | Option | |
 | --- | --- |
 | `storage` | Where the catalog is kept. `null` keeps nothing. |
-| `art` | `folder`, `trash`, `trashFull` and `document` (32×32) are required; `disk` (32×32) and `trashMark` (12×12) are optional. |
+| `art` | `folder`, `trash`, `trashFull` and `document` (32×32) are required; `disk` and `caution` (32×32) and `trashMark` (12×12) are optional. Without `caution` the alerts have no art. |
 | `volumes` | Default: the Trash alone. |
 | `seed` | `'markup'`, or a function. |
 | `lattice` | `{ desktop, folder }`: each a cell size, column and row pitch and insets. Default 64px cells, 80px columns, 72px rows, 16px insets. |
 | `cleanUpAfterResize` | Clean Up the desktop once a resize settles with icons overlapping. Default `false`. |
 | `commands` | Switch commands off: `{ 'empty-trash': false }`. |
-| `extend(finder, ctx)` | Add the site's own commands. |
+| `dialogs` | The site's dialogs for the Finder, each with a `data-dialog` name, held by it (§ Dialogs). |
+| `extend(finder, ctx)` | Add the site's own commands, and answer the Finder's alerts. |
 | `window` | A folder window's size. Default 320 × 223: three columns and two rows of icons. |
 
 - Icons are the catalog's: the desktop shows the desktop's items and each open folder window shows its folder's. An item without a position takes its container's next free cell. The desktop's cells run down from its top right, below the menu bar. A folder's run in rows from its top left. The Trash starts in the desktop's bottom-right corner.
@@ -219,6 +263,7 @@ finder({
 - Opening one of several selected icons opens them all.
 - Filing: a drop onto a folder icon files into that folder at its next free cells. A drop into a folder window lands where the icons were let go, and so does a drop out of a window onto the desktop. The folder under the pointer is highlighted. A drop over another application's window moves nothing.
 - Renaming goes to the catalog. A name that is too long or empty gets an alert.
+- A file dropped on the desktop or in a folder window brings the Finder forward, as a press does.
 - Copy puts the selected items' names on the system clipboard, with a file from the first kind that exports one. Paste copies what the Finder copied, while the system clipboard still holds those names or can't be read. Otherwise it offers the clipboard's files to the kinds' `claim`. A file dropped on the desktop goes the same way, into the folder window under it.
 - Clean Up moves each icon of the active window, or the desktop, to the free cell nearest it, one at a time. Icons past the last cell share it. The desktop's icons follow the screen's edges on a resize. With `cleanUpAfterResize`, overlapping icons are cleaned up once the resize settles.
 
@@ -259,6 +304,36 @@ finder({
 | `cleanUp(folder)` | Clean Up for a folder, or `null` for the desktop. |
 | `iconFor(id)` | The item's icon, where one is shown. |
 | `addCommand(spec)` | A command in one of the Finder's menus. Call it from `extend`. |
+| `alertWith(id, handler)` | Answers one of the Finder's alerts in its place. Call it from `extend`. |
+
+### The Finder's alerts
+
+The Finder's alerts are its own: a plain-framed dialog with the `caution` art, sized to its message and held by the Finder while it is up. A site answers any of them with its own dialog instead. The handler gets the alert's details and resolves its answer:
+
+```ts
+finder({
+  // …
+  dialogs: emptyTrashHtml, // a vf-dialog with data-dialog="empty-trash"
+  extend(finder, ctx) {
+    const dialog = ctx.dialog('empty-trash')
+    finder.alertWith('empty-trash', ({ count, bytes }) => {
+      dialog.querySelector('[data-message]')!.textContent = trashMessage(count, bytes)
+      return ctx.ask(dialog)
+    })
+  },
+})
+```
+
+| Alert | When | Details | Answer it acts on |
+| --- | --- | --- | --- |
+| `empty-trash` | Special → Empty Trash… | `{ count, bytes }` | `'ok'` empties the Trash |
+| `storage-unavailable` | New Folder, Paste or a dropped file, without storage | none | none |
+| `name-too-long` | A rename past the limit | `{ limit }` | none |
+| `name-rejected` | A rename to nothing | none | none |
+| `move-failed` | A filing storage refused | `{ error }` | none |
+| `failed` | New Folder, Empty Trash, Paste or a dropped file failed | `{ action, error }`: `'new-folder'`, `'empty-trash'`, `'paste'` or `'add-file'` | none |
+
+An alert with no handler is the Finder's own.
 
 ## Saved state
 
@@ -288,8 +363,8 @@ Each module also works alone, on a page built from the elements ([FINDER.md](./F
 | `createWindowManager(desktop, options)` | The window manager without the menu bar. |
 | `pinOf`, `pinTo`, `frameOf`, `cascadedBox`, `centeredBox`, `desktopLattice`, `folderLattice`, `trashCell`, `nextFreeCell`, `cleanUp`, `fillOrder`, `fieldExtent`, `collisions` | The geometry, pure: boxes and positions in whole system px. |
 | `localStorageState`, `readSession`, `mergeSession` | The saved session. |
-| `showAlert`, `startClock` | The alert and the clock. |
+| `startClock` | The clock. |
 
 ## The reference page
 
-`shell.html` runs the shell with the Finder and Note Pad, a small application with documents of its own kind, an Info palette and a close that asks about unsaved changes (`demo/shell.ts`). `?save=1` keeps the catalog and the session across reloads, `?cleanup=1` turns on Clean Up after a resize, and `?open=Projects&open=Archive` opens those items at load. `verify:shell-front`, `verify:shell-windows` and `verify:shell-finder` drive it, and `verify:shell-unit` tests the pure modules under Node.
+`shell.html` runs the shell with the Finder and Note Pad, a small application with documents of its own kind, an Info palette, a close that asks about unsaved changes in an alert of its own, and a `claim` that makes a note of a dropped text file (`demo/shell.ts`). `?save=1` keeps the catalog and the session across reloads, `?cleanup=1` turns on Clean Up after a resize, and `?open=Projects&open=Archive` opens those items at load. `verify:shell-front`, `verify:shell-windows` and `verify:shell-finder` drive it, and `verify:shell-unit` tests the pure modules under Node.

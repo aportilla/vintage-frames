@@ -14,6 +14,11 @@
  *    while the application has not hidden it.
  *  - GATES: a command is disabled while it has nothing to act on, and a
  *    rename's field keeps its own ⌘A.
+ *  - DIALOGS: while an application's held dialog is open, the bar shows its
+ *    name and menus, from a background application too, and nothing else
+ *    changes: the front application, the active window, the palettes. With
+ *    two open the bar follows the one opened last, then falls back as each
+ *    closes. Key equivalents are dropped while one is open.
  *  - CLOCK: the time in the bar's end slot; a press shows the date.
  *
  *   npm run dev        # in another shell (port 5173)
@@ -244,6 +249,81 @@ const windowsOf = (s, app) =>
   await page.keyboard.type('Hello')
   const notes = await menuRows(s, 'File')
   check('GATES  …and on once there is', notes.save === true, JSON.stringify(notes))
+  await page.close()
+}
+
+// ── DIALOGS ─────────────────────────────────────────────────────────────────
+{
+  const page = await openShell(browser)
+  const s = shellOn(page)
+  await s.pick('Apple', 'note-pad')
+  await s.settle()
+  /** Make a dialog, hold it under `app` and open it. */
+  const ask = (app, name) =>
+    page.evaluate(
+      async ([a, n]) => {
+        const dialog = document.createElement('vf-dialog')
+        dialog.id = n
+        dialog.frame = 'plain'
+        dialog.label = n
+        dialog.width = 240
+        dialog.height = 80
+        dialog.innerHTML = '<vf-button variant="default">OK</vf-button>'
+        window.shell.windows.holdDialog(dialog, { app: a })
+        await dialog.updateComplete
+        dialog.show()
+      },
+      [app, name]
+    )
+  const close = (name) => page.evaluate((n) => document.getElementById(n).close(), name)
+  const state = async () => ({
+    ...(await s.bar()),
+    front: await s.front(),
+    asking: await page.evaluate(() => window.shell.windows.asking),
+    active: await s.active(),
+    info: (await s.window('Info')).hidden === false,
+  })
+  await page.evaluate(() => {
+    window.__fronts = []
+    window.shell.windows.onFront((app) => window.__fronts.push(app))
+  })
+
+  // The Finder asks while Note Pad is front.
+  await ask('finder', 'finder-asks')
+  await s.settle()
+  let st = await state()
+  check(
+    'DIALOGS  a background application’s open dialog puts its name and menus on the bar',
+    st.label === 'Finder' && st.menus.join() === 'File,Edit,View,Special' && st.asking === 'finder',
+    JSON.stringify(st)
+  )
+  check(
+    'DIALOGS  …and nothing else changes: the front application, the active window, the palette',
+    st.front === 'note-pad' && st.active === 'Untitled' && st.info && (await page.evaluate(() => window.__fronts.length)) === 0,
+    `${JSON.stringify(st)} fronts ${await page.evaluate(() => window.__fronts)}`
+  )
+
+  // Note Pad asks over it, then each closes.
+  await ask('note-pad', 'note-pad-asks')
+  await s.settle()
+  st = await state()
+  check('DIALOGS  a second dialog over it: the bar follows the one opened last', st.label === 'Note Pad' && st.asking === 'note-pad', JSON.stringify(st))
+  const windows = () => page.evaluate(() => window.shell.windows.windowsOf('note-pad').filter((w) => !window.shell.windows.isPalette(w)).length)
+  await page.keyboard.press('Control+n')
+  await s.settle()
+  check('DIALOGS  key equivalents are dropped while one is open', (await windows()) === 1, `${await windows()} windows`)
+  await close('note-pad-asks')
+  await s.settle()
+  st = await state()
+  check('DIALOGS  as it closes, the bar goes back to the one still open', st.label === 'Finder' && st.asking === 'finder', JSON.stringify(st))
+  await close('finder-asks')
+  await s.settle()
+  st = await state()
+  check(
+    'DIALOGS  …then to the front application',
+    st.label === 'Note Pad' && st.menus.join() === 'File,Window' && st.asking === null && st.front === 'note-pad',
+    JSON.stringify(st)
+  )
   await page.close()
 }
 

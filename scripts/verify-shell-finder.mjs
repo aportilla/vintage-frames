@@ -18,6 +18,10 @@
  *    Empty Trash asks, then removes.
  *  - COPY: Copy then Paste makes copies, a folder with what it holds, and
  *    selects them; Select All selects the active container's icons.
+ *  - DROP: a file dropped on the desktop brings the Finder forward, and a
+ *    kind that claims it files it there.
+ *  - ALERT: a Finder alert grows to its message, every line above its
+ *    buttons.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:shell-finder
@@ -64,7 +68,7 @@ const answer = async (s, label) => {
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
   }, label)
   await s.page.mouse.click(at.x, at.y)
-  await s.page.waitForFunction(() => !document.querySelector('vf-dialog'))
+  await s.page.waitForFunction(() => !document.querySelector('vf-dialog[open]'))
   await s.settle()
 }
 const overlapping = (icons) =>
@@ -335,6 +339,56 @@ const overlapping = (icons) =>
     [...document.querySelectorAll('vf-desktop > vf-icon-field > vf-icon')].every((i) => i.selected)
   )
   check('COPY  Select All selects every icon on the desktop', lit)
+  await page.close()
+}
+
+// ── DROP, ALERT ─────────────────────────────────────────────────────────────
+{
+  const page = await openShell(browser)
+  const s = shellOn(page)
+  await s.pick('Apple', 'note-pad')
+  await s.settle()
+  const before = await s.front()
+  // A text file from outside the page, dropped on the bare desktop: no press reaches the page.
+  await page.evaluate(() => {
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(new File(['Dear Sir'], 'Letter.txt', { type: 'text/plain' }))
+    const at = { clientX: 700, clientY: 500 }
+    const target = document.elementFromPoint(at.clientX, at.clientY)
+    for (const type of ['dragenter', 'dragover', 'drop']) {
+      target.dispatchEvent(new DragEvent(type, { ...at, bubbles: true, cancelable: true, composed: true, dataTransfer }))
+    }
+  })
+  await page.waitForFunction(() => window.shell.catalog.get().items.some((i) => i.name === 'Letter'))
+  await s.settle()
+  check(
+    'DROP  a file dropped on the desktop brings the Finder forward',
+    before === 'note-pad' && (await s.front()) === 'finder' && (await s.active()) === null,
+    `${before} → ${await s.front()}, active ${await s.active()}`
+  )
+  const letter = await s.item('Letter')
+  check(
+    'DROP  …and the kind that claims it files it there',
+    letter?.kind === 'note' && letter.parent === null && letter.data?.text === 'Dear Sir',
+    JSON.stringify(letter)
+  )
+
+  // A failure long enough for five lines.
+  await page.evaluate(() => {
+    const why = `the disk refused the write ${'and tried again '.repeat(10)}then gave up`
+    window.shell.catalog.create = () => Promise.reject(new Error(why))
+  })
+  await s.pick('File', 'new-folder')
+  await page.waitForFunction(() => !!document.querySelector('vf-dialog[open] vf-paragraph'))
+  await s.settle()
+  const box = await page.evaluate(() => {
+    const dialog = document.querySelector('vf-dialog[open]')
+    const text = dialog.querySelector('vf-paragraph').getBoundingClientRect()
+    const buttons = dialog.querySelector('vf-button-group').getBoundingClientRect()
+    return { lines: text.height / 16, text: text.bottom, buttons: buttons.top }
+  })
+  check('ALERT  a five-line message ends above the alert’s buttons', box.lines >= 5 && box.text <= box.buttons, JSON.stringify(box))
+  await answer(s, 'OK')
   await page.close()
 }
 

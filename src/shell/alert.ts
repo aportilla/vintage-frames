@@ -84,14 +84,20 @@ export async function showAlert(host: Element, message: string, options: AlertOp
   group.append(...made)
   dialog.append(group)
   host.append(dialog)
-
-  // Sized to the message once it has laid out.
   await Promise.all([dialog.updateComplete, text.updateComplete, group.updateComplete])
-  const lines = Math.ceil(text.getBoundingClientRect().height / effectiveScale(text))
-  const body = Math.max(art ? INSET + ART : 0, INSET + lines) + INSET + BUTTONS + INSET
-  dialog.height = body + FRAME
-  group.left = width - FRAME - INSET
-  group.top = body - INSET
+
+  /**
+   * Size the box to the message. A closed dialog lays out nothing, so this
+   * runs once it is shown: the read forces layout, and the new size and the
+   * re-centering land before the first paint.
+   */
+  const fit = () => {
+    const tall = Math.ceil(text.getBoundingClientRect().height / effectiveScale(text))
+    const body = Math.max(art ? INSET + ART : 0, INSET + tall) + INSET + BUTTONS + INSET
+    dialog.height = body + FRAME
+    group.left = width - FRAME - INSET
+    group.top = body - INSET
+  }
 
   return new Promise((resolve) => {
     let value: string | null = null
@@ -110,5 +116,6 @@ export async function showAlert(host: Element, message: string, options: AlertOp
       { once: true }
     )
     dialog.show()
+    fit()
   })
 }

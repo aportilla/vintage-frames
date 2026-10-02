@@ -25,3 +25,33 @@ The page builder's default density is Playwright's `deviceScaleFactor`, which is
 `browserAt` / `build(markup, { dpr, real: true })` renders at display density; `verify:grid`, `verify:baseline`, and the pixel groups of `verify:scrollbars` and `verify:rule` use it. Still built on emulated numbers: `cssPxFor` and `holdableScale` (harness), `verify:snap`'s half-pixel tolerance at unholdable scales, `verify:rule`'s printed-not-asserted 1.5× rung, `verify:tile`'s printed inset-layer hairline (the placed tile grid measured pure at display density on all four surfaces), and `docs/THREE-X-DISPLAYS.md`'s unholdable-4/3 analysis and text residual as they apply to Chromium (WebKit does lay out in 1/64 CSS px). `src/scale.ts` cites a "border-floor wobble" among the placement lattice's reasons; that wobble was measured under emulation too. Moving these to display density means re-measuring each, not flipping a flag.
 
 WebKit's own emulation sets the page's device scale factor and matches a display — except at dpr 1.7, where it painted the probe page blank and computed a 1-system-px border as one device px (`0.588235px`) where two were due. Safari at 85% on a 2× display was checked by hand on 2026-09-29 and draws that thin border too: it rounds a border width to device px before applying page zoom. The kit no longer draws its lines as borders (`vfStrokeDecls`), so the blank paint is what remains of this.
+
+---
+
+## 4. The Finder can place desktop icons against the menu bar
+
+**Status:** open **Where:** `src/shell/finder.ts` (`desktopLattice(desktop.workArea, …)`, `trashCell`), `src/components/vf-desktop.ts` (`workArea`)
+
+Seen 2026-10-01 in SystemOnline's move onto the shell. When the catalog answers at once (no storage, or memory storage), the Finder places icons before the desktop's first render. `workArea` then reads the menu bar as 0 tall, so a volume's first cell lands at the screen's top inset, against the bar.
+
+Fix sketch: hold the first placement until the desktop and its bar have rendered.
+
+---
+
+## 5. Opening a window can focus a cell that isn't a tab stop
+
+**Status:** open **Where:** `src/shell/windows.ts` (`focusInto`)
+
+`focusInto()` skips an element whose `tabIndex` is negative unless its tag starts with `vf-`. A kit host with no `tabindex` attribute reports -1 and still delegates focus, which is what the exemption is for. But a roving tab stop parks its other cells at `tabindex="-1"` (`vf-list` rows, `vf-radio-group` radios), and a disabled toggle or slider sets -1 too, so opening a window can move focus to one of those. Seen 2026-10-01 in SystemOnline's move onto the shell.
+
+Fix sketch: skip an element whose `tabindex` attribute is negative. A host with no attribute still goes through.
+
+---
+
+## 6. A desktop pattern change isn't saved on its own
+
+**Status:** open **Where:** `src/shell/shell.ts` (the saved state's change signal in the boot)
+
+The session is written on layout, window and catalog changes and on `vf-activate`. Setting `desktop.pattern` fires none of them, so the pattern is written only with the next of those, or when the page is hidden or left. Seen 2026-10-01 in SystemOnline's move onto the shell; `vf-desktop` fires no event of its own for a pattern change.
+
+Fix sketch: add the pattern to the change signal.

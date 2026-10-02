@@ -19,7 +19,7 @@ import {
   localStorageState,
   memoryStorage,
 } from '../src/shell/index.js'
-import type { AppDefinition, Item } from '../src/shell/index.js'
+import type { AppDefinition, Catalog, Item } from '../src/shell/index.js'
 
 const ICONS = '/demo/icons'
 
@@ -47,6 +47,8 @@ interface NotePadActions {
 function notePad(): AppDefinition<NotePadActions> {
   /** Open a note's window; the application's, from init. */
   let openNote = (_note: Item, _from: VfViewportBox | null): void => {}
+  /** The catalog, from init. */
+  let notes: Catalog | null = null
 
   return defineApp<NotePadActions>({
     id: NOTE_PAD,
@@ -58,11 +60,18 @@ function notePad(): AppDefinition<NotePadActions> {
         art: `${ICONS}/doc-icon.png`,
         open: (note, from) => openNote(note, from),
         size: (note) => new Blob([textOf(note)]).size,
+        // A text file pasted or dropped in the Finder becomes a note.
+        async claim(file, parent) {
+          if (!notes || file.type !== 'text/plain') return false
+          const name = file instanceof File ? file.name.replace(/\.txt$/i, '') : 'Untitled'
+          return !!(await notes.create({ kind: NOTE, name, parent, data: { text: await file.text() } }))
+        },
       },
     },
     init(ctx) {
       const { desktop, windows } = ctx
       const catalog = ctx.catalog!
+      notes = catalog
       /** Windows with changes not yet saved. */
       const unsaved = new WeakSet<VfWindow>()
       let untitled = 0

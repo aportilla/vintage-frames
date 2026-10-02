@@ -262,7 +262,7 @@ const layout = (page) =>
       return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
     }, label)
     await page.mouse.click(at.x, at.y)
-    await page.waitForFunction(() => !document.querySelector('vf-dialog'))
+    await page.waitForFunction(() => !document.querySelector('vf-dialog[open]'))
     await s.settle()
   }
 

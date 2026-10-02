@@ -946,10 +946,13 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         e.preventDefault()
         const drop = e as DragEvent
         const files = [...(drop.dataTransfer?.files ?? [])]
-        if (!storageReady()) return
         const win = document.elementsFromPoint(drop.clientX, drop.clientY).find((el) => el.localName === 'vf-window')
         // Over another application's window, nothing is made.
         if (win && windows.appOf(win) !== FINDER) return
+        // The Finder comes forward, as a press brings it: a drop from outside the page presses nothing.
+        if (win) desktop.bringToFront(win as HTMLElement)
+        else desktop.clearActive()
+        if (!storageReady()) return
         const folder = win ? windows.itemOf(win) : null
         if (isTrashed(catalog.get(), folder)) return
         void (async () => {

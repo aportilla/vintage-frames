@@ -405,6 +405,7 @@ class PositionController implements ReactiveController {
     } else {
       if (wasFixed) this.#unfix()
       style.margin = '0'
+      this.#writeRoom()
     }
     if (fixed || anchored) this.#observe()
     else this.#unobserve()
@@ -438,6 +439,24 @@ class PositionController implements ReactiveController {
     const style = this.#host.style
     style.top = sysLength((this.#appliedTop ?? 0) - this.#offsetY)
     style.left = sysLength((this.#appliedLeft ?? 0) - this.#offsetX)
+    this.#writeRoom()
+  }
+
+  /**
+   * An anchored host's width, kept independent of where its corner lands. A
+   * placed box without a declared width shrinks to fit the room between its
+   * `left` and its parent's far edge, and an origin's offset moves that
+   * `left`: before the first measurement the corner sits at the stated pair,
+   * the box squeezes, the squeezed width gives a smaller offset, and each
+   * re-measure frees a little more room — the box walked for frames after
+   * every show, and could stop short. A negative right margin as wide as the
+   * `left` hands the box its parent's whole width wherever it sits, so the
+   * first measurement is the last. A declared width is untouched. Not for a
+   * fixed host, whose margins are its footprint ({@link #hold}).
+   */
+  #writeRoom(): void {
+    if (!this.#anchored || this.#appliedFixed) return
+    this.#host.style.marginRight = sysLength(-((this.#appliedLeft ?? 0) - this.#offsetX))
   }
 
   /** Read the origin's offset off a border box of `width` × `height` CSS px. */
@@ -496,7 +515,10 @@ class PositionController implements ReactiveController {
         ? { width: size.inlineSize, height: size.blockSize }
         : this.#host.getBoundingClientRect()
       if (this.#appliedFixed) this.#hold(box.width, box.height)
-      if (this.#anchored && this.#measure(box.width, box.height)) {
+      // A box with no layout (inside a closed dialog, say) keeps the offset
+      // it had, so it shows again where it was rather than walking back.
+      const laidOut = box.width > 0 || box.height > 0
+      if (this.#anchored && laidOut && this.#measure(box.width, box.height)) {
         this.#writeOffsets()
         this.#announce(this.#appliedLeft ?? 0, this.#appliedTop ?? 0)
       }

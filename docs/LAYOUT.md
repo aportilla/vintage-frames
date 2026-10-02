@@ -109,6 +109,7 @@ The title stays centered on x = 145 whatever its text, and the button group keep
 
 - **Measured, in whole system px.** The kit reads the element's border box, rounds it to whole system px, and writes the pair less the point's offset — never a transform. An odd width under a center origin puts the leftover half on the left; an odd height, on top. The box is the border box, margins excluded: a `vf-fieldset`'s includes the legend room above its frame line, and a group holding a default button includes its bold ring.
 - **Kept current.** A relabel, a late font or a translated string re-measures and rewrites, and each rewrite is announced (`vf-placement-change`), so a scroll area re-measures under it. A zoom step changes CSS px, not system px, so the same offset comes back.
+- **Its own width.** A box without a declared width keeps its natural width wherever its corner lands, so a row near its parent's far edge isn't squeezed. Inside a closed dialog it keeps its offset, so it shows again in place.
 - **Gestures keep the point.** A drag or an arrow nudge writes the origin-point pair, and the clamp holds the box inside the container. A dragged title stays centered on wherever it was dropped; `el.left` reads the point, not the corner.
 - **Drops add the offset.** `placementAt(clientX, clientY, child)` returns the pair to write to `child` so its box's corner lands there; without the child it is the corner's own pair.
 - **`fixed` takes it too.** `vf-dialog` does not: its own pair is the viewport's, and unset already centers it.

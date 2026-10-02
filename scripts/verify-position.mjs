@@ -26,7 +26,9 @@
  *    places — nine keywords, measured in whole system px, never a transform.
  *    Each lands its named point on (L, T) at dpr 1, 2 and 3; an odd size's
  *    leftover half goes toward the start; a relabel re-centers and
- *    re-right-aligns and is announced; a scale step keeps the point; a drag
+ *    re-right-aligns and is announced; a box sized by its content keeps its
+ *    own width near its parent's far edge, and in a closed dialog keeps its
+ *    offset for the next show; a scale step keeps the point; a drag
  *    writes the origin-point pair and the clamp holds the box; `fixed` takes
  *    it; `placementAt(x, y, child)` folds the child's offset in; unset and
  *    `top left` write exactly the plain inline style; an unknown value warns
@@ -663,6 +665,57 @@ for (const dpr of DENSITIES) {
     "origin: the observer's rewrite is announced as vf-placement-change",
     announced >= 2,
     `${announced} announced for two relabels`
+  )
+  await page.close()
+}
+
+{
+  // A right-anchored row near its parent's far edge: its width is its own,
+  // not the room its corner leaves — the twin placed top left at 0, 0 has the
+  // whole width, so it shows the natural one. And a box with no layout (a
+  // closed dialog) keeps its offset, so a dialog shown again has the row in
+  // place at once rather than walking it back over frames.
+  const page = await build(`
+    <vf-dialog id="d" frame="plain" label="Anchors" width="360" height="118">
+      <vf-button-group id="twin" left="0" top="0">
+        <vf-button>Don’t Save</vf-button><vf-button>Cancel</vf-button><vf-button variant="default">Save</vf-button>
+      </vf-button-group>
+      <vf-button-group id="row" origin="bottom right" left="334" top="92">
+        <vf-button>Don’t Save</vf-button><vf-button>Cancel</vf-button><vf-button variant="default">Save</vf-button>
+      </vf-button-group>
+    </vf-dialog>
+  `)
+  const scale = scaleAt(1)
+  /** The row's corner and both widths, system px from the dialog's body; `reopen` closes and shows it first. */
+  const read = (reopen) =>
+    page.evaluate(
+      async ([again, s]) => {
+        const frames = (n) => new Promise((r) => (function step(i) { i ? requestAnimationFrame(() => step(i - 1)) : r() })(n))
+        const d = document.getElementById('d')
+        if (again) {
+          d.close()
+          await frames(3)
+        }
+        d.show()
+        if (!again) await frames(2)
+        const body = d.shadowRoot.querySelector('[part=body]').getBoundingClientRect()
+        const row = document.getElementById('row').getBoundingClientRect()
+        const twin = document.getElementById('twin').getBoundingClientRect()
+        return { right: (row.right - body.left) / s, bottom: (row.bottom - body.top) / s, width: row.width / s, natural: twin.width / s }
+      },
+      [reopen, scale]
+    )
+  const first = await read(false)
+  check(
+    'origin: a right-anchored row near its parent’s far edge keeps its own width, its corner on the point',
+    near(first.width, first.natural) && near(first.right, 334) && near(first.bottom, 92),
+    JSON.stringify(first)
+  )
+  const again = await read(true)
+  check(
+    'origin: …and a closed dialog shown again has it there in the same task',
+    near(again.width, again.natural) && near(again.right, 334) && near(again.bottom, 92),
+    JSON.stringify(again)
   )
   await page.close()
 }

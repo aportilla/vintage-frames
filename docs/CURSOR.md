@@ -10,7 +10,7 @@ import { applyCursor } from 'vintage-frames'
 applyCursor() // → returns a cleanup function that restores the native pointer
 ```
 
-That replaces the native pointer with the embedded System 7 set — arrow, I-beam, crosshair and wristwatch as pixel art locked to the system-pixel lattice, anchored to the page's `vf-desktop` (else the document root, or an `anchor` you pass) so the cursor shares the raster's grid phase. It renders in the top layer above windows, menus and modals, and hides the native pointer with two declarations, both applied for you: `* { cursor: none !important }` for the light DOM including UA rules, and `:root { --vf-cursor: none }` for the shadow trees and top layer.
+That replaces the native pointer with the embedded System 7 set — arrow, I-beam, crosshair and wristwatch as pixel art locked to the system-pixel lattice, anchored to the page's `vf-desktop` (else the document root, or an `anchor` you pass) so the cursor shares the raster's grid phase. It renders in the top layer above windows, menus, popup lists and modals, and hides the native pointer with two declarations, both applied for you: `* { cursor: none !important }` for the light DOM including UA rules, and `:root { --vf-cursor: none }` for the shadow trees and top layer.
 
 Which art shows is read from state, not declared per control: `aria-busy="true"` anywhere over the pointer is the wristwatch, an enabled text well takes the I-beam, `data-vf-cursor="crosshair"` claims a region explicitly, anything else is the arrow. The I-beam and crosshair draw with the classic XOR pen (`filter: invert(1)` plus `mix-blend-mode: difference`). The wristwatch turns its hand over 8 frames and holds still under `prefers-reduced-motion`.
 

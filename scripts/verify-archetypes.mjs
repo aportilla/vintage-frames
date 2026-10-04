@@ -24,7 +24,8 @@
  *    lose `active`.
  *  - MENU TIER: a slotted vf-menu-bar sits above both window tiers, so a
  *    dropped menu hit-tests over a palette it overlaps — before and after
- *    the palette restacks — as it does over a document window; a
+ *    the palette restacks — as it does over a document window, and so does
+ *    a select's open list in a document window; a
  *    free-standing vf-menu slotted into the desktop rides the same tier.
  *  - END SLOT: a label in the bar's `end` slot sits, pixel for pixel, where
  *    the page recipe the sites wrote for their clocks put it.
@@ -590,6 +591,47 @@ function decodePng(buf) {
   await page.evaluate(() => document.getElementById('lone').updateComplete)
   check('closed, the same point hits the second palette',
     q !== null && (await hit(q)) === 'pal2', q && (await hit(q)))
+  await page.close()
+}
+
+// A select's open list in a document window covers a palette over it: the
+// list is in the top layer, where no window's z-index reaches.
+{
+  const page = await build(`
+    <vf-desktop style="display:block;width:900px;height:600px">
+      <vf-window id="doc" heading="Doc" style="position:absolute;left:0;top:40px;width:400px;height:400px">
+        <vf-select id="sel" label="Size" left="20" top="20">
+          <vf-option value="1">One</vf-option>
+          <vf-option value="2">Two</vf-option>
+          <vf-option value="3">Three</vf-option>
+          <vf-option value="4">Four</vf-option>
+          <vf-option value="5">Five</vf-option>
+        </vf-select>
+      </vf-window>
+      <!-- Below the pill (at the pinned scale), over the list it drops. -->
+      <vf-window id="pal" variant="utility" heading="Pal" style="position:absolute;left:0;top:260px;width:300px;height:200px"></vf-window>
+    </vf-desktop>
+  `)
+  const pill = await page.evaluate(() => {
+    const r = document.getElementById('sel').shadowRoot.querySelector('[part=control]').getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  })
+  await page.mouse.click(pill.x, pill.y)
+  await page.waitForFunction(() =>
+    document.getElementById('sel').shadowRoot.querySelector('[part=panel]').getBoundingClientRect().height > 0)
+  const probe = await page.evaluate(() => {
+    const panel = document.getElementById('sel').shadowRoot.querySelector('[part=panel]').getBoundingClientRect()
+    const pal = document.getElementById('pal').getBoundingClientRect()
+    const top = Math.max(panel.top, pal.top)
+    const bottom = Math.min(panel.bottom, pal.bottom)
+    const box = { panel: [panel.top, panel.bottom], pal: [pal.top, pal.bottom] }
+    if (bottom <= top) return { owner: null, ...box }
+    const x = (Math.max(panel.left, pal.left) + Math.min(panel.right, pal.right)) / 2
+    const el = document.elementFromPoint(x, (top + bottom) / 2)
+    return { owner: ['sel', 'pal', 'doc'].find((id) => document.getElementById(id).contains(el)) ?? el?.localName, ...box }
+  })
+  check('a select’s open list covers a palette over its document window', probe.owner === 'sel', JSON.stringify(probe))
+  await page.keyboard.press('Escape')
   await page.close()
 }
 

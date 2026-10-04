@@ -41,6 +41,7 @@ import { VfShadowRoleControl } from '../form-control.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
 import { emit, emitNative } from '../events.js'
+import { hideFromTopLayer, showInTopLayer } from '../top-layer.js'
 
 /** The two pill sizes: the display face at 18px, or the body face at 12px. */
 export type VfSelectSize = 'regular' | 'small'
@@ -51,10 +52,11 @@ export type VfSelectSize = 'regular' | 'small'
  * Children are `<vf-option>` elements in the default slot. The closed control
  * is a white box with a 1px black border, the small 1px hard shadow, the
  * selected option's label on the left and a solid black ▼ triangle on the
- * right. The open panel uses the shared `.vf-panel` recipe and is positioned
- * `position: fixed` (computed from `getBoundingClientRect()`) so it escapes
- * clipping containers; when possible the currently-selected item opens
- * directly over the control, like the real popup menu.
+ * right. The open panel uses the shared `.vf-panel` recipe and is a manual
+ * popover in the top layer, positioned `position: fixed` (computed from
+ * `getBoundingClientRect()`), so it escapes clipping containers and paints
+ * over every window, palettes included; when possible the currently-selected
+ * item opens directly over the control, like the real popup menu.
  *
  * Pointer — two interaction styles are supported and disambiguated by the
  * gesture itself, resolved at the first pointer release:
@@ -303,7 +305,14 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         display: none;
         position: fixed;
         z-index: 10000;
+        /* A manual popover, shown in the top layer while open: the UA's
+           popover box (inset 0, auto margins, overflow, system colors) is
+           reset to the fixed panel positionPanel places. The recipe states
+           the border, padding and background. */
+        inset: auto;
         margin: 0;
+        overflow: visible;
+        color: inherit;
         /* Match the closed pill's 1px hard shadow — the shared .vf-panel recipe
            defaults to the 2px menu shadow, which would overhang the pill's shadow
            by 1px on the right and bottom. */
@@ -661,6 +670,9 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
     this.open = true
     this.panelListeners.attach()
     await this.updateComplete
+    // Above every window, palettes included: a window is a stacking context,
+    // and no z-index inside one reaches past a palette.
+    if (this.open && this.panelEl) showInTopLayer(this.panelEl)
     const options = this.optionItems
     let index = options.findIndex((o) => o.selected && !o.disabled)
     if (index === -1) index = this.firstEnabledIndex()
@@ -752,6 +764,7 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
   private closePanel(refocusControl: boolean): void {
     if (!this.open) return
     this.open = false
+    if (this.panelEl) hideFromTopLayer(this.panelEl)
     this.cancelBlink()
     this.stopArrowScroll()
     this.endPress()
@@ -1362,6 +1375,7 @@ export class VfSelect extends VfPositioned(VfShadowRoleControl) {
         id="listbox"
         class="panel vf-panel ${this.open ? 'open' : ''}"
         part="panel"
+        popover="manual"
         role="listbox"
         aria-label=${this.label || this.hostLabel || nothing}
         aria-hidden=${this.open ? 'false' : 'true'}

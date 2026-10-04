@@ -25,9 +25,10 @@
  *
  * The element is a `popover="manual"`, so it rides the top layer above every
  * window and fixed-position menu panel without a z-index war. A modal
- * dialog enters the top layer *later* and would cover it, so the overlay
- * re-promotes itself (hide + show) whenever a `VfModalDialog`'s reflected
- * `open` attribute appears.
+ * dialog or a `vf-select`'s open list enters the top layer *later* and would
+ * cover it, so the overlay re-promotes itself (hide + show) whenever a
+ * `VfModalDialog`'s reflected `open` attribute appears, and after every kit
+ * entry into the top layer (src/top-layer.ts).
  *
  * ## Cursor states
  *
@@ -75,6 +76,7 @@ import { effectiveScale, onScaleChange } from './scale.js'
 import { truePixelRatio } from './zoom.js'
 import { prefersReducedMotion } from './motion.js'
 import { VfModalDialog } from './modal-dialog.js'
+import { onTopLayerEntry } from './top-layer.js'
 import {
   CURSOR_ARROW,
   CURSOR_CROSSHAIR,
@@ -463,6 +465,7 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
   // Reader-tier subscription: runs after every component has re-written its
   // own --vf-scale, so effectiveScale(anchor) is the settled value.
   const unsubscribeScale = onScaleChange(scheduleMeasure)
+  const unsubscribeTopLayer = onTopLayerEntry(promote)
 
   // The arrow gates activation — no hiding without a pointer to show. The
   // overlay's OWN decode is part of the gate: the preload warms the cache
@@ -494,6 +497,7 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
     aborter.abort()
     observer.disconnect()
     unsubscribeScale()
+    unsubscribeTopLayer()
     cancelAnimationFrame(raf)
     window.clearInterval(frameTimer)
     if (popover && img.isConnected) {

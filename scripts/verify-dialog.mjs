@@ -349,8 +349,33 @@ async function keys(page, key) {
   )
   const focused = await page.evaluate(OPEN_KEYS)
   check('keys: the first text field takes focus on open', focused === 'field', focused)
+  const selected = await page.evaluate(() => {
+    const input = document.getElementById('field').shadowRoot.querySelector('input')
+    return [input.selectionStart, input.selectionEnd, input.value.length]
+  })
+  check('keys: …with its whole text selected, so typing replaces it', selected[0] === 0 && selected[1] === selected[2] && selected[2] > 0, selected.join())
   const clicks = await keys(page, 'Enter')
   check('keys: Enter in a text field activates the default button', clicks.join() === 'ok', clicks.join())
+  await page.close()
+}
+
+// select() on each of the three fields selects its whole value.
+{
+  const page = await build(`
+    <vf-text-field id="t" label="T" value="name"></vf-text-field>
+    <vf-number-field id="n" label="N" value="42"></vf-number-field>
+    <vf-text-area id="a" label="A" value="two\nlines"></vf-text-area>
+  `)
+  const all = await page.evaluate(() =>
+    ['t', 'n', 'a'].map((id) => {
+      const el = document.getElementById(id)
+      el.focus()
+      el.select()
+      const inner = el.shadowRoot.querySelector('.vf-field')
+      return inner.selectionStart === 0 && inner.selectionEnd === inner.value.length && inner.value.length > 0
+    })
+  )
+  check('select() selects the whole value of a text field, a number field and a text area', all.every(Boolean), all.join())
   await page.close()
 }
 
@@ -361,6 +386,8 @@ async function keys(page, key) {
   )
   const focused = await page.evaluate(OPEN_KEYS)
   check('keys: a text area takes focus on open', focused === 'area', focused)
+  // It opens with its text selected; the caret goes to the end first.
+  await page.keyboard.press('ArrowRight')
   let clicks = await keys(page, 'Enter')
   let value = await page.evaluate(() => document.getElementById('area').value)
   check('keys: Return in a text area inserts a newline, not a press', clicks.length === 0 && value === 'one\n', `${JSON.stringify(value)} ${clicks.join()}`)

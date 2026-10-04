@@ -148,9 +148,19 @@ export class VfTextControlBase extends VfShadowRoleControl {
     // Leaving the field commits, as the native control's blur does, also
     // after a Return commit the native control never heard about.
     this.addEventListener('focusout', () => {
-      const control = this.renderRoot.querySelector<HTMLInputElement | HTMLTextAreaElement>('.vf-field')
+      const control = this.control
       if (control) this.commit(control.value)
     })
+  }
+
+  /** The inner native control every field renders, tagged `vf-field`. */
+  protected get control(): HTMLInputElement | HTMLTextAreaElement | null {
+    return this.renderRoot.querySelector<HTMLInputElement | HTMLTextAreaElement>('.vf-field')
+  }
+
+  /** Select all of the field's text, as a native field's `select()` does. */
+  select(): void {
+    this.control?.select()
   }
 
   override connectedCallback(): void {

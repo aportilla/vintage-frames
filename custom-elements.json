@@ -3827,7 +3827,7 @@
                   "text": "void"
                 }
               },
-              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race).",
+              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race). A text\nfield that holds text opens with all of it selected, so typing replaces\nit — a default name, say — rather than adding to it.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -10377,6 +10377,34 @@
               "privacy": "protected",
               "default": "null",
               "description": "The text as last committed: taken when the field gains focus, then at\neach commit. A commit that brings nothing new isn't announced, so the\nnative `change` that follows a Return commit, or a step, is not a second\none.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "control",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement | null"
+              },
+              "privacy": "protected",
+              "description": "The inner native control every field renders, tagged `vf-field`.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "select",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Select all of the field's text, as a native field's `select()` does.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -18359,6 +18387,34 @@
               }
             },
             {
+              "kind": "field",
+              "name": "control",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement | null"
+              },
+              "privacy": "protected",
+              "description": "The inner native control every field renders, tagged `vf-field`.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "select",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Select all of the field's text, as a native field's `select()` does.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formResetCallback",
               "return": {
@@ -19588,6 +19644,34 @@
               "privacy": "protected",
               "default": "null",
               "description": "The text as last committed: taken when the field gains focus, then at\neach commit. A commit that brings nothing new isn't announced, so the\nnative `change` that follows a Return commit, or a step, is not a second\none.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "control",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement | null"
+              },
+              "privacy": "protected",
+              "description": "The inner native control every field renders, tagged `vf-field`.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "select",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Select all of the field's text, as a native field's `select()` does.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -22820,6 +22904,26 @@
               "description": "The text as last committed: taken when the field gains focus, then at\neach commit. A commit that brings nothing new isn't announced, so the\nnative `change` that follows a Return commit, or a step, is not a second\none."
             },
             {
+              "kind": "field",
+              "name": "control",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement | null"
+              },
+              "privacy": "protected",
+              "description": "The inner native control every field renders, tagged `vf-field`.",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "select",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Select all of the field's text, as a native field's `select()` does."
+            },
+            {
               "kind": "method",
               "name": "formResetCallback",
               "return": {
@@ -24044,7 +24148,7 @@
                   "text": "void"
                 }
               },
-              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race)."
+              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race). A text\nfield that holds text opens with all of it selected, so typing replaces\nit — a default name, say — rather than adding to it."
             },
             {
               "kind": "field",

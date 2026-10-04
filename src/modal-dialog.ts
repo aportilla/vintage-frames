@@ -64,6 +64,9 @@ const isTextEntry = (el: Element): boolean => {
   return true
 }
 
+/** The text-entry controls, by tag. */
+const TEXT_FIELDS = 'vf-text-field, vf-number-field, vf-text-area, textarea, input'
+
 /**
  * Shared native-`<dialog>` styles for the modal shells: a chromeless top-layer
  * dialog (the frame is drawn by the subclass) with a fully transparent
@@ -378,20 +381,23 @@ export class VfModalDialog extends LitElement {
   protected get initialFocusTarget(): HTMLElement | null {
     const stated = this.querySelector<HTMLElement>('[autofocus]')
     if (stated) return stated
-    const text = [
-      ...this.querySelectorAll<HTMLElement>(
-        'vf-text-field, vf-number-field, vf-text-area, textarea, input'
-      ),
-    ].find((el) => isTextEntry(el) && !el.matches(':disabled'))
+    const text = [...this.querySelectorAll<HTMLElement>(TEXT_FIELDS)].find(
+      (el) => isTextEntry(el) && !el.matches(':disabled')
+    )
     return text ?? this.defaultButton
   }
 
   /**
    * Hand focus to {@link initialFocusTarget}, right after `showModal()`'s own
-   * focusing steps have run (so this is the last word, not a race).
+   * focusing steps have run (so this is the last word, not a race). A text
+   * field that holds text opens with all of it selected, so typing replaces
+   * it — a default name, say — rather than adding to it.
    */
   #focusInitial(): void {
-    this.initialFocusTarget?.focus()
+    const target = this.initialFocusTarget
+    target?.focus()
+    const field = target as (HTMLElement & { value?: string; select?: () => void }) | null
+    if (field?.matches(TEXT_FIELDS) && isTextEntry(field) && field.value) field.select?.()
   }
 
   /**

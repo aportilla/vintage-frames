@@ -81,6 +81,10 @@ const DITHER_SPAN = tileSpan(DITHER.width)
 /** A slotted window's place in the stack: the z-index the desktop gave it. */
 const zOf = (win: HTMLElement): number => Number(win.style.zIndex) || 0
 
+/** Whether a press landed on a window's title bar, its widgets included. */
+const onTitleBar = (event: Event): boolean =>
+  event.composedPath().some((node) => node instanceof Element && node.classList.contains('vf-title-bar'))
+
 /**
  * `<vf-desktop>` — the full-bleed classic desktop container.
  *
@@ -89,7 +93,9 @@ const zOf = (win: HTMLElement): number => Number(win.style.zIndex) || 0
  * setting) — and manages the stacking order and `active` state of slotted
  * `vf-window` children: a `pointerdown` or
  * `focusin` (keyboard focus) anywhere inside a window brings it to the front
- * and makes it the single active window. The windows' light-DOM order is kept
+ * and makes it the single active window. A press on a title bar with ⌘ held
+ * raises nothing, so a background window is dragged where it stands in the
+ * stack. The windows' light-DOM order is kept
  * in step with the stacking order (bottom-most first, synced in a task once
  * any pointer gesture has ended), so tabbing walks the stack the way the eye
  * does and Shift+Tab is its exact mirror.
@@ -723,6 +729,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
       this._gestureEnd.attach()
     }
     const win = this._windowFromEvent(event)
+    // ⌘ held on a title bar: the window is dragged where it stands in the
+    // stack, neither raised nor activated.
+    if (win && event.metaKey && onTitleBar(event)) return
     if (win) this._raise(win)
   }
 

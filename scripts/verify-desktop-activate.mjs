@@ -25,6 +25,8 @@
  *    reflects — still stacks in the floating tier and keeps `active`.
  *  - STACKING: `stackingOrder` is the stack as it stands, bottom-most first,
  *    the floating tier last — after a focus raise too, which moves no node.
+ *  - ⌘-DRAG: a ⌘-press on a background window's title bar drags it without
+ *    raising or activating it.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:desktop-activate
@@ -420,6 +422,39 @@ const settle = (page) =>
     'SCRIPTED  …and keeps its own active state, shown at once or later',
     made.active === true && made.laterActive === true,
     `active = ${made.active}, later = ${made.laterActive}`
+  )
+  await page.close()
+}
+
+// ── ⌘-DRAG: a background window moves without coming forward ───────────────
+{
+  const page = await build(`
+    <vf-desktop id="desk" width="600" height="450">
+      <vf-window closable movable id="w1" heading="One" top="60" left="20" width="200" height="100">one</vf-window>
+      <vf-window closable movable id="w2" heading="Two" top="60" left="240" width="200" height="100">two</vf-window>
+    </vf-desktop>
+  `)
+  await instrument(page)
+  const bar = await page.evaluate(() => {
+    const r = document.getElementById('w1').shadowRoot.querySelector('[part=title-bar]').getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  await page.keyboard.down('Meta')
+  await page.mouse.move(bar.x, bar.y)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 40, bar.y + 100, { steps: 6 })
+  await page.mouse.up()
+  await page.keyboard.up('Meta')
+  await settle(page)
+  const w1 = await page.evaluate(() => {
+    const one = document.getElementById('w1')
+    return { left: one.left, top: one.top, below: Number(one.style.zIndex) < Number(document.getElementById('w2').style.zIndex) }
+  })
+  const s = await state(page)
+  check(
+    '⌘-DRAG  a ⌘-press on a background window’s title bar drags it, neither raised nor activated',
+    w1.left === 60 && w1.top === 160 && w1.below && s.holder === 'w2' && s.events.length === 0,
+    `${JSON.stringify(w1)} holder ${s.holder}, events ${JSON.stringify(s.events)}`
   )
   await page.close()
 }

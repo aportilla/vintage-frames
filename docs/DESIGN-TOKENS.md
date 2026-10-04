@@ -21,6 +21,7 @@ Every length below is a **system pixel** value — the kit multiplies it by `--v
 | `--vf-font-size` | `16px` | Body face size |
 | `--vf-font-size-display` | `16px` | Chrome face size |
 | `--vf-font-weight` | `700` | All text — the display face is inherently bold |
+| `--vf-font-smoothing` | `antialiased` | The body face's `-webkit-font-smoothing` (macOS only); set `none` for a bitmap strike of your own, so every glyph shows true pixels |
 | `--vf-font-smoothing-display` | `none` | Crisp 1-bit chrome edges; set `antialiased` if you point the display family at a vector face |
 | `--vf-line-height` | `12px` | The body face's native line — the pitch wrapped body copy sits on; re-theme it alongside the body font tokens |
 | `--vf-line-height-display` | `16px` | The display face's native line — wrapped chrome copy, captions, the text area and the window/dialog title patch |

@@ -7,7 +7,9 @@ Two bitmap faces ship inside the components and register themselves on `document
 
 Both faces are the kit's own artwork: every glyph is authored as a plaintext pixel field in `fonts/VF-*.glyphs.txt`, and the binaries are built from those manifests alone. The designs they re-draw — Chicago and Geneva, created by Susan Kare for Apple's original Macintosh — are hers and Apple's; the kit's strikes share their appearance, not their files. They ship under the kit's names, since a family name goes into the font binary and every consumer's `font-family` stack. [fonts/README.md](../fonts/README.md) has the pipeline and design lineage. The *fallbacks* after each family still name `Chicago`, `Charcoal` and `Geneva`, which select faces the reader may already have installed.
 
-Both render on their native 1024-upm pixel grid (one design pixel = one system pixel), scale with `--vf-scale`, and are registered with `ascent-override: 75%` / `descent-override: 25%` / `line-gap-override: 0%` so baselines land on whole pixels. Re-theme with `--vf-font-family-display` / `--vf-font-family`, plus the matching `--vf-font-size-display` / `--vf-font-smoothing-display` and `--vf-line-height-display` / `--vf-line-height` — a swapped strike sets its family, size and line height together.
+Both render on their native 1024-upm pixel grid (one design pixel = one system pixel), scale with `--vf-scale`, and are registered with `ascent-override: 75%` / `descent-override: 25%` / `line-gap-override: 0%` so baselines land on whole pixels. Re-theme with `--vf-font-family-display` / `--vf-font-family`, plus the matching `--vf-font-size-display` / `--vf-font-size`, `--vf-font-smoothing-display` / `--vf-font-smoothing` and `--vf-line-height-display` / `--vf-line-height` — a swapped strike sets its family, size and line height together.
+
+The faces register when the kit is imported, and each is added to `document.fonts` before it decodes, so `await document.fonts.ready` settles once both have loaded. That is the wait for a page that measures text, or lifts a curtain, once the faces are in.
 
 Every strike renders at its native size; a different size is a different strike. Fine print is the body face at its own size (`face="body" dim`).
 
@@ -27,3 +29,23 @@ Every strike renders at its native size; a different size is a different strike.
 npm run verify:text
 npm run verify:baseline
 ```
+
+## A face of your own
+
+A strike the page loads itself registers on `document.fonts` as the kit's faces do, following the same two rules:
+
+```ts
+import { PIXEL_GRID_METRICS } from 'vintage-frames'
+
+const face = new FontFace('My Strike', 'url(/fonts/my-strike.woff2)', {
+  weight: '100 900',
+  ...PIXEL_GRID_METRICS,
+})
+document.fonts.add(face)
+await face.load()
+```
+
+- **`weight: '100 900'`.** Kit text asks for weight 700. A face registered at the default 400 gets a synthesized bold, smeared over every stem.
+- **`PIXEL_GRID_METRICS`** sets the ascent to 75% of the em, the descent to 25% and the line gap to none: the kit's faces' 12 and 4 of 16. A strike drawn with that split has its baselines on whole pixels; one with another split states its own `ascentOverride` and `descentOverride`.
+
+Then point the tokens at it on the element that sets the text, or on `:root`: `--vf-font-family`, `--vf-font-size` (its em in system px), `--vf-line-height` (its pitch) and `--vf-font-smoothing: none`. For a face inlined as base64, `registerEmbeddedFont(family, woff2Base64, metrics)` does the registration.

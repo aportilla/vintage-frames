@@ -57,6 +57,33 @@ The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system m
 | `services` | The site's own objects, passed to every application. |
 | `clock` | The time in the bar's `end` slot. Default `true`. |
 
+The page around a `fit: 'viewport'` desktop is the page's own CSS; the shell writes none:
+
+```css
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+}
+```
+
+`overflow: hidden` keeps a resize's passing overflow from showing a scrollbar, which would change the size the shell measures next.
+
+Turning off pinch-zoom is the page's call too. It keeps the screen crisp, at the cost of the reader's own zoom:
+
+```css
+html {
+  touch-action: pan-x pan-y;
+}
+```
+
+```ts
+// Safari's pinch, which can get past touch-action.
+document.addEventListener('gesturestart', (e) => e.preventDefault())
+```
+
+Panning stays, so a finger still scrolls a window.
+
 `createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the desktop and its menu bar have rendered, the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup and every window included, so a hot reload starts clean. The saved session stops before the windows go, so with `state` set the reload reopens them.
 
 ## Applications
@@ -146,7 +173,7 @@ export const notePad = defineApp({
 
 - `dialogs` are parsed once, appended to the desktop and held under the application. Hold a dialog made in code with `ctx.hold()`, and let it go with `ctx.release()`.
 - A `<form method="dialog">` closes the dialog with the pressed submit button's `value`, its `returnValue`, and `ask()` resolves it. A dialog with fields answers the same way, and the application reads its fields after. Keep OK disabled until the dialog can answer. `novalidate` keeps the browser's own validation message from showing.
-- A dialog declares its whole box. Size copy that varies for its longest, or measure it after `show()` and set `height` then: a closed dialog lays out nothing. A message of unknown length goes in flow, and the dialog's body scrolls it.
+- A dialog declares its whole box. Size copy that varies for its longest, or measure it after `show()` and set `height` then: a closed dialog lays out nothing. `ask()` shows the dialog, so measure right after calling it; [LAYOUT.md](./LAYOUT.md#window-archetypes)'s alert recipe has the arithmetic. A message of unknown length goes in flow, and the dialog's body scrolls it.
 - A held dialog can be an element that renders a `vf-dialog` inside itself. `ask()` takes the `vf-dialog`; show a wrapper through its own API.
 - While a held dialog is open, the bar shows its application's name and menus, even when another application is in front. With several open, it shows the one opened last. Nothing else changes: the front application, the active window and the palettes stay as they were. An application that wants to come forward raises a window before it asks.
 - `dispose()` removes every application's dialogs. An open one closes, and its `ask()` resolves `null`.
@@ -172,6 +199,7 @@ windows.open({
 - With `close` set, the close box and File → Close call it instead, and the application calls `windows.close(win)` once it decides. It gets the window and the modifier keys held on the close box's click (`{ altKey, shiftKey, metaKey, ctrlKey }`); `requestClose(win, keys)` passes them on, and a close from a menu passes none. A handler that decides later, after a Save prompt, returns its promise; `requestClose()` resolves whether the window closed once it settles.
 - `closeAll(app)` asks each of an application's windows to close, front to back, palettes aside: a Quit is one line. It resolves `false` at the first window still open after its handler, a Cancel, and `true` once all have closed. An Option-click on a window's close box does the same for its application, and each handler still decides for its own window.
 - `adopt(win, options)` takes a window the application made and appended itself. It takes the same options as `open()`, plus `palette` and `pin`.
+- Set a window's `width` and `height` before `open()` or `adopt()`. Both read the declared size to place the window, and a saved place is worked out against it. A window sized from its content is appended and measured first, then adopted.
 - A palette is shown while its application is in front and hidden otherwise. It is never closed. `palette` can be a function, for a palette the application hides for its own reasons; call `palettesChanged()` when its answer changes.
 - Focus: opening a window moves the keyboard focus into it: to a control marked `autofocus`, else the first that takes the focus. Anything whose `tabindex` is negative is passed over, such as a roving cell off the tab order. Closing the active window moves the focus into the next active window, else to the closed window's icon. A title-bar press activates a window without moving the focus, so focus left in the previous window follows the active one.
 - On a screen resize every window keeps its place relative to the screen's nearest edges, or its share of the middle. A resizable window keeps its size limits (`vf-window.sizeLimits`) and fits inside the area below the bar. Growing the screen back restores every window exactly. `policy` and `keep` change this for one window, and `setFrameBands()` for all of them, for windows that dock along the edges.

@@ -46,7 +46,7 @@ const shell = createShell(document.querySelector('vf-desktop')!, {
 await shell.ready
 ```
 
-The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system menu: the page's own, with its own label and art. Applications add items to it. The Finder uses the desktop's `vf-icon-field`, or adds one. A `bezel` gives the screen its rounded corners, the menu bar's included; without one, `rounded` on the bar rounds its top corners alone.
+The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system menu: the page's own, with its own label and art. Its title is a `label`, or 16×16 art in the `label` slot, which the menu places as an icon title with no page CSS (SPEC § vf-menu). Applications add items to it. The Finder uses the desktop's `vf-icon-field`, or adds one. A `bezel` gives the screen its rounded corners, the menu bar's included; without one, `rounded` on the bar rounds its top corners alone.
 
 | Option | |
 | --- | --- |

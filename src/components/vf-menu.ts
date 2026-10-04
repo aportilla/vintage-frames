@@ -21,6 +21,9 @@ import { TypeAheadBuffer } from '../type-ahead.js'
 import { deferActivation, emit } from '../events.js'
 import type { VfMenuItem } from './vf-menu-item.js'
 
+/** The elements a title of art is made of; anything else in the `label` slot is text. */
+const ART_TITLE = new Set(['vf-img', 'img', 'svg', 'picture', 'canvas'])
+
 /**
  * `<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of
  * `<vf-menu-item>` / `<vf-separator>` children.
@@ -48,9 +51,12 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *
  * @slot - Menu contents: `vf-menu-item` and `vf-separator` elements.
  * @slot label - Replaces the `label` text in the bar — e.g. a `vf-img` apple
- *   icon for the Apple menu. Keep the `label` attribute set too: it stays the
- *   menu's accessible name (the bar item's `aria-label` and the panel's) when
- *   the visible title is an image.
+ *   icon for the Apple menu. An icon (`vf-img`, `img`, `svg`, `picture` or
+ *   `canvas`) is drawn in a 16×16 cell and placed for one: 7 system px into
+ *   its plate, 5 short of the plate's end, centered on the bar's line. Text
+ *   keeps the text title's place. Keep the `label` attribute set too: it stays
+ *   the menu's accessible name (the bar item's `aria-label` and the panel's)
+ *   when the visible title is an image.
  * @csspart label - The menu title in the bar (inverts while open; flashes
  *   when a closed menu's item is activated by its key equivalent).
  * @csspart panel - The dropped `.vf-panel` containing the items.
@@ -153,6 +159,14 @@ export class VfMenu extends VfPositioned(LitElement) {
          is for the state the inversion can't express: focused, not yet open.
          The class stays on through the open state, so the rule comes back by
          itself when the menu closes and hands focus back to the title. */
+      /* An art title: an icon in the label slot. Its 16×16 cell sits 7 system
+         px into the plate and 5 short of the plate's end, centered on the
+         bar's line as text is. Art drawn from x 2 of its cell, as the apple
+         is, then has 9 px of plate before its ink and 8 after, and the next
+         title's plate begins where the cell ends. */
+      .label.art {
+        padding-inline: calc(var(--vf-scale, 1) * 7px) calc(var(--vf-scale, 1) * 5px);
+      }
       .label:focus {
         outline: none;
       }
@@ -254,6 +268,14 @@ export class VfMenu extends VfPositioned(LitElement) {
   @property({ type: Number, attribute: false }) barTabIndex = 0
 
   @query('.label') private _labelEl!: HTMLElement
+
+  /** Whether the title is art — only images in the `label` slot — rather than text. */
+  @state() private _artTitle = false
+
+  #onLabelSlotChange = (event: Event): void => {
+    const assigned = (event.target as HTMLSlotElement).assignedElements()
+    this._artTitle = assigned.length > 0 && assigned.every((el) => ART_TITLE.has(el.localName))
+  }
 
   @queryAssignedElements({ selector: 'vf-menu-item', flatten: true })
   private _assignedItems!: VfMenuItem[]
@@ -550,7 +572,7 @@ export class VfMenu extends VfPositioned(LitElement) {
       <div
         class="label vf-snap ${this.#focusRule.marked
           ? 'vf-focus-rule'
-          : ''} ${this._flashOn ? 'flash-on' : ''}"
+          : ''} ${this._flashOn ? 'flash-on' : ''} ${this._artTitle ? 'art' : ''}"
         part="label"
         role=${this.#inBar ? 'menuitem' : 'button'}
         tabindex=${this.barTabIndex}
@@ -562,7 +584,9 @@ export class VfMenu extends VfPositioned(LitElement) {
         @pointerenter=${this.#onLabelEnter}
         @keydown=${this.#onLabelKeydown}
       >
-        <span class="title"><slot name="label">${this.label}</slot></span>
+        <span class="title"
+          ><slot name="label" @slotchange=${this.#onLabelSlotChange}>${this.label}</slot></span
+        >
       </div>
       <div
         class="panel vf-panel"

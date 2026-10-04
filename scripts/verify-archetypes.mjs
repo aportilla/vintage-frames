@@ -22,6 +22,9 @@
  *  - FLOATING TIER: on a vf-desktop, utility windows stack a band above the
  *    document tier, restack only among themselves, and neither steal nor
  *    lose `active`.
+ *  - ICON TITLE: a 16×16 icon in a menu's label slot sits in its own plate
+ *    (7 px before the cell, 5 after), centered on the bar's line; text keeps
+ *    the text plate.
  *  - MENU TIER: a slotted vf-menu-bar sits above both window tiers, so a
  *    dropped menu hit-tests over a palette it overlaps — before and after
  *    the palette restacks — as it does over a document window, and so does
@@ -664,6 +667,48 @@ function decodePng(buf) {
     page.locator('#slotted').screenshot(),
   ])
   check('…and the two bars render the same pixels', a.equals(b), `${a.length} / ${b.length} bytes`)
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   4d. ICON TITLE — a 16×16 icon in a menu's label slot
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  // The apple's 16×16 cell lands at x 16, two rows down, and the next title's
+  // plate at x 32, from the screen's edge; a text title keeps its own place.
+  const page = await build(`
+    <div style="width:600px">
+      <vf-menu-bar id="iconBar">
+        <vf-menu id="apple" label="Apple">
+          <vf-img id="art" slot="label" width="16" height="16"><img src="/demo/icons/apple.png" alt="" /></vf-img>
+          <vf-menu-item value="about">About</vf-menu-item>
+        </vf-menu>
+        <vf-menu id="file" label="File"><vf-menu-item value="x">X</vf-menu-item></vf-menu>
+      </vf-menu-bar>
+      <vf-menu-bar id="textBar">
+        <vf-menu id="app" label="Sprite Machine"><vf-menu-item value="about">About</vf-menu-item></vf-menu>
+      </vf-menu-bar>
+    </div>
+  `, { settle: true })
+  const geom = await page.evaluate((s) => {
+    const sys = (v) => Math.round((v / s) * 100) / 100
+    const of = (barId, rect) => {
+      const bar = document.getElementById(barId).getBoundingClientRect()
+      return { x: sys(rect.left - bar.left), y: sys(rect.top - bar.top), w: sys(rect.width) }
+    }
+    return {
+      cell: of('iconBar', document.getElementById('art').getBoundingClientRect()),
+      applePlate: of('iconBar', document.getElementById('apple').labelRect),
+      filePlate: of('iconBar', document.getElementById('file').labelRect),
+      textPlate: of('textBar', document.getElementById('app').labelRect),
+    }
+  }, S)
+  check(
+    'an icon title: the 16×16 cell at x 16, y 2, in a 28px plate from x 9; the next title’s plate at x 32',
+    geom.cell.x === 16 && geom.cell.y === 2 && geom.applePlate.x === 9 && geom.applePlate.w === 28 && geom.filePlate.x === 32,
+    JSON.stringify(geom)
+  )
+  check('…and a text title keeps the text plate, from x 9', geom.textPlate.x === 9, JSON.stringify(geom.textPlate))
   await page.close()
 }
 

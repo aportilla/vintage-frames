@@ -9355,7 +9355,7 @@
               "name": ""
             },
             {
-              "description": "Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.",
+              "description": "Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. An icon (`vf-img`, `img`, `svg`, `picture` or `canvas`) is drawn in a 16×16 cell and placed for one: 7 system px into its plate, 5 short of the plate's end, centered on the bar's line. Text keeps the text title's place. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.",
               "name": "label"
             }
           ],
@@ -9430,6 +9430,21 @@
               "type": {
                 "text": "HTMLElement"
               },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "_artTitle",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether the title is art — only images in the `label` slot — rather than text."
+            },
+            {
+              "kind": "field",
+              "name": "#onLabelSlotChange",
               "privacy": "private"
             },
             {

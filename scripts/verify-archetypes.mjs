@@ -23,8 +23,8 @@
  *    document tier, restack only among themselves, and neither steal nor
  *    lose `active`.
  *  - ICON TITLE: a 16×16 icon in a menu's label slot sits in its own plate
- *    (7 px before the cell, 5 after), centered on the bar's line; text keeps
- *    the text plate.
+ *    (6 px either side of the cell) on the plate's top row; text keeps the
+ *    text plate, and adjacent plates overlap by 6.
  *  - MENU TIER: a slotted vf-menu-bar sits above both window tiers, so a
  *    dropped menu hit-tests over a palette it overlaps — before and after
  *    the palette restacks — as it does over a document window, and so does
@@ -674,8 +674,9 @@ function decodePng(buf) {
    4d. ICON TITLE — a 16×16 icon in a menu's label slot
    ──────────────────────────────────────────────────────────────────────── */
 {
-  // The apple's 16×16 cell lands at x 16, two rows down, and the next title's
-  // plate at x 32, from the screen's edge; a text title keeps its own place.
+  // The apple's 16×16 cell lands at x 15 on the bar's row 1, and the next
+  // title's plate at x 31, from the screen's edge; a text title keeps its own
+  // place, and each title's plate overlaps the one before it by 6.
   const page = await build(`
     <div style="width:600px">
       <vf-menu-bar id="iconBar">
@@ -687,6 +688,7 @@ function decodePng(buf) {
       </vf-menu-bar>
       <vf-menu-bar id="textBar">
         <vf-menu id="app" label="Sprite Machine"><vf-menu-item value="about">About</vf-menu-item></vf-menu>
+        <vf-menu id="edit" label="Edit"><vf-menu-item value="undo">Undo</vf-menu-item></vf-menu>
       </vf-menu-bar>
     </div>
   `, { settle: true })
@@ -701,14 +703,19 @@ function decodePng(buf) {
       applePlate: of('iconBar', document.getElementById('apple').labelRect),
       filePlate: of('iconBar', document.getElementById('file').labelRect),
       textPlate: of('textBar', document.getElementById('app').labelRect),
+      nextPlate: of('textBar', document.getElementById('edit').labelRect),
     }
   }, S)
   check(
-    'an icon title: the 16×16 cell at x 16, y 2, in a 28px plate from x 9; the next title’s plate at x 32',
-    geom.cell.x === 16 && geom.cell.y === 2 && geom.applePlate.x === 9 && geom.applePlate.w === 28 && geom.filePlate.x === 32,
+    'an icon title: the 16×16 cell at x 15, y 1, in a 28px plate from x 9; the next title’s plate at x 31',
+    geom.cell.x === 15 && geom.cell.y === 1 && geom.applePlate.x === 9 && geom.applePlate.w === 28 && geom.filePlate.x === 31,
     JSON.stringify(geom)
   )
-  check('…and a text title keeps the text plate, from x 9', geom.textPlate.x === 9, JSON.stringify(geom.textPlate))
+  check(
+    '…a text title keeps the text plate, from x 9, and the next title’s plate overlaps it by 6',
+    geom.textPlate.x === 9 && geom.nextPlate.x === geom.textPlate.x + geom.textPlate.w - 6,
+    JSON.stringify([geom.textPlate, geom.nextPlate])
+  )
   await page.close()
 }
 

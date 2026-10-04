@@ -52,8 +52,8 @@ const ART_TITLE = new Set(['vf-img', 'img', 'svg', 'picture', 'canvas'])
  * @slot - Menu contents: `vf-menu-item` and `vf-separator` elements.
  * @slot label - Replaces the `label` text in the bar — e.g. a `vf-img` apple
  *   icon for the Apple menu. An icon (`vf-img`, `img`, `svg`, `picture` or
- *   `canvas`) is drawn in a 16×16 cell and placed for one: 7 system px into
- *   its plate, 5 short of the plate's end, centered on the bar's line. Text
+ *   `canvas`) is drawn in a 16×16 cell and placed for one: 6 system px into
+ *   its plate, 6 short of the plate's end, on the plate's top row. Text
  *   keeps the text title's place. Keep the `label` attribute set too: it stays
  *   the menu's accessible name (the bar item's `aria-label` and the panel's)
  *   when the visible title is an image.
@@ -84,7 +84,7 @@ export class VfMenu extends VfPositioned(LitElement) {
            Menus.png puts the plate 10px left / 9px right of the title ink.
            Chicago carries a 1px bearing on each side inside the text box, so
            9/8 in layout lands the plate at ink −10/+9. In a bar, vf-menu-bar
-           overlaps adjacent boxes 5px on top of this — the plates share a
+           overlaps adjacent boxes 6px on top of this — the plates share a
            band, as the originals did. */
         padding-inline: calc(var(--vf-scale, 1) * 9px) calc(var(--vf-scale, 1) * 8px);
         white-space: nowrap;
@@ -159,13 +159,17 @@ export class VfMenu extends VfPositioned(LitElement) {
          is for the state the inversion can't express: focused, not yet open.
          The class stays on through the open state, so the rule comes back by
          itself when the menu closes and hands focus back to the title. */
-      /* An art title: an icon in the label slot. Its 16×16 cell sits 7 system
-         px into the plate and 5 short of the plate's end, centered on the
-         bar's line as text is. Art drawn from x 2 of its cell, as the apple
-         is, then has 9 px of plate before its ink and 8 after, and the next
-         title's plate begins where the cell ends. */
+      /* An art title: an icon in the label slot. Its 16×16 cell sits 6 system
+         px into the plate and 6 short of the plate's end, on the plate's top
+         row (one row above where centering would put it). Art drawn from x 2,
+         y 1 of its cell, as the apple is, then has 8 px of plate before its
+         ink, and its ink runs from the bar's row 2. */
       .label.art {
-        padding-inline: calc(var(--vf-scale, 1) * 7px) calc(var(--vf-scale, 1) * 5px);
+        align-items: flex-start;
+        padding-inline: calc(var(--vf-scale, 1) * 6px);
+      }
+      .label.art .title {
+        margin-block-start: calc(var(--vf-scale, 1) * 1px);
       }
       .label:focus {
         outline: none;

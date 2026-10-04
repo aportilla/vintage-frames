@@ -63,19 +63,18 @@ export class VfMenuBar extends VfPositioned(LitElement) {
         display: flex;
         align-items: stretch;
         height: 100%;
-        /* 9px of bar before the first title's plate (System 7 put the Apple
-           plate 9 system px from the screen edge, clear of the 5px corner
-           mask), plus 5px cancelling the first title's share of the overlap
+        /* 9px of bar before the first title's plate, clear of the 5px corner
+           mask, plus 6px cancelling the first title's share of the overlap
            below. */
-        padding-inline-start: calc(var(--vf-scale, 1) * 14px);
+        padding-inline-start: calc(var(--vf-scale, 1) * 15px);
       }
-      /* Adjacent title plates OVERLAP by 5 system px: Menus.png spaces title
-         ink 14px apart while each plate runs 10px left / 9px right of its own
-         ink, so neighboring plates share a 5px band. A title's plate is its
-         label box (padding in vf-menu), so the overlap is layout: every menu
-         pulled 5px into its left neighbor. */
+      /* Adjacent title plates OVERLAP by 6 system px: title ink sits 13px
+         apart while each plate runs 10px left / 9px right of its own ink, so
+         neighboring plates share a 6px band. A title's plate is its label box
+         (padding in vf-menu), so the overlap is layout: every menu pulled 6px
+         into its left neighbor. */
       ::slotted(vf-menu) {
-        margin-inline-start: calc(var(--vf-scale, 1) * -5px);
+        margin-inline-start: calc(var(--vf-scale, 1) * -6px);
       }
       /* The bar's right end (slot="end"): a clock, say. A row of its own,
          pushed to the end and held 9px in, mirroring the first title's

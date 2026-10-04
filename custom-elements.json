@@ -9363,7 +9363,7 @@
               "name": ""
             },
             {
-              "description": "Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. An icon (`vf-img`, `img`, `svg`, `picture` or `canvas`) is drawn in a 16×16 cell and placed for one: 6 system px into its plate, 6 short of the plate's end, on the plate's top row. Text keeps the text title's place. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.",
+              "description": "Replaces the `label` text in the bar — e.g. a `vf-img` apple icon for the Apple menu. An icon (`vf-img`, `img`, `svg`, `picture` or `canvas`) is drawn in a 16×16 cell and placed for one: 6 system px into its plate, 8 short of the plate's end, on the plate's top row. Text keeps the text title's place. Keep the `label` attribute set too: it stays the menu's accessible name (the bar item's `aria-label` and the panel's) when the visible title is an image.",
               "name": "label"
             }
           ],

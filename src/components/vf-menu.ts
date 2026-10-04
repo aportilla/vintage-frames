@@ -53,7 +53,7 @@ const ART_TITLE = new Set(['vf-img', 'img', 'svg', 'picture', 'canvas'])
  * @slot label - Replaces the `label` text in the bar — e.g. a `vf-img` apple
  *   icon for the Apple menu. An icon (`vf-img`, `img`, `svg`, `picture` or
  *   `canvas`) is drawn in a 16×16 cell and placed for one: 6 system px into
- *   its plate, 6 short of the plate's end, on the plate's top row. Text
+ *   its plate, 8 short of the plate's end, on the plate's top row. Text
  *   keeps the text title's place. Keep the `label` attribute set too: it stays
  *   the menu's accessible name (the bar item's `aria-label` and the panel's)
  *   when the visible title is an image.
@@ -160,13 +160,13 @@ export class VfMenu extends VfPositioned(LitElement) {
          The class stays on through the open state, so the rule comes back by
          itself when the menu closes and hands focus back to the title. */
       /* An art title: an icon in the label slot. Its 16×16 cell sits 6 system
-         px into the plate and 6 short of the plate's end, on the plate's top
+         px into the plate and 8 short of the plate's end, on the plate's top
          row (one row above where centering would put it). Art drawn from x 2,
          y 1 of its cell, as the apple is, then has 8 px of plate before its
          ink, and its ink runs from the bar's row 2. */
       .label.art {
         align-items: flex-start;
-        padding-inline: calc(var(--vf-scale, 1) * 6px);
+        padding-inline: calc(var(--vf-scale, 1) * 6px) calc(var(--vf-scale, 1) * 8px);
       }
       .label.art .title {
         margin-block-start: calc(var(--vf-scale, 1) * 1px);

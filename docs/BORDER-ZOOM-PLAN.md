@@ -1,9 +1,10 @@
 # Border zoom plan
 
-**Status (2026-09-29):** built, uncommitted — steps 2–7 done, and the probe
+**Status (2026-10-04):** shipped in 0.14.0 — steps 2–8 done, and the probe
 half of step 1. Left: the real-browser pass (Safari along the zoom ladder,
-Firefox, one iOS Simulator zoom, Chrome forced-colors emulation), then steps
-8–9. Delete this doc when the work ships, as with the earlier plans.
+Firefox, one iOS Simulator zoom, Chrome forced-colors emulation) and step 9,
+filing the WebKit bug (the draft is at the end). Delete this doc once both
+are done.
 
 **What was built, and the calls made on the open questions:**
 

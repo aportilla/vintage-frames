@@ -11,6 +11,8 @@
  *  - RESIZE: a raster resize re-pins every window and desktop icon, floors a
  *    resizable window at its size limits, and growing back restores every
  *    place exactly.
+ *  - ZOOM: a window with a zoom box goes to its zoomed box and back, stays
+ *    zoomed across a resize, and unzooms to where its pin puts it.
  *  - CLOSE: a document with unsaved changes asks before it closes, in Note
  *    Pad's own dialog; Cancel and Escape keep it, Don’t Save and Save close
  *    it, and Save files it. The dialog stays held, closed, for the next ask.
@@ -258,6 +260,48 @@ const layout = (page) =>
     JSON.stringify(again) === JSON.stringify(home),
     `${JSON.stringify(home)} → ${JSON.stringify(again)}`
   )
+  await page.close()
+}
+
+// ── ZOOM ────────────────────────────────────────────────────────────────────
+{
+  const page = await openShell(browser)
+  const s = shellOn(page)
+  await s.pick('Apple', 'note-pad')
+  await s.settle()
+  const home = await s.window('Untitled')
+  /** Note Pad's zoomed box on the live window area: its full height, at the window's left and width. */
+  const zoomed = () =>
+    page.evaluate(() => {
+      const a = window.shell.windows.area
+      const win = [...document.querySelectorAll('vf-desktop > vf-window')].find((w) => w.heading === 'Untitled')
+      return { left: win.left, top: a.top, width: win.width, height: a.height }
+    })
+  const zoomBox = await page.evaluate(() => {
+    const win = [...document.querySelectorAll('vf-desktop > vf-window')].find((w) => w.heading === 'Untitled')
+    const r = win.shadowRoot.querySelector('[part=zoom-box]').getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  const same = (w, b) => w.left === b.left && w.top === b.top && w.width === b.width && w.height === b.height
+  await page.mouse.click(zoomBox.x, zoomBox.y)
+  await s.settle()
+  let at = await s.window('Untitled')
+  let want = await zoomed()
+  check('ZOOM  the zoom box takes a window to its zoomed box', same(at, want), `${JSON.stringify(at)} for ${JSON.stringify(want)}`)
+  await page.evaluate(() => window.shell.windows.zoom(window.shell.windows.windowsOf('note-pad').find((w) => w.heading === 'Untitled')))
+  at = await s.window('Untitled')
+  check('ZOOM  …and back to the box it had', same(at, home), `${JSON.stringify(at)} for ${JSON.stringify(home)}`)
+
+  const zoom = () => page.evaluate(() => window.shell.windows.zoom(window.shell.windows.windowsOf('note-pad').find((w) => w.heading === 'Untitled')))
+  await zoom()
+  await resizeTo(page, 800, 560)
+  at = await s.window('Untitled')
+  want = await zoomed()
+  check('ZOOM  a zoomed window stays zoomed across a screen resize', same(at, want), `${JSON.stringify(at)} for ${JSON.stringify(want)}`)
+  await zoom()
+  at = await s.window('Untitled')
+  // Its box is in the screen's top-left band, so the pin keeps it where it was.
+  check('ZOOM  …and unzooms to where its pin puts it on the new screen', same(at, home), `${JSON.stringify(at)} for ${JSON.stringify(home)}`)
   await page.close()
 }
 

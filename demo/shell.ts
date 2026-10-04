@@ -1,8 +1,9 @@
 /**
  * shell.html's script: the shell over the page's desktop. The Finder shows a
  * catalog seeded from the page's markup; Note Pad is a small application with
- * documents of its own kind, an Info palette shown while it is front, and a
- * close that asks about unsaved changes in an alert of its own.
+ * documents of its own kind, an Info palette shown while it is front, a close
+ * that asks about unsaved changes in an alert of its own, and a zoom box the
+ * window manager runs.
  *
  * `?save=1` keeps the catalog in IndexedDB and the session in localStorage;
  * `?cleanup=1` turns on the Finder's Clean Up after a resize; `?open=` opens
@@ -19,7 +20,7 @@ import {
   localStorageState,
   memoryStorage,
 } from '../src/shell/index.js'
-import type { AppDefinition, Catalog, Item } from '../src/shell/index.js'
+import type { AppDefinition, Box, Catalog, Item } from '../src/shell/index.js'
 
 const ICONS = '/demo/icons'
 
@@ -103,6 +104,7 @@ function notePad(): AppDefinition<NotePadActions> {
         const win = document.createElement('vf-window')
         win.heading = name
         win.movable = true
+        win.zoomable = true
         win.width = 260
         win.height = 140
         const area = document.createElement('vf-text-area')
@@ -148,6 +150,9 @@ function notePad(): AppDefinition<NotePadActions> {
         void windows.close(win)
       }
 
+      /** A document's zoomed box: the window area's full height, at its own left and width. */
+      const zoom = (a: Box, box: Box) => ({ left: box.left, top: a.top, width: box.width, height: a.height })
+
       openNote = (note, from) => {
         windows.open({
           app: NOTE_PAD,
@@ -155,13 +160,14 @@ function notePad(): AppDefinition<NotePadActions> {
           from,
           create: () => makeWindow(note.name, textOf(note)),
           close: askToClose,
+          zoom,
         })
       }
 
       function newNote(from: VfViewportBox | null = null): void {
         untitled++
         const name = untitled === 1 ? 'Untitled' : `Untitled ${untitled}`
-        windows.open({ app: NOTE_PAD, item: null, from, create: () => makeWindow(name, ''), close: askToClose })
+        windows.open({ app: NOTE_PAD, item: null, from, create: () => makeWindow(name, ''), close: askToClose, zoom })
       }
 
       // The Info palette: shown while Note Pad is front, unless hidden.

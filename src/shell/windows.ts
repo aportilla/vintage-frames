@@ -29,6 +29,9 @@
  *   resizable window's pin when its size changed, floors it at the window's
  *   own size limits and caps it to the window area, so growing back restores
  *   every place.
+ * - The zoom box, for a window adopted with `zoom`: the window goes to its
+ *   zoomed box and back to the box it had, kept as a pin; a zoomed window
+ *   stays zoomed across a resize.
  * - Dialogs: `holdDialog()` holds an application's dialog under it, in the
  *   desktop. The manager follows each held dialog's `open` attribute, and
  *   `asking` is the application of the one opened last and still open.
@@ -81,6 +84,13 @@ export interface AdoptOptions {
   /** A box held across a raster resize while the window is near it. */
   keep?: ((area: Box) => Box) | null
   /**
+   * Its zoom box: the window's zoomed box on the window area, given its
+   * current box (to keep its top-left, say). Set, the manager runs the zoom
+   * box: it goes to this box and back to the box the user had, and a window
+   * at it stays zoomed across a raster resize.
+   */
+  zoom?: ((area: Box, box: Box) => BoxInput) | null
+  /**
    * A palette: shown while its application is front — and while the
    * predicate holds, for one the application hides for its own reasons —
    * and hidden otherwise. Never closed by the manager.
@@ -119,6 +129,7 @@ interface Adoption {
   place: PlacePolicy | null
   policy: ((cur: Box) => Policy) | null
   keep: ((area: Box) => Box) | null
+  zoom: ((area: Box, box: Box) => BoxInput) | null
   palette: null | (() => boolean)
   close: CloseHandler | null
 }
@@ -228,6 +239,8 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
    * every time ratchets windows down the screen.
    */
   let pins = new WeakMap<VfWindow, { pin: Pin } & Box>()
+  /** Each zoomed window's box from before its zoom, with the pin that carries it through a raster resize. */
+  const unzoomed = new WeakMap<VfWindow, { pin: Pin; box: Box }>()
   let bands: Partial<Bands> = {}
   /** The frame every window's pin is read in: below the window area's top. */
   const frame = (): Frame => frameOf(area().top, bands)
@@ -320,6 +333,15 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
   const placedBox = (win: VfWindow): Placed | null => {
     const place = adopted.get(win)?.place
     return place ? clampedBox(win, place(area())) : null
+  }
+
+  /** A window's zoomed box on `on` (the live area by default), unclamped, or null without a `zoom`. */
+  const zoomBoxOf = (win: VfWindow, on: Box = area()): Box | null => {
+    const zoom = adopted.get(win)?.zoom
+    if (!zoom) return null
+    const cur = boxOf(win)
+    const g = zoom(on, cur)
+    return { left: g.left ?? cur.left, top: g.top ?? cur.top, width: g.width ?? cur.width, height: g.height ?? cur.height }
   }
 
   /** The resize policy for `win` at its box `cur`. */
@@ -430,6 +452,12 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
   }
   desktop.addEventListener('vf-placement-change', onPlacement)
   teardown.push(() => desktop.removeEventListener('vf-placement-change', onPlacement))
+
+  // The zoom box, for a window adopted with a `zoom`; the owner runs any other's.
+  on(desktop, 'vf-zoom', (e) => {
+    const win = e.target
+    if (win instanceof VfWindow && adopted.get(win)?.zoom) api.zoom(win)
+  })
   on(desktop, 'vf-resize', (e) => {
     if ((e as CustomEvent<{ commit?: boolean }>).detail?.commit) notifyLayout()
   })
@@ -450,6 +478,12 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
     const a = adopted.get(win)
     if (a?.keep && nearBox(cur, a.keep(beforeArea))) {
       writeBox(win, clampedBox(win, a.keep(area())))
+      return
+    }
+    // A zoomed window stays zoomed.
+    const zoomed = zoomBoxOf(win, beforeArea)
+    if (zoomed && nearBox(cur, zoomed)) {
+      writeBox(win, clampedBox(win, zoomBoxOf(win)!))
       return
     }
     const rec = pins.get(win)
@@ -497,6 +531,7 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
         place: opts.place ?? null,
         policy: opts.policy ?? null,
         keep: opts.keep ?? null,
+        zoom: opts.zoom ?? null,
         palette: !palette ? null : palette === true ? () => true : palette,
         close: opts.close ?? null,
       })
@@ -539,6 +574,7 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
         pin: item != null ? (remembered.get(item)?.pin ?? savedPin(item)) : null,
         policy: opts.policy ?? null,
         keep: opts.keep ?? null,
+        zoom: opts.zoom ?? null,
         close: opts.close ?? null,
       })
       if (item != null) remembered.delete(item)
@@ -701,9 +737,33 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       syncPalettes()
     },
 
-    /** Write a box for a gesture the owner runs itself — a zoom, its group's arrange. */
+    /** Write a box for a gesture the owner runs itself — its group's arrange, a zoom of its own. */
     write(win: VfWindow, box: Placed): void {
       writeBox(win, box)
+      notifyLayout()
+    },
+
+    /**
+     * The zoom box, for a window adopted with a `zoom`: away from its zoomed
+     * box, the window goes there, its box remembered; at it, the window goes
+     * back to that box, carried by its pin through any raster resize since,
+     * or to its `place` with none remembered. The zoom box's press runs it;
+     * so can a menu command.
+     */
+    zoom(win: VfWindow): void {
+      const target = zoomBoxOf(win)
+      if (!target) return
+      const cur = boxOf(win)
+      const zoomed = clampedBox(win, target)
+      if (nearBox(cur, { ...cur, ...zoomed })) {
+        const before = unzoomed.get(win)
+        unzoomed.delete(win)
+        const back = before ? pinnedBox(win, before.pin, policyOf(win, before.box)) : placedBox(win)
+        if (back) writeBox(win, back)
+      } else {
+        unzoomed.set(win, { pin: pinOf(cur, raster(), frame()), box: cur })
+        writeBox(win, zoomed)
+      }
       notifyLayout()
     },
 

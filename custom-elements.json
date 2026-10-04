@@ -3846,10 +3846,10 @@
               "privacy": "private",
               "return": {
                 "type": {
-                  "text": "void"
+                  "text": "HTMLElement | null"
                 }
               },
-              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race). A text\nfield that holds text opens with all of it selected, so typing replaces\nit — a default name, say — rather than adding to it.",
+              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race). Returns\nthe element focused, for `vf-show`.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -4204,6 +4204,14 @@
             }
           ],
           "events": [
+            {
+              "description": "Dialog opened, placed and given its initial focus. Detail `{ focus }`, the element focused: the moment to select a field's default text (`select()`) or measure copy that varies.",
+              "name": "vf-show",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
             {
               "description": "Dialog closed. Detail `{ reason: 'escape' | 'close' | 'outside', returnValue: string | null }` — `'outside'` only under `light-dismiss` — plus `altKey`, `shiftKey`, `metaKey` and `ctrlKey` when the close box closed it.",
               "name": "vf-close",
@@ -24313,10 +24321,10 @@
               "privacy": "private",
               "return": {
                 "type": {
-                  "text": "void"
+                  "text": "HTMLElement | null"
                 }
               },
-              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race). A text\nfield that holds text opens with all of it selected, so typing replaces\nit — a default name, say — rather than adding to it."
+              "description": "Hand focus to initialFocusTarget, right after `showModal()`'s own\nfocusing steps have run (so this is the last word, not a race). Returns\nthe element focused, for `vf-show`."
             },
             {
               "kind": "field",
@@ -24579,6 +24587,10 @@
             }
           ],
           "events": [
+            {
+              "description": "The modal opened: it is in the top layer, placed, and its initial focus is set. `detail: { focus }`, the element focused. The page's moment to finish composing it — select a field's default text, measure copy that varies. Fired inside `show()` once the modal has rendered, else at its first render.",
+              "name": "vf-show"
+            },
             {
               "description": "The modal closed. `detail: { reason: 'escape' | 'close' | 'outside', returnValue: string | null }`.",
               "name": "vf-close"

@@ -20,6 +20,14 @@ import type { VfCloseKeys } from './chrome.js'
 export type VfCloseReason = 'escape' | 'close' | 'outside'
 
 /**
+ * The `vf-show` event's detail: the element the modal gave its initial focus
+ * to, or null where it left the browser's choice alone.
+ */
+export interface VfShowDetail {
+  focus: HTMLElement | null
+}
+
+/**
  * The `vf-close` event's detail. A close box's close also carries the
  * modifier keys held on its click; no other close does.
  */
@@ -156,6 +164,11 @@ export const modalDialogStyles = css`
  * `<dialog @cancel=${this._onNativeCancel} @close=${this._onNativeClose}>` with
  * their role/ARIA and body, and {@link modalDialogStyles} in `static styles`.
  *
+ * @fires vf-show - The modal opened: it is in the top layer, placed, and its
+ *   initial focus is set. `detail: { focus }`, the element focused. The page's
+ *   moment to finish composing it — select a field's default text, measure
+ *   copy that varies. Fired inside `show()` once the modal has rendered, else
+ *   at its first render.
  * @fires vf-close - The modal closed. `detail: { reason: 'escape' | 'close' |
  *   'outside', returnValue: string | null }`.
  */
@@ -396,15 +409,13 @@ export class VfModalDialog extends LitElement {
 
   /**
    * Hand focus to {@link initialFocusTarget}, right after `showModal()`'s own
-   * focusing steps have run (so this is the last word, not a race). A text
-   * field that holds text opens with all of it selected, so typing replaces
-   * it — a default name, say — rather than adding to it.
+   * focusing steps have run (so this is the last word, not a race). Returns
+   * the element focused, for `vf-show`.
    */
-  #focusInitial(): void {
+  #focusInitial(): HTMLElement | null {
     const target = this.initialFocusTarget
     target?.focus()
-    const field = target as (HTMLElement & { value?: string; select?: () => void }) | null
-    if (field?.matches(TEXT_FIELDS) && isTextEntry(field) && field.value) field.select?.()
+    return target
   }
 
   /**
@@ -617,10 +628,12 @@ export class VfModalDialog extends LitElement {
       this.#invoker = document.activeElement
       this.returnValue = ''
       dialog.showModal()
-      this.#focusInitial()
+      const focus = this.#focusInitial()
       this.settle()
       this.#watchGeometry(dialog)
       this.#openListeners.attach()
+      // Open, placed and focused: the page's moment to finish composing it.
+      emit<VfShowDetail>(this, 'vf-show', { focus })
     } else if (!this.open && dialog.open) {
       dialog.close()
     }

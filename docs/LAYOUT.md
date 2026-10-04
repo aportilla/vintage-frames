@@ -158,7 +158,7 @@ There is no alert component. An alert is the plain frame plus your own icon art:
 
 `label` is set because the plain frame has no title bar to take a name from; the copy uses the chrome face, as System 7 alerts did. The form closes the alert with the pressed button's `value`, which `vf-close` carries as `detail.returnValue` (null for Escape). The `<form>` is a plain block, so the placed children still measure from the dialog's body.
 
-An alert whose message varies is sized to it once shown: a closed dialog lays out nothing, so measure the message right after `show()` (or right after the shell's `ctx.ask()`, which shows the dialog), then set the dialog's `height` and move the button row. Place the row by its bottom-right corner and only its `top` changes:
+An alert whose message varies is sized to it once shown: a closed dialog lays out nothing, so measure the message on the dialog's `vf-show`, which fires once it is open and placed (the shell's `ctx.ask()` shows it too), then set the dialog's `height` and move the button row. Place the row by its bottom-right corner and only its `top` changes:
 
 ```html
 <vf-dialog id="alert" frame="plain" label="Caution" width="340" height="126">
@@ -173,13 +173,15 @@ An alert whose message varies is sized to it once shown: a closed dialog lays ou
 ```ts
 import { effectiveScale } from 'vintage-frames'
 
+alert.addEventListener('vf-show', () => {
+  const tall = Math.ceil(message.getBoundingClientRect().height / effectiveScale(message))
+  // The art or the message, 16 above the 28px button row, 16 below it.
+  const body = Math.max(16 + 32, 16 + tall) + 16 + 28 + 16
+  alert.height = Math.max(126, body + 10) // the plain frame takes 10
+  buttons.top = alert.height - 10 - 16
+})
 message.textContent = text
 alert.show()
-const tall = Math.ceil(message.getBoundingClientRect().height / effectiveScale(message))
-// The art or the message, 16 above the 28px button row, 16 below it.
-const body = Math.max(16 + 32, 16 + tall) + 16 + 28 + 16
-alert.height = Math.max(126, body + 10) // the plain frame takes 10
-buttons.top = alert.height - 10 - 16
 ```
 
 The read forces layout, so the new size lands before the first paint. The shell's Finder sizes its own alerts this way.

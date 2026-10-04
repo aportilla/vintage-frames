@@ -347,15 +347,40 @@ async function keys(page, key) {
   const page = await build(
     KEYS('<vf-text-field id="field" label="Name" value="Untitled"></vf-text-field>')
   )
+  const selection = () =>
+    page.evaluate(() => {
+      const input = document.getElementById('field').shadowRoot.querySelector('input')
+      return [input.selectionStart, input.selectionEnd, input.value.length]
+    })
+  // The page says whether the default text is selected: here, on vf-show.
+  await page.evaluate(() => {
+    window.__shows = []
+    document.getElementById('dlg').addEventListener('vf-show', (e) => {
+      window.__shows.push(e.detail.focus?.id ?? null)
+      if (window.__selectOnShow) e.detail.focus.select()
+    })
+  })
   const focused = await page.evaluate(OPEN_KEYS)
   check('keys: the first text field takes focus on open', focused === 'field', focused)
-  const selected = await page.evaluate(() => {
-    const input = document.getElementById('field').shadowRoot.querySelector('input')
-    return [input.selectionStart, input.selectionEnd, input.value.length]
-  })
-  check('keys: …with its whole text selected, so typing replaces it', selected[0] === 0 && selected[1] === selected[2] && selected[2] > 0, selected.join())
+  let sel = await selection()
+  check('keys: …with its text left as it is: the kit selects nothing itself', sel[0] === sel[1], sel.join())
+  check(
+    'keys: vf-show fires once on open, naming the element focused',
+    (await page.evaluate(() => window.__shows.join())) === 'field'
+  )
   const clicks = await keys(page, 'Enter')
   check('keys: Enter in a text field activates the default button', clicks.join() === 'ok', clicks.join())
+  await page.evaluate(() => {
+    window.__selectOnShow = true
+    document.getElementById('dlg').close()
+  })
+  await page.evaluate(OPEN_KEYS)
+  sel = await selection()
+  check(
+    'keys: a vf-show handler that calls select() opens the dialog with the whole text selected',
+    sel[0] === 0 && sel[1] === sel[2] && sel[2] > 0,
+    sel.join()
+  )
   await page.close()
 }
 
@@ -386,8 +411,6 @@ async function keys(page, key) {
   )
   const focused = await page.evaluate(OPEN_KEYS)
   check('keys: a text area takes focus on open', focused === 'area', focused)
-  // It opens with its text selected; the caret goes to the end first.
-  await page.keyboard.press('ArrowRight')
   let clicks = await keys(page, 'Enter')
   let value = await page.evaluate(() => document.getElementById('area').value)
   check('keys: Return in a text area inserts a newline, not a press', clicks.length === 0 && value === 'one\n', `${JSON.stringify(value)} ${clicks.join()}`)

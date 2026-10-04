@@ -175,7 +175,16 @@ export const notePad = defineApp({
 
 - `dialogs` are parsed once, appended to the desktop and held under the application. Hold a dialog made in code with `ctx.hold()`, and let it go with `ctx.release()`.
 - A `<form method="dialog">` closes the dialog with the pressed submit button's `value`, its `returnValue`, and `ask()` resolves it. A dialog with fields answers the same way, and the application reads its fields after. Keep OK disabled until the dialog can answer. `novalidate` keeps the browser's own validation message from showing.
-- A dialog declares its whole box. Size copy that varies for its longest, or measure it after `show()` and set `height` then: a closed dialog lays out nothing. `ask()` shows the dialog, so measure right after calling it; [LAYOUT.md](./LAYOUT.md#window-archetypes)'s alert recipe has the arithmetic. A message of unknown length goes in flow, and the dialog's body scrolls it.
+- A dialog declares its whole box. Size copy that varies for its longest, or measure it on `vf-show` and set `height` then: a closed dialog lays out nothing. [LAYOUT.md](./LAYOUT.md#window-archetypes)'s alert recipe has the arithmetic. A message of unknown length goes in flow, and the dialog's body scrolls it.
+- `vf-show` fires once a dialog `ask()` showed is open, placed and focused, with the focused element as `detail.focus`. It is where the application finishes composing the dialog. The kit selects no text itself; a dialog whose name field should open with its default name selected selects it there:
+
+  ```ts
+  const newFolder = ctx.dialog('new-folder')
+  const name = newFolder.querySelector('vf-text-field')!
+  ctx.on(newFolder, 'vf-show', () => name.select())
+  name.value = 'untitled folder'
+  const answer = await ctx.ask(newFolder)
+  ```
 - A held dialog can be an element that renders a `vf-dialog` inside itself. `ask()` takes the `vf-dialog`; show a wrapper through its own API.
 - While a held dialog is open, the bar shows its application's name and menus, even when another application is in front. With several open, it shows the one opened last. Nothing else changes: the front application, the active window and the palettes stay as they were. An application that wants to come forward raises a window before it asks.
 - `dispose()` removes every application's dialogs. An open one closes, and its `ask()` resolves `null`.

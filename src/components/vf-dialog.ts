@@ -79,6 +79,9 @@ import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
  * @csspart content - The scrolling region inside the body (the slotted
  *   content). Inert while the content fits; over-stuffed, it scrolls under a
  *   System 7 rail and becomes a keyboard stop.
+ * @fires vf-show - Dialog opened, placed and given its initial focus. Detail
+ *   `{ focus }`, the element focused: the moment to select a field's default
+ *   text (`select()`) or measure copy that varies.
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' |
  *   'outside', returnValue: string | null }` — `'outside'` only under
  *   `light-dismiss` — plus `altKey`, `shiftKey`, `metaKey` and `ctrlKey`

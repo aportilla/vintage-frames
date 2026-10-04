@@ -27,7 +27,8 @@
  *    buttons.
  *  - FIRST RENDER (a fixture): a shell started before the desktop's first
  *    render places the icons below the menu bar, storage or none, and its
- *    seed reads the work area below it.
+ *    seed reads the work area below it. STORAGE: without storage,
+ *    `storageReady()` raises Storage Unavailable.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:shell-finder
@@ -473,6 +474,14 @@ const overlapping = (icons) =>
     'FIRST RENDER  without storage, the disk’s icon sits 16 below the menu bar',
     at.area.top > 0 && at.disk?.top === at.area.top + 16,
     JSON.stringify(at)
+  )
+  const ready = await page.evaluate(() => window.shell.apps.finder.storageReady())
+  await page.waitForFunction(() => !!document.querySelector('vf-dialog[open] vf-paragraph'))
+  const said = await page.evaluate(() => document.querySelector('vf-dialog[open] vf-paragraph').textContent)
+  check(
+    'STORAGE  without storage, storageReady() answers false and raises Storage Unavailable',
+    ready === false && /can’t be saved/.test(said),
+    `${ready}: ${said}`
   )
   await page.close()
 

@@ -305,6 +305,7 @@ finder({
 | `iconFor(id)` | The item's icon, where one is shown. |
 | `addCommand(spec)` | A command in one of the Finder's menus. Call it from `extend`. |
 | `alertWith(id, handler)` | Answers one of the Finder's alerts in its place. Call it from `extend`. |
+| `storageReady()` | Whether storage answers. When it doesn't, it raises Storage Unavailable, answered by the site's `alertWith` handler where there is one, and returns `false`. A site's own command that saves calls it first, so every save says the same thing. |
 
 ### The Finder's alerts
 
@@ -327,7 +328,7 @@ finder({
 | Alert | When | Details | Answer it acts on |
 | --- | --- | --- | --- |
 | `empty-trash` | Special → Empty Trash… | `{ count, bytes }` | `'ok'` empties the Trash |
-| `storage-unavailable` | New Folder, Paste or a dropped file, without storage | none | none |
+| `storage-unavailable` | New Folder, Paste, a dropped file or `storageReady()`, without storage | none | none |
 | `name-too-long` | A rename past the limit | `{ limit }` | none |
 | `name-rejected` | A rename to nothing | none | none |
 | `move-failed` | A filing storage refused | `{ error }` | none |

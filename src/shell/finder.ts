@@ -101,7 +101,7 @@ export type FinderFailedAction = 'new-folder' | 'empty-trash' | 'paste' | 'add-f
 export interface FinderAlerts {
   /** Special → Empty Trash…: an answer of `'ok'` empties the Trash. */
   'empty-trash': { count: number; bytes: number }
-  /** New Folder, Paste or a dropped file, without storage. */
+  /** New Folder, Paste, a dropped file or `storageReady()`, without storage. */
   'storage-unavailable': Record<string, never>
   /** A rename past the limit. */
   'name-too-long': { limit: number }
@@ -177,6 +177,11 @@ export interface FinderApi {
   addCommand(spec: FinderCommandSpec): VfMenuItem
   /** Answer one of the Finder's alerts with the site's own dialog. Call it from `extend`. */
   alertWith<K extends FinderAlert>(id: K, handler: FinderAlertHandler<K>): void
+  /**
+   * Whether storage answers. When it doesn't, raises Storage Unavailable —
+   * the site's answer to it, where `alertWith` gave one — and returns false.
+   */
+  storageReady(): boolean
 }
 
 export interface FinderOptions {
@@ -1130,6 +1135,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         alertWith(id, handler) {
           handlers.set(id, handler)
         },
+        storageReady,
       }
       options.extend?.(api, ctx)
       extending = false

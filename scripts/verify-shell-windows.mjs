@@ -29,6 +29,8 @@
  *  - FOCUS INTO (a fixture): focusInto() passes over anything whose tabindex
  *    is negative, lands on a radio group's checked radio, and takes a
  *    control marked `autofocus` first.
+ *  - FIRST RENDER (a fixture): a palette adopted in an application's init is
+ *    placed against the work area below the menu bar.
  *  - SESSION: with saving on, a reload reopens the windows where they were,
  *    deepest first, the active one active; a new desktop pattern is saved
  *    on its own.
@@ -538,6 +540,39 @@ const layout = (page) =>
   check('FOCUS INTO  …onto a radio group’s checked radio', f.moved && f.at === 'rb', JSON.stringify(f))
   f = await into('<vf-button id="first" left="8" top="8">First</vf-button><vf-text-field id="named" label="Name" left="8" top="40"></vf-text-field>', 'named')
   check('FOCUS INTO  a control marked autofocus takes it first', f.moved && f.at === 'named', JSON.stringify(f))
+  await page.close()
+}
+
+// ── FIRST RENDER ────────────────────────────────────────────────────────────
+{
+  const page = await shellFixture(browser)
+  const at = await page.evaluate(async () => {
+    document.body.innerHTML = '<vf-desktop bezel="10"><vf-menu-bar><vf-menu label="Apple"></vf-menu></vf-menu-bar></vf-desktop>'
+    const desktop = document.querySelector('vf-desktop')
+    const { createShell, defineApp } = window.vfShell
+    let palette
+    const paint = defineApp({
+      id: 'paint',
+      name: 'Paint',
+      init(ctx) {
+        palette = document.createElement('vf-window')
+        palette.variant = 'utility'
+        palette.heading = 'Tools'
+        palette.width = 60
+        palette.height = 100
+        ctx.desktop.append(palette)
+        ctx.windows.adopt(palette, { app: 'paint', palette: true, place: (a) => ({ left: a.left + 8, top: a.top + 8 }) })
+      },
+    })
+    const shell = createShell(desktop, { apps: [paint], defaultApp: 'paint', fit: 'viewport' })
+    await shell.ready
+    return { top: palette.top, areaTop: desktop.windowArea.top }
+  })
+  check(
+    'FIRST RENDER  a palette adopted in init is placed below the menu bar, once the bar has rendered',
+    at.areaTop > 0 && at.top === at.areaTop + 8,
+    JSON.stringify(at)
+  )
   await page.close()
 }
 

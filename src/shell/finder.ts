@@ -70,8 +70,9 @@ import type { Lattice, LatticeOptions, Pin, Point, Size } from './geometry.js'
 import { fileByDrag } from './filing.js'
 import { composeAlert } from './alert.js'
 import type { AlertOptions } from './alert.js'
-import { APP_KIND, appIdOf, defineApp, desktopRendered } from './shell.js'
+import { APP_KIND, appIdOf, defineApp } from './shell.js'
 import type { AppContext, AppDefinition } from './shell.js'
+import { desktopRendered } from './windows.js'
 import type { FocusHome, HomeBox } from './windows.js'
 
 /** The Finder's application id. */

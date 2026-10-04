@@ -35,7 +35,7 @@ import type {
 } from '../index.js'
 import { createCatalog } from './catalog.js'
 import type { Catalog, CatalogStorage, Item, Volumes } from './catalog.js'
-import { createWindowManager, deepActiveElement } from './windows.js'
+import { createWindowManager, deepActiveElement, desktopRendered } from './windows.js'
 import type { WindowManager } from './windows.js'
 import { openWindowsOf } from './state.js'
 import type { ShellState } from './state.js'
@@ -195,12 +195,6 @@ export interface Shell {
 
 /** The kind the shell registers: an application's icon, which opens it. */
 export const APP_KIND = 'app'
-
-/** Settles once the desktop and its menu bar have rendered, so `workArea` measures the bar. */
-export async function desktopRendered(desktop: VfDesktop): Promise<void> {
-  const bar = desktop.querySelector<VfMenuBar>(':scope > vf-menu-bar')
-  await Promise.all([desktop.updateComplete, bar?.updateComplete])
-}
 
 /** Whether an element is a text field, by its own tag. */
 const isTextField = (el: Element | null): boolean =>

@@ -38,7 +38,7 @@
  */
 
 import { snapSys, systemPxQuantum, VfWindow } from '../index.js'
-import type { VfCloseKeys, VfDesktop, VfViewportBox } from '../index.js'
+import type { VfCloseKeys, VfDesktop, VfMenuBar, VfViewportBox } from '../index.js'
 import {
   cascadedBox,
   cascadeFrom,
@@ -169,6 +169,12 @@ const boxOf = (win: VfWindow): Box => ({
   width: win.width ?? 0,
   height: win.height ?? 0,
 })
+
+/** Settles once the desktop and its menu bar have rendered, so `workArea` measures the bar. */
+export async function desktopRendered(desktop: VfDesktop): Promise<void> {
+  const bar = desktop.querySelector<VfMenuBar>(':scope > vf-menu-bar')
+  await Promise.all([desktop.updateComplete, bar?.updateComplete])
+}
 
 /** The innermost focused element, through open shadow roots. */
 export function deepActiveElement(): Element | null {
@@ -507,6 +513,26 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
     pins.set(win, { pin, ...boxOf(win) })
   }
 
+  /** An adopted window's placement: its saved `pin`, else its `place`; with neither, the owner placed it. */
+  const placeAdopted = (win: VfWindow, pin: Pin | null) => {
+    const g = pin ? pinnedBox(win, pin) : placedBox(win)
+    if (g) writeBox(win, g)
+  }
+
+  /**
+   * Until the desktop and its bar have rendered, the window area reads the
+   * bar as 0 tall, so a window adopted before then — a palette made in an
+   * application's `init` — is placed again once they have.
+   */
+  let rendered = false
+  const early = new Map<VfWindow, Pin | null>()
+  void desktopRendered(desktop).then(() => {
+    rendered = true
+    for (const [win, pin] of early) if (adopted.has(win)) placeAdopted(win, pin)
+    if (early.size) notifyLayout()
+    early.clear()
+  })
+
   const api = {
     /** The desktop's window area, system px. */
     get area(): Box {
@@ -535,11 +561,9 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
         palette: !palette ? null : palette === true ? () => true : palette,
         close: opts.close ?? null,
       })
-      if (opts.pin) writeBox(win, pinnedBox(win, opts.pin))
-      else {
-        const g = placedBox(win)
-        if (g) writeBox(win, g)
-      }
+      placeAdopted(win, opts.pin ?? null)
+      // Before the bar has rendered the area reads it as 0 tall: placed again once it has.
+      if (!rendered) early.set(win, opts.pin ?? null)
       if (palette) {
         const a = adopted.get(win)!
         win.hidden = !(a.app === front && a.palette!())

@@ -64,17 +64,17 @@ export class VfMenuBar extends VfPositioned(LitElement) {
         align-items: stretch;
         height: 100%;
         /* 9px of bar before the first title's plate, clear of the 5px corner
-           mask, plus 5px cancelling the first title's share of the overlap
+           mask, plus 4px cancelling the first title's share of the overlap
            below. */
-        padding-inline-start: calc(var(--vf-scale, 1) * 14px);
+        padding-inline-start: calc(var(--vf-scale, 1) * 13px);
       }
-      /* Adjacent title plates OVERLAP by 5 system px: title ink sits 14px
+      /* Adjacent title plates OVERLAP by 4 system px: title ink sits 15px
          apart while each plate runs 10px left / 9px right of its own ink, so
-         neighboring plates share a 5px band. A title's plate is its label box
-         (padding in vf-menu), so the overlap is layout: every menu pulled 5px
+         neighboring plates share a 4px band. A title's plate is its label box
+         (padding in vf-menu), so the overlap is layout: every menu pulled 4px
          into its left neighbor. */
       ::slotted(vf-menu) {
-        margin-inline-start: calc(var(--vf-scale, 1) * -5px);
+        margin-inline-start: calc(var(--vf-scale, 1) * -4px);
       }
       /* The bar's right end (slot="end"): a clock, say. A row of its own,
          pushed to the end and held 9px in, mirroring the first title's

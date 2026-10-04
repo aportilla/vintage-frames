@@ -23,8 +23,8 @@
  *    document tier, restack only among themselves, and neither steal nor
  *    lose `active`.
  *  - ICON TITLE: a 16×16 icon in a menu's label slot sits in its own plate
- *    (6 px before the cell, 7 after) on the plate's top row; text keeps the
- *    text plate, and adjacent plates overlap by 5.
+ *    (6 px either side of the cell) on the plate's top row; text keeps the
+ *    text plate, and adjacent plates overlap by 4.
  *  - MENU TIER: a slotted vf-menu-bar sits above both window tiers, so a
  *    dropped menu hit-tests over a palette it overlaps — before and after
  *    the palette restacks — as it does over a document window, and so does
@@ -676,7 +676,7 @@ function decodePng(buf) {
 {
   // The apple's 16×16 cell lands at x 15 on the bar's row 1, and the next
   // title's plate at x 33, from the screen's edge; a text title keeps its own
-  // place, and each title's plate overlaps the one before it by 5.
+  // place, and each title's plate overlaps the one before it by 4.
   const page = await build(`
     <div style="width:600px">
       <vf-menu-bar id="iconBar">
@@ -707,13 +707,13 @@ function decodePng(buf) {
     }
   }, S)
   check(
-    'an icon title: the 16×16 cell at x 15, y 1, in a 29px plate from x 9; the next title’s plate at x 33',
-    geom.cell.x === 15 && geom.cell.y === 1 && geom.applePlate.x === 9 && geom.applePlate.w === 29 && geom.filePlate.x === 33,
+    'an icon title: the 16×16 cell at x 15, y 1, in a 28px plate from x 9; the next title’s plate at x 33',
+    geom.cell.x === 15 && geom.cell.y === 1 && geom.applePlate.x === 9 && geom.applePlate.w === 28 && geom.filePlate.x === 33,
     JSON.stringify(geom)
   )
   check(
-    '…a text title keeps the text plate, from x 9, and the next title’s plate overlaps it by 5',
-    geom.textPlate.x === 9 && geom.nextPlate.x === geom.textPlate.x + geom.textPlate.w - 5,
+    '…a text title keeps the text plate, from x 9, and the next title’s plate overlaps it by 4',
+    geom.textPlate.x === 9 && geom.nextPlate.x === geom.textPlate.x + geom.textPlate.w - 4,
     JSON.stringify([geom.textPlate, geom.nextPlate])
   )
   await page.close()

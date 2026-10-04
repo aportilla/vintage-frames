@@ -265,7 +265,7 @@ export interface Catalog {
   trashSize(): number
   dump(): CatalogArchive
   clear(): Promise<void>
-  import(archive: CatalogArchive, options?: { mode?: 'merge' | 'replace' }): Promise<number>
+  import(archive: CatalogArchive, options?: { mode?: 'merge' | 'replace' }): Promise<Map<string, Item>>
   dispose(): Promise<void>
 }
 
@@ -600,12 +600,17 @@ export function createCatalog(options: CatalogOptions): Catalog {
      * the same archive can be added twice. Both keep names, kinds, data and
      * times. An archive with nothing in it changes nothing. The listing is
      * announced once, when the import is done or has failed partway, so a
-     * replace never lists the catalog empty between the two. Resolves how
-     * many records were stored.
+     * replace never lists the catalog empty between the two. Resolves each
+     * archive id's stored item — under a fresh id after a merge, so a kind
+     * whose payload is keyed by item id can carry it over.
      */
-    async import(archive: CatalogArchive, { mode = 'merge' }: { mode?: 'merge' | 'replace' } = {}): Promise<number> {
+    async import(
+      archive: CatalogArchive,
+      { mode = 'merge' }: { mode?: 'merge' | 'replace' } = {}
+    ): Promise<Map<string, Item>> {
+      const stored = new Map<string, Item>()
       const rows = archive.items.filter((r) => r.id !== SEEDED && !isVolume(r.id))
-      if (!rows.length || !storage) return 0
+      if (!rows.length || !storage) return stored
       const replace = mode === 'replace'
       const ids = new Map<string, string>()
       for (const r of rows) ids.set(r.id, replace ? r.id : newId())
@@ -614,11 +619,15 @@ export function createCatalog(options: CatalogOptions): Catalog {
       const into = (ref: string | null) => (ref == null || isVolume(ref) ? ref : (ids.get(ref) ?? null))
       try {
         if (replace) await wipe()
-        for (const r of rows) await put({ ...r, id: ids.get(r.id)!, parent: into(r.parent) })
+        for (const r of rows) {
+          const item = { ...r, id: ids.get(r.id)!, parent: into(r.parent) }
+          await put(item)
+          stored.set(r.id, item)
+        }
       } finally {
         changed()
       }
-      return rows.length
+      return stored
     },
 
     /** Stop the pending write timer; positions not yet written are written now. */

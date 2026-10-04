@@ -243,6 +243,7 @@ The catalog is the source of truth for what is where. It is pure: it runs under 
 - A seed is stored once per storage. `seed: 'markup'` reads the `vf-icon[data-app]` and `template[data-folder]` in the desktop's field; a function stores the site's defaults through the catalog.
 - Positions are on the items, so they persist wherever the catalog does. Position changes are written a moment after they settle.
 - Selectors: `childrenOf`, `itemCount`, `isInside`, `enclosingFolders`, `isTrashed`, `descendantsOf`, `nextFolderName`, `copyName`. Operations: `create`, `rename`, `update`, `move`, `place`, `copy`, `emptyTrash`, `clear`, `import`, `dump`.
+- `import(archive, { mode })` restores a `dump()`. `'replace'` clears the catalog first and keeps the archive's ids; `'merge'`, the default, adds the archive under fresh ids, nesting kept. It resolves a `Map` from each archive id to the item it stored, so a kind whose payload is keyed by item id can carry it over a merge. The listing is announced once, when the import is done, so a window whose item comes back stays open.
 
 A kind tells the Finder how its items look and open:
 

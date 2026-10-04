@@ -445,7 +445,7 @@ const layout = (page) =>
     await page.mouse.dblclick(at.x, at.y)
     await s.settle()
   }
-  const stored = await page.evaluate(() => window.shell.catalog.import(window.shell.catalog.dump(), { mode: 'replace' }))
+  const stored = await page.evaluate(async () => (await window.shell.catalog.import(window.shell.catalog.dump(), { mode: 'replace' })).size)
   await s.settle()
   check(
     'RESTORE  a replace import keeps open the windows whose items it puts back',

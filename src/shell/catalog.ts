@@ -368,6 +368,17 @@ export function createCatalog(options: CatalogOptions): Catalog {
     return records.get(id) ?? { ...row, name: '' }
   }
 
+  /** Remove every stored record but the marker, unannounced. */
+  async function wipe(): Promise<void> {
+    pendingPlaces.clear()
+    for (const r of await store().list()) {
+      if (r.id === SEEDED) continue
+      await store().remove(r.id)
+      records.delete(r.id)
+    }
+    records = new Map()
+  }
+
   const api: Catalog = {
     get: (): CatalogState => state,
     subscribe(fn: (s: CatalogState) => void): () => void {
@@ -576,20 +587,21 @@ export function createCatalog(options: CatalogOptions): Catalog {
     /** Remove every record, listed or not; the storage stays seeded. */
     async clear(): Promise<void> {
       if (!storage) return
-      for (const r of await storage.list()) {
-        if (r.id !== SEEDED) await storage.remove(r.id)
+      try {
+        await wipe()
+      } finally {
+        changed()
       }
-      records = new Map()
-      pendingPlaces.clear()
-      changed()
     },
 
     /**
      * Restore records. `replace` clears the catalog first and keeps the
      * archive's ids; `merge` mints fresh ids and remaps the containers, so
      * the same archive can be added twice. Both keep names, kinds, data and
-     * times. An archive with nothing in it changes nothing. Resolves how many
-     * records were stored.
+     * times. An archive with nothing in it changes nothing. The listing is
+     * announced once, when the import is done or has failed partway, so a
+     * replace never lists the catalog empty between the two. Resolves how
+     * many records were stored.
      */
     async import(archive: CatalogArchive, { mode = 'merge' }: { mode?: 'merge' | 'replace' } = {}): Promise<number> {
       const rows = archive.items.filter((r) => r.id !== SEEDED && !isVolume(r.id))
@@ -600,9 +612,12 @@ export function createCatalog(options: CatalogOptions): Catalog {
       // Mapped in full first, so records out of order still nest. An unknown
       // container is the desktop.
       const into = (ref: string | null) => (ref == null || isVolume(ref) ? ref : (ids.get(ref) ?? null))
-      if (replace) await api.clear()
-      for (const r of rows) await put({ ...r, id: ids.get(r.id)!, parent: into(r.parent) })
-      changed()
+      try {
+        if (replace) await wipe()
+        for (const r of rows) await put({ ...r, id: ids.get(r.id)!, parent: into(r.parent) })
+      } finally {
+        changed()
+      }
       return rows.length
     },
 

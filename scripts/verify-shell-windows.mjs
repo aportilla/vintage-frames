@@ -14,6 +14,8 @@
  *  - CLOSE: a document with unsaved changes asks before it closes, in Note
  *    Pad's own dialog; Cancel and Escape keep it, Don’t Save and Save close
  *    it, and Save files it. The dialog stays held, closed, for the next ask.
+ *  - RESTORE: a replace import keeps open the windows whose items it puts
+ *    back, and closes the rest.
  *  - DISPOSE: disposing the shell takes an open held dialog down with its
  *    application.
  *  - FOCUS: opening a window moves the focus into it; closing the active one
@@ -320,6 +322,34 @@ const layout = (page) =>
     JSON.stringify(note)
   )
   check('CLOSE  …and its icon is on the desktop', (await s.iconState('Untitled 2'))?.in === null)
+  await page.close()
+}
+
+// ── RESTORE ─────────────────────────────────────────────────────────────────
+{
+  const page = await openShell(browser)
+  const s = shellOn(page)
+  for (const name of ['Documents', 'Projects']) {
+    const at = await s.icon(name)
+    await page.mouse.dblclick(at.x, at.y)
+    await s.settle()
+  }
+  const stored = await page.evaluate(() => window.shell.catalog.import(window.shell.catalog.dump(), { mode: 'replace' }))
+  await s.settle()
+  check(
+    'RESTORE  a replace import keeps open the windows whose items it puts back',
+    stored > 0 && (await s.window('Documents')) !== null && (await s.window('Projects')) !== null,
+    `${stored} stored`
+  )
+  await page.evaluate(() => {
+    const { catalog } = window.shell
+    return catalog.import({ items: catalog.dump().items.filter((i) => i.name !== 'Documents') }, { mode: 'replace' })
+  })
+  await s.settle()
+  check(
+    'RESTORE  …and closes one whose item the archive leaves out',
+    (await s.window('Documents')) === null && (await s.window('Projects')) !== null
+  )
   await page.close()
 }
 

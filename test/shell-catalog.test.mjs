@@ -290,3 +290,33 @@ test('import: merge mints ids and keeps the nesting; replace clears and keeps th
   assert.ok(catalog.item('f1') && catalog.item('t1'))
   assert.ok(storage.records.has('z1'), 'an unlisted kind is stored all the same')
 })
+
+test('import: a replace announces once, with the archive’s items in it; a failure partway lists what was stored', async () => {
+  const archive = {
+    items: [
+      { id: 'f1', name: 'Box', kind: 'folder', parent: null, createdAt: 1, modifiedAt: 1 },
+      { id: 't1', name: 'Note', kind: 'text', parent: 'f1', createdAt: 2, modifiedAt: 2 },
+    ],
+  }
+  const { catalog } = await library()
+  await catalog.import(archive, { mode: 'replace' })
+  await catalog.create({ name: 'Mine', kind: 'text' })
+  const heard = []
+  const off = catalog.subscribe((st) => heard.push(st.items.map((i) => i.id)))
+  await catalog.import(catalog.dump(), { mode: 'replace' })
+  off()
+  assert.equal(heard.length, 1, 'announced once')
+  assert.ok(['f1', 't1'].every((id) => heard[0].includes(id)), 'never a listing without the archive’s items')
+
+  // Storage refuses the second record: the listing still says what went in.
+  const storage = memoryStorage()
+  const put = storage.put
+  let puts = 0
+  storage.put = (r) => (++puts === 2 ? Promise.reject(new Error('quota')) : put(r))
+  const { catalog: broken } = await library({ storage })
+  const seen = []
+  broken.subscribe((st) => seen.push(st.items.map((i) => i.id)))
+  await assert.rejects(broken.import(archive, { mode: 'replace' }), /quota/)
+  assert.equal(seen.length, 1)
+  assert.ok(seen[0].includes('f1') && !seen[0].includes('t1'), JSON.stringify(seen))
+})

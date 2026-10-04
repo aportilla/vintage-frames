@@ -4,12 +4,13 @@ The 38 standard Macintosh patterns — MacPaint's pattern bar, the System file's
 
 ## `pattern`
 
-`vf-container` and `vf-desktop` take `pattern`: a name from the table below, or sixteen hex digits stating a custom 8×8 pattern.
+`vf-container`, `vf-desktop`, `vf-window` and `vf-scroll-area` take `pattern`: a name from the table below, or sixteen hex digits stating a custom 8×8 pattern.
 
 ```html
 <vf-container width="200" height="120" pattern="bricks">…</vf-container>
 <vf-desktop width="512" height="342" pattern="gray-75">…</vf-desktop>
 <vf-container width="64" height="64" pattern="DD 77 DD 77 DD 77 DD 77"></vf-container>
+<vf-window heading="Atlas" width="320" height="200" scrollbars="horizontal" pattern="gray-25">…</vf-window>
 ```
 
 A custom value is two hex digits per row, top row first; bit 7 is the leftmost pixel and a set bit is ink — the QuickDraw `Pattern` layout, as ResEdit showed it. Whitespace between bytes and either case are accepted.
@@ -18,6 +19,8 @@ The pattern is painted as the box's own background: black ink on a `--vf-white` 
 
 - `vf-container`: unset, the container paints nothing. An unrecognized value paints nothing and warns once.
 - `vf-desktop`: `gray-50` by default. An unrecognized value warns once and keeps the dither. A `--vf-desktop-pattern` token override wins over the attribute and renders its tile as a placed grid.
+- `vf-scroll-area`: the scrolled plane. It fills the visible area, runs on past the last of the content, and scrolls with it, its phase anchored at the content's top-left. Unset, the plane is white.
+- `vf-window`: the body, under the content, anchored at the content region's corner. Under `scrollbars` it is the built-in scroll area's plane, so it scrolls with the content. Unset, the body is white.
 - Under forced colors the pattern goes flat (Canvas).
 - The box is `image-rendering: pixelated` while patterned; slotted content is handed `auto` back, so a slotted `<img>` renders as it does anywhere else. A declaration of your own on the child still wins.
 

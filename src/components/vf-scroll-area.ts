@@ -1,5 +1,8 @@
 import { css, html, LitElement, nothing } from 'lit'
+import type { PropertyValues } from 'lit'
 import { property, query, state } from 'lit/decorators.js'
+import { parsePattern, type Pattern } from '../patterns.js'
+import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
 import { vfElement } from '../define.js'
 import { VfPositioned, placementIn } from '../position.js'
 import { vfBase, vfFocusRing, vfScrollRail, vfStrokeDecls } from '../styles/base.js'
@@ -32,7 +35,8 @@ import { ScrollRailController, renderScrollRail } from '../scroll-rail.js'
  *
  * Size the host (width/height) from the outside; the viewport fills it.
  * Content runs to the frame and the rails — the area adds no inset of its
- * own; an inset is the content's (a `vf-stack pad`).
+ * own; an inset is the content's (a `vf-stack pad`). `pattern` fills the
+ * scrolled plane with a 1-bit pattern, as on `vf-container`.
  *
  * The scrolled plane sizes to its content — never narrower than the
  * viewport, as wide as content that cannot wrap — so the rails follow a row
@@ -89,8 +93,43 @@ export class VfScrollArea extends VfPositioned(LitElement) {
    */
   @property() label = ''
 
+  /**
+   * A 1-bit fill for the scrolled plane, as on `vf-container`: a library
+   * pattern by name (docs/PATTERNS.md) or sixteen hex digits. It fills the
+   * visible area, runs on past the content, and scrolls with it, its phase
+   * anchored at the content's top-left. Unset, the plane stays white; an
+   * unrecognized value paints nothing and warns once.
+   */
+  @property() pattern?: string | null
+
+  /** `pattern`, resolved — what the fill paints; null paints nothing. */
+  private _pattern: Pattern | null = null
+
+  /** One warning per element for an unrecognized `pattern`, not per render. */
+  #warnedPattern = false
+
   @query('.viewport') private viewport!: HTMLElement | null
   @query('.content') private content!: HTMLElement | null
+
+  /** The pattern fill, painted on the scrolled plane (src/pattern-fill.ts). */
+  private readonly patternFill = new PatternFillController(this, {
+    getBox: () => this.content,
+    getPattern: () => this._pattern,
+  })
+
+  protected override willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed)
+    if (changed.has('pattern')) {
+      this._pattern = parsePattern(this.pattern)
+      if (this._pattern === null && this.pattern?.trim() && !this.#warnedPattern) {
+        this.#warnedPattern = true
+        console.warn(
+          `vf-scroll-area: unknown pattern "${this.pattern}" — a library name ` +
+            '(docs/PATTERNS.md) or sixteen hex digits. Painting nothing.'
+        )
+      }
+    }
+  }
 
   /** Reports overflow per axis so the reserved rail(s) activate on overflow. */
   private readonly scrollState = new ScrollStateController(
@@ -174,6 +213,7 @@ export class VfScrollArea extends VfPositioned(LitElement) {
   static override styles = [
     vfBase,
     vfScrollRail,
+    vfPatternFill,
     css`
       :host {
         display: block;
@@ -292,7 +332,7 @@ export class VfScrollArea extends VfPositioned(LitElement) {
           role=${this.label ? 'region' : this._scrollable ? 'group' : nothing}
           aria-label=${this.label || nothing}
         >
-          <div class="content">
+          <div class="content vf-pattern-fill${this._pattern ? ' vf-patterned' : ''}">
             <slot @slotchange=${this._onSlotChange}></slot>
           </div>
         </div>

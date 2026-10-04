@@ -36,6 +36,8 @@
  * 10. `vf-desktop bezel`: on a white screen, all four corners carry the
  *    SCREEN_CORNER staircase (the bottom pair mirrored), 1-bit, at dpr 1
  *    and 2.
+ * 11. `vf-window pattern` fills the body, or under `scrollbars` the scrolled
+ *    plane, whose fill scrolls with the content; 1-bit.
  *
  *   npm run dev          # in another shell (port 5173)
  *   npm run verify:pattern
@@ -696,6 +698,41 @@ for (const dpr of DENSITIES) {
     check(`dpr ${dpr}: …and the masked corners are 1-bit`, impure === 0, `${impure} impure`)
     await page.close()
   }
+}
+
+// ── 11. a window's body ────────────────────────────────────────────────────
+{
+  const page = await build(`
+    <div style="position:relative;width:700px;height:400px">
+      <vf-window id="plain" heading="Plain" width="160" height="100" left="8" top="8" pattern="bricks"></vf-window>
+      <vf-window id="scrolled" heading="Scrolled" width="160" height="100" left="200" top="8" pattern="bricks" scrollbars="vertical">
+        <vf-container width="40" height="300"></vf-container>
+      </vf-window>
+    </div>`)
+  const fill = await page.evaluate(() => {
+    const has = (el) => getComputedStyle(el).backgroundImage.startsWith('url("data:image/png')
+    const plain = document.getElementById('plain').shadowRoot
+    const scrolled = document.getElementById('scrolled').shadowRoot
+    const plane = scrolled.querySelector('vf-scroll-area').shadowRoot.querySelector('.content')
+    return { body: has(plain.querySelector('.body')), scrolledBody: has(scrolled.querySelector('.body')), plane: has(plane) }
+  })
+  check(
+    'vf-window pattern fills its body; under scrollbars, the scrolled plane instead',
+    fill.body && !fill.scrolledBody && fill.plane,
+    JSON.stringify(fill)
+  )
+  const moved = await page.evaluate(async () => {
+    const area = document.getElementById('scrolled').shadowRoot.querySelector('vf-scroll-area').shadowRoot
+    const plane = area.querySelector('.content')
+    const before = plane.getBoundingClientRect().top
+    area.querySelector('.viewport').scrollTop = 40
+    await new Promise((r) => requestAnimationFrame(r))
+    return before - plane.getBoundingClientRect().top
+  })
+  check('…and the plane’s fill scrolls with the content', moved === 40, `${moved}px`)
+  const i = interior(decodePng(await page.locator('#plain').screenshot()))
+  check('…and a patterned body rasterizes 1-bit', i.impure === 0 && i.ink > 0, `${i.impure}/${i.counted} impure, ink ${i.ink.toFixed(2)}`)
+  await page.close()
 }
 
 await report(browser)

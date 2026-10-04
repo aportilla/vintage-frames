@@ -58,6 +58,8 @@ import { paintSelectionRect, penPhase, xorPenCanvas } from '../open-art.js'
 import { WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from '../window-chrome.js'
 import './vf-scroll-area.js'
 import type { VfScrollArea } from './vf-scroll-area.js'
+import { parsePattern, type Pattern } from '../patterns.js'
+import { PatternFillController, vfPatternFill } from '../pattern-fill.js'
 
 /** A box in viewport CSS px. A `DOMRect` is one; a zero-size box is a point. */
 export interface VfViewportBox {
@@ -288,6 +290,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     vfRule,
     vfTitleBar,
     vfWindowWidgets,
+    vfPatternFill,
     css`
       :host {
         display: block;
@@ -691,6 +694,22 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     | number
     | null
 
+  /**
+   * A 1-bit fill for the body, as on `vf-container`: a library pattern by
+   * name (docs/PATTERNS.md) or sixteen hex digits, under the content and
+   * anchored at the content region's corner. Under `scrollbars` it fills the
+   * scrolled plane and scrolls with it (`vf-scroll-area`'s `pattern`). Unset,
+   * the body stays white; an unrecognized value paints nothing and warns
+   * once.
+   */
+  @property() pattern?: string | null
+
+  /** `pattern`, resolved — what the body's fill paints; null paints nothing. */
+  private _pattern: Pattern | null = null
+
+  /** One warning per element for an unrecognized `pattern`, not per render. */
+  #warnedPattern = false
+
   /** Whether the `header` slot has assigned content (drives the header). */
   @state() private _hasHeader = false
 
@@ -729,10 +748,29 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     property: '--_vf-dots-tile',
   })
 
+  /**
+   * The body's pattern fill (src/pattern-fill.ts). Under `scrollbars` the
+   * built-in scroll area paints it on its scrolled plane instead.
+   */
+  readonly #bodyFill = new PatternFillController(this, {
+    getBox: () => this.body,
+    getPattern: () => (this.scrollbars ? null : this._pattern),
+  })
+
   protected override willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed)
     if (this.variant === 'utility') {
       this._dotsPattern = patternOverride(this, '--vf-dots-pattern')
+    }
+    if (changed.has('pattern')) {
+      this._pattern = parsePattern(this.pattern)
+      if (this._pattern === null && this.pattern?.trim() && !this.#warnedPattern) {
+        this.#warnedPattern = true
+        console.warn(
+          `vf-window: unknown pattern "${this.pattern}" — a library name ` +
+            '(docs/PATTERNS.md) or sixteen hex digits. Painting nothing.'
+        )
+      }
     }
   }
 
@@ -1439,7 +1477,10 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         >
           <slot name="header" @slotchange=${this._onHeaderSlotChange}></slot>
         </div>
-        <div class="body" part="body">
+        <div
+          class="body vf-pattern-fill${this._pattern && !this.scrollbars ? ' vf-patterned' : ''}"
+          part="body"
+        >
           ${this.scrollbars
             ? html`
                 <vf-scroll-area
@@ -1447,6 +1488,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
                   axis=${this.scrollbars}
                   ?corner=${this.resizable && !this._hasStatus}
                   label=${this.heading || nothing}
+                  pattern=${this._pattern ? this.pattern! : nothing}
                   exportparts="viewport"
                 >
                   <slot></slot>

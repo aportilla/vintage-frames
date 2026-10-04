@@ -837,6 +837,8 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       held.clear()
       openDialogs = []
       groups.clear()
+      // Its windows come down with it, palettes included.
+      for (const win of adopted.keys()) win.remove()
       adopted.clear()
     },
   }

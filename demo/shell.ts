@@ -188,7 +188,6 @@ function notePad(): AppDefinition<NotePadActions> {
           windows.palettesChanged()
         },
       })
-      ctx.onDispose(() => info.remove())
 
       /** The front document's length, in the palette. */
       function showInfo(): void {

@@ -1139,7 +1139,6 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
       let disposed = false
       ctx.onDispose(() => {
         disposed = true
-        for (const [, win] of folderWindows()) win.remove()
         for (const icon of iconsIn(desk)) icon.remove()
         if (made) desk.remove()
         else desk.append(...consumed)

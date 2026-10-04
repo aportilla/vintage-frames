@@ -17,7 +17,7 @@
  *  - RESTORE: a replace import keeps open the windows whose items it puts
  *    back, and closes the rest.
  *  - DISPOSE: disposing the shell takes an open held dialog down with its
- *    application.
+ *    application, and every window with the window manager.
  *  - FOCUS: opening a window moves the focus into it; closing the active one
  *    moves it to the window that becomes active, else to the window's icon.
  *  - FOCUS INTO (a fixture): focusInto() passes over anything whose tabindex
@@ -373,7 +373,9 @@ const layout = (page) =>
   await s.settle()
   const left = await page.evaluate(() => document.querySelectorAll('vf-dialog').length)
   check('DISPOSE  an open held dialog comes down with its application', left === 0 && errors.length === 0, `${left} dialogs, ${errors.join('; ')}`)
-  check('DISPOSE  …its question unanswered: the window is not closed', (await s.window('Untitled')) !== null)
+  const windows = await page.evaluate(() => document.querySelectorAll('vf-window').length)
+  check('DISPOSE  …and every window the window manager held, palettes included', windows === 0, `${windows} windows`)
+  check('DISPOSE  …its question unanswered: nothing was filed', (await s.item('Untitled')) === null)
   await page.close()
 }
 

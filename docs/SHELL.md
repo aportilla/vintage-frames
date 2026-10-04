@@ -57,7 +57,7 @@ The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system m
 | `services` | The site's own objects, passed to every application. |
 | `clock` | The time in the bar's `end` slot. Default `true`. |
 
-`createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the desktop and its menu bar have rendered, the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup included, so a hot reload starts clean.
+`createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the desktop and its menu bar have rendered, the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup and every window included, so a hot reload starts clean. The saved session stops before the windows go, so with `state` set the reload reopens them.
 
 ## Applications
 

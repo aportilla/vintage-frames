@@ -3495,7 +3495,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Show the close box (left side of the title bar). Off by default — the\nbare movable-modal bar. Ignored with `frame=\"plain\"` (no bar). Clicking\nit closes the dialog and fires `vf-close` with `{ reason: 'close' }`.",
+              "description": "Show the close box (left side of the title bar). Off by default — the\nbare movable-modal bar. Ignored with `frame=\"plain\"` (no bar). Clicking\nit closes the dialog and fires `vf-close` with `{ reason: 'close' }` and\nthe modifier keys held on the click, as `vf-window`'s close box does.",
               "attribute": "closable",
               "reflects": true
             },
@@ -3562,7 +3562,15 @@
                 "type": {
                   "text": "void"
                 }
-              }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "MouseEvent"
+                  }
+                }
+              ]
             },
             {
               "kind": "field",
@@ -3756,6 +3764,20 @@
             },
             {
               "kind": "field",
+              "name": "#closeKeys",
+              "privacy": "private",
+              "type": {
+                "text": "VfCloseKeys | null"
+              },
+              "default": "null",
+              "description": "The modifier keys a close box's click held, pending for the next native `close` event.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "field",
               "name": "#onSubmit",
               "privacy": "private",
               "description": "A submit from a form whose nearest modal is this one, by `method=\"dialog\"`\nor the submitter's `formmethod=\"dialog\"`, closes it with the submitter's\n`value` — at the end of the submit's path, and not if anything cancelled\nit, as the platform runs a form's submission.",
@@ -3918,6 +3940,29 @@
                 }
               ],
               "description": "Close the modal, with `returnValue` as its answer when one is given.\nFires `vf-close` with `{ reason: 'close', returnValue }`.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "closeFromBox",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "keys",
+                  "type": {
+                    "text": "VfCloseKeys"
+                  }
+                }
+              ],
+              "description": "Close from a close box, its `vf-close` carrying the modifier keys held on the click.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -4160,7 +4205,7 @@
           ],
           "events": [
             {
-              "description": "Dialog closed. Detail `{ reason: 'escape' | 'close' | 'outside', returnValue: string | null }` — `'outside'` only under `light-dismiss`.",
+              "description": "Dialog closed. Detail `{ reason: 'escape' | 'close' | 'outside', returnValue: string | null }` — `'outside'` only under `light-dismiss` — plus `altKey`, `shiftKey`, `metaKey` and `ctrlKey` when the close box closed it.",
               "name": "vf-close",
               "inheritedFrom": {
                 "name": "VfModalDialog",
@@ -4193,7 +4238,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Show the close box (left side of the title bar). Off by default — the\nbare movable-modal bar. Ignored with `frame=\"plain\"` (no bar). Clicking\nit closes the dialog and fires `vf-close` with `{ reason: 'close' }`.",
+              "description": "Show the close box (left side of the title bar). Off by default — the\nbare movable-modal bar. Ignored with `frame=\"plain\"` (no bar). Clicking\nit closes the dialog and fires `vf-close` with `{ reason: 'close' }` and\nthe modifier keys held on the click, as `vf-window`'s close box does.",
               "fieldName": "closable"
             },
             {
@@ -21415,7 +21460,15 @@
                 "type": {
                   "text": "void"
                 }
-              }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "MouseEvent"
+                  }
+                }
+              ]
             },
             {
               "kind": "method",
@@ -21566,7 +21619,7 @@
           ],
           "events": [
             {
-              "description": "Close box clicked. Detail `{ reason: 'close' }` (shape- compatible with vf-dialog's `vf-close`). The window does NOT remove itself; the consumer decides what closing means.",
+              "description": "Close box clicked. Detail `{ reason: 'close', altKey, shiftKey, metaKey, ctrlKey }`, the modifier keys held on the click (shape-compatible with vf-dialog's `vf-close`), so an Option-click can mean more than a click. The window does NOT remove itself; the consumer decides what closing means.",
               "name": "vf-close"
             },
             {
@@ -24097,6 +24150,16 @@
             },
             {
               "kind": "field",
+              "name": "#closeKeys",
+              "privacy": "private",
+              "type": {
+                "text": "VfCloseKeys | null"
+              },
+              "default": "null",
+              "description": "The modifier keys a close box's click held, pending for the next native `close` event."
+            },
+            {
+              "kind": "field",
               "name": "#onSubmit",
               "privacy": "private",
               "description": "A submit from a form whose nearest modal is this one, by `method=\"dialog\"`\nor the submitter's `formmethod=\"dialog\"`, closes it with the submitter's\n`value` — at the end of the submit's path, and not if anything cancelled\nit, as the platform runs a form's submission."
@@ -24211,6 +24274,25 @@
                 }
               ],
               "description": "Close the modal, with `returnValue` as its answer when one is given.\nFires `vf-close` with `{ reason: 'close', returnValue }`."
+            },
+            {
+              "kind": "method",
+              "name": "closeFromBox",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "keys",
+                  "type": {
+                    "text": "VfCloseKeys"
+                  }
+                }
+              ],
+              "description": "Close from a close box, its `vf-close` carrying the modifier keys held on the click."
             },
             {
               "kind": "method",

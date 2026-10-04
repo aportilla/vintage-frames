@@ -1781,4 +1781,33 @@ for (const [label, markup] of [
   await page.close()
 }
 
+/* ── CLOSE BOX KEYS ───────────────────────────────────────────────────────
+   The close box's vf-close carries the modifier keys held on its click. */
+{
+  const page = await build(
+    `<div style="position:relative;width:600px;height:400px">
+       <vf-window id="win" heading="Keys" width="200" height="120" left="40" top="40"></vf-window>
+     </div>`
+  )
+  await page.evaluate(() => {
+    window.__closes = []
+    document.getElementById('win').addEventListener('vf-close', (e) => window.__closes.push(e.detail))
+  })
+  const box = await page.evaluate(() => {
+    const r = document.getElementById('win').shadowRoot.querySelector('[part=close-box]').getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  await page.mouse.click(box.x, box.y)
+  await page.keyboard.down('Alt')
+  await page.mouse.click(box.x, box.y)
+  await page.keyboard.up('Alt')
+  const closes = await page.evaluate(() => window.__closes)
+  check(
+    'CLOSE BOX KEYS  a click fires vf-close with no keys held; an Option-click with altKey',
+    closes.length === 2 && closes[0].reason === 'close' && closes[0].altKey === false && closes[1].altKey === true,
+    JSON.stringify(closes)
+  )
+  await page.close()
+}
+
 await report(browser)

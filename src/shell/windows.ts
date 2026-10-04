@@ -35,7 +35,7 @@
  */
 
 import { snapSys, systemPxQuantum, VfWindow } from '../index.js'
-import type { VfDesktop, VfViewportBox } from '../index.js'
+import type { VfCloseKeys, VfDesktop, VfViewportBox } from '../index.js'
 import {
   cascadedBox,
   cascadeFrom,
@@ -89,9 +89,10 @@ export interface AdoptOptions {
   /**
    * What the close box means. Unset, it closes the window. Set, the close box
    * asks the application, which calls `close()` once it decides — after a
-   * Save prompt, say — or never.
+   * Save prompt, say — or never. It gets the modifier keys held on the
+   * close box's click; a close from a menu or code holds none.
    */
-  close?: ((win: VfWindow) => void) | null
+  close?: ((win: VfWindow, keys: Partial<VfCloseKeys>) => void) | null
 }
 
 /** What opening a window for an item declares. */
@@ -115,7 +116,7 @@ interface Adoption {
   policy: ((cur: Box) => Policy) | null
   keep: ((area: Box) => Box) | null
   palette: null | (() => boolean)
-  close: ((win: VfWindow) => void) | null
+  close: ((win: VfWindow, keys: Partial<VfCloseKeys>) => void) | null
 }
 
 /**
@@ -401,10 +402,10 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
   }
   on(desktop, 'vf-activate', (e) => applyActive((e as CustomEvent<{ window: HTMLElement | null }>).detail.window))
 
-  // The close box asks the window's application.
+  // The close box asks the window's application, with the keys held on its click.
   on(desktop, 'vf-close', (e) => {
     const win = e.target
-    if (win instanceof VfWindow && adopted.has(win)) api.requestClose(win)
+    if (win instanceof VfWindow && adopted.has(win)) api.requestClose(win, (e as CustomEvent<Partial<VfCloseKeys>>).detail ?? {})
   })
 
   // A window moved or grown: the layout signal. A placement write announces
@@ -572,10 +573,10 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       return landed
     },
 
-    /** The close box's route: the window's own close, or a plain close. */
-    requestClose(win: VfWindow): void {
+    /** The close box's route: the window's own close, given the modifier keys held, or a plain close. */
+    requestClose(win: VfWindow, keys: Partial<VfCloseKeys> = {}): void {
       const hook = adopted.get(win)?.close
-      if (hook) hook(win)
+      if (hook) hook(win, keys)
       else void api.close(win)
     },
 

@@ -43,6 +43,7 @@ import {
   TitleCenterController,
   widgetLabel,
   closeBox,
+  closeKeys,
   zoomBox,
 } from '../chrome.js'
 import { emit } from '../events.js'
@@ -249,9 +250,11 @@ const FRAME_STROKE = 1
  * @csspart grow-box - The resize widget (bottom-right, when `resizable`).
  * @csspart viewport - The built-in scroll area's viewport (when `scrollbars`;
  *   re-exported from vf-scroll-area).
- * @fires vf-close - Close box clicked. Detail `{ reason: 'close' }` (shape-
- *   compatible with vf-dialog's `vf-close`). The window does NOT
- *   remove itself; the consumer decides what closing means.
+ * @fires vf-close - Close box clicked. Detail `{ reason: 'close', altKey,
+ *   shiftKey, metaKey, ctrlKey }`, the modifier keys held on the click
+ *   (shape-compatible with vf-dialog's `vf-close`), so an Option-click can
+ *   mean more than a click. The window does NOT remove itself; the consumer
+ *   decides what closing means.
  * @fires vf-zoom - Zoom box clicked. Detail `{}`.
  * @fires vf-resize - The grow box resized the window. Detail `{ width,
  *   height, commit }`, sizes in whole system px: one event per size the drag
@@ -1298,8 +1301,8 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
     this._hasHeader = slot.assignedElements().length > 0
   }
 
-  private _onCloseClick(): void {
-    emit(this, 'vf-close', { reason: 'close' })
+  private _onCloseClick(event: MouseEvent): void {
+    emit(this, 'vf-close', { reason: 'close', ...closeKeys(event) })
   }
 
   private _onZoomClick(): void {

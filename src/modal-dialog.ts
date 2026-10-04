@@ -10,6 +10,7 @@ import {
 } from './scale.js'
 import { deferActivation, emit } from './events.js'
 import { DocumentListenersController } from './document-listeners.js'
+import type { VfCloseKeys } from './chrome.js'
 
 /**
  * Reason a modal closed, carried by the `vf-close` event's detail: the Escape
@@ -18,8 +19,11 @@ import { DocumentListenersController } from './document-listeners.js'
  */
 export type VfCloseReason = 'escape' | 'close' | 'outside'
 
-/** The `vf-close` event's detail. */
-export interface VfCloseDetail {
+/**
+ * The `vf-close` event's detail. A close box's close also carries the
+ * modifier keys held on its click; no other close does.
+ */
+export interface VfCloseDetail extends Partial<VfCloseKeys> {
   reason: VfCloseReason
   /**
    * The value this close carried — the submitting button's `value`, or
@@ -291,6 +295,9 @@ export class VfModalDialog extends LitElement {
   /** The value `close(value)` gave, pending for the next native `close` event. */
   #closeValue: string | null = null
 
+  /** The modifier keys a close box's click held, pending for the next native `close` event. */
+  #closeKeys: VfCloseKeys | null = null
+
   constructor() {
     super()
     this.addEventListener('submit', this.#onSubmit)
@@ -492,6 +499,12 @@ export class VfModalDialog extends LitElement {
     if (this.open && returnValue !== undefined) this.#closeValue = returnValue
     this.open = false
     if (this.hasUpdated) this.#syncDialog()
+  }
+
+  /** Close from a close box, its `vf-close` carrying the modifier keys held on the click. */
+  protected closeFromBox(keys: VfCloseKeys): void {
+    if (this.open) this.#closeKeys = keys
+    this.close()
   }
 
   protected override updated(changed: PropertyValues<this>): void {
@@ -698,8 +711,10 @@ export class VfModalDialog extends LitElement {
   protected _onNativeClose(): void {
     const reason = this.#closeReason ?? 'close'
     const returnValue = this.#closeValue
+    const keys = this.#closeKeys
     this.#closeReason = null
     this.#closeValue = null
+    this.#closeKeys = null
     if (returnValue !== null) this.returnValue = returnValue
     this.#invoker = null
     this.#outsidePress = null
@@ -707,7 +722,7 @@ export class VfModalDialog extends LitElement {
     this.#unwatchGeometry()
     this.open = false
     this.#clearPlacement()
-    emit<VfCloseDetail>(this, 'vf-close', { reason, returnValue })
+    emit<VfCloseDetail>(this, 'vf-close', { reason, returnValue, ...keys })
   }
 }
 

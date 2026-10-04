@@ -21,6 +21,7 @@ import {
   TitleCenterController,
   widgetLabel,
   closeBox,
+  closeKeys,
 } from '../chrome.js'
 import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
 
@@ -80,7 +81,8 @@ import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
  *   System 7 rail and becomes a keyboard stop.
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' |
  *   'outside', returnValue: string | null }` — `'outside'` only under
- *   `light-dismiss`.
+ *   `light-dismiss` — plus `altKey`, `shiftKey`, `metaKey` and `ctrlKey`
+ *   when the close box closed it.
  * @cssprop --vf-dots-pattern - the windoid bar's dot-grid dither — a 2×2 tile,
  *   one black pixel at the origin (`vfDots`; override the whole pattern like
  *   `--vf-desktop-pattern`)
@@ -272,7 +274,8 @@ export class VfDialog extends VfModalDialog {
   /**
    * Show the close box (left side of the title bar). Off by default — the
    * bare movable-modal bar. Ignored with `frame="plain"` (no bar). Clicking
-   * it closes the dialog and fires `vf-close` with `{ reason: 'close' }`.
+   * it closes the dialog and fires `vf-close` with `{ reason: 'close' }` and
+   * the modifier keys held on the click, as `vf-window`'s close box does.
    */
   @property({ type: Boolean, reflect: true }) closable = false
 
@@ -312,8 +315,8 @@ export class VfDialog extends VfModalDialog {
     this._rail.sync()
   }
 
-  private _onCloseClick(): void {
-    this.close()
+  private _onCloseClick(event: MouseEvent): void {
+    this.closeFromBox(closeKeys(event))
   }
 
   protected override render(): unknown {

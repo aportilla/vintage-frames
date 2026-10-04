@@ -248,6 +248,22 @@ export class TitleCenterController implements ReactiveController {
 export const widgetLabel = (action: string, heading: string): string =>
   heading ? `${action} ${heading}` : action
 
+/** The modifier keys held on a close box's click, which its `vf-close` carries. */
+export interface VfCloseKeys {
+  altKey: boolean
+  shiftKey: boolean
+  metaKey: boolean
+  ctrlKey: boolean
+}
+
+/** The modifier keys an event carries. */
+export const closeKeys = (event: MouseEvent | KeyboardEvent): VfCloseKeys => ({
+  altKey: event.altKey,
+  shiftKey: event.shiftKey,
+  metaKey: event.metaKey,
+  ctrlKey: event.ctrlKey,
+})
+
 /**
  * The close box (left of the bar) and zoom box (right of the bar), shared by
  * `vf-window` and a `closable` `vf-dialog`. Byte-identical markup for the same
@@ -258,7 +274,7 @@ export const widgetLabel = (action: string, heading: string): string =>
  */
 export const closeBox = (
   label: string,
-  onClick: () => void
+  onClick: (event: MouseEvent) => void
 ): TemplateResult => html`
   <button
     type="button"

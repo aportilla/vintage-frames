@@ -24,10 +24,22 @@ const MODIFIER_GLYPHS: ReadonlyMap<string, string> = new Map([
   ['⌘', 'Meta'],
 ])
 
+/** The arrow glyphs a shortcut may name, and the `KeyboardEvent.key` each one is. */
+const ARROW_GLYPHS: ReadonlyMap<string, string> = new Map([
+  ['←', 'ArrowLeft'],
+  ['↑', 'ArrowUp'],
+  ['→', 'ArrowRight'],
+  ['↓', 'ArrowDown'],
+])
+
+/** A shortcut's key as `KeyboardEvent.key` names it: an arrow glyph by its name, anything else as written. */
+const keyName = (key: string): string => ARROW_GLYPHS.get(key) ?? key
+
 /**
  * Maps a display shortcut ("⌘⇧S") to an `aria-keyshortcuts` value
  * ("Meta+Shift+S"): leading modifier glyphs become ARIA modifier names,
- * whatever follows is the key itself — so "F1" passes through untouched.
+ * whatever follows is the key itself — so "F1" passes through untouched,
+ * and an arrow glyph becomes its key's name ("⌘→" is "Meta+ArrowRight").
  * Empty when there is no key to announce.
  */
 function toAriaKeyshortcuts(shortcut: string): string {
@@ -37,7 +49,7 @@ function toAriaKeyshortcuts(shortcut: string): string {
     modifiers.push(MODIFIER_GLYPHS.get(chars.shift()!)!)
   }
   const key = chars.join('')
-  return key ? [...modifiers, key].join('+') : ''
+  return key ? [...modifiers, keyName(key)].join('+') : ''
 }
 
 /**
@@ -52,7 +64,10 @@ function toAriaKeyshortcuts(shortcut: string): string {
  *
  * A shortcut with no ⌘/⌃/⌥ and a single printable key never matches — it
  * renders and announces, but a bare letter claimed globally would hijack
- * typing in every field on the page. A named key ("F1") needs no modifier.
+ * typing in every field on the page. An arrow glyph (← ↑ → ↓) matches its
+ * arrow key, and counts as one key here too: a bare arrow would take the
+ * arrows from every list, menu and field. A named key ("F1") needs no
+ * modifier.
  */
 function matchesKeydown(event: KeyboardEvent, shortcut: string): boolean {
   const chars = [...shortcut.trim()]
@@ -76,7 +91,7 @@ function matchesKeydown(event: KeyboardEvent, shortcut: string): boolean {
     controlOk &&
     event.altKey === mods.Alt &&
     event.shiftKey === mods.Shift &&
-    event.key.toLowerCase() === key.toLowerCase()
+    event.key.toLowerCase() === keyName(key).toLowerCase()
   )
 }
 

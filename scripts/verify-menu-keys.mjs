@@ -8,7 +8,8 @@
  *    grant, the same stroke is untouched.
  *  - MATCH: modifiers are exact (⌘S ≠ ⌘⇧S); a bare printable shortcut renders
  *    but never matches, so typing can't be hijacked; a disabled item claims
- *    nothing and the stroke falls through.
+ *    nothing and the stroke falls through; an arrow glyph matches its arrow
+ *    key, and a bare arrow, like a bare letter, never does.
  *  - PRECEDENCE: a page handler that preventDefault()ed first keeps its key;
  *    auto-repeat strokes are claimed but activate only once.
  *  - FLASH: a closed menu answers its key with the title flash (skipped, with
@@ -28,6 +29,8 @@ const MARKUP = `
       <vf-menu-item id="print" value="print" shortcut="⌘P" disabled>Print…</vf-menu-item>
       <vf-menu-item id="bare" value="bare" shortcut="S">Bare Letter</vf-menu-item>
       <vf-menu-item id="find" value="find" shortcut="⌘G">Find Again</vf-menu-item>
+      <vf-menu-item id="next" value="next" shortcut="⌘→">Next Layer</vf-menu-item>
+      <vf-menu-item id="bare-arrow" value="bare-arrow" shortcut="↓">Bare Arrow</vf-menu-item>
     </vf-menu>
   </vf-menu-bar>
   <vf-menu id="lone" label="Actions" shortcuts>
@@ -177,6 +180,18 @@ const lastKey = (page) => page.evaluate(() => window.__keys.at(-1) ?? null)
     'auto-repeat strokes are claimed but activate once',
     repeat.first && repeat.second && repeat.selects.length === 1,
     JSON.stringify(repeat)
+  )
+
+  // An arrow glyph names its arrow key; a bare arrow is never claimed.
+  await page.evaluate(() => (window.__selects.length = 0))
+  await page.keyboard.press('Meta+ArrowRight')
+  await page.keyboard.press('ArrowDown')
+  key = await lastKey(page)
+  got = await selects(page)
+  check(
+    'an arrow glyph matches its arrow key: ⌘→ fires on Meta+ArrowRight, a bare ↓ on nothing',
+    got.join() === 'next' && key?.claimed === false,
+    `${JSON.stringify(got)} ${JSON.stringify(key)}`
   )
 
   await page.close()

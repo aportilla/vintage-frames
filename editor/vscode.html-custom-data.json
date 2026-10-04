@@ -270,7 +270,7 @@
         },
         {
           "name": "pattern",
-          "description": "The desktop pattern — System 7's General Controls setting. A library\npattern by name (`gray-50`, the classic dither, by default; `gray-75`,\n`bricks`, … — docs/PATTERNS.md) or sixteen hex digits stating a custom\n8×8 pattern, as on `vf-container`. Painted black on opaque white over\nthe whole screen, 1-bit at every density and zoom. A\n`--vf-desktop-pattern` token override still wins and renders the\nconsumer's tile as a placed grid; an unrecognized value warns once and\nkeeps the dither.",
+          "description": "The desktop pattern — System 7's General Controls setting. A library\npattern by name (`gray-50`, the classic dither, by default; `gray-75`,\n`bricks`, … — docs/PATTERNS.md) or sixteen hex digits stating a custom\n8×8 pattern, as on `vf-container`. Painted black on opaque white over\nthe whole screen, 1-bit at every density and zoom. A\n`--vf-desktop-pattern` token override still wins and renders the\nconsumer's tile as a placed grid; an unrecognized value warns once and\nkeeps the dither. Reflects, so a change can be observed on the\nattribute.",
           "values": []
         },
         {

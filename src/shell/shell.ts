@@ -499,9 +499,13 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
           (fn) => {
             const offs = [wm.onLayout(fn), wm.onWindows(fn), ...(catalog ? [catalog.subscribe(fn)] : [])]
             desktop.addEventListener('vf-activate', fn)
+            // `pattern` reflects: a new desktop pattern is saved on its own.
+            const pattern = new MutationObserver(fn)
+            pattern.observe(desktop, { attributes: true, attributeFilter: ['pattern'] })
             return () => {
               for (const off of offs) off()
               desktop.removeEventListener('vf-activate', fn)
+              pattern.disconnect()
             }
           }
         )

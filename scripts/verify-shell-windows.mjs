@@ -24,7 +24,8 @@
  *    is negative, lands on a radio group's checked radio, and takes a
  *    control marked `autofocus` first.
  *  - SESSION: with saving on, a reload reopens the windows where they were,
- *    deepest first, the active one active.
+ *    deepest first, the active one active; a new desktop pattern is saved
+ *    on its own.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:shell-windows
@@ -463,6 +464,14 @@ const layout = (page) =>
     `${order} active ${await s.active()}`
   )
   check('SESSION  …and the catalog kept its places', JSON.stringify(after.icons) === JSON.stringify(before.icons), JSON.stringify(after.icons))
+  // No other change follows it, and the page stays: the pattern is written by itself.
+  await page.evaluate(() => {
+    document.querySelector('vf-desktop').pattern = 'bricks'
+  })
+  const saved = await page
+    .waitForFunction(() => JSON.parse(localStorage.getItem('vf-shell-reference') ?? 'null')?.pattern === 'bricks', null, { timeout: 5000 })
+    .then(() => true, () => false)
+  check('SESSION  a new desktop pattern is saved on its own', saved)
   await page.close()
 }
 

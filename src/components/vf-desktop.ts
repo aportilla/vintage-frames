@@ -391,9 +391,10 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * the whole screen, 1-bit at every density and zoom. A
    * `--vf-desktop-pattern` token override still wins and renders the
    * consumer's tile as a placed grid; an unrecognized value warns once and
-   * keeps the dither.
+   * keeps the dither. Reflects, so a change can be observed on the
+   * attribute.
    */
-  @property() pattern: string | null | undefined = DEFAULT_PATTERN
+  @property({ reflect: true }) pattern: string | null | undefined = DEFAULT_PATTERN
 
   /**
    * The least `top` a window may take, in system px from the screen's top —

@@ -29,9 +29,10 @@
  * 8. A patterned container knocked off the device grid recovers to 1-bit by
  *    itself — the always-on snap, on the same box the fill paints.
  * 9. `vf-desktop pattern`: dkGray lands at the raster's phase as the screen's
- *    own background (no tile grid), 1-bit; `white` is a white desktop; an
- *    unknown name warns once and keeps the dither; a `--vf-desktop-pattern`
- *    token still wins, rendering the placed tile grid and no background.
+ *    own background (no tile grid), 1-bit; `white` is a white desktop, and
+ *    the attribute follows; an unknown name warns once and keeps the dither;
+ *    a `--vf-desktop-pattern` token still wins, rendering the placed tile
+ *    grid and no background.
  * 10. `vf-desktop bezel`: on a white screen, all four corners carry the
  *    SCREEN_CORNER staircase (the bottom pair mirrored), 1-bit, at dpr 1
  *    and 2.
@@ -605,6 +606,8 @@ for (const dpr of DENSITIES) {
     'pattern="white" is a white desktop',
     allPixels(decodePng(await page.locator('#d').screenshot()), [255, 255, 255])
   )
+  const reflected = await page.evaluate(() => document.querySelector('#d').getAttribute('pattern'))
+  check('…and the desktop’s pattern reflects: the attribute follows the property', reflected === 'white', String(reflected))
   const warnings = []
   page.on('console', (msg) => {
     if (msg.type() === 'warning') warnings.push(msg.text())

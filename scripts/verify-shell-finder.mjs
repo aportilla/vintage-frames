@@ -25,11 +25,14 @@
  *    kind that claims it files it there.
  *  - ALERT: a Finder alert grows to its message, every line above its
  *    buttons.
+ *  - FIRST RENDER (a fixture): a shell started before the desktop's first
+ *    render places the icons below the menu bar, storage or none, and its
+ *    seed reads the work area below it.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:shell-finder
  */
-import { check, launch, openShell, report, shellOn } from './harness.mjs'
+import { check, launch, openShell, report, SHELL_ART, shellFixture, shellOn } from './harness.mjs'
 
 const browser = await launch()
 
@@ -424,6 +427,63 @@ const overlapping = (icons) =>
   })
   check('ALERT  a five-line message ends above the alert’s buttons', box.lines >= 5 && box.text <= box.buttons, JSON.stringify(box))
   await answer(s, 'OK')
+  await page.close()
+}
+
+// ── FIRST RENDER ────────────────────────────────────────────────────────────
+{
+  /** A shell started in the task that writes its desktop, as a page's module starts it. */
+  const boot = (page, storage) =>
+    page.evaluate(
+      ([art, withStorage]) => {
+        document.body.innerHTML =
+          '<vf-desktop bezel="10"><vf-menu-bar><vf-menu label="Apple"></vf-menu></vf-menu-bar></vf-desktop>'
+        const desktop = document.querySelector('vf-desktop')
+        const { createShell, finder, memoryStorage } = window.vfShell
+        window.seedTop = null
+        window.shell = createShell(desktop, {
+          apps: [
+            finder({
+              storage: withStorage ? memoryStorage() : null,
+              volumes: { disk: 'Macintosh HD' },
+              art,
+              seed: async (catalog) => {
+                window.seedTop = desktop.workArea.top
+                await catalog.create({ name: 'Read Me' })
+              },
+            }),
+          ],
+          fit: 'viewport',
+        })
+        return window.shell.ready
+      },
+      [SHELL_ART, storage]
+    )
+  const read = (page) =>
+    page.evaluate(() => {
+      const desktop = document.querySelector('vf-desktop')
+      const icon = [...desktop.querySelectorAll('vf-icon[data-id]')].find((i) => i.label === 'Macintosh HD')
+      return { disk: icon && { left: icon.left, top: icon.top }, area: desktop.workArea, seedTop: window.seedTop }
+    })
+
+  let page = await shellFixture(browser)
+  await boot(page, false)
+  let at = await read(page)
+  check(
+    'FIRST RENDER  without storage, the disk’s icon sits 16 below the menu bar',
+    at.area.top > 0 && at.disk?.top === at.area.top + 16,
+    JSON.stringify(at)
+  )
+  await page.close()
+
+  page = await shellFixture(browser)
+  await boot(page, true)
+  at = await read(page)
+  check(
+    'FIRST RENDER  …and a seed reads the work area below the menu bar',
+    at.area.top > 0 && at.seedTop === at.area.top && at.disk?.top === at.area.top + 16,
+    JSON.stringify(at)
+  )
   await page.close()
 }
 

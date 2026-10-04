@@ -553,6 +553,40 @@ export async function openShell(
   return page
 }
 
+/** The Finder's art for a fixture: the reference page's. */
+export const SHELL_ART = {
+  folder: '/demo/icons/folder.png',
+  trash: '/demo/icons/trash.png',
+  trashFull: '/demo/icons/trash-full.png',
+  document: '/demo/icons/doc-icon.png',
+  caution: '/demo/icons/alert.png',
+}
+
+/**
+ * A blank page on the dev server's origin with the kit and the shell
+ * imported, as `window.vf` and `window.vfShell`, for a shell the reference
+ * page doesn't run. The script writes its desktop and calls `createShell` in
+ * one evaluate, so the shell starts before the desktop's first render, as a
+ * page's own module does.
+ */
+export async function shellFixture(browser, { viewport = { width: 1100, height: 760 }, reducedMotion = true } = {}) {
+  const page = await browser.newPage({ viewport })
+  if (reducedMotion) await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.route(ORIGIN, (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><meta charset="utf-8"><body style="margin:0;overflow:hidden;background:#000">',
+    })
+  )
+  await page.goto(ORIGIN)
+  await page.unroute(ORIGIN)
+  await page.evaluate(async () => {
+    window.vf = await import('/src/index.js')
+    window.vfShell = await import('/src/shell/index.js')
+  })
+  return page
+}
+
 /** The reads and gestures the shell scripts share, on a page {@link openShell} made. */
 export function shellOn(page) {
   const centreOf = (sel) =>

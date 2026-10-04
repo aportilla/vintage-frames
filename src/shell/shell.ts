@@ -17,8 +17,9 @@
  *   reload starts clean. The shell composes no UI of its own.
  * - A window showing a catalog item follows it: its title follows a rename,
  *   and it closes when the item is removed.
- * - The boot reads the catalog, seeds it once, reopens the last session's
- *   windows deepest first and the active one last, then starts saving.
+ * - The boot waits for the desktop and its menu bar to render, reads the
+ *   catalog, seeds it once, reopens the last session's windows deepest
+ *   first and the active one last, then starts saving.
  */
 
 import { onScaleChange, VfWindow } from '../index.js'
@@ -183,6 +184,12 @@ export interface Shell {
 
 /** The kind the shell registers: an application's icon, which opens it. */
 export const APP_KIND = 'app'
+
+/** Settles once the desktop and its menu bar have rendered, so `workArea` measures the bar. */
+export async function desktopRendered(desktop: VfDesktop): Promise<void> {
+  const bar = desktop.querySelector<VfMenuBar>(':scope > vf-menu-bar')
+  await Promise.all([desktop.updateComplete, bar?.updateComplete])
+}
 
 /** Whether an element is a text field, by its own tag. */
 const isTextField = (el: Element | null): boolean =>
@@ -466,6 +473,9 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
   state?.hold()
   const ready = (async () => {
     try {
+      // The menu bar renders first, so the work area, the seed and the
+      // session's windows all measure it.
+      await desktopRendered(desktop)
       if (catalog) {
         await catalog.refresh()
         if (finderDef?.catalog?.seed) await catalog.seed(finderDef.catalog.seed)

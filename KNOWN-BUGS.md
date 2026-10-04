@@ -28,16 +28,6 @@ WebKit's own emulation sets the page's device scale factor and matches a display
 
 ---
 
-## 4. The Finder can place desktop icons against the menu bar
-
-**Status:** open **Where:** `src/shell/finder.ts` (`desktopLattice(desktop.workArea, …)`, `trashCell`), `src/components/vf-desktop.ts` (`workArea`)
-
-Seen 2026-10-01 in SystemOnline's move onto the shell. When the catalog answers at once (no storage, or memory storage), the Finder places icons before the desktop's first render. `workArea` then reads the menu bar as 0 tall, so a volume's first cell lands at the screen's top inset, against the bar.
-
-Fix sketch: hold the first placement until the desktop and its bar have rendered.
-
----
-
 ## 5. Opening a window can focus a cell that isn't a tab stop
 
 **Status:** open **Where:** `src/shell/windows.ts` (`focusInto`)

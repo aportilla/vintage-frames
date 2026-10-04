@@ -57,7 +57,7 @@ The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system m
 | `services` | The site's own objects, passed to every application. |
 | `clock` | The time in the bar's `end` slot. Default `true`. |
 
-`createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup included, so a hot reload starts clean.
+`createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the desktop and its menu bar have rendered, the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup included, so a hot reload starts clean.
 
 ## Applications
 
@@ -247,7 +247,7 @@ finder({
 | `storage` | Where the catalog is kept. `null` keeps nothing. |
 | `art` | `folder`, `trash`, `trashFull` and `document` (32×32) are required; `disk` and `caution` (32×32) and `trashMark` (12×12) are optional. Without `caution` the alerts have no art. |
 | `volumes` | Default: the Trash alone. |
-| `seed` | `'markup'`, or a function. |
+| `seed` | `'markup'`, or a function. It runs once the desktop and its menu bar have rendered, so it can read `desktop.workArea`. |
 | `lattice` | `{ desktop, folder }`: each a cell size, column and row pitch and insets. Default 64px cells, 80px columns, 72px rows, 16px insets. |
 | `cleanUpAfterResize` | Clean Up the desktop once a resize settles with icons overlapping. Default `false`. |
 | `commands` | Switch commands off: `{ 'empty-trash': false }`. |

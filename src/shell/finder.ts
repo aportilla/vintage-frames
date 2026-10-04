@@ -70,7 +70,7 @@ import type { Lattice, LatticeOptions, Pin, Point, Size } from './geometry.js'
 import { fileByDrag } from './filing.js'
 import { composeAlert } from './alert.js'
 import type { AlertOptions } from './alert.js'
-import { APP_KIND, appIdOf, defineApp } from './shell.js'
+import { APP_KIND, appIdOf, defineApp, desktopRendered } from './shell.js'
 import type { AppContext, AppDefinition } from './shell.js'
 import type { FocusHome, HomeBox } from './windows.js'
 
@@ -548,9 +548,11 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         unsaved.add(icon)
       }
 
+      /** Set once the desktop and its bar have rendered: placing an icon before then would read the bar as 0 tall. */
+      let rendered = false
       let syncing = false
       function sync(): void {
-        if (syncing) return
+        if (syncing || !rendered) return
         syncing = true
         try {
           const st = catalog.get()
@@ -1134,13 +1136,19 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
       // After extend, so the menus it made take their picks too.
       ctx.onMenu((value) => run[value]?.())
 
+      let disposed = false
       ctx.onDispose(() => {
+        disposed = true
         for (const [, win] of folderWindows()) win.remove()
         for (const icon of iconsIn(desk)) icon.remove()
         if (made) desk.remove()
         else desk.append(...consumed)
       })
-      sync()
+      void desktopRendered(desktop).then(() => {
+        if (disposed) return
+        rendered = true
+        sync()
+      })
       return api
     },
   })

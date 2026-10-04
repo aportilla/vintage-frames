@@ -483,6 +483,38 @@ async function keys(page, key) {
   s = await after()
   check('answers: Enter in a field answers with the ringed button, though Cancel comes first', closedWithValue(s, 'ok'), JSON.stringify(s))
 
+  // Return in a number field commits the clamped value, then submits.
+  const size = await build(`
+    <vf-dialog id="dlg" heading="Size" width="360" height="220">
+      <form id="form" method="dialog" novalidate>
+        <vf-number-field id="size" label="Size" min="1" max="64"></vf-number-field>
+        <vf-button id="cancel" type="submit" value="cancel">Cancel</vf-button>
+        <vf-button id="ok" type="submit" value="ok" variant="default">OK</vf-button>
+      </form>
+    </vf-dialog>
+  `)
+  await size.evaluate(async () => {
+    const dlg = document.getElementById('dlg')
+    const field = document.getElementById('size')
+    window.__log = []
+    for (const type of ['vf-change', 'change']) field.addEventListener(type, () => window.__log.push(`${type} ${field.value}`))
+    document.getElementById('form').addEventListener('submit', () => window.__log.push('submit'))
+    dlg.addEventListener('vf-close', (e) => window.__log.push(`close ${e.detail.returnValue} ${field.value}`))
+    dlg.show()
+    await dlg.updateComplete
+  })
+  await size.keyboard.type('999')
+  await size.keyboard.press('Enter')
+  await size.waitForFunction(() => !document.getElementById('dlg').open)
+  await size.evaluate(() => new Promise((r) => requestAnimationFrame(r)))
+  const log = await size.evaluate(() => window.__log)
+  check(
+    'answers: Return in a number field commits it clamped, then submits; the value reads 64 at the close, announced once',
+    log.join() === 'vf-change 64,change 64,submit,close ok 64',
+    log.join(' / ')
+  )
+  await size.close()
+
   await open()
   await page.evaluate(() =>
     document.getElementById('form').addEventListener('submit', (e) => e.preventDefault(), { once: true })

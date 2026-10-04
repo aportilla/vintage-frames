@@ -132,6 +132,27 @@ export class VfTextControlBase extends VfShadowRoleControl {
     return `vf-field-well vf-snap${this.focusRule.marked ? ' vf-focus-rule' : ''}`
   }
 
+  /**
+   * The text as last committed: taken when the field gains focus, then at
+   * each commit. A commit that brings nothing new isn't announced, so the
+   * native `change` that follows a Return commit, or a step, is not a second
+   * one.
+   */
+  protected committed: string | null = null
+
+  constructor() {
+    super()
+    this.addEventListener('focusin', () => {
+      this.committed = this.value
+    })
+    // Leaving the field commits, as the native control's blur does, also
+    // after a Return commit the native control never heard about.
+    this.addEventListener('focusout', () => {
+      const control = this.renderRoot.querySelector<HTMLInputElement | HTMLTextAreaElement>('.vf-field')
+      if (control) this.commit(control.value)
+    })
+  }
+
   override connectedCallback(): void {
     super.connectedCallback()
     this.latchFormDefault(this.value)
@@ -245,13 +266,38 @@ export class VfTextControlBase extends VfShadowRoleControl {
     this.emitValue('vf-input')
   }
 
-  /** Mirror the native control's value into `value` and announce a commit. */
-  protected handleChange(event: Event): void {
-    this.value = (event.target as HTMLInputElement | HTMLTextAreaElement).value
+  /** The committed form of typed text: as typed here; `vf-number-field` clamps and rounds it. */
+  protected committedText(raw: string): string {
+    return raw
+  }
+
+  /** Commit typed text: its committed form into `value`, announced unless it is what was last committed. */
+  protected commit(raw: string): void {
+    const next = this.committedText(raw)
+    this.value = next
+    if (next === this.committed) return
+    this.committed = next
     this.emitValue('vf-change')
     // The inner control's own `change` never leaves the shadow root (native
-    // change is composed: false, unlike input's) — re-dispatch it from the
-    // host so form-level delegation and framework bindings hear the commit.
+    // change is composed: false, unlike input's) — dispatch it from the host
+    // so form-level delegation and framework bindings hear the commit.
     emitNative(this, 'change')
+  }
+
+  /** The native control's commit. */
+  protected handleChange(event: Event): void {
+    this.commit((event.target as HTMLInputElement | HTMLTextAreaElement).value)
+  }
+
+  /**
+   * A plain Return in a single-line field with a form: commit, then the
+   * form's implicit submission, the order a native input keeps (its `change`
+   * comes before the submission). The keydown is cancelled, so an enclosing
+   * modal does not route the same press to its default button as well.
+   */
+  protected submitOnEnter(event: KeyboardEvent): void {
+    if (!this.isSubmitEnter(event) || !this.internals.form) return
+    this.commit((event.target as HTMLInputElement).value)
+    if (this.requestImplicitSubmit()) event.preventDefault()
   }
 }

@@ -172,15 +172,27 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
     return n
   }
 
-  /** Clamp + round to the step's precision, store, and announce a change — but
+  /** `n` clamped and rounded to the step's precision, as text. */
+  #fit(n: number): string {
+    return String(Number(this.#clamp(n).toFixed(decimalsOf(this.step))))
+  }
+
+  /** Typed text clamps and rounds when it is a number; otherwise it stays as typed. */
+  protected override committedText(raw: string): string {
+    const parsed = parseFloat(raw)
+    return Number.isNaN(parsed) ? raw : this.#fit(parsed)
+  }
+
+  /** Step to `n`, clamped and rounded, and announce a change — but
    * only when the value actually changes, so autorepeat held against a bound
    * (or a keyboard step already at min/max) doesn't fire a redundant
    * `vf-change` on every 60ms tick. */
   #commit(n: number): void {
-    const next = String(Number(this.#clamp(n).toFixed(decimalsOf(this.step))))
+    const next = this.#fit(n)
     if (next === this.value) return
     this.value = next
-    this.#emit('vf-change')
+    this.committed = next
+    this.emitValue('vf-change')
     // A step writes the value programmatically, so unlike typing there is no
     // inner native event at all — dispatch both from the host, the pair a
     // native number input's spinner fires per click.
@@ -195,8 +207,12 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
     this.#commit(next)
   }
 
-  #emit(type: 'vf-input' | 'vf-change'): void {
-    this.emitValue(type, { value: this.value, valueAsNumber: this.#parse() })
+  /** Every value event carries `valueAsNumber` too. */
+  protected override emitValue(
+    type: 'vf-input' | 'vf-change',
+    detail: Record<string, unknown> = { value: this.value, valueAsNumber: this.#parse() }
+  ): void {
+    super.emitValue(type, detail)
   }
 
   // -------------------------------------------------------------- autorepeat
@@ -241,9 +257,8 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
 
   #onKeydown = (event: KeyboardEvent): void => {
     if (this.isSubmitEnter(event)) {
-      // Cancelled when the form took it, so an enclosing modal does not
-      // route the same press to its default button as well.
-      if (this.requestImplicitSubmit()) event.preventDefault()
+      // Commits, clamped, before the form's submission.
+      this.submitOnEnter(event)
       return
     }
     if (this.isDisabled || this.readonly) return
@@ -296,19 +311,7 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
 
   #onInput = (event: Event): void => {
     this.value = (event.target as HTMLInputElement).value
-    this.#emit('vf-input')
-  }
-
-  #onChange = (event: Event): void => {
-    const raw = (event.target as HTMLInputElement).value
-    const parsed = parseFloat(raw)
-    // Normalize (clamp + round) on commit when numeric; otherwise keep as typed.
-    this.value = Number.isNaN(parsed)
-      ? raw
-      : String(Number(this.#clamp(parsed).toFixed(decimalsOf(this.step))))
-    this.#emit('vf-change')
-    // See VfTextControlBase.handleChange: the inner change is composed: false.
-    emitNative(this, 'change')
+    this.emitValue('vf-input')
   }
 
   protected override render() {
@@ -339,7 +342,7 @@ export class VfNumberField extends VfPositioned(VfTextControlBase) {
           ?disabled=${disabled}
           ?readonly=${this.readonly}
           @input=${this.#onInput}
-          @change=${this.#onChange}
+          @change=${this.handleChange}
           @keydown=${this.#onKeydown}
         />
       </div>

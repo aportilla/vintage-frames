@@ -9969,6 +9969,48 @@
             },
             {
               "kind": "method",
+              "name": "#fit",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "n",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "`n` clamped and rounded to the step's precision, as text."
+            },
+            {
+              "kind": "method",
+              "name": "committedText",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Typed text clamps and rounds when it is a number; otherwise it stays as typed.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "#commit",
               "privacy": "private",
               "return": {
@@ -9984,7 +10026,7 @@
                   }
                 }
               ],
-              "description": "Clamp + round to the step's precision, store, and announce a change — but\nonly when the value actually changes, so autorepeat held against a bound\n(or a keyboard step already at min/max) doesn't fire a redundant\n`vf-change` on every 60ms tick."
+              "description": "Step to `n`, clamped and rounded, and announce a change — but\nonly when the value actually changes, so autorepeat held against a bound\n(or a keyboard step already at min/max) doesn't fire a redundant\n`vf-change` on every 60ms tick."
             },
             {
               "kind": "method",
@@ -10006,8 +10048,8 @@
             },
             {
               "kind": "method",
-              "name": "#emit",
-              "privacy": "private",
+              "name": "emitValue",
+              "privacy": "protected",
               "return": {
                 "type": {
                   "text": "void"
@@ -10019,8 +10061,20 @@
                   "type": {
                     "text": "'vf-input' | 'vf-change'"
                   }
+                },
+                {
+                  "name": "detail",
+                  "default": "{ value: this.value, valueAsNumber: this.#parse() }",
+                  "type": {
+                    "text": "Record<string, unknown>"
+                  }
                 }
-              ]
+              ],
+              "description": "Every value event carries `valueAsNumber` too.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
             },
             {
               "kind": "method",
@@ -10068,11 +10122,6 @@
             {
               "kind": "field",
               "name": "#onInput",
-              "privacy": "private"
-            },
-            {
-              "kind": "field",
-              "name": "#onChange",
               "privacy": "private"
             },
             {
@@ -10320,6 +10369,20 @@
               }
             },
             {
+              "kind": "field",
+              "name": "committed",
+              "type": {
+                "text": "string | null"
+              },
+              "privacy": "protected",
+              "default": "null",
+              "description": "The text as last committed: taken when the field gains focus, then at\neach commit. A commit that brings nothing new isn't announced, so the\nnative `change` that follows a Return commit, or a step, is not a second\none.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formResetCallback",
               "return": {
@@ -10373,36 +10436,6 @@
             },
             {
               "kind": "method",
-              "name": "emitValue",
-              "privacy": "protected",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "type",
-                  "type": {
-                    "text": "'vf-input' | 'vf-change'"
-                  }
-                },
-                {
-                  "name": "detail",
-                  "default": "{ value: this.value }",
-                  "type": {
-                    "text": "Record<string, unknown>"
-                  }
-                }
-              ],
-              "description": "Dispatch a bubbling, composed value event (SPEC §4). Text fields use the\ndefault `{ value }` detail; `vf-number-field` passes an enriched detail that\nalso carries `valueAsNumber`.",
-              "inheritedFrom": {
-                "name": "VfTextControlBase",
-                "module": "src/text-control.ts"
-              }
-            },
-            {
-              "kind": "method",
               "name": "handleInput",
               "privacy": "protected",
               "return": {
@@ -10426,6 +10459,29 @@
             },
             {
               "kind": "method",
+              "name": "commit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Commit typed text: its committed form into `value`, announced unless it is what was last committed.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "handleChange",
               "privacy": "protected",
               "return": {
@@ -10441,7 +10497,30 @@
                   }
                 }
               ],
-              "description": "Mirror the native control's value into `value` and announce a commit.",
+              "description": "The native control's commit.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "submitOnEnter",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "description": "A plain Return in a single-line field with a form: commit, then the\nform's implicit submission, the order a native input keeps (its `change`\ncomes before the submission). The keydown is cancelled, so an enclosing\nmodal does not route the same press to its default button as well.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -18266,6 +18345,20 @@
               }
             },
             {
+              "kind": "field",
+              "name": "committed",
+              "type": {
+                "text": "string | null"
+              },
+              "privacy": "protected",
+              "default": "null",
+              "description": "The text as last committed: taken when the field gains focus, then at\neach commit. A commit that brings nothing new isn't announced, so the\nnative `change` that follows a Return commit, or a step, is not a second\none.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formResetCallback",
               "return": {
@@ -18349,6 +18442,52 @@
             },
             {
               "kind": "method",
+              "name": "committedText",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The committed form of typed text: as typed here; `vf-number-field` clamps and rounds it.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "commit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Commit typed text: its committed form into `value`, announced unless it is what was last committed.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "handleChange",
               "privacy": "protected",
               "return": {
@@ -18364,7 +18503,30 @@
                   }
                 }
               ],
-              "description": "Mirror the native control's value into `value` and announce a commit.",
+              "description": "The native control's commit.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "submitOnEnter",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "description": "A plain Return in a single-line field with a form: commit, then the\nform's implicit submission, the order a native input keeps (its `change`\ncomes before the submission). The keydown is cancelled, so an enclosing\nmodal does not route the same press to its default button as well.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -19187,7 +19349,7 @@
                   }
                 }
               ],
-              "description": "Enter in a single-line field triggers the associated form's implicit\nsubmission. The native `<input>` is shadow-encapsulated, so its form owner\nis null and the browser won't do this itself. A press the form took is\ncancelled, so an enclosing modal does not route it again."
+              "description": "Enter in a single-line field commits, then triggers the associated\nform's implicit submission. The native `<input>` is shadow-encapsulated,\nso its form owner is null and the browser won't do this itself."
             },
             {
               "kind": "field",
@@ -19418,6 +19580,20 @@
               }
             },
             {
+              "kind": "field",
+              "name": "committed",
+              "type": {
+                "text": "string | null"
+              },
+              "privacy": "protected",
+              "default": "null",
+              "description": "The text as last committed: taken when the field gains focus, then at\neach commit. A commit that brings nothing new isn't announced, so the\nnative `change` that follows a Return commit, or a step, is not a second\none.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "formResetCallback",
               "return": {
@@ -19524,6 +19700,52 @@
             },
             {
               "kind": "method",
+              "name": "committedText",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The committed form of typed text: as typed here; `vf-number-field` clamps and rounds it.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "commit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Commit typed text: its committed form into `value`, announced unless it is what was last committed.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
               "name": "handleChange",
               "privacy": "protected",
               "return": {
@@ -19539,7 +19761,30 @@
                   }
                 }
               ],
-              "description": "Mirror the native control's value into `value` and announce a commit.",
+              "description": "The native control's commit.",
+              "inheritedFrom": {
+                "name": "VfTextControlBase",
+                "module": "src/text-control.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "submitOnEnter",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "description": "A plain Return in a single-line field with a form: commit, then the\nform's implicit submission, the order a native input keeps (its `change`\ncomes before the submission). The keydown is cancelled, so an enclosing\nmodal does not route the same press to its default button as well.",
               "inheritedFrom": {
                 "name": "VfTextControlBase",
                 "module": "src/text-control.ts"
@@ -20078,7 +20323,7 @@
               "name": "vf-input"
             },
             {
-              "description": "On commit (native `change`). `detail: { value: string }`.",
+              "description": "On commit: the native `change`, leaving the field, or Return in a form, before its submission. `detail: { value: string }`.",
               "name": "vf-change"
             },
             {
@@ -22565,6 +22810,16 @@
               "readonly": true
             },
             {
+              "kind": "field",
+              "name": "committed",
+              "type": {
+                "text": "string | null"
+              },
+              "privacy": "protected",
+              "default": "null",
+              "description": "The text as last committed: taken when the field gains focus, then at\neach commit. A commit that brings nothing new isn't announced, so the\nnative `change` that follows a Return commit, or a step, is not a second\none."
+            },
+            {
               "kind": "method",
               "name": "formResetCallback",
               "return": {
@@ -22651,6 +22906,44 @@
             },
             {
               "kind": "method",
+              "name": "committedText",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The committed form of typed text: as typed here; `vf-number-field` clamps and rounds it."
+            },
+            {
+              "kind": "method",
+              "name": "commit",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "raw",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Commit typed text: its committed form into `value`, announced unless it is what was last committed."
+            },
+            {
+              "kind": "method",
               "name": "handleChange",
               "privacy": "protected",
               "return": {
@@ -22666,7 +22959,26 @@
                   }
                 }
               ],
-              "description": "Mirror the native control's value into `value` and announce a commit."
+              "description": "The native control's commit."
+            },
+            {
+              "kind": "method",
+              "name": "submitOnEnter",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "description": "A plain Return in a single-line field with a form: commit, then the\nform's implicit submission, the order a native input keeps (its `change`\ncomes before the submission). The keydown is cancelled, so an enclosing\nmodal does not route the same press to its default button as well."
             },
             {
               "kind": "field",

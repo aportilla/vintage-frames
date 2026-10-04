@@ -17,7 +17,8 @@ import { VfTextControlBase } from '../text-control.js'
  * {@link VfTextControlBase}.
  *
  * @fires vf-input - On every keystroke. `detail: { value: string }`.
- * @fires vf-change - On commit (native `change`). `detail: { value: string }`.
+ * @fires vf-change - On commit: the native `change`, leaving the field, or
+ *   Return in a form, before its submission. `detail: { value: string }`.
  * @fires input - The native keystroke event: the inner input's own, composed,
  *   so it crosses the shadow boundary and retargets to the host by itself.
  * @fires change - The native commit event, re-dispatched from the host (the
@@ -74,15 +75,12 @@ export class VfTextField extends VfPositioned(VfTextControlBase) {
   ]
 
   /**
-   * Enter in a single-line field triggers the associated form's implicit
-   * submission. The native `<input>` is shadow-encapsulated, so its form owner
-   * is null and the browser won't do this itself. A press the form took is
-   * cancelled, so an enclosing modal does not route it again.
+   * Enter in a single-line field commits, then triggers the associated
+   * form's implicit submission. The native `<input>` is shadow-encapsulated,
+   * so its form owner is null and the browser won't do this itself.
    */
   private handleKeydown(event: KeyboardEvent): void {
-    if (this.isSubmitEnter(event) && this.requestImplicitSubmit()) {
-      event.preventDefault()
-    }
+    this.submitOnEnter(event)
   }
 
   protected override render() {

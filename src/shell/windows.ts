@@ -168,10 +168,14 @@ const focusIsIn = (el: Element): boolean => {
 }
 
 /**
- * Move keyboard focus to the first thing in `win`'s content that takes it,
- * once that content has rendered — and then only if `when`, read at that
- * point, still holds. Resolves whether it did: a window with nothing
- * focusable in its content keeps the focus where it was.
+ * Move keyboard focus into `win`'s content once that content has rendered —
+ * and then only if `when`, read at that point, still holds: to a descendant
+ * marked `autofocus`, else to the first thing that takes the focus. An
+ * element whose `tabindex` is negative is passed over: a roving cell parked
+ * off the tab order, a disabled control. A kit host with no `tabindex` goes
+ * through, since it hands the focus on inside itself. Resolves whether the
+ * focus moved: a window with nothing focusable in its content keeps the
+ * focus where it was.
  */
 export async function focusInto(win: Element, { when }: { when?: () => boolean } = {}): Promise<boolean> {
   const all = [...win.querySelectorAll<HTMLElement>('*')]
@@ -179,8 +183,14 @@ export async function focusInto(win: Element, { when }: { when?: () => boolean }
     [win, ...all].map((el) => (el as unknown as { updateComplete?: Promise<unknown> }).updateComplete)
   )
   if (!win.isConnected || (when && !when())) return false
+  const shown = (el: HTMLElement) => !el.closest('[hidden]') && el.checkVisibility()
+  const stated = all.find((el) => el.hasAttribute('autofocus') && shown(el))
+  if (stated) {
+    stated.focus({ preventScroll: true })
+    if (focusIsIn(win)) return true
+  }
   for (const el of all) {
-    if (el.closest('[hidden]') || !el.checkVisibility()) continue
+    if (!shown(el) || Number(el.getAttribute('tabindex')) < 0) continue
     if (el.tabIndex < 0 && !el.localName.startsWith('vf-')) continue
     el.focus({ preventScroll: true })
     if (focusIsIn(win)) return true

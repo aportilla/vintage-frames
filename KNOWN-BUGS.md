@@ -28,16 +28,6 @@ WebKit's own emulation sets the page's device scale factor and matches a display
 
 ---
 
-## 5. Opening a window can focus a cell that isn't a tab stop
-
-**Status:** open **Where:** `src/shell/windows.ts` (`focusInto`)
-
-`focusInto()` skips an element whose `tabIndex` is negative unless its tag starts with `vf-`. A kit host with no `tabindex` attribute reports -1 and still delegates focus, which is what the exemption is for. But a roving tab stop parks its other cells at `tabindex="-1"` (`vf-list` rows, `vf-radio-group` radios), and a disabled toggle or slider sets -1 too, so opening a window can move focus to one of those. Seen 2026-10-01 in SystemOnline's move onto the shell.
-
-Fix sketch: skip an element whose `tabindex` attribute is negative. A host with no attribute still goes through.
-
----
-
 ## 6. A desktop pattern change isn't saved on its own
 
 **Status:** open **Where:** `src/shell/shell.ts` (the saved state's change signal in the boot)

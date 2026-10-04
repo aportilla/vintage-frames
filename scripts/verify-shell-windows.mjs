@@ -20,13 +20,16 @@
  *    application.
  *  - FOCUS: opening a window moves the focus into it; closing the active one
  *    moves it to the window that becomes active, else to the window's icon.
+ *  - FOCUS INTO (a fixture): focusInto() passes over anything whose tabindex
+ *    is negative, lands on a radio group's checked radio, and takes a
+ *    control marked `autofocus` first.
  *  - SESSION: with saving on, a reload reopens the windows where they were,
  *    deepest first, the active one active.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:shell-windows
  */
-import { check, launch, openShell, report, shellOn } from './harness.mjs'
+import { check, launch, openShell, report, shellFixture, shellOn } from './harness.mjs'
 
 const browser = await launch()
 
@@ -394,6 +397,37 @@ const layout = (page) =>
   await s.settle()
   f = await focus(page)
   check('FOCUS  …and with none left, to the closed window’s icon', f.win === null && f.label === 'Note Pad', JSON.stringify(f))
+  await page.close()
+}
+
+// ── FOCUS INTO ──────────────────────────────────────────────────────────────
+{
+  const page = await shellFixture(browser)
+  /** focusInto() a window holding `body`; the id of the element the focus lands on. */
+  const into = (body, autofocus = null) =>
+    page.evaluate(
+      async ([html, stated]) => {
+        document.body.innerHTML = `<vf-desktop width="600" height="400"><vf-window heading="W" width="300" height="200">${html}</vf-window></vf-desktop>`
+        // Stated after the insert, so the browser's own autofocus never runs.
+        if (stated) document.getElementById(stated).setAttribute('autofocus', '')
+        const moved = await window.vfShell.focusInto(document.querySelector('vf-window'))
+        return { moved, at: document.activeElement?.id || null }
+      },
+      [body, autofocus]
+    )
+  const cells = ['c1', 'c2', 'c3']
+    .map((id, i) => `<vf-container id="${id}" tabindex="${id === 'c3' ? 0 : -1}" left="${8 + 24 * i}" top="8" width="16" height="16"></vf-container>`)
+    .join('')
+  let f = await into(cells)
+  check('FOCUS INTO  roving cells: the focus lands on the tab stop, not a cell parked at -1', f.moved && f.at === 'c3', JSON.stringify(f))
+  f = await into('<vf-checkbox id="off" disabled left="8" top="8">Off</vf-checkbox><vf-button id="ok" left="8" top="40">OK</vf-button>')
+  check('FOCUS INTO  …past a disabled control', f.moved && f.at === 'ok', JSON.stringify(f))
+  f = await into(
+    '<vf-radio-group label="Size" value="b" left="8" top="8"><vf-radio id="ra" value="a">A</vf-radio><vf-radio id="rb" value="b">B</vf-radio></vf-radio-group>'
+  )
+  check('FOCUS INTO  …onto a radio group’s checked radio', f.moved && f.at === 'rb', JSON.stringify(f))
+  f = await into('<vf-button id="first" left="8" top="8">First</vf-button><vf-text-field id="named" label="Name" left="8" top="40"></vf-text-field>', 'named')
+  check('FOCUS INTO  a control marked autofocus takes it first', f.moved && f.at === 'named', JSON.stringify(f))
   await page.close()
 }
 

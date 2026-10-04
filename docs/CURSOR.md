@@ -25,4 +25,18 @@ applyCursor({
 })
 ```
 
+A page adds cursors of its own by name, such as a paint program's eyedropper, and claims them the same way:
+
+```ts
+applyCursor({
+  kinds: { eyedropper: { src: '/art/eyedropper.png', width: 16, height: 16, hotspotX: 1, hotspotY: 14 } },
+})
+```
+
+```html
+<div class="canvas" data-vf-cursor="eyedropper"></div>
+```
+
+The nearest claim wins, and the cursor follows the attribute, so changing it while a key is held changes the cursor under a pointer that isn't moving. The arrow shows while the art loads or if it fails to, `aria-busy` still wins, and a name that is a built-in kind is ignored: its own option sets its art.
+
 The pointer hides only once the arrow art has decoded, and a kind whose art fails to load falls back to the arrow. The art ships inside the module as base64 data URIs; `npm run embed:cursors` regenerates `src/cursor-art.ts` from `cursors/*.png`.

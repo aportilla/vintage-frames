@@ -32,9 +32,10 @@
  *
  * ## Cursor states
  *
- * Four kinds — `arrow`, `text`, `crosshair`, `wait` — and a kind whose art
- * is missing (passed `null`, or failed to load) falls back to the arrow.
- * What decides the kind under the pointer, in priority order:
+ * Four kinds — `arrow`, `text`, `crosshair`, `wait` — plus any the page
+ * names in `kinds`, and a kind whose art is missing (passed `null`, still
+ * loading, or failed to load) falls back to the arrow. What decides the
+ * kind under the pointer, in priority order:
  *
  *  1. **`wait` — declared with `aria-busy="true"`.** The standard
  *     vocabulary, so assistive tech hears the same state the wristwatch
@@ -43,11 +44,12 @@
  *     busy open modal counts everywhere, since its backdrop covers the
  *     page); `aria-busy` on any region shows it over that region; on
  *     `<body>`, app-wide.
- *  2. **An explicit claim — `data-vf-cursor="arrow|text|crosshair|wait"`.**
- *     The opt-in channel for a component or a page region: state it on the
- *     element (light or shadow — the walk crosses shadow boundaries), and
- *     the claim nearest the pointer wins. A paint surface says
- *     `data-vf-cursor="crosshair"` and its insides get the cross.
+ *  2. **An explicit claim — `data-vf-cursor="arrow|text|crosshair|wait"`,
+ *     or one of the page's own names.** The opt-in channel for a component
+ *     or a page region: state it on the element (light or shadow — the walk
+ *     crosses shadow boundaries), and the claim nearest the pointer wins. A
+ *     paint surface says `data-vf-cursor="crosshair"` and its insides get
+ *     the cross; an unknown name is no claim.
  *  3. **`text` — automatic over native editable surfaces.** An enabled
  *     `<input>`/`<textarea>` or contenteditable under the pointer gets the
  *     I-beam with no opt-in at all, which covers every kit field, since the
@@ -105,9 +107,8 @@ export interface VfCursorArt {
   staticSrc?: string | string[]
 }
 
+/** The four built-in kinds. A page adds its own by name (`kinds`). */
 export type VfCursorKind = 'arrow' | 'text' | 'crosshair' | 'wait'
-
-const KINDS: readonly VfCursorKind[] = ['arrow', 'text', 'crosshair', 'wait']
 
 export interface VfCursorOptions {
   /** The default pointer. Defaults to the embedded System 7 arrow. */
@@ -120,6 +121,13 @@ export interface VfCursorOptions {
   /** While `aria-busy`. Defaults to the embedded wristwatch; `null`
    *  disables. */
   wait?: VfCursorArt | null
+  /**
+   * The page's own cursors by name — an eyedropper, a paint bucket —
+   * claimed with `data-vf-cursor="name"` like the built-ins. The arrow
+   * shows while one's art loads, or if it fails to. A built-in's name is
+   * ignored: its own option sets its art.
+   */
+  kinds?: Record<string, VfCursorArt>
   /**
    * Element whose top-left corner anchors the system-pixel lattice the
    * cursor snaps to. Defaults to the page's `vf-desktop` (else the document
@@ -215,8 +223,12 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
     text = CURSOR_I_BEAM,
     crosshair = CURSOR_CROSSHAIR,
     wait = CURSOR_WAIT,
+    kinds = {},
   } = options
-  const arts: Record<VfCursorKind, VfCursorArt | null> = { arrow, text, crosshair, wait }
+  // The page's own kinds after the built-ins, a built-in's name ignored.
+  const arts: Record<string, VfCursorArt | null> = { ...kinds, arrow, text, crosshair, wait }
+  /** Every name a claim may give: the built-ins and the page's own. */
+  const names = new Set(Object.keys(arts))
   const root = document.documentElement
   const aborter = new AbortController()
   const { signal } = aborter
@@ -256,8 +268,8 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
   /* Preload every kind's frames; a kind that fails to load is dropped and
      falls back to the arrow, so a broken option costs a state, never the
      cursor. */
-  const loaded = new Map<VfCursorKind, Loaded>()
-  for (const kindName of KINDS) {
+  const loaded = new Map<string, Loaded>()
+  for (const kindName of names) {
     const art = arts[kindName]
     if (!art) continue
     const source = art.invert && XOR_UNAVAILABLE ? (art.staticSrc ?? art.src) : art.src
@@ -290,7 +302,7 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
   let pointerX = -1
   let pointerY = -1
 
-  let kind: VfCursorKind = 'arrow'
+  let kind = 'arrow'
   let current = loaded.get('arrow')!
   let frameIndex = 0
   let frameTimer = 0
@@ -322,7 +334,7 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
 
   /** Swap the overlay to a kind's art — falling back to the arrow when the
    *  kind was disabled or its art never arrived. */
-  const apply = (next: VfCursorKind): void => {
+  const apply = (next: string): void => {
     const entry = loaded.get(next)
     const target = entry?.ready ? entry : loaded.get('arrow')!
     // Re-applies when either the kind moved OR the same kind's real art
@@ -348,14 +360,13 @@ export function applyCursor(options: VfCursorOptions = {}): () => void {
 
   /** Which cursor belongs at the cached pointer position, per the
    *  doc-comment priority: busy > explicit claim > text surface > arrow. */
-  const resolveKind = (): VfCursorKind => {
+  const resolveKind = (): string => {
     if (busyOpenModal()) return 'wait'
     const chain = composedChain(deepElementAt(pointerX, pointerY))
     if (chain.some((el) => el.getAttribute('aria-busy') === 'true')) return 'wait'
     for (const el of chain) {
       const claim = el.getAttribute('data-vf-cursor')
-      if (claim && (KINDS as readonly string[]).includes(claim))
-        return claim as VfCursorKind // nearest explicit claim wins
+      if (claim && names.has(claim)) return claim // nearest explicit claim wins
     }
     if (chain[0] && isTextSurface(chain[0])) return 'text'
     return 'arrow'

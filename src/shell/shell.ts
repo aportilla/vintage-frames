@@ -10,7 +10,7 @@
  * - While an application's held dialog is open, the bar shows that
  *   application's name and menus instead; nothing else changes.
  * - Each application's `init(ctx)` gets the desktop, the window manager, its
- *   own menus and dialogs, the system menu, the other applications' actions
+ *   own menus, dialogs and window markup, the system menu, the other applications' actions
  *   (read at the call), the catalog when a Finder runs, the site's services,
  *   `ask()`, `gate()`, `onFront()` and `onDispose()`. Everything it sets up
  *   comes down through `onDispose()`, and its dialogs with it, so a hot
@@ -83,6 +83,11 @@ export interface AppDefinition<Actions = unknown> {
    * an element that renders one inside itself. Held under the application.
    */
   dialogs?: string
+  /**
+   * A fragment of windows, each with a `data-window` name, kept inert:
+   * `ctx.window(name)` makes a fresh copy of one on each call.
+   */
+  windows?: string
   /** The catalog kinds it opens. */
   kinds?: Record<string, KindDefinition>
   /** The Finder's: the catalog every application shares. */
@@ -127,6 +132,12 @@ export interface AppContext {
   systemItem(value: string, label: string, fn: () => void): VfMenuItem
   /** One of its dialogs by `data-dialog`; throws when the markup drifts. */
   dialog<T extends HTMLElement = VfDialog>(name: string): T
+  /**
+   * A fresh copy of one of its windows by `data-window`, upgraded and not yet
+   * appended: `open({ create: () => ctx.window('viewer') })`. Throws when the
+   * markup drifts.
+   */
+  window<T extends HTMLElement = VfWindow>(name: string): T
   /** Hold a dialog it made in code: appended to the desktop, held under it, removed with it. Returns it. */
   hold<T extends Element>(dialog: T): T
   /** Let a dialog it holds go, and remove it. */
@@ -300,11 +311,17 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
     def,
     menus: parse(def.menus).filter((el): el is VfMenu => el.localName === 'vf-menu'),
     dialogs: parse(def.dialogs).filter((el) => el.dataset.dialog != null),
+    // Windows stay inert in a template, copied on each ask.
+    windows: (() => {
+      const template = document.createElement('template')
+      template.innerHTML = def.windows ?? ''
+      return template.content
+    })(),
   }))
 
   // Applications.
   const disposers: (() => void)[] = []
-  for (const { def, menus, dialogs } of entries) {
+  for (const { def, menus, dialogs, windows: windowMarkup } of entries) {
     const own: (() => void)[] = []
     const where = `vintage-frames/shell (${def.id})`
     // Its dialogs, held under it from the start and removed with it last.
@@ -368,6 +385,13 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
         const dialog = dialogs.find((d) => d.dataset.dialog === name)
         if (!dialog) throw new Error(`${where}: missing dialog ${name}`)
         return dialog as T
+      },
+      window<T extends HTMLElement = VfWindow>(name: string): T {
+        const source = [...windowMarkup.children].find((el) => (el as HTMLElement).dataset.window === name)
+        if (!source) throw new Error(`${where}: missing window ${name}`)
+        const win = document.importNode(source, true) as T
+        customElements.upgrade(win)
+        return win
       },
       hold(dialog) {
         wm.holdDialog(dialog, { app: def.id })

@@ -116,6 +116,7 @@ export const notePad = defineApp({
 | `icon` | Its 32×32 art, for its icon in the Finder. |
 | `menus` | `vf-menu` elements, each with a `data-menu` name. |
 | `dialogs` | Its dialogs, each with a `data-dialog` name (§ Dialogs). |
+| `windows` | Its windows, each with a `data-window` name, kept inert until `ctx.window()` copies one. |
 | `kinds` | The catalog kinds it opens (§ The catalog). |
 | `init(ctx)` | Sets the application up and returns its actions, which other applications call. An application whose windows reopen after a reload, or that opens from an icon, returns `open({ item, from })`. |
 
@@ -132,6 +133,7 @@ What `init` gets:
 | `gate(item, test)` | Keeps an item disabled while `test()` is false. Tests run again on every press, key, selection change and activation. |
 | `typing()`, `modalOpen()` | Whether a text field has focus, read through shadow roots, and whether a modal dialog is open. |
 | `dialog(name)` | One of its dialogs. Throws when the markup doesn't have it. |
+| `window(name)` | A fresh copy of one of its windows on each call, upgraded and not yet appended, for `open({ create: () => ctx.window('viewer') })` or `adopt()`. Throws when the markup doesn't have it. |
 | `hold(dialog)`, `release(dialog)` | Hold a dialog it made in code, and let one go. `hold()` appends it to the desktop and returns it; `release()` removes it. |
 | `ask(dialog)` | Shows one of its held dialogs and resolves its `returnValue`, or `null` when it closed without one. Throws for a dialog it doesn't hold. |
 | `onFront(fn)` | Whether the application is in front, now and on every change. For keys and page furniture that belong to one application. |

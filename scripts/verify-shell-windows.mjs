@@ -16,6 +16,7 @@
  *  - CLOSE: a document with unsaved changes asks before it closes, in Note
  *    Pad's own dialog; Cancel and Escape keep it, Don’t Save and Save close
  *    it, and Save files it. The dialog stays held, closed, for the next ask.
+ *  - WINDOWS: each ctx.window() is a fresh copy of the application's markup.
  *  - CLOSE ALL: closeAll() asks each of an application's windows front to
  *    back and stops at a Cancel; an Option-click on a close box closes
  *    every window of its application.
@@ -393,6 +394,15 @@ const layout = (page) =>
   await s.settle()
   await s.pick('File', 'new')
   await s.settle()
+  const copies = await page.evaluate(() => {
+    const wins = [...document.querySelectorAll('vf-desktop > vf-window[data-window="document"]')]
+    return wins.map((w) => `${w.heading}:${w.width}x${w.height}:${!!w.querySelector('vf-text-area')}`)
+  })
+  check(
+    'WINDOWS  two opens make two windows from Note Pad’s markup, each its own copy',
+    copies.join() === 'Untitled:260x140:true,Untitled 2:260x140:true',
+    copies.join()
+  )
   await page.keyboard.type('Draft')
   let closing = page.evaluate(() => window.shell.windows.closeAll('note-pad'))
   await page.waitForFunction(() => !!document.querySelector('vf-dialog[open]'))

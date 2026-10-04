@@ -54,6 +54,12 @@ const NOTE_PAD_DIALOGS = `
     </form>
   </vf-dialog>`
 
+/** Note Pad's document window: 8 around a six-line text area, which shell.html sizes to the body. */
+const NOTE_PAD_WINDOWS = `
+  <vf-window data-window="document" movable zoomable width="260" height="140">
+    <vf-text-area label="Text" rows="6" left="8" top="8"></vf-text-area>
+  </vf-window>`
+
 interface NotePadActions {
   /** Open a note; with none named, bring the front document up or start a new one. */
   open(options?: { item?: string | null; from?: VfViewportBox | null }): void
@@ -71,6 +77,7 @@ function notePad(): AppDefinition<NotePadActions> {
     icon: `${ICONS}/app-icon.png`,
     menus: NOTE_PAD_MENUS,
     dialogs: NOTE_PAD_DIALOGS,
+    windows: NOTE_PAD_WINDOWS,
     kinds: {
       [NOTE]: {
         art: `${ICONS}/doc-icon.png`,
@@ -99,25 +106,16 @@ function notePad(): AppDefinition<NotePadActions> {
         return w instanceof VfWindow && windows.appOf(w) === NOTE_PAD && !windows.isPalette(w) ? w : null
       }
 
-      /** A document window: 8 around a six-line text area, which shell.html sizes to the body. */
+      /** A document window, from the markup. */
       function makeWindow(name: string, text: string): VfWindow {
-        const win = document.createElement('vf-window')
+        const win = ctx.window('document')
         win.heading = name
-        win.movable = true
-        win.zoomable = true
-        win.width = 260
-        win.height = 140
-        const area = document.createElement('vf-text-area')
-        area.label = 'Text'
+        const area = textArea(win)
         area.value = text
-        area.rows = 6
-        area.left = 8
-        area.top = 8
         area.addEventListener('vf-input', () => {
           unsaved.add(win)
           showInfo()
         })
-        win.append(area)
         return win
       }
 

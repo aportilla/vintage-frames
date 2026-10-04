@@ -203,7 +203,7 @@ interface Item {
 }
 ```
 
-The catalog is the source of truth for what is where. It is pure: it runs under Node, and the shell's unit tests run it there.
+The catalog is the source of truth for what is where. It is pure: it runs under Node, from `vintage-frames/shell/pure` (§ Pieces on their own), and the shell's unit tests run it there.
 
 - The Trash and a startup disk are volumes: containers with no record, listed first, each if the site wants one (`volumes: { trash: 'Trash', disk: 'Macintosh HD' }`). A volume can't be renamed, moved, copied or removed, and nothing is made in the Trash. Deleting is a move into the Trash. Only Empty Trash removes.
 - A folder never goes into itself or a folder inside it. New folders are "untitled folder", then "untitled folder 2". Copies are "Name copy", then "Name copy 2".
@@ -366,6 +366,14 @@ Each module also works alone, on a page built from the elements ([FINDER.md](./F
 | `pinOf`, `pinTo`, `frameOf`, `cascadedBox`, `centeredBox`, `desktopLattice`, `folderLattice`, `trashCell`, `nextFreeCell`, `cleanUp`, `fillOrder`, `fieldExtent`, `collisions` | The geometry, pure: boxes and positions in whole system px. |
 | `localStorageState`, `readSession`, `mergeSession` | The saved session. |
 | `startClock` | The clock. |
+
+`vintage-frames/shell/pure` exports the catalog, the geometry and the saved session alone. They import nothing of the kit and touch no DOM when imported, so a site's own pure modules, and their tests under Node, import them from there:
+
+```ts
+import { createCatalog, memoryStorage, childrenOf, isPin, cascadedBox } from 'vintage-frames/shell/pure'
+```
+
+`vintage-frames/shell` exports the same names.
 
 ## The reference page
 

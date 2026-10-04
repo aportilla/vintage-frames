@@ -31,7 +31,7 @@ import {
   pinTo,
   trashCell,
   windowOrigin,
-} from '../scripts/.tmp/unit/shell/geometry.js'
+} from '../scripts/.tmp/unit/shell/pure.js'
 
 // No reserve and 100px bands. On R the middle is x ∈ [100, 900), y ∈ [100, 700).
 const F = frameOf(0)

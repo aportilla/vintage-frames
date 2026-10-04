@@ -18,7 +18,7 @@ import {
   itemCount,
   memoryStorage,
   nextFolderName,
-} from '../scripts/.tmp/unit/shell/catalog.js'
+} from '../scripts/.tmp/unit/shell/pure.js'
 
 const names = (items) => items.map((i) => i.name)
 

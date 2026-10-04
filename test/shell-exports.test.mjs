@@ -1,8 +1,9 @@
 // The shell's ground rules, read from its sources (src/shell/): it reaches
 // the kit only through the package's root exports, so whatever it needs is
-// exported for every page; it registers no elements, imports none for side
-// effects, writes no styles and ships no art. That each name it imports from
-// the root is exported there, TypeScript checks.
+// exported for every page; its pure modules, and the entry that exports
+// them, reach nothing of the kit; it registers no elements, imports none for
+// side effects, writes no styles and ships no art. That each name it imports
+// from the root is exported there, TypeScript checks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
@@ -24,14 +25,20 @@ test('the shell reaches the kit only through the root exports', () => {
   }
 })
 
+const PURE = ['./catalog.js', './geometry.js', './state.js']
+
 test('the pure modules import nothing from the kit, so they run under Node', () => {
   for (const [file, src] of sources) {
-    if (!['geometry.ts', 'catalog.ts', 'state.ts'].includes(file)) continue
+    if (!['geometry.ts', 'catalog.ts', 'state.ts', 'pure.ts'].includes(file)) continue
     for (const spec of specifiers(src)) {
-      assert.ok(spec.startsWith('./'), `${file} imports ${spec}`)
-      assert.ok(['./geometry.js', './catalog.js', './state.js'].includes(spec), `${file} imports ${spec}`)
+      assert.ok(PURE.includes(spec), `${file} imports ${spec}`)
     }
   }
+})
+
+test('vintage-frames/shell/pure re-exports the pure modules, and only them', () => {
+  const src = sources.find(([file]) => file === 'pure.ts')[1]
+  assert.deepEqual(specifiers(src).sort(), PURE)
 })
 
 test('the shell registers no elements and imports none for side effects', () => {
@@ -54,12 +61,17 @@ test('the shell writes no styles and ships no art', () => {
   )
 })
 
-test('the package exports the shell at vintage-frames/shell', () => {
+test('the package exports the shell at vintage-frames/shell, and its pure modules at vintage-frames/shell/pure', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
   assert.deepEqual(pkg.exports['./shell'], {
     types: './dist/shell/index.d.ts',
     import: './dist/shell/index.js',
   })
+  assert.deepEqual(pkg.exports['./shell/pure'], {
+    types: './dist/shell/pure.d.ts',
+    import: './dist/shell/pure.js',
+  })
   const vite = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8')
   assert.match(vite, /'shell\/index':\s*'src\/shell\/index\.ts'/)
+  assert.match(vite, /'shell\/pure':\s*'src\/shell\/pure\.ts'/)
 })

@@ -6,5 +6,5 @@
     "outDir": "scripts/.tmp/unit"
   },
   "include": [],
-  "files": ["src/shell/geometry.ts", "src/shell/catalog.ts", "src/shell/state.ts"]
+  "files": ["src/shell/pure.ts"]
 }

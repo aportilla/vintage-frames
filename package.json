@@ -40,6 +40,10 @@
       "types": "./dist/shell/index.d.ts",
       "import": "./dist/shell/index.js"
     },
+    "./shell/pure": {
+      "types": "./dist/shell/pure.d.ts",
+      "import": "./dist/shell/pure.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

@@ -3,8 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { frameOf, pinOf } from '../scripts/.tmp/unit/shell/geometry.js'
-import { mergeSession, openWindowsOf, readSession } from '../scripts/.tmp/unit/shell/state.js'
+import { frameOf, mergeSession, openWindowsOf, pinOf, readSession } from '../scripts/.tmp/unit/shell/pure.js'
 
 const pin = pinOf({ left: 40, top: 40, width: 300, height: 200 }, { width: 1000, height: 800 }, frameOf(20))
 

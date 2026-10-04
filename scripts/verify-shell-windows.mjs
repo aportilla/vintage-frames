@@ -14,6 +14,9 @@
  *  - CLOSE: a document with unsaved changes asks before it closes, in Note
  *    Pad's own dialog; Cancel and Escape keep it, Don’t Save and Save close
  *    it, and Save files it. The dialog stays held, closed, for the next ask.
+ *  - CLOSE ALL: closeAll() asks each of an application's windows front to
+ *    back and stops at a Cancel; an Option-click on a close box closes
+ *    every window of its application.
  *  - RESTORE: a replace import keeps open the windows whose items it puts
  *    back, and closes the rest.
  *  - DISPOSE: disposing the shell takes an open held dialog down with its
@@ -326,6 +329,56 @@ const layout = (page) =>
     JSON.stringify(note)
   )
   check('CLOSE  …and its icon is on the desktop', (await s.iconState('Untitled 2'))?.in === null)
+  await page.close()
+}
+
+// ── CLOSE ALL ───────────────────────────────────────────────────────────────
+{
+  const page = await openShell(browser)
+  const s = shellOn(page)
+  const answer = async (label) => {
+    await page.waitForFunction(() => !!document.querySelector('vf-dialog[open] vf-button'))
+    const at = await page.evaluate((l) => {
+      const r = [...document.querySelectorAll('vf-dialog[open] vf-button')].find((b) => b.textContent === l).getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+    }, label)
+    await page.mouse.click(at.x, at.y)
+  }
+  const docs = () => page.evaluate(() => window.shell.windows.windowsOf('note-pad').filter((w) => !window.shell.windows.isPalette(w)).length)
+  await s.pick('Apple', 'note-pad')
+  await s.settle()
+  await s.pick('File', 'new')
+  await s.settle()
+  await page.keyboard.type('Draft')
+  let closing = page.evaluate(() => window.shell.windows.closeAll('note-pad'))
+  await page.waitForFunction(() => !!document.querySelector('vf-dialog[open]'))
+  const asked = await page.evaluate(() => document.querySelector('vf-dialog[open] vf-paragraph')?.textContent)
+  await answer('Cancel')
+  const cancelled = await closing
+  check(
+    'CLOSE ALL  asks about the front document first; Cancel resolves false and every window stays',
+    asked === 'Save changes to “Untitled 2” before closing?' && cancelled === false && (await docs()) === 2,
+    `${asked} → ${cancelled}, ${await docs()} open`
+  )
+  closing = page.evaluate(() => window.shell.windows.closeAll('note-pad'))
+  await answer('Don’t Save')
+  const closed = await closing
+  check('CLOSE ALL  …Don’t Save closes it and the rest, and resolves true', closed === true && (await docs()) === 0, `${closed}, ${await docs()} open`)
+
+  for (const name of ['Documents', 'Projects']) {
+    const at = await s.icon(name)
+    await page.mouse.dblclick(at.x, at.y)
+    await s.settle()
+  }
+  const box = await closeBox(page, 'Documents')
+  await page.keyboard.down('Alt')
+  await page.mouse.click(box.x, box.y)
+  await page.keyboard.up('Alt')
+  await s.settle()
+  check(
+    'CLOSE ALL  an Option-click on a folder window’s close box closes every folder window',
+    (await s.window('Documents')) === null && (await s.window('Projects')) === null
+  )
   await page.close()
 }
 

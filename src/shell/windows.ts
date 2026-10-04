@@ -90,10 +90,14 @@ export interface AdoptOptions {
    * What the close box means. Unset, it closes the window. Set, the close box
    * asks the application, which calls `close()` once it decides — after a
    * Save prompt, say — or never. It gets the modifier keys held on the
-   * close box's click; a close from a menu or code holds none.
+   * close box's click; a close from a menu or code holds none. A handler
+   * that decides later returns its promise, so `closeAll()` waits for it.
    */
-  close?: ((win: VfWindow, keys: Partial<VfCloseKeys>) => void) | null
+  close?: CloseHandler | null
 }
+
+/** A window's close handler: decides whether it closes, and calls `close()` if so. */
+export type CloseHandler = (win: VfWindow, keys: Partial<VfCloseKeys>) => void | Promise<void>
 
 /** What opening a window for an item declares. */
 export interface OpenOptions extends Omit<AdoptOptions, 'pin' | 'palette'> {
@@ -116,7 +120,7 @@ interface Adoption {
   policy: ((cur: Box) => Policy) | null
   keep: ((area: Box) => Box) | null
   palette: null | (() => boolean)
-  close: ((win: VfWindow, keys: Partial<VfCloseKeys>) => void) | null
+  close: CloseHandler | null
 }
 
 /**
@@ -402,10 +406,16 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
   }
   on(desktop, 'vf-activate', (e) => applyActive((e as CustomEvent<{ window: HTMLElement | null }>).detail.window))
 
-  // The close box asks the window's application, with the keys held on its click.
+  // The close box asks the window's application, with the keys held on its
+  // click. An Option-click asks every window of the application, a palette's
+  // aside: each one's handler still decides for its own window.
   on(desktop, 'vf-close', (e) => {
     const win = e.target
-    if (win instanceof VfWindow && adopted.has(win)) api.requestClose(win, (e as CustomEvent<Partial<VfCloseKeys>>).detail ?? {})
+    const a = win instanceof VfWindow ? adopted.get(win) : undefined
+    if (!a) return
+    const keys = (e as CustomEvent<Partial<VfCloseKeys>>).detail ?? {}
+    if (keys.altKey && !a.palette) void api.closeAll(a.app, keys)
+    else void api.requestClose(win as VfWindow, keys)
   })
 
   // A window moved or grown: the layout signal. A placement write announces
@@ -573,11 +583,29 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       return landed
     },
 
-    /** The close box's route: the window's own close, given the modifier keys held, or a plain close. */
-    requestClose(win: VfWindow, keys: Partial<VfCloseKeys> = {}): void {
+    /**
+     * The close box's route: the window's own close, given the modifier keys
+     * held, or a plain close. Resolves whether the window closed, once its
+     * close handler has settled.
+     */
+    async requestClose(win: VfWindow, keys: Partial<VfCloseKeys> = {}): Promise<boolean> {
       const hook = adopted.get(win)?.close
-      if (hook) hook(win, keys)
+      if (hook) await hook(win, keys)
       else void api.close(win)
+      return !adopted.has(win)
+    },
+
+    /**
+     * Ask each of an application's windows to close, front to back, palettes
+     * aside: a Quit. Resolves false at the first window still open once its
+     * handler has settled — a Cancel — and true when all have closed.
+     */
+    async closeAll(app: string, keys: Partial<VfCloseKeys> = {}): Promise<boolean> {
+      const wins = api.windowsOf(app).filter((w) => !adopted.get(w)?.palette).reverse()
+      for (const win of wins) {
+        if (adopted.has(win) && !(await api.requestClose(win, keys))) return false
+      }
+      return true
     },
 
     /** The window showing `item`, or null. */

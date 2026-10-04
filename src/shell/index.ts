@@ -18,6 +18,7 @@ export type {
   AdoptOptions,
   ArrangeGroup,
   BoxInput,
+  CloseHandler,
   FocusHome,
   HomeBox,
   OpenOptions,

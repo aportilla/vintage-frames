@@ -29,11 +29,12 @@
  *    hands a vf-* control (and the aria-labelledby it uses for anything else),
  *    that it never overwrites a name the consumer set, that a caption filled in
  *    after upgrade still lands, and that removing the label puts it back.
+ *  - SELECTION: selected paragraph copy inverts to the 1-bit highlight.
  *
  *   npm run dev        # in another shell (port 5173)
  *   npm run verify:text
  */
-import { SCALE, check, launch, makeBuild, report } from './harness.mjs'
+import { SCALE, check, decodePng, launch, makeBuild, report } from './harness.mjs'
 
 /** Headless Chromium runs at dpr 1, where the kit derives 1 device px per system px. */
 const S = SCALE
@@ -397,6 +398,29 @@ const heightOf = (page, id) =>
     `label="${restored.prop}"`
   )
 
+  await page.close()
+}
+
+/* ── SELECTION ──────────────────────────────────────────────────────────────
+   Selected paragraph copy, a slotted <b> run included, inverts to the 1-bit
+   highlight: black ground, white ink, no browser blue. */
+{
+  const page = await build('<vf-paragraph id="sel" style="width:300px">Plain copy <b>and bold</b> here.</vf-paragraph>')
+  await page.evaluate(() => {
+    const range = document.createRange()
+    range.selectNodeContents(document.getElementById('sel'))
+    getSelection().removeAllRanges()
+    getSelection().addRange(range)
+  })
+  const png = decodePng(await page.locator('#sel').screenshot())
+  let black = 0
+  let other = 0
+  for (let i = 0; i < png.data.length; i += png.bpp) {
+    const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]]
+    if (r === 0 && g === 0 && b === 0) black++
+    else if (!(r === 255 && g === 255 && b === 255)) other++
+  }
+  check('selected paragraph copy inverts to the 1-bit highlight, a slotted run included', black > 0 && other === 0, `${black} black, ${other} neither black nor white`)
   await page.close()
 }
 

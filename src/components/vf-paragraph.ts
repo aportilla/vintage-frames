@@ -36,7 +36,9 @@ import { GridSnapController } from '../grid-snap.js'
  *   measure the copy wraps to, whole and on the grid.
  *
  * The shadow root renders a real `<p>`, so the copy keeps paragraph semantics
- * for assistive tech, and — unlike the kit's chrome — the text is selectable.
+ * for assistive tech, and — unlike the kit's chrome — the text is selectable,
+ * selected text inverting to the 1-bit highlight (`--vf-highlight` /
+ * `--vf-highlight-text`) as a field's does.
  * There is no margin: per SPEC §2 a component adds nothing outside its own box,
  * so paragraph spacing is the page's (a `gap` on the column, or a margin on the
  * host — kept a whole number of pixels, like everything else in the contract).
@@ -79,6 +81,13 @@ export class VfParagraph extends VfSized(VfPositioned(LitElement)) {
         /* Prose, not chrome: put back the text selection vfBase suppresses. */
         user-select: text;
         -webkit-user-select: text;
+      }
+      /* Selected copy inverts to the 1-bit highlight, as a field's does. The
+         copy is the host's own light-DOM text, so the rule is the host's;
+         text inside slotted elements (a <b>, a link) inherits it. */
+      :host::selection {
+        background-color: var(--vf-highlight, #000);
+        color: var(--vf-highlight-text, #fff);
       }
       /* Chrome copy wraps on Chicago 12's native line: ascent 12 + descent 3
          + leading 1 = 16 — zero half-leading on the 16px em, 7 blank rows

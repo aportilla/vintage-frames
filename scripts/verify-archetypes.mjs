@@ -128,7 +128,7 @@ function decodePng(buf) {
 {
   const page = await build(`
     <div style="position:relative">
-      <vf-window id="win" heading="Notes" movable
+      <vf-window closable id="win" heading="Notes" movable
         style="width:300px;height:200px"><p>Body</p></vf-window>
       <vf-dialog id="dlg" heading="Search and Replace" closable width="200" height="120" open><p>Body</p></vf-dialog>
       <vf-dialog id="bare" heading="Bare" width="200" height="120" open><p>Body</p></vf-dialog>
@@ -281,7 +281,7 @@ function decodePng(buf) {
    ──────────────────────────────────────────────────────────────────────── */
 {
   const page = await build(`
-    <vf-window id="uw" variant="utility" heading="Tools" zoomable movable
+    <vf-window closable id="uw" variant="utility" heading="Tools" zoomable movable
       style="width:196px;height:92px"><p>Body</p></vf-window>
   `)
 
@@ -413,10 +413,10 @@ function decodePng(buf) {
 {
   const page = await build(`
     <vf-desktop id="desk" style="display:block;width:900px;height:600px">
-      <vf-window id="a" heading="A" style="position:absolute;left:30px;top:30px;width:300px;height:200px"></vf-window>
-      <vf-window id="b" heading="B" style="position:absolute;left:150px;top:120px;width:300px;height:200px"></vf-window>
-      <vf-window id="u" variant="utility" heading="U" style="position:absolute;left:420px;top:60px;width:150px;height:120px"></vf-window>
-      <vf-window id="u2" variant="utility" heading="U2" style="position:absolute;left:520px;top:210px;width:150px;height:120px"></vf-window>
+      <vf-window closable id="a" heading="A" style="position:absolute;left:30px;top:30px;width:300px;height:200px"></vf-window>
+      <vf-window closable id="b" heading="B" style="position:absolute;left:150px;top:120px;width:300px;height:200px"></vf-window>
+      <vf-window closable id="u" variant="utility" heading="U" style="position:absolute;left:420px;top:60px;width:150px;height:120px"></vf-window>
+      <vf-window closable id="u2" variant="utility" heading="U2" style="position:absolute;left:520px;top:210px;width:150px;height:120px"></vf-window>
     </vf-desktop>
   `)
 
@@ -482,13 +482,13 @@ function decodePng(buf) {
           <vf-menu-item value="save">Save</vf-menu-item>
         </vf-menu>
       </vf-menu-bar>
-      <vf-window id="doc" heading="Doc" style="position:absolute;left:0;top:80px;width:400px;height:300px"></vf-window>
-      <vf-window id="pal" variant="utility" heading="Pal" style="position:absolute;left:0;top:80px;width:200px;height:150px"></vf-window>
+      <vf-window closable id="doc" heading="Doc" style="position:absolute;left:0;top:80px;width:400px;height:300px"></vf-window>
+      <vf-window closable id="pal" variant="utility" heading="Pal" style="position:absolute;left:0;top:80px;width:200px;height:150px"></vf-window>
       <!-- A second palette, clear of the probe point, so a press on the first
            has something to restack over (a lone palette is already topmost in
            its tier and _raise skips the bump). A free-standing menu placed
            over it drops its panel into it, for the same-tier check. -->
-      <vf-window id="pal2" variant="utility" heading="Pal 2" style="position:absolute;left:600px;top:80px;width:200px;height:150px"></vf-window>
+      <vf-window closable id="pal2" variant="utility" heading="Pal 2" style="position:absolute;left:600px;top:80px;width:200px;height:150px"></vf-window>
       <vf-menu id="lone" label="Options" left="200" top="25">
         <vf-menu-item value="a">Alpha</vf-menu-item>
         <vf-menu-item value="b">Beta</vf-menu-item>
@@ -599,7 +599,7 @@ function decodePng(buf) {
 {
   const page = await build(`
     <vf-desktop style="display:block;width:900px;height:600px">
-      <vf-window id="doc" heading="Doc" style="position:absolute;left:0;top:40px;width:400px;height:400px">
+      <vf-window closable id="doc" heading="Doc" style="position:absolute;left:0;top:40px;width:400px;height:400px">
         <vf-select id="sel" label="Size" left="20" top="20">
           <vf-option value="1">One</vf-option>
           <vf-option value="2">Two</vf-option>
@@ -609,7 +609,7 @@ function decodePng(buf) {
         </vf-select>
       </vf-window>
       <!-- Below the pill (at the pinned scale), over the list it drops. -->
-      <vf-window id="pal" variant="utility" heading="Pal" style="position:absolute;left:0;top:260px;width:300px;height:200px"></vf-window>
+      <vf-window closable id="pal" variant="utility" heading="Pal" style="position:absolute;left:0;top:260px;width:300px;height:200px"></vf-window>
     </vf-desktop>
   `)
   const pill = await page.evaluate(() => {
@@ -672,7 +672,7 @@ function decodePng(buf) {
    ──────────────────────────────────────────────────────────────────────── */
 {
   const page = await build(`
-    <vf-window id="doc" heading="Read Me" scrollbars="both" resizable
+    <vf-window closable id="doc" heading="Read Me" scrollbars="both" resizable
       style="width:420px;height:320px">
       <pre style="margin:0;white-space:pre">${'a long overflowing line of document text here\n'.repeat(40)}</pre>
     </vf-window>
@@ -718,11 +718,11 @@ function decodePng(buf) {
 {
   const page = await build(`
     <vf-desktop id="desk" style="display:block;width:900px;height:600px">
-      <vf-window id="doc" heading="Doc" scrollbars="both" resizable
+      <vf-window closable id="doc" heading="Doc" scrollbars="both" resizable
         style="position:absolute;left:20px;top:20px;width:420px;height:300px">
         <pre style="margin:0;white-space:pre">${'a long overflowing line of document text here\n'.repeat(40)}</pre>
       </vf-window>
-      <vf-window id="other" heading="Other"
+      <vf-window closable id="other" heading="Other"
         style="position:absolute;left:460px;top:40px;width:360px;height:300px">
         <vf-list id="slotted" style="height:120px">
           <vf-list-item>Alpha</vf-list-item>

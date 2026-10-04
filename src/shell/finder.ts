@@ -666,6 +666,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         const name = catalog.item(id)?.name ?? ''
         const win = document.createElement('vf-window')
         win.heading = name
+        win.closable = true
         win.movable = true
         win.outlineDrag = true
         win.resizable = true

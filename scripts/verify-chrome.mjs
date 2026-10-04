@@ -78,7 +78,7 @@ const partMetrics = (page, hostId, part, props) =>
   // correction a frame after render.
   const page = await build(`
     <div id="host" style="position:relative">
-      <vf-window id="win" heading="My Window" movable resizable zoomable
+      <vf-window closable id="win" heading="My Window" movable resizable zoomable
         style="width:300px;height:200px"><p>Body</p></vf-window>
       <vf-dialog id="dlg" heading="My Dialog" width="200" height="120" open><p>Body</p></vf-dialog>
     </div>
@@ -246,8 +246,8 @@ const partMetrics = (page, hostId, part, props) =>
   // after render.
   const PARITY_PAIRS = `
     <div id="host" style="position:relative">
-      <vf-window id="winA" heading="Grid" style="width:300px;height:100px"><p>B</p></vf-window>
-      <vf-window id="winB" heading="Grid" style="width:301px;height:100px"><p>B</p></vf-window>
+      <vf-window closable id="winA" heading="Grid" style="width:300px;height:100px"><p>B</p></vf-window>
+      <vf-window closable id="winB" heading="Grid" style="width:301px;height:100px"><p>B</p></vf-window>
       <vf-dialog id="dlgA" heading="Grid" width="200" height="100" open><p>B</p></vf-dialog>
       <vf-dialog id="dlgB" heading="Grid" width="201" height="100" open><p>B</p></vf-dialog>
     </div>
@@ -307,9 +307,9 @@ const partMetrics = (page, hostId, part, props) =>
 {
   const page = await build(`
     <div id="host" style="position:relative">
-      <vf-window id="win" heading="My Window" movable zoomable
+      <vf-window closable id="win" heading="My Window" movable zoomable
         style="width:300px;height:200px"><p>Body</p></vf-window>
-      <vf-window id="fixed" heading="Fixed" style="width:300px;height:120px"><p>B</p></vf-window>
+      <vf-window closable id="fixed" heading="Fixed" style="width:300px;height:120px"><p>B</p></vf-window>
       <vf-dialog id="dlg" heading="My Dialog" width="200" height="120" open><p>Body</p></vf-dialog>
     </div>
   `)
@@ -363,7 +363,7 @@ const partMetrics = (page, hostId, part, props) =>
 {
   const page = await build(`
     <div id="host" style="position:relative;--vf-titlebar-height:26px;--vf-shadow-offset:4px">
-      <vf-window id="win" heading="W" movable style="width:300px;height:200px"><p>B</p></vf-window>
+      <vf-window closable id="win" heading="W" movable style="width:300px;height:200px"><p>B</p></vf-window>
       <vf-dialog id="dlg" heading="D" width="200" height="120" open><p>B</p></vf-dialog>
     </div>
   `)
@@ -408,7 +408,7 @@ const partMetrics = (page, hostId, part, props) =>
 {
   const page = await build(`
     <div id="host" style="position:relative;height:600px">
-      <vf-window id="win" heading="Drag Me" movable
+      <vf-window closable id="win" heading="Drag Me" movable
         style="width:300px;height:200px"><p>Body</p></vf-window>
     </div>
   `)
@@ -673,7 +673,7 @@ const partMetrics = (page, hostId, part, props) =>
 {
   const page = await build(`
     <div id="host" style="position:relative;--vf-scale:1">
-      <vf-window id="win" heading="W" movable style="width:200px;height:120px"><p>B</p></vf-window>
+      <vf-window closable id="win" heading="W" movable style="width:200px;height:120px"><p>B</p></vf-window>
       <vf-dialog id="dlg" heading="D" width="200" height="120" open><p>B</p></vf-dialog>
     </div>
   `)

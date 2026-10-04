@@ -184,7 +184,7 @@ const FRAME_STROKE = 1
  * HIG compliance, it doesn't enforce it (see docs/LAYOUT.md "Window archetypes"):
  * the full document window is `closable zoomable movable resizable
  * scrollbars="both"`, a modeless dialog box is `closable movable`, a utility
- * window is `variant="utility" movable`. Place inside `<vf-desktop>` to get
+ * window is `variant="utility" closable movable`. Place inside `<vf-desktop>` to get
  * click-to-front stacking and automatic `active` management (utility windows
  * float above the document tier).
  *
@@ -600,8 +600,12 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    */
   @property({ type: Boolean, reflect: true }) active = true
 
-  /** Show the close box (left side of the title bar). */
-  @property({ type: Boolean, reflect: true }) closable = true
+  /**
+   * Show the close box (left side of the title bar). Off by default, like
+   * every other boolean attribute, so markup can leave it out; the document
+   * window and the modeless dialog box recipes say `closable`.
+   */
+  @property({ type: Boolean, reflect: true }) closable = false
 
   /** Show the zoom box (right side of the title bar). */
   @property({ type: Boolean, reflect: true }) zoomable = false

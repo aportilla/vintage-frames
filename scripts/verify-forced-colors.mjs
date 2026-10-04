@@ -136,8 +136,8 @@ const page = await build(
     '<vf-list-item id="row2" value="b">Beta</vf-list-item>' +
     '</vf-list>' +
     '<vf-swatch id="sw" color="#ff6600"></vf-swatch>' +
-    '<vf-window id="doc" heading="Document" width="260" height="90" active></vf-window>' +
-    '<vf-window id="pal" heading="" variant="utility" width="260" height="60" active></vf-window>' +
+    '<vf-window closable id="doc" heading="Document" width="260" height="90" active></vf-window>' +
+    '<vf-window closable id="pal" heading="" variant="utility" width="260" height="60" active></vf-window>' +
     '<vf-scroll-area id="sa" label="Notes" style="width:200px;height:60px">' +
     '<p style="margin:0;height:200px">tall</p></vf-scroll-area>' +
     '</div>'

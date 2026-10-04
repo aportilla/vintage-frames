@@ -92,7 +92,7 @@ const near = (a, b) => Math.abs(a - b) < 0.001
 /** A resizable window in a sized positioning parent, listener on document. */
 const PAGE = `
   <div style="position:relative;width:900px;height:700px">
-    <vf-window id="win" heading="Grow" top="20" left="20"
+    <vf-window closable id="win" heading="Grow" top="20" left="20"
                width="240" height="176" resizable></vf-window>
   </div>
 `
@@ -267,14 +267,14 @@ async function dragGrow(page, dx, dy, { steps = 5, id = 'win' } = {}) {
 
 const RECT_PAGE = `
   <div style="position:relative;width:900px;height:700px">
-    <vf-window id="strip" heading="Strip" top="20" left="20"
+    <vf-window closable id="strip" heading="Strip" top="20" left="20"
                width="272" height="67" min-height="67" max-height="67"
                resizable></vf-window>
-    <vf-window id="rect" heading="Rect" top="20" left="400"
+    <vf-window closable id="rect" heading="Rect" top="20" left="400"
                width="240" height="176"
                min-width="200" max-width="300" min-height="150" max-height="200"
                resizable></vf-window>
-    <vf-window id="under" heading="Under" top="300" left="20"
+    <vf-window closable id="under" heading="Under" top="300" left="20"
                width="120" height="40" max-width="120" max-height="40"
                resizable></vf-window>
   </div>
@@ -378,9 +378,9 @@ const sizeOf = (page, id) =>
 {
   const page = await build(`
     <div style="position:relative;width:900px;height:700px">
-      <vf-window id="bare" heading="Bare" top="10" left="10"
+      <vf-window closable id="bare" heading="Bare" top="10" left="10"
                  width="240" height="176"></vf-window>
-      <vf-window id="doc" heading="Doc" top="10" left="300"
+      <vf-window closable id="doc" heading="Doc" top="10" left="300"
                  width="240" height="176" resizable>
         <span id="readout" slot="status">40px x 40px</span>
       </vf-window>
@@ -461,14 +461,14 @@ const sizeOf = (page, id) =>
 {
   const page = await build(`
     <div style="position:relative;width:900px;height:700px">
-      <vf-window id="bare" heading="Bare" top="10" left="10"
+      <vf-window closable id="bare" heading="Bare" top="10" left="10"
                  width="240" height="176"></vf-window>
-      <vf-window id="auto" heading="Auto" top="10" left="300"
+      <vf-window closable id="auto" heading="Auto" top="10" left="300"
                  width="240" height="176">
         <div id="strip-content" slot="header" style="height:24px"></div>
         <vf-button id="placed" slot="header" left="8" top="2">OK</vf-button>
       </vf-window>
-      <vf-window id="stated" heading="Stated" top="200" left="10"
+      <vf-window closable id="stated" heading="Stated" top="200" left="10"
                  width="240" height="176" header-height="20">
         <span id="readout" slot="header">7 items</span>
         <div id="flow"></div>
@@ -565,7 +565,7 @@ const sizeOf = (page, id) =>
 {
   const page = await build(`
     <div style="position:relative;width:900px;height:700px">
-      <vf-window id="windoid" heading="3D View" variant="utility"
+      <vf-window closable id="windoid" heading="3D View" variant="utility"
                  top="20" left="20" width="240" height="176" resizable>
         <span slot="status">12×5×30 · 402 tris</span>
       </vf-window>
@@ -642,10 +642,10 @@ const sizeOf = (page, id) =>
 
 const OPEN_DESK = `
   <vf-desktop id="desk" width="512" height="342">
-    <vf-window id="win" heading="Folder" width="200" height="120" left="100" top="60" hidden>
+    <vf-window closable id="win" heading="Folder" width="200" height="120" left="100" top="60" hidden>
       <vf-button id="inside" left="16" top="16">OK</vf-button>
     </vf-window>
-    <vf-window id="other" heading="Other" width="140" height="80" left="340" top="250"></vf-window>
+    <vf-window closable id="other" heading="Other" width="140" height="80" left="340" top="250"></vf-window>
   </vf-desktop>
 `
 
@@ -1222,7 +1222,7 @@ for (const dpr of [2, 3]) {
 {
   const page = await build(`
     <div style="position:relative;width:900px;height:700px">
-      <vf-window id="plain" heading="Plain" width="200" height="120" left="100" top="60" hidden></vf-window>
+      <vf-window closable id="plain" heading="Plain" width="200" height="120" left="100" top="60" hidden></vf-window>
     </div>
   `)
   const res = await page.evaluate(async () => {
@@ -1423,7 +1423,7 @@ for (const dpr of [2, 3]) {
 
 const OUTLINE_DESK = (attrs) => `
   <vf-desktop id="desk" width="512" height="342">
-    <vf-window id="win" heading="Outline" width="200" height="120" left="100" top="60" ${attrs}></vf-window>
+    <vf-window closable id="win" heading="Outline" width="200" height="120" left="100" top="60" ${attrs}></vf-window>
   </vf-desktop>
 `
 
@@ -1619,7 +1619,7 @@ for (const [label, desk, attrs, dpr, want] of [
 ]) {
   const page = await build(
     `<vf-desktop id="desk" ${desk}>${BAR}
-       <vf-window id="win" heading="Up" width="200" height="120" left="100" top="150" ${attrs}></vf-window>
+       <vf-window closable id="win" heading="Up" width="200" height="120" left="100" top="150" ${attrs}></vf-window>
      </vf-desktop>`,
     { settle: true, dpr }
   )
@@ -1640,7 +1640,7 @@ for (const [label, desk, attrs, dpr, want] of [
   // keeps its grabbable strip on the screen, not under the bezel.
   const page = await build(
     `<vf-desktop id="desk" width="502" height="332" bezel="5">${BAR}
-       <vf-window id="win" heading="Right" width="200" height="120" left="100" top="150" movable></vf-window>
+       <vf-window closable id="win" heading="Right" width="200" height="120" left="100" top="150" movable></vf-window>
      </vf-desktop>`,
     { settle: true }
   )
@@ -1694,7 +1694,7 @@ for (const [label, desk, attrs, dpr, want] of [
   for (const dpr of [1, 2]) {
     const markup = CASES.map(
       ([, attrs, , slots = ''], i) =>
-        `<vf-window id="c${i}" heading="C" width="240" height="160" left="${8 + (i % 3) * 250}" top="${8 + Math.floor(i / 3) * 170}" ${attrs}>${slots}</vf-window>`
+        `<vf-window closable id="c${i}" heading="C" width="240" height="160" left="${8 + (i % 3) * 250}" top="${8 + Math.floor(i / 3) * 170}" ${attrs}>${slots}</vf-window>`
     ).join('')
     const page = await build(`<div style="position:relative;width:1100px;height:600px">${markup}</div>`, {
       dpr,
@@ -1736,8 +1736,8 @@ for (const [label, desk, attrs, dpr, want] of [
 
   const page = await build(
     `<div style="position:relative;width:900px;height:600px">
-       <vf-window id="d" heading="D" width="240" height="160" resizable></vf-window>
-       <vf-window id="e" heading="E" width="240" height="160" resizable min-width="185" min-height="160" max-height="300"></vf-window>
+       <vf-window closable id="d" heading="D" width="240" height="160" resizable></vf-window>
+       <vf-window closable id="e" heading="E" width="240" height="160" resizable min-width="185" min-height="160" max-height="300"></vf-window>
      </div>`
   )
   const limits = await page.evaluate(() =>
@@ -1758,7 +1758,7 @@ for (const [label, markup] of [
   [
     'with no desktop',
     `<div style="position:relative;width:900px;height:700px">
-       <vf-window id="win" heading="Outline" width="200" height="120" left="100" top="60" movable outline-drag></vf-window>
+       <vf-window closable id="win" heading="Outline" width="200" height="120" left="100" top="60" movable outline-drag></vf-window>
      </div>`,
   ],
 ]) {
@@ -1786,7 +1786,7 @@ for (const [label, markup] of [
 {
   const page = await build(
     `<div style="position:relative;width:600px;height:400px">
-       <vf-window id="win" heading="Keys" width="200" height="120" left="40" top="40"></vf-window>
+       <vf-window closable id="win" heading="Keys" width="200" height="120" left="40" top="40"></vf-window>
      </div>`
   )
   await page.evaluate(() => {

@@ -90,6 +90,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           >
             <vf-desktop width="512" height="272">
               <vf-window
+                closable
                 heading="Untitled"
                 movable
                 resizable
@@ -104,6 +105,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 <span slot="status" data-size-readout>192px x 100px</span>
               </vf-window>
               <vf-window
+                closable
                 heading="Second"
                 movable
                 width="176"
@@ -116,6 +118,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 </vf-stack>
               </vf-window>
               <vf-window
+                closable
                 variant="utility"
                 heading="Tools"
                 movable
@@ -157,6 +160,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 </vf-menu>
               </vf-menu-bar>
               <vf-window
+                closable
                 heading="Drag me into a corner"
                 movable
                 width="200"
@@ -177,7 +181,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             data-caption="pattern sets the desktop pattern by name. The default is the gray dither. --vf-desktop-pattern overrides the attribute."
           >
             <vf-desktop width="300" height="132" pattern="bricks">
-              <vf-window heading="General Controls" width="180" height="72" left="24" top="24">
+              <vf-window closable heading="General Controls" width="180" height="72" left="24" top="24">
                 <vf-stack fill-width pad="12">
                   <vf-paragraph fill-width>pattern="bricks"</vf-paragraph>
                 </vf-stack>
@@ -230,7 +234,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td class="wrap">Movable modal dialog box</td><td class="mono wrap">&lt;vf-dialog heading="…"&gt;</td></tr>
               <tr><td class="wrap">Modal dialog box</td><td class="mono wrap">&lt;vf-dialog frame="plain"&gt;</td></tr>
               <tr><td class="wrap">Modeless dialog box</td><td class="mono wrap">&lt;vf-window closable movable&gt;</td></tr>
-              <tr><td class="wrap">Utility (floating) window</td><td class="mono wrap">&lt;vf-window variant="utility" movable&gt;</td></tr>
+              <tr><td class="wrap">Utility (floating) window</td><td class="mono wrap">&lt;vf-window variant="utility" closable movable&gt;</td></tr>
             </tbody>
           </table>
 
@@ -242,6 +246,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           >
             <vf-desktop width="512" height="336">
               <vf-window
+                closable
                 heading="Read Me"
                 movable
                 resizable
@@ -278,6 +283,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 </vf-stack>
               </vf-window>
               <vf-window
+                closable
                 variant="utility"
                 heading="Palette"
                 movable
@@ -326,6 +332,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 </vf-icon>
               </vf-icon-field>
               <vf-window
+                closable
                 id="ex-window-opens"
                 heading="Notes"
                 movable
@@ -369,6 +376,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           >
             <vf-desktop width="512" height="162">
               <vf-window
+                closable
                 heading="Macintosh HD"
                 movable
                 resizable
@@ -404,6 +412,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           >
             <vf-desktop width="512" height="99">
               <vf-window
+                closable
                 heading="Patterns"
                 movable
                 resizable
@@ -441,7 +450,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. Taller content is clipped; use <code>scrollbars</code> to reach it. Unset, the body fits its content and logs a warning</td></tr>
               <tr><td><code>heading</code></td><td>string</td><td><code>''</code></td><td class="wrap">The title. Also used in the close and zoom boxes' accessible names (<code>Close Read Me</code>)</td></tr>
               <tr><td><code>active</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">Draws the window as the active one. An inactive window loses its stripes and its close and zoom boxes (which stay focusable), and its grow box and scrollbars are drawn empty. <code>vf-desktop</code> sets it</td></tr>
-              <tr><td><code>closable</code></td><td>boolean</td><td><code>true</code></td><td class="wrap">Shows the close box</td></tr>
+              <tr><td><code>closable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows the close box</td></tr>
               <tr><td><code>zoomable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows the zoom box</td></tr>
               <tr><td><code>movable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag the title bar to move it. The drag updates <code>top</code> and <code>left</code></td></tr>
               <tr><td><code>outline-drag</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Drag a dotted outline instead of the window, and move the window on release. Escape cancels. Outside a <code>vf-desktop</code> the window moves live. Property: <code>outlineDrag</code></td></tr>
@@ -1721,7 +1730,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </p>
 
           <template data-example data-caption="Every child placed with top and left, measured from the window body.">
-            <vf-window heading="Rename" width="300" height="140">
+            <vf-window closable heading="Rename" width="300" height="140">
               <vf-label left="12" top="30" for="ex-place-name">New name:</vf-label>
               <vf-text-field left="92" top="26" id="ex-place-name" value="untitled folder"></vf-text-field>
               <vf-button-group left="120" top="76">
@@ -1732,7 +1741,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           </template>
 
           <template data-example data-caption="fixed: the buttons stay put while the text scrolls under them. The stack's top padding leaves room for them.">
-            <vf-window heading="Notes" width="300" height="160" scrollbars="vertical">
+            <vf-window closable heading="Notes" width="300" height="160" scrollbars="vertical">
               <vf-button-group fixed top="4" left="4">
                 <vf-button>Bold</vf-button>
                 <vf-button>Italic</vf-button>
@@ -2159,6 +2168,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                 </vf-icon>
               </vf-icon-field>
               <vf-window
+                closable
                 id="folder-vehicles"
                 heading="Vehicles"
                 width="320"
@@ -2320,7 +2330,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
                   <vf-img slot="small"><img src="/demo/icons/doc-icon-small.png" alt="" /></vf-img>
                 </vf-icon>
               </vf-icon-field>
-              <vf-window heading="Folder" width="232" height="156" movable scrollbars="both" left="264" top="36">
+              <vf-window closable heading="Folder" width="232" height="156" movable scrollbars="both" left="264" top="36">
                 <vf-icon-field label="Folder" fill-width height="120">
                   <vf-icon label="Alpha" width="64" selectable movable left="24" top="21">
                     <vf-img slot="large"><img src="/demo/icons/doc-icon.png" alt="" /></vf-img>

@@ -131,9 +131,9 @@ The 1992 *Macintosh Human Interface Guidelines* names five standard windows. The
 | Movable modal dialog box | `<vf-dialog heading="…">` |
 | Modal dialog box | `<vf-dialog frame="plain">` |
 | Modeless dialog box | `<vf-window closable movable>` |
-| Utility (floating) window | `<vf-window variant="utility" movable>` |
+| Utility (floating) window | `<vf-window variant="utility" closable movable>` |
 
-Every recipe also declares `width` and `height` in system px; the three `movable` ones declare `top` and `left` as well. A window is a fixed box in both axes — content taller than the declared box is clipped at the frame, and `scrollbars` is how the user reaches the rest. A control's drop-open list still escapes the clip.
+Every recipe also declares `width` and `height` in system px; the three `movable` ones declare `top` and `left` as well. A window has a close box only where it says `closable`. A window is a fixed box in both axes — content taller than the declared box is clipped at the frame, and `scrollbars` is how the user reaches the rest. A control's drop-open list still escapes the clip.
 
 `frame="plain"` is the modal double frame (1px outer rule, 2px gap, 2px inner band, no shadow). `variant="utility"` is the windoid: a 12px bar with a dot-grid dither and 7×7 widgets, floating above every document window inside a `vf-desktop` and standing outside the single-active rule. `scrollbars` puts the rails on the window edge with the grow box in the corner cell. A `header` slot is a strip between the title bar and the body across the whole window, a white band over a 1px rule with no inset of its own; `header-height` states its height in system px, rule included, and the vertical rail begins under it. A `resizable` window's `min-width`/`max-width` and `min-height`/`max-height` bound the grow box per axis, in system px; a min equal to its max locks that axis, which is how a strip that scrolls sideways keeps its height.
 

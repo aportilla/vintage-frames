@@ -56,7 +56,7 @@ const NOTE_PAD_DIALOGS = `
 
 /** Note Pad's document window: 8 around a six-line text area, which shell.html sizes to the body. */
 const NOTE_PAD_WINDOWS = `
-  <vf-window data-window="document" movable zoomable width="260" height="140">
+  <vf-window data-window="document" closable movable zoomable width="260" height="140">
     <vf-text-area label="Text" rows="6" left="8" top="8"></vf-text-area>
   </vf-window>`
 
@@ -173,6 +173,7 @@ function notePad(): AppDefinition<NotePadActions> {
       const info = document.createElement('vf-window')
       info.variant = 'utility'
       info.heading = 'Info'
+      info.closable = true
       info.movable = true
       info.width = 128
       info.height = 40

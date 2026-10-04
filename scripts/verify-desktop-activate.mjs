@@ -37,9 +37,9 @@ const build = makeBuild(browser)
 /** dpr 1: scale 1, so system px and CSS px coincide and clicks are bare. */
 const PAGE = `
   <vf-desktop id="desk" width="600" height="450">
-    <vf-window id="w1" heading="One" top="60" left="20" width="200" height="100">one</vf-window>
-    <vf-window id="w2" heading="Two" top="60" left="240" width="200" height="100">two</vf-window>
-    <vf-window id="pal" heading="Pal" variant="utility" top="60" left="470" width="100" height="80">pal</vf-window>
+    <vf-window closable id="w1" heading="One" top="60" left="20" width="200" height="100">one</vf-window>
+    <vf-window closable id="w2" heading="Two" top="60" left="240" width="200" height="100">two</vf-window>
+    <vf-window closable id="pal" heading="Pal" variant="utility" top="60" left="470" width="100" height="80">pal</vf-window>
   </vf-desktop>
 `
 

@@ -14,8 +14,9 @@ import { emit, emitNative } from './events.js'
  * the name/description bridge every field needs, its role sitting on the inner
  * native control) and adds the value/label scaffolding
  * every field repeated: the reflected `name`, the `value`/`placeholder`/
- * `readonly`/`label` props, the captured default restored on form reset, the
- * `updated()` → {@link VfShadowRoleControl.syncFormValue} funnel, and the display-
+ * `readonly`/`autoselect`/`label` props, the captured default restored on
+ * form reset, the `updated()` → {@link VfShadowRoleControl.syncFormValue}
+ * funnel, `select()` and `focus()` on the inner control, and the display-
  * scaling controller. Pairs with the `vfField` css fragment (the white-well
  * skin) in styles/base.ts.
  *
@@ -38,6 +39,15 @@ export class VfTextControlBase extends VfShadowRoleControl {
 
   /** Makes the field read-only (focusable, not editable). */
   @property({ type: Boolean, reflect: true }) readonly = false
+
+  /**
+   * Opens with the whole text selected, so typing replaces it. Implies
+   * `autofocus`: the first control carrying either takes the opening focus of
+   * its `vf-dialog`, or of a window the shell's window manager opens. A dialog
+   * selects the text on every open, a window on its first open only. A click
+   * still places the caret.
+   */
+  @property({ type: Boolean, reflect: true }) autoselect = false
 
   /** Form field name used when submitting the associated form. */
   @property({ reflect: true }) name = ''
@@ -158,9 +168,25 @@ export class VfTextControlBase extends VfShadowRoleControl {
     return this.renderRoot.querySelector<HTMLInputElement | HTMLTextAreaElement>('.vf-field')
   }
 
-  /** Select all of the field's text, as a native field's `select()` does. */
+  /**
+   * Focuses the inner control, keeping its caret where it was. Chromium
+   * selects all of an input's text when the host hands the focus on, as a Tab
+   * does; `select()` and {@link autoselect} are how a field opens selected.
+   */
+  override focus(options?: FocusOptions): void {
+    this.control?.focus(options)
+  }
+
+  /**
+   * Select all of the field's text, as a native field's `select()` does. With
+   * a new value not yet rendered, once it has: writing the value into the
+   * input drops its selection, so `field.value = x; field.select()` selects
+   * `x`, as on a native field.
+   */
   select(): void {
-    this.control?.select()
+    const control = this.control
+    if (control && control.value === this.value) control.select()
+    else void this.updateComplete.then(() => this.control?.select())
   }
 
   override connectedCallback(): void {

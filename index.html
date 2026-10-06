@@ -629,7 +629,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Method</td><td><code>show()</code></td><td class="wrap">Opens it with the native <code>showModal()</code></td></tr>
               <tr><td>Method</td><td><code>close(value?)</code></td><td class="wrap">Closes it and fires <code>vf-close</code> with <code>reason: 'close'</code>. A <code>value</code> becomes its <code>returnValue</code></td></tr>
               <tr><td>Event</td><td><code>vf-close</code></td><td class="wrap"><code>{ reason: 'escape' | 'close' | 'outside', returnValue: string | null }</code>, however it closed. <code>'outside'</code> only with <code>light-dismiss</code>. <code>returnValue</code> is null when the close carried no value</td></tr>
-              <tr><td>Keyboard</td><td class="wrap">Initial focus</td><td class="wrap">A control with <code>autofocus</code>, else the first text field (<code>vf-text-field</code>, <code>vf-number-field</code>, <code>vf-text-area</code>, or a native one), else the default button</td></tr>
+              <tr><td>Keyboard</td><td class="wrap">Initial focus</td><td class="wrap">A control with <code>autofocus</code> or <code>autoselect</code>, else the first text field (<code>vf-text-field</code>, <code>vf-number-field</code>, <code>vf-text-area</code>, or a native one), else the default button. A field with <code>autoselect</code> opens with its text selected, every time</td></tr>
               <tr><td>Keyboard</td><td class="wrap">Return / Enter</td><td class="wrap">Presses the default button from anywhere in the dialog, even when Cancel has focus. Space presses the focused button. Links keep Enter. In a text area, Return adds a newline and keypad Enter presses the button. Escape closes</td></tr>
               <tr><td>Slots</td><td class="wrap">(default)</td><td class="wrap">The content. <code>top</code> and <code>left</code> measure from the inside of the frame</td></tr>
               <tr><td>Parts</td><td class="wrap"><code>frame</code>, <code>title-bar</code>, <code>title</code>, <code>close-box</code>, <code>body</code>, <code>content</code></td><td class="wrap"><code>title-bar</code> and <code>close-box</code> only on the default frame</td></tr>
@@ -951,6 +951,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>type</code></td><td>—</td><td>—</td><td class="wrap">Standard, form-associated. <code>type</code> (default <code>'text'</code>) is passed to the inner input</td></tr>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">Accessible name. If empty, an <code>aria-label</code>, <code>aria-labelledby</code> or <code>&lt;label for&gt;</code> on the host is used instead</td></tr>
+              <tr><td><code>autoselect</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Takes the focus when its dialog opens, or its window opens through the shell, with all its text selected, so typing replaces it. A dialog selects it on every open, a window on its first</td></tr>
               <tr><td><code>required</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Native constraint validation: <code>reportValidity()</code> shows the browser's message, <code>:invalid</code> matches the host, and the form won't submit</td></tr>
               <tr><td><code>description</code></td><td>string</td><td><code>''</code></td><td class="wrap">Hint text for assistive tech. If empty, an <code>aria-describedby</code> on the host is used. A validation message is added to it</td></tr>
               <tr><td><code>vf-input</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value }</code> on every keystroke</td></tr>
@@ -980,7 +981,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
             <tbody>
               <tr><td><code>rows</code></td><td>number</td><td><code>4</code></td><td class="wrap">Visible lines, as on <code>&lt;textarea&gt;</code></td></tr>
-              <tr><td colspan="4" class="wrap">Everything else matches <a href="#vf-text-field"><code>vf-text-field</code></a>: <code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>label</code>, <code>required</code>, <code>description</code>, <code>vf-input</code>, <code>vf-change</code>, <code>--vf-field-width</code>. Part: <code>textarea</code>.</td></tr>
+              <tr><td colspan="4" class="wrap">Everything else matches <a href="#vf-text-field"><code>vf-text-field</code></a>: <code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>label</code>, <code>autoselect</code>, <code>required</code>, <code>description</code>, <code>vf-input</code>, <code>vf-change</code>, <code>--vf-field-width</code>. Part: <code>textarea</code>.</td></tr>
             </tbody>
           </table>
         </section>
@@ -1015,6 +1016,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>min</code>, <code>max</code></td><td>number</td><td>—</td><td class="wrap">Clamp the value. Also set <code>aria-valuemin</code>/<code>max</code></td></tr>
               <tr><td><code>step</code></td><td>number</td><td><code>1</code></td><td class="wrap">Step size, and the value's decimal precision</td></tr>
               <tr><td><code>value</code>, <code>placeholder</code>, <code>name</code>, <code>disabled</code>, <code>readonly</code>, <code>label</code></td><td>—</td><td>—</td><td class="wrap">Standard. <code>readonly</code> also disables the arrows</td></tr>
+              <tr><td><code>autoselect</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">As on <a href="#vf-text-field"><code>vf-text-field</code></a></td></tr>
               <tr><td><code>vf-input</code> / <code>vf-change</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, valueAsNumber }</code>, on every keystroke / on commit or a step</td></tr>
               <tr><td><code>--vf-number-field-width</code></td><td>Token</td><td><code>4em</code></td><td class="wrap">Width of the input</td></tr>
               <tr><td colspan="4" class="wrap">Parts: <code>input</code>, <code>stepper</code>. Role <code>spinbutton</code> on the input; ↑/↓ step, Home/End jump to <code>min</code>/<code>max</code>.</td></tr>

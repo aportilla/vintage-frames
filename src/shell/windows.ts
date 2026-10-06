@@ -17,7 +17,8 @@
  *   none is active. `beforeFront` runs before a change, `onFront` reports it.
  * - Palettes are an application's utility windows: shown while it is front
  *   and hidden otherwise, never closed or removed.
- * - Opening a window moves keyboard focus into it; closing the active one
+ * - Opening a window moves keyboard focus into it, and a new window's field
+ *   marked `autoselect` opens with its text selected; closing the active one
  *   moves focus to the window that becomes active, else to the closed
  *   window's icon, else to the desktop's icons. Focus left behind in a
  *   window that is no longer active — a title-bar press moves none — goes
@@ -189,26 +190,37 @@ const focusIsIn = (el: Element): boolean => {
   return !!active && (active === el || el.contains(active))
 }
 
+/** Whether a control is marked `autoselect`: the text fields' property, else the attribute. */
+const autoselects = (el: Element): boolean =>
+  (el as { autoselect?: boolean }).autoselect ?? el.hasAttribute('autoselect')
+
 /**
  * Move keyboard focus into `win`'s content once that content has rendered —
- * and then only if `when`, read at that point, still holds: to a descendant
- * marked `autofocus`, else to the first thing that takes the focus. An
- * element whose `tabindex` is negative is passed over: a roving cell parked
- * off the tab order, a disabled control. A kit host with no `tabindex` goes
- * through, since it hands the focus on inside itself. Resolves whether the
- * focus moved: a window with nothing focusable in its content keeps the
- * focus where it was.
+ * and then only if `when`, read at that point, still holds: to the first
+ * descendant marked `autofocus` or `autoselect`, else to the first thing that
+ * takes the focus. With `select`, a control marked `autoselect` has its text
+ * selected too; the window manager passes it on a window's first open only,
+ * so a caret placed in the window survives a return to it. An element whose
+ * `tabindex` is negative is passed over: a roving cell parked off the tab
+ * order, a disabled control. A kit host with no `tabindex` goes through,
+ * since it hands the focus on inside itself. Resolves whether the focus
+ * moved: a window with nothing focusable in its content keeps the focus where
+ * it was.
  */
-export async function focusInto(win: Element, { when }: { when?: () => boolean } = {}): Promise<boolean> {
+export async function focusInto(
+  win: Element,
+  { when, select = false }: { when?: () => boolean; select?: boolean } = {}
+): Promise<boolean> {
   const all = [...win.querySelectorAll<HTMLElement>('*')]
   await Promise.all(
     [win, ...all].map((el) => (el as unknown as { updateComplete?: Promise<unknown> }).updateComplete)
   )
   if (!win.isConnected || (when && !when())) return false
   const shown = (el: HTMLElement) => !el.closest('[hidden]') && el.checkVisibility()
-  const stated = all.find((el) => el.hasAttribute('autofocus') && shown(el))
+  const stated = all.find((el) => (el.hasAttribute('autofocus') || autoselects(el)) && shown(el))
   if (stated) {
     stated.focus({ preventScroll: true })
+    if (select && autoselects(stated) && focusIsIn(stated)) (stated as { select?: () => void }).select?.()
     if (focusIsIn(win)) return true
   }
   for (const el of all) {
@@ -418,9 +430,10 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
    * Focus into a window once its content has rendered, if it is still the
    * active one then: windows opened in one go — a boot reopening a session,
    * Open on several icons — would each take the focus, and with it the
-   * front, from the one opened after it.
+   * front, from the one opened after it. `select` on a window's first open.
    */
-  const focusActive = (win: HTMLElement) => void focusInto(win, { when: () => desktop.activeWindow === win })
+  const focusActive = (win: HTMLElement, select = false) =>
+    void focusInto(win, { when: () => desktop.activeWindow === win, select })
 
   const applyActive = (win: HTMLElement | null) => {
     followFocus(win)
@@ -577,7 +590,8 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
      * Open the window for `item`: raise it if one is open, else make it,
      * append it, adopt it and place it — this session's pin, then the saved
      * one, then `place`, by default the first free cascade slot — and show it
-     * out of `from`. Keyboard focus moves into it. Returns the window.
+     * out of `from`. Keyboard focus moves into it, and a new window's field
+     * marked `autoselect` has its text selected. Returns the window.
      */
     open(opts: OpenOptions): VfWindow {
       const existing = opts.item != null ? api.windowFor(opts.item) : null
@@ -604,7 +618,7 @@ export function createWindowManager(desktop: VfDesktop, options: WindowManagerOp
       if (item != null) remembered.delete(item)
       desktop.bringToFront(win)
       if (opts.from) void win.show({ from: opts.from })
-      focusActive(win)
+      focusActive(win, true)
       return win
     },
 

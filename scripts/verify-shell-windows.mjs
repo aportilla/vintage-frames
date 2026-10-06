@@ -29,6 +29,10 @@
  *  - FOCUS INTO (a fixture): focusInto() passes over anything whose tabindex
  *    is negative, lands on a radio group's checked radio, and takes a
  *    control marked `autofocus` first.
+ *  - AUTOSELECT (a fixture): open() on a new window selects the seeded text
+ *    of its field marked `autoselect`; open() on the window once it is open
+ *    leaves the caret where it was; a field marked `autofocus` alone opens
+ *    with its text unselected.
  *  - FIRST RENDER (a fixture): a palette adopted in an application's init is
  *    placed against the work area below the menu bar.
  *  - SESSION: with saving on, a reload reopens the windows where they were,
@@ -540,6 +544,57 @@ const layout = (page) =>
   check('FOCUS INTO  …onto a radio group’s checked radio', f.moved && f.at === 'rb', JSON.stringify(f))
   f = await into('<vf-button id="first" left="8" top="8">First</vf-button><vf-text-field id="named" label="Name" left="8" top="40"></vf-text-field>', 'named')
   check('FOCUS INTO  a control marked autofocus takes it first', f.moved && f.at === 'named', JSON.stringify(f))
+  await page.close()
+}
+
+// ── AUTOSELECT ──────────────────────────────────────────────────────────────
+{
+  const page = await shellFixture(browser)
+  await page.evaluate(async () => {
+    document.body.innerHTML = '<vf-desktop width="600" height="400"></vf-desktop>'
+    const desktop = document.querySelector('vf-desktop')
+    await desktop.updateComplete
+    const windows = window.vfShell.createWindowManager(desktop, { defaultApp: 'finder' })
+    const make = (heading, body, seed) => () => {
+      const win = Object.assign(document.createElement('vf-window'), { heading, width: 300, height: 160 })
+      win.innerHTML = body
+      // Seeded before open(), as an application names a new document.
+      if (seed) win.querySelector('[autoselect]').value = seed
+      return win
+    }
+    const a = make('A', '<vf-button id="first" left="8" top="8">First</vf-button><vf-text-field id="name" label="Name" autoselect left="8" top="40"></vf-text-field>', 'untitled 2')
+    const b = make('B', '<vf-text-field id="other" label="Other" left="8" top="8"></vf-text-field>')
+    const c = () => {
+      const win = make('C', '<vf-text-field id="plain" label="Plain" autofocus left="8" top="8"></vf-text-field>')()
+      win.querySelector('#plain').value = 'kept'
+      return win
+    }
+    window.__openA = () => windows.open({ app: 'app', item: 'a', create: a })
+    window.__openB = () => windows.open({ app: 'app', item: 'b', create: b })
+    window.__openC = () => windows.open({ app: 'app', item: 'c', create: c })
+  })
+  const focusOn = (id) => page.waitForFunction((i) => document.activeElement?.id === i, id)
+  const value = () => page.evaluate(() => document.getElementById('name').value)
+  await page.evaluate(() => window.__openA())
+  await focusOn('name')
+  await page.keyboard.type('x')
+  let v = await value()
+  check('AUTOSELECT  a new window’s autoselect field takes the focus, its seeded text selected', v === 'x', v)
+  // A caret placed in the window survives a return to it.
+  await page.keyboard.type('yz')
+  await page.keyboard.press('ArrowLeft')
+  await page.evaluate(() => window.__openB())
+  await focusOn('other')
+  await page.evaluate(() => window.__openA())
+  await focusOn('name')
+  await page.keyboard.type('Q')
+  v = await value()
+  check('AUTOSELECT  …a return to the open window keeps the caret, selecting nothing', v === 'xyQz', v)
+  await page.evaluate(() => window.__openC())
+  await focusOn('plain')
+  await page.keyboard.type('x')
+  v = await page.evaluate(() => document.getElementById('plain').value)
+  check('AUTOSELECT  a field marked autofocus alone opens with its text unselected', v === 'keptx', v)
   await page.close()
 }
 

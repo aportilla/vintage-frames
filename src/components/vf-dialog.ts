@@ -58,12 +58,13 @@ import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
  *
  * Keyboard, the classic Dialog Manager's two rules ({@link VfModalDialog}):
  * on open, focus goes to the first text-entry control — a slotted control
- * with `autofocus` first — or, with none, to the default button
- * (`vf-button variant="default"`). Return or Enter activates the default
- * button from anywhere in the dialog, a focused Cancel included; Space
- * presses the focused control. A link keeps its own Enter, and in a
- * multi-line editor Return inserts the newline while the keypad's Enter
- * activates the button.
+ * with `autofocus` or `autoselect` first — or, with none, to the default
+ * button (`vf-button variant="default"`). A field marked `autoselect` opens
+ * with its whole text selected, on every open. Return or Enter activates
+ * the default button from anywhere in the dialog, a focused Cancel
+ * included; Space presses the focused control. A link keeps its own Enter,
+ * and in a multi-line editor Return inserts the newline while the keypad's
+ * Enter activates the button.
  *
  * Slotted children placed with `top`/`left` measure from the content region's
  * corner — the frame's inner edge, below the title bar — and flow content
@@ -80,8 +81,8 @@ import { VfModalDialog, modalDialogStyles } from '../modal-dialog.js'
  *   content). Inert while the content fits; over-stuffed, it scrolls under a
  *   System 7 rail and becomes a keyboard stop.
  * @fires vf-show - Dialog opened, placed and given its initial focus. Detail
- *   `{ focus }`, the element focused: the moment to select a field's default
- *   text (`select()`) or measure copy that varies.
+ *   `{ focus }`, the element focused: the moment to measure copy that
+ *   varies. A field marked `autoselect` has its text selected after it.
  * @fires vf-close - Dialog closed. Detail `{ reason: 'escape' | 'close' |
  *   'outside', returnValue: string | null }` — `'outside'` only under
  *   `light-dismiss` — plus `altKey`, `shiftKey`, `metaKey` and `ctrlKey`

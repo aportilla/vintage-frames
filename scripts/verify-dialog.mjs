@@ -34,8 +34,10 @@
  *    default button from anywhere: a focused Cancel included (Space is what
  *    presses the focused control), a text field, and a multi-line editor
  *    on the keypad's Enter only (Return inserts the newline there). A link
- *    keeps its own Enter; `autofocus` names the initial control; a form's
- *    implicit submission runs once, not twice.
+ *    keeps its own Enter; `autofocus` names the initial control; `autoselect`
+ *    names it too and selects its text on every open, a value set just
+ *    before or on `vf-show` included; a form's implicit submission runs
+ *    once, not twice. `select()` after a value write selects the new value.
  *  - ANSWERS: a `<form method="dialog">` (or a button's `formmethod="dialog"`)
  *    closes the dialog with the submitting button's value as `returnValue`,
  *    and `vf-close` carries it; a cancelled submit, a plain button and a form
@@ -401,6 +403,16 @@ async function keys(page, key) {
     })
   )
   check('select() selects the whole value of a text field, a number field and a text area', all.every(Boolean), all.join())
+  const pending = await page.evaluate(async () => {
+    const el = document.getElementById('t')
+    el.focus()
+    el.value = 'renamed'
+    el.select()
+    await el.updateComplete
+    const inner = el.shadowRoot.querySelector('.vf-field')
+    return [inner.value, inner.selectionStart, inner.selectionEnd].join()
+  })
+  check('select() right after a value write selects the new value once it renders', pending === 'renamed,0,7', pending)
   await page.close()
 }
 
@@ -463,6 +475,49 @@ async function keys(page, key) {
   const open = await page.evaluate(() => document.getElementById('dlg').open)
   check('keys: with no default button, Enter presses nothing and the dialog stays open', clicks.length === 0 && open, `${clicks.join()} open=${open}`)
   await page.evaluate(CLOSE)
+  await page.close()
+}
+
+// autoselect takes the initial focus with the text selected, on every open,
+// for a value set just before show() and for one set on vf-show.
+{
+  const page = await build(
+    KEYS(
+      `<vf-text-field id="first" label="First" value="keep"></vf-text-field>
+       <vf-text-field id="name" label="Name" value="untitled" autoselect></vf-text-field>`
+    )
+  )
+  await page.evaluate(() => {
+    window.__shows = []
+    document.getElementById('dlg').addEventListener('vf-show', (e) => {
+      window.__shows.push(e.detail.focus?.id ?? null)
+      if (window.__seedOnShow) document.getElementById('name').value = window.__seedOnShow
+    })
+  })
+  /** Seed the field (or leave it to vf-show), open, type one character; the field's value. */
+  const askThenType = async (seed, onShow = null) => {
+    const focused = await page.evaluate(
+      ([v, s]) => {
+        window.__seedOnShow = s
+        if (v !== null) document.getElementById('name').value = v
+        document.getElementById('dlg').show()
+        return document.activeElement?.id ?? ''
+      },
+      [seed, onShow]
+    )
+    await page.keyboard.type('x')
+    const value = await page.evaluate(() => document.getElementById('name').value)
+    await page.evaluate(CLOSE)
+    return { focused, value }
+  }
+  let r = await askThenType('untitled 2')
+  check('keys: autoselect takes the initial focus ahead of an earlier text field', r.focused === 'name', r.focused)
+  check('keys: …with a value set just before show() selected: one character replaces it', r.value === 'x', r.value)
+  check('keys: …and vf-show names it', (await page.evaluate(() => window.__shows.join())) === 'name')
+  r = await askThenType('untitled 3')
+  check('keys: autoselect selects again on the next open', r.value === 'x', r.value)
+  r = await askThenType(null, 'from vf-show')
+  check('keys: autoselect selects a value set in a vf-show handler', r.value === 'x', r.value)
   await page.close()
 }
 

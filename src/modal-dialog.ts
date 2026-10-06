@@ -80,6 +80,14 @@ const isTextEntry = (el: Element): boolean => {
 const TEXT_FIELDS = 'vf-text-field, vf-number-field, vf-text-area, textarea, input'
 
 /**
+ * Whether a control is marked `autoselect`. Read off the text fields'
+ * property, which is ahead of its reflected attribute until the field
+ * renders; the attribute stands in on an element without the property.
+ */
+const autoselects = (el: Element): boolean =>
+  (el as { autoselect?: boolean }).autoselect ?? el.hasAttribute('autoselect')
+
+/**
  * Shared native-`<dialog>` styles for the modal shells: a chromeless top-layer
  * dialog (the frame is drawn by the subclass) with a fully transparent
  * backdrop — pure System 7, no dimming.
@@ -141,7 +149,8 @@ export const modalDialogStyles = css`
  * {@link defaultButton} and {@link initialFocusTarget}): Return or Enter
  * activates the default button from anywhere in the dialog, and the box opens
  * with the insertion point in its first text field — or, with none, focus on
- * the default button.
+ * the default button. A field marked `autoselect` takes the focus with its
+ * text selected, on every open.
  *
  * Removing an open modal from the DOM is a close path too. HTML's dialog
  * *removing steps* take the element out of the top layer **without** running
@@ -166,9 +175,10 @@ export const modalDialogStyles = css`
  *
  * @fires vf-show - The modal opened: it is in the top layer, placed, and its
  *   initial focus is set. `detail: { focus }`, the element focused. The page's
- *   moment to finish composing it — select a field's default text, measure
- *   copy that varies. Fired inside `show()` once the modal has rendered, else
- *   at its first render.
+ *   moment to finish composing it, such as measuring copy that varies. A
+ *   field marked `autoselect` has its text selected after the event, so a
+ *   value set in a handler is the one selected. Fired inside `show()` once
+ *   the modal has rendered, else at its first render.
  * @fires vf-close - The modal closed. `detail: { reason: 'escape' | 'close' |
  *   'outside', returnValue: string | null }`.
  */
@@ -387,7 +397,8 @@ export class VfModalDialog extends LitElement {
    * so with no text field the default button takes it (which is also what
    * makes Return and Space work there without a Tab). In order:
    *
-   * 1. a slotted control carrying `autofocus` — the author's say;
+   * 1. the first slotted control carrying `autofocus` or `autoselect` — the
+   *    author's say;
    * 2. the first enabled text-entry control (`vf-text-field`,
    *    `vf-number-field`, `vf-text-area`, or a native text input/textarea);
    * 3. the {@link defaultButton};
@@ -396,10 +407,13 @@ export class VfModalDialog extends LitElement {
    * Left to itself, `showModal()` focuses the first focusable thing in flat
    * tree order, which for a Cancel/OK row is Cancel, and for a body with a
    * link in it is the link — so Return did the one thing a classic dialog's
-   * Return never did. Override to choose differently.
+   * Return never did. Override to choose differently. A target marked
+   * `autoselect` has its text selected once `vf-show` has fired.
    */
   protected get initialFocusTarget(): HTMLElement | null {
-    const stated = this.querySelector<HTMLElement>('[autofocus]')
+    const stated = [...this.querySelectorAll<HTMLElement>('*')].find(
+      (el) => el.hasAttribute('autofocus') || autoselects(el)
+    )
     if (stated) return stated
     const text = [...this.querySelectorAll<HTMLElement>(TEXT_FIELDS)].find(
       (el) => isTextEntry(el) && !el.matches(':disabled')
@@ -634,6 +648,9 @@ export class VfModalDialog extends LitElement {
       this.#openListeners.attach()
       // Open, placed and focused: the page's moment to finish composing it.
       emit<VfShowDetail>(this, 'vf-show', { focus })
+      // After vf-show, so a value set before show() or in a handler is the
+      // text selected: a field's select() waits for its pending render.
+      if (focus && autoselects(focus)) (focus as { select?: () => void }).select?.()
     } else if (!this.open && dialog.open) {
       dialog.close()
     }

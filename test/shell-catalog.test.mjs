@@ -5,9 +5,11 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  APP_KIND,
   DISK,
   TRASH,
   UNTITLED_FOLDER,
+  appIdOf,
   childrenOf,
   copyName,
   createCatalog,
@@ -159,6 +161,16 @@ test('kinds: one no application registers is left out of the listing and kept in
   assert.ok(storage.records.has(z.id) && storage.records.has(t.id))
   // …and comes back with the rest in a dump.
   assert.ok(catalog.dump().items.some((i) => i.id === z.id))
+})
+
+test('the app kind: its data names the application; appIdOf reads it, null without one', async () => {
+  const { catalog } = await library()
+  const icon = await catalog.create({ name: 'Meteors', kind: APP_KIND, data: { app: 'meteors' } })
+  assert.equal(icon.kind, 'app')
+  assert.equal(appIdOf(icon), 'meteors')
+  assert.equal(appIdOf({ ...icon, data: undefined }), null)
+  assert.equal(appIdOf({ ...icon, data: {} }), null)
+  assert.equal(appIdOf({ ...icon, data: { app: 7 } }), null, 'an id that isn’t a string')
 })
 
 test('items: rename and move with a landing; the landing is the item’s place, none the next free cell', async () => {

@@ -33,7 +33,7 @@ import type {
   VfModalDialog,
   VfViewportBox,
 } from '../index.js'
-import { createCatalog } from './catalog.js'
+import { APP_KIND, appIdOf, createCatalog } from './catalog.js'
 import type { Catalog, CatalogStorage, Item, Volumes } from './catalog.js'
 import { createWindowManager, deepActiveElement, desktopRendered } from './windows.js'
 import type { WindowManager } from './windows.js'
@@ -192,9 +192,6 @@ export interface Shell {
   readonly ready: Promise<void>
   dispose(): void
 }
-
-/** The kind the shell registers: an application's icon, which opens it. */
-export const APP_KIND = 'app'
 
 /** Whether an element is a text field, by its own tag. */
 const isTextField = (el: Element | null): boolean =>
@@ -549,10 +546,4 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
       void catalog?.dispose()
     },
   }
-}
-
-/** The application an `app` item stands for. */
-export function appIdOf(item: Item): string | null {
-  const data = item.data as { app?: unknown } | undefined
-  return typeof data?.app === 'string' ? data.app : null
 }

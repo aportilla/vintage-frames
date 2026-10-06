@@ -34,6 +34,8 @@ export const TRASH = 'trash'
 export const DISK = 'disk'
 /** A folder's kind. */
 export const FOLDER = 'folder'
+/** An application's icon: the kind the shell registers, whose data names the application it opens. */
+export const APP_KIND = 'app'
 
 /** The name a new folder takes, counted up where it is taken. */
 export const UNTITLED_FOLDER = 'untitled folder'
@@ -45,7 +47,7 @@ const SEEDED = '#seeded'
 export interface Item {
   id: string
   name: string
-  /** `folder`, a volume's (`trash`, `disk`), or a kind an application registers. */
+  /** `folder`, a volume's (`trash`, `disk`), the shell's `app`, or a kind an application registers. */
   kind: string
   /** A folder's id, a volume's, or null for the desktop. */
   parent: string | null
@@ -126,6 +128,12 @@ export const isContainerKind = (kind: string): boolean =>
 
 /** Whether `id` names a volume. */
 export const isVolume = (id: string | null | undefined): boolean => id === TRASH || id === DISK
+
+/** The application an `app` item stands for: its `data.app`, or null. */
+export function appIdOf(item: Item): string | null {
+  const data = item.data as { app?: unknown } | undefined
+  return typeof data?.app === 'string' ? data.app : null
+}
 
 /** The item with `id`, or null. */
 export function itemOf(state: CatalogState, id: string | null | undefined): Item | null {

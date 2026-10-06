@@ -269,7 +269,7 @@ A kind tells the Finder how its items look and open:
 
 Small data goes in `data`. A large payload stays in the application's own store, under the item's id, and `copy` and `onRemove` keep that store in step.
 
-The shell registers one kind itself, `app`: an application's icon, which opens the application. It takes its name and art from the application, keeps a name the markup gives it, and can't be renamed.
+The shell registers one kind itself, `app`: an application's icon, which opens the application. It takes its name and art from the application, keeps a name the markup gives it, and can't be renamed. Its `data` names the application, `{ app: id }`. A seed function stores one as `catalog.create({ kind: APP_KIND, name, parent, data: { app: id } })`, and `appIdOf(item)` reads the id back, or null. Both names come from either entry.
 
 ## The Finder
 

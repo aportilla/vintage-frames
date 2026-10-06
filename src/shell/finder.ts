@@ -40,9 +40,11 @@ import {
 } from '../index.js'
 import type { VfIcon, VfIconField, VfImg, VfLabel, VfMenu, VfMenuItem, VfViewportBox } from '../index.js'
 import {
+  APP_KIND,
   DISK,
   FOLDER,
   TRASH,
+  appIdOf,
   childrenOf,
   enclosingFolders,
   isContainerKind,
@@ -70,7 +72,7 @@ import type { Lattice, LatticeOptions, Pin, Point, Size } from './geometry.js'
 import { fileByDrag } from './filing.js'
 import { composeAlert } from './alert.js'
 import type { AlertOptions } from './alert.js'
-import { APP_KIND, appIdOf, defineApp } from './shell.js'
+import { defineApp } from './shell.js'
 import type { AppContext, AppDefinition } from './shell.js'
 import { desktopRendered } from './windows.js'
 import type { FocusHome, HomeBox } from './windows.js'

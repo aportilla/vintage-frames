@@ -10,7 +10,7 @@
  * docs/SHELL.md is the guide.
  */
 
-export { createShell, defineApp, appIdOf, APP_KIND } from './shell.js'
+export { createShell, defineApp } from './shell.js'
 export type { AppContext, AppDefinition, CatalogSetup, KindDefinition, Shell, ShellOptions } from './shell.js'
 
 export { createWindowManager, focusInto } from './windows.js'
@@ -49,6 +49,7 @@ export type { FilingOptions } from './filing.js'
 export {
   createCatalog,
   memoryStorage,
+  appIdOf,
   childrenOf,
   containerOf,
   copyName,
@@ -61,6 +62,7 @@ export {
   itemCount,
   itemOf,
   nextFolderName,
+  APP_KIND,
   DISK,
   FOLDER,
   TRASH,

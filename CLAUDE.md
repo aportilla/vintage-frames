@@ -7,7 +7,8 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
 
 - `npm run dev` — Vite dev server on :5173 (the verify scripts expect one)
 - `npm test` — the whole verify suite: 44 scripts (Playwright drivers, and
-  `verify:shell-unit`, the shell's Node unit tests in `test/`), run in
+  `verify:shell-unit`, the Node unit tests in `test/` for the shell's pure
+  modules and the build entry), run in
   parallel against a server it starts itself. Filter by name
   (`npm test -- focus button`); `npm test -- --bail` stops at the first failure.
 - `npm run verify:<name>` — one script against a dev server you started
@@ -39,11 +40,18 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
   ring is a last resort. Accessibility features are *added* in that idiom —
   never write comments or docs implying the classic Mac drew them.
 - `dist/`, `custom-elements.json` and `editor/*` are build outputs
-  (`npm run build` / `npm run analyze`) — regenerate, don't hand-edit.
+  (`npm run build` / `npm run analyze`) — regenerate, don't hand-edit. So are
+  `src/styles/*-strike.ts` (`fonts/manifest-to-font.py`),
+  `src/build/frame-picture.ts` (`npm run embed:frame`) and
+  `src/shell/version.ts` (`npm version`).
 - **The shell is a layer over the elements.** `src/shell/` imports the kit
   only through `../index.js`, registers no elements, writes no styles and
   ships no art (`verify:shell-unit` checks). It is experimental until
   sprite-machine runs on all of it.
+- **The build entry runs under Node.** `src/build/` (`vintage-frames/build`)
+  reaches no element and nothing that touches the DOM at import, no page
+  imports it, and nothing in `src/shell/` imports it (`verify:shell-unit`
+  checks). Its frame (`box/frame.png`) is the kit's own art.
 
 ## Commits
 
@@ -61,15 +69,20 @@ regenerated files with the change.
   `src/patterns.ts` — the 38 standard patterns as data (the manifest for the
   `pattern` attribute), `src/pattern-fill.ts` the fill that paints one
 - `src/shell/` — the shell, the second entry point `vintage-frames/shell`
-  (applications, window manager, catalog, Finder, saved state);
-  `test/*.test.mjs` its unit tests; `shell.html` its reference page
+  (applications, window manager, catalog, Finder, saved state, the app file
+  reader); `test/*.test.mjs` its unit tests; `shell.html` its reference page
   (`demo/shell.ts`)
+- `src/build/` — the build entry `vintage-frames/build`: app files written
+  (the two Vite plugins, the packer, the box and its frame, PNG pixels);
+  `box/frame.png` the frame's picture; `src/styles/*-strike.ts` the faces as
+  data it draws the box's text with
 - `docs/` — all documentation beyond the README: SPEC (the full design spec;
   ships to npm), DESIGN-TOKENS (every `--vf-*` token), SIZING (grid/zoom/tile),
   LAYOUT (stack, placement, archetypes), PATTERNS (the pattern library and
   the `pattern` attribute), FONTS, ICONS, FINDER (assembling a Finder-style
   page: fields, folder windows, filing by drag and drop), SHELL (the shell's
-  guide), CURSOR,
+  guide), APP-FILES (applications as one PNG: the file, the box, the
+  plugins), CURSOR,
   ACCESSIBILITY, TOOLKIT (root exports), DEVELOPING (demo pages, verify
   suite), PUBLISHING (the npm release guide), THREE-X-DISPLAYS
 - `README.md` — the consumer storefront, shared by GitHub and npm; deep

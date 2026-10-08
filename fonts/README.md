@@ -14,7 +14,8 @@ VF-Display.glyphs.txt    VF-Body.glyphs.txt  ← THE SOURCE OF TRUTH: every glyp
                             as a plaintext pixel field + metrics, plus the
                             font-wide metadata table
 manifest-to-font.py      ← builds each face from its manifest, from scratch,
-                            and re-embeds the TS base64
+                            re-embeds the TS base64, and writes the face
+                            as data (src/styles/*-strike.ts)
 glyph-manifest.py        ← the reverse direction (woff2 → manifest), for
                             bootstrap/resync only — it overwrites hand edits
 VF-Display.woff2         VF-Body.woff2  ← generated: the built faces the kit
@@ -26,7 +27,11 @@ That is the whole of it. **No Apple artwork lives in this directory** — every 
 
 It was not always so. Until 2026-08-11 `fonts/` also held `imported/`, a collection of ~80 genuine Apple strikes converted from suitcases, plus the two converters that produced them (`dfont-to-bdf.py`, `import-bdf.py`) and the generator for the Character Set window that browsed them (`charset-manifest.py`). All of it moved to the [SystemOnline](https://github.com/aportilla/system-online) repo along with the faux desktop, where that window lives now; see its `docs/FONTS.md`. What is left behind is the kit's own work end to end, which is what makes the artwork question in [docs/PUBLISHING.md](../docs/PUBLISHING.md) answerable in one sentence.
 
-The built **`VF-Display.woff2`** / **`VF-Body.woff2`** (and the base64 in `src/styles/*-font.ts`) are generated — never hand-edit them. Edit the glyph manifests (`VF-Display.glyphs.txt` / `VF-Body.glyphs.txt`) and run `manifest-to-font.py`, then `npm run build`.
+The built **`VF-Display.woff2`** / **`VF-Body.woff2`** (and the base64 in `src/styles/*-font.ts`, and the strikes in `src/styles/*-strike.ts`) are generated — never hand-edit them. Edit the glyph manifests (`VF-Display.glyphs.txt` / `VF-Body.glyphs.txt`) and run `manifest-to-font.py`, then `npm run build`.
+
+## The faces as data
+
+The builder also writes each face as data: `src/styles/display-strike.ts` and `body-strike.ts`, every character's advance, placement and ink as its manifest has them, keyed by the character. They are internal to `vintage-frames/build`: its box compositor sets an app file's lettering with them under Node, where no font loads ([docs/APP-FILES.md](../docs/APP-FILES.md)). They come from the same parse as the woff2, so an unchanged manifest writes identical modules.
 
 ## Naming — what ships vs. what it came from
 
@@ -144,7 +149,7 @@ The faces are edited **as text**: each manifest holds every glyph in the format 
    ```sh
    /tmp/fontenv/bin/python3 fonts/manifest-to-font.py
    ```
-   rebuilds `fonts/VF-*.woff2` from scratch and rewrites `FONT_WOFF2_BASE64` + the byte-count comment in `src/styles/*-font.ts`, reporting per face whether anything changed; a malformed manifest is refused before anything is written. **Byte-reproducible**: the build is a pure function of the manifest — the conversion-era timestamps ride in the `== font ==` table rather than being re-stamped — so an unchanged manifest re-ships identical bytes, and a diff in the embedded base64 always means a real change.
+   rebuilds `fonts/VF-*.woff2` from scratch, rewrites `FONT_WOFF2_BASE64` + the byte-count comment in `src/styles/*-font.ts` and writes `src/styles/*-strike.ts`, reporting per face whether anything changed; a malformed manifest is refused before anything is written. **Byte-reproducible**: the build is a pure function of the manifest — the conversion-era timestamps ride in the `== font ==` table rather than being re-stamped — so an unchanged manifest re-ships identical bytes, and a diff in the embedded base64 always means a real change.
 3. `npm run build` to bundle the updated base64.
 
 ## Verify

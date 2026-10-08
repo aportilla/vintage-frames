@@ -120,6 +120,8 @@ export const notePad = defineApp({
 | `kinds` | The catalog kinds it opens (§ The catalog). |
 | `init(ctx)` | Sets the application up and returns its actions, which other applications call. An application whose windows reopen after a reload, or that opens from an icon, returns `open({ item, from })`. |
 
+An application can live in a repo of its own and ship as one PNG, its app file, which a site builds in ([APP-FILES.md](./APP-FILES.md)).
+
 The bar holds the system menu, then the front application's menus, then the clock. The front application is the active window's, or the default application while no window is active. Each application's menus are parsed once and the same elements come back each time it is in front, so their state holds. Only the front application's key equivalents work, since the others' menus are off the bar. Browsers keep ⌘W, ⌘N and ⌘Q, so use ⌃W, ⌃N and ⌃Q.
 
 What `init` gets:
@@ -407,8 +409,10 @@ Each module also works alone, on a page built from the elements ([FINDER.md](./F
 | `pinOf`, `pinTo`, `frameOf`, `cascadedBox`, `centeredBox`, `desktopLattice`, `folderLattice`, `trashCell`, `nextFreeCell`, `cleanUp`, `fillOrder`, `fieldExtent`, `collisions` | The geometry, pure: boxes and positions in whole system px. |
 | `localStorageState`, `readSession`, `mergeSession` | The saved session. |
 | `startClock` | The clock. |
+| `readAppFile`, `satisfies`, `APP_FILE_FORMAT` | An app file's manifest and code, and a version checked against a range ([APP-FILES.md](./APP-FILES.md)). |
+| `VERSION` | The kit's version. |
 
-`vintage-frames/shell/pure` exports the catalog, the geometry and the saved session alone. They import nothing of the kit and touch no DOM when imported, so a site's own pure modules, and their tests under Node, import them from there:
+`vintage-frames/shell/pure` exports the catalog, the geometry, the saved session, the app file reader and `VERSION` alone. They import nothing of the kit and touch no DOM when imported, so a site's own pure modules, and their tests under Node, import them from there:
 
 ```ts
 import { createCatalog, memoryStorage, childrenOf, isPin, cascadedBox } from 'vintage-frames/shell/pure'
@@ -418,4 +422,4 @@ import { createCatalog, memoryStorage, childrenOf, isPin, cascadedBox } from 'vi
 
 ## The reference page
 
-`shell.html` runs the shell with the Finder and Note Pad, a small application with documents of its own kind, an Info palette, a close that asks about unsaved changes in an alert of its own, and a `claim` that makes a note of a dropped text file (`demo/shell.ts`). `?save=1` keeps the catalog and the session across reloads, `?cleanup=1` turns on Clean Up after a resize, and `?open=Projects&open=Archive` opens those items at load. `verify:shell-front`, `verify:shell-windows` and `verify:shell-finder` drive it, and `verify:shell-unit` tests the pure modules under Node.
+`shell.html` runs the shell with the Finder and Note Pad, a small application with documents of its own kind, an Info palette, a close that asks about unsaved changes in an alert of its own, and a `claim` that makes a note of a dropped text file (`demo/shell.ts`). `?save=1` keeps the catalog and the session across reloads, `?cleanup=1` turns on Clean Up after a resize, and `?open=Projects&open=Archive` opens those items at load. `verify:shell-front`, `verify:shell-windows` and `verify:shell-finder` drive it, and `verify:shell-unit` tests the pure modules and the build entry under Node.

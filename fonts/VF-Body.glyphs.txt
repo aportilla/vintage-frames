@@ -2,7 +2,8 @@ VF Body glyph manifest
 ======================
 
 THE SOURCE OF TRUTH for 'VF Body'. fonts/manifest-to-font.py builds
-fonts/VF-Body.woff2 and the base64 embed in src/styles/body-font.ts
+fonts/VF-Body.woff2, the base64 embed in src/styles/body-font.ts
+and the face as data in src/styles/body-strike.ts
 from this file alone, from scratch. Edit here and build
 forward, then npm run build. The classic Apple strikes whose
 appearance this face re-draws live outside the repository in
@@ -14,7 +15,8 @@ bootstrap/resync direction, and rerunning it overwrites hand edits.)
 Face: 'VF Body', the body face — a re-drawn strike in Geneva 9pt's style, plus the kit's backfill.
 
 The '== font ==' table is the font-wide metadata. family is stamped
-into the binary's name records; woff2 and module are the build targets.
+into the binary's name records; woff2, module and strike are the build
+targets.
 Fields are whole design px except: x_avg_char_width (font units) and
 unicode_ranges (the four OS/2 coverage bitfields) — both computed
 when the face was first built and restated here verbatim — and
@@ -48,6 +50,7 @@ key,value
 family,VF Body
 woff2,VF-Body.woff2
 module,body-font.ts
+strike,body-strike.ts
 units_per_em,1024
 units_per_px,64
 em,16

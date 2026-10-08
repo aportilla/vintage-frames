@@ -44,6 +44,13 @@
       "types": "./dist/shell/pure.d.ts",
       "import": "./dist/shell/pure.js"
     },
+    "./build": {
+      "types": "./dist/build/index.d.ts",
+      "import": "./dist/build/index.js"
+    },
+    "./build/client": {
+      "types": "./dist/build/client.d.ts"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -67,12 +74,13 @@
     "build:pages": "vite build --config vite.pages.config.ts",
     "preview:pages": "vite preview --config vite.pages.config.ts",
     "prepack": "npm run build && npm run verify:manifest",
-    "version": "npm run analyze && git add custom-elements.json editor",
+    "version": "npm run analyze && node scripts/write-version.mjs && git add custom-elements.json editor src/shell/version.ts",
     "analyze": "cem analyze",
     "verify:manifest": "node scripts/verify-manifest.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "embed:cursors": "node scripts/embed-cursor-art.mjs",
+    "embed:frame": "node scripts/embed-frame.mjs",
     "verify:buttons": "tsc src/pixel-frame.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/emit-clips.mjs && python3 scripts/verify-button-clips.py",
     "shot:buttons": "npx playwright screenshot --wait-for-timeout=2000 http://localhost:5173/pixel-test.html shots/buttons.png",
     "shot:verify": "python3 scripts/verify-button-screenshot.py shots/buttons.png",
@@ -125,8 +133,17 @@
   "dependencies": {
     "lit": "^3.2.0"
   },
+  "peerDependencies": {
+    "vite": ">=8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@custom-elements-manifest/analyzer": "^0.11.0",
+    "@types/node": "^24.19.1",
     "custom-element-jet-brains-integration": "^1.7.0",
     "custom-element-vs-code-integration": "^1.5.0",
     "playwright": "^1.62.1",

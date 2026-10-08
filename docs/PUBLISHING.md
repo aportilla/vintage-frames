@@ -27,6 +27,12 @@ Four items, none of them build-system work:
 
 npm renders whatever `README.md` is in the tarball, so GitHub and npm show the same file — the consumer storefront: install, the components table, condensed sizing/layout, absolute links everywhere (they work on both sites). The depth lives in `docs/` — SPEC, DESIGN-TOKENS, SIZING, LAYOUT, FONTS, ICONS, CURSOR, ACCESSIBILITY, TOOLKIT, DEVELOPING, and this file — of which only `docs/SPEC.md` ships to npm. A pack-time README-swap scheme existed briefly (2026-08-11, same day) and was unwound in favor of this: one file, no machinery, `docs/` for the manual.
 
+## The build entry
+
+`vintage-frames/build` ships in `dist/` with the rest, and no page loads it ([APP-FILES.md](./APP-FILES.md)). Its art is the kit's own: the frame every app file's box is drawn on (`box/frame.png`, embedded by `npm run embed:frame`), and the two faces as data (`src/styles/*-strike.ts`), built from the same glyph manifests as the woff2 faces, so the same artwork with the same credit.
+
+`vite` is an optional peer dependency, `>=8.0.0`, for the build entry's plugins. npm installs nothing for it, but a consumer on an older Vite gets an ERESOLVE warning at install.
+
 ## One-time: the npm account
 
 **Done 2026-08-11** — account `aportilla`, 2FA on, this machine logged in.
@@ -98,7 +104,7 @@ git push --follow-tags
 npm publish
 ```
 
-`npm version` does more than edit a number: it commits the bump and creates a git tag (`v0.1.1`) in one atomic step, so every published version has a commit you can check out. `--follow-tags` pushes the tag with the branch. `npm publish` runs the `prepack` gate as always.
+`npm version` does more than edit a number: it commits the bump and creates a git tag (`v0.1.1`) in one atomic step, so every published version has a commit you can check out. Its `version` script also regenerates the manifest and writes the new version into `src/shell/version.ts`, the kit's `VERSION`, so the bump's commit carries both. `--follow-tags` pushes the tag with the branch. `npm publish` runs the `prepack` gate as always.
 
 **Release notes** — a `vX.Y.Z` tag on GitHub can carry them ([github.com/aportilla/vintage-frames/releases](https://github.com/aportilla/vintage-frames/releases) → "Draft a new release" → pick the tag, write what changed). Do this from the web UI, or `gh release create vX.Y.Z --notes "…"` once you've run `gh auth login`. For a solo project this is simpler than maintaining a CHANGELOG.md — the notes live with the tags, and a CHANGELOG can be generated from them later.
 

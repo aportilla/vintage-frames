@@ -1,9 +1,10 @@
 // The shell's ground rules, read from its sources (src/shell/): it reaches
 // the kit only through the package's root exports, so whatever it needs is
-// exported for every page; its pure modules, and the entry that exports
-// them, reach nothing of the kit; it registers no elements, imports none for
-// side effects, writes no styles and ships no art. That each name it imports
-// from the root is exported there, TypeScript checks.
+// exported for every page, and never reaches the build entry; its pure
+// modules, and the entry that exports them, reach nothing of the kit; it
+// registers no elements, imports none for side effects, writes no styles and
+// ships no art. That each name it imports from the root is exported there,
+// TypeScript checks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
@@ -25,11 +26,17 @@ test('the shell reaches the kit only through the root exports', () => {
   }
 })
 
-const PURE = ['./catalog.js', './geometry.js', './state.js']
+test('nothing in the shell imports the build entry', () => {
+  for (const [file, src] of sources) {
+    for (const spec of specifiers(src)) assert.ok(!spec.includes('build/'), `${file} imports ${spec}`)
+  }
+})
+
+const PURE = ['./app-file.js', './catalog.js', './geometry.js', './state.js', './version.js']
 
 test('the pure modules import nothing from the kit, so they run under Node', () => {
   for (const [file, src] of sources) {
-    if (!['geometry.ts', 'catalog.ts', 'state.ts', 'pure.ts'].includes(file)) continue
+    if (![...PURE, './pure.js'].includes(`./${file.replace(/\.ts$/, '.js')}`)) continue
     for (const spec of specifiers(src)) {
       assert.ok(PURE.includes(spec), `${file} imports ${spec}`)
     }
@@ -38,7 +45,7 @@ test('the pure modules import nothing from the kit, so they run under Node', () 
 
 test('vintage-frames/shell/pure re-exports the pure modules, and only them', () => {
   const src = sources.find(([file]) => file === 'pure.ts')[1]
-  assert.deepEqual(specifiers(src).sort(), PURE)
+  assert.deepEqual([...new Set(specifiers(src))].sort(), PURE)
 })
 
 test('the shell registers no elements and imports none for side effects', () => {

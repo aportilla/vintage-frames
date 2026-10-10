@@ -1,10 +1,11 @@
 // The box (src/build/box.ts), against a small frame and strike made here:
 // a line of text with the manifest's fields in it, each glyph's ink where
 // the strike puts it, at the slot's scale and in its ink, shortened with an
-// ellipsis when it doesn't fit; artwork at the slot's size or a whole
-// fraction of it, the icon stamped without any; and the frame's own pixels
-// everywhere else. Then the kit's own frame, drawn at BOX_SCALE, and a box
-// in it without artwork, on its grid.
+// ellipsis when it doesn't fit; artwork at the slot's size in system px or a
+// whole fraction of it, the icon stamped without any; and the frame's own
+// pixels everywhere else. Then the kit's own frame, drawn at BOX_SCALE, and
+// boxes in it on its grid, with artwork and without; artwork at the
+// picture's own px is refused.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -39,13 +40,28 @@ const ARTWORK = { left: 4, top: 4, width: 64, height: 64, stamp: 2 }
 const NAME = { left: 70, top: 4, width: 20, strike: STRIKE, scale: 2, ink: '#ff0000', text: '{name}' }
 const SHORT = { left: 70, top: 20, width: 10, strike: STRIKE, scale: 1, ink: '#00ff00', text: '{name} {author}' }
 const MANIFEST = { format: 1, id: 'ab', name: 'AB', version: 'A', requires: '^0.16.2', author: 'BA', icon: 'data:,' }
+/** A manifest the kit's faces can set. */
+const KIT_MANIFEST = { ...MANIFEST, name: 'Meteors', version: '0.1.0', author: 'Adam Portilla' }
 
-const frame = async (text = [NAME, SHORT]) => ({ picture: await encodePng(picture), artwork: ARTWORK, text })
+const frame = async (text = [NAME, SHORT]) => ({ picture: await encodePng(picture), scale: 1, artwork: ARTWORK, text })
 /** An icon opaque on every third diagonal, transparent between. */
 const icon = () => encodePng(pixels(32, 32, (x, y) => ((x + y) % 3 ? [0, 0, 0, 0] : [x * 8, y * 8, 7, 255])))
 
 /** Whether (x, y) is inside one of `cells`' size × size squares. */
 const inside = (cells, size, x, y) => cells.some(([cx, cy]) => x >= cx && x < cx + size && y >= cy && y < cy + size)
+
+/** The px of a box that differ from the top-left px of their BOX_SCALE × BOX_SCALE block. */
+function offGrid({ width, height, data }) {
+  const off = []
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4
+      const corner = ((y - (y % BOX_SCALE)) * width + x - (x % BOX_SCALE)) * 4
+      if ([0, 1, 2, 3].some((c) => data[i + c] !== data[corner + c])) off.push(`${x},${y}`)
+    }
+  }
+  return off
+}
 
 test('a line: the manifest\'s fields, each glyph\'s ink where the strike puts it, at the slot\'s scale and in its ink', async () => {
   const box = await drawBox(await frame(), { manifest: MANIFEST, icon: await icon() })
@@ -135,17 +151,13 @@ test('the kit\'s frame: its picture reads, its slots lie inside it, and a box co
   assert.ok(inBounds(FRAME.artwork, FRAME.artwork.height))
   assert.ok(32 * FRAME.artwork.stamp <= Math.min(FRAME.artwork.width, FRAME.artwork.height))
   for (const line of FRAME.text) assert.ok(inBounds(line, (line.strike.ascent + line.strike.descent) * line.scale), line.text)
-  const box = await decodePng(
-    await composeBox({
-      manifest: { ...MANIFEST, name: 'Meteors', version: '0.1.0', author: 'Adam Portilla' },
-      icon: await icon(),
-    })
-  )
+  const box = await decodePng(await composeBox({ manifest: KIT_MANIFEST, icon: await icon() }))
   assert.equal(box.width, width)
   assert.equal(box.height, height)
 })
 
 test('the kit\'s frame is drawn at BOX_SCALE: its picture and every slot are whole system px, and its text is set at that scale', async () => {
+  assert.equal(FRAME.scale, BOX_SCALE)
   const { width, height } = await decodePng(FRAME.picture)
   const whole = (...ns) => ns.every((n) => n % BOX_SCALE === 0)
   assert.ok(whole(width, height), `the picture, ${width} × ${height}`)
@@ -158,19 +170,30 @@ test('the kit\'s frame is drawn at BOX_SCALE: its picture and every slot are who
 })
 
 test('a box without artwork is on the grid: every block of BOX_SCALE × BOX_SCALE px is one color, the stamped icon\'s too', async () => {
-  const { width, height, data } = await decodePng(
-    await composeBox({
-      manifest: { ...MANIFEST, name: 'Meteors', version: '0.1.0', author: 'Adam Portilla' },
-      icon: await icon(),
-    })
-  )
-  const off = []
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = (y * width + x) * 4
-      const corner = ((y - (y % BOX_SCALE)) * width + x - (x % BOX_SCALE)) * 4
-      if ([0, 1, 2, 3].some((c) => data[i + c] !== data[corner + c])) off.push(`${x},${y}`)
-    }
-  }
+  const off = offGrid(await decodePng(await composeBox({ manifest: KIT_MANIFEST, icon: await icon() })))
   assert.deepEqual(off.slice(0, 5), [], `${off.length} px differ from their block's top-left`)
+})
+
+test('artwork in the kit\'s frame is 128 × 128 or a whole fraction of it, each px on whole system px; its sizes in the picture\'s px are refused', async () => {
+  const slot = FRAME.artwork
+  for (const size of [128, 64]) {
+    const art = pixels(size, size, (x, y) => [x * 2, y * 2, (x * 7 + y * 3) % 256, 255])
+    const box = await decodePng(await composeBox({ manifest: KIT_MANIFEST, icon: await icon(), artwork: await encodePng(art) }))
+    const n = slot.width / size
+    let moved = 0
+    for (let y = 0; y < slot.height; y++) {
+      for (let x = 0; x < slot.width; x++) {
+        if (at(box, slot.left + x, slot.top + y).join() !== at(art, Math.floor(x / n), Math.floor(y / n)).join()) moved++
+      }
+    }
+    assert.equal(moved, 0, `${size} × ${size}: px away from their art px`)
+    const off = offGrid(box)
+    assert.deepEqual(off.slice(0, 5), [], `${size} × ${size}: ${off.length} px differ from their block's top-left`)
+  }
+  for (const size of [384, 192, 96]) {
+    await assert.rejects(
+      composeBox({ manifest: KIT_MANIFEST, icon: await icon(), artwork: await encodePng(pixels(size, size, () => [0, 0, 0, 255])) }),
+      new RegExp(`the artwork is ${size} × ${size}: draw it at 128 × 128, or that divided by a whole number \\(64 × 64, 32 × 32, 16 × 16`)
+    )
+  }
 })

@@ -24,6 +24,8 @@ export interface Slot {
 export interface BoxFrame {
   /** The picture, a PNG. */
   picture: Uint8Array
+  /** One system px, in the picture's px. Each of the artwork's px is a whole number of them. */
+  scale: number
   /** Where the artwork goes. Without artwork the icon goes there, `stamp` times its size and centered. */
   artwork: Slot & { stamp: number }
   /** The lines of text. */
@@ -51,7 +53,7 @@ export interface BoxInput {
   manifest: AppManifest
   /** The icon's PNG, 32 × 32. */
   icon: Uint8Array
-  /** The artwork's PNG: the artwork slot's size, or that divided by a whole number. */
+  /** The artwork's PNG: the artwork slot's size in system px, or that divided by a whole number. */
   artwork?: Uint8Array
 }
 
@@ -73,14 +75,16 @@ export async function drawBox(frame: BoxFrame, { manifest, icon, artwork }: BoxI
   const slot = frame.artwork
   if (artwork) {
     const art = await decodePng(artwork, 'the artwork')
-    const n = slot.width / art.width
-    if (!Number.isInteger(n) || art.height * n !== slot.height) {
+    // The slot in system px, so each of the art's px lands on whole ones.
+    const room = { width: slot.width / frame.scale, height: slot.height / frame.scale }
+    const n = room.width / art.width
+    if (!Number.isInteger(n) || art.height * n !== room.height) {
       throw new Error(
-        `the artwork is ${art.width} × ${art.height}: draw it at ${slot.width} × ${slot.height}, ` +
-          `or that divided by a whole number (${fractions(slot)})`
+        `the artwork is ${art.width} × ${art.height}: draw it at ${room.width} × ${room.height}, ` +
+          `or that divided by a whole number (${fractions(room)})`
       )
     }
-    paste(box, art, slot.left, slot.top, n, slot)
+    paste(box, art, slot.left, slot.top, n * frame.scale, slot)
   } else {
     const size = 32 * slot.stamp
     const left = slot.left + Math.floor((slot.width - size) / 2)
@@ -91,8 +95,8 @@ export async function drawBox(frame: BoxFrame, { manifest, icon, artwork }: BoxI
   return box
 }
 
-/** The first few sizes that divide a slot's by a whole number, for an error. */
-function fractions({ width, height }: Slot): string {
+/** The first few sizes that divide a size by a whole number, for an error. */
+function fractions({ width, height }: { width: number; height: number }): string {
   const sizes: string[] = []
   for (let n = 2; n <= width && sizes.length < 3; n++) {
     if (width % n === 0 && height % n === 0) sizes.push(`${width / n} × ${height / n}`)

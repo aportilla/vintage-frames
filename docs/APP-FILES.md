@@ -1,6 +1,6 @@
 # App files
 
-An application on the shell ships as one PNG, its app file. The picture is the application's box, for people looking at the file outside a desktop. Two `iTXt` chunks carry its manifest and its code. A desktop reads the chunks and never the picture.
+An application on the shell ships as one PNG, its app file. The picture is the application's box, for people to see, in a file browser or in a store. Two `iTXt` chunks carry its manifest and its code. A desktop runs the application from the chunks alone.
 
 `vintage-frames/build` writes app files and builds them into a site, as two Vite plugins. It runs under Node in a build, and no page imports it. Reading an app file is in `vintage-frames/shell/pure`.
 
@@ -93,14 +93,14 @@ For the import's types, add `vintage-frames/build/client` to tsconfig.json besid
 
 ## The box
 
-The box is the kit's frame with the application's artwork and text set into it. The frame is a placeholder for now: a white card drawn at 3×, 480 × 615 px, with a 384 × 384 artwork area, then the application's name in the display face and its version and author in the body face.
+The box is the kit's frame with the application's artwork and text set into it. The frame is a placeholder for now: a white card of 160 × 205 system px, drawn at 3× (480 × 615 px), with a 128 × 128 artwork area, then the application's name in the display face and its version and author in the body face.
 
-- Artwork is a PNG at the artwork area's size, or that divided by a whole number (192 × 192, 128 × 128, 96 × 96 …), magnified by that number so pixel art stays crisp. Any other size fails the build. Transparent pixels show the frame.
+- Artwork is a PNG at the artwork area's size, 128 × 128, or that divided by a whole number (64 × 64, 32 × 32 …). It is magnified to fill the area, each of its px a whole number of system px, so it stays on the grid. Any other size fails the build. Transparent pixels show the frame.
 - Without artwork, the icon is stamped 9× in the middle, each of its px 3 × 3 system px.
 - Text is set in the kit's faces, a glyph at a time. A line too long for its space ends in an ellipsis. A character the face lacks fails the build, naming it.
 - Art can be 8-bit gray, RGB, gray with alpha or RGBA, or indexed or gray at 1, 2, 4 or 8 bits, non-interlaced. 16-bit and interlaced files fail the build, naming what to save them as.
 - The box can be in color.
-- Every box is drawn at 3×, `BOX_SCALE`: a system px of the frame is a 3 × 3 block of the picture's px, in every format 1 file. A desktop that shows a box on its grid draws each block as one system px: at a scale that's a multiple of 3 that's the file's own pixels, and at any other each block averages to one.
+- Every box is drawn at 3×, `BOX_SCALE`: a system px is a 3 × 3 block of the picture's px. The frame is drawn that way in every format 1 file, and this kit sets the artwork, the stamped icon and the text on whole blocks. A desktop that shows a box on its grid draws each block as one system px: at a scale that's a multiple of 3 that's the file's own pixels, and at any other each block averages to one.
 
 ## The rules an application keeps
 

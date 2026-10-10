@@ -23,7 +23,7 @@ export interface AppFileOptions {
   entry: string
   /** Its 32 × 32 icon, a PNG. */
   icon: string
-  /** Its artwork for the box: a PNG at the artwork slot's size, or that divided by a whole number. */
+  /** Its artwork for the box: a 128 × 128 PNG, or that divided by a whole number. */
   artwork?: string
   /** A directory to write the app file to as well, such as a site's `apps/`. */
   copyTo?: string

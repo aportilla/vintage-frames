@@ -21,6 +21,7 @@ const line = { left: 16 * S, width: 128 * S, scale: S, ink: '#000000', align: 'c
 
 export const FRAME: BoxFrame = {
   picture: FRAME_PNG,
+  scale: S,
   // The stamp puts each of the icon's px on 3 × 3 system px, so a box without artwork is on the grid too.
   artwork: { left: 16 * S, top: 16 * S, width: 128 * S, height: 128 * S, stamp: 3 * S },
   text: [

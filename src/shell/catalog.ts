@@ -17,8 +17,10 @@
  *   on the startup disk (the desktop without one) holding Apple Menu Items
  *   and Startup Items, listed after the volumes. What they hold is anyone's,
  *   and the shell reads it: the Apple menu, and what opens at startup.
- * - An alias stands for another item: its data names the original's id, and
- *   `resolve` finds the original wherever it moved, until it is removed.
+ * - An alias stands for another item: its data names the original's id and
+ *   kind, and `resolve` finds the original wherever it moved, until it is
+ *   removed. An alias of a container takes a drop for its original, and
+ *   keeps taking one, to say so, once the original is gone.
  * - A folder never goes into itself or a folder inside it. A parent with no
  *   record reads as the desktop.
  * - An item whose kind no application registers is left out of the listing
@@ -172,6 +174,16 @@ export function originalOf(item: Item): string | null {
   return typeof data?.original === 'string' ? data.original : null
 }
 
+/**
+ * The kind an alias's original had when the alias was made, or null. An
+ * alias made before aliases kept it stands for an application or a document.
+ */
+function originalKindOf(item: Item): string | null {
+  if (item.kind !== ALIAS_KIND) return null
+  const data = item.data as { kind?: unknown } | undefined
+  return typeof data?.kind === 'string' ? data.kind : null
+}
+
 /** The item with `id`, or null. */
 export function itemOf(state: CatalogState, id: string | null | undefined): Item | null {
   if (id == null) return null
@@ -252,6 +264,37 @@ export function isTrashed(state: CatalogState, id: string | null | undefined): b
   return id === TRASH || isInside(state, id, TRASH)
 }
 
+/**
+ * Whether Make Alias takes item `id`: an application, a document, a folder
+ * or the startup disk, or an alias of one, outside the Trash. Never the
+ * Trash itself, and never an alias whose original is gone.
+ */
+export function canAlias(state: CatalogState, id: string | null | undefined): boolean {
+  const item = itemOf(state, id)
+  if (!item || isTrashed(state, item.id)) return false
+  const original = resolve(state, item.id)
+  return original != null && original.id !== TRASH
+}
+
+/** What a drop onto an item files into: a container's id, or the alias of a container whose original is gone. */
+export type DropTarget = { folder: string } | { missing: Item }
+
+/**
+ * What a drop onto item `id` files into. A container takes it itself, and
+ * an alias of one passes it to the original, so filing judges the original:
+ * a folder never goes into itself through an alias either. An alias of a
+ * container whose original is gone still takes the drop and files nothing:
+ * `missing`, the alias. Anything else takes none: null.
+ */
+export function dropTargetOf(state: CatalogState, id: string | null | undefined): DropTarget | null {
+  const item = itemOf(state, id)
+  if (!item) return null
+  const original = resolve(state, item.id)
+  if (original) return isContainerKind(original.kind) ? { folder: original.id } : null
+  const kind = originalKindOf(item)
+  return kind != null && isContainerKind(kind) ? { missing: item } : null
+}
+
 /** Everything under a container, each container before what it holds; a loop is walked once. */
 export function descendantsOf(state: CatalogState, parent: string | null): Item[] {
   const out: Item[] = []
@@ -323,10 +366,13 @@ export function aliasName(state: CatalogState, parent: string | null, name: stri
 /** Names in order, case and accents aside, so a leading space sorts first. */
 const nameOrder = new Intl.Collator('en')
 
+/** What a container holds, by name, then by creation. */
+const childrenByName = (state: CatalogState, id: string): Item[] =>
+  childrenOf(state, id).sort((a, b) => nameOrder.compare(a.name, b.name) || byCreation(a, b))
+
 /** What a folder of the System Folder holds, by name; nothing while the folder isn't there. */
 function systemFolderOf(state: CatalogState, id: string): Item[] {
-  if (!itemOf(state, id)) return []
-  return childrenOf(state, id).sort((a, b) => nameOrder.compare(a.name, b.name) || byCreation(a, b))
+  return itemOf(state, id) ? childrenByName(state, id) : []
 }
 
 /** What Apple Menu Items holds, by name: the Apple menu's entries. None without the System Folder. */
@@ -334,6 +380,38 @@ export const appleMenuItemsOf = (state: CatalogState): Item[] => systemFolderOf(
 
 /** What Startup Items holds, by name: what opens at startup. None without the System Folder. */
 export const startupItemsOf = (state: CatalogState): Item[] => systemFolderOf(state, STARTUP_ITEMS)
+
+/** One entry of the Apple menu, and what it holds when it is a folder's. */
+export interface AppleMenuEntry {
+  /** The entry's own item: an alias stays the alias. */
+  item: Item
+  /** What the folder holds, or the folder an alias stands for, by name. */
+  entries?: AppleMenuEntry[]
+}
+
+/** How many levels below the Apple menu a folder's entries go. */
+const APPLE_MENU_DEPTH = 5
+
+/**
+ * The Apple menu as a tree: what Apple Menu Items holds, by name, and for a
+ * folder in it, or an alias of one, what that folder holds, the same way,
+ * down to five levels below the menu. A folder already on the way down
+ * (Apple Menu Items starts it), an empty folder and a folder past the fifth
+ * level have no entries, so the tree never loops. None without the System
+ * Folder.
+ */
+export function appleMenuOf(state: CatalogState): AppleMenuEntry[] {
+  const entriesOf = (folder: string, path: ReadonlySet<string>, level: number): AppleMenuEntry[] =>
+    childrenByName(state, folder).map((item) => {
+      const original = resolve(state, item.id)
+      if (!original || !isContainerKind(original.kind) || path.has(original.id) || level >= APPLE_MENU_DEPTH) {
+        return { item }
+      }
+      const entries = entriesOf(original.id, new Set([...path, original.id]), level + 1)
+      return entries.length ? { item, entries } : { item }
+    })
+  return itemOf(state, APPLE_MENU_ITEMS) ? entriesOf(APPLE_MENU_ITEMS, new Set([APPLE_MENU_ITEMS]), 0) : []
+}
 
 /* ── The catalog ────────────────────────────────────────────────────────── */
 

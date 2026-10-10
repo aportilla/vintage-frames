@@ -255,7 +255,7 @@ The catalog is the source of truth for what is where. It is pure: it runs under 
 - Storage is three calls: `list()`, `put(item)`, `remove(id)`. `memoryStorage()` forgets on reload and `indexedDbStorage(name)` keeps. A site can write its own. Without working storage the catalog lists the volumes and the System Folder alone, and the Finder says so when asked to save.
 - A seed is stored once per storage. `seed: 'markup'` reads the `vf-icon[data-app]`, `template[data-folder]` and `template[data-system]` in the desktop's field (§ The Finder); a function stores the site's defaults through the catalog.
 - Positions are on the items, so they persist wherever the catalog does. Position changes are written a moment after they settle.
-- Selectors: `childrenOf`, `itemCount`, `isInside`, `enclosingFolders`, `isTrashed`, `isKept`, `descendantsOf`, `nextFolderName`, `copyName`, `aliasName`, `originalOf`, `resolve`, `appleMenuItemsOf`, `startupItemsOf`. Operations: `create`, `rename`, `update`, `move`, `place`, `copy`, `emptyTrash`, `clear`, `import`, `dump`.
+- Selectors: `childrenOf`, `itemCount`, `isInside`, `enclosingFolders`, `isTrashed`, `isKept`, `descendantsOf`, `nextFolderName`, `copyName`, `aliasName`, `originalOf`, `resolve`, `canAlias`, `dropTargetOf`, `appleMenuItemsOf`, `appleMenuOf`, `startupItemsOf`. Operations: `create`, `rename`, `update`, `move`, `place`, `copy`, `emptyTrash`, `clear`, `import`, `dump`.
 - `import(archive, { mode })` restores a `dump()`. `'replace'` clears the catalog first and keeps the archive's ids; `'merge'`, the default, adds the archive under fresh ids, nesting kept. It resolves a `Map` from each archive id to the item it stored, so a kind whose payload is keyed by item id can carry it over a merge. The listing is announced once, when the import is done, so a window whose item comes back stays open.
 
 A kind tells the Finder how its items look and open:
@@ -275,7 +275,9 @@ Small data goes in `data`. A large payload stays in the application's own store,
 
 The shell registers two kinds itself. `app` is an application's icon, which opens the application. It takes its name and art from the application, keeps a name the markup gives it, and can't be renamed. Its `data` names the application, `{ app: id }`. A seed function stores one as `catalog.create({ kind: APP_KIND, name, parent, data: { app: id } })`, and `appIdOf(item)` reads the id back, or null. Both names come from either entry.
 
-`alias` is an item standing for another, an application or a document. Its `data` names the original, `{ original: id }`, and `originalOf(item)` reads the id back, or null. `resolve(state, id)` is the item an id names, or the original an alias stands for, wherever it was moved and whatever it was renamed, through an alias of an alias too; null once the original is removed. The Finder draws an alias with its original's art and its name in italics, and opening it opens the original. Copying an alias makes another alias of the same original, trashing one leaves its original alone, and `import()` keeps an alias pointing at its original when the import gives items new ids.
+`alias` is an item standing for another: an application, a document, a folder or the startup disk. Its `data` names the original and the original's kind, `{ original: id, kind }`, and `originalOf(item)` reads the id back, or null. An alias with no `kind` is read as an application's or a document's, the only aliases there were before aliases kept one. `resolve(state, id)` is the item an id names, or the original an alias stands for, wherever it was moved and whatever it was renamed, through an alias of an alias too; null once the original is removed. The Finder draws an alias with its original's art and its name in italics, and opening it opens the original: an alias of a folder or the disk opens the original's window. Copying an alias makes another alias of the same original, trashing one leaves its original alone, and `import()` keeps an alias pointing at its original when the import gives items new ids.
+
+`canAlias(state, id)` is Make Alias's rule: anything outside the Trash whose original is there, never the Trash itself. `dropTargetOf(state, id)` is what a drop onto an item files into. A container and an alias of one give `{ folder }`, the container's id, so filing judges the original, and a folder never goes into itself or a folder inside it through an alias either. An alias of a container whose original is gone gives `{ missing }`, the alias: it takes the drop, files nothing and says so. Anything else gives null.
 
 ### The System Folder
 
@@ -293,11 +295,11 @@ The catalog keeps it on the startup disk, or on the desktop without one, with Ap
 - **Apple Menu Items** is the Apple menu. Below the page's own items, the shell lists what the folder holds, by name, case aside and a leading space first, and follows the folder as it changes. Choosing an entry opens its item as a double-click would: an alias opens its original, and a folder opens its window. Each entry's `value` is its item's id. Entries are dropped while a modal dialog is open.
 - **Startup Items** opens at startup. Once the boot has reopened the session's windows, the shell opens what the folder holds, by name, each as a double-click would. One already open comes to the front. One that won't open, an alias whose original is gone say, says why, as opening it by hand would, and the rest open. `startup: false` on `createShell` skips them for a boot.
 
-`appleMenuItemsOf(state)` and `startupItemsOf(state)` list each folder's contents in that order, and nothing without the System Folder. A seed files into them as into any folder:
+`appleMenuItemsOf(state)` and `startupItemsOf(state)` list each folder's contents in that order, and nothing without the System Folder. `appleMenuOf(state)` is Apple Menu Items as a tree of `{ item, entries? }`. A folder in it, or an alias of one, carries what the folder holds as `entries`, in the same order, and so on down to five levels. A folder already on the way down, an empty folder and one past the fifth level carry none, so the tree never loops. `item` is the entry's own: an alias stays the alias. A seed files into the folders as into any folder:
 
 ```ts
 const notePad = await catalog.create({ kind: APP_KIND, name: 'Note Pad', data: { app: 'note-pad' } })
-await catalog.create({ kind: ALIAS_KIND, name: 'Note Pad', parent: APPLE_MENU_ITEMS, data: { original: notePad!.id } })
+await catalog.create({ kind: ALIAS_KIND, name: 'Note Pad', parent: APPLE_MENU_ITEMS, data: { original: notePad!.id, kind: APP_KIND } })
 ```
 
 ## The Finder
@@ -329,14 +331,14 @@ finder({
 
 - Icons are the catalog's: the desktop shows the desktop's items and each open folder window shows its folder's. An item without a position takes its container's next free cell. The desktop's cells run down from its top right, below the menu bar. A folder's run in rows from its top left. The Trash starts in the desktop's bottom-right corner.
 - `seed: 'markup'` makes an application icon of each `vf-icon[data-app]` and a folder of each `template[data-folder="Name"]`, a folder's inside it, and files what a `template[data-system]` holds in that folder of the System Folder: `<template data-system="apple-menu-items"><vf-icon data-app="note-pad"></vf-icon></template>` puts Note Pad in the Apple menu. Its value is the folder's id, `system-folder`, `apple-menu-items` or `startup-items`, and without a `system` setting it files nothing.
-- An alias is drawn with its original's art and its name in italics (`vf-icon`'s `alias`). Opening it opens its original. With the original removed, opening it says the original couldn't be found.
-- File → Make Alias makes an alias of each selected application or document, an alias's alias standing for the same original, named "Name alias", in the free cell nearest it. The new aliases are selected.
+- An alias is drawn with its original's art and its name in italics (`vf-icon`'s `alias`). Opening it opens its original, and a drop onto an alias of a folder or the disk files into the original. With the original removed, opening it says the original couldn't be found, and so does a drop onto an alias of a folder, which keeps the folder's art and files nothing.
+- File → Make Alias makes an alias of each selected application, document, folder or disk, an alias's alias standing for the same original, named "Name alias", in the free cell nearest it. Never one of the Trash or anything in it. The new aliases are selected.
 - Every move goes back onto the item: a drag, an arrow-key nudge, Clean Up, the resize rule.
 - A press anywhere in the desktop's field, on an icon or not, brings the Finder forward. The selection survives a switch to another application and back.
 - Folder windows are made on open and removed on close. Each shows its item count, with the trash mark when it is in the Trash, and its scrolled content grows to hold its icons.
 - An icon is drawn open while its window is, until the window has closed into it. An application's icon is drawn open while the application has a window.
 - Opening one of several selected icons opens them all.
-- Filing: a drop onto a folder icon files into that folder at its next free cells. A drop into a folder window lands where the icons were let go, and so does a drop out of a window onto the desktop. The folder under the pointer is highlighted. A drop over another application's window moves nothing.
+- Filing: a drop onto a folder icon files into that folder at its next free cells, and a drop onto an alias of one into the original, judged there. A drop into a folder window lands where the icons were let go, and so does a drop out of a window onto the desktop. The folder under the pointer is highlighted. A drop over another application's window moves nothing.
 - Renaming goes to the catalog. A name that is too long or empty gets an alert.
 - A file dropped on the desktop or in a folder window brings the Finder forward, as a press does.
 - Copy puts the selected items' names on the system clipboard, with a file from the first kind that exports one. Paste copies what the Finder copied, while the system clipboard still holds those names or can't be read. Otherwise it offers the clipboard's files to the kinds' `claim`. A file dropped on the desktop goes the same way, into the folder window under it.
@@ -349,7 +351,7 @@ finder({
 | View | Arrange Windows ⌘J |
 | Special | Clean Up Desktop or Clean Up Window, Empty Trash… |
 
-A command is disabled while it has nothing to act on: Open and Copy with nothing selected, Close with no folder window active, Make Alias with no application or document selected outside the Trash, New Folder and Paste in the Trash, Empty Trash with the Trash empty, Arrange Windows with every window in place. Open, Copy, Paste, Select All and Make Alias are also disabled while a text field has focus, so the field keeps its own keys.
+A command is disabled while it has nothing to act on: Open and Copy with nothing selected, Close with no folder window active, Make Alias with nothing selected it takes (only the Trash, what is in it, or aliases whose originals are gone), New Folder and Paste in the Trash, Empty Trash with the Trash empty, Arrange Windows with every window in place. Open, Copy, Paste, Select All and Make Alias are also disabled while a text field has focus, so the field keeps its own keys.
 
 `extend` gets the Finder's actions and the context:
 
@@ -407,7 +409,7 @@ finder({
 | `name-too-long` | A rename past the limit | `{ limit }` | none |
 | `name-rejected` | A rename to nothing | none | none |
 | `move-failed` | A filing storage refused | `{ error }` | none |
-| `original-missing` | Opening an alias whose original is gone | `{ alias }`, the alias's item | none |
+| `original-missing` | Opening an alias whose original is gone, or a drop onto an alias of a folder whose original is gone | `{ alias }`, the alias's item | none |
 | `failed` | New Folder, Empty Trash, Paste, Make Alias or a dropped file failed | `{ action, error }`: `'new-folder'`, `'empty-trash'`, `'paste'`, `'make-alias'` or `'add-file'` | none |
 
 An alert with no handler is the Finder's own.

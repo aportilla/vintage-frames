@@ -20,8 +20,9 @@
  *   open while the application has a window open, and the application's own
  *   windows close into it.
  * - An alias wears its original's art with its name in italics, and opens
- *   its original; with the original gone, an alert says so. Make Alias makes
- *   one beside each selected application or document.
+ *   its original; an alias of a folder or the disk also files a drop into
+ *   it. With the original gone, an alert says so. Make Alias makes one
+ *   beside each selected application, document, folder or disk.
  * - Menus: File (Open, New Folder, Close, Make Alias), Edit (Copy, Paste,
  *   Select All), View (Arrange Windows), Special (Clean Up, Empty Trash…),
  *   each disabled while it has nothing to act on. A site switches commands
@@ -53,8 +54,10 @@ import {
   TRASH,
   aliasName,
   appIdOf,
+  canAlias,
   childrenOf,
   containerOf,
+  dropTargetOf,
   enclosingFolders,
   isContainerKind,
   isInside,
@@ -127,7 +130,7 @@ export interface FinderAlerts {
   'name-rejected': Record<string, never>
   /** A filing storage refused. */
   'move-failed': { error: Error }
-  /** Opening an alias whose original is gone. */
+  /** Opening an alias whose original is gone, or a drop onto an alias of a folder whose original is gone. */
   'original-missing': { alias: Item }
   /** New Folder, Empty Trash, Paste, Make Alias or a dropped file failed. */
   failed: { action: FinderFailedAction; error: Error }
@@ -542,9 +545,11 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         if (item.kind === TRASH) return itemCount(catalog.get(), TRASH) ? art.trashFull : art.trash
         if (item.kind === DISK) return art.disk ?? art.folder
         if (item.kind === ALIAS_KIND) {
-          // Its original's art; with the original gone, a document's.
+          // Its original's art; with the original gone, a folder's for an
+          // alias that still takes drops, else a document's.
           const original = resolve(catalog.get(), item.id)
-          return original ? artOf(original) : art.document
+          if (original) return artOf(original)
+          return dropTargetOf(catalog.get(), item.id) ? art.folder : art.document
         }
         const kind = ctx.kind(item.kind)
         const own = typeof kind?.art === 'function' ? kind.art(item) : kind?.art
@@ -574,9 +579,20 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         icon.width = cell
         icon.selectable = true
         icon.movable = true
-        // A drop target: folders and the volumes.
-        if (isContainerKind(item.kind)) icon.dataset.folder = item.id
         return icon
+      }
+
+      /**
+       * A drop target's `data-folder`, which filing reads: the container a
+       * drop onto the item files into, its own id or an alias's original's.
+       * An alias whose original is gone carries its own id, so it still takes
+       * the drop, to say so. Kept current, since an original comes and goes.
+       */
+      function markDropTarget(icon: VfIcon, item: Item): void {
+        const into = dropTargetOf(catalog.get(), item.id)
+        const folder = into == null ? undefined : 'folder' in into ? into.folder : item.id
+        if (folder === undefined) delete icon.dataset.folder
+        else if (icon.dataset.folder !== folder) icon.dataset.folder = folder
       }
 
       /** Icons whose positions are still to go onto their items. */
@@ -634,6 +650,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
               if (icon.label !== item.name) icon.label = item.name
               icon.editable = !isKept(item.id) && ctx.kind(item.kind)?.editable !== false
               icon.alias = item.kind === ALIAS_KIND
+              markDropTarget(icon, item)
               setArt(icon, artOf(item))
               const open =
                 item.kind === APP_KIND ? windows.hasWindows(appIdOf(item) ?? '') : windows.isOpen(item.id)
@@ -760,17 +777,22 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
 
       /* ── Opening and closing ───────────────────────────────────────── */
 
+      /** An alias whose original is gone was opened, or dropped onto: say so. */
+      function originalMissing(alias: Item): void {
+        void alert(
+          'original-missing',
+          { alias },
+          `The alias “${alias.name}” could not be opened, because the original item could not be found.`
+        )
+      }
+
       /** Open an item, an alias its original: a folder's window, or the item's kind. */
       function openItem(id: string, from: VfViewportBox | null): void {
         const item = catalog.item(id)
         if (!item) return
         const target = resolve(catalog.get(), id)
         if (!target) {
-          void alert(
-            'original-missing',
-            { alias: item },
-            `The alias “${item.name}” could not be opened, because the original item could not be found.`
-          )
+          originalMissing(item)
           return
         }
         if (isContainerKind(target.kind)) {
@@ -858,18 +880,30 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
           folderOfIcon: (icon) => icon.dataset.folder,
           // Another application's icons are its own to move.
           containerOf: (icon) => (icon.dataset.id == null ? undefined : containerOfIcon(icon)),
+          // A folder is a container's id or, for an alias whose original is
+          // gone, the alias's own: each goes through dropTargetOf, so an
+          // alias's id never reaches move(), which would read it as the desktop.
           canFile: (icons, folder) => {
             const st = catalog.get()
+            const into = folder == null ? null : dropTargetOf(st, folder)
+            if (folder != null && !into) return false
             return icons.every((icon) => {
               const id = icon.dataset.id
               if (id == null || isKept(id)) return false
-              if (folder == null || icon.dataset.folder == null) return true
-              return id !== folder && !isInside(st, folder, id)
+              if (!into || 'missing' in into) return true
+              return id !== into.folder && !isInside(st, into.folder, id)
             })
           },
           file: (icons, folder, landings) => {
+            let parent: string | null = null
+            if (folder != null) {
+              const into = dropTargetOf(catalog.get(), folder)
+              if (!into) return
+              if ('missing' in into) return originalMissing(into.missing)
+              parent = into.folder
+            }
             const at = new Map([...landings].map(([icon, p]) => [idOf(icon), p]))
-            catalog.move(icons.map(idOf), folder, at).catch((error: Error) => {
+            catalog.move(icons.map(idOf), parent, at).catch((error: Error) => {
               void alert('move-failed', { error }, `The items couldn’t be moved: ${error.message}.`)
             })
           },
@@ -972,17 +1006,14 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         if (made) await rename(made.id)
       }
 
-      /** Whether File → Make Alias takes an item: an application or a document, or an alias of one, outside the Trash. */
-      const aliasable = (item: Item): boolean => {
-        const st = catalog.get()
-        const original = resolve(st, item.id)
-        return !!original && !isContainerKind(original.kind) && !isTrashed(st, item.id)
-      }
+      /** Whether File → Make Alias takes an item: `canAlias`, over the listing now. */
+      const aliasable = (item: Item): boolean => canAlias(catalog.get(), item.id)
 
       /**
        * File → Make Alias: an alias of each selected item in the free cell
        * nearest it, named "<name> alias". An alias's alias stands for the
-       * same original. The new aliases end up selected.
+       * same original, and each records its original's kind. The new
+       * aliases end up selected.
        */
       async function makeAlias(): Promise<void> {
         if (!storageReady()) return
@@ -991,6 +1022,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         try {
           for (const item of selection().filter(aliasable)) {
             const st = catalog.get()
+            const original = resolve(st, item.id)!
             const folder = containerOf(st, item.parent)
             const icon = iconFor(item.id)
             const root = fieldOf(folder)
@@ -1004,7 +1036,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
               kind: ALIAS_KIND,
               name: aliasName(st, folder, item.name),
               parent: folder,
-              data: { original: resolve(st, item.id)!.id },
+              data: { original: original.id, kind: original.kind },
               ...at,
             })
             if (alias) made.push(alias.id)

@@ -142,7 +142,7 @@ async function closeFolder(folder: Item, win: VfWindow): Promise<void> {
 
 ## Opening
 
-`vf-open` fires on a double-click anywhere on the icon, on two taps of a finger or pen, or ⌘O / ⌘↓ from the keyboard. Open the folder's window from the icon and mark the icon. An alias opens its original, wherever it is; with the original gone, say so:
+`vf-open` fires on a double-click anywhere on the icon, on two taps of a finger or pen, or ⌘O / ⌘↓ from the keyboard. Open the folder's window from the icon and mark the icon. An alias opens its original, wherever it is: an alias of a folder opens the folder's own window, under the folder's name, whichever icon opened it. With the original gone, say so:
 
 ```ts
 document.addEventListener('vf-open', (e) => {
@@ -249,6 +249,15 @@ function under(clientX: number, clientY: number, skip: Element[]) {
 }
 ```
 
+An alias of a folder is a drop target for its original. Mark its icon with the original's id, and a drop onto it files there:
+
+```ts
+const original = item.kind === 'alias' ? items.get(item.original!) : undefined
+if (original?.kind === 'folder') icon.dataset.folder = original.id
+```
+
+The filing rule then judges the original, so a folder never goes into itself or a folder inside it through an alias either. Once the original is gone, take the mark off, or keep it and say at the drop that the original couldn't be found, as opening it does.
+
 Under a drag, the folder icon under the pointer wears `target` — the Finder's inverted destination — with no selection semantics:
 
 ```ts
@@ -285,10 +294,11 @@ document.addEventListener('vf-drop', (e) => {
   })
 
   if (hit.folder && !icons.includes(hit.folder)) {
-    // Onto a folder icon: into that folder, at the next free cells.
+    // Onto a folder icon: into that folder, at the next free cells. Its
+    // data-folder is the folder's id, an alias's original's.
     e.preventDefault()
-    const folder = itemFor(hit.folder)
-    landings.forEach(({ icon }, i) => file(icon, folder.id, freeCell(folder.id, i)))
+    const folder = hit.folder.dataset.folder!
+    landings.forEach(({ icon }, i) => file(icon, folder, freeCell(folder, i)))
     return
   }
   if (hit.window && hit.window !== from) {

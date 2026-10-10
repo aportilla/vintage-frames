@@ -16,10 +16,13 @@ import {
   aliasName,
   appIdOf,
   appleMenuItemsOf,
+  appleMenuOf,
+  canAlias,
   childrenOf,
   copyName,
   createCatalog,
   descendantsOf,
+  dropTargetOf,
   enclosingFolders,
   isInside,
   isKept,
@@ -466,4 +469,120 @@ test('import: an alias follows its original to the original’s new id, and the 
   assert.ok(!stored.has(SYSTEM_FOLDER), 'a kept container’s record is not imported')
   assert.deepEqual(names(appleMenuItemsOf(catalog.get())), ['Note alias'])
   assert.equal(resolve(catalog.get(), stored.get('a1').id).id, note.id)
+})
+
+/** An alias of `original` as Make Alias makes one, naming the original's id and kind. */
+const aliasOf = (catalog, original, fields = {}) =>
+  catalog.create({ name: `${original.name} alias`, kind: ALIAS_KIND, data: { original: original.id, kind: original.kind }, ...fields })
+
+test('Make Alias takes a document, a folder, the disk, the System Folder’s folders or an alias of one, outside the Trash', async () => {
+  const { catalog } = await library({ system: SYSTEM })
+  const box = await catalog.create({ name: 'Box' })
+  const note = await catalog.create({ name: 'Note', kind: 'text', parent: box.id })
+  const toBox = await aliasOf(catalog, box)
+  const toTrash = await aliasOf(catalog, catalog.item(TRASH))
+  const st = catalog.get()
+  for (const id of [note.id, box.id, DISK, SYSTEM_FOLDER, APPLE_MENU_ITEMS, STARTUP_ITEMS, toBox.id]) {
+    assert.equal(canAlias(st, id), true, id)
+  }
+  assert.equal(canAlias(st, TRASH), false, 'never the Trash')
+  assert.equal(canAlias(st, toTrash.id), false, 'nor through an alias of it')
+  assert.equal(canAlias(st, 'nothing'), false)
+  assert.equal(canAlias(st, null), false)
+  await catalog.move([box.id], TRASH)
+  assert.equal(canAlias(catalog.get(), box.id), false, 'nothing in the Trash')
+  assert.equal(canAlias(catalog.get(), note.id), false, 'nor inside a folder there')
+  assert.equal(canAlias(catalog.get(), toBox.id), true, 'an alias outside it, of an original inside it')
+  await catalog.emptyTrash()
+  assert.equal(canAlias(catalog.get(), toBox.id), false, 'nor an alias whose original is gone')
+})
+
+test('folder aliases: a drop onto one files into its original, judged by the original', async () => {
+  const { catalog } = await library()
+  const outer = await catalog.create({ name: 'Outer' })
+  const inner = await catalog.create({ name: 'Inner', parent: outer.id })
+  const note = await catalog.create({ name: 'Note', kind: 'text' })
+  const toOuter = await aliasOf(catalog, outer)
+  const toInner = await aliasOf(catalog, inner)
+  const toDisk = await aliasOf(catalog, catalog.item(DISK))
+  const toNote = await aliasOf(catalog, note)
+  let st = catalog.get()
+  assert.deepEqual(dropTargetOf(st, outer.id), { folder: outer.id }, 'a folder takes its own drop')
+  assert.deepEqual(dropTargetOf(st, TRASH), { folder: TRASH }, 'and the Trash')
+  assert.deepEqual(dropTargetOf(st, toOuter.id), { folder: outer.id }, 'an alias passes it to its original')
+  assert.deepEqual(dropTargetOf(st, toDisk.id), { folder: DISK }, 'the disk’s too')
+  assert.equal(dropTargetOf(st, note.id), null, 'a document takes none')
+  assert.equal(dropTargetOf(st, toNote.id), null, 'nor an alias of one')
+  assert.equal(dropTargetOf(st, null), null)
+
+  // Filed through an alias, an item lands in the original, wherever it moved.
+  await catalog.move([outer.id], DISK)
+  assert.deepEqual(await catalog.move([note.id], dropTargetOf(catalog.get(), toOuter.id).folder), [note.id])
+  assert.equal(catalog.item(note.id).parent, outer.id)
+  // A folder filed into itself, or a folder inside it, through an alias: refused.
+  st = catalog.get()
+  assert.deepEqual(await catalog.move([outer.id], dropTargetOf(st, toOuter.id).folder), [])
+  assert.deepEqual(await catalog.move([outer.id], dropTargetOf(st, toInner.id).folder), [])
+  assert.equal(catalog.item(outer.id).parent, DISK)
+})
+
+test('folder aliases: with the original gone, one still takes a drop and files nothing; one without a kind is a document’s', async () => {
+  const { catalog } = await library()
+  const box = await catalog.create({ name: 'Box' })
+  const note = await catalog.create({ name: 'Note', kind: 'text' })
+  const toBox = await aliasOf(catalog, box)
+  const toNote = await aliasOf(catalog, note)
+  const before = await catalog.create({ name: 'Before', kind: ALIAS_KIND, data: { original: box.id } })
+  assert.deepEqual(dropTargetOf(catalog.get(), before.id), { folder: box.id }, 'with the original there, the original decides')
+  await catalog.move([box.id, note.id], TRASH)
+  assert.deepEqual(dropTargetOf(catalog.get(), toBox.id), { folder: box.id }, 'an original in the Trash still takes it')
+  await catalog.emptyTrash()
+  const st = catalog.get()
+  assert.deepEqual(dropTargetOf(st, toBox.id), { missing: catalog.item(toBox.id) }, 'gone: the alias, which says so')
+  assert.equal(dropTargetOf(st, toNote.id), null, 'an alias of a document takes none, gone or not')
+  assert.equal(dropTargetOf(st, before.id), null, 'an alias with no kind stood for an application or a document')
+})
+
+/** The Apple menu by name: a folder's entries as `{ name: [...] }`. */
+const menuTree = (entries) => entries.map(({ item, entries: inside }) => (inside ? { [item.name]: menuTree(inside) } : item.name))
+
+test('appleMenuOf: a folder or a folder alias in Apple Menu Items holds what its original holds, by name, and follows it', async () => {
+  const { catalog } = await library({ system: SYSTEM })
+  const games = await catalog.create({ name: 'Games', parent: DISK })
+  await catalog.create({ name: 'Puzzle', kind: 'text', parent: games.id })
+  const arcade = await catalog.create({ name: 'arcade', parent: games.id })
+  await catalog.create({ name: 'Pong', kind: 'text', parent: arcade.id })
+  await aliasOf(catalog, games, { name: 'Games', parent: APPLE_MENU_ITEMS })
+  const panels = await catalog.create({ name: 'Control Panels', parent: APPLE_MENU_ITEMS })
+  await catalog.create({ name: 'Desktop Patterns', kind: 'text', parent: panels.id })
+  await catalog.create({ name: 'Note Pad', kind: 'text', parent: APPLE_MENU_ITEMS })
+  const menu = appleMenuOf(catalog.get())
+  assert.deepEqual(menuTree(menu), [{ 'Control Panels': ['Desktop Patterns'] }, { Games: [{ arcade: ['Pong'] }, 'Puzzle'] }, 'Note Pad'])
+  assert.equal(menu[1].item.kind, ALIAS_KIND, 'an alias’s entry is the alias')
+  assert.deepEqual(names(menu.map((e) => e.item)), names(appleMenuItemsOf(catalog.get())), 'the same entries as appleMenuItemsOf')
+  await catalog.create({ name: 'Meteors', kind: 'text', parent: games.id })
+  assert.deepEqual(menuTree(appleMenuOf(catalog.get()))[1], { Games: [{ arcade: ['Pong'] }, 'Meteors', 'Puzzle'] }, 'a game added is in it at once')
+  const { catalog: none } = await library()
+  assert.deepEqual(appleMenuOf(none.get()), [], 'none without the System Folder')
+})
+
+test('appleMenuOf: a folder already on the way down, an empty folder, a lost original and a folder past five levels are entries', async () => {
+  const { catalog } = await library({ system: SYSTEM })
+  const games = await catalog.create({ name: 'Games', parent: APPLE_MENU_ITEMS })
+  await aliasOf(catalog, games, { name: 'Back up', parent: games.id })
+  await aliasOf(catalog, catalog.item(APPLE_MENU_ITEMS), { name: 'Apple Menu Items', parent: games.id })
+  await aliasOf(catalog, catalog.item(SYSTEM_FOLDER), { name: 'System', parent: APPLE_MENU_ITEMS })
+  const gone = await catalog.create({ name: 'Gone', parent: DISK })
+  await aliasOf(catalog, gone, { name: 'Lost', parent: APPLE_MENU_ITEMS })
+  await catalog.move([gone.id], TRASH)
+  await catalog.emptyTrash()
+  // L1 to L7, each inside the one before, from Apple Menu Items.
+  let parent = APPLE_MENU_ITEMS
+  for (let n = 1; n <= 7; n++) parent = (await catalog.create({ name: `L${n}`, parent })).id
+  assert.deepEqual(menuTree(appleMenuOf(catalog.get())), [
+    { Games: ['Apple Menu Items', 'Back up'] },
+    { L1: [{ L2: [{ L3: [{ L4: [{ L5: ['L6'] }] }] }] }] },
+    'Lost',
+    { System: ['Apple Menu Items', 'Startup Items'] },
+  ])
 })

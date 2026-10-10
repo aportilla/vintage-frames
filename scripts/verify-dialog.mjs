@@ -47,7 +47,10 @@
  *  - REOPEN: `show()` straight after `close()`, before that close's native
  *    `close` event (it is queued) — the event used to close the dialog that
  *    had just opened. The dialog stays open, and the close is announced once,
- *    with its value, before the open's `vf-show`.
+ *    with its value, before the open's `vf-show`. A `vf-close` listener that
+ *    closes it again there keeps it closed, and leaves no value for a later
+ *    close; a `show()` that failed on a removed dialog leaves no close to
+ *    announce once it is back.
  *
  *   npm run dev            # in another shell (port 5173)
  *   npm run verify:dialog
@@ -698,6 +701,63 @@ async function keys(page, key) {
     'reopen: …the close is announced once, with its value, before the open; the open starts with no answer',
     r.log.join(' / ') === 'show / close close first / show' && r.returnValue === '',
     `${r.log.join(' / ')}; returnValue ${JSON.stringify(r.returnValue)}`
+  )
+  await page.close()
+}
+{
+  const page = await build(`<vf-dialog id="dlg" heading="Again" width="360" height="160"></vf-dialog>`)
+  const r = await page.evaluate(async () => {
+    const dlg = document.getElementById('dlg')
+    dlg.show()
+    await dlg.updateComplete
+    const native = dlg.shadowRoot.querySelector('dialog')
+    const late = new Promise((resolve) => native.addEventListener('close', resolve, { once: true }))
+    // The announced close's listener closes it again, with a value of its own.
+    dlg.addEventListener('vf-close', () => dlg.close('stray'), { once: true })
+    dlg.close('first')
+    dlg.show()
+    const reopened = dlg.open
+    await late
+    await dlg.updateComplete
+    dlg.show()
+    await dlg.updateComplete
+    const next = new Promise((resolve) => dlg.addEventListener('vf-close', (e) => resolve(e.detail.returnValue), { once: true }))
+    dlg.close()
+    return { reopened, next: await next, returnValue: dlg.returnValue }
+  })
+  check(
+    'reopen: a vf-close listener that closes it again keeps it closed, and the next close carries no value of that one\'s',
+    !r.reopened && r.next === null && r.returnValue === '',
+    JSON.stringify(r)
+  )
+  await page.close()
+}
+{
+  const page = await build(`<vf-dialog id="dlg" heading="Again" width="360" height="160"></vf-dialog>`)
+  const r = await page.evaluate(async () => {
+    const dlg = document.getElementById('dlg')
+    const log = []
+    dlg.addEventListener('vf-show', () => log.push('show'))
+    dlg.addEventListener('vf-close', (e) => log.push(`close ${e.detail.reason}`))
+    const parent = dlg.parentNode
+    dlg.remove()
+    // showModal() refuses a <dialog> that isn't in the document, and the update that follows tries again.
+    let threw = false
+    try {
+      dlg.show()
+    } catch {
+      threw = true
+    }
+    await dlg.updateComplete.catch(() => {})
+    parent.append(dlg)
+    // Opened within show(): updateComplete holds the failed update until the next one.
+    dlg.show()
+    return { threw, open: dlg.open, nativeOpen: dlg.shadowRoot.querySelector('dialog').open, log }
+  })
+  check(
+    'reopen: show() on a removed dialog opens nothing, and once it is back show() opens it with no close announced first',
+    r.open && r.nativeOpen && r.log.join() === 'show',
+    JSON.stringify(r)
   )
   await page.close()
 }

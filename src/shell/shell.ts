@@ -402,8 +402,11 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
             dialog.removeEventListener('vf-close', closed)
             resolve((e as CustomEvent<VfCloseDetail>).detail.returnValue)
           }
-          dialog.addEventListener('vf-close', closed)
+          // Listen once it's shown: a dialog shown again before its last close
+          // was announced announces that close inside show(), and that answer
+          // isn't this ask's.
           dialog.show()
+          dialog.addEventListener('vf-close', closed)
         })
       },
       gate(item, test) {

@@ -35,6 +35,9 @@
  *    with its text unselected.
  *  - FIRST RENDER (a fixture): a palette adopted in an application's init is
  *    placed against the work area below the menu bar.
+ *  - ASK (a fixture): a dialog asked again in the turn its last answer came,
+ *    before that close's native event: the first ask resolves that answer,
+ *    and the second waits for the answer to its own open.
  *  - SESSION: with saving on, a reload reopens the windows where they were,
  *    deepest first, the active one active; a new desktop pattern is saved
  *    on its own.
@@ -628,6 +631,55 @@ const layout = (page) =>
     at.areaTop > 0 && at.top === at.areaTop + 8,
     JSON.stringify(at)
   )
+  await page.close()
+}
+
+// ── ASK ─────────────────────────────────────────────────────────────────────
+{
+  const page = await shellFixture(browser)
+  const r = await page.evaluate(async () => {
+    document.body.innerHTML = '<vf-desktop bezel="10"><vf-menu-bar><vf-menu label="Apple"></vf-menu></vf-menu-bar></vf-desktop>'
+    const desktop = document.querySelector('vf-desktop')
+    const { createShell, defineApp } = window.vfShell
+    let ctx
+    const asker = defineApp({
+      id: 'asker',
+      name: 'Asker',
+      init(c) {
+        ctx = c
+      },
+    })
+    const shell = createShell(desktop, { apps: [asker], defaultApp: 'asker', fit: 'viewport' })
+    await shell.ready
+    const dialog = document.createElement('vf-dialog')
+    dialog.frame = 'plain'
+    dialog.label = 'Again'
+    dialog.width = 240
+    dialog.height = 80
+    dialog.innerHTML = '<vf-button variant="default">OK</vf-button>'
+    ctx.hold(dialog)
+    await dialog.updateComplete
+    const first = ctx.ask(dialog)
+    await dialog.updateComplete
+    const native = dialog.shadowRoot.querySelector('dialog')
+    const late = new Promise((resolve) => native.addEventListener('close', resolve, { once: true }))
+    // Answered, and asked again in the same turn, before that close's native event.
+    dialog.close('old')
+    let second = 'waiting'
+    const asked = ctx.ask(dialog).then((answer) => (second = answer))
+    await late
+    await dialog.updateComplete
+    const then = { first: await first, second, open: dialog.open && native.open }
+    dialog.close('new')
+    await asked
+    return { ...then, answered: second }
+  })
+  check(
+    'ASK  asked again in the turn it was answered: the first ask has that answer, the second waits, the dialog open',
+    r.first === 'old' && r.second === 'waiting' && r.open,
+    JSON.stringify(r)
+  )
+  check('ASK  …and the second resolves with the answer to its own open', r.answered === 'new', JSON.stringify(r))
   await page.close()
 }
 

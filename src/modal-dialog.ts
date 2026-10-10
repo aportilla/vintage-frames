@@ -144,9 +144,9 @@ export const modalDialogStyles = css`
  * {@link lightDismiss} click outside — routes through the native `close`
  * event, an Escape-close no longer leaves a stale origin behind, so the next
  * open re-derives it. That event is queued: a modal opened again before it
- * comes (`close()` then `show()` in one turn) runs the funnel at the open, so
- * the close's `vf-close` still comes before the open's `vf-show`, and the
- * late event changes nothing.
+ * comes (`close()` then `show()` in one turn) runs the funnel at the open,
+ * inside `show()`, so the close's `vf-close` still comes before the open's
+ * `vf-show`, and the late event changes nothing.
  *
  * It also owns the two keyboard rules every classic dialog followed (see
  * {@link defaultButton} and {@link initialFocusTarget}): Return or Enter
@@ -658,10 +658,15 @@ export class VfModalDialog extends LitElement {
         this.#syncDialog()
         return
       }
-      this.#opened = true
       this.#invoker = document.activeElement
       this.returnValue = ''
+      // Anything still pending is from a close that never reached the
+      // <dialog>, such as one asked for in the vf-close above, not this open's.
+      this.#closeReason = null
+      this.#closeValue = null
+      this.#closeKeys = null
       dialog.showModal()
+      this.#opened = true
       const focus = this.#focusInitial()
       this.settle()
       this.#watchGeometry(dialog)

@@ -409,7 +409,7 @@ Each module also works alone, on a page built from the elements ([FINDER.md](./F
 | `pinOf`, `pinTo`, `frameOf`, `cascadedBox`, `centeredBox`, `desktopLattice`, `folderLattice`, `trashCell`, `nextFreeCell`, `cleanUp`, `fillOrder`, `fieldExtent`, `collisions` | The geometry, pure: boxes and positions in whole system px. |
 | `localStorageState`, `readSession`, `mergeSession` | The saved session. |
 | `startClock` | The clock. |
-| `readAppFile`, `inspectAppFile`, `satisfies`, `compareVersions`, `APP_FILE_FORMAT`, `BOX_SCALE` | An app file's manifest and code, or why it isn't one; a version checked against a range, and versions put in order; the scale every box is drawn at ([APP-FILES.md](./APP-FILES.md)). |
+| `readAppFile`, `inspectAppFile`, `satisfies`, `compareVersions`, `appRuns`, `APP_FILE_FORMAT`, `APP_API`, `APP_API_OLDEST`, `BOX_SCALE` | An app file's manifest and code, or why it isn't one; a version checked against a range, and versions put in order; whether this kit runs an application, and the app API levels it runs; the scale every box is drawn at ([APP-FILES.md](./APP-FILES.md)). |
 | `VERSION` | The kit's version. |
 
 `vintage-frames/shell/pure` exports the catalog, the geometry, the saved session, the app file reader and `VERSION` alone. They import nothing of the kit and touch no DOM when imported, so a site's own pure modules, and their tests under Node, import them from there:

@@ -17,7 +17,8 @@ An application on the shell ships as one PNG, its app file. The picture is the a
   "id": "meteors",
   "name": "Meteors",
   "version": "0.1.0",
-  "requires": "^0.16.2",
+  "requires": "^0.18.1",
+  "api": 1,
   "author": "Adam Portilla",
   "description": "An Asteroids-style game on a 320 × 240 1-bit screen.",
   "icon": "data:image/png;base64,iVBORw0KGgo…"
@@ -27,7 +28,8 @@ An application on the shell ships as one PNG, its app file. The picture is the a
 - `format` is the app file's own version. A reader refuses a format it doesn't know.
 - `version` is the application's version, exactly as semver writes one: `0.1.0`, `1.0.0-rc.1`. No `v`, and no leading zeros.
 - `requires` is the kit range the code was built against, a caret range.
-- A reader refuses a manifest whose `version` isn't a version, or whose `requires` isn't a version or a caret range, so every manifest it hands on can be put in order and checked against a kit.
+- `api` is the app API the code was built against (§ The app API). A file from before levels has none, and a reader from before drops it.
+- A reader refuses a manifest whose `version` isn't a version, whose `requires` isn't a version or a caret range, or whose `api` isn't a whole number from 1, so every manifest it hands on can be put in order and checked against a kit.
 - `description` is optional: what the application is, in a sentence or two of plain text. The format sets no limit on its length, and the box doesn't show it. A reader from before `description` leaves it out and reads the rest.
 - `icon` is the 32 × 32 icon, its PNG as a `data:` URL, so a desktop can show the icon without running the code.
 - The code's default export is the application's factory. It imports `vintage-frames`, `vintage-frames/shell` and `vintage-frames/shell/pure` by name, and the page's own copy of the kit serves them.
@@ -58,6 +60,7 @@ export default defineConfig({
 | `copyTo` | A directory to write the app file to as well, such as a site's `apps/`. Optional. |
 
 - `requires` is the repo's `vintage-frames` range from package.json. It must be a caret range, and the kit in the build must meet it.
+- `api` is the build's kit's `APP_API`.
 - The entry is built as a library: ES, one module, the kit's entries left as imports, art and `?raw` markup inlined.
 - The build fails when the bundle breaks a rule, and says which: CSS or any other file emitted beside the code, more than one module, Lit or a copy of the kit bundled in, or an import of anything but the kit's three entries.
 - `vite build --watch` writes the file, and the `copyTo` copy, on every rebuild. `app` is read when the build starts, so restart a watch after changing it.
@@ -81,7 +84,7 @@ createShell(desktop, { apps: [finder({ storage }), meteors()] })
 ```
 
 - The default export is the application's factory. The definition it returns takes the manifest's icon. `manifest` is the manifest.
-- The build fails on a file that isn't an app file, and on one whose `requires` the site's kit doesn't meet, naming the application and both versions.
+- The build fails on a file that isn't an app file, and on one the site's kit doesn't run (`appRuns`): one built at an app API outside the kit's, or, without `api`, one whose `requires` the kit doesn't meet. It names the application and what it needs.
 - The code's kit imports resolve to the site's own kit, so the page keeps one copy.
 - A new app file reloads the dev server's page.
 
@@ -90,6 +93,17 @@ For the import's types, add `vintage-frames/build/client` to tsconfig.json besid
 ```json
 { "compilerOptions": { "types": ["vite/client", "vintage-frames/build/client"] } }
 ```
+
+## The app API
+
+The app API is what a built application can use of the kit while it runs. It has a level of its own, apart from the kit's version: a kit provides `APP_API`, and runs every application built from `APP_API_OLDEST` to `APP_API`. A file without `api`, from before levels, runs when the kit meets its `requires`.
+
+- It covers the values `vintage-frames`, `vintage-frames/shell` and `vintage-frames/shell/pure` export; the shapes the kit hands an application and takes from it, such as `AppDefinition`, `AppContext`, the window manager, the catalog, a kind and an event's detail; and each element's tag, attributes, properties, methods, events, slots, parts, states and `--vf-*` tokens. It also covers behavior these docs say an application can rely on.
+- It doesn't cover `vintage-frames/build`, the box, a type's name, or how anything looks. A visual fix reaches every application, since the page's kit draws it.
+- `APP_API` goes up when something in the app API changes or goes away. An addition leaves it alone, so an application built on a newer kit runs on an older page at the same level, and fails only when it reaches something that page lacks. An application that wants older pages checks for something new before it uses it.
+- `APP_API_OLDEST` goes up when a change breaks applications built before it and the kit keeps no old behavior for them.
+
+`app-api.json`, at the repo's root, lists the app API by name and type, with both levels. `npm run analyze` writes it, and CI fails when it's stale, so a change to the app API shows in the commit that makes it. `npm version` compares it with the last release's before it bumps ([PUBLISHING.md](./PUBLISHING.md#the-release-routine)).
 
 ## The box
 
@@ -117,7 +131,7 @@ The build checks the first three.
 
 | `vintage-frames/build` | |
 | --- | --- |
-| `packApp({ manifest, icon, code, artwork })` | The whole app file. `manifest` has no `format` or `icon`; they are filled in. |
+| `packApp({ manifest, icon, code, artwork })` | The whole app file. `manifest` has no `format`, `api` or `icon`; they are filled in. |
 | `composeBox({ manifest, icon, artwork })` | The box alone, as a PNG. |
 | `writeAppFile(box, manifest, code)` | `box` with the manifest and code in its chunks. App chunks already there are replaced, and the picture is copied as it is. |
 
@@ -127,6 +141,9 @@ The build checks the first three.
 | `inspectAppFile(bytes)` | The manifest and code, or why the bytes aren't an app file, as the end of a sentence: "Meteors.png is not an app file: its code is missing". The wording is for people and can change in any release. |
 | `satisfies(version, range)` | Whether a version meets an exact version or a caret range. |
 | `compareVersions(a, b)` | Below zero, zero or above as `a` comes before, with or after `b`, in semver's order, so `versions.sort(compareVersions)` puts them oldest first. Anything that isn't a version comes first, so a sort never throws. |
+| `appRuns(manifest)` | Whether this kit runs the application: its `api` from `APP_API_OLDEST` to `APP_API`, or, without one, its `requires` met by `VERSION`. |
+| `APP_API` | The app API this kit provides: `1`. |
+| `APP_API_OLDEST` | The oldest app API this kit runs: `1`. |
 | `VERSION` | The kit's version. |
 | `APP_FILE_FORMAT` | The format this kit reads and writes: `1`. |
 | `BOX_SCALE` | The scale every box is drawn at: `3`, each system px a 3 × 3 block of the picture's px. |

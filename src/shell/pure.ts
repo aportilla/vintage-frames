@@ -9,6 +9,16 @@
 export * from './catalog.js'
 export * from './geometry.js'
 export * from './state.js'
-export { APP_FILE_FORMAT, BOX_SCALE, compareVersions, inspectAppFile, readAppFile, satisfies } from './app-file.js'
+export {
+  APP_API,
+  APP_API_OLDEST,
+  APP_FILE_FORMAT,
+  BOX_SCALE,
+  appRuns,
+  compareVersions,
+  inspectAppFile,
+  readAppFile,
+  satisfies,
+} from './app-file.js'
 export type { AppFile, AppManifest } from './app-file.js'
 export { VERSION } from './version.js'

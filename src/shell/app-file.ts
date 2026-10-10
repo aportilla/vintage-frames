@@ -5,14 +5,26 @@
  * the chunks and any decoder skips them.
  *
  * This is the reading half: the reader, checking a version against a range,
- * putting versions in order, and the scale every box is drawn at. It is
- * pure and runs the same under Node and in a page, through the platform's
- * compression streams. Writing an app file, and the box, are
- * `vintage-frames/build`'s.
+ * putting versions in order, the app API levels and whether this kit runs an
+ * application, and the scale every box is drawn at. It is pure and runs the
+ * same under Node and in a page, through the platform's compression streams.
+ * Writing an app file, and the box, are `vintage-frames/build`'s.
  */
+
+import { VERSION } from './version.js'
 
 /** The app file format this kit reads and writes. */
 export const APP_FILE_FORMAT = 1
+
+/**
+ * The app API this kit provides: the level of what a built application can
+ * use of it. It goes up when something in it changes or goes away, and never
+ * for an addition. app-api.json lists what it covers.
+ */
+export const APP_API = 1
+
+/** The oldest app API this kit still runs. */
+export const APP_API_OLDEST = 1
 
 /**
  * One system px of an app file's box, in its picture's px: every box of
@@ -33,6 +45,8 @@ export interface AppManifest {
   version: string
   /** The kit range the code was built and checked against: `^0.17.0`. */
   requires: string
+  /** The app API the code was built against, {@link APP_API}. A file from before levels has none. */
+  api?: number
   author: string
   /** What the application is, in a sentence or two of plain text. */
   description?: string
@@ -47,8 +61,8 @@ export interface AppFile {
   code: string
 }
 
-/** The fields a manifest holds, in the order a written one lists them. All but `description` are required. */
-const FIELDS = ['id', 'name', 'version', 'requires', 'author', 'description', 'icon'] as const
+/** The fields a manifest holds, in the order a written one lists them. All but `api` and `description` are required. */
+const FIELDS = ['id', 'name', 'version', 'requires', 'api', 'author', 'description', 'icon'] as const
 
 /** The eight bytes every PNG starts with. */
 export const PNG_SIGNATURE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10)
@@ -141,6 +155,12 @@ export function manifestOf(json: unknown): AppManifest | string {
   const manifest: Partial<AppManifest> = { format: APP_FILE_FORMAT }
   for (const field of FIELDS) {
     const value = m[field]
+    if (field === 'api') {
+      if (value === undefined) continue
+      if (!Number.isInteger(value) || (value as number) < 1) return `its api, ${JSON.stringify(value)}, is not a level`
+      manifest.api = value as number
+      continue
+    }
     if (field === 'description') {
       if (value !== undefined && typeof value !== 'string') return 'its description is not text'
       if (typeof value === 'string' && value.trim()) manifest.description = value
@@ -285,4 +305,15 @@ export function satisfies(version: string, range: string): boolean {
   const [major, minor, patch] = r.core
   const below: Semver = { core: major ? [major + 1, 0, 0] : minor ? [0, minor + 1, 0] : [0, 0, patch + 1], pre: [] }
   return compareSemver(v, r) >= 0 && compareSemver(v, below) < 0
+}
+
+/**
+ * Whether this kit runs the application a manifest describes: one built at
+ * an app API from {@link APP_API_OLDEST} to {@link APP_API}, or, for a file
+ * from before levels, one whose `requires` this kit's version meets.
+ */
+export function appRuns(manifest: Pick<AppManifest, 'requires' | 'api'>): boolean {
+  const { api } = manifest
+  if (api === undefined) return satisfies(VERSION, manifest.requires)
+  return Number.isInteger(api) && api >= APP_API_OLDEST && api <= APP_API
 }

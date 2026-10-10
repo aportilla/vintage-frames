@@ -6,7 +6,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import type { Plugin } from 'vite'
-import { inspectAppFile, isVersion, satisfies } from '../shell/app-file.js'
+import { APP_API, APP_API_OLDEST, appRuns, inspectAppFile, isVersion, satisfies } from '../shell/app-file.js'
+import type { AppManifest } from '../shell/app-file.js'
 import { VERSION } from '../shell/version.js'
 import { packApp } from './app-file.js'
 
@@ -145,10 +146,17 @@ export function appFile(options: AppFileOptions): Plugin {
   }
 }
 
+/** Why this kit doesn't run an application: the app API it was built for, or, from before levels, the range it requires. */
+function refusal(manifest: AppManifest): string {
+  if (manifest.api === undefined) return `requires vintage-frames ${manifest.requires}, and this site has ${VERSION}`
+  const runs = APP_API_OLDEST === APP_API ? `${APP_API}` : `${APP_API_OLDEST} to ${APP_API}`
+  return `is built for app API ${manifest.api}, and this site's kit runs app API ${runs}`
+}
+
 /**
  * Builds app files into a site. An import of `*.png?app` reads the file and
- * refuses one that isn't an app file, or whose `requires` this kit's
- * version doesn't meet. Its default export is the application's factory,
+ * refuses one that isn't an app file, or one this kit doesn't run
+ * (`appRuns`). Its default export is the application's factory,
  * its definition given the manifest's icon, and `manifest` is the manifest.
  * The code imports the kit by name, so the page keeps one copy of it. A new
  * file reloads the dev server's page.
@@ -173,10 +181,10 @@ export function appFiles(): Plugin {
       if (typeof read === 'string') this.error(`${name} is not an app file: ${read}.`)
       const { manifest, code } = read
       if (params.has(CODE_QUERY)) return code
-      if (!satisfies(VERSION, manifest.requires)) {
+      if (!appRuns(manifest)) {
         this.error(
-          `${name}: ${manifest.name} ${manifest.version} requires vintage-frames ${manifest.requires}, ` +
-            `and this site has ${VERSION}. Build ${manifest.name} on ${VERSION} and copy its app file in.`
+          `${name}: ${manifest.name} ${manifest.version} ${refusal(manifest)}. ` +
+            `Build ${manifest.name} on ${VERSION} and copy its app file in.`
         )
       }
       return [

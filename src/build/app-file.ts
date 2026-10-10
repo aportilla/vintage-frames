@@ -5,6 +5,7 @@
  */
 
 import {
+  APP_API,
   APP_FILE_FORMAT,
   CODE_KEYWORD,
   deflate,
@@ -20,8 +21,8 @@ import { concat, pngChunk } from './png.js'
 
 /** What {@link packApp} packs. */
 export interface PackAppInput {
-  /** The manifest's fields but its format and icon, which the packer fills in. */
-  manifest: Omit<AppManifest, 'format' | 'icon'>
+  /** The manifest's fields but its format, app API and icon, which the packer fills in. */
+  manifest: Omit<AppManifest, 'format' | 'api' | 'icon'>
   /** The icon's PNG, 32 × 32. */
   icon: Uint8Array
   /** The application's code: one ES module whose default export is its factory. */
@@ -59,7 +60,7 @@ export async function writeAppFile(box: Uint8Array, manifest: AppManifest, code:
 
 /** The whole app file: the box in the kit's frame, then the manifest and the code. */
 export async function packApp({ manifest, icon, code, artwork }: PackAppInput): Promise<Uint8Array> {
-  const full: AppManifest = { ...manifest, format: APP_FILE_FORMAT, icon: `data:image/png;base64,${base64(icon)}` }
+  const full: AppManifest = { ...manifest, format: APP_FILE_FORMAT, api: APP_API, icon: `data:image/png;base64,${base64(icon)}` }
   return writeAppFile(await composeBox({ manifest: full, icon, artwork }), full, code)
 }
 

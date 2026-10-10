@@ -131,6 +131,16 @@ export type {
 
 export { startClock, formatDate, formatTime, DATE_HOLD_MS } from './clock.js'
 
-export { APP_FILE_FORMAT, BOX_SCALE, compareVersions, inspectAppFile, readAppFile, satisfies } from './app-file.js'
+export {
+  APP_API,
+  APP_API_OLDEST,
+  APP_FILE_FORMAT,
+  BOX_SCALE,
+  appRuns,
+  compareVersions,
+  inspectAppFile,
+  readAppFile,
+  satisfies,
+} from './app-file.js'
 export type { AppFile, AppManifest } from './app-file.js'
 export { VERSION } from './version.js'

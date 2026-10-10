@@ -1,18 +1,22 @@
 // App files: what the build entry writes (src/build/app-file.ts), the
-// shell's reader reads back (src/shell/app-file.ts), a description with it or
-// not; a PNG that isn't one reads as null, and `inspectAppFile` says why; a
-// version or range not exactly as semver writes it is refused; `satisfies`
-// checks a version against a range and `compareVersions` puts versions in
-// semver's order, neither throwing on what isn't one; and the kit's VERSION
-// is package.json's.
+// shell's reader reads back (src/shell/app-file.ts), a description and an
+// app API level with it or not; a PNG that isn't one reads as null, and
+// `inspectAppFile` says why; a version or range not exactly as semver writes
+// it, or a level that isn't one, is refused; `satisfies` checks a version
+// against a range and `compareVersions` puts versions in semver's order,
+// neither throwing on what isn't one; `appRuns` says whether this kit runs
+// an application; and the kit's VERSION is package.json's.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import zlib from 'node:zlib'
 
 import {
+  APP_API,
+  APP_API_OLDEST,
   APP_FILE_FORMAT,
   VERSION,
+  appRuns,
   compareVersions,
   inspectAppFile,
   readAppFile,
@@ -203,6 +207,34 @@ test('a manifest without a description, or with an empty one, has none; one that
     assert.equal(await inspectAppFile(await handMade({ ...MANIFEST, description })), 'its description is not text')
     await assert.rejects(writeAppFile(await box(), { ...MANIFEST, description }, CODE), /its description is not text/)
   }
+})
+
+test('an app API level is written after requires and read back, a file without one reads as before, and packApp fills it', async () => {
+  const levelled = { ...MANIFEST, api: 2 }
+  const file = await writeAppFile(await box(), levelled, CODE)
+  assert.deepEqual(await readAppFile(file), { manifest: levelled, code: CODE })
+  assert.deepEqual(Object.keys(JSON.parse(manifestText(file))), ['format', 'id', 'name', 'version', 'requires', 'api', 'author', 'icon'])
+  assert.ok(!('api' in (await readAppFile(await handMade(MANIFEST))).manifest))
+  const { format, icon, ...fields } = MANIFEST
+  const packed = await packApp({ manifest: fields, icon: ICON, code: CODE })
+  assert.equal((await readAppFile(packed)).manifest.api, APP_API)
+})
+
+test('the reader refuses an api that isn\'t a whole number from 1, saying so', async () => {
+  for (const api of [0, -1, 1.5, '1', null, true]) {
+    const reason = `its api, ${JSON.stringify(api)}, is not a level`
+    assert.equal(await inspectAppFile(await handMade({ ...MANIFEST, api })), reason)
+    await assert.rejects(writeAppFile(await box(), { ...MANIFEST, api }, CODE), {
+      message: `vintage-frames/build: the manifest won't read back: ${reason}`,
+    })
+  }
+})
+
+test('appRuns: a level from APP_API_OLDEST to APP_API runs and one outside doesn\'t; a file without one runs as its requires says', () => {
+  for (let api = APP_API_OLDEST; api <= APP_API; api++) assert.ok(appRuns({ requires: '^0.0.1', api }), `api ${api}`)
+  for (const api of [APP_API_OLDEST - 1, APP_API + 1, 1.5]) assert.ok(!appRuns({ requires: `^${VERSION}`, api }), `api ${api}`)
+  assert.ok(appRuns({ requires: `^${VERSION}` }))
+  assert.ok(!appRuns({ requires: '^0.0.1' }))
 })
 
 test('the writer refuses a manifest it couldn\'t read back', async () => {

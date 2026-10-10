@@ -94,6 +94,8 @@ npm versions are [semver](https://semver.org): `MAJOR.MINOR.PATCH`. A published 
 
 Ship `1.0.0` when you intend to keep the API stable — from then on, breaking changes cost a major version.
 
+**The app API has a level of its own** ([APP-FILES.md § The app API](./APP-FILES.md#the-app-api)), whatever the version bump. A release that changes or removes something a built application can use raises `APP_API` in `src/shell/app-file.ts`; one that only adds leaves it alone. Raise `APP_API_OLDEST` too when applications built before can't run on the release.
+
 ## The release routine
 
 Every release, three commands:
@@ -104,7 +106,15 @@ git push --follow-tags
 npm publish
 ```
 
-`npm version` does more than edit a number: it commits the bump and creates a git tag (`v0.1.1`) in one atomic step, so every published version has a commit you can check out. Its `version` script also regenerates the manifest and writes the new version into `src/shell/version.ts`, the kit's `VERSION`, so the bump's commit carries both. `--follow-tags` pushes the tag with the branch. `npm publish` runs the `prepack` gate as always.
+`npm version` does more than edit a number: it commits the bump and creates a git tag (`v0.1.1`) in one atomic step, so every published version has a commit you can check out. Its `version` script also regenerates the manifest and `app-api.json` and writes the new version into `src/shell/version.ts`, the kit's `VERSION`, so the bump's commit carries them. `--follow-tags` pushes the tag with the branch. `npm publish` runs the `prepack` gate as always.
+
+**The app API check.** Before it bumps, `npm version` runs `npm run check:app-api`, which regenerates `app-api.json` and compares it with the last release's. When something was removed or changed and `APP_API` didn't go up, it stops and lists each one with its old and new type. Raise the level, commit and bump again. Or, when every change keeps applications built at the level running (a parameter that gained a default, a type TypeScript now prints another way, something only a page uses), let it through:
+
+```sh
+APP_API_COMPATIBLE=1 npm version patch
+```
+
+Run `npm run check:app-api` any time to see what changed since the last release.
 
 **Release notes** — a `vX.Y.Z` tag on GitHub can carry them ([github.com/aportilla/vintage-frames/releases](https://github.com/aportilla/vintage-frames/releases) → "Draft a new release" → pick the tag, write what changed). Do this from the web UI, or `gh release create vX.Y.Z --notes "…"` once you've run `gh auth login`. For a solo project this is simpler than maintaining a CHANGELOG.md — the notes live with the tags, and a CHANGELOG can be generated from them later.
 

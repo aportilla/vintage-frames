@@ -39,15 +39,16 @@ jobs:
       # publish time.
       - run: npm run build
 
-      # The manifest and the two editor formats are generated and committed. If
-      # `npm run build` just changed them, the committed copies were stale —
-      # which ships wrong autocomplete to anyone pointing an editor at the
-      # package.
-      - name: Check the committed manifest is current
+      # The manifest, the two editor formats and the app API's list are
+      # generated and committed. If `npm run build` just changed them, the
+      # committed copies were stale — which ships wrong autocomplete to anyone
+      # pointing an editor at the package, and hides a change to what an
+      # application can use from the commit that makes it.
+      - name: Check the committed manifests are current
         run: |
-          if ! git diff --quiet -- custom-elements.json editor/; then
-            echo "::error::custom-elements.json / editor/ are stale — run 'npm run analyze' and commit the result."
-            git diff --stat -- custom-elements.json editor/
+          if ! git diff --quiet -- custom-elements.json editor/ app-api.json; then
+            echo "::error::custom-elements.json / editor/ / app-api.json are stale — run 'npm run analyze' and commit the result."
+            git diff --stat -- custom-elements.json editor/ app-api.json
             exit 1
           fi
 

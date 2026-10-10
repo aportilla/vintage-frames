@@ -13,6 +13,9 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
   (`npm test -- focus button`); `npm test -- --bail` stops at the first failure.
 - `npm run verify:<name>` — one script against a dev server you started
 - `npm run typecheck` / `npm run build`
+- `npm run check:app-api` — what changed in the app API since the last
+  release; `npm version` runs it first and stops on a removal or change
+  that `APP_API` doesn't cover
 - Always invoke project scripts through their `npm run` alias, not
   `node scripts/…` directly.
 
@@ -39,8 +42,11 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
 - Keyboard focus is a 1px dashed underline in the 1-bit idiom; the browser
   ring is a last resort. Accessibility features are *added* in that idiom —
   never write comments or docs implying the classic Mac drew them.
-- `dist/`, `custom-elements.json` and `editor/*` are build outputs
-  (`npm run build` / `npm run analyze`) — regenerate, don't hand-edit. So are
+- **The app API has a level.** Removing or changing anything `app-api.json`
+  lists raises `APP_API` in `src/shell/app-file.ts`; an addition doesn't.
+  Details: `docs/APP-FILES.md` § The app API.
+- `dist/`, `custom-elements.json`, `editor/*` and `app-api.json` are build
+  outputs (`npm run build` / `npm run analyze`) — regenerate, don't hand-edit. So are
   `src/styles/*-strike.ts` (`fonts/manifest-to-font.py`),
   `src/build/frame-picture.ts` (`npm run embed:frame`) and
   `src/shell/version.ts` (`npm version`).
@@ -58,8 +64,8 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
 Concise messages: a summary line plus at most a few sentences. No co-author
 or generated-by trailers.
 
-CI fails if `custom-elements.json` / `editor/*` don't match a fresh
-`npm run analyze` — after touching `src/`, rerun it and commit the
+CI fails if `custom-elements.json` / `editor/*` / `app-api.json` don't match a
+fresh `npm run analyze` — after touching `src/`, rerun it and commit the
 regenerated files with the change.
 
 ## Where things are

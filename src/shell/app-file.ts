@@ -21,10 +21,10 @@ export const APP_FILE_FORMAT = 1
  * use of it. It goes up when something in it changes or goes away, and never
  * for an addition. app-api.json lists what it covers.
  */
-export const APP_API = 1
+export const APP_API = 2
 
 /** The oldest app API this kit still runs. */
-export const APP_API_OLDEST = 1
+export const APP_API_OLDEST = 2
 
 /**
  * One system px of an app file's box, in its picture's px: every box of

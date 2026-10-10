@@ -1192,6 +1192,11 @@
               "value": { "type": "boolean", "default": "false" }
             },
             {
+              "name": "alias",
+              "description": "The icon is an alias, an item standing for another: its name is set in\nitalics, the body face's own, and the plate widens to the slant's last\npixel.",
+              "value": { "type": "boolean", "default": "false" }
+            },
+            {
               "name": "movable",
               "description": "Drag to move — `movable`, never `draggable`, which is a platform attribute\nand accessor (see the class doc). Arrow keys move a focused icon too, which\nmeans pairing this with selectable: focus is what that grants.",
               "value": { "type": "boolean", "default": "false" }
@@ -1315,6 +1320,11 @@
               {
                 "name": "open",
                 "description": "The icon's window is on screen, so the art paints as the Finder's open\nghost — outline held, interior re-filled with the kit's loose dither —\nderived in the client from the slotted art itself (see the class doc).\nSet it when handling `vf-open`, clear it when the window goes away.\nSelection inverts the ghost exactly as it inverts the art.",
+                "type": "boolean"
+              },
+              {
+                "name": "alias",
+                "description": "The icon is an alias, an item standing for another: its name is set in\nitalics, the body face's own, and the plate widens to the slant's last\npixel.",
                 "type": "boolean"
               },
               {

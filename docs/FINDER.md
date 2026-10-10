@@ -17,18 +17,19 @@ Every position is whole system px, stored on the model and written to `left`/`to
 
 ## The model
 
-Keep the catalog as plain data. Each item has an id, a name, a kind (folder or document), a parent (the desktop or a folder id), a position in its container, and the art for its two sizes:
+Keep the catalog as plain data. Each item has an id, a name, a kind (folder or document), a parent (the desktop or a folder id), a position in its container, and the art for its two sizes. An alias is an item that stands for another, by its id:
 
 ```ts
 interface Item {
   id: string
   name: string
-  kind: 'folder' | 'document' | 'trash'
+  kind: 'folder' | 'document' | 'trash' | 'alias'
   parent: 'desktop' | string
   left: number   // whole system px, from the container's origin
   top: number
-  large: string  // the 32×32 art's URL
+  large: string  // the 32×32 art's URL; an alias takes its original's
   small: string  // the 16×16
+  original?: string // an alias's original
 }
 ```
 
@@ -41,6 +42,7 @@ function renderIcon(item: Item): VfIcon {
   icon.label = item.name
   icon.width = 64
   icon.selectable = icon.movable = icon.editable = true
+  icon.alias = item.kind === 'alias'
   icon.left = item.left
   icon.top = item.top
   icon.innerHTML = `
@@ -51,7 +53,7 @@ function renderIcon(item: Item): VfIcon {
 }
 ```
 
-`width` is the grid pitch and must be even. The two files both fetch; slot only the size a view uses if that matters.
+`width` is the grid pitch and must be even. The two files both fetch; slot only the size a view uses if that matters. `alias` sets the name in the body face's italic, and its plate widens to the slant.
 
 ## The page
 
@@ -140,15 +142,22 @@ async function closeFolder(folder: Item, win: VfWindow): Promise<void> {
 
 ## Opening
 
-`vf-open` fires on a double-click anywhere on the icon, on two taps of a finger or pen, or ⌘O / ⌘↓ from the keyboard. Open the folder's window from the icon and mark the icon:
+`vf-open` fires on a double-click anywhere on the icon, on two taps of a finger or pen, or ⌘O / ⌘↓ from the keyboard. Open the folder's window from the icon and mark the icon. An alias opens its original, wherever it is; with the original gone, say so:
 
 ```ts
 document.addEventListener('vf-open', (e) => {
   const icon = e.target as VfIcon
-  const item = itemFor(icon)
+  let item = itemFor(icon)
+  if (item.kind === 'alias') {
+    const original = items.get(item.original!)
+    if (!original) return alert(`The alias “${item.name}” could not be opened, because the original item could not be found.`)
+    item = original
+  }
   if (item.kind === 'document') return openDocument(item)
   openFolder(item, icon.cellRect())
-  icon.open = true
+  // The folder's own icon is drawn open, where it is shown: not an alias's.
+  const own = iconFor(item.id)
+  if (own) own.open = true
 })
 ```
 

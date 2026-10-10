@@ -46,7 +46,7 @@ const shell = createShell(document.querySelector('vf-desktop')!, {
 await shell.ready
 ```
 
-The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system menu: the page's own, with its own label and art. Its title is a `label`, or 16×16 art in the `label` slot, which the menu places as an icon title with no page CSS (SPEC § vf-menu). Applications add items to it. The Finder uses the desktop's `vf-icon-field`, or adds one. A `bezel` gives the screen its rounded corners, the menu bar's included; without one, `rounded` on the bar rounds its top corners alone.
+The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system menu: the page's own, with its own label and art. Its title is a `label`, or 16×16 art in the `label` slot, which the menu places as an icon title with no page CSS (SPEC § vf-menu). Its items are the page's own, About… and a rule say, and below them the shell lists what the System Folder's Apple Menu Items holds (§ The System Folder). The Finder uses the desktop's `vf-icon-field`, or adds one. A `bezel` gives the screen its rounded corners, the menu bar's included; without one, `rounded` on the bar rounds its top corners alone.
 
 | Option | |
 | --- | --- |
@@ -56,6 +56,7 @@ The desktop needs a `vf-menu-bar`, and the bar's first `vf-menu` is the system m
 | `state` | Where the session is saved (§ Saved state). Default `null`: a reload resets. |
 | `services` | The site's own objects, passed to every application. |
 | `clock` | The time in the bar's `end` slot. Default `true`. |
+| `startup` | Open what Startup Items holds once the session is back. Default `true`; `false` skips it for this boot. |
 
 The page around a `fit: 'viewport'` desktop is the page's own CSS; the shell writes none:
 
@@ -84,7 +85,7 @@ document.addEventListener('gesturestart', (e) => e.preventDefault())
 
 Panning stays, so a finger still scrolls a window.
 
-`createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the desktop and its menu bar have rendered, the catalog is read, the seed stored and the last session's windows reopened. `dispose()` takes everything down, the applications' own setup and every window included, so a hot reload starts clean. The saved session stops before the windows go, so with `state` set the reload reopens them.
+`createShell()` returns `{ desktop, windows, catalog, apps, ready, dispose() }`. `ready` settles once the desktop and its menu bar have rendered, the catalog is read, the seed stored, the last session's windows reopened and Startup Items opened. `dispose()` takes everything down, the applications' own setup and every window included, so a hot reload starts clean. The saved session stops before the windows go, so with `state` set the reload reopens them.
 
 ## Applications
 
@@ -124,6 +125,8 @@ An application can live in a repo of its own and ship as one PNG, its app file, 
 
 The bar holds the system menu, then the front application's menus, then the clock. The front application is the active window's, or the default application while no window is active. Each application's menus are parsed once and the same elements come back each time it is in front, so their state holds. Only the front application's key equivalents work, since the others' menus are off the bar. Browsers keep ⌘W, ⌘N and ⌘Q, so use ⌃W, ⌃N and ⌃Q.
 
+No application adds to the system menu. An application in the Apple menu is one the visitor, or the site's seed, put in Apple Menu Items, usually as an alias (§ The System Folder).
+
 What `init` gets:
 
 | `ctx` | |
@@ -131,7 +134,6 @@ What `init` gets:
 | `desktop`, `windows` | The `vf-desktop` and the window manager. |
 | `menus`, `menu(name)`, `item(value)` | Its own menus and items. `menu()` and `item()` throw when the markup doesn't have them. |
 | `onMenu(fn)` | Every pick from its menus. Picks are dropped while a modal dialog is open. |
-| `systemMenu`, `systemItem(value, label, fn)` | The system menu, and an item added to it. |
 | `gate(item, test)` | Keeps an item disabled while `test()` is false. Tests run again on every press, key, selection change and activation. |
 | `typing()`, `modalOpen()` | Whether a text field has focus, read through shadow roots, and whether a modal dialog is open. |
 | `dialog(name)` | One of its dialogs. Throws when the markup doesn't have it. |
@@ -140,7 +142,7 @@ What `init` gets:
 | `ask(dialog)` | Shows one of its held dialogs and resolves its `returnValue`, or `null` when it closed without one. Throws for a dialog it doesn't hold. |
 | `onFront(fn)` | Whether the application is in front, now and on every change. For keys and page furniture that belong to one application. |
 | `apps`, `app(id)` | Every application's actions, read at the call, and the definitions. |
-| `catalog`, `kinds`, `kind(name)` | The catalog, when a Finder runs, and the registered kinds. |
+| `catalog`, `kinds`, `kind(name)` | The catalog, when a Finder runs, and the registered kinds, the shell's `app` and `alias` among them. |
 | `services`, `state` | The site's objects and the saved session. |
 | `on(target, type, fn)`, `onDispose(fn)` | A listener and a teardown, both undone by `dispose()`. |
 
@@ -247,13 +249,13 @@ interface Item {
 
 The catalog is the source of truth for what is where. It is pure: it runs under Node, from `vintage-frames/shell/pure` (§ Pieces on their own), and the shell's unit tests run it there.
 
-- The Trash and a startup disk are volumes: containers with no record, listed first, each if the site wants one (`volumes: { trash: 'Trash', disk: 'Macintosh HD' }`). A volume can't be renamed, moved, copied or removed, and nothing is made in the Trash. Deleting is a move into the Trash. Only Empty Trash removes.
-- A folder never goes into itself or a folder inside it. New folders are "untitled folder", then "untitled folder 2". Copies are "Name copy", then "Name copy 2".
+- The Trash and a startup disk are volumes: containers with no record, listed first, each if the site wants one (`volumes: { trash: 'Trash', disk: 'Macintosh HD' }`). A volume can't be renamed, moved, copied or removed, and nothing is made in the Trash. Deleting is a move into the Trash. Only Empty Trash removes. The System Folder and its folders are kept the same way, listed after the volumes (§ The System Folder).
+- A folder never goes into itself or a folder inside it. New folders are "untitled folder", then "untitled folder 2". Copies are "Name copy", then "Name copy 2". Aliases are "Name alias", then "Name alias 2".
 - An item whose kind no application registers is kept in storage and left out of the listing.
-- Storage is three calls: `list()`, `put(item)`, `remove(id)`. `memoryStorage()` forgets on reload and `indexedDbStorage(name)` keeps. A site can write its own. Without working storage the catalog lists the volumes alone, and the Finder says so when asked to save.
-- A seed is stored once per storage. `seed: 'markup'` reads the `vf-icon[data-app]` and `template[data-folder]` in the desktop's field; a function stores the site's defaults through the catalog.
+- Storage is three calls: `list()`, `put(item)`, `remove(id)`. `memoryStorage()` forgets on reload and `indexedDbStorage(name)` keeps. A site can write its own. Without working storage the catalog lists the volumes and the System Folder alone, and the Finder says so when asked to save.
+- A seed is stored once per storage. `seed: 'markup'` reads the `vf-icon[data-app]`, `template[data-folder]` and `template[data-system]` in the desktop's field (§ The Finder); a function stores the site's defaults through the catalog.
 - Positions are on the items, so they persist wherever the catalog does. Position changes are written a moment after they settle.
-- Selectors: `childrenOf`, `itemCount`, `isInside`, `enclosingFolders`, `isTrashed`, `descendantsOf`, `nextFolderName`, `copyName`. Operations: `create`, `rename`, `update`, `move`, `place`, `copy`, `emptyTrash`, `clear`, `import`, `dump`.
+- Selectors: `childrenOf`, `itemCount`, `isInside`, `enclosingFolders`, `isTrashed`, `isKept`, `descendantsOf`, `nextFolderName`, `copyName`, `aliasName`, `originalOf`, `resolve`, `appleMenuItemsOf`, `startupItemsOf`. Operations: `create`, `rename`, `update`, `move`, `place`, `copy`, `emptyTrash`, `clear`, `import`, `dump`.
 - `import(archive, { mode })` restores a `dump()`. `'replace'` clears the catalog first and keeps the archive's ids; `'merge'`, the default, adds the archive under fresh ids, nesting kept. It resolves a `Map` from each archive id to the item it stored, so a kind whose payload is keyed by item id can carry it over a merge. The listing is announced once, when the import is done, so a window whose item comes back stays open.
 
 A kind tells the Finder how its items look and open:
@@ -271,7 +273,32 @@ A kind tells the Finder how its items look and open:
 
 Small data goes in `data`. A large payload stays in the application's own store, under the item's id, and `copy` and `onRemove` keep that store in step.
 
-The shell registers one kind itself, `app`: an application's icon, which opens the application. It takes its name and art from the application, keeps a name the markup gives it, and can't be renamed. Its `data` names the application, `{ app: id }`. A seed function stores one as `catalog.create({ kind: APP_KIND, name, parent, data: { app: id } })`, and `appIdOf(item)` reads the id back, or null. Both names come from either entry.
+The shell registers two kinds itself. `app` is an application's icon, which opens the application. It takes its name and art from the application, keeps a name the markup gives it, and can't be renamed. Its `data` names the application, `{ app: id }`. A seed function stores one as `catalog.create({ kind: APP_KIND, name, parent, data: { app: id } })`, and `appIdOf(item)` reads the id back, or null. Both names come from either entry.
+
+`alias` is an item standing for another, an application or a document. Its `data` names the original, `{ original: id }`, and `originalOf(item)` reads the id back, or null. `resolve(state, id)` is the item an id names, or the original an alias stands for, wherever it was moved and whatever it was renamed, through an alias of an alias too; null once the original is removed. The Finder draws an alias with its original's art and its name in italics, and opening it opens the original. Copying an alias makes another alias of the same original, trashing one leaves its original alone, and `import()` keeps an alias pointing at its original when the import gives items new ids.
+
+### The System Folder
+
+A site that names the System Folder has one:
+
+```ts
+finder({
+  // …
+  system: { folder: 'System Folder', appleMenu: 'Apple Menu Items', startup: 'Startup Items' },
+})
+```
+
+The catalog keeps it on the startup disk, or on the desktop without one, with Apple Menu Items and Startup Items inside. Each has an id (`SYSTEM_FOLDER`, `APPLE_MENU_ITEMS`, `STARTUP_ITEMS`) and the site's name for it. Like a volume, each is never renamed, moved, copied or trashed, and a storage seeded before the setting has them at once. What they hold is anyone's, and it drives the desktop:
+
+- **Apple Menu Items** is the Apple menu. Below the page's own items, the shell lists what the folder holds, by name, case aside and a leading space first, and follows the folder as it changes. Choosing an entry opens its item as a double-click would: an alias opens its original, and a folder opens its window. Each entry's `value` is its item's id. Entries are dropped while a modal dialog is open.
+- **Startup Items** opens at startup. Once the boot has reopened the session's windows, the shell opens what the folder holds, by name, each as a double-click would. One already open comes to the front. One that won't open, an alias whose original is gone say, says why, as opening it by hand would, and the rest open. `startup: false` on `createShell` skips them for a boot.
+
+`appleMenuItemsOf(state)` and `startupItemsOf(state)` list each folder's contents in that order, and nothing without the System Folder. A seed files into them as into any folder:
+
+```ts
+const notePad = await catalog.create({ kind: APP_KIND, name: 'Note Pad', data: { app: 'note-pad' } })
+await catalog.create({ kind: ALIAS_KIND, name: 'Note Pad', parent: APPLE_MENU_ITEMS, data: { original: notePad!.id } })
+```
 
 ## The Finder
 
@@ -289,8 +316,9 @@ finder({
 | Option | |
 | --- | --- |
 | `storage` | Where the catalog is kept. `null` keeps nothing. |
-| `art` | `folder`, `trash`, `trashFull` and `document` (32×32) are required; `disk` and `caution` (32×32) and `trashMark` (12×12) are optional. Without `caution` the alerts have no art. |
+| `art` | `folder`, `trash`, `trashFull` and `document` (32×32) are required; `disk`, `systemFolder`, `appleMenuItems`, `startupItems` and `caution` (32×32) and `trashMark` (12×12) are optional. The disk and the System Folder's three take the folder's art without their own; without `caution` the alerts have no art. |
 | `volumes` | Default: the Trash alone. |
+| `system` | The System Folder, named: `{ folder, appleMenu, startup }` (§ The System Folder). Default: none. |
 | `seed` | `'markup'`, or a function. It runs once the desktop and its menu bar have rendered, so it can read `desktop.workArea`. |
 | `lattice` | `{ desktop, folder }`: each a cell size, column and row pitch and insets. Default 64px cells, 80px columns, 72px rows, 16px insets. |
 | `cleanUpAfterResize` | Clean Up the desktop once a resize settles with icons overlapping. Default `false`. |
@@ -300,6 +328,9 @@ finder({
 | `window` | A folder window's size. Default 320 × 223: three columns and two rows of icons. |
 
 - Icons are the catalog's: the desktop shows the desktop's items and each open folder window shows its folder's. An item without a position takes its container's next free cell. The desktop's cells run down from its top right, below the menu bar. A folder's run in rows from its top left. The Trash starts in the desktop's bottom-right corner.
+- `seed: 'markup'` makes an application icon of each `vf-icon[data-app]` and a folder of each `template[data-folder="Name"]`, a folder's inside it, and files what a `template[data-system]` holds in that folder of the System Folder: `<template data-system="apple-menu-items"><vf-icon data-app="note-pad"></vf-icon></template>` puts Note Pad in the Apple menu. Its value is the folder's id, `system-folder`, `apple-menu-items` or `startup-items`, and without a `system` setting it files nothing.
+- An alias is drawn with its original's art and its name in italics (`vf-icon`'s `alias`). Opening it opens its original. With the original removed, opening it says the original couldn't be found.
+- File → Make Alias makes an alias of each selected application or document, an alias's alias standing for the same original, named "Name alias", in the free cell nearest it. The new aliases are selected.
 - Every move goes back onto the item: a drag, an arrow-key nudge, Clean Up, the resize rule.
 - A press anywhere in the desktop's field, on an icon or not, brings the Finder forward. The selection survives a switch to another application and back.
 - Folder windows are made on open and removed on close. Each shows its item count, with the trash mark when it is in the Trash, and its scrolled content grows to hold its icons.
@@ -313,12 +344,12 @@ finder({
 
 | Menu | Commands |
 | --- | --- |
-| File | Open ⌘O, New Folder, Close ⌃W |
+| File | Open ⌘O, New Folder, Close ⌃W, Make Alias ⌘M |
 | Edit | Copy ⌘C, Paste ⌘V, Select All ⌘A |
 | View | Arrange Windows ⌘J |
 | Special | Clean Up Desktop or Clean Up Window, Empty Trash… |
 
-A command is disabled while it has nothing to act on: Open and Copy with nothing selected, Close with no folder window active, New Folder and Paste in the Trash, Empty Trash with the Trash empty, Arrange Windows with every window in place. Open, Copy, Paste and Select All are also disabled while a text field has focus, so the field keeps its own keys.
+A command is disabled while it has nothing to act on: Open and Copy with nothing selected, Close with no folder window active, Make Alias with no application or document selected outside the Trash, New Folder and Paste in the Trash, Empty Trash with the Trash empty, Arrange Windows with every window in place. Open, Copy, Paste, Select All and Make Alias are also disabled while a text field has focus, so the field keeps its own keys.
 
 `extend` gets the Finder's actions and the context:
 
@@ -376,7 +407,8 @@ finder({
 | `name-too-long` | A rename past the limit | `{ limit }` | none |
 | `name-rejected` | A rename to nothing | none | none |
 | `move-failed` | A filing storage refused | `{ error }` | none |
-| `failed` | New Folder, Empty Trash, Paste or a dropped file failed | `{ action, error }`: `'new-folder'`, `'empty-trash'`, `'paste'` or `'add-file'` | none |
+| `original-missing` | Opening an alias whose original is gone | `{ alias }`, the alias's item | none |
+| `failed` | New Folder, Empty Trash, Paste, Make Alias or a dropped file failed | `{ action, error }`: `'new-folder'`, `'empty-trash'`, `'paste'`, `'make-alias'` or `'add-file'` | none |
 
 An alert with no handler is the Finder's own.
 
@@ -406,7 +438,7 @@ Each module also works alone, on a page built from the elements ([FINDER.md](./F
 | `fileByDrag(desktop, options)` | Filing by drag over the page's own model. The options say what a container is, what may be filed where, and what filing does. Returns the teardown. |
 | `createCatalog(options)` | The catalog over any storage. |
 | `createWindowManager(desktop, options)` | The window manager without the menu bar. |
-| `pinOf`, `pinTo`, `frameOf`, `cascadedBox`, `centeredBox`, `desktopLattice`, `folderLattice`, `trashCell`, `nextFreeCell`, `cleanUp`, `fillOrder`, `fieldExtent`, `collisions` | The geometry, pure: boxes and positions in whole system px. |
+| `pinOf`, `pinTo`, `frameOf`, `cascadedBox`, `centeredBox`, `desktopLattice`, `folderLattice`, `trashCell`, `nextFreeCell`, `freeCellNear`, `cleanUp`, `fillOrder`, `fieldExtent`, `collisions` | The geometry, pure: boxes and positions in whole system px. |
 | `localStorageState`, `readSession`, `mergeSession` | The saved session. |
 | `startClock` | The clock. |
 | `readAppFile`, `inspectAppFile`, `satisfies`, `compareVersions`, `appRuns`, `APP_FILE_FORMAT`, `APP_API`, `APP_API_OLDEST`, `BOX_SCALE` | An app file's manifest and code, or why it isn't one; a version checked against a range, and versions put in order; whether this kit runs an application, and the app API levels it runs; the scale every box is drawn at ([APP-FILES.md](./APP-FILES.md)). |
@@ -422,4 +454,4 @@ import { createCatalog, memoryStorage, childrenOf, isPin, cascadedBox } from 'vi
 
 ## The reference page
 
-`shell.html` runs the shell with the Finder and Note Pad, a small application with documents of its own kind, an Info palette, a close that asks about unsaved changes in an alert of its own, and a `claim` that makes a note of a dropped text file (`demo/shell.ts`). `?save=1` keeps the catalog and the session across reloads, `?cleanup=1` turns on Clean Up after a resize, and `?open=Projects&open=Archive` opens those items at load. `verify:shell-front`, `verify:shell-windows` and `verify:shell-finder` drive it, and `verify:shell-unit` tests the pure modules and the build entry under Node.
+`shell.html` runs the shell with the Finder and Note Pad, a small application with documents of its own kind, an Info palette, a close that asks about unsaved changes in an alert of its own, and a `claim` that makes a note of a dropped text file (`demo/shell.ts`). Its System Folder sits on the desktop, and its Apple Menu Items holds Note Pad. `?save=1` keeps the catalog and the session across reloads, `?cleanup=1` turns on Clean Up after a resize, and `?open=Projects&open=Archive` opens those items at load. `verify:shell-front`, `verify:shell-windows` and `verify:shell-finder` drive it, and `verify:shell-unit` tests the pure modules and the build entry under Node.

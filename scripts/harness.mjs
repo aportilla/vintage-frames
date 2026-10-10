@@ -678,7 +678,11 @@ export function shellOn(page) {
         },
         [menu, value]
       ),
-    /** Pick a menu item: press the bar's title, slide onto the row, release over it. */
+    /**
+     * Pick a menu item, by its value or, for the Apple menu's entries, whose
+     * values are item ids, its text: press the bar's title, slide onto the
+     * row, release over it.
+     */
     async pick(menu, value) {
       const title = await page.evaluate((m) => {
         const el = [...document.querySelectorAll('vf-menu-bar > vf-menu')].find((x) => x.label === m)
@@ -690,7 +694,8 @@ export function shellOn(page) {
       const row = await page.evaluate(
         ([m, v]) => {
           const el = [...document.querySelectorAll('vf-menu-bar > vf-menu')].find((x) => x.label === m)
-          const r = el.querySelector(`vf-menu-item[value="${v}"]`).getBoundingClientRect()
+          const item = [...el.querySelectorAll('vf-menu-item')].find((i) => i.getAttribute('value') === v || i.textContent === v)
+          const r = item.getBoundingClientRect()
           return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
         },
         [menu, value]

@@ -5683,6 +5683,17 @@
             },
             {
               "kind": "field",
+              "name": "alias",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The icon is an alias, an item standing for another: its name is set in\nitalics, the body face's own, and the plate widens to the slant's last\npixel.",
+              "attribute": "alias",
+              "reflects": true
+            },
+            {
+              "kind": "field",
               "name": "movable",
               "type": {
                 "text": "boolean"
@@ -6273,6 +6284,25 @@
               "description": "Size the plate to a whole, EVEN number of system pixels.\n\nThis is the whole alignment argument, so it is worth stating plainly. The\nframe centers two things over one axis — the art cell and the name — and a\ncentered child's offset is `(box − child) / 2`. That is a whole number\nexactly when the box and the child have the SAME PARITY. The cell is 32 or\n16 and a declared `width` is required even, so if the plate is even too,\nevery offset in the component is whole by construction: no correction, no\nsnapping, nothing for the compositor to round.\n\nThe text is measured rather than the plate, with a Range over its own\ncontents — the plate already carries the width this computed last time, so\nreading the element back would just return it. The measurement is in\nsystem px and so is scale-invariant: the same name is the same number of\nart pixels wide at every display density, which is why nothing here\nre-runs when the scale changes.\n\nRounding UP to even (never down) means the plate never clips the run it\nwas measured from; the leftover is at most one system pixel of extra plate\nafter the text, since the embedded faces advance in whole pixels and only\na fallback face measures fractionally."
             },
             {
+              "kind": "method",
+              "name": "#lean",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "number"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "plate",
+                  "type": {
+                    "text": "HTMLElement"
+                  }
+                }
+              ],
+              "description": "How far an alias's italic name runs past its advance, in whole system px:\nthe slant leans the tops of the last letters right, by up to 5. Read off\nthe glyphs' ink, in a canvas set in the plate's own font."
+            },
+            {
               "kind": "field",
               "name": "#plateWidthCss",
               "privacy": "private",
@@ -6768,6 +6798,15 @@
               "default": "false",
               "description": "The icon's window is on screen, so the art paints as the Finder's open\nghost — outline held, interior re-filled with the kit's loose dither —\nderived in the client from the slotted art itself (see the class doc).\nSet it when handling `vf-open`, clear it when the window goes away.\nSelection inverts the ghost exactly as it inverts the art.",
               "fieldName": "open"
+            },
+            {
+              "name": "alias",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The icon is an alias, an item standing for another: its name is set in\nitalics, the body face's own, and the plate widens to the slant's last\npixel.",
+              "fieldName": "alias"
             },
             {
               "name": "movable",

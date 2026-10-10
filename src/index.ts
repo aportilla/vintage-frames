@@ -345,3 +345,4 @@ export { registerEmbeddedFont, PIXEL_GRID_METRICS } from './styles/register-embe
 export type { EmbeddedFontMetrics } from './styles/register-embedded-font.js'
 export { registerDisplayFace, VF_DISPLAY_FAMILY } from './styles/display-font.js'
 export { registerBodyFace, VF_BODY_FAMILY } from './styles/body-font.js'
+export { registerBodyItalicFace } from './styles/body-italic-font.js'

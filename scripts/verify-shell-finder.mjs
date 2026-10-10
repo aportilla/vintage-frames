@@ -2,8 +2,9 @@
  * Verifies the shell's Finder on its reference page (shell.html):
  *
  *  - SEED: the page's markup becomes the catalog: its application icon, its
- *    folders and the folder inside one, in order, and the markup leaves the
- *    field.
+ *    folders and the folder inside one, in order, then what its
+ *    template[data-system] holds, in Apple Menu Items, and the markup leaves
+ *    the field. The System Folder and its folders lead, after the Trash.
  *  - FILING: a drop onto a folder icon files into the folder, whose icon
  *    wears `target` under the pointer; a drop into a folder window lands at
  *    the drop point, and a drop out of one lands on the desktop. A folder
@@ -91,8 +92,10 @@ const overlapping = (icons) =>
     return st.items.map((i) => `${i.kind}:${i.name}<${name(i.parent) ?? 'desktop'}`)
   })
   check(
-    'SEED  the markup becomes the catalog, in order: the application named by its application',
-    items.join() === 'trash:Trash<desktop,app:Note Pad<desktop,folder:Documents<desktop,folder:Projects<desktop,folder:Archive<Projects',
+    'SEED  the markup becomes the catalog, in order: the application named by its application, Apple Menu Items’ last',
+    items.join() ===
+      'trash:Trash<desktop,folder:System Folder<desktop,folder:Apple Menu Items<System Folder,folder:Startup Items<System Folder,' +
+        'app:Note Pad<desktop,folder:Documents<desktop,folder:Projects<desktop,folder:Archive<Projects,app:Note Pad<Apple Menu Items',
     items.join()
   )
   check(
@@ -171,11 +174,11 @@ const overlapping = (icons) =>
   )
   const made = await s.item('untitled folder')
   const icon = await s.iconState('untitled folder')
-  // The first column, 16 in from the screen's right edge: below Note Pad, Documents and Projects.
+  // The first column, 16 in from the screen's right edge: below the System Folder, Note Pad, Documents and Projects.
   const column = (await s.screen()).width - 80
   check(
     'NEW FOLDER  an untitled folder on the desktop, at the next free cell, its rename box open',
-    made?.parent === null && icon.left === column && icon.top === 252 && icon.selected,
+    made?.parent === null && icon.left === column && icon.top === 324 && icon.selected,
     JSON.stringify(icon)
   )
   await page.keyboard.type('Letters')
@@ -385,7 +388,7 @@ const overlapping = (icons) =>
 {
   const page = await openShell(browser)
   const s = shellOn(page)
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   const before = await s.front()
   // A text file from outside the page, dropped on the bare desktop: no press reaches the page.

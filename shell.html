@@ -3,11 +3,11 @@
   <!--
     The shell's reference page (vintage-frames/shell, docs/SHELL.md): one
     desktop filling the viewport, with the Finder over a catalog seeded from
-    this markup — the vf-icon[data-app] and template[data-folder] in the
-    desktop's field — and Note Pad, a small application with documents of its
-    own kind, an Info palette, and a close that asks about unsaved changes
-    (demo/shell.ts). The verify:shell-* scripts drive it, and verify:grid and
-    verify:snap walk it.
+    this markup — the vf-icon[data-app], template[data-folder] and
+    template[data-system] in the desktop's field — and Note Pad, a small
+    application with documents of its own kind, an Info palette, and a close
+    that asks about unsaved changes (demo/shell.ts). The verify:shell-*
+    scripts drive it, and verify:grid and verify:snap walk it.
 
     ?save=1 keeps the catalog in IndexedDB and the session in localStorage,
     so a reload comes back where it was; without it a reload resets.
@@ -41,8 +41,8 @@
          on all four corners, the menu bar's included. -->
     <vf-desktop bezel="10">
       <vf-menu-bar label="Finder">
-        <!-- The system menu: the page's own first menu. Applications install
-             their items in it. -->
+        <!-- The system menu: the page's own first menu. The shell lists what
+             Apple Menu Items holds below the page's own items. -->
         <vf-menu label="Apple">
           <vf-img slot="label" width="16" height="16"><img src="/demo/icons/apple.png" alt="" /></vf-img>
         </vf-menu>
@@ -53,6 +53,10 @@
         <template data-folder="Documents"></template>
         <template data-folder="Projects">
           <template data-folder="Archive"></template>
+        </template>
+        <!-- Note Pad in Apple Menu Items, so in the Apple menu. -->
+        <template data-system="apple-menu-items">
+          <vf-icon data-app="note-pad"></vf-icon>
         </template>
       </vf-icon-field>
     </vf-desktop>

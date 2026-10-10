@@ -7,10 +7,13 @@
  *   nodes come back each time it is front, so items keep their state. A menu
  *   off the bar has no key equivalents, so only the front application's fire.
  *   The bar's label is the front application's name.
+ * - The system menu is the page's own items, then what Apple Menu Items
+ *   holds, by name, following the folder as it changes. Choosing an entry
+ *   opens its item as a double-click would. No application adds to it.
  * - While an application's held dialog is open, the bar shows that
  *   application's name and menus instead; nothing else changes.
  * - Each application's `init(ctx)` gets the desktop, the window manager, its
- *   own menus, dialogs and window markup, the system menu, the other applications' actions
+ *   own menus, dialogs and window markup, the other applications' actions
  *   (read at the call), the catalog when a Finder runs, the site's services,
  *   `ask()`, `gate()`, `onFront()` and `onDispose()`. Everything it sets up
  *   comes down through `onDispose()`, and its dialogs with it, so a hot
@@ -19,7 +22,8 @@
  *   and it closes when the item is removed.
  * - The boot waits for the desktop and its menu bar to render, reads the
  *   catalog, seeds it once, reopens the last session's windows deepest
- *   first and the active one last, then starts saving.
+ *   first and the active one last, opens what Startup Items holds, then
+ *   starts saving.
  */
 
 import { onScaleChange, VfWindow } from '../index.js'
@@ -33,8 +37,8 @@ import type {
   VfModalDialog,
   VfViewportBox,
 } from '../index.js'
-import { APP_KIND, appIdOf, createCatalog } from './catalog.js'
-import type { Catalog, CatalogStorage, Item, Volumes } from './catalog.js'
+import { ALIAS_KIND, APP_KIND, appIdOf, appleMenuItemsOf, createCatalog, resolve, startupItemsOf } from './catalog.js'
+import type { Catalog, CatalogStorage, Item, SystemFolders, Volumes } from './catalog.js'
 import { createWindowManager, deepActiveElement, desktopRendered } from './windows.js'
 import type { WindowManager } from './windows.js'
 import { openWindowsOf } from './state.js'
@@ -61,10 +65,12 @@ export interface KindDefinition {
   export?(item: Item): Promise<Blob | null>
 }
 
-/** The catalog a Finder brings: where it is stored, its volumes and its seed. */
+/** The catalog a Finder brings: where it is stored, its volumes, its System Folder and its seed. */
 export interface CatalogSetup {
   storage: CatalogStorage | null
   volumes?: Volumes
+  /** The System Folder, named; its folders drive the Apple menu and what opens at startup. */
+  system?: SystemFolders
   /** Run once per storage, to store the site's defaults. */
   seed?: (catalog: Catalog) => void | Promise<void>
 }
@@ -106,17 +112,15 @@ export interface AppContext {
   readonly windows: WindowManager
   /** Its own menus, parsed from `menus`. */
   readonly menus: VfMenu[]
-  /** The page's system menu, for the items applications install. */
-  readonly systemMenu: VfMenu
   /** Every application's actions by id, read at the call. */
   readonly apps: Record<string, any>
-  /** The catalog, when a Finder runs; read before the boot has refreshed it, it lists the volumes alone. */
+  /** The catalog, when a Finder runs; read before the boot has refreshed it, it lists the kept containers alone. */
   readonly catalog: Catalog | null
   /** The site's own services. */
   readonly services: Record<string, any>
   /** The saved session, or null. */
   readonly state: ShellState | null
-  /** Every kind the applications register, the shell's `app` kind included, in registration order. */
+  /** Every kind the applications register, the shell's `app` and `alias` kinds included, in registration order. */
   readonly kinds: ReadonlyMap<string, KindDefinition>
   /** A kind's definition, or undefined. */
   kind(kind: string): KindDefinition | undefined
@@ -128,8 +132,6 @@ export interface AppContext {
   item(value: string): VfMenuItem
   /** Every pick from its menus — never while a modal is open. */
   onMenu(fn: (value: string, item: VfMenuItem) => void): void
-  /** Put an item in the system menu, which runs `fn` when picked. */
-  systemItem(value: string, label: string, fn: () => void): VfMenuItem
   /** One of its dialogs by `data-dialog`; throws when the markup drifts. */
   dialog<T extends HTMLElement = VfDialog>(name: string): T
   /**
@@ -180,6 +182,8 @@ export interface ShellOptions {
   services?: Record<string, unknown>
   /** The clock in the menu bar's `end` slot. Default true. */
   clock?: boolean
+  /** Open what Startup Items holds once the session is back. Default true; false skips it for this boot. */
+  startup?: boolean
 }
 
 /** A running shell. */
@@ -243,13 +247,26 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
   desktop.addEventListener('pointerdown', onDesktopPress)
   teardown.push(() => desktop.removeEventListener('pointerdown', onDesktopPress))
 
-  // Kinds: every application's, and the shell's own app kind.
+  // Kinds: every application's, and the shell's own two. An application's
+  // icon opens the application. An alias opens its original as a
+  // double-click would, through the Finder, which says so when it's gone.
   const actions: Record<string, any> = {}
+  const openAsDoubleClick = (item: string, from: VfViewportBox | null = null) =>
+    actions[finderDef?.id ?? '']?.open?.({ item, from })
   const kinds = new Map<string, KindDefinition>()
   kinds.set(APP_KIND, {
     art: (item) => definitions.find((d) => d.id === appIdOf(item))?.icon ?? '',
     open: (item, from) => void actions[appIdOf(item) ?? '']?.open?.({ from }),
     editable: false,
+  })
+  kinds.set(ALIAS_KIND, {
+    art: (item) => {
+      const original = catalog && resolve(catalog.get(), item.id)
+      const kind = original && kinds.get(original.kind)
+      if (!original || !kind) return ''
+      return typeof kind.art === 'function' ? kind.art(original) : kind.art
+    },
+    open: (item, from) => void openAsDoubleClick(item.id, from),
   })
   for (const def of definitions) for (const [kind, k] of Object.entries(def.kinds ?? {})) kinds.set(kind, k)
 
@@ -257,6 +274,7 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
     ? createCatalog({
         storage: finderDef.catalog.storage,
         volumes: finderDef.catalog.volumes,
+        system: finderDef.catalog.system,
         listed: (kind) => kinds.has(kind),
         hooks: (kind) => kinds.get(kind),
       })
@@ -332,7 +350,6 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
       desktop,
       windows: wm,
       menus,
-      systemMenu,
       apps: actions,
       catalog,
       services,
@@ -360,17 +377,6 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
             fn(value, item)
           })
         }
-      },
-      systemItem(value, label, fn) {
-        const item = document.createElement('vf-menu-item')
-        item.setAttribute('value', value)
-        item.textContent = label
-        systemMenu.append(item)
-        ctx.on(systemMenu, 'vf-menu-select', (e) => {
-          if (!modalOpen() && (e as CustomEvent<{ value: string }>).detail.value === value) fn()
-        })
-        own.push(() => item.remove())
-        return item
       },
       dialog<T extends HTMLElement = VfDialog>(name: string): T {
         const dialog = dialogs.find((d) => d.dataset.dialog === name)
@@ -452,6 +458,41 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
   teardown.push(wm.onFront(sync), wm.onDialogs(sync))
   sync()
 
+  // The Apple menu: under the page's own items, what Apple Menu Items holds,
+  // by name. Each entry's value is its item's id.
+  const appleItems = new Map<VfMenuItem, string>()
+  const syncAppleMenu = () => {
+    const want = catalog ? appleMenuItemsOf(catalog.get()) : []
+    const have = [...appleItems]
+    if (have.length === want.length && have.every(([, id], i) => id === want[i]!.id)) {
+      // The same items in the same order: a name may have changed, nothing else.
+      have.forEach(([entry], i) => {
+        if (entry.textContent !== want[i]!.name) entry.textContent = want[i]!.name
+      })
+      return
+    }
+    for (const [entry] of have) entry.remove()
+    appleItems.clear()
+    for (const item of want) {
+      const entry = document.createElement('vf-menu-item')
+      entry.setAttribute('value', item.id)
+      entry.textContent = item.name
+      systemMenu.append(entry)
+      appleItems.set(entry, item.id)
+    }
+  }
+  const onSystemPick = (e: Event) => {
+    const id = appleItems.get((e as CustomEvent<{ item: VfMenuItem }>).detail.item)
+    if (id != null && !modalOpen()) void openAsDoubleClick(id)
+  }
+  systemMenu.addEventListener('vf-menu-select', onSystemPick)
+  teardown.push(() => {
+    systemMenu.removeEventListener('vf-menu-select', onSystemPick)
+    for (const [entry] of appleItems) entry.remove()
+    appleItems.clear()
+  })
+  if (catalog) teardown.push(catalog.subscribe(syncAppleMenu))
+
   // The clock, in the bar's end slot.
   if (options.clock !== false) {
     let label = bar.querySelector<HTMLElement>(':scope > [slot="end"]')
@@ -505,6 +546,10 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
       if (active) {
         const win = wm.windowFor(active)
         if (win) desktop.bringToFront(win)
+      }
+      // After the session, so what they open comes to the front.
+      if (catalog && options.startup !== false) {
+        for (const item of startupItemsOf(catalog.get())) await openAsDoubleClick(item.id)
       }
     } finally {
       if (state) {

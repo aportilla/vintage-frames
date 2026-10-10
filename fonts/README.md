@@ -1,11 +1,12 @@
 # Fonts — bitmap faces & how to modify them
 
-Vintage Frames ships two System 7 bitmap webfonts, embedded as base64 and registered on `document.fonts` at runtime (see [`../src/styles/register-embedded-font.ts`](../src/styles/register-embedded-font.ts) for *why* it's JS and not `@font-face` — font faces can't cross a shadow-root boundary).
+Vintage Frames ships two System 7 bitmap webfonts, and the body face's italic, embedded as base64 and registered on `document.fonts` at runtime (see [`../src/styles/register-embedded-font.ts`](../src/styles/register-embedded-font.ts) for *why* it's JS and not `@font-face` — font faces can't cross a shadow-root boundary).
 
 | Face | Ships as | Artwork | Role | Used by |
 | --- | --- | --- | --- | --- |
 | **Chicago** | `VF Display` | re-drawn strike in Chicago 12pt's style | *chrome* | menus, titles, buttons, controls (`vfDisplay`) |
 | **Geneva** | `VF Body` | re-drawn strike in Geneva 9pt's style | *body* copy | fields, list rows, prose (`vfBase` default) |
+| **Geneva**, italic | `VF Body`, `style: italic` | `VF Body`'s glyphs, slanted by the builder | an alias's name | `vf-icon`'s `alias` |
 
 Both faces are the kit's own artwork, authored glyph by glyph in the plaintext manifests below. They reproduce the *appearance* of the classic faces — designs created by Susan Kare for Apple's original Macintosh, and credited as such — but they are not Apple's font files, and no Apple binary goes into the build. **The shipped faces carry the kit's name, not the classic face's** — see [Naming](#naming--what-ships-vs-what-it-came-from) below. This file's left-hand column names the classic design each face re-draws; `VF Display` / `VF Body` is what the binary, the CSS stack and `--vf-font-family*` all say.
 
@@ -21,17 +22,25 @@ glyph-manifest.py        ← the reverse direction (woff2 → manifest), for
 VF-Display.woff2         VF-Body.woff2  ← generated: the built faces the kit
                             embeds, named for what they register — the
                             classic faces' names appear nowhere in them
+VF-Body-Italic.woff2     ← generated: VF Body's italic, slanted from the
+                            same manifest
 ```
 
 That is the whole of it. **No Apple artwork lives in this directory** — every byte here is either the kit's own authored manifests or something built from them.
 
 It was not always so. Until 2026-08-11 `fonts/` also held `imported/`, a collection of ~80 genuine Apple strikes converted from suitcases, plus the two converters that produced them (`dfont-to-bdf.py`, `import-bdf.py`) and the generator for the Character Set window that browsed them (`charset-manifest.py`). All of it moved to the [SystemOnline](https://github.com/aportilla/system-online) repo along with the faux desktop, where that window lives now; see its `docs/FONTS.md`. What is left behind is the kit's own work end to end, which is what makes the artwork question in [docs/PUBLISHING.md](../docs/PUBLISHING.md) answerable in one sentence.
 
-The built **`VF-Display.woff2`** / **`VF-Body.woff2`** (and the base64 in `src/styles/*-font.ts`, and the strikes in `src/styles/*-strike.ts`) are generated — never hand-edit them. Edit the glyph manifests (`VF-Display.glyphs.txt` / `VF-Body.glyphs.txt`) and run `manifest-to-font.py`, then `npm run build`.
+The built **`VF-Display.woff2`** / **`VF-Body.woff2`** / **`VF-Body-Italic.woff2`** (and the base64 in `src/styles/*-font.ts`, and the strikes in `src/styles/*-strike.ts`) are generated — never hand-edit them. Edit the glyph manifests (`VF-Display.glyphs.txt` / `VF-Body.glyphs.txt`) and run `manifest-to-font.py`, then `npm run build`.
 
 ## The faces as data
 
 The builder also writes each face as data: `src/styles/display-strike.ts` and `body-strike.ts`, every character's advance, placement and ink as its manifest has them, keyed by the character. They are internal to `vintage-frames/build`: its box compositor sets an app file's lettering with them under Node, where no font loads ([docs/APP-FILES.md](../docs/APP-FILES.md)). They come from the same parse as the woff2, so an unchanged manifest writes identical modules.
+
+## The italic
+
+`VF-Body.glyphs.txt` names an italic too (`italic_woff2`, `italic_module`), and the builder makes it from the same glyphs. Nothing in it is drawn: each row of a glyph's ink shifts right by a whole number of pixels, more the higher it sits in the strike's own font rectangle (`rect_ascent` over `rect_descent`, Geneva 9pt's 10 over 2), so the slant stays on the grid. From the rectangle's top row down, its twelve rows shift 6, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0, and the few backfill glyphs that ride above it carry on a pixel a row. That is how the classic Mac italicized a bitmap strike: no italic artwork, the upright's rows slanted. Advances and metrics are the face's, so italic text takes the room upright text does, and its last letters lean past the run's end, by up to 5 px.
+
+It registers as `VF Body` with `style: 'italic'` (`src/styles/body-italic-font.ts`), so `font-style: italic` on body text takes it rather than the browser's smeared oblique. `vf-icon` imports it, for an alias's name.
 
 ## Naming — what ships vs. what it came from
 

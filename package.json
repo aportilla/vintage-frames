@@ -20,6 +20,8 @@
     "**/display-font.ts",
     "**/body-font.js",
     "**/body-font.ts",
+    "**/body-italic-font.js",
+    "**/body-italic-font.ts",
     "**/*.css"
   ],
   "main": "./dist/index.js",

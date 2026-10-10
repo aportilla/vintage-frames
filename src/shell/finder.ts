@@ -19,10 +19,13 @@
  *   around it. An application's icon stands for the application: it is drawn
  *   open while the application has a window open, and the application's own
  *   windows close into it.
- * - Menus: File (Open, New Folder, Close), Edit (Copy, Paste, Select All),
- *   View (Arrange Windows), Special (Clean Up, Empty Trash…), each disabled
- *   while it has nothing to act on. A site switches commands off and adds
- *   its own.
+ * - An alias wears its original's art with its name in italics, and opens
+ *   its original; with the original gone, an alert says so. Make Alias makes
+ *   one beside each selected application or document.
+ * - Menus: File (Open, New Folder, Close, Make Alias), Edit (Copy, Paste,
+ *   Select All), View (Arrange Windows), Special (Clean Up, Empty Trash…),
+ *   each disabled while it has nothing to act on. A site switches commands
+ *   off and adds its own.
  * - Alerts are the Finder's own, composed with the site's caution art and
  *   held by it while they are up. A site answers any of them with its own
  *   dialog through `alertWith`.
@@ -40,20 +43,27 @@ import {
 } from '../index.js'
 import type { VfIcon, VfIconField, VfImg, VfLabel, VfMenu, VfMenuItem, VfViewportBox } from '../index.js'
 import {
+  ALIAS_KIND,
+  APPLE_MENU_ITEMS,
   APP_KIND,
   DISK,
   FOLDER,
+  STARTUP_ITEMS,
+  SYSTEM_FOLDER,
   TRASH,
+  aliasName,
   appIdOf,
   childrenOf,
+  containerOf,
   enclosingFolders,
   isContainerKind,
   isInside,
+  isKept,
   isTrashed,
-  isVolume,
   itemCount,
+  resolve,
 } from './catalog.js'
-import type { Catalog, CatalogStorage, Item, Volumes } from './catalog.js'
+import type { Catalog, CatalogStorage, Item, SystemFolders, Volumes } from './catalog.js'
 import {
   ICON_CELL,
   cleanUp,
@@ -63,6 +73,7 @@ import {
   fillOrder,
   folderLattice,
   frameOf,
+  freeCellNear,
   nextFreeCell,
   pinOf,
   pinTo,
@@ -91,6 +102,10 @@ export interface FinderArt {
   document: string
   /** The startup disk; the folder's art without it. */
   disk?: string
+  /** The System Folder and its two folders; the folder's art without them. */
+  systemFolder?: string
+  appleMenuItems?: string
+  startupItems?: string
   /** 12×12: the mark before the item count in the Trash's window and trashed folders. */
   trashMark?: string
   /** 32×32: beside the message in the Finder's alerts. Without it they have no art. */
@@ -98,7 +113,7 @@ export interface FinderArt {
 }
 
 /** What a failed command was, in the `failed` alert. */
-export type FinderFailedAction = 'new-folder' | 'empty-trash' | 'paste' | 'add-file'
+export type FinderFailedAction = 'new-folder' | 'empty-trash' | 'paste' | 'add-file' | 'make-alias'
 
 /** The Finder's alerts, by id, with the details each one's handler gets. */
 export interface FinderAlerts {
@@ -112,7 +127,9 @@ export interface FinderAlerts {
   'name-rejected': Record<string, never>
   /** A filing storage refused. */
   'move-failed': { error: Error }
-  /** New Folder, Empty Trash, Paste or a dropped file failed. */
+  /** Opening an alias whose original is gone. */
+  'original-missing': { alias: Item }
+  /** New Folder, Empty Trash, Paste, Make Alias or a dropped file failed. */
   failed: { action: FinderFailedAction; error: Error }
 }
 
@@ -129,6 +146,7 @@ export type FinderCommand =
   | 'open'
   | 'new-folder'
   | 'close'
+  | 'make-alias'
   | 'copy'
   | 'paste'
   | 'select-all'
@@ -194,9 +212,16 @@ export interface FinderOptions {
   /** The volumes: the Trash by default, and a startup disk when named. */
   volumes?: Volumes
   /**
+   * The System Folder and its folders, named: what Apple Menu Items holds is
+   * the Apple menu, and what Startup Items holds opens at startup. Unset, none.
+   */
+  system?: SystemFolders
+  /**
    * What the catalog starts with, stored once per storage: `'markup'` reads
    * the `<vf-icon data-app>` and `<template data-folder="Name">` the page
-   * put in the desktop's field; a function stores the site's defaults.
+   * put in the desktop's field, and a `<template data-system="apple-menu-items">`
+   * files what it holds in that folder of the System Folder; a function
+   * stores the site's defaults.
    */
   seed?: 'markup' | ((catalog: Catalog) => void | Promise<void>)
   /** The lattices' cells, pitches and insets (default: 64px cells, 80px columns, 72px rows, 16px insets). */
@@ -225,6 +250,7 @@ const FAILED: Record<FinderFailedAction, string> = {
   'empty-trash': 'Empty Trash',
   paste: 'Paste',
   'add-file': 'Adding the file',
+  'make-alias': 'Make Alias',
 }
 
 /** A folder window's header: its count line, a white row and the header's rule. */
@@ -247,6 +273,7 @@ const MENUS: { menu: FinderMenu; label: string; items: [FinderCommand, string, s
       ['new-folder', 'New Folder'],
       // ⌃W: the browser takes ⌘W before the page sees it.
       ['close', 'Close', '⌃W'],
+      ['make-alias', 'Make Alias', '⌘M'],
     ],
   },
   {
@@ -269,35 +296,46 @@ const MENUS: { menu: FinderMenu; label: string; items: [FinderCommand, string, s
   },
 ]
 
+/** The System Folder and its folders, the containers `template[data-system]` names. */
+const SYSTEM_FOLDERS: readonly string[] = [SYSTEM_FOLDER, APPLE_MENU_ITEMS, STARTUP_ITEMS]
+
+/** The commands that start a group of their own in their menu, after a separator. */
+const GROUPS = new Set<FinderCommand>(['close', 'make-alias'])
+
 /** The Finder's menus, less the commands switched off; a menu left empty is left out. */
 function menusFor(on: (cmd: FinderCommand) => boolean): string {
   return MENUS.map(({ menu, label, items }) => {
     const rows = items
       .filter(([cmd]) => on(cmd))
       .map(([cmd, text, shortcut], i) => {
-        // Close sits apart from Open and New Folder.
-        const sep = cmd === 'close' && i > 0 ? '<vf-separator></vf-separator>' : ''
+        const sep = GROUPS.has(cmd) && i > 0 ? '<vf-separator></vf-separator>' : ''
         return `${sep}<vf-menu-item value="${cmd}"${shortcut ? ` shortcut="${shortcut}"` : ''}>${text}</vf-menu-item>`
       })
     return rows.length ? `<vf-menu data-menu="${menu}" label="${label}">${rows.join('')}</vf-menu>` : ''
   }).join('')
 }
 
-/** A folder or application icon the page's markup declares. */
+/** A folder or application icon the page's markup declares, or what a kept folder holds. */
 interface Declared {
   kind: typeof FOLDER | typeof APP_KIND
   name: string | null
   app?: string
   at?: Point
+  /** A kept folder's id: its children are filed there, and nothing is made for it. */
+  into?: string
   children: Declared[]
 }
 
 /** Whether `el` is a declaration the markup seed reads. */
 const isDeclaration = (el: Element): boolean =>
   (el.localName === 'vf-icon' && (el as HTMLElement).dataset.app != null) ||
-  (el instanceof HTMLTemplateElement && el.dataset.folder != null)
+  (el instanceof HTMLTemplateElement && (el.dataset.folder != null || el.dataset.system != null))
 
-/** The declarations in `root`: `vf-icon[data-app]` and `template[data-folder]`, a folder's inside it. */
+/**
+ * The declarations in `root`: `vf-icon[data-app]` and `template[data-folder]`,
+ * a folder's inside it, and `template[data-system]`, what a folder of the
+ * System Folder holds.
+ */
 function declarations(root: Element | DocumentFragment): Declared[] {
   const at = (left: string | null | undefined, top: string | null | undefined): Point | undefined =>
     left != null && top != null && Number.isFinite(+left) && Number.isFinite(+top) ? { left: +left, top: +top } : undefined
@@ -308,6 +346,7 @@ function declarations(root: Element | DocumentFragment): Declared[] {
         kind: FOLDER,
         name: el.dataset.folder ?? null,
         at: at(el.dataset.left, el.dataset.top),
+        into: el.dataset.system,
         children: declarations(el.content),
       })
     } else {
@@ -339,6 +378,11 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
           let at = Date.now()
           const store = async (list: Declared[], parent: string | null) => {
             for (const d of list) {
+              if (d.into != null) {
+                // Only while the catalog keeps that folder: a missing one would read as the desktop.
+                if (SYSTEM_FOLDERS.includes(d.into) && catalog.item(d.into)) await store(d.children, d.into)
+                continue
+              }
               const made = await catalog.create({
                 kind: d.kind,
                 name: d.name ?? (d.app != null ? appName(d.app) : undefined),
@@ -359,7 +403,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
     name: 'Finder',
     menus: menusFor(on),
     dialogs: options.dialogs,
-    catalog: { storage: options.storage, volumes: options.volumes, seed },
+    catalog: { storage: options.storage, volumes: options.volumes, system: options.system, seed },
     init(ctx) {
       const { desktop, windows } = ctx
       const catalog = ctx.catalog!
@@ -491,9 +535,17 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
       /* ── Icons ─────────────────────────────────────────────────────── */
 
       const artOf = (item: Item): string => {
+        if (item.id === SYSTEM_FOLDER) return art.systemFolder ?? art.folder
+        if (item.id === APPLE_MENU_ITEMS) return art.appleMenuItems ?? art.folder
+        if (item.id === STARTUP_ITEMS) return art.startupItems ?? art.folder
         if (item.kind === FOLDER) return art.folder
         if (item.kind === TRASH) return itemCount(catalog.get(), TRASH) ? art.trashFull : art.trash
         if (item.kind === DISK) return art.disk ?? art.folder
+        if (item.kind === ALIAS_KIND) {
+          // Its original's art; with the original gone, a document's.
+          const original = resolve(catalog.get(), item.id)
+          return original ? artOf(original) : art.document
+        }
         const kind = ctx.kind(item.kind)
         const own = typeof kind?.art === 'function' ? kind.art(item) : kind?.art
         return own || art.document
@@ -580,7 +632,8 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
               }
               kept.add(icon)
               if (icon.label !== item.name) icon.label = item.name
-              icon.editable = !isVolume(item.id) && ctx.kind(item.kind)?.editable !== false
+              icon.editable = !isKept(item.id) && ctx.kind(item.kind)?.editable !== false
+              icon.alias = item.kind === ALIAS_KIND
               setArt(icon, artOf(item))
               const open =
                 item.kind === APP_KIND ? windows.hasWindows(appIdOf(item) ?? '') : windows.isOpen(item.id)
@@ -707,13 +760,23 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
 
       /* ── Opening and closing ───────────────────────────────────────── */
 
+      /** Open an item, an alias its original: a folder's window, or the item's kind. */
       function openItem(id: string, from: VfViewportBox | null): void {
         const item = catalog.item(id)
         if (!item) return
-        if (isContainerKind(item.kind)) {
-          windows.open({ app: FINDER, item: id, from, create: () => makeFolderWindow(id) })
+        const target = resolve(catalog.get(), id)
+        if (!target) {
+          void alert(
+            'original-missing',
+            { alias: item },
+            `The alias “${item.name}” could not be opened, because the original item could not be found.`
+          )
+          return
+        }
+        if (isContainerKind(target.kind)) {
+          windows.open({ app: FINDER, item: target.id, from, create: () => makeFolderWindow(target.id) })
         } else {
-          ctx.kind(item.kind)?.open(item, from)
+          ctx.kind(target.kind)?.open(target, from)
         }
       }
       ctx.on(desktop, 'vf-open', (e) => {
@@ -799,7 +862,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
             const st = catalog.get()
             return icons.every((icon) => {
               const id = icon.dataset.id
-              if (id == null || isVolume(id)) return false
+              if (id == null || isKept(id)) return false
               if (folder == null || icon.dataset.folder == null) return true
               return id !== folder && !isInside(st, folder, id)
             })
@@ -909,6 +972,49 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         if (made) await rename(made.id)
       }
 
+      /** Whether File → Make Alias takes an item: an application or a document, or an alias of one, outside the Trash. */
+      const aliasable = (item: Item): boolean => {
+        const st = catalog.get()
+        const original = resolve(st, item.id)
+        return !!original && !isContainerKind(original.kind) && !isTrashed(st, item.id)
+      }
+
+      /**
+       * File → Make Alias: an alias of each selected item in the free cell
+       * nearest it, named "<name> alias". An alias's alias stands for the
+       * same original. The new aliases end up selected.
+       */
+      async function makeAlias(): Promise<void> {
+        if (!storageReady()) return
+        const taken = new Map<string | null, Point[]>()
+        const made: string[] = []
+        try {
+          for (const item of selection().filter(aliasable)) {
+            const st = catalog.get()
+            const folder = containerOf(st, item.parent)
+            const icon = iconFor(item.id)
+            const root = fieldOf(folder)
+            let at: Point | undefined
+            if (icon && root) {
+              const near = taken.get(folder) ?? iconsIn(root).map(posOf)
+              at = freeCellNear(gridFor(folder), posOf(icon), near, folder == null ? cell : folderCell)
+              taken.set(folder, [...near, at])
+            }
+            const alias = await catalog.create({
+              kind: ALIAS_KIND,
+              name: aliasName(st, folder, item.name),
+              parent: folder,
+              data: { original: resolve(st, item.id)!.id },
+              ...at,
+            })
+            if (alias) made.push(alias.id)
+          }
+        } catch (err) {
+          failed('make-alias')(err)
+        }
+        if (made.length) select(made)
+      }
+
       async function emptyTrash(): Promise<void> {
         const n = itemCount(catalog.get(), TRASH)
         if (!hasTrash || !n) return
@@ -937,7 +1043,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
 
       /** The selected items' names on the system clipboard, with the first file a kind exports for its item. */
       async function copySelection(): Promise<void> {
-        const items = selection().filter((i) => !isVolume(i.id))
+        const items = selection().filter((i) => !isKept(i.id))
         if (!items.length) return
         const text = items.map((i) => i.name).join('\n')
         copied = { ids: items.map((i) => i.id), text }
@@ -1060,6 +1166,7 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
           const win = id != null ? windows.windowFor(id) : null
           if (win) windows.requestClose(win)
         },
+        'make-alias': () => void makeAlias(),
         copy: () => void copySelection(),
         paste: () => void paste(),
         'select-all': () => {
@@ -1071,15 +1178,16 @@ export function finder(options: FinderOptions): AppDefinition<FinderApi> {
         'empty-trash': () => void emptyTrash(),
       }
 
-      // Copy, Paste, Select All and Open are disabled while a text field has
-      // focus, so the field keeps its own ⌘C, ⌘V, ⌘A and the rest.
+      // Copy, Paste, Select All, Open and Make Alias are disabled while a text
+      // field has focus, so the field keeps its own ⌘C, ⌘V, ⌘A and the rest.
       const gate = (cmd: FinderCommand, test: () => boolean) => {
         if (on(cmd)) ctx.gate(ctx.item(cmd), test)
       }
       gate('open', () => !ctx.typing() && selection().length > 0)
       gate('new-folder', () => !isTrashed(catalog.get(), activeFolder()))
       gate('close', () => activeFolder() != null)
-      gate('copy', () => !ctx.typing() && selection().some((i) => !isVolume(i.id)))
+      gate('make-alias', () => !ctx.typing() && selection().some(aliasable))
+      gate('copy', () => !ctx.typing() && selection().some((i) => !isKept(i.id)))
       gate('paste', () => !ctx.typing() && !isTrashed(catalog.get(), activeFolder()))
       gate('select-all', () => !ctx.typing())
       gate('arrange', () => !windows.arranged())

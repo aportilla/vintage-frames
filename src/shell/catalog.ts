@@ -13,6 +13,12 @@
  *   never renamed, moved, copied or removed; nothing is made in the Trash.
  *   Deleting is a move into the Trash, and only Empty Trash removes. A
  *   volume's position is stored on a record of its own id.
+ * - The System Folder is kept the same way when the site names it: a folder
+ *   on the startup disk (the desktop without one) holding Apple Menu Items
+ *   and Startup Items, listed after the volumes. What they hold is anyone's,
+ *   and the shell reads it: the Apple menu, and what opens at startup.
+ * - An alias stands for another item: its data names the original's id, and
+ *   `resolve` finds the original wherever it moved, until it is removed.
  * - A folder never goes into itself or a folder inside it. A parent with no
  *   record reads as the desktop.
  * - An item whose kind no application registers is left out of the listing
@@ -32,10 +38,18 @@ import type { Point } from './geometry.js'
 export const TRASH = 'trash'
 /** The startup disk's id. */
 export const DISK = 'disk'
+/** The System Folder's id: kept on the startup disk when the site names it. */
+export const SYSTEM_FOLDER = 'system-folder'
+/** Apple Menu Items' id, in the System Folder: what it holds is the Apple menu. */
+export const APPLE_MENU_ITEMS = 'apple-menu-items'
+/** Startup Items' id, in the System Folder: what it holds opens at startup. */
+export const STARTUP_ITEMS = 'startup-items'
 /** A folder's kind. */
 export const FOLDER = 'folder'
 /** An application's icon: the kind the shell registers, whose data names the application it opens. */
 export const APP_KIND = 'app'
+/** An alias: the kind the shell registers, whose data names the item it stands for. */
+export const ALIAS_KIND = 'alias'
 
 /** The name a new folder takes, counted up where it is taken. */
 export const UNTITLED_FOLDER = 'untitled folder'
@@ -47,7 +61,7 @@ const SEEDED = '#seeded'
 export interface Item {
   id: string
   name: string
-  /** `folder`, a volume's (`trash`, `disk`), the shell's `app`, or a kind an application registers. */
+  /** `folder`, a volume's (`trash`, `disk`), the shell's `app` or `alias`, or a kind an application registers. */
   kind: string
   /** A folder's id, a volume's, or null for the desktop. */
   parent: string | null
@@ -90,9 +104,18 @@ export interface Volumes {
   disk?: string | false
 }
 
+/** The System Folder and its two folders, by name. A site that names them has them. */
+export interface SystemFolders {
+  folder: string
+  appleMenu: string
+  startup: string
+}
+
 export interface CatalogOptions {
   storage: CatalogStorage | null
   volumes?: Volumes
+  /** The System Folder, on the startup disk. Unset, none. */
+  system?: SystemFolders
   /** Whether an application registers `kind`. Folders are always listed. Default: every kind. */
   listed?(kind: string): boolean
   /** A kind's payload hooks. */
@@ -129,16 +152,45 @@ export const isContainerKind = (kind: string): boolean =>
 /** Whether `id` names a volume. */
 export const isVolume = (id: string | null | undefined): boolean => id === TRASH || id === DISK
 
+/**
+ * Whether `id` names a container the catalog keeps, never renamed, moved,
+ * copied or removed: a volume, the System Folder or a folder in it.
+ */
+export const isKept = (id: string | null | undefined): boolean =>
+  isVolume(id) || id === SYSTEM_FOLDER || id === APPLE_MENU_ITEMS || id === STARTUP_ITEMS
+
 /** The application an `app` item stands for: its `data.app`, or null. */
 export function appIdOf(item: Item): string | null {
   const data = item.data as { app?: unknown } | undefined
   return typeof data?.app === 'string' ? data.app : null
 }
 
+/** The id of the item an alias stands for: its `data.original`, or null for anything but an alias. */
+export function originalOf(item: Item): string | null {
+  if (item.kind !== ALIAS_KIND) return null
+  const data = item.data as { original?: unknown } | undefined
+  return typeof data?.original === 'string' ? data.original : null
+}
+
 /** The item with `id`, or null. */
 export function itemOf(state: CatalogState, id: string | null | undefined): Item | null {
   if (id == null) return null
   return state.items.find((i) => i.id === id) ?? null
+}
+
+/**
+ * The item `id` names, or the original an alias stands for, through an alias
+ * of an alias too. Null once the original is gone, and for a chain that loops.
+ */
+export function resolve(state: CatalogState, id: string | null | undefined): Item | null {
+  const seen = new Set<string>()
+  let item = itemOf(state, id)
+  while (item?.kind === ALIAS_KIND) {
+    if (seen.has(item.id)) return null
+    seen.add(item.id)
+    item = itemOf(state, originalOf(item))
+  }
+  return item
 }
 
 /** The container `parent` resolves to: that container while it is listed, else the desktop (null). */
@@ -253,6 +305,36 @@ export function copyName(state: CatalogState, parent: string | null, name: strin
   }
 }
 
+/** The name for an alias of `name` in a container: "name alias", then "name alias 2", … while an alias there has it. */
+export function aliasName(state: CatalogState, parent: string | null, name: string): string {
+  const used = new Set(
+    childrenOf(state, parent)
+      .filter((i) => i.kind === ALIAS_KIND)
+      .map((i) => i.name)
+  )
+  const base = `${name} alias`
+  if (!used.has(base)) return base
+  for (let n = 2; ; n++) {
+    const next = `${base} ${n}`
+    if (!used.has(next)) return next
+  }
+}
+
+/** Names in order, case and accents aside, so a leading space sorts first. */
+const nameOrder = new Intl.Collator('en')
+
+/** What a folder of the System Folder holds, by name; nothing while the folder isn't there. */
+function systemFolderOf(state: CatalogState, id: string): Item[] {
+  if (!itemOf(state, id)) return []
+  return childrenOf(state, id).sort((a, b) => nameOrder.compare(a.name, b.name) || byCreation(a, b))
+}
+
+/** What Apple Menu Items holds, by name: the Apple menu's entries. None without the System Folder. */
+export const appleMenuItemsOf = (state: CatalogState): Item[] => systemFolderOf(state, APPLE_MENU_ITEMS)
+
+/** What Startup Items holds, by name: what opens at startup. None without the System Folder. */
+export const startupItemsOf = (state: CatalogState): Item[] => systemFolderOf(state, STARTUP_ITEMS)
+
 /* ── The catalog ────────────────────────────────────────────────────────── */
 
 /** The catalog's operations, over its listing. */
@@ -296,6 +378,7 @@ export function createCatalog(options: CatalogOptions): Catalog {
   const {
     storage,
     volumes = {},
+    system,
     listed = () => true,
     hooks = () => undefined,
     placeDelay = 400,
@@ -303,20 +386,16 @@ export function createCatalog(options: CatalogOptions): Catalog {
   const now = () => (options.now ?? Date.now)()
   const newId = () => (options.newId ? options.newId() : crypto.randomUUID())
 
-  /** The volumes this catalog lists, in order. */
-  const volumeRows: Item[] = []
-  if (volumes.disk) {
-    volumeRows.push({ id: DISK, name: volumes.disk, kind: DISK, parent: null, createdAt: 0, modifiedAt: 0 })
-  }
-  if (volumes.trash !== false) {
-    volumeRows.push({
-      id: TRASH,
-      name: volumes.trash ?? 'Trash',
-      kind: TRASH,
-      parent: null,
-      createdAt: 0,
-      modifiedAt: 0,
-    })
+  /** The containers this catalog keeps, in order: the volumes, then the System Folder and its folders. */
+  const keptRows: Item[] = []
+  const keep = (id: string, name: string, kind: string, parent: string | null) =>
+    keptRows.push({ id, name, kind, parent, createdAt: 0, modifiedAt: 0 })
+  if (volumes.disk) keep(DISK, volumes.disk, DISK, null)
+  if (volumes.trash !== false) keep(TRASH, volumes.trash ?? 'Trash', TRASH, null)
+  if (system) {
+    keep(SYSTEM_FOLDER, system.folder, FOLDER, volumes.disk ? DISK : null)
+    keep(APPLE_MENU_ITEMS, system.appleMenu, FOLDER, SYSTEM_FOLDER)
+    keep(STARTUP_ITEMS, system.startup, FOLDER, SYSTEM_FOLDER)
   }
 
   /** Every stored record, by id, the marker aside. */
@@ -327,16 +406,16 @@ export function createCatalog(options: CatalogOptions): Catalog {
   const listeners = new Set<(s: CatalogState) => void>()
 
   function derive(): CatalogState {
-    const vols = volumeRows.map((v) => {
+    const kept = keptRows.map((v) => {
       const stored = records.get(v.id)
       return stored?.left != null && stored.top != null
         ? { ...v, left: stored.left, top: stored.top }
         : v
     })
     const rows = [...records.values()]
-      .filter((r) => !isVolume(r.id) && (r.kind === FOLDER || listed(r.kind)))
+      .filter((r) => !isKept(r.id) && (r.kind === FOLDER || listed(r.kind)))
       .sort(byCreation)
-    return { available, items: [...vols, ...rows] }
+    return { available, items: [...kept, ...rows] }
   }
 
   function changed(): void {
@@ -370,9 +449,9 @@ export function createCatalog(options: CatalogOptions): Catalog {
     }
   }
 
-  /** A volume's position record, made on its first placement. */
-  const volumeRecord = (id: string): Item => {
-    const row = volumeRows.find((v) => v.id === id)!
+  /** A kept container's position record, made on its first placement. */
+  const keptRecord = (id: string): Item => {
+    const row = keptRows.find((v) => v.id === id)!
     return records.get(id) ?? { ...row, name: '' }
   }
 
@@ -399,7 +478,7 @@ export function createCatalog(options: CatalogOptions): Catalog {
     /** The listed item with `id`, or null. */
     item: (id: string | null | undefined): Item | null => itemOf(state, id),
 
-    /** Read every record from storage. Without storage, or when it fails, the volumes alone. */
+    /** Read every record from storage. Without storage, or when it fails, the kept containers alone. */
     async refresh(): Promise<void> {
       if (!storage) {
         records = new Map()
@@ -462,10 +541,10 @@ export function createCatalog(options: CatalogOptions): Catalog {
       return item
     },
 
-    /** Rename an item. A volume keeps its name. Resolves whether it changed. */
+    /** Rename an item. A kept container keeps its name. Resolves whether it changed. */
     async rename(id: string, name: string): Promise<boolean> {
       const rec = records.get(id)
-      if (!rec || isVolume(id) || rec.name === name) return false
+      if (!rec || isKept(id) || rec.name === name) return false
       await put({ ...rec, name, modifiedAt: now() })
       changed()
       return true
@@ -474,7 +553,7 @@ export function createCatalog(options: CatalogOptions): Catalog {
     /** Replace an item's `data`, the kind's own. */
     async update(id: string, data: unknown): Promise<boolean> {
       const rec = records.get(id)
-      if (!rec || isVolume(id)) return false
+      if (!rec || isKept(id)) return false
       await put({ ...rec, data, modifiedAt: now() })
       changed()
       return true
@@ -483,8 +562,8 @@ export function createCatalog(options: CatalogOptions): Catalog {
     /**
      * Move items into a container (null: the desktop), each at its landing
      * there — a position, or none for the container's next free cell.
-     * Refused for a volume, an item already there, and a folder into itself
-     * or a folder inside it. Resolves the ids that moved.
+     * Refused for a kept container, an item already there, and a folder into
+     * itself or a folder inside it. Resolves the ids that moved.
      */
     async move(
       ids: readonly string[],
@@ -495,7 +574,7 @@ export function createCatalog(options: CatalogOptions): Catalog {
       const moved: string[] = []
       for (const id of ids) {
         const rec = records.get(id)
-        if (!rec || isVolume(id)) continue
+        if (!rec || isKept(id)) continue
         if (target === id || (target != null && isContainerKind(rec.kind) && isInside(state, target, id))) continue
         if (containerOf(state, rec.parent) === target) continue
         pendingPlaces.delete(id)
@@ -513,7 +592,7 @@ export function createCatalog(options: CatalogOptions): Catalog {
     place(positions: ReadonlyMap<string, Point>): void {
       let any = false
       for (const [id, at] of positions) {
-        const rec = isVolume(id) ? (volumeRows.some((v) => v.id === id) ? volumeRecord(id) : null) : records.get(id)
+        const rec = isKept(id) ? (keptRows.some((v) => v.id === id) ? keptRecord(id) : null) : records.get(id)
         if (!rec || (rec.left === at.left && rec.top === at.top)) continue
         records.set(id, withPosition(rec, at))
         pendingPlaces.add(id)
@@ -532,8 +611,9 @@ export function createCatalog(options: CatalogOptions): Catalog {
      * Copy items into a container, a folder with everything inside it. Every
      * copy gets a fresh id and times; the top ones are named by `copyName`
      * and take the container's next free cells, the rest keep their names
-     * and places. Each kind copies its own payload. Refused for a volume and
-     * into the Trash. Resolves the top copies.
+     * and places. Each kind copies its own payload, and a copied alias stands
+     * for the same original. Refused for a kept container and into the Trash.
+     * Resolves the top copies.
      */
     async copy(ids: readonly string[], parent: string | null): Promise<Item[]> {
       const target = containerOf(state, parent)
@@ -541,7 +621,7 @@ export function createCatalog(options: CatalogOptions): Catalog {
       const tops: Item[] = []
       for (const id of ids) {
         const src = itemOf(state, id)
-        if (!src || isVolume(id)) continue
+        if (!src || isKept(id)) continue
         // Read before any write, so a folder copied into itself is copied once.
         const inside = isContainerKind(src.kind) ? descendantsOf(state, id) : []
         const map = new Map<string, string>()
@@ -610,25 +690,28 @@ export function createCatalog(options: CatalogOptions): Catalog {
      * announced once, when the import is done or has failed partway, so a
      * replace never lists the catalog empty between the two. Resolves each
      * archive id's stored item — under a fresh id after a merge, so a kind
-     * whose payload is keyed by item id can carry it over.
+     * whose payload is keyed by item id can carry it over. An alias follows
+     * its original to the original's new id.
      */
     async import(
       archive: CatalogArchive,
       { mode = 'merge' }: { mode?: 'merge' | 'replace' } = {}
     ): Promise<Map<string, Item>> {
       const stored = new Map<string, Item>()
-      const rows = archive.items.filter((r) => r.id !== SEEDED && !isVolume(r.id))
+      const rows = archive.items.filter((r) => r.id !== SEEDED && !isKept(r.id))
       if (!rows.length || !storage) return stored
       const replace = mode === 'replace'
       const ids = new Map<string, string>()
       for (const r of rows) ids.set(r.id, replace ? r.id : newId())
       // Mapped in full first, so records out of order still nest. An unknown
       // container is the desktop.
-      const into = (ref: string | null) => (ref == null || isVolume(ref) ? ref : (ids.get(ref) ?? null))
+      const into = (ref: string | null) => (ref == null || isKept(ref) ? ref : (ids.get(ref) ?? null))
       try {
         if (replace) await wipe()
         for (const r of rows) {
           const item = { ...r, id: ids.get(r.id)!, parent: into(r.parent) }
+          const original = originalOf(r)
+          if (original != null && ids.has(original)) item.data = { ...(r.data as object), original: ids.get(original) }
           await put(item)
           stored.set(r.id, item)
         }

@@ -22,6 +22,7 @@ import {
   fillOrder,
   folderLattice,
   frameOf,
+  freeCellNear,
   isPin,
   latticeCell,
   latticeSlot,
@@ -344,6 +345,25 @@ test('next free cell: the first no icon covers, an icon off the lattice blocking
   const desk = desktopLattice(areaOf(200, 200))
   const all = Array.from({ length: desk.cols * desk.rows }, (_, s) => latticeSlot(desk, s))
   assert.deepEqual(nextFreeCell(desk, all), latticeSlot(desk, 0))
+})
+
+test('free cell near: the free cell nearest a point, the later of two as near, the next free cell past the rings', () => {
+  // A folder: beside an icon, the cell below it, 72 down, not the one above, as near.
+  const folder = folderLattice(400)
+  assert.deepEqual(freeCellNear(folder, latticeCell(folder, 1, 1), [latticeCell(folder, 1, 1)]), latticeCell(folder, 1, 2))
+  // Off the lattice, from its own rounded cell; an icon off the lattice blocks the cells it touches.
+  assert.deepEqual(freeCellNear(folder, { left: 100, top: 20 }, []), latticeCell(folder, 1, 0))
+  assert.deepEqual(freeCellNear(folder, { left: 100, top: 20 }, [{ left: 110, top: 30 }]), latticeCell(folder, 2, 0))
+  // The desktop: below in the column, then the next column in.
+  const desk = desktopLattice(areaOf(400, 300))
+  assert.deepEqual(freeCellNear(desk, latticeCell(desk, 0, 0), [latticeCell(desk, 0, 0)]), latticeCell(desk, 0, 1))
+  assert.deepEqual(
+    freeCellNear(desk, latticeCell(desk, 0, 0), [latticeCell(desk, 0, 0), latticeCell(desk, 0, 1)]),
+    latticeCell(desk, 1, 0)
+  )
+  // Every cell taken: the next free cell's answer, the home cell.
+  const all = Array.from({ length: desk.cols * desk.rows }, (_, s) => latticeSlot(desk, s))
+  assert.deepEqual(freeCellNear(desk, latticeSlot(desk, 3), all), latticeSlot(desk, 0))
 })
 
 test('clean up: every icon on a cell, one icon per cell, a tidy set held', () => {

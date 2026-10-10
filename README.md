@@ -25,7 +25,7 @@ There is no need to import a stylesheet. The components carry their styles with 
 
 ## The shell
 
-`vintage-frames/shell` is an experimental second entry point that runs applications over one desktop: a window manager, a menu bar that shows the front application's menus, and a Finder with folders, filing, Clean Up and the Trash.
+`vintage-frames/shell` is an experimental second entry point that runs applications over one desktop: a window manager, a menu bar that shows the front application's menus, and a Finder with folders, aliases, filing, Clean Up and the Trash. A System Folder's contents set the Apple menu and what opens at startup.
 
 ```ts
 import 'vintage-frames'

@@ -5,21 +5,31 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  ALIAS_KIND,
+  APPLE_MENU_ITEMS,
   APP_KIND,
   DISK,
+  STARTUP_ITEMS,
+  SYSTEM_FOLDER,
   TRASH,
   UNTITLED_FOLDER,
+  aliasName,
   appIdOf,
+  appleMenuItemsOf,
   childrenOf,
   copyName,
   createCatalog,
   descendantsOf,
   enclosingFolders,
   isInside,
+  isKept,
   isTrashed,
   itemCount,
   memoryStorage,
   nextFolderName,
+  originalOf,
+  resolve,
+  startupItemsOf,
 } from '../scripts/.tmp/unit/shell/pure.js'
 
 const names = (items) => items.map((i) => i.name)
@@ -27,16 +37,18 @@ const names = (items) => items.map((i) => i.name)
 /**
  * A catalog over a memory storage with a stepping clock and counting ids.
  * `text` and `font` are registered kinds with sizes and payload hooks that
- * log what they are asked; `zapf` is a kind no one registers.
+ * log what they are asked, and aliases are listed, as the shell registers
+ * them; `zapf` is a kind no one registers.
  */
-async function library({ volumes = { trash: 'Trash', disk: 'Macintosh HD' }, storage = memoryStorage() } = {}) {
+async function library({ volumes = { trash: 'Trash', disk: 'Macintosh HD' }, system, storage = memoryStorage() } = {}) {
   const log = []
   let t = 1000
   let n = 0
   const catalog = createCatalog({
     storage,
     volumes,
-    listed: (kind) => kind === 'text' || kind === 'font',
+    system,
+    listed: (kind) => kind === 'text' || kind === 'font' || kind === ALIAS_KIND,
     hooks: (kind) =>
       kind === 'text' || kind === 'font'
         ? {
@@ -334,4 +346,124 @@ test('import: a replace announces once, with the archive’s items in it; a fail
   await assert.rejects(broken.import(archive, { mode: 'replace' }), /quota/)
   assert.equal(seen.length, 1)
   assert.ok(seen[0].includes('f1') && !seen[0].includes('t1'), JSON.stringify(seen))
+})
+
+const SYSTEM = { folder: 'System Folder', appleMenu: 'Apple Menu Items', startup: 'Startup Items' }
+const KEPT = [SYSTEM_FOLDER, APPLE_MENU_ITEMS, STARTUP_ITEMS]
+
+test('the System Folder: on the disk with its two folders, kept like the volumes; what it holds is anyone’s', async () => {
+  const storage = memoryStorage()
+  const { catalog } = await library({ system: SYSTEM, storage })
+  const st = catalog.get()
+  assert.deepEqual(names(childrenOf(st, DISK)), ['System Folder'])
+  assert.deepEqual(names(childrenOf(st, SYSTEM_FOLDER)), ['Apple Menu Items', 'Startup Items'])
+  assert.deepEqual(enclosingFolders(st, APPLE_MENU_ITEMS), [APPLE_MENU_ITEMS, SYSTEM_FOLDER, DISK])
+  const box = await catalog.create({ name: 'Box' })
+  for (const id of KEPT) {
+    assert.ok(isKept(id))
+    assert.equal(await catalog.rename(id, 'Mine'), false, `${id} keeps its name`)
+  }
+  assert.deepEqual(await catalog.move(KEPT, box.id), [])
+  assert.deepEqual(await catalog.move(KEPT, TRASH), [], 'nor goes in the Trash')
+  assert.deepEqual(await catalog.copy(KEPT, null), [])
+  const note = await catalog.create({ name: 'Note', kind: 'text', parent: APPLE_MENU_ITEMS })
+  assert.equal(note.parent, APPLE_MENU_ITEMS)
+  assert.deepEqual(await catalog.move([note.id], STARTUP_ITEMS), [note.id])
+  assert.ok(!KEPT.some((id) => storage.records.has(id)), 'nothing of them is stored until placed')
+  catalog.place(new Map([[SYSTEM_FOLDER, { left: 16, top: 16 }]]))
+  await catalog.flush()
+  const again = createCatalog({ storage, volumes: { disk: 'Macintosh HD' }, system: SYSTEM })
+  await again.refresh()
+  const folder = again.item(SYSTEM_FOLDER)
+  assert.deepEqual([folder.name, folder.left, folder.top], ['System Folder', 16, 16], 'a place, stored on a record of its own id')
+})
+
+test('the System Folder: a storage from before has it at once; without a disk on the desktop; without the setting none', async () => {
+  const storage = memoryStorage()
+  const before = await library({ storage })
+  await before.catalog.seed((c) => c.create({ name: 'Read Me', kind: 'text' }))
+  const { catalog } = await library({ storage, system: SYSTEM })
+  assert.ok(KEPT.every((id) => catalog.item(id)), 'seeded before the setting, it has them too')
+  const { catalog: diskless } = await library({ volumes: { trash: 'Trash' }, system: SYSTEM })
+  assert.deepEqual(names(childrenOf(diskless.get(), null)), ['Trash', 'System Folder'])
+  const { catalog: none } = await library()
+  assert.ok(!KEPT.some((id) => none.item(id)))
+  await none.create({ name: 'On the desktop', kind: 'text' })
+  assert.deepEqual(appleMenuItemsOf(none.get()), [], 'no folder, no entries: never the desktop’s items')
+  assert.deepEqual(startupItemsOf(none.get()), [])
+})
+
+test('Apple Menu Items and Startup Items: what each holds, by name, case aside, a leading space first', async () => {
+  const { catalog } = await library({ system: SYSTEM })
+  for (const name of ['Zebra', 'apple', ' Zed', 'Banana']) await catalog.create({ name, kind: 'text', parent: APPLE_MENU_ITEMS })
+  await catalog.create({ name: 'Later', kind: 'text', parent: STARTUP_ITEMS })
+  await catalog.create({ name: 'Early', parent: STARTUP_ITEMS })
+  await catalog.create({ name: 'Elsewhere', kind: 'text' })
+  assert.deepEqual(names(appleMenuItemsOf(catalog.get())), [' Zed', 'apple', 'Banana', 'Zebra'])
+  assert.deepEqual(names(startupItemsOf(catalog.get())), ['Early', 'Later'], 'a folder too')
+})
+
+test('aliases: resolve follows one to its original, moved or renamed, through an alias of an alias; null once it is gone', async () => {
+  const { catalog } = await library()
+  const box = await catalog.create({ name: 'Box' })
+  const note = await catalog.create({ name: 'Note', kind: 'text' })
+  const alias = await catalog.create({ name: 'Note alias', kind: ALIAS_KIND, data: { original: note.id } })
+  assert.equal(originalOf(alias), note.id)
+  assert.equal(originalOf(note), null, 'only an alias has one')
+  assert.equal(originalOf({ ...alias, data: { original: 7 } }), null)
+  assert.equal(resolve(catalog.get(), note.id).id, note.id, 'anything else resolves to itself')
+  await catalog.move([note.id], box.id)
+  await catalog.rename(note.id, 'Memo')
+  assert.equal(resolve(catalog.get(), alias.id).name, 'Memo')
+  const twice = await catalog.create({ name: 'twice', kind: ALIAS_KIND, data: { original: alias.id } })
+  assert.equal(resolve(catalog.get(), twice.id).id, note.id)
+
+  await catalog.move([alias.id, twice.id], TRASH)
+  await catalog.emptyTrash()
+  assert.ok(catalog.item(note.id), 'trashing an alias leaves its original')
+  const again = await catalog.create({ name: 'Memo alias', kind: ALIAS_KIND, data: { original: note.id } })
+  await catalog.move([note.id], TRASH)
+  assert.equal(resolve(catalog.get(), again.id)?.id, note.id, 'an original in the Trash still resolves')
+  await catalog.emptyTrash()
+  assert.equal(resolve(catalog.get(), again.id), null, 'removed, it doesn’t')
+
+  // A chain that loops resolves to nothing.
+  const a = await catalog.create({ name: 'a', kind: ALIAS_KIND })
+  const b = await catalog.create({ name: 'b', kind: ALIAS_KIND, data: { original: a.id } })
+  await catalog.update(a.id, { original: b.id })
+  assert.equal(resolve(catalog.get(), a.id), null)
+})
+
+test('aliases: "name alias", counted up in a container; a copied alias stands for the same original', async () => {
+  const { catalog } = await library()
+  const note = await catalog.create({ name: 'Note', kind: 'text' })
+  assert.equal(aliasName(catalog.get(), null, 'Note'), 'Note alias')
+  const alias = await catalog.create({ name: 'Note alias', kind: ALIAS_KIND, data: { original: note.id } })
+  assert.equal(aliasName(catalog.get(), null, 'Note'), 'Note alias 2')
+  await catalog.create({ name: 'Note alias 2', kind: ALIAS_KIND, data: { original: note.id } })
+  assert.equal(aliasName(catalog.get(), null, 'Note'), 'Note alias 3')
+  assert.equal(aliasName(catalog.get(), DISK, 'Note'), 'Note alias', 'per container')
+  const [copy] = await catalog.copy([alias.id], DISK)
+  assert.deepEqual([copy.kind, resolve(catalog.get(), copy.id).id], [ALIAS_KIND, note.id])
+})
+
+test('import: an alias follows its original to the original’s new id, and the System Folder’s items stay in it', async () => {
+  const archive = {
+    items: [
+      { id: 'n1', name: 'Note', kind: 'text', parent: null, createdAt: 1, modifiedAt: 1 },
+      { id: 'a1', name: 'Note alias', kind: ALIAS_KIND, parent: APPLE_MENU_ITEMS, createdAt: 2, modifiedAt: 2, data: { original: 'n1' } },
+      { id: 'a2', name: 'Lost alias', kind: ALIAS_KIND, parent: null, createdAt: 3, modifiedAt: 3, data: { original: 'gone' } },
+      { id: SYSTEM_FOLDER, name: '', kind: 'folder', parent: DISK, createdAt: 0, modifiedAt: 0, left: 16, top: 16 },
+    ],
+  }
+  const { catalog } = await library({ system: SYSTEM })
+  const stored = await catalog.import(archive)
+  const note = stored.get('n1')
+  assert.notEqual(note.id, 'n1')
+  assert.equal(originalOf(stored.get('a1')), note.id)
+  assert.equal(stored.get('a1').parent, APPLE_MENU_ITEMS)
+  assert.equal(originalOf(stored.get('a2')), 'gone', 'an original outside the archive keeps its id')
+  assert.ok(!stored.has(SYSTEM_FOLDER), 'a kept container’s record is not imported')
+  assert.deepEqual(names(appleMenuItemsOf(catalog.get())), ['Note alias'])
+  assert.equal(resolve(catalog.get(), stored.get('a1').id).id, note.id)
 })

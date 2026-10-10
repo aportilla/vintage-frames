@@ -69,7 +69,7 @@ const windowsOf = (s, app) =>
   })
 
   // Note Pad's way in from the system menu: a new document, active.
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   bar = await s.bar()
   check(
@@ -127,7 +127,7 @@ const windowsOf = (s, app) =>
   await page.mouse.click(docs.x, docs.y)
   await s.settle()
 
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   check(
     'SELECTION  the icon stays selected while another application is front',
@@ -171,7 +171,7 @@ const windowsOf = (s, app) =>
   const s = shellOn(page)
   const info = async () => (await s.window('Info'))?.hidden
   check('PALETTE  hidden while the Finder is front', (await info()) === true)
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   const shown = await s.window('Info')
   check('PALETTE  shown while its application is front', shown.hidden === false)
@@ -243,7 +243,7 @@ const windowsOf = (s, app) =>
   await page.keyboard.press('Escape')
 
   // Typed before the menu is opened: a press on a menu title takes the focus.
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   check('GATES  Note Pad’s Save is off with nothing to save', (await s.enabled('File', 'save')) === false)
   await page.keyboard.type('Hello')
@@ -256,7 +256,7 @@ const windowsOf = (s, app) =>
 {
   const page = await openShell(browser)
   const s = shellOn(page)
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   /** Make a dialog, hold it under `app` and open it. */
   const ask = (app, name) =>

@@ -539,6 +539,11 @@
           "values": []
         },
         {
+          "name": "alias",
+          "description": "The icon is an alias, an item standing for another: its name is set in\nitalics, the body face's own, and the plate widens to the slant's last\npixel.",
+          "values": []
+        },
+        {
           "name": "movable",
           "description": "Drag to move — `movable`, never `draggable`, which is a platform attribute\nand accessor (see the class doc). Arrow keys move a focused icon too, which\nmeans pairing this with selectable: focus is what that grants.",
           "values": []

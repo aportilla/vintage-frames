@@ -151,7 +151,7 @@ const layout = (page) =>
   check('ICON  the icon stays drawn open until the rects land, then is drawn closed', held && !(await s.iconState('Documents')).open)
 
   // An application's own window closes into the application's icon.
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await page.waitForFunction(() => {
     const win = [...document.querySelectorAll('vf-desktop > vf-window')].find((w) => w.heading === 'Untitled')
     return win && !win.matches(':state(opening)')
@@ -277,7 +277,7 @@ const layout = (page) =>
 {
   const page = await openShell(browser)
   const s = shellOn(page)
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   const home = await s.window('Untitled')
   /** Note Pad's zoomed box on the live window area: its full height, at the window's left and width. */
@@ -332,7 +332,7 @@ const layout = (page) =>
     await s.settle()
   }
 
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   await page.keyboard.type('Draft')
   let box = await closeBox(page, 'Untitled')
@@ -371,7 +371,7 @@ const layout = (page) =>
   check('CLOSE  Don’t Save closes it, and nothing is filed', (await s.window('Untitled')) === null && (await s.item('Untitled')) === null)
 
   // With its last window closed Note Pad is no longer front: the system menu, again.
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   await page.keyboard.type('Kept')
   await page.keyboard.press('Control+w')
@@ -399,7 +399,7 @@ const layout = (page) =>
     await page.mouse.click(at.x, at.y)
   }
   const docs = () => page.evaluate(() => window.shell.windows.windowsOf('note-pad').filter((w) => !window.shell.windows.isPalette(w)).length)
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   await s.pick('File', 'new')
   await s.settle()
@@ -479,7 +479,7 @@ const layout = (page) =>
   const s = shellOn(page)
   const errors = []
   page.on('pageerror', (err) => errors.push(err.message))
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   await page.keyboard.type('Draft')
   const box = await closeBox(page, 'Untitled')
@@ -499,7 +499,7 @@ const layout = (page) =>
 {
   const page = await openShell(browser)
   const s = shellOn(page)
-  await s.pick('Apple', 'note-pad')
+  await s.pick('Apple', 'Note Pad')
   await s.settle()
   let f = await focus(page)
   check('FOCUS  opening a window moves the focus into it', f.win === 'Untitled' && f.el === 'textarea', JSON.stringify(f))

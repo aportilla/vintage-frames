@@ -16,7 +16,10 @@ Face: 'VF Body', the body face — a re-drawn strike in Geneva 9pt's style, plus
 
 The '== font ==' table is the font-wide metadata. family is stamped
 into the binary's name records; woff2, module and strike are the build
-targets.
+targets. italic_woff2 and italic_module are the italic's, which the
+builder slants from these same glyphs: each row of ink shifted right,
+more the higher it sits in the strike's own font rectangle, rect_ascent
+rows over rect_descent (Geneva 9pt's 10 over 2), not the em box below.
 Fields are whole design px except: x_avg_char_width (font units) and
 unicode_ranges (the four OS/2 coverage bitfields) — both computed
 when the face was first built and restated here verbatim — and
@@ -51,11 +54,15 @@ family,VF Body
 woff2,VF-Body.woff2
 module,body-font.ts
 strike,body-strike.ts
+italic_woff2,VF-Body-Italic.woff2
+italic_module,body-italic-font.ts
 units_per_em,1024
 units_per_px,64
 em,16
 ascent,12
 descent,4
+rect_ascent,10
+rect_descent,2
 line_gap,0
 win_ascent,12
 win_descent,4

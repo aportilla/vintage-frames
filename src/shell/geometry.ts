@@ -467,6 +467,40 @@ export function nextFreeCell(grid: Lattice, taken: readonly Point[], cell = ICON
 }
 
 /**
+ * The free cell nearest `at`: square rings out from its rounded, clamped
+ * cell, as Clean Up searches, a cell free where no icon at `taken` overlaps
+ * it. Of two as near, the later in fill order. The next free cell when the
+ * rings find none.
+ */
+export function freeCellNear(grid: Lattice, at: Point, taken: readonly Point[], cell = ICON_CELL): Point {
+  const want = {
+    col: cellIndex((at.left - grid.left) / grid.dx, grid.cols),
+    row: cellIndex((at.top - grid.top) / grid.dy, grid.rows),
+  }
+  const free = (p: Point) => !taken.some((t) => Math.abs(t.left - p.left) < cell && Math.abs(t.top - p.top) < cell)
+  // An icon blocks at most four cells, so the free one is no further out than this.
+  const reach = Math.min(grid.cols, 2 * taken.length + 1) + Math.min(grid.rows, 2 * taken.length + 1)
+  for (let r = 0; r <= reach; r++) {
+    let found: Point | null = null
+    let nearest = Infinity
+    for (let col = want.col - r; col <= want.col + r; col++) {
+      for (let row = want.row - r; row <= want.row + r; row++) {
+        if (Math.max(Math.abs(col - want.col), Math.abs(row - want.row)) !== r) continue
+        if (col < 0 || row < 0 || col >= grid.cols || row >= grid.rows) continue
+        const p = latticeCell(grid, col, row)
+        const d = (p.left - at.left) ** 2 + (p.top - at.top) ** 2
+        if ((d < nearest || (d === nearest && fillOrder(grid, p, found!) > 0)) && free(p)) {
+          nearest = d
+          found = p
+        }
+      }
+    }
+    if (found) return found
+  }
+  return nextFreeCell(grid, taken, cell)
+}
+
+/**
  * A folder's field: at least its viewport, grown to hold every icon at
  * `positions` (their top-lefts) plus the inset past it. The field's size is
  * the window's scroll range.

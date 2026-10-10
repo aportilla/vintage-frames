@@ -1,9 +1,10 @@
 /**
  * shell.html's script: the shell over the page's desktop. The Finder shows a
- * catalog seeded from the page's markup; Note Pad is a small application with
- * documents of its own kind, an Info palette shown while it is front, a close
- * that asks about unsaved changes in an alert of its own, and a zoom box the
- * window manager runs.
+ * catalog seeded from the page's markup, with a System Folder whose Apple
+ * Menu Items holds Note Pad; Note Pad is a small application with documents
+ * of its own kind, an Info palette shown while it is front, a close that asks
+ * about unsaved changes in an alert of its own, and a zoom box the window
+ * manager runs.
  *
  * `?save=1` keeps the catalog in IndexedDB and the session in localStorage;
  * `?cleanup=1` turns on the Finder's Clean Up after a resize; `?open=` opens
@@ -203,9 +204,6 @@ function notePad(): AppDefinition<NotePadActions> {
       ctx.on(desktop, 'vf-activate', showInfo)
       showInfo()
 
-      // A desk accessory's way in: an item in the system menu.
-      ctx.systemItem(NOTE_PAD, 'Note Pad', () => newNote())
-
       ctx.onMenu((value) => {
         const win = front()
         if (value === 'new') newNote()
@@ -255,6 +253,7 @@ const shell = createShell(desktop, {
   apps: [
     finder({
       storage: keep ? indexedDbStorage('vf-shell-reference') : memoryStorage(),
+      system: { folder: 'System Folder', appleMenu: 'Apple Menu Items', startup: 'Startup Items' },
       seed: 'markup',
       art: {
         folder: `${ICONS}/folder.png`,

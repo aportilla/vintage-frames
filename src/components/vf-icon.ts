@@ -28,12 +28,18 @@ import {
 } from '../open-art.js'
 import type { DragOutlineBox } from '../open-art.js'
 import { sysLength } from '../scale.js'
+// An alias's name is set in the body face's italic, registered here: the one
+// element that sets it.
+import '../styles/body-italic-font.js'
 
 /** Which member of the icon family paints — the two System 7 resource sizes. */
 export type VfIconSize = 'large' | 'small'
 
 /** The cell each size reserves, in system px: an `ICN#` and an `ics#`. */
 const CELL: Record<VfIconSize, number> = { large: 32, small: 16 }
+
+/** The canvas context an alias's name is measured in, made on first use. */
+let leanContext: CanvasRenderingContext2D | null | undefined
 
 /** How far an arrow key moves a movable icon, in system px (Shift multiplies). */
 const NUDGE = 1
@@ -702,6 +708,14 @@ export class VfIcon extends VfPositioned(LitElement) {
         padding: 0 calc(var(--vf-scale, 1) * 1px);
         text-align: left;
       }
+      /* An alias's name, plate and rename field alike: the body face's own
+         italic, slanted on the pixel grid. Never a synthesized oblique, which
+         would smear it; until the italic loads the name stands upright. */
+      :host([alias]) .label,
+      :host([alias]) .rename {
+        font-style: italic;
+        font-synthesis: none;
+      }
       :host([selected]) .name {
         /* Forced colors: exempt the inverted plate from the mode's text
            backplate, which would land a Canvas slab on the highlight bar —
@@ -854,6 +868,13 @@ export class VfIcon extends VfPositioned(LitElement) {
    * Selection inverts the ghost exactly as it inverts the art.
    */
   @property({ type: Boolean, reflect: true }) open = false
+
+  /**
+   * The icon is an alias, an item standing for another: its name is set in
+   * italics, the body face's own, and the plate widens to the slant's last
+   * pixel.
+   */
+  @property({ type: Boolean, reflect: true }) alias = false
 
   /**
    * Drag to move — `movable`, never `draggable`, which is a platform attribute
@@ -1526,7 +1547,7 @@ export class VfIcon extends VfPositioned(LitElement) {
     // Anything that can change the run of glyphs re-measures. Not `width` or
     // `size`: the plate's width is the text's, in system px, which neither the
     // cell nor the display density moves.
-    if (changed.has('label') || changed.has('_draft') || changed.has('_editing')) {
+    if (changed.has('label') || changed.has('_draft') || changed.has('_editing') || changed.has('alias')) {
       this.#measurePlate()
     }
     // `size` swaps which slot (and so which art) the ghost derives from; the
@@ -1600,8 +1621,10 @@ export class VfIcon extends VfPositioned(LitElement) {
       textCss = range.getBoundingClientRect().width
       range.detach()
     }
-    // 2 = the plate's own 1px of padding either side.
-    const natural = textCss / effectiveScale(this) + 2
+    // 2 = the plate's own 1px of padding either side. An alias's italic leans
+    // the tops of its last letters past the run's end, and the plate covers
+    // them too.
+    const natural = textCss / effectiveScale(this) + 2 + (this.alias ? this.#lean(plate) : 0)
     const even = Math.max(2, Math.ceil(natural / 2) * 2)
     // The box hugs its text in BOTH states, which is what keeps the name from
     // moving when an edit commits: the plate is the same width either side of
@@ -1615,6 +1638,21 @@ export class VfIcon extends VfPositioned(LitElement) {
     // Settle the frame we were measured in. The template writes the same
     // string on any later render, so the two never disagree.
     plate.style.width = this.#plateWidthCss
+  }
+
+  /**
+   * How far an alias's italic name runs past its advance, in whole system px:
+   * the slant leans the tops of the last letters right, by up to 5. Read off
+   * the glyphs' ink, in a canvas set in the plate's own font.
+   */
+  #lean(plate: HTMLElement): number {
+    const text = plate.textContent ?? ''
+    leanContext ??= document.createElement('canvas').getContext('2d')
+    if (!text || !leanContext) return 0
+    const { fontStyle, fontWeight, fontSize, fontFamily } = getComputedStyle(plate)
+    leanContext.font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`
+    const run = leanContext.measureText(text)
+    return Math.max(0, Math.ceil((run.actualBoundingBoxRight - run.width) / effectiveScale(this)))
   }
 
   /** The measured width as the live `calc()` both writers use, or '' at 0. */

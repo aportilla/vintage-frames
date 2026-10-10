@@ -34,11 +34,18 @@ bytes, and a changed base64 always means a real edit.
 The build targets carry the kit's names (VF-Display.woff2 / VF-Body.woff2,
 matching the family the binary registers), never the classic faces' —
 Chicago's and Geneva's names appear nowhere in the kit's own artifacts.
+
+A manifest that names an italic (`italic_woff2`, `italic_module`) also gets
+its italic, built from the same glyphs: each row of ink shifted right, more
+the higher it sits in the strike's own font rectangle (`rect_ascent` over
+`rect_descent`) — see italic_shifts(). Same advances, same metrics; the
+build is as reproducible as the face's.
 """
 
 import base64
 import csv
 import io
+import math
 import os
 import re
 import sys
@@ -82,6 +89,43 @@ def bmp(bitmap, x0, y0, advance):
     return pen.glyph(), advance
 
 
+def italic_shifts(ascent, descent):
+    """How far the italic shifts each row of a glyph right, keyed by the
+    row's y (0 on the baseline, y up). Across the strike's font rectangle,
+    `ascent` rows over `descent`: the top row `height // 2` px, then one px
+    less every two rows down, the rectangle's bottom rows unshifted. For an
+    even height the top row steps alone, so Geneva 9pt's 12 rows shift
+    6, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0 from the top."""
+    n = ascent + descent
+    shift, shifts, i = n // 2, [], n
+    if n % 2 == 0:
+        shifts.append(shift)
+        shift -= 1
+    while True:
+        i -= 2
+        if i < 1:
+            break
+        shifts.append(shift)
+        shift -= 1
+        shifts.append(shift)
+    shifts.append(shift)
+    return {ascent - 1 - r: s for r, s in enumerate(shifts)}
+
+
+def slant(rows, x0, y0, shifts):
+    """A glyph's field italicized: each row shifted right by its y's shift.
+    -> (rows, x0). A row above the font rectangle, which only the kit's
+    backfill reaches, carries on one px a row past its top."""
+    top = max(shifts)
+    def shift(y):
+        return shifts[y] if y in shifts else shifts[top] + (y - top) if y > top else 0
+    height = len(rows)
+    by_row = [shift(y0 + height - 1 - k) for k in range(height)]
+    lo, hi = min(by_row, default=0), max(by_row, default=0)
+    out = ["." * (s - lo) + row + "." * (hi - s) for row, s in zip(rows, by_row)]
+    return out, x0 + lo
+
+
 METRIC_HEADER = "codepoint,char,glyph,advance,x0,y0,width,height"
 META_KEYS = (
     "family", "woff2", "module", "strike", "units_per_em", "units_per_px", "em",
@@ -89,6 +133,9 @@ META_KEYS = (
     "x_avg_char_width", "unicode_ranges", "created", "modified", "glyphs",
     "characters",
 )
+# A face's italic: its two targets and the strike's own font rectangle, all
+# four or none.
+ITALIC_KEYS = ("italic_woff2", "italic_module", "rect_ascent", "rect_descent")
 
 # The classic design each face re-draws, credited in its strike module.
 DESIGNS = {"VF Display": "Chicago 12pt", "VF Body": "Geneva 9pt"}
@@ -148,6 +195,9 @@ def parse(path):
     for key in META_KEYS:
         if key not in meta:
             fail(path, 1, f"'== font ==' table is missing {key}")
+    named = [key for key in ITALIC_KEYS if key in meta]
+    if named and len(named) != len(ITALIC_KEYS):
+        fail(path, 1, f"an italic names all of {', '.join(ITALIC_KEYS)}, not only {', '.join(named)}")
     if len(entries) != int(meta["characters"]):
         fail(path, 1, f"{len(entries)} entries but characters says {meta['characters']}")
     if len(entries) + 1 != int(meta["glyphs"]):
@@ -160,7 +210,7 @@ def build(path):
     meta, entries = parse(path)
     family = meta["family"]
     upm, em = int(meta["units_per_em"]), int(meta["em"])
-    asc, desc, gap = int(meta["ascent"]), int(meta["descent"]), int(meta["line_gap"])
+    asc, desc = int(meta["ascent"]), int(meta["descent"])
     assert int(meta["units_per_px"]) == PX, "units_per_px contradicts the pipeline's PX"
     if em * PX != upm or asc + desc != em:
         sys.exit(
@@ -168,13 +218,45 @@ def build(path):
             f"descent {desc} must equal em {em}, and em × {PX} must equal "
             f"units_per_em {upm}"
         )
+
+    data = compile_face(meta, entries)
+    changed = ship(meta["woff2"], data, f"{family}: {len(entries)} characters built from scratch")
+    embed_ts(meta["module"], data)
+    strike_changed = write_strike(path, meta, entries)
+    if "italic_woff2" not in meta:
+        return changed or strike_changed
+    shifts = italic_shifts(int(meta["rect_ascent"]), int(meta["rect_descent"]))
+    italic = compile_face(meta, entries, shifts)
+    italic_changed = ship(meta["italic_woff2"], italic, f"{family} Italic: the same characters, slanted")
+    embed_ts(meta["italic_module"], italic)
+    return changed or strike_changed or italic_changed
+
+
+def ship(target, data, what):
+    """Write a built face to fonts/; returns True if it changed."""
+    assert target.endswith(".woff2"), f"unexpected woff2 target {target}"
+    shipped = os.path.join(HERE, target)
+    changed = not (os.path.exists(shipped) and open(shipped, "rb").read() == data)
+    open(shipped, "wb").write(data)
+    print(f"{what} -> fonts/{target} ({len(data)} bytes) — {'updated' if changed else 'unchanged'}")
+    return changed
+
+
+def compile_face(meta, entries, italic=None):
+    """The face's woff2 — or, given `italic`'s row shifts, its italic."""
+    family = meta["family"]
+    upm = int(meta["units_per_em"])
+    asc, desc, gap = int(meta["ascent"]), int(meta["descent"]), int(meta["line_gap"])
     ranges = [int(v) for v in meta["unicode_ranges"].split()]
     assert len(ranges) == 4, "unicode_ranges wants the four OS/2 bitfields"
+    full = f"{family} Italic" if italic else family
 
     order, cmap = [".notdef"], {}
     glyphs = {".notdef": bmp([], 0, 0, 0)[0]}
     metrics = {".notdef": (0, 0)}
     for u, name, adv, x0, y0, rows in entries:
+        if italic:
+            rows, x0 = slant(rows, x0, y0, italic)
         glyph, advance = bmp(rows, x0 * PX, y0 * PX, adv * PX)
         order.append(name)
         glyphs[name] = glyph
@@ -206,20 +288,26 @@ def build(path):
         # recomputes them from the cmap unconditionally. (The pre-manifest
         # builds carried a stale pre-backfill usLastCharIndex because
         # add-glyphs.py never recompiled OS/2; this builder's is correct.)
-        fsSelection=0x40 | 0x80,  # REGULAR | USE_TYPO_METRICS
+        # REGULAR | USE_TYPO_METRICS, or ITALIC | USE_TYPO_METRICS.
+        fsSelection=(0x01 if italic else 0x40) | 0x80,
         achVendID="NONE",
     )
     fb.setupNameTable(
         {
             "familyName": family,
-            "styleName": "Regular",
-            "uniqueFontIdentifier": f"vintage-frames: {family}",
-            "fullName": family,
-            "psName": family.replace(" ", "-"),
+            "styleName": "Italic" if italic else "Regular",
+            "uniqueFontIdentifier": f"vintage-frames: {full}",
+            "fullName": full,
+            "psName": full.replace(" ", "-"),
             "version": "Version 1.000",
         }
     )
-    fb.setupPost()
+    if italic:
+        # The slant as an angle: a px across for every two rows up.
+        fb.setupPost(italicAngle=-math.degrees(math.atan(0.5)))
+        fb.font["head"].macStyle = 0x02
+    else:
+        fb.setupPost()
     fb.font["head"].created = int(meta["created"])
     fb.font["head"].modified = int(meta["modified"])
     fb.font.recalcTimestamp = False
@@ -233,29 +321,17 @@ def build(path):
     saved = TTFont(io.BytesIO(data))
     check = saved.getBestCmap()
     missing = [f"U+{u:04X}" for u, *_ in entries if u not in check]
-    assert not missing, f"{family}: glyphs missing after save: {missing}"
+    assert not missing, f"{full}: glyphs missing after save: {missing}"
     stale = sorted(
-        {r.toUnicode() for r in saved["name"].names if r.nameID in (1, 4, 16)} - {family}
+        {r.toUnicode() for r in saved["name"].names if r.nameID in (1, 4, 16)} - {family, full}
     )
-    assert not stale, f"{family}: name records still say {stale}"
-
-    assert meta["woff2"].endswith(".woff2"), f"unexpected woff2 target {meta['woff2']}"
-    shipped = os.path.join(HERE, meta["woff2"])
-    changed = not (os.path.exists(shipped) and open(shipped, "rb").read() == data)
-    open(shipped, "wb").write(data)
-    print(
-        f"{family}: {len(entries)} characters built from scratch -> "
-        f"fonts/{meta['woff2']} ({len(data)} bytes) — "
-        f"{'updated' if changed else 'unchanged'}"
-    )
-    embed_ts(meta, data)
-    strike_changed = write_strike(path, meta, entries)
-    return changed or strike_changed
+    assert not stale, f"{full}: name records still say {stale}"
+    return data
 
 
-def embed_ts(meta, data):
+def embed_ts(module, data):
     """Rewrite the TS module's embedded base64."""
-    ts = os.path.join(STYLES, meta["module"])
+    ts = os.path.join(STYLES, module)
     text = open(ts).read()
     b64 = base64.b64encode(data).decode()
     text, n = re.subn(
@@ -264,11 +340,11 @@ def embed_ts(meta, data):
         text,
         count=1,
     )
-    assert n == 1, f"{meta['module']}: FONT_WOFF2_BASE64 not found"
+    assert n == 1, f"{module}: FONT_WOFF2_BASE64 not found"
     text, n = re.subn(r"\(\d+ bytes\)", f"({len(data)} bytes)", text, count=1)
-    assert n == 1, f"{meta['module']}: byte-count comment not found"
+    assert n == 1, f"{module}: byte-count comment not found"
     open(ts, "w").write(text)
-    print(f"  re-embedded src/styles/{meta['module']}")
+    print(f"  re-embedded src/styles/{module}")
 
 
 def ts_string(s):

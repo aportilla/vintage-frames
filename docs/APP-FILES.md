@@ -103,6 +103,8 @@ The app API is what a built application can use of the kit while it runs. It has
 - `APP_API` goes up when something in the app API changes or goes away. An addition leaves it alone, so an application built on a newer kit runs on an older page at the same level, and fails only when it reaches something that page lacks. An application that wants older pages checks for something new before it uses it.
 - `APP_API_OLDEST` goes up when a change breaks applications built before it and the kit keeps no old behavior for them.
 
+Level 2 took away `ctx.systemItem` and `ctx.systemMenu`: an application in the Apple menu is one Apple Menu Items holds ([SHELL.md](./SHELL.md#the-system-folder)). An application built at level 1 runs again once it's built on a level 2 kit.
+
 `app-api.json`, at the repo's root, lists the app API by name and type, with both levels. `npm run analyze` writes it, and CI fails when it's stale, so a change to the app API shows in the commit that makes it. `npm version` compares it with the last release's before it bumps ([PUBLISHING.md](./PUBLISHING.md#the-release-routine)).
 
 ## The box
@@ -142,8 +144,8 @@ The build checks the first three.
 | `satisfies(version, range)` | Whether a version meets an exact version or a caret range. |
 | `compareVersions(a, b)` | Below zero, zero or above as `a` comes before, with or after `b`, in semver's order, so `versions.sort(compareVersions)` puts them oldest first. Anything that isn't a version comes first, so a sort never throws. |
 | `appRuns(manifest)` | Whether this kit runs the application: its `api` from `APP_API_OLDEST` to `APP_API`, or, without one, its `requires` met by `VERSION`. |
-| `APP_API` | The app API this kit provides: `1`. |
-| `APP_API_OLDEST` | The oldest app API this kit runs: `1`. |
+| `APP_API` | The app API this kit provides: `2`. |
+| `APP_API_OLDEST` | The oldest app API this kit runs: `2`. |
 | `VERSION` | The kit's version. |
 | `APP_FILE_FORMAT` | The format this kit reads and writes: `1`. |
 | `BOX_SCALE` | The scale every box is drawn at: `3`, each system px a 3 × 3 block of the picture's px. |

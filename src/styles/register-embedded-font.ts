@@ -15,7 +15,7 @@
  * imported, with no network round trip.
  */
 
-/** Families already registered (or in flight) this session — one attempt each. */
+/** Faces already registered (or in flight) this session, by family and style — one attempt each. */
 const attempted = new Set<string>()
 
 /**
@@ -63,26 +63,29 @@ export const PIXEL_GRID_METRICS: EmbeddedFontMetrics = {
 }
 
 /**
- * Register `family` from an inlined base64 WOFF2 exactly once per session.
+ * Register `family` from an inlined base64 WOFF2 exactly once per session —
+ * its `style` face, `normal` unless the WOFF2 is the family's italic.
  *
  * Idempotent and environment-safe: it no-ops under SSR (no `document`), when
- * the CSS Font Loading API is unavailable, or when the family is already
- * present (duplicate bundles / HMR). A failed decode releases the family so a
+ * the CSS Font Loading API is unavailable, or when the face is already
+ * present (duplicate bundles / HMR). A failed decode releases the face so a
  * later explicit call can retry, and on any failure components simply keep the
  * fallback stack — so this can never break rendering.
  */
 export function registerEmbeddedFont(
   family: string,
   woff2Base64: string,
-  metrics?: EmbeddedFontMetrics
+  metrics?: EmbeddedFontMetrics,
+  style: 'normal' | 'italic' = 'normal'
 ): void {
-  if (attempted.has(family)) return
+  const key = `${family} ${style}`
+  if (attempted.has(key)) return
 
   if (typeof document === 'undefined' || !('fonts' in document)) return
 
   for (const face of document.fonts) {
-    if (face.family === family) {
-      attempted.add(family)
+    if (face.family === family && face.style === style) {
+      attempted.add(key)
       return
     }
   }
@@ -90,14 +93,14 @@ export function registerEmbeddedFont(
   // Claim the slot only now — after the env guards and the already-present
   // check — so an SSR/no-op pass never burns it, and a failed load releases it
   // below for a retry.
-  attempted.add(family)
+  attempted.add(key)
   const src = `url(data:font/woff2;base64,${woff2Base64}) format('woff2')`
   try {
     // Declare a broad weight range so the single pixel master is used as-is for
     // both normal and bold requests (components render at 700) — this prevents
     // the browser from synthesizing faux-bold, which would smear the pixels.
     const face = new FontFace(family, src, {
-      style: 'normal',
+      style,
       weight: '100 900',
       display: 'swap',
       ...metrics,
@@ -114,10 +117,10 @@ export function registerEmbeddedFont(
       () => {}, // loaded in place — the face is already in the set
       () => {
         document.fonts.delete(face)
-        attempted.delete(family) // decode failed — allow retry; fall back meanwhile
+        attempted.delete(key) // decode failed — allow retry; fall back meanwhile
       },
     )
   } catch {
-    attempted.delete(family) // FontFace unsupported — components keep the fallback stack
+    attempted.delete(key) // FontFace unsupported — components keep the fallback stack
   }
 }

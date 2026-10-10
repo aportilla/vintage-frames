@@ -3909,6 +3909,20 @@
               }
             },
             {
+              "kind": "field",
+              "name": "#opened",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the modal has opened since its last close was funneled: true from\nan open until `#funnelClose` runs for the close that ends it, which can be\nafter the native `<dialog>` has closed, while its `close` event is queued.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
               "kind": "method",
               "name": "show",
               "return": {
@@ -4095,7 +4109,7 @@
                   "text": "void"
                 }
               },
-              "description": "Reconcile the native `<dialog>` with `open`. Opening states the origin —\nthe author's, or the centered one — onto the top-layer box; the UA's own\n`margin: auto` centering lands on a half pixel whenever viewport minus\ndialog is odd, which fringes all the 1-bit chrome inside. Closing just\ncalls `dialog.close()`, routing teardown through the native `close` event\nso _onNativeClose is the one place placement is cleared and\n`vf-close` is fired.",
+              "description": "Reconcile the native `<dialog>` with `open`. Opening states the origin —\nthe author's, or the centered one — onto the top-layer box; the UA's own\n`margin: auto` centering lands on a half pixel whenever viewport minus\ndialog is odd, which fringes all the 1-bit chrome inside. Closing just\ncalls `dialog.close()`, and the native `close` event runs the close funnel,\n`#funnelClose`, the one place placement is cleared and `vf-close` is\nfired.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -4152,7 +4166,7 @@
                   }
                 }
               ],
-              "description": "While open, watch everything that invalidates the placement: the dialog's\nown box changing (content upgrade/growth, and `--vf-scale` moving under a\nzoom or density change, since every metric resizes with it), the viewport\nresizing, and the scale itself — which the box alone would miss on a page\nthat pins `--vf-scale`, where a zoom moves the lattice without resizing\nanything. Undone in _onNativeClose / `disconnectedCallback`.",
+              "description": "While open, watch everything that invalidates the placement: the dialog's\nown box changing (content upgrade/growth, and `--vf-scale` moving under a\nzoom or density change, since every metric resizes with it), the viewport\nresizing, and the scale itself — which the box alone would miss on a page\nthat pins `--vf-scale`, where a zoom moves the lattice without resizing\nanything. Undone by the close funnel and `disconnectedCallback`.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -4196,7 +4210,22 @@
                   "text": "void"
                 }
               },
-              "description": "Native `close` — the single teardown funnel for every close path. Drops\nthe written origin so the next open re-derives it from the box it will\nactually have (a stated `top`/`left` is the author's or the user's and\nsurvives, and is re-applied by that open), syncs `open`, and fires\n`vf-close` with the reason and the value the close carried.",
+              "description": "Native `close`, which every close path ends in: syncs `open` and runs the\nclose funnel. An open that came before the event has run the funnel for\nthis close already, and the event passes.",
+              "inheritedFrom": {
+                "name": "VfModalDialog",
+                "module": "src/modal-dialog.ts"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#funnelClose",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The close funnel, the single teardown for every close path. Drops the\nwritten origin so the next open re-derives it from the box it will\nactually have (a stated `top`/`left` is the author's or the user's and\nsurvives, and is re-applied by that open), and fires `vf-close` with the\nreason and the value the close carried.",
               "inheritedFrom": {
                 "name": "VfModalDialog",
                 "module": "src/modal-dialog.ts"
@@ -24316,7 +24345,7 @@
         },
         {
           "kind": "class",
-          "description": "Base class for the modal shell `vf-dialog` — and for a consumer's own\nmodal (an alert box, say) authored against the kit.\n\nOwns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /\n`close()`, the top/left placement (stated or centered) and the\nsingle `close` funnel that drops the written origin and fires `vf-close` with\nthe reason. Because every close path — Escape, `close()`, the opt-in\nlightDismiss click outside — routes through the native `close`\nevent, an Escape-close no longer leaves a stale origin behind, so the next\nopen re-derives it.\n\nIt also owns the two keyboard rules every classic dialog followed (see\ndefaultButton and initialFocusTarget): Return or Enter\nactivates the default button from anywhere in the dialog, and the box opens\nwith the insertion point in its first text field — or, with none, focus on\nthe default button. A field marked `autoselect` takes the focus with its\ntext selected, on every open.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nA `<form method=\"dialog\">` inside the modal closes it with the submitting\nbutton's `value` as returnValue, as a form inside a native\n`<dialog>` does. The platform's own rule looks for a `<dialog>` around the\nform, and this one is in the shadow root, so the modal listens for the\nsubmit itself.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
+          "description": "Base class for the modal shell `vf-dialog` — and for a consumer's own\nmodal (an alert box, say) authored against the kit.\n\nOwns the native `<dialog>` lifecycle every modal shares: `open` sync, `show()` /\n`close()`, the top/left placement (stated or centered) and the\nsingle `close` funnel that drops the written origin and fires `vf-close` with\nthe reason. Because every close path — Escape, `close()`, the opt-in\nlightDismiss click outside — routes through the native `close`\nevent, an Escape-close no longer leaves a stale origin behind, so the next\nopen re-derives it. That event is queued: a modal opened again before it\ncomes (`close()` then `show()` in one turn) runs the funnel at the open, so\nthe close's `vf-close` still comes before the open's `vf-show`, and the\nlate event changes nothing.\n\nIt also owns the two keyboard rules every classic dialog followed (see\ndefaultButton and initialFocusTarget): Return or Enter\nactivates the default button from anywhere in the dialog, and the box opens\nwith the insertion point in its first text field — or, with none, focus on\nthe default button. A field marked `autoselect` takes the focus with its\ntext selected, on every open.\n\nRemoving an open modal from the DOM is a close path too. HTML's dialog\n*removing steps* take the element out of the top layer **without** running\nthe close algorithm — no `close` event, no focus restoration — which is\nexactly what the standard framework pattern of unmounting a dialog instead\nof calling `close()` does. `disconnectedCallback` routes that path through\nthe same funnel: the removed element still fires `vf-close` (heard by\nlisteners on the element itself — it has left the tree, so nothing\nbubbles), `open` and the pinned margins reconcile so a re-append mounts it\nclosed and re-centered, and focus returns to the element that was focused\nwhen the modal opened.\n\nA `<form method=\"dialog\">` inside the modal closes it with the submitting\nbutton's `value` as returnValue, as a form inside a native\n`<dialog>` does. The platform's own rule looks for a `<dialog>` around the\nform, and this one is in the shadow root, so the modal listens for the\nsubmit itself.\n\nSubclasses supply only the frame chrome: a `render()` returning\n`<dialog",
           "name": "VfModalDialog",
           "members": [
             {
@@ -24552,6 +24581,16 @@
               "description": "The element that was focused when the modal opened. The normal close path\nrestores focus natively, but the removal path (see the class doc) skips\nthe close algorithm, and by the time `disconnectedCallback` runs, focus\nhas already fallen to `<body>` — so we keep our own record."
             },
             {
+              "kind": "field",
+              "name": "#opened",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the modal has opened since its last close was funneled: true from\nan open until `#funnelClose` runs for the close that ends it, which can be\nafter the native `<dialog>` has closed, while its `close` event is queued."
+            },
+            {
               "kind": "method",
               "name": "show",
               "return": {
@@ -24702,7 +24741,7 @@
                   "text": "void"
                 }
               },
-              "description": "Reconcile the native `<dialog>` with `open`. Opening states the origin —\nthe author's, or the centered one — onto the top-layer box; the UA's own\n`margin: auto` centering lands on a half pixel whenever viewport minus\ndialog is odd, which fringes all the 1-bit chrome inside. Closing just\ncalls `dialog.close()`, routing teardown through the native `close` event\nso _onNativeClose is the one place placement is cleared and\n`vf-close` is fired."
+              "description": "Reconcile the native `<dialog>` with `open`. Opening states the origin —\nthe author's, or the centered one — onto the top-layer box; the UA's own\n`margin: auto` centering lands on a half pixel whenever viewport minus\ndialog is odd, which fringes all the 1-bit chrome inside. Closing just\ncalls `dialog.close()`, and the native `close` event runs the close funnel,\n`#funnelClose`, the one place placement is cleared and `vf-close` is\nfired."
             },
             {
               "kind": "field",
@@ -24743,7 +24782,7 @@
                   }
                 }
               ],
-              "description": "While open, watch everything that invalidates the placement: the dialog's\nown box changing (content upgrade/growth, and `--vf-scale` moving under a\nzoom or density change, since every metric resizes with it), the viewport\nresizing, and the scale itself — which the box alone would miss on a page\nthat pins `--vf-scale`, where a zoom moves the lattice without resizing\nanything. Undone in _onNativeClose / `disconnectedCallback`."
+              "description": "While open, watch everything that invalidates the placement: the dialog's\nown box changing (content upgrade/growth, and `--vf-scale` moving under a\nzoom or density change, since every metric resizes with it), the viewport\nresizing, and the scale itself — which the box alone would miss on a page\nthat pins `--vf-scale`, where a zoom moves the lattice without resizing\nanything. Undone by the close funnel and `disconnectedCallback`."
             },
             {
               "kind": "method",
@@ -24775,7 +24814,18 @@
                   "text": "void"
                 }
               },
-              "description": "Native `close` — the single teardown funnel for every close path. Drops\nthe written origin so the next open re-derives it from the box it will\nactually have (a stated `top`/`left` is the author's or the user's and\nsurvives, and is re-applied by that open), syncs `open`, and fires\n`vf-close` with the reason and the value the close carried."
+              "description": "Native `close`, which every close path ends in: syncs `open` and runs the\nclose funnel. An open that came before the event has run the funnel for\nthis close already, and the event passes."
+            },
+            {
+              "kind": "method",
+              "name": "#funnelClose",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "The close funnel, the single teardown for every close path. Drops the\nwritten origin so the next open re-derives it from the box it will\nactually have (a stated `top`/`left` is the author's or the user's and\nsurvives, and is re-applied by that open), and fires `vf-close` with the\nreason and the value the close carried."
             }
           ],
           "events": [

@@ -143,7 +143,10 @@ export const modalDialogStyles = css`
  * the reason. Because every close path — Escape, `close()`, the opt-in
  * {@link lightDismiss} click outside — routes through the native `close`
  * event, an Escape-close no longer leaves a stale origin behind, so the next
- * open re-derives it.
+ * open re-derives it. That event is queued: a modal opened again before it
+ * comes (`close()` then `show()` in one turn) runs the funnel at the open, so
+ * the close's `vf-close` still comes before the open's `vf-show`, and the
+ * late event changes nothing.
  *
  * It also owns the two keyboard rules every classic dialog followed (see
  * {@link defaultButton} and {@link initialFocusTarget}): Return or Enter
@@ -510,6 +513,13 @@ export class VfModalDialog extends LitElement {
    */
   #invoker: Element | null = null
 
+  /**
+   * Whether the modal has opened since its last close was funneled: true from
+   * an open until `#funnelClose` runs for the close that ends it, which can be
+   * after the native `<dialog>` has closed, while its `close` event is queued.
+   */
+  #opened = false
+
   /** Open the modal (native `showModal()`), pinned onto the device grid. */
   show(): void {
     this.open = true
@@ -631,14 +641,24 @@ export class VfModalDialog extends LitElement {
    * the author's, or the centered one — onto the top-layer box; the UA's own
    * `margin: auto` centering lands on a half pixel whenever viewport minus
    * dialog is odd, which fringes all the 1-bit chrome inside. Closing just
-   * calls `dialog.close()`, routing teardown through the native `close` event
-   * so {@link _onNativeClose} is the one place placement is cleared and
-   * `vf-close` is fired.
+   * calls `dialog.close()`, and the native `close` event runs the close funnel,
+   * `#funnelClose`, the one place placement is cleared and `vf-close` is
+   * fired.
    */
   #syncDialog(): void {
     const dialog = this._dialog
     if (!dialog) return
     if (this.open && !dialog.open) {
+      // Opened again before the last close's native `close` event came: funnel
+      // that close first, so its vf-close comes before this open's vf-show and
+      // the event, when it comes, finds the modal open and passes. Then start
+      // over, since a vf-close listener may have opened or closed it itself.
+      if (this.#opened) {
+        this.#funnelClose()
+        this.#syncDialog()
+        return
+      }
+      this.#opened = true
       this.#invoker = document.activeElement
       this.returnValue = ''
       dialog.showModal()
@@ -682,7 +702,7 @@ export class VfModalDialog extends LitElement {
    * zoom or density change, since every metric resizes with it), the viewport
    * resizing, and the scale itself — which the box alone would miss on a page
    * that pins `--vf-scale`, where a zoom moves the lattice without resizing
-   * anything. Undone in {@link _onNativeClose} / `disconnectedCallback`.
+   * anything. Undone by the close funnel and `disconnectedCallback`.
    */
   #watchGeometry(dialog: HTMLDialogElement): void {
     if (typeof ResizeObserver !== 'undefined' && !this.#resizeObserver) {
@@ -732,25 +752,36 @@ export class VfModalDialog extends LitElement {
   }
 
   /**
-   * Native `close` — the single teardown funnel for every close path. Drops
-   * the written origin so the next open re-derives it from the box it will
-   * actually have (a stated `top`/`left` is the author's or the user's and
-   * survives, and is re-applied by that open), syncs `open`, and fires
-   * `vf-close` with the reason and the value the close carried.
+   * Native `close`, which every close path ends in: syncs `open` and runs the
+   * close funnel. An open that came before the event has run the funnel for
+   * this close already, and the event passes.
    */
   protected _onNativeClose(): void {
+    if (!this.#opened || this._dialog?.open) return
+    this.open = false
+    this.#funnelClose()
+  }
+
+  /**
+   * The close funnel, the single teardown for every close path. Drops the
+   * written origin so the next open re-derives it from the box it will
+   * actually have (a stated `top`/`left` is the author's or the user's and
+   * survives, and is re-applied by that open), and fires `vf-close` with the
+   * reason and the value the close carried.
+   */
+  #funnelClose(): void {
     const reason = this.#closeReason ?? 'close'
     const returnValue = this.#closeValue
     const keys = this.#closeKeys
     this.#closeReason = null
     this.#closeValue = null
     this.#closeKeys = null
+    this.#opened = false
     if (returnValue !== null) this.returnValue = returnValue
     this.#invoker = null
     this.#outsidePress = null
     this.#openListeners.detach()
     this.#unwatchGeometry()
-    this.open = false
     this.#clearPlacement()
     emit<VfCloseDetail>(this, 'vf-close', { reason, returnValue, ...keys })
   }

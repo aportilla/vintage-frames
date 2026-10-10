@@ -44,6 +44,10 @@
  *    of another method don't close it; Enter in a field answers with the
  *    ringed button; Escape, `close()` and removal carry none; `close(value)`
  *    does; each open clears it.
+ *  - REOPEN: `show()` straight after `close()`, before that close's native
+ *    `close` event (it is queued) — the event used to close the dialog that
+ *    had just opened. The dialog stays open, and the close is announced once,
+ *    with its value, before the open's `vf-show`.
  *
  *   npm run dev            # in another shell (port 5173)
  *   npm run verify:dialog
@@ -660,6 +664,41 @@ async function keys(page, key) {
     return [...window.__closes]
   })
   check('answers: removal closes with none', removed.length === 1 && removed[0].returnValue === null, JSON.stringify(removed))
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   7. REOPEN — asked again before the last close's native `close` event came
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  const page = await build(`
+    <vf-dialog id="dlg" heading="Again" width="360" height="160">
+      <vf-text-field id="field" label="Name" value="x"></vf-text-field>
+    </vf-dialog>
+  `)
+  const r = await page.evaluate(async () => {
+    const dlg = document.getElementById('dlg')
+    const log = []
+    dlg.addEventListener('vf-show', () => log.push('show'))
+    dlg.addEventListener('vf-close', (e) => log.push(`close ${e.detail.reason} ${e.detail.returnValue}`))
+    dlg.show()
+    await dlg.updateComplete
+    const native = dlg.shadowRoot.querySelector('dialog')
+    const late = new Promise((resolve) => native.addEventListener('close', resolve, { once: true }))
+    dlg.close('first')
+    dlg.show()
+    const returnValue = dlg.returnValue
+    // The first close's native event, then whatever it set off.
+    await late
+    await dlg.updateComplete
+    return { open: dlg.open, nativeOpen: native.open, returnValue, log }
+  })
+  check('reopen: show() right after close() leaves the dialog open once that close\'s native event comes', r.open && r.nativeOpen, JSON.stringify(r))
+  check(
+    'reopen: …the close is announced once, with its value, before the open; the open starts with no answer',
+    r.log.join(' / ') === 'show / close close first / show' && r.returnValue === '',
+    `${r.log.join(' / ')}; returnValue ${JSON.stringify(r.returnValue)}`
+  )
   await page.close()
 }
 

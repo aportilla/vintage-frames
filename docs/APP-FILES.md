@@ -25,7 +25,7 @@ An application on the shell ships as one PNG, its app file. The picture is the a
 ```
 
 - `format` is the app file's own version. A reader refuses a format it doesn't know.
-- `version` is the application's version, as semver writes one: `0.1.0`, `1.0.0-rc.1`.
+- `version` is the application's version, exactly as semver writes one: `0.1.0`, `1.0.0-rc.1`. No `v`, and no leading zeros.
 - `requires` is the kit range the code was built against, a caret range.
 - A reader refuses a manifest whose `version` isn't a version, or whose `requires` isn't a version or a caret range, so every manifest it hands on can be put in order and checked against a kit.
 - `description` is optional: what the application is, in a sentence or two of plain text. The format sets no limit on its length, and the box doesn't show it. A reader from before `description` leaves it out and reads the rest.
@@ -126,7 +126,7 @@ The build checks the first three.
 | `readAppFile(bytes)` | The manifest and code, or `null` for any other PNG: a broken signature or CRC, a chunk missing or doubled, a format this kit doesn't read, a field missing or unreadable. |
 | `inspectAppFile(bytes)` | The manifest and code, or why the bytes aren't an app file, as the end of a sentence: "Meteors.png is not an app file: its code is missing". The wording is for people and can change in any release. |
 | `satisfies(version, range)` | Whether a version meets an exact version or a caret range. |
-| `compareVersions(a, b)` | Below zero, zero or above as `a` comes before, with or after `b`, in semver's order, so `versions.sort(compareVersions)` puts them oldest first. A string that isn't a version comes first. |
+| `compareVersions(a, b)` | Below zero, zero or above as `a` comes before, with or after `b`, in semver's order, so `versions.sort(compareVersions)` puts them oldest first. Anything that isn't a version comes first, so a sort never throws. |
 | `VERSION` | The kit's version. |
 | `APP_FILE_FORMAT` | The format this kit reads and writes: `1`. |
 | `BOX_SCALE` | The scale every box is drawn at: `3`, each system px a 3 × 3 block of the picture's px. |

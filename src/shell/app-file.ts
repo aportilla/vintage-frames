@@ -148,7 +148,7 @@ export function manifestOf(json: unknown): AppManifest | string {
     }
     if (typeof value !== 'string' || !value) return `its manifest has no ${field}`
     if (field === 'version' && !isVersion(value)) return `its version, ${value}, is not a version`
-    if (field === 'requires' && !rangeVersion(value)) return `its requires, ${value}, is not a range`
+    if (field === 'requires' && !isRange(value)) return `its requires, ${value}, is not a range`
     manifest[field] = value
   }
   return manifest as AppManifest
@@ -203,20 +203,36 @@ interface Semver {
   pre: string[]
 }
 
-const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z.-]+)?$/
+/** A version exactly as semver writes one: the pattern semver.org gives. */
+const SEMVER =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
 
-function parseSemver(text: string): Semver | null {
-  const m = SEMVER.exec(text.trim())
+/**
+ * `text` as a version, read for comparing: space around it and a leading `v`
+ * are let go. Null for anything else, a string or not.
+ */
+function parseSemver(text: unknown): Semver | null {
+  if (typeof text !== 'string') return null
+  const m = SEMVER.exec(text.trim().replace(/^v/, ''))
   return m ? { core: [Number(m[1]), Number(m[2]), Number(m[3])], pre: m[4] ? m[4].split('.') : [] } : null
 }
 
-/** Whether `text` is a version, as semver writes one: `0.1.0`, `1.0.0-rc.1`. */
+/**
+ * Whether `text` is a version exactly as semver writes one: `0.1.0`,
+ * `1.0.0-rc.1`, but not `v0.1.0`, ` 0.1.0` or `01.2.3`.
+ */
 export function isVersion(text: string): boolean {
-  return parseSemver(text) !== null
+  return SEMVER.test(text)
 }
 
-/** The version a range names: the range itself, or a caret range's floor. Null when it is neither. */
-function rangeVersion(range: string): Semver | null {
+/** Whether `text` is a version or a caret range, exactly as written: `0.17.0`, `^0.17.0`. */
+function isRange(text: string): boolean {
+  return isVersion(text.startsWith('^') ? text.slice(1) : text)
+}
+
+/** The version a range names, read for comparing: the range itself, or a caret range's floor. Null when it is neither. */
+function rangeVersion(range: unknown): Semver | null {
+  if (typeof range !== 'string') return null
   const text = range.trim()
   return parseSemver(text.startsWith('^') ? text.slice(1) : text)
 }
@@ -244,7 +260,8 @@ function compareSemver(a: Semver, b: Semver): number {
 /**
  * Below zero, zero or above as version `a` comes before, with or after `b`,
  * in semver's order: a release after its prereleases, build metadata
- * ignored. A string that isn't a version comes before every version.
+ * ignored. Anything that isn't a version, a string or not, comes before
+ * every version, so a sort never throws.
  */
 export function compareVersions(a: string, b: string): number {
   const x = parseSemver(a)
@@ -260,11 +277,10 @@ export function compareVersions(a: string, b: string): number {
  * false.
  */
 export function satisfies(version: string, range: string): boolean {
-  const caret = range.trim().startsWith('^')
   const v = parseSemver(version)
   const r = rangeVersion(range)
   if (!v || !r) return false
-  if (!caret) return compareSemver(v, r) === 0
+  if (!range.trim().startsWith('^')) return compareSemver(v, r) === 0
   if (v.pre.length && !(r.pre.length && v.core.every((n, i) => n === r.core[i]))) return false
   const [major, minor, patch] = r.core
   const below: Semver = { core: major ? [major + 1, 0, 0] : minor ? [0, minor + 1, 0] : [0, 0, patch + 1], pre: [] }

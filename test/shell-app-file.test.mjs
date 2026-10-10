@@ -1,9 +1,10 @@
 // App files: what the build entry writes (src/build/app-file.ts), the
 // shell's reader reads back (src/shell/app-file.ts), a description with it or
 // not; a PNG that isn't one reads as null, and `inspectAppFile` says why; a
-// version or range the reader can't compare is refused; `satisfies` checks a
-// version against a range and `compareVersions` puts versions in semver's
-// order; and the kit's VERSION is package.json's.
+// version or range not exactly as semver writes it is refused; `satisfies`
+// checks a version against a range and `compareVersions` puts versions in
+// semver's order, neither throwing on what isn't one; and the kit's VERSION
+// is package.json's.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -151,6 +152,9 @@ test('the reader refuses a version that isn\'t a version and a requires that isn
     [{ ...MANIFEST, requires: 'banana' }, 'its requires, banana, is not a range'],
     [{ ...MANIFEST, requires: '>=0.16.2' }, 'its requires, >=0.16.2, is not a range'],
     [{ ...MANIFEST, requires: '~0.16.2' }, 'its requires, ~0.16.2, is not a range'],
+    // Only as semver writes one: no v, no space around it, no leading zeros.
+    ...['v0.1.0', ' 0.1.0', '0.1.0 ', '01.2.3', '1.0.0-01'].map((version) => [{ ...MANIFEST, version }, `its version, ${version}, is not a version`]),
+    ...['^v0.16.2', ' ^0.16.2', '^0.016.2'].map((requires) => [{ ...MANIFEST, requires }, `its requires, ${requires}, is not a range`]),
   ]) {
     const file = await handMade(manifest)
     assert.equal(await inspectAppFile(file), reason)
@@ -162,14 +166,19 @@ test('the reader refuses a version that isn\'t a version and a requires that isn
   for (const requires of ['0.16.2', '^0.17.0-rc.1']) {
     assert.ok(await readAppFile(await handMade({ ...MANIFEST, requires })), requires)
   }
+  for (const version of ['0.0.0', '10.20.30', '1.0.0-0.3.7', '1.0.0-x-y.0a', '1.0.0+build.007']) {
+    assert.ok(await readAppFile(await handMade({ ...MANIFEST, version })), version)
+  }
 })
 
 test('appFile() refuses an app.version that isn\'t a version when the build starts, as it refuses a missing field', () => {
   const app = { id: 'meteors', name: 'Meteors', version: '0.1.0', author: 'Adam Portilla' }
   assert.doesNotThrow(() => appFile({ app, entry: 'src/index.ts', icon: 'icon.png' }))
-  assert.throws(() => appFile({ app: { ...app, version: '1.0' }, entry: 'src/index.ts', icon: 'icon.png' }), {
-    message: 'vintage-frames appFile(): app.version, 1.0, is not a version',
-  })
+  for (const version of ['1.0', 'v0.1.0']) {
+    assert.throws(() => appFile({ app: { ...app, version }, entry: 'src/index.ts', icon: 'icon.png' }), {
+      message: `vintage-frames appFile(): app.version, ${version}, is not a version`,
+    })
+  }
 })
 
 test('a description is written after the author and read back, and packApp carries it', async () => {
@@ -227,6 +236,8 @@ test('satisfies: exact versions, prereleases only against their own, anything el
   assert.ok(!satisfies('0.16.2', '>=0.16.2'))
   assert.ok(!satisfies('0.16.2', '~0.16.2'))
   assert.ok(!satisfies('banana', '^0.16.2'))
+  assert.ok(!satisfies(null, '^0.16.2'))
+  assert.ok(!satisfies('0.16.2', undefined))
 })
 
 test('compareVersions: semver\'s order, build metadata ignored, and anything that isn\'t a version first', () => {
@@ -242,6 +253,12 @@ test('compareVersions: semver\'s order, build metadata ignored, and anything tha
   assert.ok(compareVersions('banana', '0.0.0-0') < 0)
   assert.ok(compareVersions('0.0.0-0', '1.0') > 0)
   assert.equal(compareVersions('banana', '1.0'), 0)
+  assert.ok(compareVersions('01.0.0', '0.0.0-0') < 0, 'leading zeros: not a version')
+  // Read for comparing: space around a version and a leading v are let go.
+  assert.equal(compareVersions('v1.0.0', '1.0.0'), 0)
+  assert.equal(compareVersions(' 1.0.0 ', '1.0.0'), 0)
+  // What isn't a string sorts with what isn't a version, and no sort throws.
+  assert.deepEqual(['1.0.0', null, '0.9.0', 7, { version: '2.0.0' }].sort(compareVersions), [null, 7, { version: '2.0.0' }, '0.9.0', '1.0.0'])
 })
 
 test('VERSION is package.json\'s version', () => {

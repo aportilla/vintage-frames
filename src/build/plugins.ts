@@ -43,7 +43,7 @@ async function kitRange(root: string): Promise<string> {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
   const range: unknown = pkg.devDependencies?.['vintage-frames'] ?? pkg.dependencies?.['vintage-frames']
   if (typeof range !== 'string') throw new Error('package.json has no vintage-frames dev dependency')
-  if (!/^\^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(range)) {
+  if (!range.startsWith('^') || !isVersion(range.slice(1))) {
     throw new Error(`package.json's vintage-frames range is "${range}", and an app file requires a caret range: ^${VERSION}`)
   }
   return range

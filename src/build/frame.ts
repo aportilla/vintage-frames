@@ -8,13 +8,14 @@
  * moves its slots here.
  */
 
+import { BOX_SCALE } from '../shell/app-file.js'
 import { VF_BODY_STRIKE } from '../styles/body-strike.js'
 import { VF_DISPLAY_STRIKE } from '../styles/display-strike.js'
 import type { BoxFrame } from './box.js'
 import { FRAME_PNG } from './frame-picture.js'
 
-/** One system px of the frame, in its picture's px. */
-const S = 3
+/** One system px of the frame, in its picture's px: the format's rule. */
+const S = BOX_SCALE
 
 const line = { left: 16 * S, width: 128 * S, scale: S, ink: '#000000', align: 'center' } as const
 

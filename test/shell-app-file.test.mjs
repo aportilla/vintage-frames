@@ -1,14 +1,23 @@
 // App files: what the build entry writes (src/build/app-file.ts), the
-// shell's reader reads back (src/shell/app-file.ts); a PNG that isn't one
-// reads as null; `satisfies` checks a version against a range; and the kit's
-// VERSION is package.json's.
+// shell's reader reads back (src/shell/app-file.ts), a description with it or
+// not; a PNG that isn't one reads as null, and `inspectAppFile` says why; a
+// version or range the reader can't compare is refused; `satisfies` checks a
+// version against a range and `compareVersions` puts versions in semver's
+// order; and the kit's VERSION is package.json's.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import zlib from 'node:zlib'
 
-import { APP_FILE_FORMAT, VERSION, readAppFile, satisfies } from '../scripts/.tmp/unit/shell/pure.js'
-import { packApp, writeAppFile } from '../scripts/.tmp/unit/build/index.js'
+import {
+  APP_FILE_FORMAT,
+  VERSION,
+  compareVersions,
+  inspectAppFile,
+  readAppFile,
+  satisfies,
+} from '../scripts/.tmp/unit/shell/pure.js'
+import { appFile, packApp, writeAppFile } from '../scripts/.tmp/unit/build/index.js'
 import { encodePng } from '../scripts/.tmp/unit/build/png.js'
 
 /** A PNG's chunks, each with where it sits in the file and its bytes there. */
@@ -51,6 +60,19 @@ const CODE = "import { defineApp } from 'vintage-frames/shell'\nexport default (
 async function box() {
   const plain = chunksOf(await encodePng(pixels(6, 4, (x, y) => [x * 40, y * 60, 9, 255])))
   return assemble([plain[0], chunk('tEXt', Buffer.from('Comment\0a box')), ...plain.slice(1)])
+}
+
+/** An app file made by hand, so the reader meets manifests no writer would write. */
+async function handMade(manifest) {
+  const chunks = chunksOf(await box())
+  const app = [itxt('vintage-frames.app', JSON.stringify(manifest), false), itxt('vintage-frames.code', CODE, true)]
+  return assemble([...chunks.slice(0, -1), ...app, chunks.at(-1)])
+}
+
+/** The manifest's JSON as the file holds it, past its iTXt chunk's keyword and header. */
+function manifestText(file) {
+  const { raw } = chunksOf(file).find((c) => c.keyword === 'vintage-frames.app')
+  return raw.toString('utf8', 8 + 'vintage-frames.app'.length + 5, raw.length - 4)
 }
 
 test('a written app file reads back its manifest and code, and its other chunks are the box\'s', async () => {
@@ -101,13 +123,77 @@ test('a PNG without app chunks, a broken CRC, a missing chunk, two of one or an 
   const doubled = assemble(chunks.flatMap((c) => (c.keyword === 'vintage-frames.code' ? [c, c] : [c])))
   assert.equal(await readAppFile(doubled), null)
 
-  const iend = chunks.at(-1)
-  const rest = chunks.filter((c) => !c.keyword?.startsWith('vintage-frames.')).slice(0, -1)
-  const withManifest = (manifest) =>
-    assemble([...rest, itxt('vintage-frames.app', JSON.stringify(manifest), false), itxt('vintage-frames.code', CODE, true), iend])
-  assert.ok(await readAppFile(withManifest(MANIFEST)), 'the hand-made file reads')
-  assert.equal(await readAppFile(withManifest({ ...MANIFEST, format: 2 })), null)
-  assert.equal(await readAppFile(withManifest({ ...MANIFEST, requires: undefined })), null)
+  assert.ok(await readAppFile(await handMade(MANIFEST)), 'the hand-made file reads')
+  assert.equal(await readAppFile(await handMade({ ...MANIFEST, format: 2 })), null)
+  assert.equal(await readAppFile(await handMade({ ...MANIFEST, requires: undefined })), null)
+})
+
+test('inspectAppFile says why a file isn\'t an app file, where readAppFile reads null', async () => {
+  const plain = await box()
+  const file = await writeAppFile(plain, MANIFEST, CODE)
+  const broken = Uint8Array.from(file)
+  broken[chunksOf(file).find((c) => c.keyword === 'vintage-frames.code').at + 40] ^= 0xff
+  const codeless = assemble(chunksOf(file).filter((c) => c.keyword !== 'vintage-frames.code'))
+  for (const [bytes, reason] of [
+    [plain, 'it carries no application'],
+    [broken, 'it is not a whole PNG'],
+    [codeless, 'its code is missing'],
+  ]) {
+    assert.equal(await inspectAppFile(bytes), reason)
+    assert.equal(await readAppFile(bytes), null)
+  }
+  assert.deepEqual(await inspectAppFile(file), { manifest: MANIFEST, code: CODE })
+})
+
+test('the reader refuses a version that isn\'t a version and a requires that isn\'t a version or a caret range, saying which', async () => {
+  for (const [manifest, reason] of [
+    [{ ...MANIFEST, version: '1.0' }, 'its version, 1.0, is not a version'],
+    [{ ...MANIFEST, requires: 'banana' }, 'its requires, banana, is not a range'],
+    [{ ...MANIFEST, requires: '>=0.16.2' }, 'its requires, >=0.16.2, is not a range'],
+    [{ ...MANIFEST, requires: '~0.16.2' }, 'its requires, ~0.16.2, is not a range'],
+  ]) {
+    const file = await handMade(manifest)
+    assert.equal(await inspectAppFile(file), reason)
+    assert.equal(await readAppFile(file), null)
+    await assert.rejects(writeAppFile(await box(), manifest, CODE), {
+      message: `vintage-frames/build: the manifest won't read back: ${reason}`,
+    })
+  }
+  for (const requires of ['0.16.2', '^0.17.0-rc.1']) {
+    assert.ok(await readAppFile(await handMade({ ...MANIFEST, requires })), requires)
+  }
+})
+
+test('appFile() refuses an app.version that isn\'t a version when the build starts, as it refuses a missing field', () => {
+  const app = { id: 'meteors', name: 'Meteors', version: '0.1.0', author: 'Adam Portilla' }
+  assert.doesNotThrow(() => appFile({ app, entry: 'src/index.ts', icon: 'icon.png' }))
+  assert.throws(() => appFile({ app: { ...app, version: '1.0' }, entry: 'src/index.ts', icon: 'icon.png' }), {
+    message: 'vintage-frames appFile(): app.version, 1.0, is not a version',
+  })
+})
+
+test('a description is written after the author and read back, and packApp carries it', async () => {
+  const described = { ...MANIFEST, description: 'An Asteroids-style game on a 320 × 240 1-bit screen.' }
+  const file = await writeAppFile(await box(), described, CODE)
+  assert.deepEqual(await readAppFile(file), { manifest: described, code: CODE })
+  assert.deepEqual(Object.keys(JSON.parse(manifestText(file))), ['format', 'id', 'name', 'version', 'requires', 'author', 'description', 'icon'])
+  const { format, icon, ...fields } = described
+  const packed = await packApp({ manifest: fields, icon: ICON, code: CODE })
+  assert.equal((await readAppFile(packed)).manifest.description, described.description)
+})
+
+test('a manifest without a description, or with an empty one, has none; one that isn\'t text is refused', async () => {
+  for (const description of [undefined, '', '  ']) {
+    const written = await readAppFile(await writeAppFile(await box(), { ...MANIFEST, description }, CODE))
+    assert.deepEqual(written.manifest, MANIFEST, `written: ${JSON.stringify(description)}`)
+    if (description === undefined) continue
+    const handWritten = await readAppFile(await handMade({ ...MANIFEST, description }))
+    assert.deepEqual(handWritten.manifest, MANIFEST, `hand-made: ${JSON.stringify(description)}`)
+  }
+  for (const description of [42, null, ['a description']]) {
+    assert.equal(await inspectAppFile(await handMade({ ...MANIFEST, description })), 'its description is not text')
+    await assert.rejects(writeAppFile(await box(), { ...MANIFEST, description }, CODE), /its description is not text/)
+  }
 })
 
 test('the writer refuses a manifest it couldn\'t read back', async () => {
@@ -141,6 +227,21 @@ test('satisfies: exact versions, prereleases only against their own, anything el
   assert.ok(!satisfies('0.16.2', '>=0.16.2'))
   assert.ok(!satisfies('0.16.2', '~0.16.2'))
   assert.ok(!satisfies('banana', '^0.16.2'))
+})
+
+test('compareVersions: semver\'s order, build metadata ignored, and anything that isn\'t a version first', () => {
+  // semver.org's own example of precedence, sorted from the wrong end.
+  const ordered = ['1.0.0-alpha', '1.0.0-alpha.1', '1.0.0-alpha.beta', '1.0.0-beta', '1.0.0-beta.2', '1.0.0-beta.11', '1.0.0-rc.1', '1.0.0']
+  assert.deepEqual([...ordered].reverse().sort(compareVersions), ordered)
+  assert.ok(compareVersions('0.10.0', '0.9.0') > 0)
+  assert.ok(compareVersions('0.9.0', '0.10.0') < 0)
+  assert.ok(compareVersions('1.0.0-rc.2', '1.0.0-rc.10') < 0, 'numeric identifiers by value')
+  assert.ok(compareVersions('1.0.0-1', '1.0.0-alpha') < 0, 'numeric identifiers before alphanumeric ones')
+  assert.equal(compareVersions('0.17.0', '0.17.0'), 0)
+  assert.equal(compareVersions('1.0.0+build.1', '1.0.0+build.2'), 0)
+  assert.ok(compareVersions('banana', '0.0.0-0') < 0)
+  assert.ok(compareVersions('0.0.0-0', '1.0') > 0)
+  assert.equal(compareVersions('banana', '1.0'), 0)
 })
 
 test('VERSION is package.json\'s version', () => {

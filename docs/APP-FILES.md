@@ -19,12 +19,16 @@ An application on the shell ships as one PNG, its app file. The picture is the a
   "version": "0.1.0",
   "requires": "^0.16.2",
   "author": "Adam Portilla",
+  "description": "An Asteroids-style game on a 320 × 240 1-bit screen.",
   "icon": "data:image/png;base64,iVBORw0KGgo…"
 }
 ```
 
 - `format` is the app file's own version. A reader refuses a format it doesn't know.
+- `version` is the application's version, as semver writes one: `0.1.0`, `1.0.0-rc.1`.
 - `requires` is the kit range the code was built against, a caret range.
+- A reader refuses a manifest whose `version` isn't a version, or whose `requires` isn't a version or a caret range, so every manifest it hands on can be put in order and checked against a kit.
+- `description` is optional: what the application is, in a sentence or two of plain text. The format sets no limit on its length, and the box doesn't show it. A reader from before `description` leaves it out and reads the rest.
 - `icon` is the 32 × 32 icon, its PNG as a `data:` URL, so a desktop can show the icon without running the code.
 - The code's default export is the application's factory. It imports `vintage-frames`, `vintage-frames/shell` and `vintage-frames/shell/pure` by name, and the page's own copy of the kit serves them.
 
@@ -47,7 +51,7 @@ export default defineConfig({
 
 | Option | |
 | --- | --- |
-| `app` | `{ id, name, version, author }`, for the manifest and the box. |
+| `app` | `{ id, name, version, author, description }`, for the manifest and the box. `version` is a version, such as `0.1.0`: the build refuses any other when it starts. `description` is optional. |
 | `entry` | The module whose default export is the application's factory. |
 | `icon` | The 32 × 32 icon, a PNG. |
 | `artwork` | The box's artwork, a PNG (§ The box). Optional. |
@@ -96,6 +100,7 @@ The box is the kit's frame with the application's artwork and text set into it. 
 - Text is set in the kit's faces, a glyph at a time. A line too long for its space ends in an ellipsis. A character the face lacks fails the build, naming it.
 - Art can be 8-bit gray, RGB, gray with alpha or RGBA, or indexed or gray at 1, 2, 4 or 8 bits, non-interlaced. 16-bit and interlaced files fail the build, naming what to save them as.
 - The box can be in color.
+- Every box is drawn at 3×, `BOX_SCALE`: a system px of the frame is a 3 × 3 block of the picture's px, in every format 1 file. A desktop that shows a box on its grid draws each block as one system px: at a scale that's a multiple of 3 that's the file's own pixels, and at any other each block averages to one.
 
 ## The rules an application keeps
 
@@ -118,7 +123,10 @@ The build checks the first three.
 
 | `vintage-frames/shell/pure` | |
 | --- | --- |
-| `readAppFile(bytes)` | The manifest and code, or `null` for any other PNG: a broken signature or CRC, a chunk missing or doubled, a format this kit doesn't read. |
+| `readAppFile(bytes)` | The manifest and code, or `null` for any other PNG: a broken signature or CRC, a chunk missing or doubled, a format this kit doesn't read, a field missing or unreadable. |
+| `inspectAppFile(bytes)` | The manifest and code, or why the bytes aren't an app file, as the end of a sentence: "Meteors.png is not an app file: its code is missing". The wording is for people and can change in any release. |
 | `satisfies(version, range)` | Whether a version meets an exact version or a caret range. |
+| `compareVersions(a, b)` | Below zero, zero or above as `a` comes before, with or after `b`, in semver's order, so `versions.sort(compareVersions)` puts them oldest first. A string that isn't a version comes first. |
 | `VERSION` | The kit's version. |
 | `APP_FILE_FORMAT` | The format this kit reads and writes: `1`. |
+| `BOX_SCALE` | The scale every box is drawn at: `3`, each system px a 3 × 3 block of the picture's px. |

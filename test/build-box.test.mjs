@@ -3,7 +3,7 @@
 // the strike puts it, at the slot's scale and in its ink, shortened with an
 // ellipsis when it doesn't fit; artwork at the slot's size or a whole
 // fraction of it, the icon stamped without any; and the frame's own pixels
-// everywhere else. Then the kit's own frame.
+// everywhere else. Then the kit's own frame, drawn at BOX_SCALE.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -11,6 +11,7 @@ import { drawBox } from '../scripts/.tmp/unit/build/box.js'
 import { FRAME } from '../scripts/.tmp/unit/build/frame.js'
 import { decodePng, encodePng } from '../scripts/.tmp/unit/build/png.js'
 import { composeBox } from '../scripts/.tmp/unit/build/index.js'
+import { BOX_SCALE } from '../scripts/.tmp/unit/shell/pure.js'
 
 const STRIKE = {
   family: 'Test',
@@ -141,4 +142,16 @@ test('the kit\'s frame: its picture reads, its slots lie inside it, and a box co
   )
   assert.equal(box.width, width)
   assert.equal(box.height, height)
+})
+
+test('the kit\'s frame is drawn at BOX_SCALE: its picture and every slot are whole system px, and its text is set at that scale', async () => {
+  const { width, height } = await decodePng(FRAME.picture)
+  const whole = (...ns) => ns.every((n) => n % BOX_SCALE === 0)
+  assert.ok(whole(width, height), `the picture, ${width} × ${height}`)
+  const { left, top, width: w, height: h } = FRAME.artwork
+  assert.ok(whole(left, top, w, h), 'the artwork slot')
+  for (const line of FRAME.text) {
+    assert.ok(whole(line.left, line.top, line.width), line.text)
+    assert.equal(line.scale, BOX_SCALE, line.text)
+  }
 })

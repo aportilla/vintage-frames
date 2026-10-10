@@ -6,7 +6,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import type { Plugin } from 'vite'
-import { inspectAppFile, satisfies } from '../shell/app-file.js'
+import { inspectAppFile, isVersion, satisfies } from '../shell/app-file.js'
 import { VERSION } from '../shell/version.js'
 import { packApp } from './app-file.js'
 
@@ -17,8 +17,8 @@ const KIT_ENTRIES = ['vintage-frames', 'vintage-frames/shell', 'vintage-frames/s
 const CODE_QUERY = 'app-code'
 
 export interface AppFileOptions {
-  /** The application's id, name, version and author: its `app.ts`. */
-  app: { id: string; name: string; version: string; author: string }
+  /** The application's id, name, version and author, and its description if it has one: its `app.ts`. */
+  app: { id: string; name: string; version: string; author: string; description?: string }
   /** The module whose default export is the application's factory. */
   entry: string
   /** Its 32 × 32 icon, a PNG. */
@@ -62,6 +62,7 @@ export function appFile(options: AppFileOptions): Plugin {
   for (const field of ['id', 'name', 'version', 'author'] as const) {
     if (typeof app?.[field] !== 'string' || !app[field]) throw new Error(`vintage-frames appFile(): app.${field} is missing`)
   }
+  if (!isVersion(app.version)) throw new Error(`vintage-frames appFile(): app.version, ${app.version}, is not a version`)
   if (!entry || !icon) throw new Error(`vintage-frames appFile(): ${entry ? 'icon' : 'entry'} is missing`)
   const fileName = `${app.name.replace(/[\\/:*?"<>|]/g, '-')}.png`
   let root = ''
@@ -116,7 +117,14 @@ export function appFile(options: AppFileOptions): Plugin {
             throw new Error(`package.json requires vintage-frames ${requires}, and the build is on ${VERSION}: move the range`)
           }
           packed = await packApp({
-            manifest: { id: app.id, name: app.name, version: app.version, requires, author: app.author },
+            manifest: {
+              id: app.id,
+              name: app.name,
+              version: app.version,
+              requires,
+              author: app.author,
+              description: app.description,
+            },
             icon: new Uint8Array(await readFile(resolve(root, icon))),
             code: chunk.code,
             artwork: artwork ? new Uint8Array(await readFile(resolve(root, artwork))) : undefined,

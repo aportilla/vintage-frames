@@ -4,7 +4,8 @@
  * JSON, and its code, one ES module compressed with zlib. Any PNG tool reads
  * the chunks and any decoder skips them.
  *
- * This is the reading half, and checking a version against a range. It is
+ * This is the reading half: the reader, checking a version against a range,
+ * putting versions in order, and the scale every box is drawn at. It is
  * pure and runs the same under Node and in a page, through the platform's
  * compression streams. Writing an app file, and the box, are
  * `vintage-frames/build`'s.
@@ -12,6 +13,12 @@
 
 /** The app file format this kit reads and writes. */
 export const APP_FILE_FORMAT = 1
+
+/**
+ * One system px of an app file's box, in its picture's px: every box of
+ * this format is drawn at 3×, each system px a 3 × 3 block.
+ */
+export const BOX_SCALE = 3
 
 /** The iTXt keywords of the manifest's chunk and the code's. */
 export const MANIFEST_KEYWORD = 'vintage-frames.app'
@@ -27,6 +34,8 @@ export interface AppManifest {
   /** The kit range the code was built and checked against: `^0.17.0`. */
   requires: string
   author: string
+  /** What the application is, in a sentence or two of plain text. */
+  description?: string
   /** Its 32 × 32 icon: its PNG as a `data:` URL. */
   icon: string
 }
@@ -38,8 +47,8 @@ export interface AppFile {
   code: string
 }
 
-/** The fields a manifest holds, in the order a written one lists them. */
-const FIELDS = ['id', 'name', 'version', 'requires', 'author', 'icon'] as const
+/** The fields a manifest holds, in the order a written one lists them. All but `description` are required. */
+const FIELDS = ['id', 'name', 'version', 'requires', 'author', 'description', 'icon'] as const
 
 /** The eight bytes every PNG starts with. */
 export const PNG_SIGNATURE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10)
@@ -129,19 +138,28 @@ export function manifestOf(json: unknown): AppManifest | string {
       ? `it is format ${m.format}, and this kit reads format ${APP_FILE_FORMAT}`
       : 'its manifest has no format'
   }
-  const manifest: AppManifest = { format: APP_FILE_FORMAT, id: '', name: '', version: '', requires: '', author: '', icon: '' }
+  const manifest: Partial<AppManifest> = { format: APP_FILE_FORMAT }
   for (const field of FIELDS) {
     const value = m[field]
+    if (field === 'description') {
+      if (value !== undefined && typeof value !== 'string') return 'its description is not text'
+      if (typeof value === 'string' && value.trim()) manifest.description = value
+      continue
+    }
     if (typeof value !== 'string' || !value) return `its manifest has no ${field}`
+    if (field === 'version' && !isVersion(value)) return `its version, ${value}, is not a version`
+    if (field === 'requires' && !rangeVersion(value)) return `its requires, ${value}, is not a range`
     manifest[field] = value
   }
-  return manifest
+  return manifest as AppManifest
 }
 
 /**
  * The manifest and code an app file carries, or why it isn't one: not a
  * whole PNG, a chunk missing or doubled, a format this kit doesn't read, a
- * field missing, or code that doesn't inflate.
+ * field missing or unreadable, or code that doesn't inflate. The reason ends
+ * a sentence such as "Meteors.png is not an app file: …", and is for people:
+ * its wording can change in any release, so match on nothing in it.
  */
 export async function inspectAppFile(bytes: Uint8Array): Promise<AppFile | string> {
   const chunks = pngChunks(bytes)
@@ -192,6 +210,17 @@ function parseSemver(text: string): Semver | null {
   return m ? { core: [Number(m[1]), Number(m[2]), Number(m[3])], pre: m[4] ? m[4].split('.') : [] } : null
 }
 
+/** Whether `text` is a version, as semver writes one: `0.1.0`, `1.0.0-rc.1`. */
+export function isVersion(text: string): boolean {
+  return parseSemver(text) !== null
+}
+
+/** The version a range names: the range itself, or a caret range's floor. Null when it is neither. */
+function rangeVersion(range: string): Semver | null {
+  const text = range.trim()
+  return parseSemver(text.startsWith('^') ? text.slice(1) : text)
+}
+
 /** Below zero, zero or above as `a` comes before, with or after `b`. */
 function compareSemver(a: Semver, b: Semver): number {
   for (let i = 0; i < 3; i++) if (a.core[i] !== b.core[i]) return a.core[i]! - b.core[i]!
@@ -213,6 +242,17 @@ function compareSemver(a: Semver, b: Semver): number {
 }
 
 /**
+ * Below zero, zero or above as version `a` comes before, with or after `b`,
+ * in semver's order: a release after its prereleases, build metadata
+ * ignored. A string that isn't a version comes before every version.
+ */
+export function compareVersions(a: string, b: string): number {
+  const x = parseSemver(a)
+  const y = parseSemver(b)
+  return x && y ? compareSemver(x, y) : (x ? 1 : 0) - (y ? 1 : 0)
+}
+
+/**
  * Whether `version` meets `range`: an exact version, or a caret range as
  * npm reads it. `^1.2.3` takes 1.x from 1.2.3 on, `^0.2.3` takes 0.2.x from
  * 0.2.3 on, and `^0.0.3` takes 0.0.3 alone. A prerelease meets a range only
@@ -222,7 +262,7 @@ function compareSemver(a: Semver, b: Semver): number {
 export function satisfies(version: string, range: string): boolean {
   const caret = range.trim().startsWith('^')
   const v = parseSemver(version)
-  const r = parseSemver(caret ? range.trim().slice(1) : range)
+  const r = rangeVersion(range)
   if (!v || !r) return false
   if (!caret) return compareSemver(v, r) === 0
   if (v.pre.length && !(r.pre.length && v.core.every((n, i) => n === r.core[i]))) return false

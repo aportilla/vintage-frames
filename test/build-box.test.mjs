@@ -3,7 +3,8 @@
 // the strike puts it, at the slot's scale and in its ink, shortened with an
 // ellipsis when it doesn't fit; artwork at the slot's size or a whole
 // fraction of it, the icon stamped without any; and the frame's own pixels
-// everywhere else. Then the kit's own frame, drawn at BOX_SCALE.
+// everywhere else. Then the kit's own frame, drawn at BOX_SCALE, and a box
+// in it without artwork, on its grid.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -154,4 +155,22 @@ test('the kit\'s frame is drawn at BOX_SCALE: its picture and every slot are who
     assert.ok(whole(line.left, line.top, line.width), line.text)
     assert.equal(line.scale, BOX_SCALE, line.text)
   }
+})
+
+test('a box without artwork is on the grid: every block of BOX_SCALE × BOX_SCALE px is one color, the stamped icon\'s too', async () => {
+  const { width, height, data } = await decodePng(
+    await composeBox({
+      manifest: { ...MANIFEST, name: 'Meteors', version: '0.1.0', author: 'Adam Portilla' },
+      icon: await icon(),
+    })
+  )
+  const off = []
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4
+      const corner = ((y - (y % BOX_SCALE)) * width + x - (x % BOX_SCALE)) * 4
+      if ([0, 1, 2, 3].some((c) => data[i + c] !== data[corner + c])) off.push(`${x},${y}`)
+    }
+  }
+  assert.deepEqual(off.slice(0, 5), [], `${off.length} px differ from their block's top-left`)
 })

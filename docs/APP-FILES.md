@@ -96,7 +96,7 @@ For the import's types, add `vintage-frames/build/client` to tsconfig.json besid
 The box is the kit's frame with the application's artwork and text set into it. The frame is a placeholder for now: a white card drawn at 3×, 480 × 615 px, with a 384 × 384 artwork area, then the application's name in the display face and its version and author in the body face.
 
 - Artwork is a PNG at the artwork area's size, or that divided by a whole number (192 × 192, 128 × 128, 96 × 96 …), magnified by that number so pixel art stays crisp. Any other size fails the build. Transparent pixels show the frame.
-- Without artwork, the icon is stamped 8× in the middle.
+- Without artwork, the icon is stamped 9× in the middle, each of its px 3 × 3 system px.
 - Text is set in the kit's faces, a glyph at a time. A line too long for its space ends in an ellipsis. A character the face lacks fails the build, naming it.
 - Art can be 8-bit gray, RGB, gray with alpha or RGBA, or indexed or gray at 1, 2, 4 or 8 bits, non-interlaced. 16-bit and interlaced files fail the build, naming what to save them as.
 - The box can be in color.

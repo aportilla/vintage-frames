@@ -2,7 +2,7 @@
 
 How a page assembles a Finder-style experience — a desktop of icons, folder windows, filing by drag and drop, selection, renaming and opening — from the kit's elements. The kit draws and reports; the page owns the catalog and decides what every gesture means.
 
-The shell ([SHELL.md](./SHELL.md)) runs this recipe as a stock Finder, over a catalog with storage, alongside other applications. This guide is the path from scratch, with the elements alone. The shell's pieces also work on their own here: filing by drag (`fileByDrag`), the catalog and the geometry.
+[system-online-sdk](https://github.com/aportilla/system-online-sdk)'s shell runs this recipe as a stock Finder, over a catalog with storage, alongside other applications. This guide is the path from scratch, with the elements alone. The SDK's pieces also work on their own here: filing by drag (`fileByDrag`), the catalog and the geometry.
 
 ## The division of labor
 

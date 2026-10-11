@@ -2,8 +2,7 @@ VF Display glyph manifest
 =========================
 
 THE SOURCE OF TRUTH for 'VF Display'. fonts/manifest-to-font.py builds
-fonts/VF-Display.woff2, the base64 embed in src/styles/display-font.ts
-and the face as data in src/styles/display-strike.ts
+fonts/VF-Display.woff2 and the base64 embed in src/styles/display-font.ts
 from this file alone, from scratch. Edit here and build
 forward, then npm run build. The classic Apple strikes whose
 appearance this face re-draws live outside the repository in
@@ -15,7 +14,7 @@ bootstrap/resync direction, and rerunning it overwrites hand edits.)
 Face: 'VF Display', the chrome face — a re-drawn strike in Chicago 12pt's style, plus the kit's backfill.
 
 The '== font ==' table is the font-wide metadata. family is stamped
-into the binary's name records; woff2, module and strike are the build
+into the binary's name records; woff2 and module are the build
 targets.
 Fields are whole design px except: x_avg_char_width (font units) and
 unicode_ranges (the four OS/2 coverage bitfields) — both computed
@@ -50,7 +49,6 @@ key,value
 family,VF Display
 woff2,VF-Display.woff2
 module,display-font.ts
-strike,display-strike.ts
 units_per_em,1024
 units_per_px,64
 em,16

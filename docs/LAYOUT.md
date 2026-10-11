@@ -158,7 +158,7 @@ There is no alert component. An alert is the plain frame plus your own icon art:
 
 `label` is set because the plain frame has no title bar to take a name from; the copy uses the chrome face, as System 7 alerts did. The form closes the alert with the pressed button's `value`, which `vf-close` carries as `detail.returnValue` (null for Escape). The `<form>` is a plain block, so the placed children still measure from the dialog's body.
 
-An alert whose message varies is sized to it once shown: a closed dialog lays out nothing, so measure the message on the dialog's `vf-show`, which fires once it is open and placed (the shell's `ctx.ask()` shows it too), then set the dialog's `height` and move the button row. Place the row by its bottom-right corner and only its `top` changes:
+An alert whose message varies is sized to it once shown: a closed dialog lays out nothing, so measure the message on the dialog's `vf-show`, which fires once it is open and placed (system-online-sdk's `ctx.ask()` shows it too), then set the dialog's `height` and move the button row. Place the row by its bottom-right corner and only its `top` changes:
 
 ```html
 <vf-dialog id="alert" frame="plain" label="Caution" width="340" height="126">
@@ -184,4 +184,4 @@ message.textContent = text
 alert.show()
 ```
 
-The read forces layout, so the new size lands before the first paint. The shell's Finder sizes its own alerts this way.
+The read forces layout, so the new size lands before the first paint. system-online-sdk's Finder sizes its own alerts this way.

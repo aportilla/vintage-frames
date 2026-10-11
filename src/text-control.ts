@@ -43,9 +43,9 @@ export class VfTextControlBase extends VfShadowRoleControl {
   /**
    * Opens with the whole text selected, so typing replaces it. Implies
    * `autofocus`: the first control carrying either takes the opening focus of
-   * its `vf-dialog`, or of a window the shell's window manager opens. A dialog
-   * selects the text on every open, a window on its first open only. A click
-   * still places the caret.
+   * its `vf-dialog`, or of a window system-online-sdk's window manager opens.
+   * A dialog selects the text on every open, a window on its first open only.
+   * A click still places the caret.
    */
   @property({ type: Boolean, reflect: true }) autoselect = false
 

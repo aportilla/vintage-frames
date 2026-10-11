@@ -966,7 +966,7 @@
         },
         {
           "name": "autoselect",
-          "description": "Opens with the whole text selected, so typing replaces it. Implies\n`autofocus`: the first control carrying either takes the opening focus of\nits `vf-dialog`, or of a window the shell's window manager opens. A dialog\nselects the text on every open, a window on its first open only. A click\nstill places the caret.",
+          "description": "Opens with the whole text selected, so typing replaces it. Implies\n`autofocus`: the first control carrying either takes the opening focus of\nits `vf-dialog`, or of a window system-online-sdk's window manager opens.\nA dialog selects the text on every open, a window on its first open only.\nA click still places the caret.",
           "values": []
         },
         {
@@ -1624,7 +1624,7 @@
         },
         {
           "name": "autoselect",
-          "description": "Opens with the whole text selected, so typing replaces it. Implies\n`autofocus`: the first control carrying either takes the opening focus of\nits `vf-dialog`, or of a window the shell's window manager opens. A dialog\nselects the text on every open, a window on its first open only. A click\nstill places the caret.",
+          "description": "Opens with the whole text selected, so typing replaces it. Implies\n`autofocus`: the first control carrying either takes the opening focus of\nits `vf-dialog`, or of a window system-online-sdk's window manager opens.\nA dialog selects the text on every open, a window on its first open only.\nA click still places the caret.",
           "values": []
         },
         {
@@ -1701,7 +1701,7 @@
         },
         {
           "name": "autoselect",
-          "description": "Opens with the whole text selected, so typing replaces it. Implies\n`autofocus`: the first control carrying either takes the opening focus of\nits `vf-dialog`, or of a window the shell's window manager opens. A dialog\nselects the text on every open, a window on its first open only. A click\nstill places the caret.",
+          "description": "Opens with the whole text selected, so typing replaces it. Implies\n`autofocus`: the first control carrying either takes the opening focus of\nits `vf-dialog`, or of a window system-online-sdk's window manager opens.\nA dialog selects the text on every open, a window on its first open only.\nA click still places the caret.",
           "values": []
         },
         {

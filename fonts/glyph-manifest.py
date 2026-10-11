@@ -10,9 +10,9 @@ its metrics over its ink as a '#'/'.' pixel field.
 THE MANIFESTS ARE THE SOURCE OF TRUTH — this script is the bootstrap/resync
 direction only (shipped binary -> text), and rerunning it overwrites hand
 edits with whatever the shipped VF-*.woff2 says. Editing happens in the
-manifests; fonts/manifest-to-font.py builds the VF-*.woff2 binaries, the
-TS base64 embeds and the strike modules from them alone, from scratch, no
-Apple binary involved. The metadata table
+manifests; fonts/manifest-to-font.py builds the VF-*.woff2 binaries and the
+TS base64 embeds from them alone, from scratch, no Apple binary involved.
+The metadata table
 therefore carries everything below glyph level that isn't derivable: the
 head timestamps and the OS/2 fields computed when the faces were first
 built (x_avg_char_width, unicode_ranges, the win metrics).
@@ -44,7 +44,6 @@ FACES = [
         "VF Display",
         "the chrome face — a re-drawn strike in Chicago 12pt's style, plus the kit's backfill",
         "display-font.ts",
-        "display-strike.ts",
     ),
     (
         "VF-Body.woff2",
@@ -52,7 +51,6 @@ FACES = [
         "VF Body",
         "the body face — a re-drawn strike in Geneva 9pt's style, plus the kit's backfill",
         "body-font.ts",
-        "body-strike.ts",
     ),
 ]
 
@@ -99,7 +97,7 @@ def csv_lines(rows):
     return buf.getvalue().rstrip("\n")
 
 
-def emit(src, out, family, blurb, module, strike):
+def emit(src, out, family, blurb, module):
     font = TTFont(os.path.join(HERE, src))
     named = {r.toUnicode() for r in font["name"].names if r.nameID in (1, 16)}
     assert named == {family}, f"{src}: names say {sorted(named)}, expected {family}"
@@ -142,7 +140,6 @@ def emit(src, out, family, blurb, module, strike):
             ["family", family],
             ["woff2", src],
             ["module", module],
-            ["strike", strike],
             ["units_per_em", upm],
             ["units_per_px", PX],
             ["em", upm // PX],
@@ -169,8 +166,7 @@ def emit(src, out, family, blurb, module, strike):
         f"{'=' * (len(family) + 15)}\n"
         "\n"
         f"THE SOURCE OF TRUTH for '{family}'. fonts/manifest-to-font.py builds\n"
-        f"fonts/{src}, the base64 embed in src/styles/{module}\n"
-        f"and the face as data in src/styles/{strike}\n"
+        f"fonts/{src} and the base64 embed in src/styles/{module}\n"
         "from this file alone, from scratch. Edit here and build\n"
         "forward, then npm run build. The classic Apple strikes whose\n"
         "appearance this face re-draws live outside the repository in\n"
@@ -182,7 +178,7 @@ def emit(src, out, family, blurb, module, strike):
         f"Face: '{family}', {blurb}.\n"
         "\n"
         "The '== font ==' table is the font-wide metadata. family is stamped\n"
-        "into the binary's name records; woff2, module and strike are the build\n"
+        "into the binary's name records; woff2 and module are the build\n"
         "targets.\n"
         "Fields are whole design px except: x_avg_char_width (font units) and\n"
         "unicode_ranges (the four OS/2 coverage bitfields) — both computed\n"

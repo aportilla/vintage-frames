@@ -6,16 +6,11 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
 ## Commands
 
 - `npm run dev` — Vite dev server on :5173 (the verify scripts expect one)
-- `npm test` — the whole verify suite: 44 scripts (Playwright drivers, and
-  `verify:shell-unit`, the Node unit tests in `test/` for the shell's pure
-  modules and the build entry), run in
+- `npm test` — the whole verify suite: 40 Playwright scripts, run in
   parallel against a server it starts itself. Filter by name
   (`npm test -- focus button`); `npm test -- --bail` stops at the first failure.
 - `npm run verify:<name>` — one script against a dev server you started
 - `npm run typecheck` / `npm run build`
-- `npm run check:app-api` — what changed in the app API since the last
-  release; `npm version` runs it first and stops on a removal or change
-  that `APP_API` doesn't cover
 - Always invoke project scripts through their `npm run` alias, not
   `node scripts/…` directly.
 
@@ -42,31 +37,23 @@ Lit 3 web components rebuilding the Mac OS System 7 interface pixel-for-pixel.
 - Keyboard focus is a 1px dashed underline in the 1-bit idiom; the browser
   ring is a last resort. Accessibility features are *added* in that idiom —
   never write comments or docs implying the classic Mac drew them.
-- **The app API has a level.** Removing or changing anything `app-api.json`
-  lists raises `APP_API` in `src/shell/app-file.ts`; an addition doesn't.
-  Details: `docs/APP-FILES.md` § The app API.
-- `dist/`, `custom-elements.json`, `editor/*` and `app-api.json` are build
-  outputs (`npm run build` / `npm run analyze`) — regenerate, don't hand-edit. So are
-  `src/styles/*-strike.ts` (`fonts/manifest-to-font.py`),
-  `src/build/frame-picture.ts` (`npm run embed:frame`) and
-  `src/shell/version.ts` (`npm version`).
-- **The shell is a layer over the elements.** `src/shell/` imports the kit
-  only through `../index.js`, registers no elements, writes no styles and
-  ships no art (`verify:shell-unit` checks). It is experimental until
-  sprite-machine runs on all of it.
-- **The build entry runs under Node.** `src/build/` (`vintage-frames/build`)
-  reaches no element and nothing that touches the DOM at import, no page
-  imports it, and nothing in `src/shell/` imports it (`verify:shell-unit`
-  checks). Its frame (`box/frame.png`) is the kit's own art.
+- **This repo is the elements.** The shell (window manager, menu bar,
+  catalog, Finder, saved state) and app files moved to the sibling
+  **system-online-sdk** repo on 2026-10-10; desktop mechanics are the SDK's.
+  The SDK reads this package's root exports, `custom-elements.json` and the
+  SPEC §3 token table as part of its app API, so removing or changing any of
+  them breaks applications built on it: a minor here, and a level in the SDK.
+- `dist/`, `custom-elements.json` and `editor/*` are build outputs
+  (`npm run build` / `npm run analyze`) — regenerate, don't hand-edit.
 
 ## Commits
 
 Concise messages: a summary line plus at most a few sentences. No co-author
 or generated-by trailers.
 
-CI fails if `custom-elements.json` / `editor/*` / `app-api.json` don't match a
-fresh `npm run analyze` — after touching `src/`, rerun it and commit the
-regenerated files with the change.
+CI fails if `custom-elements.json` / `editor/*` don't match a fresh
+`npm run analyze` — after touching `src/`, rerun it and commit the regenerated
+files with the change.
 
 ## Where things are
 
@@ -74,23 +61,13 @@ regenerated files with the change.
   1-bit CSS recipes; mixins and controllers sit directly in `src/`;
   `src/patterns.ts` — the 38 standard patterns as data (the manifest for the
   `pattern` attribute), `src/pattern-fill.ts` the fill that paints one
-- `src/shell/` — the shell, the second entry point `vintage-frames/shell`
-  (applications, window manager, catalog, Finder, saved state, the app file
-  reader); `test/*.test.mjs` its unit tests; `shell.html` its reference page
-  (`demo/shell.ts`)
-- `src/build/` — the build entry `vintage-frames/build`: app files written
-  (the two Vite plugins, the packer, the box and its frame, PNG pixels);
-  `box/frame.png` the frame's picture; `src/styles/*-strike.ts` the faces as
-  data it draws the box's text with
 - `docs/` — all documentation beyond the README: SPEC (the full design spec;
   ships to npm), DESIGN-TOKENS (every `--vf-*` token), SIZING (grid/zoom/tile),
   LAYOUT (stack, placement, archetypes), PATTERNS (the pattern library and
   the `pattern` attribute), FONTS, ICONS, FINDER (assembling a Finder-style
-  page: fields, folder windows, filing by drag and drop), SHELL (the shell's
-  guide), APP-FILES (applications as one PNG: the file, the box, the
-  plugins), CURSOR,
-  ACCESSIBILITY, TOOLKIT (root exports), DEVELOPING (demo pages, verify
-  suite), PUBLISHING (the npm release guide), THREE-X-DISPLAYS
+  page from the elements alone: fields, folder windows, filing by drag and
+  drop), CURSOR, ACCESSIBILITY, TOOLKIT (root exports), DEVELOPING (demo
+  pages, verify suite), PUBLISHING (the npm release guide), THREE-X-DISPLAYS
 - `README.md` — the consumer storefront, shared by GitHub and npm; deep
   material belongs in `docs/`, not there. Only `README.md`, `KNOWN-BUGS.md`
   and this file live at the root — new docs go in `docs/`
@@ -101,4 +78,5 @@ regenerated files with the change.
 - `index.html` is the **component reference** (`demo/examples.ts`), and the
   root of the site at vintage-frames.portill.io (Cloudflare builds it from
   `main` with `npm run build:pages`). The faux System 7 desktop is not here — it
-  lives in the sibling **system-online** repo and consumes this package from npm.
+  lives in the sibling **system-online** repo and consumes this package and
+  system-online-sdk from npm.

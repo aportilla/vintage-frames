@@ -6,7 +6,7 @@ The toolkit the components are built from is exported from the package root, so 
 import { vfBase, vfPanel, sys, glyphSvg, CHECKMARK } from 'vintage-frames'
 ```
 
-The shell, which runs applications over a desktop, is a second entry point, `vintage-frames/shell` ([SHELL.md](./SHELL.md)). It is built on these exports alone.
+The shell that runs applications over a desktop, [system-online-sdk](https://github.com/aportilla/system-online-sdk), is built on these exports alone.
 
 | Export | What it's for |
 | --- | --- |

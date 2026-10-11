@@ -23,24 +23,7 @@ import 'vintage-frames/vf-checkbox.js'
 
 There is no need to import a stylesheet. The components carry their styles with them.
 
-## The shell
-
-`vintage-frames/shell` is an experimental second entry point that runs applications over one desktop: a window manager, a menu bar that shows the front application's menus, and a Finder with folders, aliases, filing, Clean Up and the Trash. A System Folder's contents set the Apple menu and what opens at startup.
-
-```ts
-import 'vintage-frames'
-import { createShell, finder, memoryStorage } from 'vintage-frames/shell'
-
-createShell(document.querySelector('vf-desktop'), {
-  apps: [finder({ storage: memoryStorage(), seed: 'markup', art })],
-  fit: 'viewport',
-})
-```
-
-See [docs/SHELL.md](https://github.com/aportilla/vintage-frames/blob/main/docs/SHELL.md). Its API may change in any minor release while it is experimental.
-
-An application on the shell can ship as one PNG, its app file. `vintage-frames/build` holds the Vite plugins that write app files and build them into a site; it runs in the build only. See [docs/APP-FILES.md](https://github.com/aportilla/vintage-frames/blob/main/docs/APP-FILES.md).
-
+To run applications over a desktop of these elements, with a window manager, a menu bar and a Finder, see [system-online-sdk](https://github.com/aportilla/system-online-sdk).
 
 ## Sizing
 

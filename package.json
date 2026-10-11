@@ -38,21 +38,6 @@
       "types": "./dist/components/vf-*.d.ts",
       "import": "./dist/components/vf-*.js"
     },
-    "./shell": {
-      "types": "./dist/shell/index.d.ts",
-      "import": "./dist/shell/index.js"
-    },
-    "./shell/pure": {
-      "types": "./dist/shell/pure.d.ts",
-      "import": "./dist/shell/pure.js"
-    },
-    "./build": {
-      "types": "./dist/build/index.d.ts",
-      "import": "./dist/build/index.js"
-    },
-    "./build/client": {
-      "types": "./dist/build/client.d.ts"
-    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -76,15 +61,12 @@
     "build:pages": "vite build --config vite.pages.config.ts",
     "preview:pages": "vite preview --config vite.pages.config.ts",
     "prepack": "npm run build && npm run verify:manifest",
-    "preversion": "npm run check:app-api",
-    "version": "npm run analyze && node scripts/write-version.mjs && git add custom-elements.json editor app-api.json src/shell/version.ts",
-    "analyze": "cem analyze && node scripts/app-api.mjs",
-    "check:app-api": "npm run analyze && node scripts/check-app-api.mjs",
+    "version": "npm run analyze && git add custom-elements.json editor",
+    "analyze": "cem analyze",
     "verify:manifest": "node scripts/verify-manifest.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "embed:cursors": "node scripts/embed-cursor-art.mjs",
-    "embed:frame": "node scripts/embed-frame.mjs",
     "verify:buttons": "tsc src/pixel-frame.ts --outDir scripts/.tmp --target es2022 --module esnext --moduleResolution bundler --skipLibCheck && node scripts/emit-clips.mjs && python3 scripts/verify-button-clips.py",
     "shot:buttons": "npx playwright screenshot --wait-for-timeout=2000 http://localhost:5173/pixel-test.html shots/buttons.png",
     "shot:verify": "python3 scripts/verify-button-screenshot.py shots/buttons.png",
@@ -128,22 +110,10 @@
     "verify:snap": "node scripts/verify-snap.mjs",
     "verify:contract": "node scripts/verify-contract.mjs",
     "verify:names": "node scripts/verify-names.mjs",
-    "verify:forced-colors": "node scripts/verify-forced-colors.mjs",
-    "verify:shell-unit": "tsc -p tsconfig.unit.json && node --test --test-reporter=tap \"test/*.test.mjs\"",
-    "verify:shell-front": "node scripts/verify-shell-front.mjs",
-    "verify:shell-windows": "node scripts/verify-shell-windows.mjs",
-    "verify:shell-finder": "node scripts/verify-shell-finder.mjs"
+    "verify:forced-colors": "node scripts/verify-forced-colors.mjs"
   },
   "dependencies": {
     "lit": "^3.2.0"
-  },
-  "peerDependencies": {
-    "vite": ">=8.0.0"
-  },
-  "peerDependenciesMeta": {
-    "vite": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@custom-elements-manifest/analyzer": "^0.11.0",

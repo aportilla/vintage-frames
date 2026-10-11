@@ -27,12 +27,6 @@ Four items, none of them build-system work:
 
 npm renders whatever `README.md` is in the tarball, so GitHub and npm show the same file — the consumer storefront: install, the components table, condensed sizing/layout, absolute links everywhere (they work on both sites). The depth lives in `docs/` — SPEC, DESIGN-TOKENS, SIZING, LAYOUT, FONTS, ICONS, CURSOR, ACCESSIBILITY, TOOLKIT, DEVELOPING, and this file — of which only `docs/SPEC.md` ships to npm. A pack-time README-swap scheme existed briefly (2026-08-11, same day) and was unwound in favor of this: one file, no machinery, `docs/` for the manual.
 
-## The build entry
-
-`vintage-frames/build` ships in `dist/` with the rest, and no page loads it ([APP-FILES.md](./APP-FILES.md)). Its art is the kit's own: the frame every app file's box is drawn on (`box/frame.png`, embedded by `npm run embed:frame`), and the two faces as data (`src/styles/*-strike.ts`), built from the same glyph manifests as the woff2 faces, so the same artwork with the same credit.
-
-`vite` is an optional peer dependency, `>=8.0.0`, for the build entry's plugins. npm installs nothing for it, but a consumer on an older Vite gets an ERESOLVE warning at install.
-
 ## One-time: the npm account
 
 **Done 2026-08-11** — account `aportilla`, 2FA on, this machine logged in.
@@ -94,7 +88,7 @@ npm versions are [semver](https://semver.org): `MAJOR.MINOR.PATCH`. A published 
 
 Ship `1.0.0` when you intend to keep the API stable — from then on, breaking changes cost a major version.
 
-**The app API has a level of its own** ([APP-FILES.md § The app API](./APP-FILES.md#the-app-api)), whatever the version bump. A release that changes or removes something a built application can use raises `APP_API` in `src/shell/app-file.ts`; one that only adds leaves it alone. Raise `APP_API_OLDEST` too when applications built before can't run on the release.
+**Applications built on system-online-sdk use this package too**: its root exports, and each element's attributes, events, slots, parts, states and `--vf-*` tokens. A release that removes or changes any of them reaches those applications when the SDK moves to it, and the SDK's own release check names each one ([system-online-sdk](https://github.com/aportilla/system-online-sdk), docs/APP-FILES.md § The app API).
 
 ## The release routine
 
@@ -106,15 +100,7 @@ git push --follow-tags
 npm publish
 ```
 
-`npm version` does more than edit a number: it commits the bump and creates a git tag (`v0.1.1`) in one atomic step, so every published version has a commit you can check out. Its `version` script also regenerates the manifest and `app-api.json` and writes the new version into `src/shell/version.ts`, the kit's `VERSION`, so the bump's commit carries them. `--follow-tags` pushes the tag with the branch. `npm publish` runs the `prepack` gate as always.
-
-**The app API check.** Before it bumps, `npm version` runs `npm run check:app-api`, which regenerates `app-api.json` and compares it with the last release's. When something was removed or changed and `APP_API` didn't go up, it stops and lists each one with its old and new type. Raise the level, commit and bump again. Or, when every change keeps applications built at the level running (a parameter that gained a default, a type TypeScript now prints another way, something only a page uses), let it through:
-
-```sh
-APP_API_COMPATIBLE=1 npm version patch
-```
-
-Run `npm run check:app-api` any time to see what changed since the last release.
+`npm version` does more than edit a number: it commits the bump and creates a git tag (`v0.1.1`) in one atomic step, so every published version has a commit you can check out. Its `version` script also regenerates the manifest, so the bump's commit carries it. `--follow-tags` pushes the tag with the branch. `npm publish` runs the `prepack` gate as always.
 
 **Release notes** — a `vX.Y.Z` tag on GitHub can carry them ([github.com/aportilla/vintage-frames/releases](https://github.com/aportilla/vintage-frames/releases) → "Draft a new release" → pick the tag, write what changed). Do this from the web UI, or `gh release create vX.Y.Z --notes "…"` once you've run `gh auth login`. For a solo project this is simpler than maintaining a CHANGELOG.md — the notes live with the tags, and a CHANGELOG can be generated from them later.
 

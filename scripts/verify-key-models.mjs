@@ -5,6 +5,10 @@
  *
  *   - bar menus: Home/End while open, Enter/Space opens AND enters, shared
  *     first-letter type-ahead (bar, standalone menu, and vf-select)
+ *   - submenus: → and Enter open one and enter it, ← and Escape close one
+ *     level back to its item, the type-ahead runs in it, → on a plain item
+ *     opens the next menu; the item is named by its label alone, with
+ *     aria-haspopup and aria-expanded
  *   - vf-list multiple mode: Home/End/type-ahead move the cursor without
  *     destroying the selection; Shift(+Ctrl)+Home/End extend; Shift+Space
  *     selects anchor→cursor; Ctrl/Meta+A selects all
@@ -34,6 +38,15 @@ const MARKUP = `
     </vf-menu>
     <vf-menu id="edit" label="Edit">
       <vf-menu-item value="copy">Copy</vf-menu-item>
+    </vf-menu>
+    <vf-menu id="nav" label="Go">
+      <vf-menu-item id="g-back" value="back">Back</vf-menu-item>
+      <vf-menu-item id="g-places">Places
+        <vf-menu slot="submenu" id="g-sub">
+          <vf-menu-item id="g-home" value="home">Home</vf-menu-item>
+          <vf-menu-item id="g-work" value="work">Work</vf-menu-item>
+        </vf-menu>
+      </vf-menu-item>
     </vf-menu>
   </vf-menu-bar>
 
@@ -218,6 +231,65 @@ await page.keyboard.press('Enter')
 check('standalone Enter opens and enters', (await activeId()) === 'l-dup', `focus=${await activeId()}`)
 await page.keyboard.press('s')
 check('standalone type-ahead finds Sharing…', (await activeId()) === 'l-share', `focus=${await activeId()}`)
+await page.keyboard.press('Escape')
+
+// ───────────────────────────── submenus — the keyboard and the item's ARIA ──
+
+/** An item's computed role, name, aria-haspopup and aria-expanded. */
+async function axItem(id) {
+  const { root } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true })
+  const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `#${id}` })
+  const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })
+  const n = nodes[0]
+  const prop = (name) => n?.properties?.find((p) => p.name === name)?.value?.value
+  return { role: n?.role?.value, name: n?.name?.value, hasPopup: prop('hasPopup'), expanded: prop('expanded') }
+}
+const subOpen = () => page.evaluate(() => document.getElementById('g-sub').open)
+
+await page.evaluate(() => document.getElementById('nav').focus())
+await page.keyboard.press('Enter')
+await page.keyboard.press('ArrowDown')
+// Read once the menu is open: a row in a closed panel isn't in the tree.
+s = await axItem('g-places')
+check(
+  'an item that opens a submenu is a menuitem with aria-haspopup=menu, collapsed',
+  s.role === 'menuitem' && s.hasPopup === 'menu' && s.expanded === false,
+  JSON.stringify(s)
+)
+await page.keyboard.press('ArrowRight')
+await page.waitForFunction(() => document.activeElement?.id === 'g-home')
+check('→ on it opens its submenu and focuses the first row', (await activeId()) === 'g-home')
+s = await axItem('g-places')
+check(
+  '…expanded, named by its label alone, not the open rows',
+  s.expanded === true && s.name === 'Places',
+  JSON.stringify(s)
+)
+await page.keyboard.press('w')
+check('the type-ahead runs in the submenu', (await activeId()) === 'g-work', `focus=${await activeId()}`)
+await page.keyboard.press('ArrowLeft')
+check(
+  '← closes it and puts focus back on its item',
+  (await activeId()) === 'g-places' && !(await subOpen()),
+  `focus=${await activeId()}`
+)
+await page.keyboard.press('Enter')
+await page.waitForFunction(() => document.activeElement?.id === 'g-home')
+check('Enter on the item opens it too', await subOpen())
+await page.keyboard.press('Escape')
+check(
+  'Escape closes one level: the submenu, back to its item',
+  (await activeId()) === 'g-places' &&
+    !(await subOpen()) &&
+    (await page.evaluate(() => document.getElementById('nav').open)),
+  `focus=${await activeId()}`
+)
+await page.keyboard.press('ArrowUp')
+await page.keyboard.press('ArrowRight')
+check(
+  '→ on a plain item opens the next menu',
+  await page.evaluate(() => document.getElementById('file').open && !document.getElementById('nav').open)
+)
 await page.keyboard.press('Escape')
 
 // ───────────────────────────── §5.4 — type-ahead in vf-select ──

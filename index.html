@@ -1238,6 +1238,14 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <code>prefers-reduced-motion</code>), then <code>vf-menu-select</code>
             fires.
           </p>
+          <p>
+            A <code>vf-menu</code> in an item's <code>submenu</code> slot is a
+            submenu. The item ends in ▶ and opens it rather than being chosen:
+            rest the pointer on the item, click it, or press →. The item stays
+            highlighted while its submenu is open. A submenu opens to the right,
+            on the left where there's no room, and moves up to fit the screen.
+            Submenus nest.
+          </p>
 
           <template
             data-example
@@ -1268,6 +1276,38 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               // vf-menu-select bubbles, so one listener on the bar hears every menu.
               menuBar.addEventListener('vf-menu-select', ({ detail: { value, item } }) => app.run(value))
             </script>
+          </template>
+
+          <template
+            data-example
+            data-stage="column gapless"
+            data-caption="Submenus, two levels deep. Rest on Open Recent, or click it, or press → on it."
+          >
+            <vf-menu-bar>
+              <vf-menu label="File">
+                <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
+                <vf-menu-item>Open Recent
+                  <vf-menu slot="submenu">
+                    <vf-menu-item value="notes">Notes</vf-menu-item>
+                    <vf-menu-item value="budget">Budget</vf-menu-item>
+                    <vf-menu-item>Projects
+                      <vf-menu slot="submenu">
+                        <vf-menu-item value="archive">Archive</vf-menu-item>
+                        <vf-menu-item value="drafts">Drafts</vf-menu-item>
+                      </vf-menu>
+                    </vf-menu-item>
+                  </vf-menu>
+                </vf-menu-item>
+                <vf-menu-item disabled>Open Shared
+                  <vf-menu slot="submenu">
+                    <vf-menu-item value="none">None</vf-menu-item>
+                  </vf-menu>
+                </vf-menu-item>
+                <vf-separator></vf-separator>
+                <vf-menu-item value="quit" shortcut="⌘Q">Quit</vf-menu-item>
+              </vf-menu>
+            </vf-menu-bar>
+            <pre class="log" data-log></pre>
           </template>
 
           <template
@@ -1307,7 +1347,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <tbody>
               <tr><td>Properties</td><td><code>rounded</code></td><td class="wrap">Boolean. Rounds the bar's top corners like a screen's</td></tr>
               <tr><td>Properties</td><td><code>shortcuts</code></td><td class="wrap">Boolean. Makes every item's <code>shortcut</code> work from the keyboard. Shortcuts are page-wide, so set it on one menu bar only</td></tr>
-              <tr><td>Slot</td><td>(default)</td><td class="wrap"><code>vf-menu</code> elements. One opens at a time. While one is open, hovering another title switches to it, and ←/→ move between menus</td></tr>
+              <tr><td>Slot</td><td>(default)</td><td class="wrap"><code>vf-menu</code> elements. One opens at a time. While one is open, hovering another title switches to it, and ←/→ move between menus. In a submenu, → opens an item's submenu and ← closes it</td></tr>
               <tr><td>Slot</td><td><code>end</code></td><td class="wrap">The bar's right end, such as a clock: held 9px in, and a <code>vf-label</code> there lines up with the menu titles</td></tr>
               <tr><td>Part</td><td><code>bar</code></td><td class="wrap">The bar. Pad it to line the menus up with your content column</td></tr>
               <tr><td>Token</td><td><code>--vf-menubar-height</code></td><td class="wrap">20px, including the 1px rule</td></tr>
@@ -1321,7 +1361,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>label</code></td><td>string</td><td><code>''</code></td><td class="wrap">The title, and the accessible name when the <code>label</code> slot replaces it</td></tr>
               <tr><td><code>open</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Reflected. Set by the bar, or by the menu itself when standalone</td></tr>
               <tr><td><code>shortcuts</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Keyboard shortcuts for a standalone menu. In a bar, set it on the bar</td></tr>
-              <tr><td colspan="4" class="wrap">Slots: default (<code>vf-menu-item</code> / <code>vf-separator</code>), <code>label</code>. Parts: <code>label</code>, <code>panel</code>. Roles <code>menubar</code> / <code>menu</code> / <code>menuitem</code> (<code>menuitemcheckbox</code> when checkable); arrows move, Enter or Space activate, Esc closes.</td></tr>
+              <tr><td><code>expand(item)</code></td><td>Method</td><td>—</td><td class="wrap">Opens <code>item</code>'s submenu, closing the one open in this menu. <code>null</code> closes it. <code>{ focus: true }</code> moves focus into it</td></tr>
+              <tr><td><code>expandedItem</code></td><td><code>VfMenuItem | null</code></td><td><code>null</code></td><td class="wrap">Read-only. The item whose submenu is open</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: default (<code>vf-menu-item</code> / <code>vf-separator</code>), <code>label</code>. Parts: <code>label</code>, <code>panel</code>. In an item's <code>submenu</code> slot, a menu is a submenu: its panel alone, beside the item. Roles <code>menubar</code> / <code>menu</code> / <code>menuitem</code> (<code>menuitemcheckbox</code> when checkable); arrows move, → and ← open and close submenus, Enter or Space activate, Esc closes one level.</td></tr>
             </tbody>
           </table>
 
@@ -1334,10 +1376,13 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>checked</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Shows a ✓</td></tr>
               <tr><td><code>checkable</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">A toggle that starts unchecked. Role <code>menuitemcheckbox</code></td></tr>
               <tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Dims the whole row, ✓ included</td></tr>
-              <tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The highlight during a drag. Set by the menu</td></tr>
-              <tr><td><code>activate()</code></td><td>Method</td><td>—</td><td class="wrap">Blinks, then selects, as if chosen with the mouse</td></tr>
+              <tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">The highlight under the pointer, or on the item whose submenu is open. Set by the menu</td></tr>
+              <tr><td><code>expanded</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">Its submenu is open, announced as <code>aria-expanded</code>. Set by the menu</td></tr>
+              <tr><td><code>submenu</code></td><td><code>VfMenu | null</code></td><td><code>null</code></td><td class="wrap">Read-only. The <code>vf-menu</code> in the <code>submenu</code> slot</td></tr>
+              <tr><td><code>labelText</code></td><td>string</td><td><code>''</code></td><td class="wrap">Read-only. The label's text, without a submenu's rows</td></tr>
+              <tr><td><code>activate()</code></td><td>Method</td><td>—</td><td class="wrap">Blinks, then selects, as if chosen with the mouse. With a submenu, opens it and moves focus into it instead</td></tr>
               <tr><td><code>vf-menu-select</code></td><td>Event</td><td>—</td><td class="wrap"><code>{ value, item }</code></td></tr>
-              <tr><td colspan="4" class="wrap">Slot: default (the label). Parts: <code>item</code>, <code>check</code>, <code>label</code>, <code>shortcut</code>. Tokens: <code>--vf-menu-row-height</code> (16px), <code>--vf-menu-shortcut-column</code> (23px), <code>--vf-select-gutter</code>.</td></tr>
+              <tr><td colspan="4" class="wrap">Slots: default (the label), <code>submenu</code> (a <code>vf-menu</code>: the item ends in ▶ in place of a shortcut and opens it rather than being chosen). Parts: <code>item</code>, <code>check</code>, <code>label</code>, <code>shortcut</code>, <code>arrow</code>. Tokens: <code>--vf-menu-row-height</code> (16px), <code>--vf-menu-shortcut-column</code> (23px), <code>--vf-select-gutter</code>.</td></tr>
             </tbody>
           </table>
         </section>

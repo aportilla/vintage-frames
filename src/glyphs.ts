@@ -116,6 +116,17 @@ export const CARET_UP_SMALL: Glyph = {
 }
 
 /**
+ * The ▶ at the end of a menu item that opens a submenu: {@link CARET_DOWN}
+ * turned on its side, 6×11. Traced from the submenu rows of `Menus.png`, and
+ * the same shape in a capture of a System 7.5 Apple menu (Infinite Mac, 3×).
+ */
+export const CARET_RIGHT: Glyph = {
+  w: 6,
+  h: 11,
+  d: 'M0 0h1v1h-1zM0 1h2v1h-2zM0 2h3v1h-3zM0 3h4v1h-4zM0 4h5v1h-5zM0 5h6v1h-6zM0 6h5v1h-5zM0 7h4v1h-4zM0 8h3v1h-3zM0 9h2v1h-2zM0 10h1v1h-1z',
+}
+
+/**
  * The "little arrows" stepper at rest — a rounded 1-bit frame enclosing hollow
  * up/down arrows (`Little arrows.png`), used by `vf-number-field`.
  */

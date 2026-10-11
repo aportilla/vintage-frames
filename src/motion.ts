@@ -28,6 +28,17 @@ export function prefersReducedMotion(): boolean {
 export const PRESS_HOLD_MS = 200
 
 /**
+ * How long (ms) the pointer rests on a menu item before its submenu opens,
+ * and how long it may stray onto another row of the same menu before an open
+ * submenu closes. The second is the longer, so a diagonal slide from an item
+ * into its submenu can cross the rows between. Not gated on
+ * `prefers-reduced-motion`: they are the interaction, not decoration, the
+ * reasoning {@link MENU_SCROLL_INTERVAL_MS} gives. Provisional, tuned by hand.
+ */
+export const SUBMENU_OPEN_MS = 150
+export const SUBMENU_CLOSE_MS = 300
+
+/**
  * How long (ms) a press on a selected icon's name waits before it opens the
  * rename box — long enough that a double-click has already declared itself.
  *

@@ -8416,7 +8416,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left. `rounded` adds\nthe classic screen-corner mask to the top corners.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. ArrowLeft/ArrowRight\nmove between menus while one is open; ArrowDown/ArrowUp move focus through\nthe open menu's items, Home/End jump to its first/last, and typed letters\nrun the shared Finder first-letter type-ahead (src/type-ahead.ts).\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.",
+          "description": "`<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom\nrule, slotted `<vf-menu>` children laid out from the left. `rounded` adds\nthe classic screen-corner mask to the top corners.\n\nCoordinates its menus: pressing a label opens that menu (and inverts the\nlabel); while any menu is open, hovering another label switches to it;\nEscape, an outside click, or item selection closes. While a menu is open\nthe keyboard is src/menu-navigation.ts's: ArrowDown/ArrowUp move focus\nthrough the open menu's items, Home/End jump to its first/last, typed\nletters run the shared Finder first-letter type-ahead (src/type-ahead.ts),\nArrowRight opens an item's submenu and ArrowLeft closes it, and at the top\nlevel ArrowLeft/ArrowRight move between menus.\n\nThe bar also owns the **press-drag-release** gesture (see src/menu-press.ts)\n— press a title, slide onto a command, release over it — because one press\nmay travel across several of its menus. `vf-select` drives its popup by the\nsame mechanic.",
           "name": "VfMenuBar",
           "cssProperties": [
             {
@@ -8693,7 +8693,8 @@
             {
               "kind": "field",
               "name": "#onDocKeydown",
-              "privacy": "private"
+              "privacy": "private",
+              "description": "The open menu's keyboard and its submenus', src/menu-navigation.ts's.\n#onBarKeydown's arrows and Home/End only run while no menu is open."
             },
             {
               "kind": "field",
@@ -8719,25 +8720,6 @@
                 }
               ],
               "description": "Opens the previous/next menu in the bar, wrapping at the ends."
-            },
-            {
-              "kind": "method",
-              "name": "#moveItemFocus",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "direction",
-                  "type": {
-                    "text": "1 | -1"
-                  }
-                }
-              ],
-              "description": "Moves keyboard focus through the open menu's enabled items, wrapping."
             },
             {
               "kind": "field",
@@ -8912,7 +8894,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu-item>` — a single command inside a `<vf-menu>` panel.\n\nRenders the classic System 7 menu row: optional ✓ check in the\n`--vf-select-gutter` left column (16px, shared with vf-select/vf-option),\nlabel, and the keyboard shortcut left-aligned in a right-anchored column,\nso every ⌘ lands at the same x. On activation the item performs the classic\n3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its\nancestors to close the menu.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants a row somewhere other than a pulldown. Inside its parent\n`<vf-menu>` the panel is as wide as its widest row and stacks them in flow,\nso stating an origin takes that row out of both: it no longer contributes to\nthe panel's width and the rows below close the gap. The placement doing what\nit says — but not how a pulldown is laid out.",
+          "description": "`<vf-menu-item>` — a single command inside a `<vf-menu>` panel.\n\nRenders the classic System 7 menu row: optional ✓ check in the\n`--vf-select-gutter` left column (16px, shared with vf-select/vf-option),\nlabel, and the keyboard shortcut left-aligned in a right-anchored column,\nso every ⌘ lands at the same x. On activation the item performs the classic\n3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its\nancestors to close the menu.\n\nA `<vf-menu>` in the `submenu` slot makes the item open a submenu: it ends\nin ▶ where a shortcut would go, and choosing it opens the submenu beside\nit rather than firing `vf-menu-select`. The item stays highlighted while\nits submenu is open.\n\nTakes `top`/`left` like every other element (VfPositioned), for the\nconsumer who wants a row somewhere other than a pulldown. Inside its parent\n`<vf-menu>` the panel is as wide as its widest row and stacks them in flow,\nso stating an origin takes that row out of both: it no longer contributes to\nthe panel's width and the rows below close the gap. The placement doing what\nit says — but not how a pulldown is laid out.",
           "name": "VfMenuItem",
           "cssProperties": [
             {
@@ -8947,12 +8929,20 @@
             {
               "description": "The shortcut text, left-aligned in the shared column.",
               "name": "shortcut"
+            },
+            {
+              "description": "The ▶ of an item that opens a submenu.",
+              "name": "arrow"
             }
           ],
           "slots": [
             {
               "description": "The item label.",
               "name": ""
+            },
+            {
+              "description": "A `vf-menu`, the submenu the item opens.",
+              "name": "submenu"
             }
           ],
           "members": [
@@ -8992,8 +8982,19 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Transient highlight — the full-row inversion the press-drag gesture paints\non the row under the pointer (`:hover` can't: under touch the pointer is\ncaptured by the title the press started on). Managed by the menu, mirroring\n`vf-option[active]`; not part of the authoring API.",
+              "description": "Transient highlight — the full-row inversion on the row under the pointer\nwhile its menu is open, button down or not (`:hover` can't: under touch\nthe pointer is captured by the title the press started on), or on the\nitem whose submenu is open while the pointer is elsewhere. Managed by the\nmenu, mirroring `vf-option[active]`; not part of the authoring API.",
               "attribute": "active",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "expanded",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether this item's submenu is open. Reflected, and announced as\n`aria-expanded`. Managed by the menu (VfMenu.expand), like\nactive; not part of the authoring API.",
+              "attribute": "expanded",
               "reflects": true
             },
             {
@@ -9023,7 +9024,7 @@
               "type": {
                 "text": "string | undefined"
               },
-              "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\ntrimmed text content when unset.",
+              "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\nlabelText when unset.",
               "attribute": "value"
             },
             {
@@ -9035,6 +9036,34 @@
               "privacy": "private",
               "default": "null",
               "description": "`'on' | 'off'` while the selection blink runs, otherwise `null`."
+            },
+            {
+              "kind": "field",
+              "name": "_hasSubmenu",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "Whether a `vf-menu` sits in the `submenu` slot."
+            },
+            {
+              "kind": "field",
+              "name": "submenu",
+              "type": {
+                "text": "VfMenu | null"
+              },
+              "description": "The submenu this item opens: the `vf-menu` in its `submenu` slot, or null.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "labelText",
+              "type": {
+                "text": "string"
+              },
+              "description": "The item's label as text: what its default slot holds, trimmed, without\nthe rows of a submenu. The default value and the menus'\ntype-ahead read it, and it names an item that opens a submenu.",
+              "readonly": true
             },
             {
               "kind": "field",
@@ -9099,7 +9128,37 @@
                   "text": "void"
                 }
               },
-              "description": "Mirrors shortcut as the host's `aria-keyshortcuts`, normalised from\nthe Mac display glyphs to the ARIA grammar (\"⌘⇧S\" → \"Meta+Shift+S\"). A\nconsumer's own attribute overrides this the way it overrides the role."
+              "description": "Mirrors shortcut as the host's `aria-keyshortcuts`, normalised from\nthe Mac display glyphs to the ARIA grammar (\"⌘⇧S\" → \"Meta+Shift+S\"). A\nconsumer's own attribute overrides this the way it overrides the role.\nAn item that opens a submenu has ▶ where the shortcut would be, and no key."
+            },
+            {
+              "kind": "field",
+              "name": "#syncSubmenu",
+              "privacy": "private",
+              "description": "An item that opens a submenu says so (`aria-haspopup`, `aria-expanded`)\nand is named by its label alone: a name computed from its content would\ntake in the open submenu's rows."
+            },
+            {
+              "kind": "field",
+              "name": "#onSubmenuSlotChange",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#fromSubmenu",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "description": "Whether `event` came from inside this item's submenu, so belongs to a row there."
             },
             {
               "kind": "method",
@@ -9120,7 +9179,15 @@
                 "type": {
                   "text": "void"
                 }
-              }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
             },
             {
               "kind": "method",
@@ -9139,7 +9206,7 @@
                   }
                 }
               ],
-              "description": "The gesture latch is read *now* — it is about a press that already\nresolved this click — but the activation itself defers to the end of the\npath, so `preventDefault()` on the item (or above it) cancels the command\nthe way it cancels a native control's. See deferActivation."
+              "description": "The gesture latch is read *now* — it is about a press that already\nresolved this click — but the activation itself defers to the end of the\npath, so `preventDefault()` on the item (or above it) cancels the command\nthe way it cancels a native control's. See deferActivation.\nA click on a row of this item's submenu bubbles through here, and is\nthat row's alone."
             },
             {
               "kind": "method",
@@ -9173,7 +9240,7 @@
                   "text": "void"
                 }
               },
-              "description": "Runs the classic 3-blink inversion, then dispatches `vf-menu-select` and an\ninternal `vf-menu-close-request` so ancestor menu/menu-bar close. Public\nbecause the menu's press gesture activates the row a drag was released\nover, which the row's own `click` never sees (a press that started on the\ntitle dispatches its click above both of them). No-op while disabled or\nalready blinking."
+              "description": "Runs the classic 3-blink inversion, then dispatches `vf-menu-select` and an\ninternal `vf-menu-close-request` so ancestor menu/menu-bar close. Public\nbecause the menu's press gesture activates the row a drag was released\nover, which the row's own `click` never sees (a press that started on the\ntitle dispatches its click above both of them). No-op while disabled or\nalready blinking.\n\nAn item that opens a submenu is never chosen: it opens the submenu and\nmoves focus to its first enabled item, as Enter, Space and → do."
             },
             {
               "kind": "method",
@@ -9283,8 +9350,17 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Transient highlight — the full-row inversion the press-drag gesture paints\non the row under the pointer (`:hover` can't: under touch the pointer is\ncaptured by the title the press started on). Managed by the menu, mirroring\n`vf-option[active]`; not part of the authoring API.",
+              "description": "Transient highlight — the full-row inversion on the row under the pointer\nwhile its menu is open, button down or not (`:hover` can't: under touch\nthe pointer is captured by the title the press started on), or on the\nitem whose submenu is open while the pointer is elsewhere. Managed by the\nmenu, mirroring `vf-option[active]`; not part of the authoring API.",
               "fieldName": "active"
+            },
+            {
+              "name": "expanded",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether this item's submenu is open. Reflected, and announced as\n`aria-expanded`. Managed by the menu (VfMenu.expand), like\nactive; not part of the authoring API.",
+              "fieldName": "expanded"
             },
             {
               "name": "checkable",
@@ -9309,7 +9385,7 @@
               "type": {
                 "text": "string | undefined"
               },
-              "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\ntrimmed text content when unset.",
+              "description": "Value reported in the `vf-menu-select` event detail. Defaults to the item's\nlabelText when unset.",
               "fieldName": "value"
             },
             {
@@ -9401,7 +9477,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n\nTakes `top`/`left` like every other element (VfPositioned) — the\nnatural fit being a standalone menu, which is a free-standing menu button and\nplaces like any other control. The panel is anchored to the host's own box\n(`top: 100%`), so it follows a placed menu down without any further work.\nInside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one\nlifts it off the bar and the titles beside it close the gap. Slotted straight\ninto a `<vf-desktop>`, a free-standing menu sits on the desktop's menu tier\nabove every window, palettes included, as a bar does.",
+          "description": "`<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of\n`<vf-menu-item>` / `<vf-separator>` children.\n\nInside a `<vf-menu-bar>` the bar coordinates open state (only one menu open,\nhover-switching, outside-click/Escape dismissal) and owns the pointer\ngesture, which may travel between its menus. Used standalone, the menu\ntoggles itself on label click and manages its own dismissal, its own press\ngesture and item keyboard navigation (ArrowUp/ArrowDown, Home/End, and the\nshared first-letter type-ahead — src/type-ahead.ts) while open.\n\nPointer — the two styles `vf-select` supports, on the same terms (see\nsrc/menu-press.ts): the System 7 press-drag-release (press the title, slide\nonto a command, release over it) and a modern quick tap that leaves the menu\ndropped for a second click.\n\nA `vf-menu` in a `vf-menu-item`'s `submenu` slot is a **submenu**: no title,\nonly its panel, opened beside its item by the menu holding the item\n(expand). The pointer resting on the item opens it in either style,\nand so do a click or tap on the item, →, Enter and Space. It overlaps its\nparent as System 7.5's did: its first row level with its item, its frame\n5px inside the parent's right edge, covering the parent's frame and\nshadow. It opens on the side its parent opened toward, the right first,\nflips where that side has no room, and moves up to fit the screen. Menus\nnest to any depth.\n\nTakes `top`/`left` like every other element (VfPositioned) — the\nnatural fit being a standalone menu, which is a free-standing menu button and\nplaces like any other control. The panel is anchored to the host's own box\n(`top: 100%`), so it follows a placed menu down without any further work.\nInside a `<vf-menu-bar>`, the bar lays its titles out in flow — placing one\nlifts it off the bar and the titles beside it close the gap. Slotted straight\ninto a `<vf-desktop>`, a free-standing menu sits on the desktop's menu tier\nabove every window, palettes included, as a bar does.",
           "name": "VfMenu",
           "cssProperties": [
             {
@@ -9578,6 +9654,137 @@
             },
             {
               "kind": "field",
+              "name": "#isSubmenu",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether this menu is a submenu: in a `vf-menu-item`'s `submenu` slot.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_panelEl",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "panelRect",
+              "type": {
+                "text": "DOMRect | null"
+              },
+              "description": "Viewport rect of the dropped panel, or `null` while closed. The press\ngesture hit-tests the open menus by their panels, deepest first.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#expanded",
+              "privacy": "private",
+              "type": {
+                "text": "VfMenuItem | null"
+              },
+              "default": "null",
+              "description": "The item whose submenu is open."
+            },
+            {
+              "kind": "field",
+              "name": "#pointer",
+              "privacy": "private",
+              "type": {
+                "text": "VfMenuItem | null | undefined"
+              },
+              "default": "undefined",
+              "description": "Where the pointer is: on a row, on none of this panel (null), or not in it (undefined)."
+            },
+            {
+              "kind": "field",
+              "name": "#side",
+              "privacy": "private",
+              "type": {
+                "text": "'left' | 'right'"
+              },
+              "default": "'right'",
+              "description": "The side this menu opened toward, which its own submenus open toward first."
+            },
+            {
+              "kind": "field",
+              "name": "expandedItem",
+              "type": {
+                "text": "VfMenuItem | null"
+              },
+              "description": "The item in this menu whose submenu is open, or `null`.",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "expand",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "VfMenuItem | null"
+                  }
+                },
+                {
+                  "name": "options",
+                  "default": "{}",
+                  "type": {
+                    "text": "{ focus?: boolean }"
+                  }
+                }
+              ],
+              "description": "Opens `item`'s submenu, closing the one open in this menu and everything\nunder it; `null` closes it. With `focus`, keyboard focus goes on to the\nsubmenu's first enabled item. The press gesture, the keyboard and an\nitem's `activate()` all open submenus through here. Does nothing while\nthis menu is closed, or for a disabled item or one without a submenu."
+            },
+            {
+              "kind": "method",
+              "name": "pointerOver",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "row",
+                  "type": {
+                    "text": "VfMenuItem | null | undefined"
+                  }
+                }
+              ],
+              "description": "Where the pointer is, from the press gesture: on `row` of this menu's\npanel, on none of its rows (`null`), or not in its panel (`undefined`).\nThe row under the pointer is highlighted; with the pointer elsewhere, the\nitem whose submenu is open is. Not part of the authoring API."
+            },
+            {
+              "kind": "method",
+              "name": "#paintRows",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Lights the one row this menu highlights: the pointer's, else the open submenu's item."
+            },
+            {
+              "kind": "method",
+              "name": "#place",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Places a submenu just opened: on the side its parent opened toward,\nflipped where that side has no room and the other has, and raised by\nwhole system px to fit above the screen's bottom, never past its top.\nWritten onto the panel directly, before the frame paints."
+            },
+            {
+              "kind": "field",
               "name": "#internals",
               "privacy": "private",
               "readonly": true,
@@ -9652,25 +9859,6 @@
               "privacy": "private"
             },
             {
-              "kind": "method",
-              "name": "#moveItemFocus",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "void"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "direction",
-                  "type": {
-                    "text": "1 | -1"
-                  }
-                }
-              ],
-              "description": "Moves keyboard focus through the enabled items, wrapping at the ends."
-            },
-            {
               "kind": "field",
               "name": "#docListeners",
               "privacy": "private",
@@ -9687,7 +9875,7 @@
                   "text": "void"
                 }
               },
-              "description": "In a bar the host is `role=\"none\"`: the `menubar`'s items are the shadow\n`.label`s (`menuitem`), and while browsers do compute that ownership\nthrough a role-less generic, declaring it keeps the chain explicit.\nStandalone, the host stays role-less — the label is a `button` there."
+              "description": "In a bar the host is `role=\"none\"`: the `menubar`'s items are the shadow\n`.label`s (`menuitem`), and while browsers do compute that ownership\nthrough a role-less generic, declaring it keeps the chain explicit. A\nsubmenu's host is `role=\"none\"` too: its item is the `menuitem`, its\npanel the `menu`. Standalone, the host stays role-less — the label is a\n`button` there."
             },
             {
               "kind": "field",

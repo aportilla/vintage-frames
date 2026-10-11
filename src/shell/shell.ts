@@ -37,8 +37,8 @@ import type {
   VfModalDialog,
   VfViewportBox,
 } from '../index.js'
-import { ALIAS_KIND, APP_KIND, appIdOf, appleMenuItemsOf, createCatalog, resolve, startupItemsOf } from './catalog.js'
-import type { Catalog, CatalogStorage, Item, SystemFolders, Volumes } from './catalog.js'
+import { ALIAS_KIND, APP_KIND, appIdOf, appleMenuOf, createCatalog, resolve, startupItemsOf } from './catalog.js'
+import type { AppleMenuEntry, Catalog, CatalogStorage, Item, SystemFolders, Volumes } from './catalog.js'
 import { createWindowManager, deepActiveElement, desktopRendered } from './windows.js'
 import type { WindowManager } from './windows.js'
 import { openWindowsOf } from './state.js'
@@ -459,27 +459,51 @@ export function createShell(desktop: VfDesktop, options: ShellOptions): Shell {
   sync()
 
   // The Apple menu: under the page's own items, what Apple Menu Items holds,
-  // by name. Each entry's value is its item's id.
+  // by name, and a folder's entries as its submenu (appleMenuOf). Each
+  // entry's value is its item's id.
   const appleItems = new Map<VfMenuItem, string>()
+  /** The entries at every depth, in the order flatten() walks the tree. */
+  let appleEntries: VfMenuItem[] = []
+  /** The tree's ids and nesting: a name can change without a rebuild, nothing else. */
+  let appleShape = ''
+  const shapeOf = (tree: AppleMenuEntry[]): string =>
+    tree.map((e) => (e.entries ? `${e.item.id}(${shapeOf(e.entries)})` : e.item.id)).join(',')
+  const flatten = (tree: AppleMenuEntry[]): Item[] =>
+    tree.flatMap((e) => [e.item, ...(e.entries ? flatten(e.entries) : [])])
+  const build = (tree: AppleMenuEntry[], into: Element): void => {
+    for (const { item, entries } of tree) {
+      const entry = document.createElement('vf-menu-item')
+      entry.setAttribute('value', item.id)
+      entry.append(item.name)
+      into.append(entry)
+      appleItems.set(entry, item.id)
+      appleEntries.push(entry)
+      if (entries) {
+        const submenu = document.createElement('vf-menu')
+        submenu.slot = 'submenu'
+        entry.append(submenu)
+        build(entries, submenu)
+      }
+    }
+  }
   const syncAppleMenu = () => {
-    const want = catalog ? appleMenuItemsOf(catalog.get()) : []
-    const have = [...appleItems]
-    if (have.length === want.length && have.every(([, id], i) => id === want[i]!.id)) {
-      // The same items in the same order: a name may have changed, nothing else.
-      have.forEach(([entry], i) => {
-        if (entry.textContent !== want[i]!.name) entry.textContent = want[i]!.name
+    const tree = catalog ? appleMenuOf(catalog.get()) : []
+    const shape = shapeOf(tree)
+    if (shape === appleShape) {
+      // The same items in the same places: a name may have changed, nothing
+      // else. The label's text node is replaced, not edited, so the item
+      // hears it (its name follows its default slot).
+      flatten(tree).forEach((item, i) => {
+        const entry = appleEntries[i]!
+        if (entry.labelText !== item.name) entry.firstChild!.replaceWith(item.name)
       })
       return
     }
-    for (const [entry] of have) entry.remove()
+    for (const [entry] of appleItems) entry.remove()
     appleItems.clear()
-    for (const item of want) {
-      const entry = document.createElement('vf-menu-item')
-      entry.setAttribute('value', item.id)
-      entry.textContent = item.name
-      systemMenu.append(entry)
-      appleItems.set(entry, item.id)
-    }
+    appleEntries = []
+    appleShape = shape
+    build(tree, systemMenu)
   }
   const onSystemPick = (e: Event) => {
     const id = appleItems.get((e as CustomEvent<{ item: VfMenuItem }>).detail.item)

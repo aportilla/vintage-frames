@@ -8,9 +8,9 @@ import { ScaleController } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { DocumentListenersController } from '../document-listeners.js'
 import { MenuPressController } from '../menu-press.js'
+import { navigateMenus } from '../menu-navigation.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
 import type { VfMenu } from './vf-menu.js'
-import type { VfMenuItem } from './vf-menu-item.js'
 
 /**
  * `<vf-menu-bar>` — the System 7 menu bar: white strip, 1px black bottom
@@ -19,10 +19,12 @@ import type { VfMenuItem } from './vf-menu-item.js'
  *
  * Coordinates its menus: pressing a label opens that menu (and inverts the
  * label); while any menu is open, hovering another label switches to it;
- * Escape, an outside click, or item selection closes. ArrowLeft/ArrowRight
- * move between menus while one is open; ArrowDown/ArrowUp move focus through
- * the open menu's items, Home/End jump to its first/last, and typed letters
- * run the shared Finder first-letter type-ahead (src/type-ahead.ts).
+ * Escape, an outside click, or item selection closes. While a menu is open
+ * the keyboard is src/menu-navigation.ts's: ArrowDown/ArrowUp move focus
+ * through the open menu's items, Home/End jump to its first/last, typed
+ * letters run the shared Finder first-letter type-ahead (src/type-ahead.ts),
+ * ArrowRight opens an item's submenu and ArrowLeft closes it, and at the top
+ * level ArrowLeft/ArrowRight move between menus.
  *
  * The bar also owns the **press-drag-release** gesture (see src/menu-press.ts)
  * — press a title, slide onto a command, release over it — because one press
@@ -345,6 +347,7 @@ export class VfMenuBar extends VfPositioned(LitElement) {
     this.#typeAhead.reset()
     this.#syncMenus()
     this.#docListeners.attach()
+    this.#press.track(true)
   }
 
   #closeAll(): void {
@@ -352,6 +355,7 @@ export class VfMenuBar extends VfPositioned(LitElement) {
     this.#openMenu = null
     this.#typeAhead.reset()
     this.#docListeners.detach()
+    this.#press.track(false)
     // Keep the Tab stop on the last-active menu so re-tabbing lands there.
     this.#syncMenus()
   }
@@ -360,72 +364,24 @@ export class VfMenuBar extends VfPositioned(LitElement) {
     if (!event.composedPath().includes(this)) this.#closeAll()
   }
 
+  /**
+   * The open menu's keyboard and its submenus', src/menu-navigation.ts's.
+   * #onBarKeydown's arrows and Home/End only run while no menu is open.
+   */
   #onDocKeydown = (event: KeyboardEvent): void => {
-    if (event.defaultPrevented || !this.#openMenu) return
-    switch (event.key) {
-      case 'Escape': {
-        event.preventDefault()
-        this.#openMenu.focus()
+    const menu = this.#openMenu
+    if (!menu) return
+    navigateMenus(event, {
+      menu,
+      typeAhead: this.#typeAhead,
+      close: (refocus) => {
+        // Escape refocuses the title first, so the focused row the panel
+        // hides doesn't drop focus to <body>; Tab lets focus move on.
+        if (refocus) menu.focus()
         this.#closeAll()
-        break
-      }
-      case 'Tab': {
-        // Let focus move on; close without cancelling the tab, as vf-select
-        // does. The focusout listener is the belt for this suspender.
-        this.#closeAll()
-        break
-      }
-      case 'ArrowLeft':
-      case 'ArrowRight': {
-        event.preventDefault()
-        this.#switchMenu(event.key === 'ArrowRight' ? 1 : -1)
-        break
-      }
-      case 'ArrowDown':
-      case 'ArrowUp': {
-        event.preventDefault()
-        this.#moveItemFocus(event.key === 'ArrowDown' ? 1 : -1)
-        break
-      }
-      case 'Home':
-      case 'End': {
-        // Jump to the open menu's first/last enabled item — the same case the
-        // standalone menu's own handler has; #onBarKeydown's Home/End only
-        // runs while no menu is open.
-        event.preventDefault()
-        const items = this.#openMenu.items
-        items[event.key === 'Home' ? 0 : items.length - 1]?.focus()
-        break
-      }
-      default: {
-        // Printable keys run the shared Finder type-ahead over the open
-        // menu's items. Space stays out of the prefix — it is the focused
-        // item's activation key — and modified keys stay the consumer's.
-        if (
-          event.key.length !== 1 ||
-          event.key === ' ' ||
-          event.metaKey ||
-          event.ctrlKey ||
-          event.altKey
-        ) {
-          break
-        }
-        event.preventDefault()
-        const items = this.#openMenu.items
-        const current = items.indexOf(document.activeElement as VfMenuItem)
-        const index = this.#typeAhead.feed(
-          event.key,
-          current,
-          // Already the enabled rows only, so nothing here is disabled.
-          items.map((item) => ({
-            text: item.textContent ?? '',
-            disabled: false,
-          }))
-        )
-        items[index]?.focus()
-        break
-      }
-    }
+      },
+      switchMenu: (direction) => this.#switchMenu(direction),
+    })
   }
 
   /**
@@ -482,17 +438,6 @@ export class VfMenuBar extends VfPositioned(LitElement) {
     }
   }
 
-  /** Moves keyboard focus through the open menu's enabled items, wrapping. */
-  #moveItemFocus(direction: 1 | -1): void {
-    if (!this.#openMenu) return
-    const items = this.#openMenu.items
-    if (items.length === 0) return
-    const current = items.indexOf(document.activeElement as VfMenuItem)
-    let next: number
-    if (current < 0) next = direction === 1 ? 0 : items.length - 1
-    else next = (current + direction + items.length) % items.length
-    items[next]?.focus()
-  }
 }
 
 declare global {

@@ -26,6 +26,10 @@
  *    kind that claims it files it there.
  *  - ALERT: a Finder alert grows to its message, every line above its
  *    buttons.
+ *  - ALIASES, APPLE MENU: Make Alias makes an alias of a folder; a drop onto
+ *    it files into the original, and the original never goes into itself
+ *    through it. Filed in Apple Menu Items, it is a submenu of the folder,
+ *    and a pick in the submenu opens the item.
  *  - FIRST RENDER (a fixture): a shell started before the desktop's first
  *    render places the icons below the menu bar, storage or none, and its
  *    seed reads the work area below it. STORAGE: without storage,
@@ -431,6 +435,80 @@ const overlapping = (icons) =>
   })
   check('ALERT  a five-line message ends above the alert’s buttons', box.lines >= 5 && box.text <= box.buttons, JSON.stringify(box))
   await answer(s, 'OK')
+  await page.close()
+}
+
+// ── ALIASES, APPLE MENU ─────────────────────────────────────────────────────
+{
+  const page = await openShell(browser)
+  const s = shellOn(page)
+  const docs = await s.icon('Documents')
+  await page.mouse.click(docs.x, docs.y)
+  await s.settle()
+  await s.pick('File', 'make-alias')
+  await page.waitForFunction(() => window.shell.catalog.get().items.some((i) => i.name === 'Documents alias'))
+  await s.settle()
+  const alias = await s.item('Documents alias')
+  const docsId = (await s.item('Documents')).id
+  check(
+    'ALIASES  Make Alias makes an alias of a folder, recording its kind',
+    alias?.kind === 'alias' && alias.data?.original === docsId && alias.data?.kind === 'folder',
+    JSON.stringify(alias)
+  )
+
+  await carry(s, 'Note Pad', await s.icon('Documents alias'), { hold: true })
+  const lit = (await s.iconState('Documents alias')).target
+  await page.mouse.up()
+  await s.settle()
+  check(
+    'ALIASES  a drop onto a folder alias files into its original',
+    lit && (await s.item('Note Pad')).parent === docsId,
+    JSON.stringify(await s.item('Note Pad'))
+  )
+  await carry(s, 'Documents', await s.icon('Documents alias'))
+  await s.settle()
+  check('ALIASES  …and the folder never goes into itself through it', (await s.item('Documents')).parent === null)
+
+  await page.evaluate(async () => {
+    const c = window.shell.catalog
+    await c.move([c.get().items.find((i) => i.name === 'Documents alias').id], 'apple-menu-items')
+  })
+  await s.settle()
+  /** The centre of the Apple menu's row labelled `label`, in the submenu `under` names (none: the menu itself). */
+  const row = (label, under) =>
+    page.evaluate(
+      ([l, u]) => {
+        const apple = document.querySelector('vf-menu-bar > vf-menu')
+        const menu = u ? [...apple.querySelectorAll('vf-menu-item')].find((i) => i.labelText === u).submenu : apple
+        const item = [...menu.children].find((i) => i.localName === 'vf-menu-item' && i.labelText === l)
+        const r = item.getBoundingClientRect()
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+      },
+      [label, under]
+    )
+  const title = await page.evaluate(() => {
+    const r = document.querySelector('vf-menu-bar > vf-menu').labelRect
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  await page.mouse.move(title.x, title.y)
+  await page.mouse.down()
+  const entry = await row('Documents alias')
+  // Straight down into the panel first: a slide across the bar onto another
+  // title would switch menus, as it should.
+  await page.mouse.move(title.x, entry.y, { steps: 4 })
+  await page.mouse.move(entry.x, entry.y, { steps: 2 })
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('vf-menu-bar vf-menu[slot=submenu]')].some((m) => m.open)
+  )
+  const inside = await row('Note Pad', 'Documents alias')
+  await page.mouse.move(inside.x, inside.y, { steps: 4 })
+  await page.mouse.up()
+  await page.waitForFunction(() => window.shell.windows.front === 'note-pad').catch(() => {})
+  check(
+    'APPLE MENU  filed in Apple Menu Items, a folder alias is a submenu; a pick there opens the item',
+    (await s.front()) === 'note-pad',
+    `front ${await s.front()}`
+  )
   await page.close()
 }
 

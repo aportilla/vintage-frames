@@ -3,12 +3,13 @@ import { property, state } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { vfBase, vfDisplay } from '../styles/base.js'
-import { CHECKMARK, glyphSvg } from '../glyphs.js'
+import { CARET_RIGHT, CHECKMARK, glyphSvg } from '../glyphs.js'
 import { VfPositioned } from '../position.js'
 import { ScaleController } from '../scale.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { releaseAfterGesture } from '../document-listeners.js'
 import { deferActivation, emit } from '../events.js'
+import type { VfMenu } from './vf-menu.js'
 
 /** The Mac modifier glyphs, in the order System 7 printed them.
  *
@@ -105,6 +106,11 @@ function matchesKeydown(event: KeyboardEvent, shortcut: string): boolean {
  * 3-blink inversion (~250ms), then dispatches `vf-menu-select` and asks its
  * ancestors to close the menu.
  *
+ * A `<vf-menu>` in the `submenu` slot makes the item open a submenu: it ends
+ * in ▶ where a shortcut would go, and choosing it opens the submenu beside
+ * it rather than firing `vf-menu-select`. The item stays highlighted while
+ * its submenu is open.
+ *
  * Takes `top`/`left` like every other element ({@link VfPositioned}), for the
  * consumer who wants a row somewhere other than a pulldown. Inside its parent
  * `<vf-menu>` the panel is as wide as its widest row and stacks them in flow,
@@ -113,10 +119,12 @@ function matchesKeydown(event: KeyboardEvent, shortcut: string): boolean {
  * it says — but not how a pulldown is laid out.
  *
  * @slot - The item label.
+ * @slot submenu - A `vf-menu`, the submenu the item opens.
  * @csspart item - The row container.
  * @csspart check - The ✓ checkmark glyph (rendered when `checked`).
  * @csspart label - The label wrapper around the default slot.
  * @csspart shortcut - The shortcut text, left-aligned in the shared column.
+ * @csspart arrow - The ▶ of an item that opens a submenu.
  * @fires vf-menu-select - After the blink completes. `detail: { value, item }`.
  *   Named for the menu rather than plain `vf-select`, which would collide with
  *   the `<vf-select>` popup on any delegated ancestor listener (that component
@@ -227,15 +235,46 @@ export class VfMenuItem extends VfPositioned(LitElement) {
       .item.has-shortcut {
         padding-right: calc(var(--vf-scale, 1) * 1px);
       }
+      /* An item that opens a submenu ends in ▶ where a shortcut would go: 8px
+         in from the row's end, as in Menus.png's submenu rows and a System 7.5
+         capture alike, and 2 rows down the 16px row (centered, the odd row
+         below). The 8px before it is the label↔▶ minimum, as the shortcut's
+         is, and only binds in the row that sets the panel's width. */
+      .item.has-submenu {
+        padding-right: calc(var(--vf-scale, 1) * 8px);
+      }
+      .arrow {
+        flex: none;
+        align-self: flex-start;
+        display: block;
+        margin: calc(var(--vf-scale, 1) * 2px) 0 0 calc(var(--vf-scale, 1) * 8px);
+      }
+      .arrow svg {
+        display: block;
+        width: calc(var(--vf-scale, 1) * 6px);
+        height: calc(var(--vf-scale, 1) * 11px);
+      }
+      /* What the submenu hangs from: a box as wide as the row at the row's
+         top, which the submenu's panel places itself against (vf-menu). Out
+         of flow, so the submenu never adds to its parent panel's width. */
+      .submenu {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+      }
       :host([disabled]) .item {
         color: var(--vf-disabled, #c0c0c0);
       }
-      /* Highlight = full-width inversion (hover, the press-drag's [active],
-         keyboard focus, blink "on"). blink-on is scoped to the enabled host
-         like its siblings: an item disabled mid-blink has its timer cancelled
-         (see updated()), and this keeps it from flashing even for the frame
-         before that lands. */
-      :host(:not([disabled])) .item:hover,
+      /* Highlight = full-width inversion (the menu's [active], keyboard
+         focus, blink "on"; hover only for a row outside a menu). Inside a
+         menu the pointer's row is the menu's to say, since the item whose
+         submenu is open stays lit while the pointer is in the submenu, and
+         :hover would light a second row. blink-on is scoped to the enabled
+         host like its siblings: an item disabled mid-blink has its timer
+         cancelled (see updated()), and this keeps it from flashing even for
+         the frame before that lands. */
+      :host(:not([disabled])) .item:not(.in-menu):hover,
       :host(:not([disabled])[active]) .item,
       :host(:not([disabled]):focus) .item,
       :host(:not([disabled])) .item.blink-on {
@@ -275,12 +314,20 @@ export class VfMenuItem extends VfPositioned(LitElement) {
   @property({ type: Boolean, reflect: true }) checked = false
 
   /**
-   * Transient highlight — the full-row inversion the press-drag gesture paints
-   * on the row under the pointer (`:hover` can't: under touch the pointer is
-   * captured by the title the press started on). Managed by the menu, mirroring
-   * `vf-option[active]`; not part of the authoring API.
+   * Transient highlight — the full-row inversion on the row under the pointer
+   * while its menu is open, button down or not (`:hover` can't: under touch
+   * the pointer is captured by the title the press started on), or on the
+   * item whose submenu is open while the pointer is elsewhere. Managed by the
+   * menu, mirroring `vf-option[active]`; not part of the authoring API.
    */
   @property({ type: Boolean, reflect: true }) active = false
+
+  /**
+   * Whether this item's submenu is open. Reflected, and announced as
+   * `aria-expanded`. Managed by the menu ({@link VfMenu.expand}), like
+   * {@link active}; not part of the authoring API.
+   */
+  @property({ type: Boolean, reflect: true }) expanded = false
 
   /**
    * Declares the item a *checkable* toggle up front, so it carries
@@ -310,12 +357,40 @@ export class VfMenuItem extends VfPositioned(LitElement) {
 
   /**
    * Value reported in the `vf-menu-select` event detail. Defaults to the item's
-   * trimmed text content when unset.
+   * {@link labelText} when unset.
    */
   @property() value?: string
 
   /** `'on' | 'off'` while the selection blink runs, otherwise `null`. */
   @state() private _blinkPhase: 'on' | 'off' | null = null
+
+  /** Whether a `vf-menu` sits in the `submenu` slot. */
+  @state() private _hasSubmenu = false
+
+  /** The submenu this item opens: the `vf-menu` in its `submenu` slot, or null. */
+  get submenu(): VfMenu | null {
+    for (const el of this.children) {
+      if (el.localName === 'vf-menu' && el.slot === 'submenu') return el as VfMenu
+    }
+    return null
+  }
+
+  /**
+   * The item's label as text: what its default slot holds, trimmed, without
+   * the rows of a submenu. The default {@link value} and the menus'
+   * type-ahead read it, and it names an item that opens a submenu.
+   */
+  get labelText(): string {
+    let text = ''
+    for (const node of this.childNodes) {
+      if (node instanceof Element) {
+        if (!node.slot) text += node.textContent ?? ''
+      } else if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent ?? ''
+      }
+    }
+    return text.trim()
+  }
 
   #blinkHandle: BlinkHandle | undefined
   #blinking = false
@@ -380,11 +455,16 @@ export class VfMenuItem extends VfPositioned(LitElement) {
 
   override connectedCallback(): void {
     super.connectedCallback()
+    this._hasSubmenu = this.submenu !== null
     // Re-derived (not blindly reset) so re-parenting a checkable item keeps its
     // menuitemcheckbox role and aria-checked — updated() does not re-fire on a
     // reconnect, so an unconditional write here stranded it as a plain command.
     this.#syncRole()
     this.#syncKeyshortcuts()
+    this.#syncSubmenu()
+    // Whether the row is in a menu decides its hover rule, and a reconnect
+    // alone schedules no render.
+    this.requestUpdate()
     if (!this.hasAttribute('tabindex')) this.tabIndex = -1
     // The key-equivalent ear: always attached while connected, gated live in
     // the handler (the `shortcuts` grant and the shortcut itself may both
@@ -408,16 +488,40 @@ export class VfMenuItem extends VfPositioned(LitElement) {
     }
     if (changed.has('checked') && this.checked) this.#everChecked = true
     if (changed.has('checked') || changed.has('checkable')) this.#syncRole()
-    if (changed.has('shortcut')) this.#syncKeyshortcuts()
+    if (changed.has('shortcut') || changed.has('_hasSubmenu')) this.#syncKeyshortcuts()
+    if (changed.has('expanded') || changed.has('_hasSubmenu')) this.#syncSubmenu()
   }
 
   /**
    * Mirrors {@link shortcut} as the host's `aria-keyshortcuts`, normalised from
    * the Mac display glyphs to the ARIA grammar ("⌘⇧S" → "Meta+Shift+S"). A
    * consumer's own attribute overrides this the way it overrides the role.
+   * An item that opens a submenu has ▶ where the shortcut would be, and no key.
    */
   #syncKeyshortcuts(): void {
-    this.#internals.ariaKeyShortcuts = toAriaKeyshortcuts(this.shortcut) || null
+    this.#internals.ariaKeyShortcuts = (!this._hasSubmenu && toAriaKeyshortcuts(this.shortcut)) || null
+  }
+
+  /**
+   * An item that opens a submenu says so (`aria-haspopup`, `aria-expanded`)
+   * and is named by its label alone: a name computed from its content would
+   * take in the open submenu's rows.
+   */
+  #syncSubmenu = (): void => {
+    const opens = this._hasSubmenu
+    this.#internals.ariaHasPopup = opens ? 'menu' : null
+    this.#internals.ariaExpanded = opens ? String(this.expanded) : null
+    this.#internals.ariaLabel = (opens && this.labelText) || null
+  }
+
+  #onSubmenuSlotChange = (): void => {
+    this._hasSubmenu = this.submenu !== null
+  }
+
+  /** Whether `event` came from inside this item's submenu, so belongs to a row there. */
+  #fromSubmenu(event: Event): boolean {
+    const submenu = this.submenu
+    return submenu !== null && event.composedPath().includes(submenu)
   }
 
   /**
@@ -436,9 +540,12 @@ export class VfMenuItem extends VfPositioned(LitElement) {
   }
 
   protected override render() {
+    const opens = this._hasSubmenu
     const classes = {
       item: true,
-      'has-shortcut': this.shortcut !== '',
+      'in-menu': this.closest('vf-menu') !== null,
+      'has-shortcut': !opens && this.shortcut !== '',
+      'has-submenu': opens,
       'blink-on': this._blinkPhase === 'on',
       'blink-off': this._blinkPhase === 'off',
     }
@@ -449,17 +556,25 @@ export class VfMenuItem extends VfPositioned(LitElement) {
               >${glyphSvg(CHECKMARK, 'checkmark')}</span
             >`
           : nothing}
-        <span class="label" part="label"><slot></slot></span>
-        ${this.shortcut
-          ? html`<span class="shortcut" part="shortcut" aria-hidden="true"
-              >${this.shortcut}</span
+        <span class="label" part="label"><slot @slotchange=${this.#syncSubmenu}></slot></span>
+        ${opens
+          ? html`<span class="arrow" part="arrow" aria-hidden="true"
+              >${glyphSvg(CARET_RIGHT, 'caret')}</span
             >`
-          : nothing}
+          : this.shortcut
+            ? html`<span class="shortcut" part="shortcut" aria-hidden="true"
+                >${this.shortcut}</span
+              >`
+            : nothing}
+        <div class="submenu">
+          <slot name="submenu" @slotchange=${this.#onSubmenuSlotChange}></slot>
+        </div>
       </div>
     `
   }
 
-  #onPointerDown(): void {
+  #onPointerDown(event: PointerEvent): void {
+    if (this.#fromSubmenu(event)) return
     this.#swallowClick = this.closest('vf-menu') !== null
     if (this.#swallowClick) {
       releaseAfterGesture(() => {
@@ -473,8 +588,11 @@ export class VfMenuItem extends VfPositioned(LitElement) {
    * resolved this click — but the activation itself defers to the end of the
    * path, so `preventDefault()` on the item (or above it) cancels the command
    * the way it cancels a native control's. See {@link deferActivation}.
+   * A click on a row of this item's submenu bubbles through here, and is
+   * that row's alone.
    */
   #onClick(event: MouseEvent): void {
+    if (this.#fromSubmenu(event)) return
     if (this.#swallowClick) {
       this.#swallowClick = false
       return
@@ -483,6 +601,7 @@ export class VfMenuItem extends VfPositioned(LitElement) {
   }
 
   #onKeydown(event: KeyboardEvent): void {
+    if (this.#fromSubmenu(event)) return
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       event.stopPropagation()
@@ -517,7 +636,7 @@ export class VfMenuItem extends VfPositioned(LitElement) {
    */
   #onDocKeydown = (event: KeyboardEvent): void => {
     if (event.defaultPrevented || event.isComposing) return
-    if (this.disabled || !this.shortcut) return
+    if (this.disabled || !this.shortcut || this._hasSubmenu) return
     if (!this.closest('vf-menu[shortcuts], vf-menu-bar[shortcuts]')) return
     if (!matchesKeydown(event, this.shortcut)) return
     event.preventDefault()
@@ -533,9 +652,16 @@ export class VfMenuItem extends VfPositioned(LitElement) {
    * over, which the row's own `click` never sees (a press that started on the
    * title dispatches its click above both of them). No-op while disabled or
    * already blinking.
+   *
+   * An item that opens a submenu is never chosen: it opens the submenu and
+   * moves focus to its first enabled item, as Enter, Space and → do.
    */
   activate(): void {
     if (this.disabled || this.#blinking) return
+    if (this._hasSubmenu) {
+      this.closest('vf-menu')?.expand(this, { focus: true })
+      return
+    }
     this.#blinking = true
     // Shared primitive owns the timing + reduced-motion short-circuit; under
     // reduced motion it runs `onDone` synchronously (no blink), clearing the
@@ -567,7 +693,7 @@ export class VfMenuItem extends VfPositioned(LitElement) {
   }
 
   #dispatchSelect(): void {
-    const value = this.value ?? (this.textContent ?? '').trim()
+    const value = this.value ?? this.labelText
     emit(this, 'vf-menu-select', { value, item: this })
     // Internal coordination event: `vf-menu` / `vf-menu-bar` listen and close.
     // Skipped when the ancestor menu is CLOSED — a key equivalent activates

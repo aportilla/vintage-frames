@@ -7,7 +7,7 @@
  * Every check drives real mouse input (CDP `mouse.down`/`move`/`up`), because
  * the whole point is what happens *between* a press and its release: a
  * `.click()` can't express a drag, and the two interaction styles are
- * disambiguated by exactly that. Six groups:
+ * disambiguated by exactly that. Seven groups:
  *
  *  - DRAG: a press that travels onto a row picks it, and only it.
  *  - TRACK: the row under the pointer inverts as the drag passes over it
@@ -20,6 +20,11 @@
  *  - BAR: one press walks the bar — sliding sideways onto another title
  *    switches menus mid-gesture, and the row released over there is the one
  *    that runs.
+ *  - SUBMENU: the held pointer resting on an item opens its submenu, the item
+ *    stays lit while the pointer is in it, and the row released over there
+ *    runs; a release on the item itself runs nothing and leaves every menu
+ *    dropped, and clicks carry on from there, a level deeper too. These wait
+ *    on state, never on the delays.
  *  - ONCE: exactly one `vf-menu-select` per pick, including under
  *    `prefers-reduced-motion` (where activation completes synchronously, so the
  *    blink guard is already down when the trailing `click` lands — the case the
@@ -43,6 +48,19 @@ const MARKUP = `
     <vf-menu id="edit" label="Edit">
       <vf-menu-item id="undo" value="undo" shortcut="⌘Z">Undo</vf-menu-item>
       <vf-menu-item id="copy" value="copy" shortcut="⌘C">Copy</vf-menu-item>
+    </vf-menu>
+    <vf-menu id="go" label="Go">
+      <vf-menu-item id="back" value="back">Back</vf-menu-item>
+      <vf-menu-item id="places">Places
+        <vf-menu slot="submenu" id="places-menu">
+          <vf-menu-item id="home" value="home">Home</vf-menu-item>
+          <vf-menu-item id="work">Work
+            <vf-menu slot="submenu" id="work-menu">
+              <vf-menu-item id="desk" value="desk">Desk</vf-menu-item>
+            </vf-menu>
+          </vf-menu-item>
+        </vf-menu>
+      </vf-menu-item>
     </vf-menu>
   </vf-menu-bar>
   <div style="margin-top:200px">
@@ -289,6 +307,68 @@ await reset(page)
     JSON.stringify(await log(page)) === '["copy"]',
     `log=${JSON.stringify(await log(page))}`
   )
+}
+
+// ── SUBMENU ─────────────────────────────────────────────────────────────────
+/** Wait for the menu `id` to open: the delays are the menu's to keep, not ours to sleep through. */
+const opened = (p, id) => p.waitForFunction((i) => document.getElementById(i).open, id)
+const picked = (p) => p.waitForFunction(() => window.__log.length > 0)
+const allClosed = (p) =>
+  p.waitForFunction(() => ![...document.querySelectorAll('vf-menu')].some((m) => m.open))
+
+await reset(page)
+{
+  const go = await centre(page, '#go')
+  await page.mouse.move(go.x, go.y)
+  await page.mouse.down()
+  const places = await centre(page, '#places')
+  await page.mouse.move(places.x, places.y)
+  await opened(page, 'places-menu')
+  check(
+    'the held pointer resting on an item opens its submenu',
+    JSON.stringify(await openMenus(page)) === '["go","places-menu"]',
+    `open=${JSON.stringify(await openMenus(page))}`
+  )
+  const home = await centre(page, '#home')
+  await page.mouse.move(home.x, home.y)
+  check(
+    '…the item stays lit while the pointer is in the submenu',
+    JSON.stringify(await activeRows(page)) === '["places","home"]',
+    `active=${JSON.stringify(await activeRows(page))}`
+  )
+  await page.mouse.up()
+  await picked(page)
+  check(
+    '…and the row released over in the submenu runs',
+    JSON.stringify(await log(page)) === '["home"]',
+    `log=${JSON.stringify(await log(page))}`
+  )
+  await allClosed(page)
+  check('…and every menu closes', (await openMenus(page)).length === 0)
+}
+
+await reset(page)
+await pressDrag(page, '#go', ['#places'])
+await opened(page, 'places-menu')
+check(
+  'a release on the item itself runs nothing and leaves every menu dropped',
+  (await log(page)).length === 0 &&
+    JSON.stringify(await openMenus(page)) === '["go","places-menu"]',
+  `log=${JSON.stringify(await log(page))} open=${JSON.stringify(await openMenus(page))}`
+)
+{
+  const work = await centre(page, '#work')
+  await page.mouse.click(work.x, work.y)
+  await opened(page, 'work-menu')
+  const desk = await centre(page, '#desk')
+  await page.mouse.click(desk.x, desk.y)
+  await picked(page)
+  check(
+    '…and clicks carry on from there, a level deeper too',
+    JSON.stringify(await log(page)) === '["desk"]',
+    `log=${JSON.stringify(await log(page))}`
+  )
+  await allClosed(page)
 }
 
 // ── ONCE ────────────────────────────────────────────────────────────────────

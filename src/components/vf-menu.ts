@@ -7,7 +7,7 @@ import {
 } from 'lit/decorators.js'
 import { vfElement } from '../define.js'
 import { vfBase, vfDisplay, vfFocusUnderline, vfPanel } from '../styles/base.js'
-import { ScaleController } from '../scale.js'
+import { ScaleController, sys } from '../scale.js'
 import { GridSnapController } from '../grid-snap.js'
 import { VfPositioned } from '../position.js'
 import {
@@ -16,6 +16,7 @@ import {
 } from '../document-listeners.js'
 import { FocusRuleController } from '../focus-modality.js'
 import { MenuPressController } from '../menu-press.js'
+import { navigateMenus } from '../menu-navigation.js'
 import { runSelectionBlink, type BlinkHandle } from '../motion.js'
 import { TypeAheadBuffer } from '../type-ahead.js'
 import { deferActivation, emit } from '../events.js'
@@ -23,6 +24,28 @@ import type { VfMenuItem } from './vf-menu-item.js'
 
 /** The elements a title of art is made of; anything else in the `label` slot is text. */
 const ART_TITLE = new Set(['vf-img', 'img', 'svg', 'picture', 'canvas'])
+
+/**
+ * The box a submenu has to fit in, in viewport px: the closest `vf-desktop`'s
+ * screen below its menu bar, within the viewport, or the viewport alone. The
+ * screen is the desktop's `.screen`, the element that clips what it holds.
+ */
+function screenOf(el: Element): { left: number; top: number; right: number; bottom: number } {
+  const view = document.documentElement
+  let left = 0
+  let top = 0
+  let right = view.clientWidth
+  let bottom = view.clientHeight
+  const desktop = el.closest('vf-desktop')
+  if (desktop) {
+    const screen = (desktop.shadowRoot?.querySelector('.screen') ?? desktop).getBoundingClientRect()
+    left = Math.max(left, screen.left)
+    top = Math.max(top, screen.top + sys(desktop.workArea.top, el))
+    right = Math.min(right, screen.right)
+    bottom = Math.min(bottom, screen.bottom)
+  }
+  return { left, top, right, bottom }
+}
 
 /**
  * `<vf-menu>` — a pull-down menu: a bar label plus a dropped panel of
@@ -39,6 +62,16 @@ const ART_TITLE = new Set(['vf-img', 'img', 'svg', 'picture', 'canvas'])
  * src/menu-press.ts): the System 7 press-drag-release (press the title, slide
  * onto a command, release over it) and a modern quick tap that leaves the menu
  * dropped for a second click.
+ *
+ * A `vf-menu` in a `vf-menu-item`'s `submenu` slot is a **submenu**: no title,
+ * only its panel, opened beside its item by the menu holding the item
+ * ({@link expand}). The pointer resting on the item opens it in either style,
+ * and so do a click or tap on the item, →, Enter and Space. It overlaps its
+ * parent as System 7.5's did: its first row level with its item, its frame
+ * 5px inside the parent's right edge, covering the parent's frame and
+ * shadow. It opens on the side its parent opened toward, the right first,
+ * flips where that side has no room, and moves up to fit the screen. Menus
+ * nest to any depth.
  *
  * Takes `top`/`left` like every other element ({@link VfPositioned}) — the
  * natural fit being a standalone menu, which is a free-standing menu button and
@@ -212,6 +245,29 @@ export class VfMenu extends VfPositioned(LitElement) {
       :host(:not([open])) .panel {
         display: none;
       }
+      /* A submenu: the host is a box as wide as its item's row at the row's
+         top (vf-menu-item's .submenu), and the panel hangs from it the way
+         System 7.5's did (traced from a 3× Infinite Mac capture): its top
+         frame the row above the item's, so its first row is level with the
+         item, and its left frame 5px left of the parent's right frame, which
+         is the row's right edge. It covers the parent's last 4px, its frame
+         and its shadow. Flipped (.left), the same in mirror: its right frame
+         5px right of the parent's left frame, a px left of the row. --_lift
+         is the whole system px #place() raises it by to fit the screen. */
+      :host([slot='submenu']) {
+        display: block;
+      }
+      :host([slot='submenu']) .panel {
+        min-width: 0;
+        top: calc(
+          var(--vf-scale, 1) * (-1px - var(--_lift, 0) * 1px) + var(--vf-snap-dy, 0px)
+        );
+        left: calc(100% - var(--vf-scale, 1) * 5px + var(--vf-snap-dx, 0px));
+      }
+      :host([slot='submenu']) .panel.left {
+        left: auto;
+        right: calc(100% - var(--vf-scale, 1) * 5px - var(--vf-snap-dx, 0px));
+      }
       /* A divider is an ITEM: the MDEF gave "-" a full row, so a separator
          spends one whole --vf-menu-row-height, not a thin rule with token
          margins — Menus.png's File pulldown runs a 32px ink pitch across
@@ -328,6 +384,118 @@ export class VfMenu extends VfPositioned(LitElement) {
     return this.closest('vf-menu-bar') !== null
   }
 
+  /** Whether this menu is a submenu: in a `vf-menu-item`'s `submenu` slot. */
+  get #isSubmenu(): boolean {
+    return this.slot === 'submenu' && this.parentElement?.localName === 'vf-menu-item'
+  }
+
+  @query('.panel') private _panelEl!: HTMLElement | null
+
+  /**
+   * Viewport rect of the dropped panel, or `null` while closed. The press
+   * gesture hit-tests the open menus by their panels, deepest first.
+   */
+  get panelRect(): DOMRect | null {
+    return this.open ? (this._panelEl?.getBoundingClientRect() ?? null) : null
+  }
+
+  /** The item whose submenu is open. */
+  #expanded: VfMenuItem | null = null
+
+  /** Where the pointer is: on a row, on none of this panel (null), or not in it (undefined). */
+  #pointer: VfMenuItem | null | undefined = undefined
+
+  /** The side this menu opened toward, which its own submenus open toward first. */
+  #side: 'left' | 'right' = 'right'
+
+  /** The item in this menu whose submenu is open, or `null`. */
+  get expandedItem(): VfMenuItem | null {
+    return this.#expanded
+  }
+
+  /**
+   * Opens `item`'s submenu, closing the one open in this menu and everything
+   * under it; `null` closes it. With `focus`, keyboard focus goes on to the
+   * submenu's first enabled item. The press gesture, the keyboard and an
+   * item's `activate()` all open submenus through here. Does nothing while
+   * this menu is closed, or for a disabled item or one without a submenu.
+   */
+  expand(item: VfMenuItem | null, options: { focus?: boolean } = {}): void {
+    if (item && (!this.open || item.disabled || !item.submenu || !this.allItems.includes(item))) {
+      return
+    }
+    if (item !== this.#expanded) {
+      const prev = this.#expanded
+      this.#expanded = item
+      if (prev) {
+        const sub = prev.submenu
+        // Closing hides a focused row in it, which would drop focus to
+        // <body>: it goes back to the item first.
+        const root = this.getRootNode() as Document | ShadowRoot
+        if (sub && root.activeElement && sub.contains(root.activeElement)) prev.focus()
+        prev.expanded = false
+        if (sub) sub.open = false
+      }
+      if (item) {
+        item.expanded = true
+        item.submenu!.open = true
+      }
+      this.#paintRows()
+    }
+    if (item && options.focus) void item.submenu!.#focusFirstItem()
+  }
+
+  /**
+   * Where the pointer is, from the press gesture: on `row` of this menu's
+   * panel, on none of its rows (`null`), or not in its panel (`undefined`).
+   * The row under the pointer is highlighted; with the pointer elsewhere, the
+   * item whose submenu is open is. Not part of the authoring API.
+   */
+  pointerOver(row: VfMenuItem | null | undefined): void {
+    if (row === this.#pointer) return
+    this.#pointer = row
+    this.#paintRows()
+  }
+
+  /** Lights the one row this menu highlights: the pointer's, else the open submenu's item. */
+  #paintRows(): void {
+    const lit = this.#pointer !== undefined ? this.#pointer : this.#expanded
+    for (const item of this.allItems) item.active = item === lit && !item.disabled
+  }
+
+  /**
+   * Places a submenu just opened: on the side its parent opened toward,
+   * flipped where that side has no room and the other has, and raised by
+   * whole system px to fit above the screen's bottom, never past its top.
+   * Written onto the panel directly, before the frame paints.
+   */
+  #place(): void {
+    const item = this.parentElement as VfMenuItem | null
+    const panel = this._panelEl
+    if (!item || !panel) return
+    const row = item.getBoundingClientRect()
+    const box = panel.getBoundingClientRect()
+    const screen = screenOf(this)
+    const px = sys(1, this)
+    // Right: the frame 5px inside the row's right edge, the shadow 1px past
+    // the panel. Left: the frame's right edge 5px inside the row's left edge.
+    const fitsRight = row.right - 5 * px + box.width + px <= screen.right + 0.5
+    const fitsLeft = row.left + 5 * px - box.width >= screen.left - 0.5
+    const parent = item.closest('vf-menu')
+    let side = parent ? parent.#side : 'right'
+    if (side === 'right' && !fitsRight && fitsLeft) side = 'left'
+    else if (side === 'left' && !fitsLeft && fitsRight) side = 'right'
+    // The top frame is the row above the item's; the shadow 1px below the panel.
+    const top = row.top - px
+    const over = top + box.height + px - screen.bottom
+    const room = Math.floor((top - screen.top) / px + 0.01)
+    const lift = Math.max(0, Math.min(Math.ceil(over / px - 0.01), room))
+    this.#side = side
+    panel.classList.toggle('left', side === 'left')
+    if (lift > 0) panel.style.setProperty('--_lift', String(lift))
+    else panel.style.removeProperty('--_lift')
+  }
+
   /**
    * ARIA goes through internals, never `setAttribute` on the host: internals
    * values are *defaults*, so a consumer's own `role`/`aria-*` on the tag wins
@@ -350,6 +518,9 @@ export class VfMenu extends VfPositioned(LitElement) {
   #swallowClick = false
 
   #onCloseRequest = (): void => {
+    // A pick in a submenu closes every menu: the request goes on up to the
+    // top menu, or the bar, which closes them all.
+    if (this.#isSubmenu) return
     // Closing hides the focused slotted item, which would drop focus to
     // <body> — return it to the bar label first, exactly what VfMenuBar's own
     // close-request handler does for its menus. In a bar, the bar's handler
@@ -371,7 +542,8 @@ export class VfMenu extends VfPositioned(LitElement) {
    * panel already shows the blink, and the title is inverted the whole time.
    */
   #onFlashRequest = (): void => {
-    if (this.open) return
+    // A submenu has no title: the request goes on up to the top menu's.
+    if (this.open || this.#isSubmenu) return
     this.#cancelFlash()
     this.#flashHandle = runSelectionBlink(
       (on) => {
@@ -395,73 +567,19 @@ export class VfMenu extends VfPositioned(LitElement) {
     if (!event.composedPath().includes(this)) this.open = false
   }
 
-  // Attached only when standalone (a parent vf-menu-bar handles these itself).
+  // Attached only when standalone (a parent vf-menu-bar handles these itself):
+  // this menu's keyboard and its submenus', src/menu-navigation.ts.
   #onDocKeydown = (event: KeyboardEvent): void => {
-    if (event.defaultPrevented) return
-    switch (event.key) {
-      case 'Escape':
-        event.preventDefault()
+    navigateMenus(event, {
+      menu: this,
+      typeAhead: this.#typeAhead,
+      close: (refocus) => {
+        // Escape refocuses the title first, so the focused row the panel
+        // hides doesn't drop focus to <body>; Tab lets focus move on.
+        if (refocus) this.focus()
         this.open = false
-        this.focus()
-        break
-      case 'Tab':
-        // Let focus move on; close without cancelling the tab, as vf-select
-        // does. The host focusout listener is the belt for this suspender.
-        this.open = false
-        break
-      case 'ArrowDown':
-      case 'ArrowUp':
-        event.preventDefault()
-        this.#moveItemFocus(event.key === 'ArrowDown' ? 1 : -1)
-        break
-      case 'Home':
-      case 'End': {
-        event.preventDefault()
-        const items = this.items
-        items[event.key === 'Home' ? 0 : items.length - 1]?.focus()
-        break
-      }
-      default: {
-        // Printable keys run the shared Finder type-ahead over the items, as
-        // the bar's handler does for its open menu. Space stays out of the
-        // prefix — it is the focused item's activation key — and modified
-        // keys stay the consumer's.
-        if (
-          event.key.length !== 1 ||
-          event.key === ' ' ||
-          event.metaKey ||
-          event.ctrlKey ||
-          event.altKey
-        ) {
-          break
-        }
-        event.preventDefault()
-        const items = this.items
-        const current = items.indexOf(document.activeElement as VfMenuItem)
-        const index = this.#typeAhead.feed(
-          event.key,
-          current,
-          // Already the enabled rows only, so nothing here is disabled.
-          items.map((item) => ({
-            text: item.textContent ?? '',
-            disabled: false,
-          }))
-        )
-        items[index]?.focus()
-        break
-      }
-    }
-  }
-
-  /** Moves keyboard focus through the enabled items, wrapping at the ends. */
-  #moveItemFocus(direction: 1 | -1): void {
-    const items = this.items
-    if (items.length === 0) return
-    const current = items.indexOf(document.activeElement as VfMenuItem)
-    let next: number
-    if (current < 0) next = direction === 1 ? 0 : items.length - 1
-    else next = (current + direction + items.length) % items.length
-    items[next]?.focus()
+      },
+    })
   }
 
   /** Outside dismissal + item keyboard nav while open standalone. */
@@ -486,11 +604,13 @@ export class VfMenu extends VfPositioned(LitElement) {
   /**
    * In a bar the host is `role="none"`: the `menubar`'s items are the shadow
    * `.label`s (`menuitem`), and while browsers do compute that ownership
-   * through a role-less generic, declaring it keeps the chain explicit.
-   * Standalone, the host stays role-less — the label is a `button` there.
+   * through a role-less generic, declaring it keeps the chain explicit. A
+   * submenu's host is `role="none"` too: its item is the `menuitem`, its
+   * panel the `menu`. Standalone, the host stays role-less — the label is a
+   * `button` there.
    */
   #syncRole(): void {
-    this.#internals.role = this.#inBar ? 'none' : null
+    this.#internals.role = this.#inBar || this.#isSubmenu ? 'none' : null
   }
 
   override disconnectedCallback(): void {
@@ -509,7 +629,7 @@ export class VfMenu extends VfPositioned(LitElement) {
    * the bar's own focusout listener coordinates instead.
    */
   #onHostFocusOut = (event: FocusEvent): void => {
-    if (!this.open || this.#inBar) return
+    if (!this.open || this.#inBar || this.#isSubmenu) return
     const next = event.relatedTarget
     if (next instanceof Node && (this.contains(next) || this.renderRoot.contains(next))) {
       return
@@ -522,16 +642,25 @@ export class VfMenu extends VfPositioned(LitElement) {
       // Opening mid-flash: the open inversion takes the label over; a timer
       // still flipping the flash class would blink it against that state.
       if (this.open) this.#cancelFlash()
-      // A parent vf-menu-bar owns document-level dismissal; only self-manage
-      // when standalone.
-      if (this.open && !this.#inBar) this.#docListeners.attach()
+      // A parent vf-menu-bar owns document-level dismissal and the pointer,
+      // and a submenu's top menu owns them for it; only self-manage when
+      // standalone.
+      const standalone = !this.#inBar && !this.#isSubmenu
+      if (this.open && standalone) this.#docListeners.attach()
       else this.#docListeners.detach()
-      // A drag leaves the row it picked inverted through the blink; drop the
-      // flag once the panel is gone, so a reopened menu never shows a stale
-      // highlight.
-      if (!this.open) for (const item of this.allItems) item.active = false
-      // A type-ahead prefix doesn't survive the panel it was typed into.
-      if (!this.open) this.#typeAhead.reset()
+      if (standalone) this.#press.track(this.open)
+      if (!this.open) {
+        // Closing closes the submenu open under it. A drag leaves the row it
+        // picked inverted through the blink; drop every highlight once the
+        // panel is gone, so a reopened menu never shows a stale one.
+        this.expand(null)
+        this.#pointer = undefined
+        this.#paintRows()
+        // A type-ahead prefix doesn't survive the panel it was typed into.
+        this.#typeAhead.reset()
+      } else if (this.#isSubmenu) {
+        this.#place()
+      }
     }
   }
 
@@ -547,7 +676,7 @@ export class VfMenu extends VfPositioned(LitElement) {
     // Registered on the host, not the title, so mousing into the dropped panel
     // drops it too. This half runs even inside a bar.
     this.#focusRule.suppress()
-    if (this.#inBar) return
+    if (this.#inBar || this.#isSubmenu) return
     this.#press.onPointerDown(event)
   }
 
@@ -572,6 +701,22 @@ export class VfMenu extends VfPositioned(LitElement) {
   }
 
   protected override render() {
+    // A submenu is its panel alone, hung from its item's row. #place() writes
+    // its side (the left class) and its lift straight onto the panel.
+    if (this.#isSubmenu) {
+      return html`
+        <div
+          class="panel vf-panel"
+          part="panel"
+          role="menu"
+          aria-label=${this.label ||
+          (this.parentElement as VfMenuItem | null)?.labelText ||
+          nothing}
+        >
+          <slot></slot>
+        </div>
+      `
+    }
     return html`
       <div
         class="label vf-snap ${this.#focusRule.marked

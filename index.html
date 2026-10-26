@@ -78,7 +78,9 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
             <code>active</code>. DOM order follows the stacking order, updated after
             the press ends. Utility windows float above document windows and always
             stay active. A <code>vf-menu-bar</code> or <code>vf-menu</code> inside
-            sits above both. A press on the bare desktop changes nothing. Call
+            sits above both, and <code>fullScreenWindow</code> puts one window
+            above everything, for a window that takes the whole screen. A press
+            on the bare desktop changes nothing. Call
             <code>clearActive()</code> to leave no document window active. Each
             change of active window fires <code>vf-activate</code>.
           </p>
@@ -178,6 +180,46 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
           <template
             data-example
             data-stage="desktop"
+            data-caption="Press Full Screen. The window drops its chrome with frameless, takes the screen's whole box, and goes on the full-screen tier with fullScreenWindow: over the menu bar and the other window, under the screen's rounded corners. Press it again to put it back."
+          >
+            <vf-desktop width="502" height="214" bezel="5">
+              <vf-menu-bar>
+                <vf-menu label="File">
+                  <vf-menu-item value="new" shortcut="⌘N">New Window</vf-menu-item>
+                </vf-menu>
+              </vf-menu-bar>
+              <vf-window closable heading="Behind" movable width="200" height="80" left="272" top="104">
+                <vf-stack fill-width pad="12">
+                  <vf-paragraph fill-width>Covered while the screen is taken.</vf-paragraph>
+                </vf-stack>
+              </vf-window>
+              <vf-window closable heading="Game" movable pattern="black" width="200" height="100" left="24" top="40">
+                <vf-button data-full-screen left="16" top="16">Full Screen</vf-button>
+              </vf-window>
+            </vf-desktop>
+            <script type="text/plain" data-script>
+              // The page takes the screen: no chrome, the screen's whole box, and the
+              // full-screen tier. Giving it back puts the tier, the chrome and the box back.
+              let box = null
+              fullScreenButton.addEventListener('click', () => {
+                if (!box) {
+                  box = { left: gameWindow.left, top: gameWindow.top, width: gameWindow.width, height: gameWindow.height }
+                  Object.assign(gameWindow, { frameless: true, left: 0, top: 0, width: desktop.width, height: desktop.height })
+                  desktop.bringToFront(gameWindow)
+                  desktop.fullScreenWindow = gameWindow
+                } else {
+                  desktop.fullScreenWindow = null
+                  Object.assign(gameWindow, { frameless: false, ...box })
+                  box = null
+                }
+                fullScreenButton.textContent = box ? 'Exit Full Screen' : 'Full Screen'
+              })
+            </script>
+          </template>
+
+          <template
+            data-example
+            data-stage="desktop"
             data-caption="pattern sets the desktop pattern by name. The default is the gray dither. --vf-desktop-pattern overrides the attribute."
           >
             <vf-desktop width="300" height="132" pattern="bricks">
@@ -205,6 +247,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td>Property</td><td><code>pattern</code></td><td class="wrap">A pattern name (default <code>gray-50</code>) or 16 hex digits for a custom 8×8 pattern. The names are listed under <a href="#vf-container"><code>vf-container</code></a>. An unknown value keeps the default. <code>--vf-desktop-pattern</code> overrides it</td></tr>
               <tr><td>Property</td><td><code>activeWindow</code></td><td class="wrap">Read-only. The active document window, or <code>null</code>. Never a utility window, and never a hidden one: hiding the active window passes it to the frontmost shown window</td></tr>
               <tr><td>Property</td><td><code>stackingOrder</code></td><td class="wrap">Read-only. The windows in stacking order, back to front, hidden ones included. DOM order catches up with it only after a press ends</td></tr>
+              <tr><td>Property</td><td><code>fullScreenWindow</code></td><td class="wrap">The window on the full-screen tier, or <code>null</code>. A window set here sits above everything, the menu bar included, under the screen's rounded corners; <code>null</code> puts it back where it stood. Size it to the screen and set its <code>frameless</code> yourself. Setting it activates nothing</td></tr>
               <tr><td>Property</td><td><code>workArea</code></td><td class="wrap">Read-only. <code>{ left, top, width, height }</code> in system px: the screen less a <code>vf-menu-bar</code> along its top. Windows dragged and icons dropped on the desktop stay below the bar</td></tr>
               <tr><td>Property</td><td><code>window-top</code></td><td class="wrap">The least <code>top</code> a window may take, in system px, for a strip of your own under the menu bar. Icons still stop at the bar. <code>windowArea</code> reads the deepened area. Property: <code>windowTop</code></td></tr>
               <tr><td>Method</td><td><code>fitWithin(w,&nbsp;h)</code></td><td class="wrap">Sets and returns the largest size that fits in <code>w</code> × <code>h</code> CSS px, bezel included. Call it on <code>resize</code> and <code>onScaleChange</code> to fill the viewport</td></tr>
@@ -458,6 +501,7 @@ import 'vintage-frames/vf-checkbox.js'</code></pre>
               <tr><td><code>min-width</code>, <code>min-height</code></td><td>number</td><td><code>80</code>, <code>54</code></td><td class="wrap">Whole system px. The smallest size the grow box allows. Properties: <code>minWidth</code>, <code>minHeight</code></td></tr>
               <tr><td><code>max-width</code>, <code>max-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. The largest size the grow box allows. Make one equal to its min to lock that axis. These limit the grow box only, not <code>width</code> and <code>height</code>. Properties: <code>maxWidth</code>, <code>maxHeight</code></td></tr>
               <tr><td><code>variant</code></td><td class="wrap"><code>'utility'</code></td><td>—</td><td class="wrap">A utility window: a 12px dotted title bar and 7×7 close and zoom boxes. The title isn't shown, but <code>heading</code> still names the boxes. Floats above document windows in a <code>vf-desktop</code></td></tr>
+              <tr><td><code>frameless</code></td><td>boolean</td><td><code>false</code></td><td class="wrap">No chrome: no title bar, frame, shadow, grow box, header or status bar. The body is the whole box, and <code>pattern</code> fills it. Switching it keeps the focus in the body. For a window that takes the whole screen on <code>vf-desktop</code>'s <code>fullScreenWindow</code> tier</td></tr>
               <tr><td><code>scrollbars</code></td><td class="wrap"><code>'vertical' | 'horizontal' | 'both'</code></td><td>—</td><td class="wrap">Scrollbars on the window frame. On a <code>resizable</code> window the grow box sits in the corner, even with one scrollbar. With a status bar, the grow box moves into it and the scrollbar runs down to it</td></tr>
               <tr><td><code>header-height</code></td><td>number</td><td>—</td><td class="wrap">Whole system px. The header's height, including its rule. Unset, it fits its content. Property: <code>headerHeight</code></td></tr>
               <tr><td><code>sizeLimits</code></td><td>object</td><td>—</td><td class="wrap">Read-only. <code>{ minWidth, minHeight, maxWidth, maxHeight }</code>: the grow box's limits as they apply, with the 80×54 minimum and <code>Infinity</code> where unset. The chrome around the body is <code>windowChrome()</code>, exported from the package root</td></tr>

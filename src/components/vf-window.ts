@@ -227,6 +227,12 @@ const FRAME_STROKE = 1
  * same pen; the drag moves the outline, held where the window can land, and
  * the window moves there on the release. Escape cancels.
  *
+ * **Frameless.** With `frameless` the window draws no chrome — no title bar
+ * or widgets, no frame or shadow, no grow box, no header or status strip —
+ * and the body is the whole box: a window that takes the whole screen, say,
+ * on `vf-desktop`'s full-screen tier. The chrome is hidden, not torn down, so
+ * the switch moves no node and the focus in the body stays where it is.
+ *
  * @slot - Default slot: window body content.
  * @slot header - Optional header content — a band between the title bar and
  *   the body, the full width of the window (the Finder window's header
@@ -412,6 +418,33 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
         height: calc(var(--vf-scale, 1) * 3px);
       }
 
+      /* --- Frameless ------------------------------------------------- */
+      /* No chrome: the frame's stroke and shadow go, and the bars and the
+         grow box with them, so the body is the whole box. Hidden rather than
+         left out of the render, so switching moves no node and the focus in
+         the body stays; the title patch stays in the tree to name the window
+         (AccName reads a hidden aria-labelledby target, as the utility
+         variant's does). The border is the stroke's forced-colors form. */
+      :host([frameless]) .vf-frame {
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+      }
+      :host([frameless]) .vf-title-bar,
+      :host([frameless]) .header,
+      :host([frameless]) .status,
+      :host([frameless]) .grow {
+        display: none;
+      }
+      /* The edge rails' overhang lands the scroll area's frame on the
+         window's; with no frame to land on, the area fills the box instead,
+         its own frame line on the box's edge. */
+      :host([frameless]) .edge-scroll {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
       /* --- Body ------------------------------------------------------ */
       /* Clipped at the frame, the way the classic content region was: the
          window is a fixed box (width and height are both declared), so content
@@ -588,6 +621,20 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
    * float above the document tier and never take the single-active state.
    */
   @property({ reflect: true }) variant?: 'utility'
+
+  /**
+   * Draw no chrome: no title bar, so no close or zoom box, no frame or
+   * shadow, no grow box, and no header or status strip, whatever their slots
+   * hold. The body is the whole box, `pattern` filling it and a placed child
+   * measured from its corner; under `scrollbars` the built-in scroll area
+   * fills the box, its own frame line on the box's edge. `heading` still
+   * names the window. The chrome is hidden rather than left out of the
+   * render, so switching this on a connected window moves no node and the
+   * focus in the body stays where it is. In a `vf-desktop` the window keeps
+   * its tier for activation and `hidden`, and `show()` and `hide()` run
+   * their rects from and to its box.
+   */
+  @property({ type: Boolean, reflect: true }) frameless = false
 
   /** Title text shown centered in the title bar. */
   @property() heading = ''
@@ -1490,7 +1537,7 @@ export class VfWindow extends VfSized(VfPositioned(LitElement)) {
                 <vf-scroll-area
                   class="edge-scroll"
                   axis=${this.scrollbars}
-                  ?corner=${this.resizable && !this._hasStatus}
+                  ?corner=${this.resizable && !this._hasStatus && !this.frameless}
                   label=${this.heading || nothing}
                   pattern=${this._pattern ? this.pattern! : nothing}
                   exportparts="viewport"

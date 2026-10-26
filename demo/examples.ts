@@ -264,6 +264,34 @@ function wireOpening(): void {
 }
 
 /**
+ * `data-full-screen` on a button in a window: the window takes its desktop's
+ * whole screen, and gives it back. Each half is the page's to set — the
+ * window's `frameless`, its box at the screen's, the desktop's
+ * `fullScreenWindow` tier — and giving it back puts the box it had back.
+ */
+function wireFullScreen(): void {
+  for (const button of document.querySelectorAll<HTMLElement>('[data-full-screen]')) {
+    const win = button.closest<VfWindow>('vf-window')
+    const desktop = win?.closest<VfDesktop>('vf-desktop')
+    if (!win || !desktop) continue
+    let box: Pick<VfWindow, 'left' | 'top' | 'width' | 'height'> | null = null
+    button.addEventListener('click', () => {
+      if (!box) {
+        box = { left: win.left, top: win.top, width: win.width, height: win.height }
+        Object.assign(win, { frameless: true, left: 0, top: 0, width: desktop.width, height: desktop.height })
+        desktop.bringToFront(win)
+        desktop.fullScreenWindow = win
+      } else {
+        desktop.fullScreenWindow = null
+        Object.assign(win, { frameless: false, ...box })
+        box = null
+      }
+      button.textContent = box ? 'Exit Full Screen' : 'Full Screen'
+    })
+  }
+}
+
+/**
  * `data-size-readout` on a window's `slot="status"` element: mirror the
  * window's size in system px from `vf-resize` — the status bar and the
  * resize event working as the pair they were built to be.
@@ -693,6 +721,7 @@ buildToc()
 wireModalTriggers()
 wireWindowClosing()
 wireOpening()
+wireFullScreen()
 wireSizeReadouts()
 wireReadouts()
 wireEventLogs()

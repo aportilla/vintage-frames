@@ -64,6 +64,14 @@
  *    window's outer box and its body or scrolled viewport, for seven option
  *    sets at dpr 1 and 2; `sizeLimits` is the 80×54 floor by default and a
  *    window's own min and max where stated.
+ *  - FRAMELESS: `frameless` draws no title bar, header, status strip or grow
+ *    box, and no frame stroke or shadow; the body is the whole box, placed
+ *    children measuring from its corner and `pattern` black to its edges with
+ *    nothing past them; under `scrollbars` the scroll area fills the box, its
+ *    viewport inside its own frame and rails; the group is still named by
+ *    `heading`; switched off and on with the focus in the body, no node moves
+ *    and the focus stays; on a desktop it's a document window a press
+ *    activates, whose rects run from and to its box.
  *  - WORK AREA: on a desktop with a menu bar a window dragged up stops with
  *    its title bar under the bar, outline or live, or at `window-top`; the
  *    floor rounds up to the placement lattice; on a bezeled desktop the
@@ -73,6 +81,10 @@
  *   npm run verify:window
  */
 import {
+  ax,
+  axFor,
+  axName,
+  axRole,
   buttonlessMove,
   check,
   decodePng,
@@ -1777,6 +1789,172 @@ for (const [label, markup] of [
     mid.left === 160 && mid.top === 100 && mid.writes > 1 && mid.count === 0 && canvases === 0 &&
       end.left === 160 && end.top === 100,
     JSON.stringify({ mid, end, canvases })
+  )
+  await page.close()
+}
+
+/* ── FRAMELESS ─────────────────────────────────────────────────────────────
+   `frameless` draws no chrome: no title bar, header, status strip or grow
+   box, and a frame with no stroke or shadow, so the body is the whole box —
+   `pattern` filling it, a placed child measured from its corner — and the
+   group is still named by `heading`. It switches on a connected window
+   moving no node and keeping the focus in the body; on a desktop the window
+   is one of its tier, its rects running from and to its box. dpr 1, scale
+   1: CSS px are system px. */
+
+const FRAMELESS_DESK = `
+  <vf-desktop id="desk" width="512" height="342">
+    <vf-window frameless closable zoomable resizable movable id="win" heading="Kiosk"
+               width="200" height="120" left="100" top="60" pattern="black">
+      <vf-label slot="header">head</vf-label>
+      <vf-label slot="status">foot</vf-label>
+      <vf-container id="dot" left="10" top="12" width="20" height="20"></vf-container>
+      <vf-button id="ok" left="40" top="60">OK</vf-button>
+    </vf-window>
+    <vf-window frameless id="ink" heading="Ink" width="60" height="40" left="40" top="240" pattern="black"></vf-window>
+    <vf-window frameless resizable scrollbars="both" id="rails" heading="Rails" width="120" height="70" left="160" top="200"></vf-window>
+    <vf-window closable id="other" heading="Other" width="140" height="80" left="340" top="250"></vf-window>
+  </vf-desktop>
+`
+
+{
+  const page = await build(FRAMELESS_DESK, { settle: true })
+  const shape = await page.evaluate(() => {
+    const win = document.getElementById('win')
+    const part = (name) => win.shadowRoot.querySelector(`[part=${name}]`)
+    const host = win.getBoundingClientRect()
+    const body = part('body').getBoundingClientRect()
+    const frame = getComputedStyle(part('frame'))
+    const dot = document.getElementById('dot').getBoundingClientRect()
+    return {
+      undrawn: ['title-bar', 'header', 'status-bar', 'grow-box'].map((p) => getComputedStyle(part(p)).display),
+      shadow: frame.boxShadow,
+      padding: frame.padding,
+      border: frame.borderTopWidth,
+      body: [body.left - host.left, body.top - host.top, body.width - host.width, body.height - host.height],
+      dot: [dot.left - host.left, dot.top - host.top],
+      patterned: getComputedStyle(part('body')).backgroundImage !== 'none',
+      reflected: win.hasAttribute('frameless'),
+    }
+  })
+  check(
+    'FRAMELESS  no title bar, header, status strip or grow box, and a frame with no stroke or shadow',
+    shape.undrawn.every((d) => d === 'none') && shape.shadow === 'none' && shape.padding === '0px' && shape.border === '0px',
+    JSON.stringify(shape)
+  )
+  check('FRAMELESS  the body is the whole box', shape.body.every((v) => v === 0), JSON.stringify(shape.body))
+  check('FRAMELESS  a placed child measures from the box’s corner', shape.dot[0] === 10 && shape.dot[1] === 12, JSON.stringify(shape.dot))
+  check('FRAMELESS  pattern fills the body, and the attribute reflects', shape.patterned && shape.reflected, JSON.stringify(shape))
+
+  // Black from edge to edge, and nothing outside the box: the hard shadow
+  // would make the two columns right of it, and the rows under it, solid.
+  const png = decodePng(await page.screenshot({ clip: { x: 38, y: 238, width: 64, height: 44 } }))
+  let inside = true
+  for (let y = 2; y < 42; y++) for (let x = 2; x < 62; x++) inside &&= isBlack(png, x, y)
+  const solid = (pixels) => pixels.every(([x, y]) => isBlack(png, x, y))
+  const columns = [62, 63].map((x) => Array.from({ length: 40 }, (_, i) => [x, 4 + i]))
+  const rows = [42, 43].map((y) => Array.from({ length: 60 }, (_, i) => [4 + i, y]))
+  check(
+    'FRAMELESS  pattern="black" paints the whole box, and no shadow paints past it',
+    inside && ![...columns, ...rows].some(solid),
+    `inside ${inside}, solid edges ${[...columns, ...rows].map(solid)}`
+  )
+
+  // Under scrollbars the scroll area fills the box, its viewport inside its
+  // own 1px frame and the rails; the grow box gone, it keeps no corner cell.
+  const rails = await page.evaluate(() => {
+    const win = document.getElementById('rails')
+    const area = win.shadowRoot.querySelector('vf-scroll-area')
+    const o = win.getBoundingClientRect()
+    const a = area.getBoundingClientRect()
+    const v = area.shadowRoot.querySelector('[part="viewport"]').getBoundingClientRect()
+    return {
+      area: [a.left - o.left, a.top - o.top, o.right - a.right, o.bottom - a.bottom],
+      viewport: [v.top - o.top, o.right - v.right, o.bottom - v.bottom, v.left - o.left],
+      corner: area.hasAttribute('corner'),
+    }
+  })
+  check(
+    'FRAMELESS  under scrollbars the scroll area fills the box: its viewport 1px in, 16 by the rails, no corner cell kept',
+    JSON.stringify(rails.area) === '[0,0,0,0]' && JSON.stringify(rails.viewport) === '[1,16,16,1]' && !rails.corner,
+    JSON.stringify(rails)
+  )
+
+  const cdp = await ax(page)
+  const named = await axFor(cdp, 'win', 'frame')
+  check(
+    'FRAMELESS  the window is still a group named by its heading',
+    axRole(named) === 'group' && axName(named) === 'Kiosk',
+    `${axRole(named)} “${axName(named)}”`
+  )
+
+  // Off and on again, the focus on a control in the body: no node moves in
+  // the shadow tree, and the focus never leaves.
+  const kept = await page.evaluate(async () => {
+    const win = document.getElementById('win')
+    const ok = document.getElementById('ok')
+    ok.focus()
+    let blurs = 0
+    ok.addEventListener('focusout', () => blurs++)
+    const nodes = []
+    const watch = new MutationObserver((records) => nodes.push(...records.filter((r) => r.type === 'childList')))
+    watch.observe(win.shadowRoot, { childList: true, subtree: true })
+    win.frameless = false
+    await win.updateComplete
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const framed = {
+      focused: document.activeElement === ok,
+      bar: getComputedStyle(win.shadowRoot.querySelector('[part=title-bar]')).display,
+      body: win.shadowRoot.querySelector('[part=body]').getBoundingClientRect().top - win.getBoundingClientRect().top,
+    }
+    win.frameless = true
+    await win.updateComplete
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    watch.disconnect()
+    return { framed, focused: document.activeElement === ok, blurs, moved: nodes.length }
+  })
+  // Framed, the body starts under the frame, the 18px bar and the header.
+  check(
+    'FRAMELESS  switched off and on with the focus in the body: the chrome back and gone, no node moved, the focus kept',
+    kept.framed.focused && kept.framed.bar !== 'none' && kept.framed.body > 19 && kept.focused && kept.blurs === 0 && kept.moved === 0,
+    JSON.stringify(kept)
+  )
+
+  // A document window of its desktop: a press activates it. The focus above
+  // activated it already, so the other window comes forward first.
+  const tier = await page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    const win = document.getElementById('win')
+    desk.bringToFront(document.getElementById('other'))
+    return { z: Number(win.style.zIndex), active: desk.activeWindow?.id ?? null }
+  })
+  await page.mouse.click(110, 150)
+  const pressed = await page.evaluate(() => document.getElementById('desk').activeWindow?.id ?? null)
+  check(
+    'FRAMELESS  on a desktop it is a document window: in that tier, and a press activates it',
+    tier.z < 1_000_000 && tier.active === 'other' && pressed === 'win',
+    JSON.stringify({ ...tier, pressed })
+  )
+
+  // Its rects run from and to its box: the frames of a close and an open
+  // match the trail computed from the box.
+  await installRectsProbe(page)
+  const closing = await page.evaluate((to) => __closeRun({ to }), FROM)
+  const opening = await page.evaluate((from) => __openRun({ from }), FROM)
+  // The box and FROM span the union OPEN's window does: the same box.
+  const trail = (run) => {
+    const { shown, matches } = partsOf(run)
+    return (
+      run.result === true &&
+      sameBox(run.union, { x: 40, y: 60, w: 260, h: 172 }) &&
+      shown.length > 0 &&
+      matches.every((m) => m >= 0)
+    )
+  }
+  check(
+    'FRAMELESS  hide({ to }) and show({ from }) run their rects from and to its box',
+    trail(closing) && trail(opening),
+    JSON.stringify({ close: [closing.union, partsOf(closing).matches], open: [opening.union, partsOf(opening).matches] })
   )
   await page.close()
 }

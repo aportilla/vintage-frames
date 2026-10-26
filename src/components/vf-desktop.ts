@@ -26,8 +26,8 @@ import { SCREEN_CORNER, steppedCornerClip } from '../pixel-frame.js'
  * (the counter), utility windows (`counter + UTILITY_Z_BAND`), the menu tier
  * (`MENU_BAR_Z` — a slotted bar or free-standing menu, its dropped panel with
  * it), the drag outline and a window's opening rects (`DRAG_OUTLINE_Z`, one
- * above the menu tier), the corner mask (the maximal z-index — hardware, in
- * front of every pixel).
+ * above the menu tier), the window that takes the screen (`FULL_SCREEN_Z`),
+ * the corner mask (the maximal z-index — hardware, in front of every pixel).
  *
  * Both window tiers share the one monotonic counter, so a utility window
  * assigned `counter + BAND` stays above every document window until the
@@ -46,6 +46,14 @@ const MENU_BAR_Z = 2 * UTILITY_Z_BAND
  * window opens with: over windows, palettes and the menu bar alike.
  */
 const DRAG_OUTLINE_Z = MENU_BAR_Z + 1
+/**
+ * The full-screen tier ({@link VfDesktop.fullScreenWindow}): over everything
+ * else the screen shows, the outline and the rects too, which belong to the
+ * windows and icons it covers, and under the corner mask, so the screen keeps
+ * its rounded corners. A band above the menu tier, the margin the tiers below
+ * keep from each other.
+ */
+const FULL_SCREEN_Z = MENU_BAR_Z + UTILITY_Z_BAND
 
 /**
  * The classic compact Mac raster — the screen an undeclared desktop gets.
@@ -107,7 +115,17 @@ const onTitleBar = (event: Event): boolean =>
  * System 7's floating windoids behaved while their application was frontmost.
  * A slotted `vf-menu-bar` (or a free-standing `vf-menu`) sits on a tier
  * above both, so its dropped menus cover palettes and document windows
- * alike; only the screen-corner mask is in front of it.
+ * alike; only the drag outline, the full-screen tier and the screen-corner
+ * mask are in front of it.
+ *
+ * **The full-screen tier.** {@link fullScreenWindow} puts one slotted window
+ * above everything else the screen shows — both window tiers, the menu bar
+ * and its dropped menus, the drag outline and the rects — and under the
+ * corner mask alone: the tier a window takes the whole screen on. The page
+ * sets it and clears it, and sizes, draws and activates the window itself
+ * (`vf-window`'s `frameless`, the screen's `width` and `height`,
+ * {@link bringToFront}); cleared, the window goes back to its tier where it
+ * stood.
  *
  * **Deactivation.** On a real System 7 machine clicking the desktop clicked
  * the *Finder* — the frontmost application's windows lost their stripes.
@@ -632,9 +650,11 @@ export class VfDesktop extends VfPositioned(LitElement) {
   /**
    * The slotted windows in stacking order, bottom-most first: the document
    * tier, then the floating tier above it, each in the order its windows
-   * were last raised. Hidden windows are included where they stand. This is
-   * the order the eye sees; the windows' light-DOM order catches up with it
-   * only once a gesture ends, and a raise by keyboard focus moves no node.
+   * were last raised, and the window on the full-screen tier last. Hidden
+   * windows are included where they stand. This is the order the eye sees;
+   * the windows' light-DOM order catches up with it only once a gesture
+   * ends, a raise by keyboard focus moves no node, and the full-screen
+   * window keeps the light-DOM place of where it stood.
    */
   get stackingOrder(): HTMLElement[] {
     // A stable sort: windows not yet given a z keep their DOM order.
@@ -655,13 +675,61 @@ export class VfDesktop extends VfPositioned(LitElement) {
   }
 
   /**
+   * The window on the full-screen tier, or null. A slotted window set here
+   * stacks above everything else the screen shows — both window tiers, the
+   * menu bar and any dropped menu, the drag outline and the window rects —
+   * and under the corner mask alone, so the screen keeps its rounded
+   * corners: the tier for a window that takes the whole screen. Sizing it to
+   * the screen and drawing it without chrome (`vf-window`'s `frameless`) are
+   * the page's, and so is bringing it forward: setting this activates
+   * nothing. One window holds the tier at a time: setting another puts the
+   * first back, and null puts the holder back in its own tier where it
+   * stood — a raise meanwhile moves that place, as it would have moved the
+   * window. A holder that leaves the desktop gives the tier up. Anything but
+   * a window slotted here warns and changes nothing.
+   */
+  get fullScreenWindow(): HTMLElement | null {
+    return this.#screenHolder
+  }
+
+  set fullScreenWindow(win: HTMLElement | null) {
+    if (win === this.#screenHolder) return
+    if (win && !this._windows.includes(win)) {
+      console.warn('vf-desktop: fullScreenWindow takes a window slotted in this desktop, or null.', win)
+      return
+    }
+    this.#leaveScreenTier()
+    if (!win) return
+    this.#screenHolder = win
+    this.#screenPlace = win.style.zIndex
+    win.style.zIndex = String(FULL_SCREEN_Z)
+  }
+
+  /** The window on the full-screen tier, or null (see {@link fullScreenWindow}). */
+  #screenHolder: HTMLElement | null = null
+
+  /** The holder's z-index in its own tier: the place it goes back to. */
+  #screenPlace = ''
+
+  /** The holder back in its own tier, where it stood. */
+  #leaveScreenTier(): void {
+    const win = this.#screenHolder
+    if (!win) return
+    this.#screenHolder = null
+    win.style.zIndex = this.#screenPlace
+  }
+
+  /**
    * The z/active half of a raise, shared by every path. A hidden window
    * takes its place in the stack and nothing else: it activates when it is
-   * shown and raised.
+   * shown and raised. The full-screen window stays on its tier, and the
+   * raise moves the place it goes back to.
    */
   private _restack(win: HTMLElement): void {
     const utility = this._isUtility(win)
-    win.style.zIndex = String(++this._zCounter + (utility ? UTILITY_Z_BAND : 0))
+    const z = String(++this._zCounter + (utility ? UTILITY_Z_BAND : 0))
+    if (win === this.#screenHolder) this.#screenPlace = z
+    else win.style.zIndex = z
     if (!utility && !win.hidden) this._setActive(win)
   }
 
@@ -831,6 +899,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
   /** Wire up newly slotted windows: seed z-indices, normalize `active`. */
   private _onSlotChange(): void {
     const windows = this._windows
+    // A holder that left the desktop gives the full-screen tier up, its
+    // place written back, so one put back in lands in its own tier.
+    if (this.#screenHolder && !windows.includes(this.#screenHolder)) this.#leaveScreenTier()
     this._observeWindows()
     let newest: HTMLElement | null = null
     for (const win of windows) {
@@ -977,7 +1048,8 @@ export class VfDesktop extends VfPositioned(LitElement) {
    * node containing the focused element drops focus to `<body>`, so it is
    * restored afterwards — behind `_restoringFocus`, because the restore
    * re-fires focusin (see {@link _onFocusIn}) on an element that may sit in a
-   * background window.
+   * background window. The full-screen window is ordered by the place it
+   * goes back to, so taking and leaving the tier move no node.
    * Reached only through {@link _requestDomSync}'s task — after a pointer
    * gesture or a programmatic raise, never from a focus-driven one (see
    * {@link _raise} for why).
@@ -986,7 +1058,9 @@ export class VfDesktop extends VfPositioned(LitElement) {
     if (!this.isConnected) return
     const windows = this._windows
     if (windows.length < 2) return
-    const sorted = [...windows].sort((a, b) => zOf(a) - zOf(b))
+    const place = (win: HTMLElement): number =>
+      win === this.#screenHolder ? Number(this.#screenPlace) || 0 : zOf(win)
+    const sorted = [...windows].sort((a, b) => place(a) - place(b))
     const focused = this._deepActiveElement()
     let moved = false
     let prev: HTMLElement | null = null

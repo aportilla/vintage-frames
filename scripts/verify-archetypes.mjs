@@ -30,6 +30,14 @@
  *    the palette restacks — as it does over a document window, and so does
  *    a select's open list in a document window; a
  *    free-standing vf-menu slotted into the desktop rides the same tier.
+ *  - FULL-SCREEN TIER: `fullScreenWindow` puts a window over the menu tier
+ *    and the drag outline and under the corner mask — the hit test at the
+ *    bar, a dropped menu, a palette, a free-standing menu and another window
+ *    lands in it, and the corner's pixels stay black over it — activating
+ *    nothing; a raise keeps it there and moves its kept place, null puts it
+ *    back there, another window taking the tier puts it back too, a holder
+ *    that leaves the desktop gives the tier up, the DOM-order sync never moves
+ *    it, and anything but a slotted window is refused with a warning.
  *  - END SLOT: a label in the bar's `end` slot sits, pixel for pixel, where
  *    the page recipe the sites wrote for their clocks put it.
  *  - EDGE RAILS: scrollbars="both" reproduces the TeachText composition —
@@ -635,6 +643,196 @@ function decodePng(buf) {
   })
   check('a select’s open list covers a palette over its document window', probe.owner === 'sel', JSON.stringify(probe))
   await page.keyboard.press('Escape')
+  await page.close()
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   4b-ii. FULL-SCREEN TIER — one window over everything but the corner mask
+   ──────────────────────────────────────────────────────────────────────── */
+{
+  // A bezeled screen: a bar with a menu dropped, a free-standing menu, a
+  // palette and a document window, over a frameless window the size of the
+  // screen. On the tier it covers each of them, and the corner mask covers it.
+  const page = await build(`
+    <vf-desktop id="desk" width="300" height="200" bezel="5">
+      <vf-menu-bar id="bar">
+        <vf-menu id="file" label="File">
+          <vf-menu-item value="new">New</vf-menu-item>
+          <vf-menu-item value="open">Open…</vf-menu-item>
+        </vf-menu>
+      </vf-menu-bar>
+      <vf-window frameless id="full" heading="Full" pattern="white" left="0" top="0" width="300" height="200"></vf-window>
+      <vf-window closable id="pal" variant="utility" heading="Pal" left="170" top="110" width="100" height="60"></vf-window>
+      <vf-menu id="lone" label="Options" left="20" top="160">
+        <vf-menu-item value="a">Alpha</vf-menu-item>
+      </vf-menu>
+      <vf-window closable id="other" heading="Other" left="150" top="30" width="120" height="70"></vf-window>
+    </vf-desktop>
+  `, { settle: true })
+  const warnings = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'warning') warnings.push(msg.text())
+  })
+  await page.evaluate(() => {
+    window.__activations = 0
+    document.getElementById('desk').addEventListener('vf-activate', () => window.__activations++)
+  })
+
+  const state = () =>
+    page.evaluate(() => {
+      const desk = document.getElementById('desk')
+      const z = (id) => Number(document.getElementById(id).style.zIndex)
+      return {
+        holder: desk.fullScreenWindow?.id ?? null,
+        active: desk.activeWindow?.id ?? null,
+        activations: window.__activations,
+        order: desk.stackingOrder.map((w) => w.id),
+        full: z('full'),
+        other: z('other'),
+        pal: z('pal'),
+        bar: Number(getComputedStyle(document.getElementById('bar')).zIndex),
+        lone: Number(getComputedStyle(document.getElementById('lone')).zIndex),
+        corner: Number(getComputedStyle(desk.shadowRoot.querySelector('.corner')).zIndex),
+      }
+    })
+  /** The centre of an element, or of one of its shadow parts. */
+  const centre = (id, part = null) =>
+    page.evaluate(([i, p]) => {
+      const el = document.getElementById(i)
+      const r = (p ? el.shadowRoot.querySelector(`[part=${p}]`) : el).getBoundingClientRect()
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+    }, [id, part])
+  /** Which child of the desktop the hit-test at `p` lands in. */
+  const owner = (p) =>
+    page.evaluate(({ x, y }) => {
+      const el = document.elementFromPoint(x, y)
+      const found = ['full', 'pal', 'other', 'bar', 'lone'].find((id) => {
+        const host = document.getElementById(id)
+        return host === el || host.contains(el)
+      })
+      return found ?? (el ? el.localName : null)
+    }, p)
+  /** Screen pixels, system px from its corner: each one's middle device px at the pinned scale. */
+  const pixels = async (points) => {
+    const at = await page.evaluate(() => {
+      const r = document.getElementById('desk').shadowRoot.querySelector('[part=desktop]').getBoundingClientRect()
+      return { x: r.x, y: r.y }
+    })
+    const png = decodePng(await page.screenshot({ clip: { x: at.x, y: at.y, width: 300 * S, height: 200 * S } }))
+    const ink = ([r, g, b]) => (r < 32 && g < 32 && b < 32 ? 'black' : r > 224 && g > 224 && b > 224 ? 'white' : 'gray')
+    return points.map(([x, y]) => ink(png.px[y * S + 1][x * S + 1]))
+  }
+
+  // The File menu dropped first: the window is about to cover its title.
+  const label = await page.evaluate(() => {
+    const r = document.getElementById('file').labelRect
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  })
+  await page.mouse.click(label.x, label.y)
+  await page.evaluate(() => document.getElementById('file').updateComplete)
+  const panel = await centre('file', 'panel')
+  const [ruleBefore] = await pixels([[200, 19]])
+  let s = await state()
+  const before = s
+
+  await page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    desk.fullScreenWindow = document.getElementById('full')
+  })
+  s = await state()
+  check('the full-screen window rides a tier above the menu tier and the drag outline, under the corner mask',
+    s.holder === 'full' && s.full > s.bar && s.full > 2_000_001 && s.full < s.corner && s.bar === 2_000_000,
+    JSON.stringify(s))
+  check('setting the tier activates nothing', s.active === 'other' && s.activations === before.activations,
+    JSON.stringify({ active: s.active, activations: s.activations }))
+  check('stackingOrder lists it last, as the eye sees it', s.order.at(-1) === 'full', s.order.join())
+
+  const hits = {
+    bar: await owner(await centre('bar')),
+    panel: await owner(panel),
+    pal: await owner(await centre('pal')),
+    lone: await owner(await centre('lone')),
+    other: await owner(await centre('other')),
+  }
+  check('it covers the bar, the dropped menu, a palette, a free-standing menu and the other window',
+    Object.values(hits).every((h) => h === 'full'), JSON.stringify(hits))
+  const [corner, bottom, rule] = await pixels([[0, 0], [0, 199], [200, 19]])
+  check('the corner mask still paints over it, and it paints over the bar’s rule',
+    corner === 'black' && bottom === 'black' && rule === 'white' && ruleBefore === 'black',
+    JSON.stringify({ corner, bottom, rule, ruleBefore }))
+
+  // A raise while it holds the tier keeps it there and moves its kept place.
+  await page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    desk.bringToFront(document.getElementById('full'))
+  })
+  const raised = await state()
+  check('a raise activates it and keeps it on the tier',
+    raised.active === 'full' && raised.full === s.full, JSON.stringify(raised))
+  await page.evaluate(() => {
+    document.getElementById('desk').fullScreenWindow = null
+  })
+  s = await state()
+  check('null puts it back in its tier, at the place the raise gave it',
+    s.holder === null && s.full < 1_000_000 && s.full > s.other && s.order.at(-1) === 'pal',
+    JSON.stringify(s))
+
+  // Another window taking the tier puts the first back.
+  await page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    desk.fullScreenWindow = document.getElementById('full')
+    desk.fullScreenWindow = document.getElementById('other')
+  })
+  const swapped = await state()
+  check('another window taking the tier puts the first back where it stood',
+    swapped.holder === 'other' && swapped.full === s.full && swapped.other > swapped.bar,
+    JSON.stringify(swapped))
+
+  // A holder that leaves the desktop gives the tier up, and lands in its own
+  // tier when it's put back.
+  const left = await page.evaluate(async () => {
+    const desk = document.getElementById('desk')
+    const other = document.getElementById('other')
+    other.remove()
+    await new Promise((r) => setTimeout(r))
+    const out = { holder: desk.fullScreenWindow?.id ?? null, z: Number(other.style.zIndex) }
+    desk.append(other)
+    await new Promise((r) => setTimeout(r))
+    return { ...out, back: Number(other.style.zIndex), holderBack: desk.fullScreenWindow?.id ?? null }
+  })
+  check('a holder removed from the desktop gives the tier up; put back, it lands in its own tier',
+    left.holder === null && left.z === s.other && left.back === s.other && left.holderBack === null,
+    JSON.stringify(left))
+
+  // The DOM-order sync after a raise moves another window, never the holder.
+  const synced = await page.evaluate(async () => {
+    const desk = document.getElementById('desk')
+    const full = document.getElementById('full')
+    desk.fullScreenWindow = full
+    const moved = []
+    const watch = new MutationObserver((records) => {
+      for (const r of records) for (const n of [...r.addedNodes, ...r.removedNodes]) moved.push(n.id)
+    })
+    watch.observe(desk, { childList: true })
+    desk.bringToFront(document.getElementById('pal'))
+    desk.bringToFront(document.getElementById('other'))
+    await new Promise((r) => setTimeout(r, 50))
+    watch.disconnect()
+    return { moved, z: Number(full.style.zIndex), holder: desk.fullScreenWindow?.id ?? null }
+  })
+  check('the DOM-order sync moves other windows, never the one on the tier',
+    !synced.moved.includes('full') && synced.holder === 'full' && synced.z > 2_000_001,
+    JSON.stringify(synced))
+
+  // Anything but a window slotted here is refused, with a warning.
+  const refused = await page.evaluate(() => {
+    const desk = document.getElementById('desk')
+    desk.fullScreenWindow = document.createElement('vf-window')
+    return desk.fullScreenWindow?.id ?? null
+  })
+  check('a window that isn’t slotted in the desktop is refused, with a warning',
+    refused === 'full' && warnings.some((w) => w.includes('fullScreenWindow')),
+    JSON.stringify({ refused, warnings }))
   await page.close()
 }
 
